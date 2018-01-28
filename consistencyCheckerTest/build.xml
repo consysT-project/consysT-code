@@ -1,0 +1,51 @@
+<project name="consistencyCheckerTest" default="dist" basedir="../../jsr308/checker-framework/checker">
+    <description>
+        Builds the Checker Framework.
+    </description>
+
+    <property file="build.properties"/>
+
+    <import file="${basedir}/build.xml"/>
+
+    <target name="consistency-tests-nobuildjdk"
+            depends="jar,jdk.jar.exists,build-tests,consistency-base-tests"
+            description="Run tests for the Consistency Checker, WITHOUT updating jdkX.jar">
+    </target>
+
+    <target name="consistency-base-tests" depends="jar,build-tests"
+            description="Run base tests for the Consistency Checker">
+        <antcall target="-run-tests">
+            <param name="param" value="tests.ConsistencyTest"/>
+        </antcall>
+    </target>
+
+    <target name="build-tests" depends="prep" description="Compile tests">
+        <pathconvert pathsep=" " property="src.tests">
+            <path>
+                <fileset dir="${tests}">
+                    <include name="src/**/*.java"/>
+                </fileset>
+            </path>
+        </pathconvert>
+        <java fork="true"
+              failonerror="true"
+              classpath="../out/production/consistencyCheckerTest:${build}:${javac.lib}:${junit.lib}:${hamcrest.lib}"
+              classname="com.sun.tools.javac.Main">
+            <arg value="-g"/>
+            <arg value="-source"/>
+            <arg value="8"/>
+            <arg value="-target"/>
+            <arg value="8"/>
+            <!-- To not get a warning about missing bootstrap
+                 classpath for Java 8 (once we use Java 9). -->
+            <arg value="-Xlint:-options"/>
+            <arg value="-encoding"/>
+            <arg value="utf-8"/>
+            <arg value="-sourcepath"/>
+            <arg value="${tests}"/>
+            <arg value="-d"/>
+            <arg value="${tests.build}"/>
+            <arg line="${src.tests}"/>
+        </java>
+    </target>
+</project>
