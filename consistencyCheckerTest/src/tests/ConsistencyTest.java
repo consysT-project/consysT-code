@@ -18,6 +18,6 @@ public class ConsistencyTest extends CheckerFrameworkPerDirectoryTest {
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"consistency", "all-systems"};
+        return new String[] {"../../../../consistency-types-impl/consistencyCheckerTest/consistency"};
     }
 }
