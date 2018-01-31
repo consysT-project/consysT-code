@@ -1,11 +1,13 @@
-<project name="consistencyCheckerTest" default="dist" basedir="../../jsr308/checker-framework/checker">
+<project name="consistencyCheckerTest" default="dist" basedir=".">
     <description>
         Builds the Checker Framework.
     </description>
 
     <property file="build.properties"/>
 
-    <import file="${basedir}/build.xml"/>
+    <import file="${checkerframework}/build-common.xml"/>
+    <property file="${checkerframework}/build-common.properties"/>
+    <import file="${checkerframework}/checker/build.xml"/>
 
     <target name="consistency-tests-nobuildjdk"
             depends="jar,jdk.jar.exists,build-tests,consistency-base-tests"
@@ -34,7 +36,7 @@
 
         <mkdir dir="${build.reports}"/>
         <junit fork="${run.tests.should.fork}"
-               dir="${basedir}"
+               dir="${checkerframework}/checker"
                haltonfailure="${halt.on.test.failure}"
                haltonerror="${halt.on.test.failure}"
                maxmemory="2500M"
@@ -45,20 +47,20 @@
             <jvmarg value="-Demit.test.debug=true"/>
             <jvmarg line="${debugger.str}"/> <!-- may be empty string -->
 
-            <sysproperty key="JDK_JAR" value="${basedir}/dist/${jdkName}"/>
+            <sysproperty key="JDK_JAR" value="${checkerframework}/checker/dist/${jdkName}"/>
             <sysproperty key="emit.test.debug" value="${should.emit.debug.str}"/>
             <jvmarg value="-ea"/>
 
             <classpath>
-                <pathelement location="../../../consistency-types-impl/out/production/consistencyChecker"/>
-                <pathelement location="../../../consistency-types-impl/out/production/consistencyCheckerTest"/>
-                <pathelement path="${build}"/>
-                <pathelement path="${tests.build}"/>
+                <pathelement location="${consistencyChecker}/out/production/consistencyChecker"/>
+                <pathelement location="${consistencyChecker}/out/production/consistencyCheckerTest"/>
+                <pathelement path="${checkerframework}/checker/${build}"/>
+                <pathelement path="${checkerframework}/checker/${tests.build}"/>
                 <pathelement path="${javac.lib}"/>
                 <pathelement path="${junit.lib}"/>
                 <pathelement path="${hamcrest.lib}"/>
             </classpath>
-
+            <sysproperty key="consistencyChecker" value="${consistencyChecker}"/>
             <test name="${param}" todir="${build.reports}"/>
         </junit>
     </target>
