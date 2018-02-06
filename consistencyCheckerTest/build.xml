@@ -14,11 +14,31 @@
             description="Run tests for the Consistency Checker, WITHOUT updating jdkX.jar">
     </target>
 
+    <target name="build_checker">
+        <delete dir="${basedir}/../out/"/>
+        <mkdir dir="${basedir}/../out/production/consistencyChecker"/>
+        <javac srcdir="${basedir}/../consistencyChecker/src"
+               destdir="${basedir}/../out/production/consistencyChecker"
+               includeantruntime="false"
+               classpath="${checkerframework}/checker/dist/checker.jar:${checkerframework}/checker/dist/javac.jar"
+        />
+    </target>
+
+    <target name="build_consistency_tests" depends="build_checker">
+        <mkdir dir="${basedir}/../out/production/consistencyCheckerTest"/>
+        <javac srcdir="${basedir}/../consistencyCheckerTest/src"
+               destdir="${basedir}/../out/production/consistencyChecker"
+               includeantruntime="false"
+               classpath="${checkerframework}/checker/dist/checker.jar:${checkerframework}/checker/dist/javac.jar:"
+        />
+    </target>
+
     <target name="consistency-base-tests" depends="jar,build-tests,consistency-base-tests-nobuild">
     </target>
 
     <target name="consistency-base-tests-nobuild"
-            description="Run base tests for the Consistency Checker">
+            description="Run base tests for the Consistency Checker"
+            depends="build_checker, build_consistency_tests">
         <antcall target="-run-tests">
             <param name="param" value="tests.ConsistencyTest"/>
         </antcall>
