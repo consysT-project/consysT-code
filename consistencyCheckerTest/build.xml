@@ -29,7 +29,7 @@
         <javac srcdir="${basedir}/../consistencyCheckerTest/src"
                destdir="${basedir}/../out/production/consistencyChecker"
                includeantruntime="false"
-               classpath="${checkerframework}/checker/dist/checker.jar:${checkerframework}/checker/dist/javac.jar:"
+               classpath="${checkerframework}/checker/dist/checker.jar:${checkerframework}/checker/dist/javac.jar:${basedir}/lib/junit-4.12.jar"
         />
     </target>
 
