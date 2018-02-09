@@ -22,4 +22,13 @@ class DirectAssignment {
         // :: error: (assignment.type.incompatible)
         b = c;
     }
+
+    void annotatedInstances(){
+        @Low DirectAssignment low = new @High DirectAssignment();
+        @High DirectAssignment high = new @High DirectAssignment();
+
+        low = new @Low DirectAssignment();
+        // :: error: (assignment.type.incompatible)
+        high = new @Low DirectAssignment();
+    }
 }
