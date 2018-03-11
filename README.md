@@ -8,4 +8,4 @@ IMPL project WS 2017-18
 `checkerframework=/path/to/checkerframework`<br />
 `consistency-types-impl=/path/to/consistency-types-impl`
 4. in consistency-types-impl/consistencyCheckerTest/ run:<br />
-`$ ant consistency-base-tests-nobuild`
+`$ ant consistency_tests`
