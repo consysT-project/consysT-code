@@ -1,22 +1,28 @@
-import com.github.allprojects.consistencyTypes.qual.Low;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ConsistentCassandraTest {
 
-    private ConsistentCassandraConnector client;
-    private KeyspaceRepository schemaRepository;
+    private Integer port = 9042;
+    private String node = "localhost";
+    private Bank bank;
 
     @Before
-    public void connect() {
-        client = new ConsistentCassandraConnector();
-        client.connect("127.0.0.1", 9142);
-        schemaRepository = new KeyspaceRepository(client.getSession());
+    public void setUp() {
+
+        BankConnector connector = new BankConnector();
+        connector.connect(node, port);
+        bank = new Bank(connector);
     }
 
     @Test
     public void simpleTest() {
-        String keyspaceName = "library";
-        schemaRepository.createKeyspace(keyspaceName, "SimpleStrategy", 1);
+        bank.addCustomer(new Customer("Peter", 2000));
+    }
+
+    @After
+    public void tearDown(){
+        bank.close();
     }
 }
