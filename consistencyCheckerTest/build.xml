@@ -9,11 +9,6 @@
     <property file="${checkerframework}/build-common.properties"/>
     <import file="${checkerframework}/checker/build.xml"/>
 
-    <target name="consistency-tests-nobuildjdk"
-            depends="jar,jdk.jar.exists,build-tests,consistency-base-tests"
-            description="Run tests for the Consistency Checker, WITHOUT updating jdkX.jar">
-    </target>
-
     <target name="build_checker">
         <delete dir="${basedir}/../out/"/>
         <mkdir dir="${basedir}/../out/production/consistencyChecker"/>
@@ -33,10 +28,7 @@
         />
     </target>
 
-    <target name="consistency-base-tests" depends="jar,build-tests,consistency-base-tests-nobuild">
-    </target>
-
-    <target name="consistency-base-tests-nobuild"
+    <target name="consistency-base-tests"
             description="Run base tests for the Consistency Checker"
             depends="build_checker, build_consistency_tests">
         <antcall target="-run-tests">
@@ -54,7 +46,6 @@
             <isset property="debugger.on"/>
         </condition>
 
-        <mkdir dir="${build.reports}"/>
         <junit fork="${run.tests.should.fork}"
                dir="${checkerframework}/checker"
                haltonfailure="${halt.on.test.failure}"
@@ -81,7 +72,7 @@
                 <pathelement path="${hamcrest.lib}"/>
             </classpath>
             <sysproperty key="consistencyChecker" value="${consistencyChecker}"/>
-            <test name="${param}" todir="${build.reports}"/>
+            <test name="${param}"/>
         </junit>
     </target>
 </project>
