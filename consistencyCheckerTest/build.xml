@@ -9,11 +9,6 @@
     <property file="${checkerframework}/build-common.properties"/>
     <import file="${checkerframework}/checker/build.xml"/>
 
-    <target name="consistency-tests-nobuildjdk"
-            depends="jar,jdk.jar.exists,build-tests,consistency-base-tests"
-            description="Run tests for the Consistency Checker, WITHOUT updating jdkX.jar">
-    </target>
-
     <target name="build_checker">
         <delete dir="${basedir}/../out/"/>
         <mkdir dir="${basedir}/../out/production/consistencyChecker"/>
@@ -33,44 +28,17 @@
         />
     </target>
 
-    <target name="consistency-base-tests" depends="jar,build-tests,consistency-base-tests-nobuild">
-    </target>
-
-    <target name="consistency-base-tests-nobuild"
+    <target name="consistency_tests"
             description="Run base tests for the Consistency Checker"
             depends="build_checker, build_consistency_tests">
-        <antcall target="-run-tests">
-            <param name="param" value="tests.ConsistencyTest"/>
+        <antcall target="run_consistency_tests">
         </antcall>
     </target>
 
-    <target name="-run-tests" description="Generalized test runner">
-
-        <condition property="should.emit.debug.str" value="true" else="false">
-            <isset property="emit.test.debug"/>
-        </condition>
-
-        <condition property="debugger.str" value="-Xnoagent -Djava.compiler=NONE -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" else="">
-            <isset property="debugger.on"/>
-        </condition>
-
-        <mkdir dir="${build.reports}"/>
-        <junit fork="${run.tests.should.fork}"
-               dir="${checkerframework}/checker"
-               haltonfailure="${halt.on.test.failure}"
-               haltonerror="${halt.on.test.failure}"
-               maxmemory="2500M"
-               showoutput="true"
-               printsummary="withOutAndErr"
-        >
+    <target name="run_consistency_tests">
+        <junit fork="true" dir="${checkerframework}/checker">
             <formatter type="plain" usefile="false"/>
-            <jvmarg value="-Demit.test.debug=true"/>
-            <jvmarg line="${debugger.str}"/> <!-- may be empty string -->
-
             <sysproperty key="JDK_JAR" value="${checkerframework}/checker/dist/${jdkName}"/>
-            <sysproperty key="emit.test.debug" value="${should.emit.debug.str}"/>
-            <jvmarg value="-ea"/>
-
             <classpath>
                 <pathelement location="${consistencyChecker}/out/production/consistencyChecker"/>
                 <pathelement location="${consistencyChecker}/out/production/consistencyCheckerTest"/>
@@ -81,7 +49,7 @@
                 <pathelement path="${hamcrest.lib}"/>
             </classpath>
             <sysproperty key="consistencyChecker" value="${consistencyChecker}"/>
-            <test name="${param}" todir="${build.reports}"/>
+            <test name="tests.ConsistencyTest"/>
         </junit>
     </target>
 </project>
