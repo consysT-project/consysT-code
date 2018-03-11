@@ -21,8 +21,7 @@ public class ConsistencyTest extends CheckerFrameworkPerFileTest {
     @Parameters
     public static List<File> getTestFiles() {
         String consistencyChecker = System.getProperties().getProperty("consistencyChecker");
-        System.out.println(consistencyChecker);
-        File dir = new File (consistencyChecker + "consistencyCheckerTest/consistency");
+        File dir = new File (consistencyChecker + "/consistencyCheckerTest/consistency");
         List<File> files = new ArrayList<File>();
         files.addAll(Arrays.asList(dir.listFiles()));
         return files;
