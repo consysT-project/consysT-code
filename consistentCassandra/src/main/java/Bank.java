@@ -12,6 +12,10 @@ public class Bank {
         connector.addCustomer(c);
     }
 
+    public int getBalance(Customer c) { return connector.getBalance(c); }
+
+    public void withdraw(Customer c, int amount) { connector.withdraw(c, amount); }
+
     public void close(){
         connector.dropKeyspace("bank");
     }

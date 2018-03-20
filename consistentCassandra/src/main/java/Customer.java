@@ -11,9 +11,9 @@ public class Customer {
         return id_count;
     }
 
-    public Customer(String n, int a){
+    public Customer(String n){
         this.id = Customer.getNewID();
         this.name = n;
-        this.amount = a;
+        this.amount = 0;
     }
 }
