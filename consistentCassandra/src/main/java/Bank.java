@@ -1,3 +1,5 @@
+import com.github.allprojects.consistencyTypes.qual.High;
+
 public class Bank {
 
     private BankConnector connector;
@@ -8,13 +10,13 @@ public class Bank {
         connector.createCustomerTable();
     }
 
-    public void addCustomer(Customer c){
+    public void addCustomer(@High Customer c){
         connector.addCustomer(c);
     }
 
     public int getBalance(Customer c) { return connector.getBalance(c); }
 
-    public void withdraw(Customer c, int amount) { connector.withdraw(c, amount); }
+    public void withdraw(@High Customer c, @High int amount) { connector.withdraw(c, amount); }
 
     public void close(){
         connector.dropKeyspace("bank");

@@ -1,18 +1,18 @@
 import com.datastax.driver.core.*;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Assignment;
 import com.github.allprojects.consistencyTypes.qual.High;
 import com.github.allprojects.consistencyTypes.qual.Low;
 
-import javax.swing.plaf.nimbus.State;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 
 public class BankConnector extends ConsistentCassandraConnector {
 
-    private final String customerTableName = "customers";
-    private final String idKey = "id";
-    private final String nameKey = "name";
-    private final String amountKey = "amount";
+    @High private final String customerTableName = "customers";
+    @High private final String idKey = "id";
+    @High private final String nameKey = "name";
+    @High private final String amountKey = "amount";
 
     public BankConnector(){
 
@@ -22,15 +22,20 @@ public class BankConnector extends ConsistentCassandraConnector {
         getSession().execute("CREATE TABLE " + customerTableName + " ("+ idKey +" int primary key, "+ nameKey + " varchar, "+ amountKey +" int);");
     }
 
-    public void addCustomer(Customer c){
+    public void addCustomer(@High Customer c){
+        @SuppressWarnings("consistency")
         @High Statement query = QueryBuilder.insertInto(customerTableName).values(new String[] { idKey, nameKey, amountKey }, new Object[] { c.id, c.name, c.amount });
         this.executeAll(query);
     }
 
-    public void withdraw(Customer c, int amount){
+    public void withdraw(@High Customer c, @High int amount){
+        @SuppressWarnings("consistency")
         @High Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
+        @SuppressWarnings("consistency")
         @High int balance = this.executeAll(query).one().getInt(amountKey);
-        query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(amountKey, balance - amount));
+        @SuppressWarnings("consistency")
+        @High Assignment assignment = QueryBuilder.set(amountKey, balance - amount);
+        QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(assignment);
         this.executeAll(query);
     }
 
