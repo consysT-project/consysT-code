@@ -1,3 +1,5 @@
+import com.github.allprojects.consistencyTypes.qual.High;
+
 public class Bank {
 
     private BankConnector connector;
@@ -11,10 +13,6 @@ public class Bank {
     public void addCustomer(Customer c){
         connector.addCustomer(c);
     }
-
-    public int getBalance(Customer c) { return connector.getBalance(c); }
-
-    public void withdraw(Customer c, int amount) { connector.withdraw(c, amount); }
 
     public void close(){
         connector.dropKeyspace("bank");

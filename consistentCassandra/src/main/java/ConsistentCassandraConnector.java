@@ -48,7 +48,6 @@ public class ConsistentCassandraConnector {
 
     @High
     public ResultSet executeAll(@High Statement statement){
-        System.out.println(statement);
         statement.setConsistencyLevel(ConsistencyLevel.ALL);
         @SuppressWarnings("consistency")
         @High ResultSet result = session.execute(statement);

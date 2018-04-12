@@ -9,19 +9,21 @@ public class BankConnectorTest {
     private Integer port = 9042;
     private String node = "localhost";
     private Bank bank;
+    private CustomerConnector customerConnector;
 
     @Before
     public void setUp() {
         BankConnector connector = new BankConnector();
+        customerConnector = new CustomerConnector();
         connector.connect(node, port);
         bank = new Bank(connector);
     }
 
     @Test
     public void simpleTest() {
-        Customer c = new Customer("Peter");
+        Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
-        assert bank.getBalance(c) == 0;
+        assert c.getBalance() == 0;
     }
 
     @Low public int someInconsistentCalculation() { return 42; }
@@ -32,16 +34,16 @@ public class BankConnectorTest {
         @Low int amountB = someInconsistentCalculation();
         int amountC = someInconsistentCalculation();
 
-        Customer c = new Customer("Peter");
+        Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
-        bank.withdraw(c, amountA);
-        assert bank.getBalance(c) == -1000;
-        bank.withdraw(c, -amountA);
-        assert bank.getBalance(c) == 0;
+        c.withdraw(amountA);
+        assert c.getBalance() == -1000;
+        c.withdraw(-amountA);
+        assert c.getBalance() == 0;
         // :: error: (argument.type.incompatible)
-        bank.withdraw(c, amountB);
+        c.withdraw(amountB);
         // :: error: (argument.type.incompatible)
-        bank.withdraw(c, amountC);
+        c.withdraw(amountC);
     }
 
     @After
