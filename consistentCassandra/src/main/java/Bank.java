@@ -10,7 +10,7 @@ public class Bank {
         connector.createCustomerTable();
     }
 
-    public void addCustomer(Customer c){
+    public void addCustomer(@High Customer c){
         connector.addCustomer(c);
     }
 
