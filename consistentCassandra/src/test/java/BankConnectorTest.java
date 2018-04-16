@@ -21,7 +21,7 @@ public class BankConnectorTest {
 
     @Test
     public void simpleTest() {
-        Customer c = new Customer("Peter", customerConnector);
+        @High Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
         assert c.getBalance() == 0;
     }
@@ -34,7 +34,7 @@ public class BankConnectorTest {
         @Low int amountB = someInconsistentCalculation();
         int amountC = someInconsistentCalculation();
 
-        Customer c = new Customer("Peter", customerConnector);
+        @High Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
         c.withdraw(amountA);
         assert c.getBalance() == -1000;
