@@ -8,17 +8,17 @@ import java.util.HashSet;
 public class Bank extends Wrappable {
 
     private BankConnector connector;
-    private CollectionWrapper<HashSet<Customer>, Customer> customer;
+    private CollectionWrapper<HashSet<Wrappable>> customers;
 
     public Bank(BankConnector conn){
         this.connector = conn;
-        this.customer = new CollectionWrapper<>(new HashSet<>());
+        this.customers = new CollectionWrapper<>(new HashSet<>());
         connector.createKeyspace("bank", "SimpleStrategy", 1);
         connector.createCustomerTable();
     }
 
     public void addCustomer(Customer c){
-        customer.add(c);
+        customers.add(c);
     }
 
     public void close(){
