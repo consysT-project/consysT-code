@@ -21,6 +21,7 @@ public class Customer extends Wrappable {
     public Customer(String n, CustomerConnector connector){
         this.id = Customer.getNewID();
         this.connector = connector;
+        connector.useKeyspace("bank");
         this.name = new HighValue<>(n,
                 connector.getSession(),
                 () -> connector.getName(this),

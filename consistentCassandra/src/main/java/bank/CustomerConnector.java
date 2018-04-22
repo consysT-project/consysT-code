@@ -14,8 +14,11 @@ public class CustomerConnector extends ConsistentCassandraConnector {
     private final String nameKey = "name";
     private final String amountKey = "amount";
 
-    private Statement getQuery(Customer c) {
-        return QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
+
+    @High private Statement getQuery(Customer c) {
+        @SuppressWarnings("consistency")
+        @High Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
+        return query;
     }
 
     public void setBalance(Customer c, int balance) {
@@ -25,12 +28,13 @@ public class CustomerConnector extends ConsistentCassandraConnector {
     }
 
     public void withdraw(Customer c, int amount) {
-        Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
+        @SuppressWarnings("consistency")
+        @High Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
         int balance = c.amount.execute(query).one().getInt(amountKey);
         setBalance(c,balance - amount);
     }
 
-    public int getBalance(Customer c){
+    @High public int getBalance(Customer c){
         return c.amount.execute(getQuery(c)).one().getInt(amountKey);
     }
 

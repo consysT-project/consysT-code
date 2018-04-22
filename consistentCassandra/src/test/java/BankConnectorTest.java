@@ -20,34 +20,23 @@ public class BankConnectorTest {
         BankConnector connector = new BankConnector();
         customerConnector = new CustomerConnector();
         connector.connect(node, port);
+        customerConnector.connect(node, port);
         bank = new Bank(connector);
     }
 
     @Test
     public void simpleTest() {
-        @High Customer c = new Customer("Peter", customerConnector);
+        Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
         assert c.getBalance() == 0;
     }
 
-    @Low public int someInconsistentCalculation() { return 42; }
-
     @Test
     public void withdrawalTest() {
-        @High int amountA = 1000;
-        @Low int amountB = someInconsistentCalculation();
-        int amountC = someInconsistentCalculation();
-
-        @High Customer c = new Customer("Peter", customerConnector);
+        Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
-        c.withdraw(amountA);
+        c.withdraw(1000);
         assert c.getBalance() == -1000;
-        c.withdraw(-amountA);
-        assert c.getBalance() == 0;
-        // :: error: (argument.type.incompatible)
-        c.withdraw(amountB);
-        // :: error: (argument.type.incompatible)
-        c.withdraw(amountC);
     }
 
     @After
