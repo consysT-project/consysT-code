@@ -1,3 +1,5 @@
+package cassandra;
+
 import com.datastax.driver.core.*;
 import com.github.allprojects.consistencyTypes.qual.High;
 import com.github.allprojects.consistencyTypes.qual.Low;
@@ -44,19 +46,5 @@ public class ConsistentCassandraConnector {
     public void dropKeyspace(String name){
         String query = "DROP KEYSPACE " + name;
         session.execute(query);
-    }
-
-    @High
-    public ResultSet executeAll(@High Statement statement){
-        statement.setConsistencyLevel(ConsistencyLevel.ALL);
-        @SuppressWarnings("consistency")
-        @High ResultSet result = session.execute(statement);
-        return result;
-    }
-
-    @Low
-    public ResultSet executeSingle(@Low Statement statement){
-        statement.setConsistencyLevel(ConsistencyLevel.ONE);
-        return session.execute(statement);
     }
 }

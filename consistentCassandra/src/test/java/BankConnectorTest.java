@@ -1,3 +1,7 @@
+import bank.Bank;
+import bank.BankConnector;
+import bank.Customer;
+import bank.CustomerConnector;
 import com.github.allprojects.consistencyTypes.qual.High;
 import com.github.allprojects.consistencyTypes.qual.Low;
 import org.junit.After;
