@@ -2,7 +2,7 @@ package cassandra;
 
 import java.util.Collection;
 
-public class CollectionWrapper<T extends Collection<U>, U extends Wrappable> extends AbstractConsistencyWrapper<T>{
+public class CollectionWrapper<T extends Collection<Wrappable>> extends AbstractConsistencyWrapper<T>{
 
     private T wrapper;
 
@@ -27,7 +27,7 @@ public class CollectionWrapper<T extends Collection<U>, U extends Wrappable> ext
         return getWrappedObject();
     }
 
-    public boolean add(U object){
+    public boolean add(Wrappable object){
         object.getWrapper().write();
         return wrapper.add(object);
     }
