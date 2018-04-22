@@ -21,7 +21,7 @@ public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
         super(wrappedObject, session, read, write, parent);
     }
 
-    @Low public T value() {
+    public T value() {
         return getWrappedObject();
     }
 

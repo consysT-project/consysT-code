@@ -19,9 +19,9 @@ public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
         super(wrappedObject, session, read, write, parent);
     }
 
-    @High public T value() {
+    public T value() {
         @SuppressWarnings("consistency")
-        @High T wrappedObj = getWrappedObject();
+        T wrappedObj = getWrappedObject();
         return wrappedObj;
     }
 

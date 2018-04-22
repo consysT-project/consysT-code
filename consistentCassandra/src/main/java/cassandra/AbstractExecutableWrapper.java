@@ -23,16 +23,16 @@ public abstract class AbstractExecutableWrapper<T> extends AbstractConsistencyWr
         this.write = write;
     }
 
-    public abstract T value();
-
     public abstract <V> V perform(Function<T, V> function);
 
     public abstract ResultSet execute(Statement statement);
 
+    @Override
     T read() {
         return this.read.get();
     };
 
+    @Override
     void write() {
         this.write.accept(this.value());
     };
