@@ -40,6 +40,10 @@ public class ConsistentCassandraConnector {
 
         String query = sb.toString();
         session.execute(query);
+        this.useKeyspace(keyspaceName);
+    }
+
+    public void useKeyspace(String keyspaceName){
         session = cluster.connect(keyspaceName);
     }
 
