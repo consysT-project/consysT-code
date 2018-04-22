@@ -1,5 +1,8 @@
+package cassandra;
+
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.github.allprojects.consistencyTypes.qual.Low;
 
@@ -7,14 +10,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class LowValue<@Low T> extends AbstractConsistencyWrapper<T> {
+public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
 
     private int accessCount = 0;
 
-    public LowValue(T wrappedObject, ConsistentCassandraConnector connector,
+    public LowValue(T wrappedObject, Session session,
                     Supplier<T> read,
-                    Consumer<T> write) {
-        super(wrappedObject, connector, read, write);
+                    Consumer<T> write,
+                    Wrappable parent) {
+        super(wrappedObject, session, read, write, parent);
     }
 
     @Low public T value() {

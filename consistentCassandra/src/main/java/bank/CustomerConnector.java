@@ -1,7 +1,9 @@
+package bank;
+
+import cassandra.ConsistentCassandraConnector;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.github.allprojects.consistencyTypes.qual.High;
-import com.github.allprojects.consistencyTypes.qual.Low;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 
@@ -17,13 +19,14 @@ public class CustomerConnector extends ConsistentCassandraConnector {
     }
 
     public void setBalance(Customer c, int balance) {
+        @SuppressWarnings("consistency")
         @High Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(amountKey, balance));
         c.amount.execute(query);
     }
 
     public void withdraw(Customer c, int amount) {
-        @High Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
-        @High int balance = c.amount.execute(query).one().getInt(amountKey);
+        Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
+        int balance = c.amount.execute(query).one().getInt(amountKey);
         setBalance(c,balance - amount);
     }
 
@@ -36,6 +39,7 @@ public class CustomerConnector extends ConsistentCassandraConnector {
     }
 
     public void setName(Customer c, String name) {
+        @SuppressWarnings("consistency")
         @High Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(nameKey, name));
         c.name.execute(query);
     }
