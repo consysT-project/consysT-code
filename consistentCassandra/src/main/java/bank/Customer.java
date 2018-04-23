@@ -1,21 +1,28 @@
 package bank;
 
 import cassandra.HighValue;
+import cassandra.LowValue;
 import cassandra.Wrappable;
+import org.apache.cassandra.utils.UUIDGen;
+
+import java.util.UUID;
 
 public class Customer extends Wrappable {
 
-    static int id_count = 0;
-
     public HighValue<String> name;
     public HighValue<Integer> amount;
-    public int id;
+    public LowValue<Integer> loyaltyPoints;
+    public UUID id;
 
     private CustomerConnector connector;
 
-    public static int getNewID(){
-        id_count++;
-        return id_count;
+    public static UUID getNewID(){
+        return UUIDGen.getTimeUUID();
+    }
+
+
+    public Customer(Customer c){
+        this(c.id, c.getName(), c.getBalance(), c.connector);
     }
 
     public Customer(String n, CustomerConnector connector){
@@ -32,25 +39,48 @@ public class Customer extends Wrappable {
                 () -> connector.getBalance(this),
                 value -> connector.setBalance(this, value),
                 this);
+        this.loyaltyPoints = new LowValue<>(0,
+                connector.getSession(),
+                () -> connector.getLoyaltyPoints(this),
+                value -> connector.setLoyaltyPoints(this, value),
+                this);
+    }
+
+    public Customer(UUID uuid, String n, int amount, CustomerConnector connector){
+        this(n, connector);
+        this.id = uuid;
+        this.setBalance(amount);
     }
 
     public int getBalance() {
-        return connector.getBalance(this);
+        return amount.value();
     }
 
     public void setBalance(int balance) {
-        connector.setBalance(this, balance);
+        amount.setValue(balance);
     }
 
-    public void withdraw(int amount) {
-        connector.withdraw(this, amount);
+    public void withdraw(int s) {
+        amount.perform(value -> {
+            amount.setValue(value - s);
+            return null;
+        }
+        );
     }
 
     public String getName() {
-        return connector.getName(this);
+        return name.value();
     }
 
-    public void setName(String name) {
-        connector.setName(this, name);
+    public void setName(String n) {
+        name.setValue(n);
+    }
+
+    public int getLoyaltyPoints() {
+        return loyaltyPoints.value();
+    }
+
+    public void setLoyaltyPoints(int loyalty) {
+        loyaltyPoints.setValue(loyalty);
     }
 }

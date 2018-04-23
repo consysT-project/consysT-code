@@ -4,11 +4,13 @@ import cassandra.CollectionWrapper;
 import cassandra.Wrappable;
 
 import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 public class Bank extends Wrappable {
 
     private BankConnector connector;
-    private CollectionWrapper<HashSet<Customer>, Customer> customer;
+    private CollectionWrapper<Set<Customer>, Customer> customer;
 
     public Bank(BankConnector conn){
         this.connector = conn;
@@ -23,5 +25,9 @@ public class Bank extends Wrappable {
 
     public void close(){
         connector.dropKeyspace("bank");
+    }
+
+    public Customer getCustomer(UUID uuid){
+        return customer.value().stream().filter(c -> c.id == uuid).findFirst().orElse(null);
     }
 }

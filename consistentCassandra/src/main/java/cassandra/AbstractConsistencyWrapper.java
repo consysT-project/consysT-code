@@ -17,18 +17,22 @@ public abstract class AbstractConsistencyWrapper<T> {
         this(wrappedObject, parent.getWrapper());
     }
 
-    void setWrappedObject(T wrappedObject) {
-        this.wrappedObject = wrappedObject;
-        write();
-    }
-
     abstract void write();
 
     abstract T read();
 
-    public T getWrappedObject(){
+    T getWrappedObject(){
         return wrappedObject;
     }
 
+    void setWrappedObject(T object){
+        this.wrappedObject = object;
+    }
+
     public abstract T value();
+
+    public void setValue(T value) {
+        setWrappedObject(value);
+        write();
+    }
 }

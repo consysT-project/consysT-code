@@ -22,23 +22,20 @@ public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
     }
 
     @Low public T value() {
-        return getWrappedObject();
+        return read();
     }
 
     public <V> V perform(Function<T, V> function) {
-        return function.apply(readCache());
+        return function.apply(read());
     }
 
-    private T readCache() {
-        if (accessCount++ % 5 == 0) {
-            invalidateCache();
+    @Override
+    T read(){
+        if (++accessCount % 5 == 0) {
+            super.read();
+            accessCount = 0;
         }
         return getWrappedObject();
-    }
-
-    private void invalidateCache() {
-        setWrappedObject(read());
-        accessCount = 0;
     }
 
     @Low public ResultSet execute(Statement statement) {
