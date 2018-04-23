@@ -27,11 +27,13 @@ public abstract class AbstractExecutableWrapper<T> extends AbstractConsistencyWr
 
     public abstract ResultSet execute(Statement statement);
 
+    @Override
     T read() {
         setWrappedObject(this.read.get());
         return getWrappedObject();
     };
 
+    @Override
     void write() {
         this.write.accept(this.getWrappedObject());
     };
