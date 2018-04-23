@@ -2,8 +2,6 @@ import bank.Bank;
 import bank.BankConnector;
 import bank.Customer;
 import bank.CustomerConnector;
-import com.github.allprojects.consistencyTypes.qual.High;
-import com.github.allprojects.consistencyTypes.qual.Low;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +27,25 @@ public class BankConnectorTest {
         Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
         assert c.getBalance() == 0;
+        printCustomerStatus(c);
+    }
+
+    @Test
+    public void concurrentTest() {
+        Customer klaus1 = new Customer("Klaus", customerConnector);
+        bank.addCustomer(klaus1);
+        Customer klaus2 = new Customer(klaus1);
+        klaus1.withdraw(1000);
+        assert klaus2.getBalance() == klaus1.getBalance() && klaus1.getBalance() == -1000;
+        klaus2.setBalance(1000000);
+        assert klaus2.getBalance() == klaus1.getBalance() && klaus1.getBalance() == 1000000;
+        assert klaus2.getLoyaltyPoints() == 0;
+        klaus1.setLoyaltyPoints(5);
+        assert klaus1.getLoyaltyPoints() == 5;
+        assert klaus2.getLoyaltyPoints() == 0;
+        assert klaus2.getLoyaltyPoints() == 0;
+        assert klaus2.getLoyaltyPoints() == 0;
+        assert klaus2.getLoyaltyPoints() == 5;
     }
 
     @Test
@@ -37,6 +54,20 @@ public class BankConnectorTest {
         bank.addCustomer(c);
         c.withdraw(1000);
         assert c.getBalance() == -1000;
+        printCustomerStatus(c);
+    }
+
+    private void printCustomerStatus(Customer c){
+        c.amount.perform((value) -> {
+            if(value > 0){
+                System.out.println(c.getName() + " hat " + value + " Euro Guthaben");
+            } else if(value == 0){
+                System.out.println(c.getName() + " hat kein Guthaben");
+            } else {
+                System.out.println(c.getName() + " hat " + value + " Euro Schulden");
+            }
+            return null;
+        });
     }
 
     @After

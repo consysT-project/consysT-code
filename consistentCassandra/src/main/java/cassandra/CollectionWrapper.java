@@ -24,7 +24,7 @@ public class CollectionWrapper<T extends Collection<U>, U extends Wrappable> ext
 
     @Override
     public T value() {
-        return getWrappedObject();
+        return read();
     }
 
     public boolean add(U object){

@@ -19,15 +19,14 @@ public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
         super(wrappedObject, session, read, write, parent);
     }
 
-    @High public T value() {
+    public T value() {
         @SuppressWarnings("consistency")
-        @High T wrappedObj = getWrappedObject();
-        return wrappedObj;
+        T value = read();
+        return value;
     }
 
     public <V> V perform(Function<T, V> function) {
-        setWrappedObject(read());
-        return function.apply(getWrappedObject());
+        return function.apply(read());
     }
 
     @High

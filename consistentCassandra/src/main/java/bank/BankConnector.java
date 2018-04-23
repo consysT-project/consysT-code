@@ -1,10 +1,6 @@
 package bank;
 
 import cassandra.ConsistentCassandraConnector;
-import com.datastax.driver.core.*;
-import com.github.allprojects.consistencyTypes.qual.High;
-
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 public class BankConnector extends ConsistentCassandraConnector {
 
@@ -12,12 +8,17 @@ public class BankConnector extends ConsistentCassandraConnector {
     private final String idKey = "id";
     private final String nameKey = "name";
     private final String amountKey = "amount";
+    private final String loyaltyKey = "loyalty";
 
     public BankConnector(){
 
     }
 
     public void createCustomerTable(){
-        getSession().execute("CREATE TABLE " + customerTableName + " ("+ idKey +" int primary key, "+ nameKey + " varchar, "+ amountKey +" int);");
+        getSession().execute("CREATE TABLE " + customerTableName + " ("+
+                idKey +" uuid primary key, " +
+                nameKey + " varchar, "+
+                amountKey +" int, " +
+                loyaltyKey + " int);");
     }
 }
