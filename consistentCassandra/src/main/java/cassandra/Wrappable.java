@@ -5,7 +5,7 @@ public abstract class Wrappable {
     private IntermediateWrapper wrapper;
 
     public Wrappable(){
-        this.wrapper = new IntermediateWrapper(this);
+        this.wrapper = new IntermediateWrapper<>(this);
     }
 
     public IntermediateWrapper getWrapper() {
