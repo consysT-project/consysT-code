@@ -28,15 +28,15 @@ public abstract class AbstractExecutableWrapper<T> extends AbstractConsistencyWr
     public abstract ResultSet execute(Statement statement);
 
     @Override
-    T read() {
+    T read(Scope scope) {
         setWrappedObject(this.read.get());
         return getWrappedObject();
-    };
+    }
 
     @Override
-    void write() {
+    void write(Scope scope) {
         this.write.accept(this.getWrappedObject());
-    };
+    }
 
     Session getSession() {
         return this.session;

@@ -17,18 +17,18 @@ public class IntermediateWrapper<T extends Wrappable> extends AbstractConsistenc
     }
 
     @Override
-    void write() {
-        wrappers.forEach(w -> w.write());
+    void write(Scope scope) {
+        wrappers.forEach(w -> scope.write(w));
     }
 
     @Override
-    T read() {
-        wrappers.forEach(w -> w.read());
+    T read(Scope scope) {
+        wrappers.forEach(w -> scope.read(w));
         return getWrappedObject();
     }
 
     @Override
     public T value() {
-        return read();
+        return read(new Scope());
     }
 }

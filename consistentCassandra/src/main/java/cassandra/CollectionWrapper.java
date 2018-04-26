@@ -4,31 +4,36 @@ import java.util.Collection;
 
 public class CollectionWrapper<T extends Collection<Wrappable>> extends AbstractConsistencyWrapper<T>{
 
-    private T wrapper;
+    private T collection;
 
-    public CollectionWrapper(T wrappedObject) {
-        super(wrappedObject);
-        wrapper = wrappedObject;
+    public CollectionWrapper(T collection) {
+        super(collection);
+        collection = collection;
     }
 
     @Override
-    void write() {
-        wrapper.forEach(w -> w.getWrapper().write());
+    void write(Scope scope) {
+        collection.forEach(w -> scope.write(w.getWrapper()));
     }
 
     @Override
-    T read() {
-        wrapper.forEach(w -> w.getWrapper().read());
+    T read(Scope scope) {
+        collection.forEach(w -> scope.read(w.getWrapper()));
         return getWrappedObject();
     }
 
     @Override
     public T value() {
-        return read();
+        return read(new Scope());
+    }
+
+    @Override
+    public void setValue(T collection) {
+
     }
 
     public boolean add(Wrappable object){
-        object.getWrapper().write();
-        return wrapper.add(object);
+        object.getWrapper().write(new Scope());
+        return collection.add(object);
     }
 }

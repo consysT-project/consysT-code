@@ -11,4 +11,14 @@ public abstract class Wrappable {
     public IntermediateWrapper getWrapper() {
         return wrapper;
     }
+
+    public void read() {
+        Scope scope = new Scope();
+        scope.read(this.getWrapper());
+    }
+
+    public void write() {
+        Scope scope = new Scope();
+        scope.write(this.getWrapper());
+    }
 }

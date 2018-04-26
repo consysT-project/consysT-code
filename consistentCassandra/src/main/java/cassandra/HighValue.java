@@ -21,12 +21,12 @@ public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
 
     public T value() {
         @SuppressWarnings("consistency")
-        T value = read();
+        T value = read(new Scope());
         return value;
     }
 
     public <V> V perform(Function<T, V> function) {
-        return function.apply(read());
+        return function.apply(read(new Scope()));
     }
 
     @High
