@@ -1,8 +1,6 @@
 package cassandra;
 
 import com.datastax.driver.core.*;
-import com.github.allprojects.consistencyTypes.qual.High;
-import com.github.allprojects.consistencyTypes.qual.Low;
 
 public class ConsistentCassandraConnector {
     private Cluster cluster;

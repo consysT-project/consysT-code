@@ -22,17 +22,21 @@ public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
     }
 
     public T value() {
-        return read();
+        return read(new Scope());
+    }
+
+    public void setValue(T value) {
+        setWrappedObject(value);
     }
 
     public <V> V perform(Function<T, V> function) {
-        return function.apply(read());
+        return function.apply(read(new Scope()));
     }
 
     @Override
-    T read(){
+    T read(Scope scope){
         if (++accessCount % 5 == 0) {
-            super.read();
+            super.read(scope);
             accessCount = 0;
         }
         return getWrappedObject();

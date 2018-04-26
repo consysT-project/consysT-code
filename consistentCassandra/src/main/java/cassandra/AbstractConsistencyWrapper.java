@@ -5,7 +5,8 @@ public abstract class AbstractConsistencyWrapper<T> {
     private T wrappedObject;
 
     public AbstractConsistencyWrapper(T wrappedObject){
-        this.wrappedObject = wrappedObject;
+        setWrappedObject(wrappedObject);
+        write(new Scope());
     }
 
     public AbstractConsistencyWrapper(T wrappedObject, IntermediateWrapper parent){
@@ -17,9 +18,9 @@ public abstract class AbstractConsistencyWrapper<T> {
         this(wrappedObject, parent.getWrapper());
     }
 
-    abstract void write();
+    abstract void write(Scope t);
 
-    abstract T read();
+    abstract T read(Scope t);
 
     T getWrappedObject(){
         return wrappedObject;
@@ -33,6 +34,6 @@ public abstract class AbstractConsistencyWrapper<T> {
 
     public void setValue(T value) {
         setWrappedObject(value);
-        write();
+        write(new Scope());
     }
 }
