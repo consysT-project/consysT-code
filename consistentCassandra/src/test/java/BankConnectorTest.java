@@ -91,6 +91,6 @@ public class BankConnectorTest {
 
     @After
     public void tearDown(){
-        bank.close();
+        //bank.close();
     }
 }

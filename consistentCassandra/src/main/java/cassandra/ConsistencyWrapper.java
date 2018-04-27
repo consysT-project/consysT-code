@@ -40,9 +40,4 @@ public class ConsistencyWrapper<T> {
     void setValue(T value, Scope scope) {
         setWrappedObject(value);
     }
-
-    @Override
-    public int hashCode() {
-        return wrappedObject.hashCode();
-    }
 }
