@@ -3,19 +3,19 @@ package cassandra;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Scope {
+class Scope {
 
-    private Set<AbstractConsistencyWrapper> processed = new HashSet<>();
+    private Set<ConsistencyWrapper> processed = new HashSet<>();
 
-    public void write(AbstractConsistencyWrapper wrapper) {
+    void write(ConsistencyWrapper wrapper) {
         if (processed.add(wrapper)) {
-            wrapper.write(this);
+            wrapper.setValue(this);
         }
     }
 
-    public void read(AbstractConsistencyWrapper wrapper) {
+    void read(ConsistencyWrapper wrapper) {
         if (processed.add(wrapper)) {
-            wrapper.read(this);
+            wrapper.value(this);
         }
     }
 }

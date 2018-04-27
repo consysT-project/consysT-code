@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
+public class LowValue<@Low T> extends ExecutableWrapper<T> {
 
     private int accessCount = 0;
 
@@ -21,25 +21,16 @@ public class LowValue<@Low T> extends AbstractExecutableWrapper<T> {
         super(wrappedObject, session, read, write, parent);
     }
 
-    public T value() {
-        return read(new Scope());
-    }
-
-    public void setValue(T value) {
-        setWrappedObject(value);
-    }
-
-    public <V> V perform(Function<T, V> function) {
-        return function.apply(read(new Scope()));
-    }
-
-    @Override
-    T read(Scope scope){
+    T value(Scope scope) {
         if (++accessCount % 5 == 0) {
-            super.read(scope);
+            read();
             accessCount = 0;
         }
         return getWrappedObject();
+    }
+
+    public <V> V perform(Function<T, V> function) {
+        return function.apply(read());
     }
 
     @Low public ResultSet execute(Statement statement) {

@@ -6,17 +6,17 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class AbstractExecutableWrapper<T> extends AbstractConsistencyWrapper<T>{
+public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T> {
 
     private Session session;
     private Supplier<T> read;
     private Consumer<T> write;
 
-    public AbstractExecutableWrapper(T wrappedObject,
-                                     Session session,
-                                     Supplier<T> read,
-                                     Consumer<T> write,
-                                     Wrappable parent){
+    public ExecutableWrapper(T wrappedObject,
+                             Session session,
+                             Supplier<T> read,
+                             Consumer<T> write,
+                             Wrappable parent){
         super(wrappedObject, parent);
         this.session = session;
         this.read = read;
@@ -27,15 +27,18 @@ public abstract class AbstractExecutableWrapper<T> extends AbstractConsistencyWr
 
     public abstract ResultSet execute(Statement statement);
 
-    @Override
-    T read(Scope scope) {
+    T read() {
         setWrappedObject(this.read.get());
         return getWrappedObject();
     }
 
-    @Override
-    void write(Scope scope) {
+    void write() {
         this.write.accept(this.getWrappedObject());
+    }
+
+    public void setValue(T value, Scope scope){
+        setWrappedObject(value);
+        write();
     }
 
     Session getSession() {
