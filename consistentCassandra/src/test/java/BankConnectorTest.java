@@ -26,6 +26,7 @@ public class BankConnectorTest {
     public void simpleTest() {
         Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
+        bank.write();
         assert c.getBalance() == 0;
         printCustomerStatus(c);
     }
@@ -34,6 +35,7 @@ public class BankConnectorTest {
     public void concurrentTest() {
         Customer klaus1 = new Customer("Klaus", customerConnector);
         bank.addCustomer(klaus1);
+        bank.write();
         Customer klaus2 = new Customer(klaus1);
         klaus1.withdraw(1000);
         assert klaus2.getBalance() == klaus1.getBalance() && klaus1.getBalance() == -1000;
@@ -49,9 +51,26 @@ public class BankConnectorTest {
     }
 
     @Test
+    public void collectionWrapperTest() {
+        Customer peter = new Customer("Peter", customerConnector);
+        Customer ulf = new Customer("Ulf", customerConnector);
+        Customer otto = new Customer("Otto", customerConnector);
+        bank.addCustomer(otto);
+        bank.addCustomer(peter);
+        bank.addCustomer(ulf);
+
+        peter.setLoyaltyPoints(4867);
+        otto.setLoyaltyPoints(35698);
+        ulf.setLoyaltyPoints(34875);
+
+        bank.write();
+    }
+
+    @Test
     public void withdrawalTest() {
         Customer c = new Customer("Peter", customerConnector);
         bank.addCustomer(c);
+        bank.write();
         c.withdraw(1000);
         assert c.getBalance() == -1000;
         printCustomerStatus(c);

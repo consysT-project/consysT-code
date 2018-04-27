@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
+public class HighValue<@High T> extends ExecutableWrapper<T> {
 
     public HighValue(T wrappedObject, Session session,
                      Supplier<T> read,
@@ -19,14 +19,14 @@ public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
         super(wrappedObject, session, read, write, parent);
     }
 
-    public T value() {
+    T value(Scope scope) {
         @SuppressWarnings("consistency")
-        T value = read(new Scope());
+        T value = read();
         return value;
     }
 
     public <V> V perform(Function<T, V> function) {
-        return function.apply(read(new Scope()));
+        return function.apply(read());
     }
 
     @High
@@ -37,5 +37,4 @@ public class HighValue<@High T> extends AbstractExecutableWrapper<T> {
         @High ResultSet result = getSession().execute(statement);
         return result;
     }
-
 }
