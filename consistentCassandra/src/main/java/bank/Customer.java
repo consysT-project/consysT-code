@@ -26,6 +26,10 @@ public class Customer extends Wrappable {
     }
 
     public Customer(String n, CustomerConnector connector){
+        this(n, null, null, connector);
+    }
+
+    public Customer(String n, Integer amount, Integer loyaltyPoints, CustomerConnector connector){
         this.id = Customer.getNewID();
         this.connector = connector;
         connector.useKeyspace("bank");
@@ -34,16 +38,19 @@ public class Customer extends Wrappable {
                 () -> connector.getName(this),
                 value -> connector.setName(this, value),
                 this);
-        this.amount = new HighValue<>(0,
+        this.amount = new HighValue<>(amount,
                 connector.getSession(),
                 () -> connector.getBalance(this),
                 value -> connector.setBalance(this, value),
                 this);
-        this.loyaltyPoints = new LowValue<>(0,
+        this.loyaltyPoints = new LowValue<>(loyaltyPoints,
                 connector.getSession(),
                 () -> connector.getLoyaltyPoints(this),
                 value -> connector.setLoyaltyPoints(this, value),
                 this);
+        this.name.sync();
+        this.amount.sync();
+        this.loyaltyPoints.sync();
     }
 
     public Customer(UUID uuid, String n, int amount, CustomerConnector connector){

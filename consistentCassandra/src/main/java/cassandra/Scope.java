@@ -9,7 +9,7 @@ class Scope {
 
     void write(ConsistencyWrapper wrapper) {
         if (processed.add(wrapper)) {
-            wrapper.setValue(this);
+            wrapper.setValue(wrapper.getWrappedObject(), this);
         }
     }
 

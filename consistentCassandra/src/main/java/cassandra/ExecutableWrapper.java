@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T> {
+public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T>{
 
     private Session session;
     private Supplier<T> read;
@@ -39,6 +39,14 @@ public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T> {
     public void setValue(T value, Scope scope){
         setWrappedObject(value);
         write();
+    }
+
+    public void sync(){
+        if(this.getWrappedObject() != null){
+            this.write();
+        } else {
+            this.read();
+        }
     }
 
     Session getSession() {
