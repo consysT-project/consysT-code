@@ -15,7 +15,7 @@ public class BankConnector extends ConsistentCassandraConnector {
     }
 
     public void createCustomerTable(){
-        getSession().execute("CREATE TABLE " + customerTableName + " ("+
+        getSession().execute("CREATE TABLE IF NOT EXISTS " + customerTableName + " (" +
                 idKey +" uuid primary key, " +
                 nameKey + " varchar, "+
                 amountKey +" int, " +

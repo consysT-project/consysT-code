@@ -1,6 +1,9 @@
 package cassandra;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -25,7 +28,13 @@ public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T>{
 
     public abstract <V> V perform(Function<T, V> function);
 
-    public abstract ResultSet execute(Statement statement);
+    public abstract ConsistencyLevel getConsistencyLevel();
+
+    public ResultSet execute(Statement statement) {
+        statement.setConsistencyLevel(this.getConsistencyLevel());
+        ResultSet result = getSession().execute(statement);
+        return result;
+    }
 
     T read() {
         setWrappedObject(this.read.get());
