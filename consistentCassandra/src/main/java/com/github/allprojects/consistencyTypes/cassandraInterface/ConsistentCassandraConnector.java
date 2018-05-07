@@ -1,6 +1,7 @@
-package cassandra;
+package com.github.allprojects.consistencyTypes.cassandraInterface;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 
 public class ConsistentCassandraConnector {
     private Cluster cluster;

@@ -1,7 +1,7 @@
-package bank;
+package com.github.allprojects.consistencyTypes.exampleApplication;
 
-import cassandra.CollectionWrapper;
-import cassandra.Wrappable;
+import com.github.allprojects.consistencyTypes.cassandraInterface.CollectionWrapper;
+import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 
 import java.util.HashSet;
 
@@ -13,7 +13,7 @@ public class Bank extends Wrappable {
     public Bank(BankConnector conn){
         this.connector = conn;
         this.customers = new CollectionWrapper<>(new HashSet<>());
-        connector.createKeyspace("bank", "SimpleStrategy", 1);
+        connector.createKeyspace("com/github/allprojects/consistencyTypes/exampleApplication", "SimpleStrategy", 1);
         connector.createCustomerTable();
     }
 
@@ -22,6 +22,6 @@ public class Bank extends Wrappable {
     }
 
     public void close(){
-        connector.dropKeyspace("bank");
+        connector.dropKeyspace("com/github/allprojects/consistencyTypes/exampleApplication");
     }
 }

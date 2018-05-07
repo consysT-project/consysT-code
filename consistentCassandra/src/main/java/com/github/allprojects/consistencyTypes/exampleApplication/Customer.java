@@ -1,8 +1,8 @@
-package bank;
+package com.github.allprojects.consistencyTypes.exampleApplication;
 
-import cassandra.HighValue;
-import cassandra.LowValue;
-import cassandra.Wrappable;
+import com.github.allprojects.consistencyTypes.cassandraInterface.HighValue;
+import com.github.allprojects.consistencyTypes.cassandraInterface.LowValue;
+import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 import com.github.allprojects.consistencyTypes.qual.High;
 import org.apache.cassandra.utils.UUIDGen;
 
@@ -36,7 +36,7 @@ public class Customer extends Wrappable {
     public Customer(UUID uuid, @High String n, @High Integer amount, Integer loyaltyPoints, CustomerConnector connector) {
         this.id = uuid;
         this.connector = connector;
-        connector.useKeyspace("bank");
+        connector.useKeyspace("com/github/allprojects/consistencyTypes/exampleApplication");
         this.name = new HighValue<>(n,
                 connector.getSession(),
                 () -> connector.getName(this),

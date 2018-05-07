@@ -1,7 +1,7 @@
-import bank.Bank;
-import bank.BankConnector;
-import bank.Customer;
-import bank.CustomerConnector;
+import com.github.allprojects.consistencyTypes.exampleApplication.Bank;
+import com.github.allprojects.consistencyTypes.exampleApplication.BankConnector;
+import com.github.allprojects.consistencyTypes.exampleApplication.Customer;
+import com.github.allprojects.consistencyTypes.exampleApplication.CustomerConnector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
