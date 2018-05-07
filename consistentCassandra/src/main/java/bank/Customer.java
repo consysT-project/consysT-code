@@ -3,14 +3,15 @@ package bank;
 import cassandra.HighValue;
 import cassandra.LowValue;
 import cassandra.Wrappable;
+import com.github.allprojects.consistencyTypes.qual.High;
 import org.apache.cassandra.utils.UUIDGen;
 
 import java.util.UUID;
 
 public class Customer extends Wrappable {
 
-    public HighValue<String> name;
-    public HighValue<Integer> amount;
+    public HighValue<@High String> name;
+    public HighValue<@High Integer> amount;
     public LowValue<Integer> loyaltyPoints;
     public UUID id;
 
@@ -20,17 +21,20 @@ public class Customer extends Wrappable {
         return UUIDGen.getTimeUUID();
     }
 
-
     public Customer(Customer c){
-        this(c.id, c.getName(), c.getBalance(), c.connector);
+        this(c.id, c.getName(), c.getBalance(), c.getLoyaltyPoints(), c.connector);
     }
 
-    public Customer(String n, CustomerConnector connector){
-        this(n, null, null, connector);
+    public Customer(UUID uuid, CustomerConnector connector) {
+        this(uuid, null, null, null, connector);
     }
 
-    public Customer(String n, Integer amount, Integer loyaltyPoints, CustomerConnector connector){
-        this.id = Customer.getNewID();
+    public Customer(@High String n, CustomerConnector connector) {
+        this(Customer.getNewID(), n, null, null, connector);
+    }
+
+    public Customer(UUID uuid, @High String n, @High Integer amount, Integer loyaltyPoints, CustomerConnector connector) {
+        this.id = uuid;
         this.connector = connector;
         connector.useKeyspace("bank");
         this.name = new HighValue<>(n,
@@ -53,21 +57,16 @@ public class Customer extends Wrappable {
         this.loyaltyPoints.sync();
     }
 
-    public Customer(UUID uuid, String n, int amount, CustomerConnector connector){
-        this(n, connector);
-        this.id = uuid;
-        this.setBalance(amount);
-    }
-
+    @High
     public int getBalance() {
         return amount.value();
     }
 
-    public void setBalance(int balance) {
+    public void setBalance(@High int balance) {
         amount.setValue(balance);
     }
 
-    public void withdraw(int s) {
+    public void withdraw(@High int s) {
         amount.perform(value -> {
             amount.setValue(value - s);
             return null;
@@ -75,11 +74,12 @@ public class Customer extends Wrappable {
         );
     }
 
+    @High
     public String getName() {
         return name.value();
     }
 
-    public void setName(String n) {
+    public void setName(@High String n) {
         name.setValue(n);
     }
 

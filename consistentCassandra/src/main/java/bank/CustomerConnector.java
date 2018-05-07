@@ -16,10 +16,8 @@ public class CustomerConnector extends ConsistentCassandraConnector {
     private final String loyaltyKey = "loyalty";
 
 
-    @High private Statement getQuery(Customer c) {
-        @SuppressWarnings("consistency")
-        @High Statement query = QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
-        return query;
+    private Statement getQuery(Customer c) {
+        return QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
     }
 
     @High public int getBalance(Customer c){
@@ -28,19 +26,20 @@ public class CustomerConnector extends ConsistentCassandraConnector {
         return balance;
     }
 
-    public void setBalance(Customer c, int balance) {
-        @SuppressWarnings("consistency")
-        @High Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(amountKey, balance));
+    public void setBalance(Customer c, @High int balance) {
+        Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(amountKey, balance));
         c.amount.execute(query);
     }
 
+    @High
     public String getName(Customer c) {
-        return c.name.execute(getQuery(c)).one().getString(nameKey);
+        @SuppressWarnings("consistency")
+        @High String name = c.name.execute(getQuery(c)).one().getString(nameKey);
+        return name;
     }
 
-    public void setName(Customer c, String name) {
-        @SuppressWarnings("consistency")
-        @High Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(nameKey, name));
+    public void setName(Customer c, @High String name) {
+        Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(nameKey, name));
         c.name.execute(query);
     }
 
