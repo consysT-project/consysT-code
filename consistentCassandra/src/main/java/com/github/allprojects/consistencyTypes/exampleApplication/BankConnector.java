@@ -1,6 +1,6 @@
-package bank;
+package com.github.allprojects.consistencyTypes.exampleApplication;
 
-import cassandra.ConsistentCassandraConnector;
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistentCassandraConnector;
 
 public class BankConnector extends ConsistentCassandraConnector {
 

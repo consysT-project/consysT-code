@@ -1,6 +1,6 @@
-import cassandra.HighValue;
-import cassandra.LowValue;
-import cassandra.Wrappable;
+import com.github.allprojects.consistencyTypes.cassandraInterface.HighValue;
+import com.github.allprojects.consistencyTypes.cassandraInterface.LowValue;
+import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 import com.github.allprojects.consistencyTypes.qual.High;
 
 public class AnnotationTest {

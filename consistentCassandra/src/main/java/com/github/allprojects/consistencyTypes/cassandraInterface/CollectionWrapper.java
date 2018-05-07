@@ -1,4 +1,4 @@
-package cassandra;
+package com.github.allprojects.consistencyTypes.cassandraInterface;
 
 import java.util.Collection;
 

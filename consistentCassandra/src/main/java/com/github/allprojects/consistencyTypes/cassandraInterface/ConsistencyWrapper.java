@@ -1,4 +1,4 @@
-package cassandra;
+package com.github.allprojects.consistencyTypes.cassandraInterface;
 
 public class ConsistencyWrapper<T> {
 

@@ -1,8 +1,8 @@
-package bank;
+package com.github.allprojects.consistencyTypes.exampleApplication;
 
-import cassandra.ConsistentCassandraConnector;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistentCassandraConnector;
 import com.github.allprojects.consistencyTypes.qual.High;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;

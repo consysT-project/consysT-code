@@ -1,4 +1,4 @@
-package cassandra;
+package com.github.allprojects.consistencyTypes.cassandraInterface;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
