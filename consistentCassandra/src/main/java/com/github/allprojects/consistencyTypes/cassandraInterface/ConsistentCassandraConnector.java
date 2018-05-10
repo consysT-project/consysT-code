@@ -30,14 +30,11 @@ public class ConsistentCassandraConnector {
     }
 
     public void createKeyspace(String keyspaceName, String replicationStrategy, int replicationFactor) {
-        StringBuilder sb =
-                new StringBuilder("CREATE KEYSPACE IF NOT EXISTS ")
-                        .append(keyspaceName).append(" WITH replication = {")
-                        .append("'class':'").append(replicationStrategy)
-                        .append("','replication_factor':").append(replicationFactor)
-                        .append("};");
-
-        String query = sb.toString();
+        String query = "CREATE KEYSPACE IF NOT EXISTS " +
+                keyspaceName + " WITH replication = {" +
+                "'class':'" + replicationStrategy +
+                "','replication_factor':" + replicationFactor +
+                "};";
         session.execute(query);
         this.useKeyspace(keyspaceName);
     }

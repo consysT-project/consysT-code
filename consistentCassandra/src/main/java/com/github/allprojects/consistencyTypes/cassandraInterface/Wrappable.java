@@ -1,5 +1,9 @@
 package com.github.allprojects.consistencyTypes.cassandraInterface;
 
+/**
+ * This class should be inherited from by any class that wraps some of its members in ConsitencyWrappers.
+ * @see ConsistencyWrapper
+ */
 public abstract class Wrappable {
 
     private IntermediateWrapper wrapper;
