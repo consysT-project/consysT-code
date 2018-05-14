@@ -11,7 +11,7 @@ public class IntermediateWrapper<T extends Wrappable> extends ConsistencyWrapper
 
     Set<ConsistencyWrapper> wrappers;
 
-    IntermediateWrapper(T wrappedObject) {
+    public IntermediateWrapper(T wrappedObject) {
         super(wrappedObject);
         wrappers = new HashSet<>();
     }
