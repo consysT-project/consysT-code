@@ -1,11 +1,11 @@
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistencyObject;
 import com.github.allprojects.consistencyTypes.cassandraInterface.HighValue;
 import com.github.allprojects.consistencyTypes.cassandraInterface.LowValue;
-import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 import com.github.allprojects.consistencyTypes.qual.High;
 
 public class AnnotationTest {
 
-    class A extends Wrappable {
+    class A extends ConsistencyObject {
         HighValue<@High Integer> highWrapper = new HighValue<>(0, null, null, null, null);
         LowValue<Integer> lowWrapper = new LowValue<>(0, null, null, null, null);
 

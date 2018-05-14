@@ -20,13 +20,13 @@ public abstract class ExecutableWrapper<T> extends ConsistencyWrapper<T> {
      * @param session The cassandra session associated with the wrapped object.
      * @param read A Supplier that should read the wrapped object from database.
      * @param write A Consumer that should write the wrapped object to database.
-     * @param parent The Wrappable object this wrapper is a member of.
+     * @param parent The ConsistencyObject object this wrapper is a member of.
      */
     public ExecutableWrapper(T wrappedObject,
                              Session session,
                              Supplier<T> read,
                              Consumer<T> write,
-                             Wrappable parent){
+                             ConsistencyObject parent) {
         super(wrappedObject, parent);
         this.session = session;
         this.read = read;
