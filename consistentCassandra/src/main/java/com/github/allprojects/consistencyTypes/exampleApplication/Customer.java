@@ -1,14 +1,14 @@
 package com.github.allprojects.consistencyTypes.exampleApplication;
 
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistencyObject;
 import com.github.allprojects.consistencyTypes.cassandraInterface.HighValue;
 import com.github.allprojects.consistencyTypes.cassandraInterface.LowValue;
-import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 import com.github.allprojects.consistencyTypes.qual.High;
 import org.apache.cassandra.utils.UUIDGen;
 
 import java.util.UUID;
 
-public class Customer extends Wrappable {
+public class Customer extends ConsistencyObject {
 
     public HighValue<@High String> name;
     public HighValue<@High Integer> amount;

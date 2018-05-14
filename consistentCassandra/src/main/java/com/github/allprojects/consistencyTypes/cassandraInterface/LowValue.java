@@ -14,7 +14,7 @@ public class LowValue<T> extends ExecutableWrapper<T> {
     public LowValue(T wrappedObject, Session session,
                     Supplier<T> read,
                     Consumer<T> write,
-                    Wrappable parent) {
+                    ConsistencyObject parent) {
         super(wrappedObject, session, read, write, parent);
     }
 

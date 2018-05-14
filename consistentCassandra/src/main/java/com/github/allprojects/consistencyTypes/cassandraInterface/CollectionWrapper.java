@@ -4,9 +4,9 @@ import java.util.Collection;
 
 /**
  * Wrapper for collections of Wrappables, allows batch updating.
- * @param <T> Type of the collection, which must be parameterized with Wrappable.
+ * @param <T> Type of the collection, which must be parameterized with ConsistencyObject.
  */
-public class CollectionWrapper<T extends Collection<Wrappable>> extends ConsistencyWrapper<T> {
+public class CollectionWrapper<T extends Collection<ConsistencyObject>> extends ConsistencyWrapper<T> {
 
     private T collection;
 
@@ -21,7 +21,7 @@ public class CollectionWrapper<T extends Collection<Wrappable>> extends Consiste
         return getWrappedObject();
     }
 
-    public boolean add(Wrappable object){
+    public boolean add(ConsistencyObject object) {
         return collection.add(object);
     }
 }

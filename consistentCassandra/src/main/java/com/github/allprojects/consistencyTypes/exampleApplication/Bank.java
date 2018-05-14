@@ -1,14 +1,14 @@
 package com.github.allprojects.consistencyTypes.exampleApplication;
 
 import com.github.allprojects.consistencyTypes.cassandraInterface.CollectionWrapper;
-import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistencyObject;
 
 import java.util.HashSet;
 
-public class Bank extends Wrappable {
+public class Bank extends ConsistencyObject {
 
     private BankConnector connector;
-    private CollectionWrapper<HashSet<Wrappable>> customers;
+    private CollectionWrapper<HashSet<ConsistencyObject>> customers;
 
     public Bank(BankConnector conn){
         this.connector = conn;

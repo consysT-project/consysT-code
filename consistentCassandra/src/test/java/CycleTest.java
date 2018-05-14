@@ -1,6 +1,9 @@
+import com.github.allprojects.consistencyTypes.cassandraInterface.CollectionWrapper;
+import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistencyObject;
 import com.github.allprojects.consistencyTypes.cassandraInterface.IntermediateWrapper;
-import com.github.allprojects.consistencyTypes.cassandraInterface.Wrappable;
 import org.junit.Test;
+
+import java.util.HashSet;
 
 public class CycleTest {
 
@@ -8,12 +11,23 @@ public class CycleTest {
     public void testCyclicDependency() {
         A first = new A();
         A second = new A(first);
-        first.write();
-        second.write();
+        first.read();
+        second.read();
         assert true;
     }
 
-    class A extends Wrappable {
+    @Test
+    public void testCyclicCollection() {
+        B o1 = new B();
+        B o2 = new B();
+        o1.collectionWrapper.add(o2);
+        o2.collectionWrapper.add(o1);
+        o1.read();
+        o2.read();
+        assert true;
+    }
+
+    class A extends ConsistencyObject {
         IntermediateWrapper other;
 
         A(A otherA) {
@@ -26,4 +40,11 @@ public class CycleTest {
         }
     }
 
+    class B extends ConsistencyObject {
+        CollectionWrapper collectionWrapper;
+
+        B() {
+            this.collectionWrapper = new CollectionWrapper(new HashSet<B>());
+        }
+    }
 }

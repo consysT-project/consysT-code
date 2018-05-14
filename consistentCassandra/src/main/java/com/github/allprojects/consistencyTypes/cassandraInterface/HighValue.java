@@ -13,7 +13,7 @@ public class HighValue<T extends @High Object> extends ExecutableWrapper<T> {
     public HighValue(T wrappedObject, Session session,
                      Supplier<T> read,
                      Consumer<T> write,
-                     Wrappable parent) {
+                     ConsistencyObject parent) {
         super(wrappedObject, session, read, write, parent);
     }
 

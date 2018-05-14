@@ -17,7 +17,7 @@ public class ConsistencyWrapper<T> {
         parent.addWrapper(this);
     }
 
-    public ConsistencyWrapper(T wrappedObject, Wrappable parent) {
+    public ConsistencyWrapper(T wrappedObject, ConsistencyObject parent) {
         this(wrappedObject, parent.getWrapper());
     }
 
