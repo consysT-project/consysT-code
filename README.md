@@ -1,6 +1,16 @@
 # consistency-types-impl
 IMPL project WS 2017-18
 
+
+## Installation
+
+1. The project is compiled using Maven.
+2. Open a terminal in the main folder consistency-types-impl
+3. Run `mvn org.apache.maven.plugins:maven-dependency-plugin:properties`
+4. Run `mvn install`
+
+
+
 ## The consistency checker
 The consistency checker module contains a checker for the [checker framework](https://checkerframework.org/). `ConsistencyChecker` can be configured as an annotation processor for the java compiler. With the java annotations `@High` and `@Low`, consistency levels can be assigned to variables. The checker ensures, that no low values can flow into a value assigned to a high variable. The default level for unannotated variables is `@Low`.  
 Example use:  
