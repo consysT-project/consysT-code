@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class DirectAssignment {
     void lowToHigh() {
         @High int a;

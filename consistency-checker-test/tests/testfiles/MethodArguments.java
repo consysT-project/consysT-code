@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class MethodArguments {
     void wantsHigh(@High int a) { }
     void wantsLow(@Low int a) { }

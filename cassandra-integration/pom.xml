@@ -34,7 +34,7 @@
                     </annotationProcessorPaths>
                     <annotationProcessors>
                         <!-- Add all the checkers you want to enable here -->
-                        <annotationProcessor>com.github.allprojects.consistencyTypes.ConsistencyChecker</annotationProcessor>
+                        <annotationProcessor>de.tu_darmstadt.consistency_types.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
