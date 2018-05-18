@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class ReturnArgument {
 
     @PolyConsistent int identity( @PolyConsistent int number) {return number; }

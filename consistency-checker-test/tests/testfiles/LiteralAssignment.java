@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class LiteralAssignment {
     void literalAssignment() {
         @Low int a = 42;

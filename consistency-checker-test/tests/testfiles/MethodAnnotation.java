@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class MethodAnnotation {
 
     @Low int getLow() { return 42; }

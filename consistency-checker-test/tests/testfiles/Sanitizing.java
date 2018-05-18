@@ -1,5 +1,3 @@
-import com.github.allprojects.consistencyTypes.qual.*;
-
 class Sanitizing {
 
     @High int sanitize(int anything) {

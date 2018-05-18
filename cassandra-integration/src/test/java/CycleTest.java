@@ -1,6 +1,6 @@
-import com.github.allprojects.consistencyTypes.cassandraInterface.CollectionWrapper;
-import com.github.allprojects.consistencyTypes.cassandraInterface.ConsistencyObject;
-import com.github.allprojects.consistencyTypes.cassandraInterface.IntermediateWrapper;
+import de.tu_darmstadt.consistency_types.cassandra.CollectionWrapper;
+import de.tu_darmstadt.consistency_types.cassandra.ConsistencyObject;
+import de.tu_darmstadt.consistency_types.cassandra.IntermediateWrapper;
 import org.junit.Test;
 
 import java.util.HashSet;
