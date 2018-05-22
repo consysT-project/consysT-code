@@ -4,14 +4,14 @@ import com.datastax.driver.core.utils.UUIDs;
 import de.tu_darmstadt.consistency_types.cassandra.ConsistencyObject;
 import de.tu_darmstadt.consistency_types.cassandra.HighValue;
 import de.tu_darmstadt.consistency_types.cassandra.LowValue;
-import de.tu_darmstadt.consistency_types.checker.qual.High;
+import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 
 import java.util.UUID;
 
 public class Customer extends ConsistencyObject {
 
-    public HighValue<@High String> name;
-    public HighValue<@High Integer> amount;
+    public HighValue<@Strong String> name;
+    public HighValue<@Strong Integer> amount;
     public LowValue<Integer> loyaltyPoints;
     public UUID id;
 
@@ -29,23 +29,23 @@ public class Customer extends ConsistencyObject {
         this(uuid, null, null, null, connector);
     }
 
-    public Customer(@High String n, CustomerConnector connector) {
+    public Customer(@Strong String n, CustomerConnector connector) {
         this(Customer.getNewID(), n, null, null, connector);
     }
 
-    public Customer(UUID uuid, @High String n, @High Integer amount, Integer loyaltyPoints, CustomerConnector connector) {
+    public Customer(UUID uuid, @Strong String n, @Strong Integer amount, Integer loyaltyPoints, CustomerConnector connector) {
         this.id = uuid;
         this.connector = connector;
         connector.useKeyspace("exampleApplication");
         this.name = new HighValue<>(n,
                 connector.getSession(),
                 () -> connector.getName(this),
-                value -> connector.setName(this, value),
+                (@Strong String value) -> connector.setName(this, value),
                 this);
         this.amount = new HighValue<>(amount,
                 connector.getSession(),
                 () -> connector.getBalance(this),
-                value -> connector.setBalance(this, value),
+                (@Strong Integer value) -> connector.setBalance(this, value),
                 this);
         this.loyaltyPoints = new LowValue<>(loyaltyPoints,
                 connector.getSession(),
@@ -57,16 +57,16 @@ public class Customer extends ConsistencyObject {
         this.loyaltyPoints.sync();
     }
 
-    @High
+    @Strong
     public int getBalance() {
         return amount.value();
     }
 
-    public void setBalance(@High int balance) {
+    public void setBalance(@Strong int balance) {
         amount.setValue(balance);
     }
 
-    public void withdraw(@High int s) {
+    public void withdraw(@Strong int s) {
         amount.perform(value -> {
             amount.setValue(value - s);
             return null;
@@ -74,12 +74,12 @@ public class Customer extends ConsistencyObject {
         );
     }
 
-    @High
+    @Strong
     public String getName() {
         return name.value();
     }
 
-    public void setName(@High String n) {
+    public void setName(@Strong String n) {
         name.setValue(n);
     }
 

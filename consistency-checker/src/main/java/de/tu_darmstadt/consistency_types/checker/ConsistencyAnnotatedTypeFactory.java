@@ -5,7 +5,10 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
-        super(checker, false);
+        /*
+        	Set useFlow to false if the flow analysis should be used.
+         */
+        super(checker, true);
         this.postInit();
     }
 }

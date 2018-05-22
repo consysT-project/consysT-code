@@ -23,7 +23,7 @@ public class ArrayAnnotation {
             high = i;
         }
         /**
-         * an assignment to the iterator i is possible. Therefore i must be annotated @High to be able to assign i to a @High variable.
+         * an assignment to the iterator i is possible. Therefore i must be annotated @Strong to be able to assign i to a @Strong variable.
          */
         for (int i: higharr) {
             // :: error: (assignment.type.incompatible)

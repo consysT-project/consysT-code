@@ -1,3 +1,5 @@
+package de.tu_darmstadt.consistency_types.cassandra;
+
 import de.tu_darmstadt.consistency_types.cassandra.CollectionWrapper;
 import de.tu_darmstadt.consistency_types.cassandra.ConsistencyObject;
 import de.tu_darmstadt.consistency_types.cassandra.IntermediateWrapper;
