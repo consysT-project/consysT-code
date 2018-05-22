@@ -8,8 +8,7 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.SubtypeOf;
 
-@Retention(RetentionPolicy.RUNTIME)
+@SubtypeOf({None.class})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@DefaultQualifierInHierarchy
-@SubtypeOf({})
+@Retention(RetentionPolicy.RUNTIME)
 public @interface Weak {}
