@@ -3,7 +3,7 @@ package de.tu_darmstadt.consistency_types.example;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import de.tu_darmstadt.consistency_types.cassandra.ConsistentCassandraConnector;
-import de.tu_darmstadt.consistency_types.checker.qual.High;
+import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 
@@ -20,25 +20,26 @@ public class CustomerConnector extends ConsistentCassandraConnector {
         return QueryBuilder.select().from(customerTableName).where(eq(idKey, c.id));
     }
 
-    @High public int getBalance(Customer c){
+    @Strong
+    public int getBalance(Customer c){
         @SuppressWarnings("consistency")
-        @High int balance = c.amount.execute(getQuery(c)).one().getInt(amountKey);
+        @Strong int balance = c.amount.execute(getQuery(c)).one().getInt(amountKey);
         return balance;
     }
 
-    public void setBalance(Customer c, @High int balance) {
+    public void setBalance(Customer c, @Strong int balance) {
         Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(amountKey, balance));
         c.amount.execute(query);
     }
 
-    @High
+    @Strong
     public String getName(Customer c) {
         @SuppressWarnings("consistency")
-        @High String name = c.name.execute(getQuery(c)).one().getString(nameKey);
+        @Strong String name = c.name.execute(getQuery(c)).one().getString(nameKey);
         return name;
     }
 
-    public void setName(Customer c, @High String name) {
+    public void setName(Customer c, @Strong String name) {
         Statement query = QueryBuilder.update(customerTableName).where(eq(idKey, c.id)).with(QueryBuilder.set(nameKey, name));
         c.name.execute(query);
     }

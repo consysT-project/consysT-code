@@ -2,13 +2,50 @@
 IMPL project WS 2017-18
 
 
-## Installation
+## Installation of the project
 
 1. The project is compiled using Maven.
 2. Open a terminal in the main folder consistency-types-impl
 3. Run `mvn org.apache.maven.plugins:maven-dependency-plugin:properties`
 4. Run `mvn install`
 
+
+### Cassandra
+
+Cassandra has to run to execute code that uses the Cassandra integration.
+
+If Cassandra should be run on only a single machine, then it is advisable to use 
+CCM (Cassandra Cluster Manager, https://github.com/riptano/ccm).
+This is because we need to start multiple replicas in order to use consistency
+features of Cassandra.
+
+1. Clone the Github repo and install the project (as written on the website):
+
+    `sudo ./setup.py install`
+
+2. Create and start a local cluster. One node has to be placed on 127.0.0.1 (this is the default behaviour).
+    
+    `ccm create test -v 3.11.2 -n 3 -s`
+    
+3. Check whether the cluster is created:
+
+    `ccm node1 ring`
+
+Cassandra can be started or stopped by using
+    `sudo service cassandra start/stop` 
+    
+### IntelliJ
+
+In IntelliJ, you have to add the annotation processor manually.
+
+1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`. 
+IntelliJ may be able to retrieve the correct checker by default.
+
+2. Add the compiled jar of the consistency-checker project
+
+3. Add the checker.jar from the CheckerFramework
+
+4. Choose `de.tu_darmstadt.consistency_types.checker.ConsistencyChecker` as annotation processor.  
 
 
 ## The consistency checker

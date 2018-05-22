@@ -2,6 +2,7 @@ package de.tu_darmstadt.consistency_types.cassandra;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 public class ConsistentCassandraConnector {
     private Cluster cluster;
@@ -30,6 +31,8 @@ public class ConsistentCassandraConnector {
     }
 
     public void createKeyspace(String keyspaceName, String replicationStrategy, int replicationFactor) {
+
+
         String query = "CREATE KEYSPACE IF NOT EXISTS " +
                 keyspaceName + " WITH replication = {" +
                 "'class':'" + replicationStrategy +
