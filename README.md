@@ -24,12 +24,18 @@ features of Cassandra.
     `sudo ./setup.py install`
 
 2. Create and start a local cluster. One node has to be placed on 127.0.0.1 (this is the default behaviour).
+The Cassandra version is specified by `-v` (unavailable versions are downloaded and installed automatically),
+,the number of replicas is specified by `-n`, and `-s` starts the cluster.
     
     `ccm create test -v 3.11.2 -n 3 -s`
     
 3. Check whether the cluster is created:
 
     `ccm node1 ring`
+    
+4. When the cluster is stopped (e.g. after a restart), then it can be started again with
+
+    `ccm start test`
 
 Cassandra can be started or stopped by using
     `sudo service cassandra start/stop` 
