@@ -21,13 +21,13 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  *
  * @author Mirko Köhler
  */
-abstract class CassandraValue<V> extends SerializerHandle<V> {
+abstract class CassandraHandle<V> extends SerializerHandle<V> {
 
 	private final Session session;
 	private final UUID key;
 	private final CassandraDatabase.CassandraTable table;
 
-	CassandraValue(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+	CassandraHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
 		this.session = session;
 		this.key = key;
 		this.table = table;
@@ -59,7 +59,7 @@ abstract class CassandraValue<V> extends SerializerHandle<V> {
 	@Override
 	public V get() throws IOException, ClassNotFoundException {
 		V result = super.get();
-		Log.info(CassandraValue.class, "Reading <" + result + "> with " + getReadConsistencyLevel());
+		Log.info(CassandraHandle.class, "Reading <" + result + "> with " + getReadConsistencyLevel());
 		return result;
 	}
 
@@ -80,13 +80,13 @@ abstract class CassandraValue<V> extends SerializerHandle<V> {
 
 	@Override
 	public void set(V value) throws IOException {
-		Log.info(CassandraValue.class, "Writing <" + value + "> with " + getReadConsistencyLevel());
+		Log.info(CassandraHandle.class, "Writing <" + value + "> with " + getReadConsistencyLevel());
 		super.set(value);
 	}
 
-	static class StrongValue<@Strong V> extends CassandraValue<V> {
+	static class StrongHandle<@Strong V> extends CassandraHandle<V> {
 
-		StrongValue(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+		StrongHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
 			super(session, table, key);
 		}
 
@@ -101,9 +101,9 @@ abstract class CassandraValue<V> extends SerializerHandle<V> {
 		}
 	}
 
-	static class WeakValue<@Weak V> extends CassandraValue<V> {
+	static class WeakHandle<@Weak V> extends CassandraHandle<V> {
 
-		WeakValue(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+		WeakHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
 			super(session, table, key);
 		}
 

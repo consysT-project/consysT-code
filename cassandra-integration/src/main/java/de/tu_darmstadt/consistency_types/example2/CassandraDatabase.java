@@ -59,9 +59,9 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 	public <T> Handle<T> obtain(UUID id, Class<?> consistencyLevel) {
 
 		if (Objects.equals(consistencyLevel, Weak.class)) {
-			return new CassandraValue.WeakValue<T>(session, data, id);
+			return new CassandraHandle.WeakHandle<T>(session, data, id);
 		} else if (Objects.equals(consistencyLevel, Strong.class)) {
-			return new CassandraValue.StrongValue<T>(session, data, id);
+			return new CassandraHandle.StrongHandle<T>(session, data, id);
 		}
 
 		throw new IllegalArgumentException("unknown consistency level");

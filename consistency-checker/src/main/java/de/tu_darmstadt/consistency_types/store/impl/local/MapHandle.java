@@ -25,6 +25,7 @@ public class MapHandle<T> implements Handle<T> {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public T get() {
 		return (T) store.get(id);
 	}

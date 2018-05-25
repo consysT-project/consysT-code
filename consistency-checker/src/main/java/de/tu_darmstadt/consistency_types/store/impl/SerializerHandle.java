@@ -12,6 +12,7 @@ import java.io.*;
 public abstract class SerializerHandle<V> implements Handle<V> {
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public V get() throws IOException, ClassNotFoundException {
 
 		byte[] data = readBytes();
