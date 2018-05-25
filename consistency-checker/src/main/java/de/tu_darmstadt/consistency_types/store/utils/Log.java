@@ -1,4 +1,4 @@
-package de.tu_darmstadt.consistency_types.utils;
+package de.tu_darmstadt.consistency_types.store.utils;
 
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;

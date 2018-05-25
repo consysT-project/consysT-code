@@ -33,6 +33,7 @@ public class Customer extends ConsistencyObject {
         this(Customer.getNewID(), n, null, null, connector);
     }
 
+    @SuppressWarnings("consistency")
     public Customer(UUID uuid, @Strong String n, @Strong Integer amount, Integer loyaltyPoints, CustomerConnector connector) {
         this.id = uuid;
         this.connector = connector;

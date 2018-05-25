@@ -3,24 +3,29 @@ package de.tu_darmstadt.consistency_types.cassandra;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import de.tu_darmstadt.consistency_types.checker.qual.Local;
 
 public class ConsistentCassandraConnector {
-    private Cluster cluster;
-    private Session session;
+    private @Local Cluster cluster;
+    private @Local Session session;
 
     public Cluster getCluster() {
         return this.cluster;
     }
 
-    public Session getSession() {
+    public @Local Session getSession() {
         return this.session;
     }
 
+    @SuppressWarnings("consistency")
     public void connect(String node, Integer port) {
-        Cluster.Builder b = Cluster.builder().addContactPoint(node);
+        Cluster.@Local Builder b = Cluster.builder().addContactPoint(node);
+
         if (port != null) {
             b.withPort(port);
         }
+
+
         cluster = b.build();
         session = cluster.connect();
     }
@@ -42,12 +47,14 @@ public class ConsistentCassandraConnector {
         this.useKeyspace(keyspaceName);
     }
 
+	@SuppressWarnings("consistency")
     public void useKeyspace(String keyspaceName){
         session = cluster.connect(keyspaceName);
     }
 
+	@SuppressWarnings("consistency")
     public void dropKeyspace(String name){
-        String query = "DROP KEYSPACE " + name;
+        @Local String query = "DROP KEYSPACE " + name;
         session.execute(query);
     }
 }

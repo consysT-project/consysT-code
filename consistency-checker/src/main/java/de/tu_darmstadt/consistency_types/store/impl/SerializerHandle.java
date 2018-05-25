@@ -1,4 +1,6 @@
-package de.tu_darmstadt.consistency_types.value;
+package de.tu_darmstadt.consistency_types.store.impl;
+
+import de.tu_darmstadt.consistency_types.store.Handle;
 
 import java.io.*;
 
@@ -7,10 +9,10 @@ import java.io.*;
  *
  * @author Mirko Köhler
  */
-public abstract class ByteArrayValue<V extends Serializable> implements DatabaseValue<V> {
+public abstract class SerializerHandle<V> implements Handle<V> {
 
 	@Override
-	public V read() throws IOException, ClassNotFoundException {
+	public V get() throws IOException, ClassNotFoundException {
 
 		byte[] data = readBytes();
 
@@ -36,13 +38,15 @@ public abstract class ByteArrayValue<V extends Serializable> implements Database
 	protected abstract byte[] readBytes();
 
 	@Override
-	public void write(V value) throws IOException {
+	public void set(V value) throws IOException {
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(bos);
 
 		//Transform object into a string representation
 		oos.writeObject(value);
+		oos.flush();
+
 		byte[] data = bos.toByteArray();
 
 		writeBytes(data);

@@ -5,8 +5,8 @@ package de.tu_darmstadt.consistency_types.store;
  *
  * @author Mirko Köhler
  */
-public interface Store {
+public interface Store<Key> {
 
-	<T> Handle<T> obtain(Object id, Class<?> consistencyLevel);
+	<T> Handle<T> obtain(Key id, Class<?> consistencyLevel);
 
 }

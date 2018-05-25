@@ -13,7 +13,7 @@ import de.tu_darmstadt.consistency_types.store.impl.local.MapStore;
  */
 public class StoreDemo {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 
 		System.out.println("Start");
 
@@ -30,7 +30,7 @@ public class StoreDemo {
 
 		//Error: implicit flow
 		if (b.get() == 23) {
-			a.set(1);
+		//	a.set(1);
 		}
 	}
 }

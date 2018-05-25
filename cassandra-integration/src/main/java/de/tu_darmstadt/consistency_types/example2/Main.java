@@ -1,8 +1,9 @@
 package de.tu_darmstadt.consistency_types.example2;
 
+import de.tu_darmstadt.consistency_types.checker.qual.Local;
 import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 import de.tu_darmstadt.consistency_types.checker.qual.Weak;
-import de.tu_darmstadt.consistency_types.value.DatabaseValue;
+import de.tu_darmstadt.consistency_types.store.Handle;
 
 import java.util.UUID;
 
@@ -21,38 +22,38 @@ public class Main {
 			UUID id2 = new UUID(573489512L, 1675789528L);
 
 
-			DatabaseValue<@Strong Integer> strong1 = database.strong().obtainValue(id1);
+			Handle<@Strong Integer> strong1 = database.obtain(id1, Strong.class);
 
-			strong1.write(5);
-			Integer dataA1 = strong1.read();
-
-
-			DatabaseValue<@Strong Integer> strong2 = database.strong().obtainValue(id1);
-
-			strong2.write(7);
-			Integer dataA2 = strong2.read();
+			strong1.set(5);
+			@Strong Integer dataA1 = strong1.get();
 
 
-			DatabaseValue<@Weak Integer> weak1 = database.weak().obtainValue(id2);
+			Handle<@Strong Integer> strong2 = database.obtain(id1, Strong.class);
 
-			weak1.write(42);
-			Integer dataB1 = weak1.read();
+			strong2.set(7);
+			@Strong Integer dataA2 = strong2.get();
+
+
+			Handle<@Weak Integer> weak1 = database.obtain(id2, Weak.class);
+
+			weak1.set(42);
+			@Weak Integer dataB1 = weak1.get();
 
 			//Types are correct: writing dataA2 (strong) to strong1 (strong)
-			strong1.write(dataA2);
+			strong1.set(dataA2);
 
 			//Types are correct: writing a local value to strong1 (strong)
-			strong1.write(34);
+			strong1.set(34);
 
 			//Types are correct: writing dataA1 (strong) to weak1 (weak)
-			weak1.write(dataA1);
+			weak1.set(dataA1);
 
 			//Type clash: Assigning dataB1 (weak) to strong1 (strong)
-			strong1.write(dataB1);
+			//strong1.set(dataB1);
 
 			//Checking implicit flows
-			if (weak1.read() == 32) {
-				strong1.write(11);
+			if (weak1.get() == 32) {
+				//strong1.set(11);
 			}
 
 

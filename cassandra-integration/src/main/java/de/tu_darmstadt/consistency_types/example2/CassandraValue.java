@@ -6,13 +6,10 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 import de.tu_darmstadt.consistency_types.checker.qual.Weak;
-import de.tu_darmstadt.consistency_types.utils.Log;
-import de.tu_darmstadt.consistency_types.value.ByteArrayValue;
-import de.tu_darmstadt.consistency_types.value.DatabaseValue;
-import de.tu_darmstadt.consistency_types.value.StrongValue;
+import de.tu_darmstadt.consistency_types.store.utils.Log;
+import de.tu_darmstadt.consistency_types.store.impl.SerializerHandle;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.UUID;
@@ -24,7 +21,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  *
  * @author Mirko Köhler
  */
-abstract class CassandraValue<V extends Serializable> extends ByteArrayValue<V> implements DatabaseValue<V> {
+abstract class CassandraValue<V> extends SerializerHandle<V> {
 
 	private final Session session;
 	private final UUID key;
@@ -60,8 +57,8 @@ abstract class CassandraValue<V extends Serializable> extends ByteArrayValue<V> 
 	}
 
 	@Override
-	public V read() throws IOException, ClassNotFoundException {
-		V result = super.read();
+	public V get() throws IOException, ClassNotFoundException {
+		V result = super.get();
 		Log.info(CassandraValue.class, "Reading <" + result + "> with " + getReadConsistencyLevel());
 		return result;
 	}
@@ -82,12 +79,12 @@ abstract class CassandraValue<V extends Serializable> extends ByteArrayValue<V> 
 	}
 
 	@Override
-	public void write(V value) throws IOException {
+	public void set(V value) throws IOException {
 		Log.info(CassandraValue.class, "Writing <" + value + "> with " + getReadConsistencyLevel());
-		super.write(value);
+		super.set(value);
 	}
 
-	static class StrongValue<V extends @Strong Serializable> extends CassandraValue<V> implements de.tu_darmstadt.consistency_types.value.StrongValue<V> {
+	static class StrongValue<@Strong V> extends CassandraValue<V> {
 
 		StrongValue(Session session, CassandraDatabase.CassandraTable table, UUID key) {
 			super(session, table, key);
@@ -104,7 +101,7 @@ abstract class CassandraValue<V extends Serializable> extends ByteArrayValue<V> 
 		}
 	}
 
-	static class WeakValue<V extends @Weak Serializable> extends CassandraValue<V> implements de.tu_darmstadt.consistency_types.value.WeakValue<V> {
+	static class WeakValue<@Weak V> extends CassandraValue<V> {
 
 		WeakValue(Session session, CassandraDatabase.CassandraTable table, UUID key) {
 			super(session, table, key);
