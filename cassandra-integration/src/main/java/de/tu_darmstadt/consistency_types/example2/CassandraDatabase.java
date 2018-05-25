@@ -4,11 +4,10 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 import de.tu_darmstadt.consistency_types.checker.qual.Weak;
-import de.tu_darmstadt.consistency_types.value.Database;
-import de.tu_darmstadt.consistency_types.value.StrongValue;
-import de.tu_darmstadt.consistency_types.value.WeakValue;
+import de.tu_darmstadt.consistency_types.store.Handle;
+import de.tu_darmstadt.consistency_types.store.Store;
 
-import java.io.Serializable;
+import java.util.Objects;
 import java.util.UUID;
 
 
@@ -18,7 +17,7 @@ import java.util.UUID;
  * @author Mirko Köhler
  */
 
-public class CassandraDatabase implements Database<UUID> {
+public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 
 	private final static String DEFAULT_KEYSPACE = "keyspace_consistency";
 
@@ -55,40 +54,21 @@ public class CassandraDatabase implements Database<UUID> {
 		return create(TEST_CLUSTER_NODE, DEFAULT_PORT);
 	}
 
-
-	class StrongConnector implements DatabaseConnector<UUID> {
-		public <V extends @Strong Serializable> StrongValue<V> obtainValue(UUID key) {
-			return new CassandraValue.StrongValue<V>(session, data, key);
-		}
-	}
-
-	class WeakConnector implements DatabaseConnector<UUID> {
-		public <V extends @Weak Serializable> WeakValue<V> obtainValue(UUID key) {
-			return new CassandraValue.WeakValue<V>(session, data, key);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private final DatabaseConnector<UUID>[] connectors = new DatabaseConnector[] {
-			new StrongConnector(),
-			new WeakConnector()
-	};
-
 	@Override
-	public DatabaseConnector<UUID>[] connectors() {
-		return connectors;
+	@SuppressWarnings("consistency")
+	public <T> Handle<T> obtain(UUID id, Class<?> consistencyLevel) {
+
+		if (Objects.equals(consistencyLevel, Weak.class)) {
+			return new CassandraValue.WeakValue<T>(session, data, id);
+		} else if (Objects.equals(consistencyLevel, Strong.class)) {
+			return new CassandraValue.StrongValue<T>(session, data, id);
+		}
+
+		throw new IllegalArgumentException("unknown consistency level");
 	}
 
-	public StrongConnector strong() {
-		return (StrongConnector) connectors[0];
-	}
-	public WeakConnector weak() {
-		return (WeakConnector) connectors[1];
-	}
 
-
-	@Override
-	public void initialize() {
+	private void initialize() {
 		connect(hostname, port, DEFAULT_KEYSPACE, 3);
 	}
 

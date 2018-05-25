@@ -16,7 +16,7 @@ import java.util.Objects;
  *
  * @author Mirko Köhler
  */
-public class MapStore implements Store {
+public class MapStore implements Store<Object> {
 
 	private final Map<Object, Object> data = Maps.newHashMap();
 

@@ -21,4 +21,4 @@ import java.lang.annotation.Target;
         literals = {LiteralKind.ALL}
 )
 @DefaultFor({TypeUseLocation.IMPLICIT_LOWER_BOUND})
-@interface Literal {}
+public @interface Local {}

@@ -7,6 +7,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.TreeUtils;
 
+import javax.lang.model.element.AnnotationMirror;
+
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
@@ -15,6 +17,4 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         super(checker, false);
         this.postInit();
     }
-
-
 }

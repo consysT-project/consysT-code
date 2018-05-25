@@ -9,7 +9,7 @@ import de.tu_darmstadt.consistency_types.checker.qual.PolyConsistent;
  */
 public interface Handle<T> {
 
-	void set(T value);
+	void set(T value) throws Exception;
 
-	T get();
+	T get() throws Exception;
 }
