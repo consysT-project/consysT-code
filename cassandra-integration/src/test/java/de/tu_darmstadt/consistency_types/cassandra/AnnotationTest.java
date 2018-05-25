@@ -4,6 +4,7 @@ import de.tu_darmstadt.consistency_types.checker.qual.Strong;
 
 public class AnnotationTest {
 
+    @SuppressWarnings("consistency")
     class A extends ConsistencyObject {
         HighValue<@Strong Integer> highWrapper = new HighValue<>(0, null, null, null, null);
         LowValue<Integer> lowWrapper = new LowValue<>(0, null, null, null, null);
