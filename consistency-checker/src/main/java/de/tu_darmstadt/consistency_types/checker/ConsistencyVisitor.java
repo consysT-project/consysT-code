@@ -4,10 +4,10 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.visitor.AnnotatedTypeVisitor;
+import org.checkerframework.org.apache.commons.lang3.reflect.TypeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
-import java.lang.annotation.Annotation;
-import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
 
@@ -16,7 +16,6 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
     public ConsistencyVisitor(BaseTypeChecker checker) {
         super(checker);
     }
-
 
     private class ImplicitContext {
 		private final Stack<AnnotationMirror> implicitContexts;
@@ -41,6 +40,20 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 		}
 
 		public boolean allowsUpdatesTo(AnnotatedTypeMirror type, Tree tree) {
+
+			//TODO: Improve this. We are not only checking the type but also its type parameters. This does not seem sound. How can this be improved?
+			if (type instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
+				AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) type;
+
+				//Check whether all type arguments are allowed to be updated in the implicit context
+				for (AnnotatedTypeMirror typeArg : declaredType.getTypeArguments()) {
+					if (!allowsUpdatesTo(typeArg, tree)) {
+						return false;
+					}
+				}
+
+			}
+
 			AnnotationMirror typeAnnotation = getAnnotation(type);
 
 			if (typeAnnotation == null) {
@@ -63,11 +76,15 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
     public Void visitIf(IfTree node, Void p) {
     	AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
 
-    	Void r = scan(node.getCondition(), p);
+
+    	System.out.println(conditionAnnotation);
 
     	implicitContext.set(conditionAnnotation);
 
-    	r = reduce(scan(node.getThenStatement(), p), r);
+		//The condition is executed under the implicit context as well .
+
+		Void r = scan(node.getCondition(), p);
+	   	r = reduce(scan(node.getThenStatement(), p), r);
 		r = reduce(scan(node.getElseStatement(), p), r);
 
 		implicitContext.reset();
@@ -75,6 +92,83 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
     	return r;
 	}
 
+	@Override
+	public Void visitWhileLoop(WhileLoopTree node, Void p) {
+    	AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
+
+    	implicitContext.set(conditionAnnotation);
+
+		Void r = scan(node.getCondition(), p);
+		r = reduce(scan(node.getStatement(), p), r);
+
+    	implicitContext.reset();
+
+    	return r;
+	}
+
+	@Override
+	public Void visitDoWhileLoop(DoWhileLoopTree node, Void p) {
+    	//TODO: The first loop of a do-while loop is not affected by implicit flow. Does this change anything? Probably not.
+		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
+
+		implicitContext.set(conditionAnnotation);
+
+		Void r = scan(node.getCondition(), p);
+		r = reduce(scan(node.getStatement(), p), r);
+
+		implicitContext.reset();
+
+		return r;
+	}
+
+	@Override
+	public Void visitForLoop(ForLoopTree node, Void p) {
+		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
+
+		Void r = scan(node.getCondition(), p);
+		//TODO: How to correctly track implicit flow for the for loop variable?
+		r = reduce(scan(node.getInitializer(), p), r);
+
+		implicitContext.set(conditionAnnotation);
+
+		r = reduce(scan(node.getUpdate(), p), r);
+		r = reduce(scan(node.getStatement(), p), r);
+
+		implicitContext.reset();
+
+		return r;
+	}
+
+	@Override
+	public Void visitEnhancedForLoop(EnhancedForLoopTree node, Void p) {
+    	//TODO: add variable to implicit context?
+		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getExpression());
+
+		Void r = scan(node.getVariable(), p);
+		r = reduce(scan(node.getExpression(), p), r);
+
+		implicitContext.set(conditionAnnotation);
+
+		r = reduce(scan(node.getStatement(), p), r);
+
+		implicitContext.reset();
+
+		return r;
+	}
+
+	public Void visitSwitch(SwitchTree node, Void p) {
+		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getExpression());
+
+		Void r = scan(node.getExpression(), p);
+
+		implicitContext.set(conditionAnnotation);
+
+		r = reduce(scan(node.getCases(), p), r);
+
+		implicitContext.reset();
+
+		return r;
+	}
 
 
 	/*
@@ -139,9 +233,17 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 			if (expr != null) {
 				checkMethodInvocationReceiver(
 						atypeFactory.getAnnotatedType(expr),
-						node
-				);
+						node);
 			}
+		}
+
+		//implicit context is not used when checking a method implementation.
+		//Thus, disallow methods that use weak contexts.
+		//TODO: Methods can still have assignments to strong variables. How do we rule out those cases?
+		for (ExpressionTree argExpr : node.getArguments()) {
+			checkMethodInvocationArgument(
+					atypeFactory.getAnnotatedType(argExpr),
+					node);
 		}
 
 		return super.visitMethodInvocation(node, p);
@@ -152,6 +254,15 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 			checker.report(
 					Result.failure("invocation.receiver.implicitflow", receiverType, implicitContext.get(), tree),
 					tree);
+		}
+	}
+
+	private void checkMethodInvocationArgument(AnnotatedTypeMirror argType, Tree tree) {
+		if (!implicitContext.allowsUpdatesTo(argType, tree)) {
+			checker.report(
+					Result.failure("invocation.argument.implicitflow", argType, implicitContext.get(), tree),
+					tree
+			);
 		}
 	}
 
@@ -183,7 +294,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 
 		if (annotations.size() == 1) {
 			return annotations.iterator().next();
-		} else if (annotations.size() == 0) {
+		} else if (annotations.isEmpty()) {
 			return null;
 		}
 
