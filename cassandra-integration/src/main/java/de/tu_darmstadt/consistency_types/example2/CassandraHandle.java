@@ -25,9 +25,9 @@ abstract class CassandraHandle<V> extends SerializerHandle<V> {
 
 	private final Session session;
 	private final UUID key;
-	private final CassandraDatabase.CassandraTable table;
+	private final CassandraDatabase.BlobTable table;
 
-	CassandraHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+	CassandraHandle(Session session, CassandraDatabase.BlobTable table, UUID key) {
 		this.session = session;
 		this.key = key;
 		this.table = table;
@@ -86,7 +86,7 @@ abstract class CassandraHandle<V> extends SerializerHandle<V> {
 
 	static class StrongHandle<@Strong V> extends CassandraHandle<V> {
 
-		StrongHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+		StrongHandle(Session session, CassandraDatabase.BlobTable table, UUID key) {
 			super(session, table, key);
 		}
 
@@ -103,7 +103,7 @@ abstract class CassandraHandle<V> extends SerializerHandle<V> {
 
 	static class WeakHandle<@Weak V> extends CassandraHandle<V> {
 
-		WeakHandle(Session session, CassandraDatabase.CassandraTable table, UUID key) {
+		WeakHandle(Session session, CassandraDatabase.BlobTable table, UUID key) {
 			super(session, table, key);
 		}
 

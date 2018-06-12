@@ -22,19 +22,19 @@ public class Main {
 			UUID id2 = new UUID(573489512L, 1675789528L);
 
 
-			Handle<@Strong Integer> strong1 = database.obtain(id1, Strong.class);
+			Handle<@Strong Integer> strong1 = (Handle<@Strong Integer>) database.obtain(id1, Integer.class, Strong.class);
 
 			strong1.set(5);
 			@Strong Integer dataA1 = strong1.get();
 
 
-			Handle<@Strong Integer> strong2 = database.obtain(id1, Strong.class);
+			Handle<@Strong Integer> strong2 = (Handle<@Strong Integer>) database.obtain(id1, Integer.class, Strong.class);
 
 			strong2.set(7);
 			@Strong Integer dataA2 = strong2.get();
 
 
-			Handle<@Weak Integer> weak1 = database.obtain(id2, Weak.class);
+			Handle<@Weak Integer> weak1 = (Handle<@Weak Integer>) database.obtain(id2, Integer.class, Weak.class);
 
 			weak1.set(42);
 			@Weak Integer dataB1 = weak1.get();
@@ -51,7 +51,7 @@ public class Main {
 			//Type clash: Assigning dataB1 (weak) to strong1 (strong)
 			//strong1.set(dataB1);
 
-			//Checking implicit flows
+			//Type clash: Checking implicit flows
 			if (weak1.get() == 32) {
 				//strong1.set(11);
 			}

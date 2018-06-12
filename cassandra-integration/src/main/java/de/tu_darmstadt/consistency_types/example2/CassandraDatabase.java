@@ -36,7 +36,8 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 	private Cluster cluster;
 	private Session session;
 
-	private CassandraTable data;
+	private BlobTable data;
+	private BlobTable objectTable;
 
 	private CassandraDatabase(String hostname, int port) {
 		this.hostname = hostname;
@@ -56,7 +57,7 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 
 	@Override
 	@SuppressWarnings("consistency")
-	public <T> Handle<T> obtain(UUID id, Class<?> consistencyLevel) {
+	public <T> Handle<T> obtain(UUID id, Class<T> valueClass, Class<?> consistencyLevel) {
 
 		if (Objects.equals(consistencyLevel, Weak.class)) {
 			return new CassandraHandle.WeakHandle<T>(session, data, id);
@@ -105,39 +106,43 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 
 
 		//Initialize the data table
-		this.data = new CassandraTable(keyspaceName, DEFAULT_TABLE_NAME);
-		this.data.create();
+		this.data = new BlobTable(keyspaceName, DEFAULT_TABLE_NAME);
+		this.data.initialize();
 
 
 	}
 
 
-	class CassandraTable {
+
+
+	class BlobTable implements CassandraTable {
 
 		private final String keyspaceName;
 		private final String tableName;
 
-		CassandraTable(String keyspaceName, String tableName) {
+		BlobTable(String keyspaceName, String tableName) {
 			this.keyspaceName = keyspaceName;
 			this.tableName = tableName;
 		}
 
-		void create() {
+		@Override
+		public void initialize() {
 			session.execute("DROP TABLE IF EXISTS " + tableName );
 			session.execute("CREATE TABLE " + tableName + " (" +
 					getKeyName() + " uuid PRIMARY KEY, " +
 					getDataName() + " blob);");
 		}
 
-		String getTableName() {
+		@Override
+		public String getTableName() {
 			return tableName;
 		}
 
-		String getKeyName() {
+		public String getKeyName() {
 			return "id";
 		}
 
-		String getDataName() {
+		public String getDataName() {
 			return "data";
 		}
 
