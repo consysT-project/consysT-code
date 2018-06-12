@@ -8,7 +8,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         /*
         	Set useFlow to false if the flow analysis should be used.
          */
-        super(checker, false);
+        super(checker, true);
         this.postInit();
     }
 }

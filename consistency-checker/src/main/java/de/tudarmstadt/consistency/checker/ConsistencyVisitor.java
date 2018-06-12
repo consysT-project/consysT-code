@@ -106,7 +106,6 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 
 	@Override
 	public Void visitDoWhileLoop(DoWhileLoopTree node, Void p) {
-    	//TODO: The first loop of a do-while loop is not affected by implicit flow. Does this change anything? Probably not.
 		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
 
 		implicitContext.set(conditionAnnotation);
