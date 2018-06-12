@@ -20,5 +20,5 @@ import java.lang.annotation.Target;
 @ImplicitFor(
         literals = {LiteralKind.ALL}
 )
-@DefaultFor({TypeUseLocation.IMPLICIT_LOWER_BOUND})
+@DefaultFor({TypeUseLocation.LOWER_BOUND})
 public @interface Local {}

@@ -7,6 +7,6 @@ package de.tu_darmstadt.consistency_types.store;
  */
 public interface Store<Key> {
 
-	<T> Handle<T> obtain(Key id, Class<?> consistencyLevel);
+	<T> Handle<T> obtain(Key id, Class<T> valueClass, Class<?> consistencyLevel);
 
 }

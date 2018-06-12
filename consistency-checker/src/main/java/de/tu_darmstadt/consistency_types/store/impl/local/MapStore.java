@@ -21,7 +21,7 @@ public class MapStore implements Store<Object> {
 	private final Map<Object, Object> data = Maps.newHashMap();
 
 
-	public <T> Handle<T> obtain(Object id, Class<?> consistencyLevel) {
+	public <T> Handle<T> obtain(Object id, Class<T> valueClass, Class<?> consistencyLevel) {
 
 		if (Objects.equals(Weak.class, consistencyLevel)) {
 			return new MapHandle<>(id, this);
