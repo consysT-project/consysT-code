@@ -13,8 +13,9 @@
     <modules>
 		<module>consistency-checker</module>
         <module>consistency-checker-test</module>
-        <module>cassandra-integration</module>
-	</modules>
+        <module>store-integration-demo</module>
+        <module>consistency-store</module>
+    </modules>
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->

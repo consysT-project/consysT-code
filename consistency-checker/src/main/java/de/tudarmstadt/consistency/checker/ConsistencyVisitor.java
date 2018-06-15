@@ -20,7 +20,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 
 		public ImplicitContext() {
 			implicitContexts = new Stack<AnnotationMirror>();
-			//TODO: This is ugly
+			//TODO: This is ugly. find other way to get the bottom annotation
 			implicitContexts.push(atypeFactory.getQualifierHierarchy().getBottomAnnotations().iterator().next());
 		}
 

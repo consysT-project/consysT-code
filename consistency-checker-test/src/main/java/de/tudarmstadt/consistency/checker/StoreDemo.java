@@ -4,7 +4,7 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.store.Handle;
 import de.tudarmstadt.consistency.store.Store;
-import de.tudarmstadt.consistency.store.impl.local.MapStore;
+import de.tudarmstadt.consistency.store.local.MapStore;
 
 /**
  * Created on 24.05.18.
@@ -19,10 +19,10 @@ public class StoreDemo {
 
 		Store store = new MapStore();
 
-		Handle<@Strong Integer> a = store.obtain(1, Strong.class);
+		Handle<@Strong Integer> a = store.obtain(1, null, Strong.class);
 		a.set(42);
 
-		Handle<@Weak Integer> b = store.obtain(2, Weak.class);
+		Handle<@Weak Integer> b = store.obtain(2, null, Weak.class);
 		b.set(23);
 
 		//Error: leakage from weak to strong
