@@ -1,32 +1,39 @@
+import de.tudarmstadt.consistency.checker.qual.Strong;
+import de.tudarmstadt.consistency.checker.qual.Weak;
+
 class DirectAssignment {
-    void lowToHigh() {
-        @High int a;
-        @Low int b = 42;
-        // :: error: (assignment.type.incompatible)
-        a = b;
+
+	/*
+	Helper functions
+	 */
+    void consumeStrong(@Strong int i) {
+
     }
 
-    void highToLow() {
-        @Low int a;
-        @High int b = 42;
-        a = b;
+    void consumeWeak(@Weak int i) {
+
     }
 
-    void unannotated() {
-        @Low int a;
-        @High int b;
-        int c = 42;
-        a = c;
-        // :: error: (assignment.type.incompatible)
-        b = c;
+    @Strong int produceStrong() {
+        return 42;
     }
 
-    void annotatedInstances(){
-        @Low DirectAssignment low = new @High DirectAssignment();
-        @High DirectAssignment high = new @High DirectAssignment();
-
-        low = new @Low DirectAssignment();
-        // :: error: (assignment.type.incompatible)
-        high = new @Low DirectAssignment();
+    @Weak int produceWeak() {
+        return 1;
     }
+
+    /*
+    Tests
+     */
+    void testWeakToStrong() {
+        int i = produceWeak();
+        // :: error: (argument.type.incompatible)
+        consumeStrong(i);
+    }
+
+	void testStrongToWeak() {
+		int i = produceStrong();
+		consumeWeak(i);
+	}
+
 }
