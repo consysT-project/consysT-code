@@ -3,11 +3,8 @@ package de.tudarmstadt.consistency.store.cassandra;
 import com.datastax.driver.core.ConsistencyLevel;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Handle;
 import de.tudarmstadt.consistency.store.SerializationHandle;
-import de.tudarmstadt.consistency.utils.Log;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.UUID;
@@ -17,12 +14,12 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-abstract class CassandraHandle<V> extends SerializationHandle<V> implements Serializable {
+public abstract class CassandraHandle<V> extends SerializationHandle<V> implements Serializable {
 
-	protected final UUID key;
+	final UUID key;
 
-	//Do not serialize the database. The database is set to the database object that was used for reading
-	//that value.
+	//Do not serialize the database, as the corresponding database objects differ on multiple hosts.
+	// The database is set to the database object that was used for reading that value.
 	private transient CassandraDatabase database;
 	
 	CassandraHandle(UUID key, CassandraDatabase database) {
@@ -33,15 +30,15 @@ abstract class CassandraHandle<V> extends SerializationHandle<V> implements Seri
 	abstract ConsistencyLevel getReadConsistencyLevel();
 	abstract ConsistencyLevel getWriteConsistencyLevel();
 
-	void setDatabase(CassandraDatabase database) {
+	private void setDatabase(CassandraDatabase database) {
 		this.database = database;
 	}
 
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public V get() throws Exception {
-		V result = super.get();
+	protected V handleRead() throws Exception {
+		V result = super.handleRead();
 		setDatabaseForHandleFields(result);
 		return result;
 	}
@@ -52,8 +49,11 @@ abstract class CassandraHandle<V> extends SerializationHandle<V> implements Seri
 			Object fieldValue = f.get(o);
 			Class<?> fieldType = f.getType();
 
+			//If there is a handle field, then set the database to the current database
 			if (fieldType.isAssignableFrom(CassandraHandle.class)) {
 				((CassandraHandle) fieldValue).setDatabase(database);
+
+			//Recursively check whether nested classes contain handles
 			} else if (!fieldType.isPrimitive() && !fieldType.isArray()) {
 				setDatabaseForHandleFields(fieldValue);
 			}
@@ -61,29 +61,29 @@ abstract class CassandraHandle<V> extends SerializationHandle<V> implements Seri
 	}
 
 	@Override
-	protected byte[] readBytes() {
-		return database.getTable().readWithConsistencyLevelArray(key, getReadConsistencyLevel());
+	protected final byte[] readBytes() {
+		return database.getTable().readWithConsistencyLevel(key, getReadConsistencyLevel());
 	}
 
 	@Override
-	protected void writeBytes(byte[] bytes) {
-		database.getTable().writeWithConsistencyLevelArray(key, bytes, getWriteConsistencyLevel());
+	protected final void writeBytes(byte[] bytes) {
+		database.getTable().writeWithConsistencyLevel(key, bytes, getWriteConsistencyLevel());
 	}
 
 
-	public static class StrongHandle<@Strong V> extends CassandraHandle<V> implements Serializable {
+	public final static class StrongHandle<@Strong V> extends CassandraHandle<V> implements Serializable {
 
 		StrongHandle(UUID key, CassandraDatabase database) {
 			super(key, database);
 		}
 
 		@Override
-		ConsistencyLevel getReadConsistencyLevel() {
+		final ConsistencyLevel getReadConsistencyLevel() {
 			return ConsistencyLevel.ALL;
 		}
 
 		@Override
-		ConsistencyLevel getWriteConsistencyLevel() {
+		final ConsistencyLevel getWriteConsistencyLevel() {
 			return ConsistencyLevel.ALL;
 		}
 
@@ -93,19 +93,19 @@ abstract class CassandraHandle<V> extends SerializationHandle<V> implements Seri
 		}
 	}
 
-	public static class WeakHandle<@Weak V> extends CassandraHandle<V> implements Serializable {
+	public final static class WeakHandle<@Weak V> extends CassandraHandle<V> implements Serializable {
 
 		WeakHandle(UUID key, CassandraDatabase database) {
 			super(key, database);
 		}
 
 		@Override
-		ConsistencyLevel getReadConsistencyLevel() {
+		final ConsistencyLevel getReadConsistencyLevel() {
 			return ConsistencyLevel.ONE;
 		}
 
 		@Override
-		ConsistencyLevel getWriteConsistencyLevel() {
+		final ConsistencyLevel getWriteConsistencyLevel() {
 			return ConsistencyLevel.ONE;
 		}
 

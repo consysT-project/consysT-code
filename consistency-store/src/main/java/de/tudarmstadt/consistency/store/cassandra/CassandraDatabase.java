@@ -4,6 +4,7 @@ import com.datastax.driver.core.*;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.store.Handle;
+import de.tudarmstadt.consistency.store.StateEvent;
 import de.tudarmstadt.consistency.store.Store;
 import de.tudarmstadt.consistency.utils.Log;
 
@@ -23,7 +24,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  * @author Mirko Köhler
  */
 
-public class CassandraDatabase implements Store<UUID>, AutoCloseable {
+public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable {
 
 	private final static String DEFAULT_KEYSPACE = "keyspace_consistency";
 	private final static String DEFAULT_TABLE_NAME = "table_data";
@@ -81,7 +82,7 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 
 	@Override
 	@SuppressWarnings("consistency")
-	public <T> Handle<T> obtain(UUID id, Class<? extends T> valueClass, Class<?> consistencyLevel) {
+	public <T> CassandraHandle<T> obtain(UUID id, Class<? extends T> valueClass, Class<?> consistencyLevel) {
 
 		if (Objects.equals(consistencyLevel, Weak.class)) {
 			return new CassandraHandle.WeakHandle<T>(id, this);
@@ -132,57 +133,8 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 					getDataName() + " blob);");
 		}
 
-		public Object readWithConsistencyLevel(UUID key, ConsistencyLevel consistencyLevel) {
 
-			//Retrieve all elements with key from the database
-			ResultSet result = execute(
-					select().from(getTableName())
-							.where(eq(getKeyName(), key))
-							.setConsistencyLevel(consistencyLevel)
-			);
-
-			List<Row> rows = result.all();
-
-			if (rows.isEmpty()) {
-				return null;
-			} else if (rows.size() > 1) {
-				throw new IllegalStateException("can not retrieve more than 1 row, but got:\n" + rows);
-			}
-			//else rows.size() == 1
-
-			ByteBuffer buffer = rows.get(0).get(table.getDataName(), ByteBuffer.class);
-
-
-			byte[] data = buffer.array();
-
-			try {
-
-				ByteArrayInputStream bis = new ByteArrayInputStream(data);
-				ObjectInputStream ois = new ObjectInputStream(bis);
-
-				Object o = ois.readObject();
-
-				//If the object contains a handle, set the correct database
-				for (Field f : o.getClass().getFields()) {
-					Object fieldValue = f.get(o);
-
-					if (fieldValue instanceof CassandraHandle) {
-						((CassandraHandle) fieldValue).setDatabase(CassandraDatabase.this);
-					}
-				}
-
-				return o;
-
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(e);
-			} catch (IllegalAccessException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		public byte[] readWithConsistencyLevelArray(UUID key, ConsistencyLevel consistencyLevel) {
+		public byte[] readWithConsistencyLevel(UUID key, ConsistencyLevel consistencyLevel) {
 
 			//Retrieve all elements with key from the database
 			ResultSet result = execute(
@@ -210,7 +162,7 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 		}
 
 
-		public void writeWithConsistencyLevelArray(UUID key, byte[] bytes, ConsistencyLevel consistencyLevel) {
+		public void writeWithConsistencyLevel(UUID key, byte[] bytes, ConsistencyLevel consistencyLevel) {
 			ByteBuffer data = ByteBuffer.wrap(bytes);
 
 			//Store object in database
@@ -223,32 +175,7 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 
 		}
 
-		public void writeWithConsistencyLevel(UUID key, Object value, ConsistencyLevel consistencyLevel) {
 
-			try {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				ObjectOutputStream oos = new ObjectOutputStream(bos);
-
-				//Transform object into a string representation
-				oos.writeObject(value);
-				oos.flush();
-
-				byte[] bytes = bos.toByteArray();
-
-
-				ByteBuffer data = ByteBuffer.wrap(bytes);
-
-				//Store object in database
-				session.execute(
-						//Upsert operation: if the row already exists, then it is updated. Does not provide any concurrency control.
-						insertInto(getTableName())
-								.values(new String[]{getKeyName(), getDataName()}, new Object[]{key, data})
-								.setConsistencyLevel(consistencyLevel)
-				);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
 
 
 		public String getTableName() {

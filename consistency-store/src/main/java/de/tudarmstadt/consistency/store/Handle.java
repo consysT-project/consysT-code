@@ -6,25 +6,21 @@ package de.tudarmstadt.consistency.store;
  *
  * @author Mirko Köhler
  */
-public interface Handle<T> {
+public interface Handle<T, Event> {
 
 	/**
-	 * Sets a new value for the database object referenced by this handle.
+	 * Handles an event for the database object represented by this handle.
+	 * Examples for events are reading from the database or writing to the database.
+	 * The concrete allowed events are defined by the database.
 	 *
-	 * @param value The new value.
+	 * @param e The event to handle.
+	 * @param values Arguments to the event.
+	 * @return A value that is produced by the event, or null if the event does not
+	 * produce any value.
 	 *
-	 * @throws Exception This method may throw an exception in case anything
-	 * goes wrong (e.g. communicating with the database).
+	 * @throws Exception if the event can not be handled, or communication with
+	 * the database goes wrong.
 	 */
-	void set(T value) throws Exception;
+	T handle(Event e, T... values) throws Exception;
 
-	/**
-	 * Retrieves the value of the database object referenced by this handle.
-	 *
-	 * @return The value referenced by this handle.
-	 *
-	 * @throws Exception This method may throw an exception in case anything
-	 * goes wrong (e.g. communicating with the database).
-	 */
-	T get() throws Exception;
 }
