@@ -12,8 +12,8 @@
 
     <modules>
 		<module>consistency-checker</module>
-        <module>consistency-checker-test</module>
         <module>store-integration-demo</module>
+        <module>consistency-checker/consistency-checker-test</module>
         <module>consistency-store</module>
     </modules>
 
