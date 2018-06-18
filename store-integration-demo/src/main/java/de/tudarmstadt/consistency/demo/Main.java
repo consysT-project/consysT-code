@@ -26,29 +26,6 @@ import static de.tudarmstadt.consistency.store.StateEvent.READ;
 public class Main {
 
 
-	void consumeStrong(@Strong int i) {
-
-	}
-
-	void consumeWeak(@Weak int i) {
-
-	}
-
-	@Strong int produceStrong() {
-		return 42;
-	}
-
-	@Weak int produceWeak() {
-		return 1;
-	}
-
-	void lowToHigh() {
-		int i = produceWeak();
-		// :: error: (assignment.type.incompatible)
-		//consumeStrong(i);
-	}
-
-
 	public static void main(String... args) throws Exception {
 
 		try (CassandraDatabase database = CassandraDatabase.local()) {

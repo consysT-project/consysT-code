@@ -22,10 +22,13 @@ The project is divided into the following modules:
 
 * **consistency-checker**: Implements the type annotations and the information flow analysis using the 
 Checker framework.
-    * **consistency-checker-test**: Unit tests for the consistency checker. (Has its own maven module, because
+    * **consistency-checker-test**: Unit tests for checking information flow with the
+     consistency checker. (Has its own maven module, because
     it needs to be compiled using the consistency checker as annotation processor). 
-* **consistency-store**: Implements distributed data store bindings (e.g. for Cassandra) 
-for types with consistency annotations.
+* **consistency-store**: Implements distributed data store bindings (e.g. for Cassandra)     
+    for types with consistency annotations.
+    * **consistency-store-test**: Unit tests for checking information flow in the
+    store API usage. 
 * **store-integration-demo**: Examples how the type annotations are used in combination with
 a replicated datastore. 
 
