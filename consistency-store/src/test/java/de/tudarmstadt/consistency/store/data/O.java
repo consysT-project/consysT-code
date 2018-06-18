@@ -1,6 +1,7 @@
-package de.tudarmstadt.consistency.demo.data;
+package de.tudarmstadt.consistency.store.data;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Created on 18.06.18.
@@ -20,5 +21,14 @@ public class O implements Serializable {
 	@Override
 	public String toString() {
 		return "O(A=" + a + ", s=" + s + ")";
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof O) {
+			O other = (O) obj;
+			return Objects.equals(a, other.a) && Objects.equals(s, other.s);
+		}
+		return false;
 	}
 }

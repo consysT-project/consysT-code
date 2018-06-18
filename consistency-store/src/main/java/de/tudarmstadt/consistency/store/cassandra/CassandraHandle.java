@@ -7,6 +7,10 @@ import de.tudarmstadt.consistency.store.SerializationHandle;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -20,7 +24,7 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 
 	//Do not serialize the database, as the corresponding database objects differ on multiple hosts.
 	// The database is set to the database object that was used for reading that value.
-	private transient CassandraDatabase database;
+	transient CassandraDatabase database;
 	
 	CassandraHandle(UUID key, CassandraDatabase database) {
 		this.key = key;
@@ -39,23 +43,32 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 	@SuppressWarnings("unchecked")
 	protected V handleRead() throws Exception {
 		V result = super.handleRead();
-		setDatabaseForHandleFields(result);
+		setDatabaseForHandleFields(result, new HashSet<>());
 		return result;
 	}
 
-	private void setDatabaseForHandleFields(Object o) throws IllegalAccessException {
+	private void setDatabaseForHandleFields(Object o, Set<Object> alreadyTraversed) throws IllegalAccessException {
+		alreadyTraversed.add(o);
+
 		//If the object contains a handle, set the correct database
 		for (Field f : o.getClass().getFields()) {
 			Object fieldValue = f.get(o);
 			Class<?> fieldType = f.getType();
 
+			//Skip static fields
+			//TODO: Is this sufficient?
+			if (Modifier.isStatic(f.getModifiers())) {
+				continue;
+			}
+
 			//If there is a handle field, then set the database to the current database
 			if (fieldType.isAssignableFrom(CassandraHandle.class)) {
 				((CassandraHandle) fieldValue).setDatabase(database);
+			}
 
 			//Recursively check whether nested classes contain handles
-			} else if (!fieldType.isPrimitive() && !fieldType.isArray()) {
-				setDatabaseForHandleFields(fieldValue);
+			if (!alreadyTraversed.contains(fieldValue)) {
+				setDatabaseForHandleFields(fieldValue, alreadyTraversed);
 			}
 		}
 	}
@@ -68,6 +81,17 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 	@Override
 	protected final void writeBytes(byte[] bytes) {
 		database.getTable().writeWithConsistencyLevel(key, bytes, getWriteConsistencyLevel());
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof CassandraHandle) {
+			CassandraHandle other = (CassandraHandle) obj;
+			return Objects.equals(key, other.key) && Objects.equals(database, other.database);
+		}
+
+		return false;
 	}
 
 
@@ -91,6 +115,15 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 		public String toString() {
 			return "StrongHandle(key=" + key + ")";
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj instanceof StrongHandle) {
+				return super.equals(obj);
+			}
+
+			return false;
+		}
 	}
 
 	public final static class WeakHandle<@Weak V> extends CassandraHandle<V> implements Serializable {
@@ -112,6 +145,15 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 		@Override
 		public String toString() {
 			return "WeakHandle(key=" + key + ")";
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj instanceof WeakHandle) {
+				return super.equals(obj);
+			}
+
+			return false;
 		}
 	}
 }
