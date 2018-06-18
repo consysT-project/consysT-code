@@ -182,6 +182,47 @@ public class CassandraDatabase implements Store<UUID>, AutoCloseable {
 			}
 		}
 
+		public byte[] readWithConsistencyLevelArray(UUID key, ConsistencyLevel consistencyLevel) {
+
+			//Retrieve all elements with key from the database
+			ResultSet result = execute(
+					select().from(getTableName())
+							.where(eq(getKeyName(), key))
+							.setConsistencyLevel(consistencyLevel)
+			);
+
+			List<Row> rows = result.all();
+
+			if (rows.isEmpty()) {
+				return null;
+			} else if (rows.size() > 1) {
+				throw new IllegalStateException("can not retrieve more than 1 row, but got:\n" + rows);
+			}
+			//else rows.size() == 1
+
+			ByteBuffer buffer = rows.get(0).get(table.getDataName(), ByteBuffer.class);
+
+
+			//The read array does contain no link to the database in handles.
+			//Set the databases of handles when the object has been de-serialized.
+			return buffer.array();
+
+		}
+
+
+		public void writeWithConsistencyLevelArray(UUID key, byte[] bytes, ConsistencyLevel consistencyLevel) {
+			ByteBuffer data = ByteBuffer.wrap(bytes);
+
+			//Store object in database
+			session.execute(
+					//Upsert operation: if the row already exists, then it is updated. Does not provide any concurrency control.
+					insertInto(getTableName())
+							.values(new String[]{getKeyName(), getDataName()}, new Object[]{key, data})
+							.setConsistencyLevel(consistencyLevel)
+			);
+
+		}
+
 		public void writeWithConsistencyLevel(UUID key, Object value, ConsistencyLevel consistencyLevel) {
 
 			try {

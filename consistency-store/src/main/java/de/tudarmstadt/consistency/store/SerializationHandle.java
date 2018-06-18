@@ -5,15 +5,15 @@ import de.tudarmstadt.consistency.store.Handle;
 import java.io.*;
 
 /**
- * Created on 22.05.18.
+ * Handler for databases that store serialized objects.
  *
  * @author Mirko Köhler
  */
-public abstract class SerializerHandle<V> implements Handle<V> {
+public abstract class SerializationHandle<V> implements Handle<V> {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public V get() throws IOException, ClassNotFoundException {
+	public V get() throws IOException, ClassNotFoundException, Exception {
 
 		byte[] data = readBytes();
 
