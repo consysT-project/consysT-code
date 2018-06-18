@@ -1,13 +1,14 @@
 package de.tudarmstadt.consistency.store.local;
 
 import de.tudarmstadt.consistency.store.Handle;
+import de.tudarmstadt.consistency.store.ReadWriteHandle;
 
 /**
  * Created on 24.05.18.
  *
  * @author Mirko Köhler
  */
-public class MapHandle<T> implements Handle<T> {
+public class MapHandle<T> extends ReadWriteHandle<T> {
 
 	private final Object id;
 	private final MapStore store;
@@ -18,14 +19,14 @@ public class MapHandle<T> implements Handle<T> {
 		this.store = store;
 	}
 
+
 	@Override
-	public void set(T value) {
-		store.put(id, value);
+	protected T handleRead() throws Exception {
+		return (T) store.get(id);
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	public T get() {
-		return (T) store.get(id);
+	protected void handleWrite(T value) throws Exception {
+		store.put(id, value);
 	}
 }

@@ -12,9 +12,10 @@
 
     <modules>
 		<module>consistency-checker</module>
+        <module>consistency-store</module>
         <module>store-integration-demo</module>
         <module>consistency-checker/consistency-checker-test</module>
-        <module>consistency-store</module>
+        <module>consistency-store/consistency-store-test</module>
     </modules>
 
     <properties>

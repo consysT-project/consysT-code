@@ -9,11 +9,11 @@ import java.io.*;
  *
  * @author Mirko Köhler
  */
-public abstract class SerializationHandle<V> implements Handle<V> {
+public abstract class SerializationHandle<V> extends ReadWriteHandle<V> {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public V get() throws IOException, ClassNotFoundException, Exception {
+	protected V handleRead() throws Exception {
 
 		byte[] data = readBytes();
 
@@ -39,7 +39,7 @@ public abstract class SerializationHandle<V> implements Handle<V> {
 	protected abstract byte[] readBytes();
 
 	@Override
-	public void set(V value) throws IOException {
+	protected void handleWrite(V value) throws Exception {
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(bos);

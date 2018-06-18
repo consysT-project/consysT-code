@@ -7,10 +7,16 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.demo.data.O;
 import de.tudarmstadt.consistency.store.Handle;
+import de.tudarmstadt.consistency.store.StateEvent;
 import de.tudarmstadt.consistency.store.cassandra.CassandraDatabase;
+import de.tudarmstadt.consistency.store.cassandra.CassandraHandle;
 import de.tudarmstadt.consistency.utils.Log;
 
 import java.util.UUID;
+
+import static de.tudarmstadt.consistency.store.StateEvent.WRITE;
+import static de.tudarmstadt.consistency.store.StateEvent.READ;
+
 
 /**
  * Created on 29.05.18.
@@ -44,6 +50,7 @@ public class Main {
 
 
 	public static void main(String... args) throws Exception {
+
 		try (CassandraDatabase database = CassandraDatabase.local()) {
 
 			UUID id1 = new UUID(573489594L, 8675789563L);
@@ -61,9 +68,9 @@ public class Main {
 			Is there a better way to handle that? In the current implementation the value class
 			argument is not needed.
 			 */
-			Handle<@Strong A> strong1 = database.<@Strong A>obtain(id1, null, Strong.class);
+			CassandraHandle<@Strong A> strong1 = database.<@Strong A>obtain(id1, null, Strong.class);
 			//B.class returns @Inconsistent Class<@Inconsistent B>, but obtain requires @Inconsistent Class<@Strong B>
-			Handle<@Strong B> strong2 = (Handle<@Strong B>) database.obtain(id2, B.class, Strong.class);
+			CassandraHandle<@Strong B> strong2 = (CassandraHandle<@Strong B>) database.obtain(id2, B.class, Strong.class);
 
 			//Types are correct: writing a local value to strong1/2 (strong)
 			strong1.set(new @Strong A(312, strong2, "hallo"));
@@ -75,10 +82,10 @@ public class Main {
 
 			Log.info(Main.class, aStrong);
 			Log.info(Main.class, bStrong);
-			Log.info(Main.class, aStrong.b.get());
+			Log.info(Main.class, aStrong.b.handle(READ));
 
 
-			Handle<@Weak B> weak1 = (Handle<@Weak B>) database.obtain(id3, B.class, Weak.class);
+			CassandraHandle<@Weak B> weak1 = (CassandraHandle<@Weak B>) database.obtain(id3, B.class, Weak.class);
 
 			weak1.set(new @Weak B("gude"));
 
@@ -86,21 +93,25 @@ public class Main {
 
 			//Type clash: writing weak value to strong handle
 			//strong2.set(bWeak);
+			//strong2.handle(WRITE, bWeak);
+
 
 			//Types are correct: writing a strong value to a weak handle
 			weak1.set(bStrong);
 
 			//Type clash: Checking implicit flows
 			if (weak1.get() == null) {
-				//strong1.set(new @Strong A(213, strong2,"fire"));
+			//	A a = new @Strong A(213, strong2,"fire");
+			//	strong1.set(a);
+			//	strong1.handle(WRITE, a);
 			}
 
-			Handle<@Strong O> o1 = database.obtain(id4, null, Strong.class);
+			CassandraHandle<@Strong O> o1 = database.obtain(id4, null, Strong.class);
 			o1.set(new @Strong O(new A(31, weak1, "lol"), "rofl"));
 			O o = o1.get();
 
 			Log.info(Main.class, o);
-			Log.info(Main.class, o.a.b.get());
+			Log.info(Main.class, o.a.b.handle(READ));
 
 		}
 	}
