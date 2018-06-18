@@ -83,14 +83,14 @@ public class Main {
 			B bWeak = weak1.get();
 
 			//Type clash: writing weak value to strong handle
-			strong2.set(bWeak);
+			//strong2.set(bWeak);
 
 			//Types are correct: writing a strong value to a weak handle
 			weak1.set(bStrong);
 
 			//Type clash: Checking implicit flows
 			if (weak1.get() == null) {
-				strong1.set(new @Strong A(213, strong2,"fire"));
+				//strong1.set(new @Strong A(213, strong2,"fire"));
 			}
 
 		}
