@@ -14,7 +14,10 @@
 		<artifactId>consistency-types-parent</artifactId>
 		<version>1.0</version>    
     </parent>
-    
+
+
+
+
     <build>
         <plugins>
             <plugin>

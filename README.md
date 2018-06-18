@@ -1,10 +1,40 @@
-# consistency-types-impl
-IMPL project WS 2017-18
+# Consistency Types
+
+In replicated datastores, users have to decide between available and consistent data. 
+Consistency ensures that the data is the same across all replicas, whereas availability 
+ensures that the user will get an answer from the datastore even in the presence of
+network partitions. Having consistency and availability simultaneously is not possible
+as described by the famous CAP theorem: available data only provides weak consistency guarantees, and
+consistent data provides low availability.
+
+However, applications often need available data to provide performance and consistency guarantees 
+for critical program parts, e.g., payment. When mixing available and consistent data, developers
+have to reason about which consistency guarantees are still satisfied.  
+
+This project implements consistency types that help developers mix available and consistent data;
+the types are implemented as type annotations.
+The checking is done using an information flow analysis.
+
+
+## Project overview
+
+The project is divided into the following modules:
+
+* **consistency-checker**: Implements the type annotations and the information flow analysis using the 
+Checker framework.
+    * **consistency-checker-test**: Unit tests for the consistency checker. (Has its own maven module, because
+    it needs to be compiled using the consistency checker as annotation processor). 
+* **consistency-store**: Implements distributed data store bindings (e.g. for Cassandra) 
+for types with consistency annotations.
+* **store-integration-demo**: Examples how the type annotations are used in combination with
+a replicated datastore. 
 
 
 ## Installation of the project
 
-1. The project is compiled using Maven.
+The project is built using Apache Maven. 
+
+1. Install [Maven](https://maven.apache.org)
 2. Open a terminal in the main folder consistency-types-impl
 3. Run `mvn org.apache.maven.plugins:maven-dependency-plugin:properties`
 4. Run `mvn install`
@@ -12,7 +42,7 @@ IMPL project WS 2017-18
 
 ### Cassandra
 
-Cassandra has to run to execute code that uses the Cassandra integration.
+Cassandra has to run to execute the Cassandra integration.
 
 If Cassandra should be run on only a single machine, then it is advisable to use 
 CCM (Cassandra Cluster Manager, https://github.com/riptano/ccm).
@@ -62,17 +92,14 @@ Example use:
 `// This assignment is not allowed and will throw assignment.type.incompatible at compile time.`  
 `a = b;`  
 For further examples, refer to the testcases.
-## Running the testcases
-1. [build the checker framework](https://checkerframework.org/manual/#build-source)
-2. clone consistency-types-impl
-3. edit consistency-types-impl/consistencyCheckerTest/build.properties:  
-`checkerframework=/path/to/checkerframework`  
-`consistency-types-impl=/path/to/consistency-types-impl`
-4. in consistency-types-impl/consistencyCheckerTest/ run:  
-`$ ant consistency_tests`
+
 ## The cassandra connector
 The Cassandra module contains a connector to the [Cassandra distributed database system](https://cassandra.apache.org/). It provides wrappers for java objects whose values are stored in cassandra. The wrappers ensure consistency on different levels between the java objects and the data in the database.  
 `HighValue` objects are read from and written to ALL cassandra nodes, and each read and write access to the object is synchronized with the database. `LowValue` objects on the other hand are only written to a single cassandra node (although cassandras eventual consistency guarantees that the value will propagade over time, if no other value is written), and read accesses may be cached in the wrapper, so the read value may not be the latest written value. The only API methods of the wrappers are `value()` to read the current value and `setValue(value)` to set a new value, as well as a `perform(function)` method that executes a function with the wrappers current value as an argument. Everything else will be handled behind the scenes. To make this work, one has to provide a `java.util.function.Supplier` and a `java.util.function.Consumer` lambda function to the constructor that tells the wrapper how to read from and write to Cassandra respectively.  
 Classes that have fields wrapped in `HighValue` or `LowValue` should extend the `ConsistencyObject` class, which allows reading and writing of all members at once, while the `ConsistencyObject` objects are not stored in Cassandra themselves. Additionaly there is a `CollectionWrapper` class that allows batch processing of collections of `ConsistencyObject` objects.  
 It is possible to have cyclic dependencies, i.e. a `ConsistencyObject` that has another `ConsistencyObject` inside a wrapper. It is ensured, that reading and writing is only performed once so that no infinite loop occures. For an example refer to the `CycleTest` class.  
 The wrappers are compatible with the consistency annotations. For example, the value of a `HighValue` will always be annotated with `@High` and no `@Low` value can be assigned to a `HighValue` wrapper. A simple example application with a bank and customers is included.
+
+## Info
+
+This project is based on the work of Victor Schümmer and Jesper Schlegel as part of the IMPL project WS 2017-18.
