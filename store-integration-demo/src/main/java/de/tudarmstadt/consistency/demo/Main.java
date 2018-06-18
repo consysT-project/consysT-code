@@ -5,6 +5,7 @@ import de.tudarmstadt.consistency.demo.data.A;
 import de.tudarmstadt.consistency.demo.data.B;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
+import de.tudarmstadt.consistency.demo.data.O;
 import de.tudarmstadt.consistency.store.Handle;
 import de.tudarmstadt.consistency.store.cassandra.CassandraDatabase;
 import de.tudarmstadt.consistency.utils.Log;
@@ -48,6 +49,7 @@ public class Main {
 			UUID id1 = new UUID(573489594L, 8675789563L);
 			UUID id2 = new UUID(573489512L, 1675789528L);
 			UUID id3 = new UUID(573489456L, 1675789879L);
+			UUID id4 = new UUID(573489465L, 1675789841L);
 
 
 			/*
@@ -92,6 +94,13 @@ public class Main {
 			if (weak1.get() == null) {
 				//strong1.set(new @Strong A(213, strong2,"fire"));
 			}
+
+			Handle<@Strong O> o1 = database.obtain(id4, null, Strong.class);
+			o1.set(new @Strong O(new A(31, weak1, "lol"), "rofl"));
+			O o = o1.get();
+
+			Log.info(Main.class, o);
+			Log.info(Main.class, o.a.b.get());
 
 		}
 	}

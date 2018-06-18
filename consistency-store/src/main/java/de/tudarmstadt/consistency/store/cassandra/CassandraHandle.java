@@ -4,9 +4,12 @@ import com.datastax.driver.core.ConsistencyLevel;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.store.Handle;
+import de.tudarmstadt.consistency.store.SerializationHandle;
 import de.tudarmstadt.consistency.utils.Log;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.UUID;
 
 /**
@@ -14,7 +17,7 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-abstract class CassandraHandle<V> implements Handle<V>, Serializable {
+abstract class CassandraHandle<V> extends SerializationHandle<V> implements Serializable {
 
 	protected final UUID key;
 
@@ -37,17 +40,36 @@ abstract class CassandraHandle<V> implements Handle<V>, Serializable {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public V get() {
-		V result = (V) database.getTable().readWithConsistencyLevel(key, getReadConsistencyLevel());
-		Log.info(CassandraHandle.class, "Reading <" + result + "> with " + getReadConsistencyLevel());
+	public V get() throws Exception {
+		V result = super.get();
+		setDatabaseForHandleFields(result);
 		return result;
 	}
 
-	@Override
-	public void set(V value) {
-		Log.info(CassandraHandle.class, "Writing <" + value + "> with " + getReadConsistencyLevel());
-		database.getTable().writeWithConsistencyLevel(key, value, getWriteConsistencyLevel());
+	private void setDatabaseForHandleFields(Object o) throws IllegalAccessException {
+		//If the object contains a handle, set the correct database
+		for (Field f : o.getClass().getFields()) {
+			Object fieldValue = f.get(o);
+			Class<?> fieldType = f.getType();
+
+			if (fieldType.isAssignableFrom(CassandraHandle.class)) {
+				((CassandraHandle) fieldValue).setDatabase(database);
+			} else if (!fieldType.isPrimitive() && !fieldType.isArray()) {
+				setDatabaseForHandleFields(fieldValue);
+			}
+		}
 	}
+
+	@Override
+	protected byte[] readBytes() {
+		return database.getTable().readWithConsistencyLevelArray(key, getReadConsistencyLevel());
+	}
+
+	@Override
+	protected void writeBytes(byte[] bytes) {
+		database.getTable().writeWithConsistencyLevelArray(key, bytes, getWriteConsistencyLevel());
+	}
+
 
 	public static class StrongHandle<@Strong V> extends CassandraHandle<V> implements Serializable {
 
