@@ -62,6 +62,34 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 			return atypeFactory.getQualifierHierarchy().isSubtype(get(), typeAnnotation)
 				|| atypeFactory.getQualifierHierarchy().getBottomAnnotations().contains(typeAnnotation);
 		}
+
+		public boolean allowsUpdatesFrom(AnnotatedTypeMirror type, Tree tree) {
+
+			//TODO: Improve this. We are not only checking the type but also its type parameters. This does not seem sound. How can this be improved?
+			if (type instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
+				AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) type;
+
+				//Check whether all type arguments are allowed to be updated in the implicit context
+				for (AnnotatedTypeMirror typeArg : declaredType.getTypeArguments()) {
+					if (!allowsUpdatesFrom(typeArg, tree)) {
+						return false;
+					}
+				}
+
+			}
+
+			AnnotationMirror typeAnnotation = getAnnotation(type);
+
+			if (typeAnnotation == null) {
+				checker.report(Result.warning("consistency.inferred", type, tree), tree);
+				return true;
+			}
+
+			return atypeFactory.getQualifierHierarchy().isSubtype(get(), typeAnnotation)
+					|| atypeFactory.getQualifierHierarchy().getBottomAnnotations().contains(typeAnnotation);
+		}
+
+
 	}
 
 
@@ -212,7 +240,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	}
 
 	private void checkAssignment(AnnotatedTypeMirror lhsType, AnnotatedTypeMirror rhsType, Tree tree) {
-    	if (!implicitContext.allowsUpdatesTo(lhsType, tree)) {
+    	if (!implicitContext.allowsUpdatesTo(lhsType, tree) || !implicitContext.allowsUpdatesFrom(rhsType, tree)) {
     		checker.report(
 					Result.failure("assignment.type.implicitflow", lhsType, implicitContext.get(), tree),
 					tree);
@@ -247,7 +275,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	}
 
 	private void checkMethodInvocationReceiver(AnnotatedTypeMirror receiverType, Tree tree) {
-		if (!implicitContext.allowsUpdatesTo(receiverType, tree)) {
+		if (!implicitContext.allowsUpdatesTo(receiverType, tree) || !implicitContext.allowsUpdatesFrom(receiverType, tree)) {
 			checker.report(
 					Result.failure("invocation.receiver.implicitflow", receiverType, implicitContext.get(), tree),
 					tree);
@@ -255,7 +283,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	}
 
 	private void checkMethodInvocationArgument(AnnotatedTypeMirror argType, Tree tree) {
-		if (!implicitContext.allowsUpdatesTo(argType, tree)) {
+		if (!implicitContext.allowsUpdatesTo(argType, tree) || !implicitContext.allowsUpdatesFrom(argType, tree)) {
 			checker.report(
 					Result.failure("invocation.argument.implicitflow", argType, implicitContext.get(), tree),
 					tree
