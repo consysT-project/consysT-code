@@ -39,35 +39,37 @@ class CassandraStoreFlowTest {
 	}
 
 
-	final UUID idA1 = new UUID(573489594L, 8675789563L);
-	final UUID idA2 = new UUID(573489456L, 1675789879L);
+	private final UUID idA1 = new UUID(573489594L, 8675789563L);
+	private final UUID idA2 = new UUID(573489456L, 1675789879L);
 
-	final UUID idB1 = new UUID(573489512L, 1675789528L);
+	private final UUID idB1 = new UUID(573489512L, 1675789528L);
+
+	private final CassandraDatabase database = CassandraDatabase.local();
 
 	public void testSetStrong() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA1 = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Strong B> strongB1 = (CassandraHandle<@Strong B>) database.obtain(idB1, B.class, Strong.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA1 = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Strong B> strongB1 = (CassandraHandle<@Strong B>) service.obtain(idB1, B.class, Strong.class);
 
 			strongA1.set(new @Local A(312, strongB1, "hallo"));
 			strongB1.set(new @Local B(strongA1.get().z));
-		}
+		}, null);
 	}
 
 	public void testSetWeak() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Weak A> weakA1 = (CassandraHandle<@Weak A>) database.obtain(idA1, A.class, Weak.class);
-			CassandraHandle<@Weak B> weakB1 = (CassandraHandle<@Weak B>) database.obtain(idB1, B.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Weak A> weakA1 = (CassandraHandle<@Weak A>) service.obtain(idA1, A.class, Weak.class);
+			CassandraHandle<@Weak B> weakB1 = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
 			weakA1.set(new @Local A(312, weakB1, "hallo"));
 			weakB1.set(new @Local B(weakA1.get().z));
-		}
+		}, null);
 	}
 
 	public void testFlowFromWeakToStrong() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) database.obtain(idA2, A.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) service.obtain(idA2, A.class, Weak.class);
 
 			// :: error: (argument.type.incompatible)
 			strongA.handle(WRITE, weakA.get());
@@ -79,13 +81,13 @@ class CassandraStoreFlowTest {
 			strongA.handle(WRITE, a);
 			// :: error: (argument.type.incompatible)
 			strongA.set(a);
-		}
+		}, null);
 	}
 
 	public void testFlowFromStrongToWeak() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) database.obtain(idA2, A.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) service.obtain(idA2, A.class, Weak.class);
 
 			weakA.handle(WRITE, strongA.get());
 			weakA.set(strongA.get());
@@ -93,13 +95,13 @@ class CassandraStoreFlowTest {
 			A a = strongA.get();
 			weakA.handle(WRITE, a);
 			weakA.set(a);
-		}
+		}, null);
 	}
 
 	public void testImplicitFlowWithSimpleCondition() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) database.obtain(idB1, B.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
 			A a = new @Local A(213, weakB,"fire");
 
@@ -109,13 +111,13 @@ class CassandraStoreFlowTest {
 				// :: error: (invocation.receiver.implicitflow)
 				strongA.handle(WRITE, a);
 			}
-		}
+		}, null);
 	}
 
 	public void testImplicitFlowWithComplexCondition() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) database.obtain(idB1, B.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
 
 			B b = weakB.get();
@@ -125,13 +127,13 @@ class CassandraStoreFlowTest {
 				// :: error: (invocation.receiver.implicitflow) :: error: (invocation.argument.implicitflow)
 				strongA.handle(WRITE, strongA.get());
 			}
-		}
+		}, null);
 	}
 
 	public void testCorrectImplicitFlow() throws Exception {
-		try (CassandraDatabase database = CassandraDatabase.local()) {
-			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) database.obtain(idA1, A.class, Strong.class);
-			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) database.obtain(idB1, B.class, Weak.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
 			B b = new @Local B("hallo");
 
@@ -139,7 +141,7 @@ class CassandraStoreFlowTest {
 				weakB.set(b);
 				weakB.handle(WRITE, b);
 			}
-		}
+		}, null);
 	}
 
 
