@@ -2,12 +2,9 @@ package de.tudarmstadt.consistency.store.cassandra;
 
 import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.store.data.A;
 import de.tudarmstadt.consistency.store.data.B;
-import de.tudarmstadt.consistency.utils.Log;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -58,34 +55,37 @@ public class CassandraStoreTest {
 
 	@Test
 	public void testPassValueInDatabase() throws Exception {
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Strong B> strongB = service.<@Strong B>obtain(idB1, B.class, Strong.class);
 
-		CassandraHandle<@Strong A> strongA = database.<@Strong A>obtain(idA1, A.class, Strong.class);
-		CassandraHandle<@Strong B> strongB = database.<@Strong B>obtain(idB1, B.class, Strong.class);
+			A a = new @Local A(312, strongB, "hallo");
 
-		A a = new @Local A(312, strongB, "hallo");
+			strongA.set(a);
+			A received = strongA.get();
 
-		strongA.set(a);
-		A received = strongA.get();
-
-		assertEquals(a, received);
+			assertEquals(a, received);
+		}, null);
 	}
 
 	@Test
 	public void testUseLocalReference() throws Exception {
-		CassandraHandle<@Strong A> strongA = database.<@Strong A>obtain(idA1, A.class, Strong.class);
-		CassandraHandle<@Strong B> strongB = database.<@Strong B>obtain(idB1, B.class, Strong.class);
+		database.commit(service -> {
+			CassandraHandle<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraHandle<@Strong B> strongB = service.<@Strong B>obtain(idB1, B.class, Strong.class);
 
-		A a = new @Local A(4382, strongB, "hallo2");
-		B b = new @Local B("test1");
+			A a = new @Local A(4382, strongB, "hallo2");
+			B b = new @Local B("test1");
 
-		strongA.set(a);
-		strongB.set(b);
+			strongA.set(a);
+			strongB.set(b);
 
-		B received1 = strongA.get().b.handle(READ);
-		B received2 = strongB.get();
+			B received1 = strongA.get().b.handle(READ);
+			B received2 = strongB.get();
 
-		assertEquals(b, received1);
-		assertEquals(b, received2);
+			assertEquals(b, received1);
+			assertEquals(b, received2);
+		}, null);
 	}
 
 }

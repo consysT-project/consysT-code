@@ -1,18 +1,13 @@
 package de.tudarmstadt.consistency.store.cassandra;
 
 import com.datastax.driver.core.*;
-import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Handle;
 import de.tudarmstadt.consistency.store.StateEvent;
 import de.tudarmstadt.consistency.store.Store;
+import de.tudarmstadt.consistency.store.Transaction;
 import de.tudarmstadt.consistency.utils.Log;
 
-import java.io.*;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
@@ -24,7 +19,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  * @author Mirko Köhler
  */
 
-public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable {
+public class CassandraDatabase implements Store<UUID, StateEvent, CassandraHandleService>, AutoCloseable {
 
 	private final static String DEFAULT_KEYSPACE = "keyspace_consistency";
 	private final static String DEFAULT_TABLE_NAME = "table_data";
@@ -81,16 +76,8 @@ public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable
 	}
 
 	@Override
-	@SuppressWarnings("consistency")
-	public <T> CassandraHandle<T> obtain(UUID id, Class<? extends T> valueClass, Class<?> consistencyLevel) {
-
-		if (Objects.equals(consistencyLevel, Weak.class)) {
-			return new CassandraHandle.WeakHandle<T>(id, this);
-		} else if (Objects.equals(consistencyLevel, Strong.class)) {
-			return new CassandraHandle.StrongHandle<T>(id, this);
-		}
-
-		throw new IllegalArgumentException("unknown consistency level");
+	public void commit(Transaction<CassandraHandleService> actions, Class<?> isolationLevel) throws Exception {
+		actions.executeWith(new CassandraHandleService(this));
 	}
 
 
@@ -116,7 +103,6 @@ public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable
 	}
 
 
-
 	class ObjectTable {
 
 		private final String tableName;
@@ -127,8 +113,8 @@ public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable
 
 		public void initialize() {
 
-			session.execute("DROP TABLE IF EXISTS " + tableName );
-			session.execute("CREATE TABLE " + tableName + " (" +
+			execute("DROP TABLE IF EXISTS " + tableName );
+			execute("CREATE TABLE " + tableName + " (" +
 					getKeyName() + " uuid PRIMARY KEY, " +
 					getDataName() + " blob);");
 		}
@@ -166,7 +152,7 @@ public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable
 			ByteBuffer data = ByteBuffer.wrap(bytes);
 
 			//Store object in database
-			session.execute(
+			execute(
 					//Upsert operation: if the row already exists, then it is updated. Does not provide any concurrency control.
 					insertInto(getTableName())
 							.values(new String[]{getKeyName(), getDataName()}, new Object[]{key, data})
@@ -191,5 +177,6 @@ public class CassandraDatabase implements Store<UUID, StateEvent>, AutoCloseable
 		}
 
 	}
+
 
 }
