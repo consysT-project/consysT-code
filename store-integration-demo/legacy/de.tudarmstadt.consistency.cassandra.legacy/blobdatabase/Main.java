@@ -48,11 +48,11 @@ public class Main {
 			weak1.set(dataA1);
 
 			//Type clash: Assigning dataB1 (weak) to strong1 (strong)
-			//strong1.set(dataB1);
+			//strong1.write(dataB1);
 
 			//Type clash: Checking implicit flows
 			if (weak1.get() == 32) {
-				//strong1.set(11);
+				//strong1.write(11);
 			}
 
 

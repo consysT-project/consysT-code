@@ -78,7 +78,7 @@ public class CassandraColumns<T> {
 		} else if (fieldValue instanceof Handle) {
 			//TODO: Add reference
 
-//			Object fieldValue = field.get(value);
+//			Object fieldValue = field.read(value);
 //			if (fieldValue instanceof CassandraHandle) {
 //				CassandraHandle fieldHandle = (CassandraHandle) fieldValue;
 //				return FOREIGN_KEY_DATA_TYPE.newValue(CassandraDatabase.getTableName(fieldHandle.getValueType()), fieldHandle.getKey());

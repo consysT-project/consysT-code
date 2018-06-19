@@ -47,11 +47,11 @@ public class Main {
 				CassandraHandle<@Strong B> strong2 = (CassandraHandle<@Strong B>) service.obtain(id2, B.class, Strong.class);
 
 				//Types are correct: writing a local value to strong1/2 (strong)
-				strong1.set(new @Strong A(312, strong2, "hallo"));
-				strong2.set(new @Strong B("welt"));
+				strong1.write(new @Strong A(312, strong2, "hallo"));
+				strong2.write(new @Strong B("welt"));
 
-				A aStrong = strong1.get();
-				B bStrong = strong2.get();
+				A aStrong = strong1.read();
+				B bStrong = strong2.read();
 
 
 				Log.info(Main.class, aStrong);
@@ -61,28 +61,28 @@ public class Main {
 
 				CassandraHandle<@Weak B> weak1 = (CassandraHandle<@Weak B>) service.obtain(id3, B.class, Weak.class);
 
-				weak1.set(new @Weak B("gude"));
+				weak1.write(new @Weak B("gude"));
 
-				B bWeak = weak1.get();
+				B bWeak = weak1.read();
 
 				//Type clash: writing weak value to strong handle
-				//strong2.set(bWeak);
+				//strong2.write(bWeak);
 				//strong2.handle(WRITE, bWeak);
 
 
 				//Types are correct: writing a strong value to a weak handle
-				weak1.set(bStrong);
+				weak1.write(bStrong);
 
 				//Type clash: Checking implicit flows
-				if (weak1.get() == null) {
+				if (weak1.read() == null) {
 					//	A a = new @Strong A(213, strong2,"fire");
-					//	strong1.set(a);
+					//	strong1.write(a);
 					//	strong1.handle(WRITE, a);
 				}
 
 				CassandraHandle<@Strong O> o1 = service.obtain(id4, null, Strong.class);
-				o1.set(new @Strong O(new A(31, weak1, "lol"), "rofl"));
-				O o = o1.get();
+				o1.write(new @Strong O(new A(31, weak1, "lol"), "rofl"));
+				O o = o1.read();
 
 				Log.info(Main.class, o);
 				Log.info(Main.class, o.a.b.handle(READ));

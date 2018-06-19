@@ -61,8 +61,8 @@ public class CassandraStoreTest {
 
 			A a = new @Local A(312, strongB, "hallo");
 
-			strongA.set(a);
-			A received = strongA.get();
+			strongA.write(a);
+			A received = strongA.read();
 
 			assertEquals(a, received);
 		}, null);
@@ -77,11 +77,11 @@ public class CassandraStoreTest {
 			A a = new @Local A(4382, strongB, "hallo2");
 			B b = new @Local B("test1");
 
-			strongA.set(a);
-			strongB.set(b);
+			strongA.write(a);
+			strongB.write(b);
 
-			B received1 = strongA.get().b.handle(READ);
-			B received2 = strongB.get();
+			B received1 = strongA.read().b.handle(READ);
+			B received2 = strongB.read();
 
 			assertEquals(b, received1);
 			assertEquals(b, received2);
