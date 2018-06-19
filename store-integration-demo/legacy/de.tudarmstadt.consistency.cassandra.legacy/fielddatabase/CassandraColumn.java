@@ -30,7 +30,7 @@ public class CassandraColumn {
 		} else if (String.class.equals(fType)) {
 			return new CassandraColumn(columnName, DataType.varchar());
 		} else if (Handle.class.isAssignableFrom(fType)) {
-//				Object fieldValue = field.get(value);
+//				Object fieldValue = field.read(value);
 //				if (fieldValue instanceof CassandraHandle) {
 //					CassandraHandle fieldHandle = (CassandraHandle) fieldValue;
 //					return FOREIGN_KEY_DATA_TYPE.newValue(CassandraDatabase.getTableName(fieldHandle.getValueType()), fieldHandle.getKey());

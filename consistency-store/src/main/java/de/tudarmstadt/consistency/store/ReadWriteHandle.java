@@ -28,11 +28,11 @@ public abstract class ReadWriteHandle<T> implements Handle<T, StateEvent> {
 		}
 	}
 
-	public void set(T value) throws Exception {
+	public void write(T value) throws Exception {
 		handle(WRITE, value);
 	}
 
-	public T get() throws Exception {
+	public T read() throws Exception {
 		return handle(READ);
 	}
 

@@ -1,15 +1,12 @@
 import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Handle;
-import de.tudarmstadt.consistency.store.StateEvent;
 import de.tudarmstadt.consistency.store.cassandra.CassandraDatabase;
 import de.tudarmstadt.consistency.store.cassandra.CassandraHandle;
 
 import java.io.Serializable;
 import java.util.UUID;
 
-import static de.tudarmstadt.consistency.store.StateEvent.READ;
 import static de.tudarmstadt.consistency.store.StateEvent.WRITE;
 
 class CassandraStoreFlowTest {
@@ -51,8 +48,8 @@ class CassandraStoreFlowTest {
 			CassandraHandle<@Strong A> strongA1 = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
 			CassandraHandle<@Strong B> strongB1 = (CassandraHandle<@Strong B>) service.obtain(idB1, B.class, Strong.class);
 
-			strongA1.set(new @Local A(312, strongB1, "hallo"));
-			strongB1.set(new @Local B(strongA1.get().z));
+			strongA1.write(new @Local A(312, strongB1, "hallo"));
+			strongB1.write(new @Local B(strongA1.read().z));
 		}, null);
 	}
 
@@ -61,8 +58,8 @@ class CassandraStoreFlowTest {
 			CassandraHandle<@Weak A> weakA1 = (CassandraHandle<@Weak A>) service.obtain(idA1, A.class, Weak.class);
 			CassandraHandle<@Weak B> weakB1 = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
-			weakA1.set(new @Local A(312, weakB1, "hallo"));
-			weakB1.set(new @Local B(weakA1.get().z));
+			weakA1.write(new @Local A(312, weakB1, "hallo"));
+			weakB1.write(new @Local B(weakA1.read().z));
 		}, null);
 	}
 
@@ -72,15 +69,15 @@ class CassandraStoreFlowTest {
 			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) service.obtain(idA2, A.class, Weak.class);
 
 			// :: error: (argument.type.incompatible)
-			strongA.handle(WRITE, weakA.get());
+			strongA.handle(WRITE, weakA.read());
 			// :: error: (argument.type.incompatible)
-			strongA.set(weakA.get());
+			strongA.write(weakA.read());
 
-			A a = weakA.get();
+			A a = weakA.read();
 			// :: error: (argument.type.incompatible)
 			strongA.handle(WRITE, a);
 			// :: error: (argument.type.incompatible)
-			strongA.set(a);
+			strongA.write(a);
 		}, null);
 	}
 
@@ -89,12 +86,12 @@ class CassandraStoreFlowTest {
 			CassandraHandle<@Strong A> strongA = (CassandraHandle<@Strong A>) service.obtain(idA1, A.class, Strong.class);
 			CassandraHandle<@Weak A> weakA = (CassandraHandle<@Weak A>) service.obtain(idA2, A.class, Weak.class);
 
-			weakA.handle(WRITE, strongA.get());
-			weakA.set(strongA.get());
+			weakA.handle(WRITE, strongA.read());
+			weakA.write(strongA.read());
 
-			A a = strongA.get();
+			A a = strongA.read();
 			weakA.handle(WRITE, a);
-			weakA.set(a);
+			weakA.write(a);
 		}, null);
 	}
 
@@ -105,9 +102,9 @@ class CassandraStoreFlowTest {
 
 			A a = new @Local A(213, weakB,"fire");
 
-			if (weakB.get() == null) {
+			if (weakB.read() == null) {
 				// :: error: (invocation.receiver.implicitflow)
-				strongA.set(a);
+				strongA.write(a);
 				// :: error: (invocation.receiver.implicitflow)
 				strongA.handle(WRITE, a);
 			}
@@ -120,12 +117,12 @@ class CassandraStoreFlowTest {
 			CassandraHandle<@Weak B> weakB = (CassandraHandle<@Weak B>) service.obtain(idB1, B.class, Weak.class);
 
 
-			B b = weakB.get();
+			B b = weakB.read();
 			if (b.s.length() > 3) {
 				// :: error: (invocation.receiver.implicitflow) :: error: (invocation.argument.implicitflow)
-				strongA.set(strongA.get());
+				strongA.write(strongA.read());
 				// :: error: (invocation.receiver.implicitflow) :: error: (invocation.argument.implicitflow)
-				strongA.handle(WRITE, strongA.get());
+				strongA.handle(WRITE, strongA.read());
 			}
 		}, null);
 	}
@@ -137,8 +134,8 @@ class CassandraStoreFlowTest {
 
 			B b = new @Local B("hallo");
 
-			if (strongA.get() == null) {
-				weakB.set(b);
+			if (strongA.read() == null) {
+				weakB.write(b);
 				weakB.handle(WRITE, b);
 			}
 		}, null);
