@@ -23,15 +23,17 @@ public class MapReferenceService implements ReferenceService<Object> {
 
 
 	@Override
-	public <T, R extends Ref<T, R>> R obtain(Object id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
+	public <T> MapRef<T> obtain(Object id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
 
 		//TODO: Remove these casts
 		if (Objects.equals(Weak.class, consistencyLevel)) {
-			return (R) new MapRef<T>(id, mapStore);
+			return new MapRef<T>(id, mapStore);
 		} else if (Objects.equals(Strong.class, consistencyLevel)) {
-			return (R) new MapRef<T>(id, mapStore);
+			return new MapRef<T>(id, mapStore);
 		}
 
 		throw new IllegalArgumentException("can only obtain handles with consistency level, but got " + consistencyLevel);
 	}
+
+
 }

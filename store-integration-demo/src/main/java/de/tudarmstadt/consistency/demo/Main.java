@@ -40,7 +40,7 @@ public class Main {
 			Is there a better way to handle that? In the current implementation the value class
 			argument is not needed.
 			 */
-				CassandraRef<@Strong A> strong1 = service.obtain(id1, null, Strong.class);
+				CassandraRef<@Strong A> strong1 = service.obtain(id1, A.class, Strong.class);
 				//B.class returns @Inconsistent Class<@Inconsistent B>, but obtain requires @Inconsistent Class<@Strong B>
 				CassandraRef<@Strong B> strong2 = service.obtain(id2, B.class, Strong.class);
 

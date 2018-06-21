@@ -24,5 +24,5 @@ public interface ReferenceService<Key> {
 	 * @return A handle that handles the access to the database object specified by the
 	 * given key.
 	 */
-	<T, R extends Ref<T, R>> R obtain(Key id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel);
+	<T> Ref<T, ?> obtain(Key id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel);
 }

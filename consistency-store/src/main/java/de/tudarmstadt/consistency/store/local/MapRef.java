@@ -8,7 +8,7 @@ import de.tudarmstadt.consistency.store.impl.ReadWriteRef;
  *
  * @author Mirko Köhler
  */
-public class MapRef<T> extends ReadWriteRef<T, MapRef<T>> {
+public class MapRef<T> extends ReadWriteRef<T> {
 
 	private final Object id;
 	private final MapStore store;
@@ -30,8 +30,5 @@ public class MapRef<T> extends ReadWriteRef<T, MapRef<T>> {
 		store.put(id, value);
 	}
 
-	@Override
-	public <X, Y> Y handle(Operation<T, MapRef<T>, X, Y> e, X param) throws Exception {
-		return e.compute(this, param);
-	}
+
 }

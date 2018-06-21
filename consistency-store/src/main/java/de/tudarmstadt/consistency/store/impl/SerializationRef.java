@@ -10,7 +10,7 @@ import java.io.ObjectOutputStream;
  *
  * @author Mirko Köhler
  */
-public abstract class SerializationRef<V, R extends SerializationRef<V, R>> extends ReadWriteRef<V, R> {
+public abstract class SerializationRef<V> extends ReadWriteRef<V> {
 
 	@Override
 	@SuppressWarnings("unchecked")
