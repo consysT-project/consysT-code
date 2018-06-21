@@ -11,7 +11,7 @@ import java.util.Map;
  *
  * @author Mirko Köhler
  */
-public class MapStore implements Store<Object, MapReferenceService> {
+public class MapStore implements Store<Object, MapTransactionContext> {
 
 	private final Map<Object, Object> data;
 
@@ -24,8 +24,8 @@ public class MapStore implements Store<Object, MapReferenceService> {
 	}
 
 	@Override
-	public void commit(Transaction<MapReferenceService> actions, Class<?> isolationLevel) throws Exception {
-		actions.executeWith(new MapReferenceService(this));
+	public void commit(Transaction<MapTransactionContext> actions, Class<?> isolationLevel) throws Exception {
+		actions.executeWith(new MapTransactionContext(this));
 	}
 
 	void put(Object id, Object value) {

@@ -40,9 +40,9 @@ public class Main {
 			Is there a better way to handle that? In the current implementation the value class
 			argument is not needed.
 			 */
-				CassandraRef<@Strong A> strong1 = service.obtain(id1, A.class, Strong.class);
+				CassandraRef<@Strong A> strong1 = service.<@Strong A>obtain(id1, A.class, Strong.class);
 				//B.class returns @Inconsistent Class<@Inconsistent B>, but obtain requires @Inconsistent Class<@Strong B>
-				CassandraRef<@Strong B> strong2 = service.obtain(id2, B.class, Strong.class);
+				CassandraRef<@Strong B> strong2 = service.<@Strong B>obtain(id2, B.class, Strong.class);
 
 				//Types are correct: writing a local value to strong1/2 (strong)
 				strong1.write(new @Strong A(312, strong2, "hallo"));
@@ -57,7 +57,7 @@ public class Main {
 				Log.info(Main.class, aStrong.b.read());
 
 
-				CassandraRef<@Weak B> weak1 = service.obtain(id3, B.class, Weak.class);
+				CassandraRef<@Weak B> weak1 = service.<@Weak B>obtain(id3, B.class, Weak.class);
 
 				weak1.write(new @Weak B("gude"));
 
@@ -78,7 +78,7 @@ public class Main {
 					//	strong1.handle(WRITE, a);
 				}
 
-				CassandraRef<@Strong O> o1 = service.obtain(id4, null, Strong.class);
+				CassandraRef<@Strong O> o1 = service.<@Strong O>obtain(id4, O.class, Strong.class);
 				o1.write(new @Strong O(new A(31, weak1, "lol"), "rofl"));
 				O o = o1.read();
 

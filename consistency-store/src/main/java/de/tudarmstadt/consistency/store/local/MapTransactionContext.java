@@ -2,8 +2,7 @@ package de.tudarmstadt.consistency.store.local;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Ref;
-import de.tudarmstadt.consistency.store.ReferenceService;
+import de.tudarmstadt.consistency.store.TransactionContext;
 
 import java.lang.annotation.Annotation;
 import java.util.Objects;
@@ -13,17 +12,17 @@ import java.util.Objects;
  *
  * @author Mirko Köhler
  */
-public class MapReferenceService implements ReferenceService<Object> {
+public class MapTransactionContext implements TransactionContext<Object> {
 
 	private final MapStore mapStore;
 
-	MapReferenceService(MapStore mapStore) {
+	MapTransactionContext(MapStore mapStore) {
 		this.mapStore = mapStore;
 	}
 
 
 	@Override
-	public <T> MapRef<T> obtain(Object id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
+	public <T> MapRef<T> obtain(Object id, Class<?> valueClass, Class<? extends Annotation> consistencyLevel) {
 
 		//TODO: Remove these casts
 		if (Objects.equals(Weak.class, consistencyLevel)) {

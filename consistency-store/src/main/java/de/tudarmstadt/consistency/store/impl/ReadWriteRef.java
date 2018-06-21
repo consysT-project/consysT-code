@@ -12,11 +12,11 @@ import de.tudarmstadt.consistency.store.cassandra.CassandraRef;
 public abstract class ReadWriteRef<T> implements IReadWriteRef<T, ReadWriteRef<T>> {
 
 	public void write(T value) throws Exception {
-		handle(eventWrite(), value);
+		handle(writeOp(), value);
 	}
 
 	public T read() throws Exception {
-		return handle(eventRead(), null);
+		return handle(readOp(), null);
 	}
 
 	protected abstract T handleRead() throws Exception;
@@ -27,12 +27,11 @@ public abstract class ReadWriteRef<T> implements IReadWriteRef<T, ReadWriteRef<T
 		return e.compute(this, param);
 	}
 
-	//TODO: Is it possible to make these static?
-	private Operation<T, ReadWriteRef<T>, Void, T> eventRead() {
+	private static <T> Operation<T, ReadWriteRef<T>, Void, T> readOp() {
 		return (ref, additionalParameter) -> ref.handleRead();
 	}
 
-	private Operation<T, ReadWriteRef<T>, T, Void> eventWrite() {
+	private static <T> Operation<T, ReadWriteRef<T>, T, Void> writeOp() {
 		return (ref, additionalParameter) -> {
 			ref.handleWrite(additionalParameter);
 			return null;
