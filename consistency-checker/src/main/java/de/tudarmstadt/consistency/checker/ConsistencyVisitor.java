@@ -6,6 +6,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.util.Set;
@@ -13,17 +14,25 @@ import java.util.Stack;
 
 public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedTypeFactory>{
 
-    public ConsistencyVisitor(BaseTypeChecker checker) {
+	public ConsistencyVisitor(BaseTypeChecker checker) {
         super(checker);
     }
+
+    private AnnotationMirror localAnnotation() {
+		return AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy().getBottomAnnotations(), "de.tudarmstadt.consistency.checker.qual.Local");
+	}
+
+	private AnnotationMirror inconsistentAnnotation() {
+		return AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy().getTopAnnotations(), "de.tudarmstadt.consistency.checker.qual.Inconsistent");
+	}
+
 
     private class ImplicitContext {
 		private final Stack<AnnotationMirror> implicitContexts;
 
 		public ImplicitContext() {
-			implicitContexts = new Stack<AnnotationMirror>();
-			//TODO: This is ugly. find other way to get the bottom annotation
-			implicitContexts.push(atypeFactory.getQualifierHierarchy().getBottomAnnotations().iterator().next());
+			implicitContexts = new Stack<>();
+			implicitContexts.push(localAnnotation());
 		}
 
 		public void set(AnnotationMirror annotation) {
@@ -39,50 +48,41 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 			implicitContexts.pop();
 		}
 
-		public boolean allowsUpdatesTo(AnnotatedTypeMirror type, Tree tree) {
-
-			//TODO: Improve this. We are not only checking the type but also its type parameters. This does not seem sound. How can this be improved?
-			if (type instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
-				AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) type;
-
-				//Check whether all type arguments are allowed to be updated in the implicit context
-				for (AnnotatedTypeMirror typeArg : declaredType.getTypeArguments()) {
-					if (!allowsUpdatesTo(typeArg, tree)) {
-						return false;
-					}
-				}
-
-			}
-
-			AnnotationMirror typeAnnotation = getAnnotation(type);
-
-			if (typeAnnotation == null) {
-				//TODO: we can not issue the warning because else the test fails.
-				//checker.report(Result.warning("consistency.inferred", type, tree), tree);
-				Log.info(getClass(), String.format("consistency.inferred: consistency level of <%s> unknown and has been inferred to @Inconsistent.\nin: %s", type, tree));
-				return true;
-			}
-
-			return atypeFactory.getQualifierHierarchy().isSubtype(get(), typeAnnotation)
-				|| atypeFactory.getQualifierHierarchy().getBottomAnnotations().contains(typeAnnotation);
+		private AnnotationMirror lowerBound(AnnotationMirror a, AnnotationMirror b) {
+			return atypeFactory.getQualifierHierarchy().greatestLowerBound(a, b);
 		}
 
-		public boolean allowsUpdatesFrom(AnnotatedTypeMirror type, Tree tree) {
+		private AnnotationMirror getStrongestNonLocalAnnotationIn(AnnotatedTypeMirror type, AnnotationMirror annotation) {
 
-			//TODO: Improve this. We are not only checking the type but also its type parameters. This does not seem sound. How can this be improved?
 			if (type instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
 				AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) type;
 
-				//Check whether all type arguments are allowed to be updated in the implicit context
+				AnnotationMirror temp = lowerBound(getAnnotation(type), annotation);
+
 				for (AnnotatedTypeMirror typeArg : declaredType.getTypeArguments()) {
-					if (!allowsUpdatesFrom(typeArg, tree)) {
-						return false;
-					}
+					temp = lowerBound(temp, getStrongestNonLocalAnnotationIn(typeArg, temp));
 				}
 
+				return temp;
+
+			} else if (type instanceof  AnnotatedTypeMirror.AnnotatedWildcardType) {
+				AnnotatedTypeMirror.AnnotatedWildcardType wildcardType = (AnnotatedTypeMirror.AnnotatedWildcardType) type;
+
+				AnnotationMirror temp = lowerBound(getAnnotation(type), annotation);
+
+				temp = lowerBound(temp, getStrongestNonLocalAnnotationIn(wildcardType.getSuperBound(), temp));
+				temp = lowerBound(temp, getStrongestNonLocalAnnotationIn(wildcardType.getExtendsBound(), temp));
+
+				return temp;
 			}
 
-			AnnotationMirror typeAnnotation = getAnnotation(type);
+			//May be null
+			return getAnnotation(type);
+		}
+
+		private boolean canBeAccessed(AnnotatedTypeMirror type, Tree tree) {
+
+			AnnotationMirror typeAnnotation = getStrongestNonLocalAnnotationIn(type, inconsistentAnnotation());
 
 			if (typeAnnotation == null) {
 				//TODO: we can not issue the warning because else the test fails.
@@ -93,6 +93,22 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 
 			return atypeFactory.getQualifierHierarchy().isSubtype(get(), typeAnnotation)
 					|| atypeFactory.getQualifierHierarchy().getBottomAnnotations().contains(typeAnnotation);
+		}
+
+		public boolean allowsUpdatesTo(AnnotatedTypeMirror type, Tree tree) {
+			return canBeAccessed(type, tree);
+		}
+
+		public boolean allowsUpdatesFrom(AnnotatedTypeMirror type, Tree tree) {
+			return canBeAccessed(type, tree);
+		}
+
+		public boolean allowsAsReceiver(AnnotatedTypeMirror type, Tree tree) {
+			return canBeAccessed(type, tree);
+		}
+
+		public boolean allowsAsArgument(AnnotatedTypeMirror type, Tree tree) {
+			return canBeAccessed(type, tree);
 		}
 
 
@@ -281,7 +297,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	}
 
 	private void checkMethodInvocationReceiver(AnnotatedTypeMirror receiverType, Tree tree) {
-		if (!implicitContext.allowsUpdatesTo(receiverType, tree) || !implicitContext.allowsUpdatesFrom(receiverType, tree)) {
+		if (!implicitContext.allowsAsReceiver(receiverType, tree)) {
 			checker.report(
 					Result.failure("invocation.receiver.implicitflow", receiverType, implicitContext.get(), tree),
 					tree);
@@ -289,7 +305,7 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	}
 
 	private void checkMethodInvocationArgument(AnnotatedTypeMirror argType, Tree tree) {
-		if (!implicitContext.allowsUpdatesTo(argType, tree) || !implicitContext.allowsUpdatesFrom(argType, tree)) {
+		if (!implicitContext.allowsAsArgument(argType, tree)) {
 			checker.report(
 					Result.failure("invocation.argument.implicitflow", argType, implicitContext.get(), tree),
 					tree
