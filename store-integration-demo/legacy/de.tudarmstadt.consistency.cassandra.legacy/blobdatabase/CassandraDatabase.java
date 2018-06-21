@@ -6,7 +6,6 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.store.Handle;
 import de.tudarmstadt.consistency.store.Store;
-import org.apache.cassandra.transport.DataType;
 
 import java.util.Objects;
 import java.util.UUID;

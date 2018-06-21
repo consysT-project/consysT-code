@@ -35,12 +35,15 @@ a replicated datastore.
 
 ## Installation of the project
 
-The project is built using Apache Maven. 
+The following instructions are for *Linux* systems.
+ 
+ The project is built using Apache Maven. 
 
 1. Install [Maven](https://maven.apache.org)
 2. Open a terminal in the main folder consistency-types-impl
 3. Run `mvn org.apache.maven.plugins:maven-dependency-plugin:properties`
-4. Run `mvn install`
+4. Run `mvn install`. Note: Cassandra has to run in order to pass all test cases 
+(See next subsection for more details). 
 
 
 ### Cassandra
@@ -48,7 +51,7 @@ The project is built using Apache Maven.
 Cassandra has to run to execute the Cassandra integration.
 
 If Cassandra should be run on only a single machine, then it is advisable to use 
-CCM (Cassandra Cluster Manager, https://github.com/riptano/ccm).
+[Cassandra Cluster Manager](https://github.com/riptano/ccm) (CCM).
 This is because we need to start multiple replicas in order to use consistency
 features of Cassandra.
 
@@ -58,7 +61,8 @@ features of Cassandra.
 
 2. Create and start a local cluster. One node has to be placed on 127.0.0.1 (this is the default behaviour).
 The Cassandra version is specified by `-v` (unavailable versions are downloaded and installed automatically),
-,the number of replicas is specified by `-n`, and `-s` starts the cluster.
+,the number of replicas is specified by `-n`, and `-s` starts the cluster. 
+There is no need to install Cassandra manually.
     
     `ccm create test -v 3.11.2 -n 3 -s`
     
@@ -78,7 +82,7 @@ Cassandra can be started or stopped by using
 In IntelliJ, you have to add the annotation processor manually.
 
 1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`. 
-IntelliJ may be able to retrieve the correct checker by default.
+IntelliJ may be able to retrieve the correct checker by default. If it can, you are already finished.
 
 2. Add the compiled jar of the consistency-checker project
 

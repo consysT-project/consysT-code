@@ -15,4 +15,4 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @DefaultQualifierInHierarchy
 @DefaultFor({TypeUseLocation.LOCAL_VARIABLE})
-@interface Inconsistent {}
+public @interface Inconsistent {}

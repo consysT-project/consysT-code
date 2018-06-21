@@ -6,8 +6,8 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.utils.Log;
 import de.tudarmstadt.consistency.store.impl.SerializerHandle;
+import de.tudarmstadt.consistency.store.utils.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

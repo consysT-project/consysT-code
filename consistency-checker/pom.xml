@@ -35,17 +35,12 @@
       <dependency>
 		  <groupId>org.checkerframework</groupId>
 		  <artifactId>checker-qual</artifactId>
-		  <version>2.5.1</version>
-		</dependency>
-		<dependency>
-		  <groupId>org.checkerframework</groupId>
-		  <artifactId>jdk8</artifactId>
-		  <version>2.5.1</version>
+		  <version>${checkerframeworkVersion}</version>
 		</dependency>
 		<dependency>
 		  <groupId>org.checkerframework</groupId>
 		  <artifactId>checker</artifactId>
-		  <version>2.5.1</version>			 
+		  <version>${checkerframeworkVersion}</version>
 		</dependency>
     </dependencies>
     

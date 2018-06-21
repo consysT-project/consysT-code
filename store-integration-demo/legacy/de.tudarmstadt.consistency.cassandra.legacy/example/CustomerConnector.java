@@ -2,8 +2,8 @@ package de.tudarmstadt.consistency.demo.legacy.example;
 
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import de.tudarmstadt.consistency.demo.legacy.ConsistentCassandraConnector;
 import de.tudarmstadt.consistency.checker.qual.Strong;
+import de.tudarmstadt.consistency.demo.legacy.ConsistentCassandraConnector;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 

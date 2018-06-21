@@ -40,15 +40,27 @@ class LocalUsageTest {
 		consumeWeak(i);
 	}
 
-	void testFlow() {
+	void testSimpleFlow() {
     	int i = produceWeak();
     	int j = produceStrong();
-    	int a = i;
+    	int a = i + j;
 
     	i = j;
 
     	consumeStrong(i);
     	consumeWeak(i);
+	}
+
+	void testOperatorFlow() {
+		int i = produceWeak();
+		int j = produceStrong();
+		int a = i + j;
+
+		i = a;
+
+		// :: error: (argument.type.incompatible)
+		consumeStrong(i);
+		consumeWeak(i);
 	}
 
 	void testWeakObject() {

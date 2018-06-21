@@ -8,7 +8,7 @@ package de.tudarmstadt.consistency.store;
  *
  * @author Mirko Köhler
  */
-public interface Store<Key, Event, Service extends HandleService<Key, Event>> {
+public interface Store<Key, Service extends ReferenceService<Key>> {
 
 	void commit(Transaction<Service> actions, Class<?> isolationLevel) throws Exception;
 

@@ -1,7 +1,5 @@
 package de.tudarmstadt.consistency.demo.data;
 
-import de.tudarmstadt.consistency.checker.qual.Strong;
-
 import java.io.Serializable;
 
 /**

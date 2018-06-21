@@ -15,7 +15,7 @@ public class Log {
 	private static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SS");
 
 	private static String prefix(Class<?> clazz) {
-		return String.format("[%s][%s]: ", sdf.format(new Date()), clazz != null ? clazz.getSimpleName() : "UNKNOWN");
+		return String.format("[%s][%s]: ", sdf.format(new Date()), clazz != null ? clazz.getSimpleName() : "<unknown>");
 	}
 
 	private static String infoToString(Class<?> clazz, Object text) {

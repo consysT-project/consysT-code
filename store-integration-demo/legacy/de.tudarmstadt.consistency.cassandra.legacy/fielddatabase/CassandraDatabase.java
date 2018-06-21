@@ -1,6 +1,5 @@
 package de.tudarmstadt.consistency.demo.legacy.fielddatabase;
 
-import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.Maps;
 import de.tudarmstadt.consistency.checker.qual.Strong;
@@ -14,7 +13,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import java.util.*;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 

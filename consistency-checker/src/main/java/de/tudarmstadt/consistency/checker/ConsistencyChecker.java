@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.checker;
 
+import de.tudarmstadt.consistency.utils.Log;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SuppressWarningsKeys;
 
@@ -8,6 +9,6 @@ public class ConsistencyChecker extends BaseTypeChecker {
 
     public ConsistencyChecker(){
         super();
-        System.out.println("Running consistency checker...");
+        Log.info(ConsistencyChecker.class, "Running consistency checker...");
     }
 }
