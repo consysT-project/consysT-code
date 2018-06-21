@@ -85,6 +85,7 @@
             <groupId>de.tu-darmstadt.consistency-types</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     
