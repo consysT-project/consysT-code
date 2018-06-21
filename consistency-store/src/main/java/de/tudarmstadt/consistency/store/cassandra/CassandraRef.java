@@ -19,7 +19,7 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-public abstract class CassandraRef<V> extends SerializationRef<V, CassandraRef<V>> implements Serializable {
+public abstract class CassandraRef<V> extends SerializationRef<V> implements Serializable {
 
 	final UUID key;
 
@@ -96,6 +96,8 @@ public abstract class CassandraRef<V> extends SerializationRef<V, CassandraRef<V
 	}
 
 
+
+
 	public final static class StrongRef<@Strong V> extends CassandraRef<V> implements Serializable {
 
 		StrongRef(UUID key, CassandraDatabase database) {
@@ -126,10 +128,7 @@ public abstract class CassandraRef<V> extends SerializationRef<V, CassandraRef<V
 			return false;
 		}
 
-		@Override
-		public <A, B> B handle(Operation<V, CassandraRef<V>, A, B> e, A param) throws Exception {
-			return e.compute(this, param);
-		}
+
 	}
 
 	public final static class WeakRef<@Weak V> extends CassandraRef<V> implements Serializable {
@@ -160,11 +159,6 @@ public abstract class CassandraRef<V> extends SerializationRef<V, CassandraRef<V
 			}
 
 			return false;
-		}
-
-		@Override
-		public <A, B> B handle(Operation<V, CassandraRef<V>, A, B> e, A param) throws Exception {
-			return e.compute(this, param);
 		}
 	}
 }

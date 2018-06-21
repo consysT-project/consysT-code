@@ -5,5 +5,8 @@ package de.tudarmstadt.consistency.store;
  *
  * @author Mirko Köhler
  */
-public interface RefBuilder {
+public interface RefBuilder<R extends Ref<?, R>> {
+
+
+	<T, RR extends R> RR build();
 }

@@ -13,11 +13,11 @@ import java.util.Objects;
 /* Restrict to record syntax. */
 public class A implements Serializable {
 	public final int x;
-	public final ReadWriteRef<? extends B, ?> b;
+	public final ReadWriteRef<? extends B> b;
 	public final String z;
 
 	//? extends B is needed as we are not getting a B but, e.g., @Strong B.
-	public A(int x, ReadWriteRef<? extends B, ?> b, String z) {
+	public A(int x, ReadWriteRef<? extends B> b, String z) {
 		this.x = x;
 		this.b = b;
 		this.z = z;

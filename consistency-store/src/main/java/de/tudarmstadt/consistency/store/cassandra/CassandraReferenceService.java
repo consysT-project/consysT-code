@@ -24,11 +24,11 @@ public class CassandraReferenceService implements ReferenceService<UUID> {
 
 
 	@Override
-	public <T, R extends Ref<T, R>> R obtain(UUID id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
+	public <T> CassandraRef<T> obtain(UUID id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
 		if (Objects.equals(consistencyLevel, Weak.class)) {
-			return (R) new CassandraRef.WeakRef<T>(id, cassandraDatabase);
+			return new CassandraRef.WeakRef<T>(id, cassandraDatabase);
 		} else if (Objects.equals(consistencyLevel, Strong.class)) {
-			return (R) new CassandraRef.StrongRef<T>(id, cassandraDatabase);
+			return new CassandraRef.StrongRef<T>(id, cassandraDatabase);
 		}
 
 		throw new IllegalArgumentException("unknown consistency level");
