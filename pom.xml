@@ -28,6 +28,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <javaVersion>1.8</javaVersion>
+        <checkerframeworkVersion>2.5.2</checkerframeworkVersion>
     </properties>
 
 

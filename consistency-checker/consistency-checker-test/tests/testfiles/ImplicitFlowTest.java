@@ -127,4 +127,38 @@ class ImplicitFlowTest {
 		}
 	}
 
+	void testAssignmentInStrongCondition1() {
+		@Strong int i;
+
+		if (produceStrong() == 2) {
+			i = 3;
+		}
+	}
+
+	void testAssignmentInStrongCondition2() {
+		@Weak int i;
+
+		if (produceStrong() == 2) {
+			i = produceStrong();
+		}
+	}
+
+	void testAssignmentInWeakCondition1() {
+		@Strong int i;
+
+		if (produceWeak() == 2) {
+			// :: error: (assignment.type.implicitflow)
+			i = 3;
+		}
+	}
+
+	void testAssignmentInWeakCondition2() {
+		@Weak int i;
+
+		if (produceWeak() == 2) {
+			// :: error: (assignment.type.implicitflow)
+			i = produceStrong();
+		}
+	}
+
 }

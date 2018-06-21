@@ -1,10 +1,10 @@
 package de.tudarmstadt.consistency.demo.legacy.example;
 
 import com.datastax.driver.core.utils.UUIDs;
+import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.demo.legacy.ConsistencyObject;
 import de.tudarmstadt.consistency.demo.legacy.HighValue;
 import de.tudarmstadt.consistency.demo.legacy.LowValue;
-import de.tudarmstadt.consistency.checker.qual.Strong;
 
 import java.util.UUID;
 

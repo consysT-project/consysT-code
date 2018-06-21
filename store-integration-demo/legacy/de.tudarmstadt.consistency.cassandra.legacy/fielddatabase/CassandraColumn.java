@@ -31,8 +31,8 @@ public class CassandraColumn {
 			return new CassandraColumn(columnName, DataType.varchar());
 		} else if (Handle.class.isAssignableFrom(fType)) {
 //				Object fieldValue = field.read(value);
-//				if (fieldValue instanceof CassandraHandle) {
-//					CassandraHandle fieldHandle = (CassandraHandle) fieldValue;
+//				if (fieldValue instanceof CassandraRef) {
+//					CassandraRef fieldHandle = (CassandraRef) fieldValue;
 //					return FOREIGN_KEY_DATA_TYPE.newValue(CassandraDatabase.getTableName(fieldHandle.getValueType()), fieldHandle.getKey());
 //				} else {
 //					throw new IllegalArgumentException("can only use cassandra handles");

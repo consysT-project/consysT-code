@@ -1,12 +1,15 @@
 package de.tudarmstadt.consistency.store;
 
+import java.lang.annotation.Annotation;
+
 /**
  * Created on 19.06.18.
  *
  * @author Mirko Köhler
  */
-public interface HandleService<Key, Event> {
+public interface ReferenceService<Key> {
 
+	//TODO: How can we force that T is annotated with the consistencyLevel
 	/**
 	 * Retrieves a new handle for an object with the specified key. The handle operates
 	 * using the specified consistency level. How a level is exactly defined depends
@@ -21,5 +24,5 @@ public interface HandleService<Key, Event> {
 	 * @return A handle that handles the access to the database object specified by the
 	 * given key.
 	 */
-	<T> Handle<T, Event> obtain(Key id, Class<? extends T> valueClass, Class<?> consistencyLevel);
+	<T, R extends Ref<T, R>> R obtain(Key id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel);
 }

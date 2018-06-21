@@ -4,11 +4,10 @@ import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.store.data.A;
 import de.tudarmstadt.consistency.store.data.B;
-import org.junit.AfterClass;
+import de.tudarmstadt.consistency.store.local.MapRef;
+import de.tudarmstadt.consistency.store.local.MapStore;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
@@ -17,37 +16,31 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Mirko Köhler
  */
-public class CassandraStoreTest {
+public class MapStoreTest {
 
 
-	private static CassandraDatabase database = null;
+	private static MapStore database = null;
 
 	@BeforeClass
 	public static void setup() {
-		 database = CassandraDatabase.local();
-	}
-
-	@AfterClass
-	public static void finish() {
-		database.close();
+		 database = MapStore.create();
 	}
 
 
-
-	UUID keyA1() {
-		return new UUID(573489594L, 8675789563L);
+	Object keyA1() {
+		return 1;
 	}
 
-	UUID keyB1() {
-		return new UUID(573489456L, 1675789879L);
+	Object keyB1() {
+		return 2;
 	}
 
 
 	@Test
 	public void testPassValueInDatabase() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(keyA1(), A.class, Strong.class);
-			CassandraRef<@Strong B> strongB = service.obtain(keyB1(), B.class, Strong.class);
+			MapRef<@Strong A> strongA = service.obtain(keyA1(), A.class, Strong.class);
+			MapRef<@Strong B> strongB = service.obtain(keyB1(), B.class, Strong.class);
 
 			A a = new @Local A(312, strongB, "hallo");
 
@@ -63,8 +56,8 @@ public class CassandraStoreTest {
 	@Test
 	public void testUseLocalReference() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(keyA1(), A.class, Strong.class);
-			CassandraRef<@Strong B> strongB = service.obtain(keyB1(), B.class, Strong.class);
+			MapRef<@Strong A> strongA = service.obtain(keyA1(), A.class, Strong.class);
+			MapRef<@Strong B> strongB = service.obtain(keyB1(), B.class, Strong.class);
 
 			A a = new @Local A(4382, strongB, "hallo2");
 			B b = new @Local B("test1");

@@ -3,7 +3,8 @@ package de.tudarmstadt.consistency.store.cassandra;
 import com.datastax.driver.core.ConsistencyLevel;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.SerializationHandle;
+import de.tudarmstadt.consistency.store.Operation;
+import de.tudarmstadt.consistency.store.impl.SerializationRef;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -18,15 +19,15 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-public abstract class CassandraHandle<V> extends SerializationHandle<V> implements Serializable {
+public abstract class CassandraRef<V> extends SerializationRef<V, CassandraRef<V>> implements Serializable {
 
 	final UUID key;
 
 	//Do not serialize the database, as the corresponding database objects differ on multiple hosts.
 	// The database is set to the database object that was used for reading that value.
-	transient CassandraDatabase database;
+	private transient CassandraDatabase database;
 	
-	CassandraHandle(UUID key, CassandraDatabase database) {
+	CassandraRef(UUID key, CassandraDatabase database) {
 		this.key = key;
 		this.database = database;
 	}
@@ -62,8 +63,8 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 			}
 
 			//If there is a handle field, then set the database to the current database
-			if (fieldType.isAssignableFrom(CassandraHandle.class)) {
-				((CassandraHandle) fieldValue).setDatabase(database);
+			if (fieldType.isAssignableFrom(CassandraRef.class)) {
+				((CassandraRef) fieldValue).setDatabase(database);
 			}
 
 			//Recursively check whether nested classes contain handles
@@ -86,8 +87,8 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof CassandraHandle) {
-			CassandraHandle other = (CassandraHandle) obj;
+		if (obj instanceof CassandraRef) {
+			CassandraRef other = (CassandraRef) obj;
 			return Objects.equals(key, other.key) && Objects.equals(database, other.database);
 		}
 
@@ -95,9 +96,9 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 	}
 
 
-	public final static class StrongHandle<@Strong V> extends CassandraHandle<V> implements Serializable {
+	public final static class StrongRef<@Strong V> extends CassandraRef<V> implements Serializable {
 
-		StrongHandle(UUID key, CassandraDatabase database) {
+		StrongRef(UUID key, CassandraDatabase database) {
 			super(key, database);
 		}
 
@@ -113,22 +114,27 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 
 		@Override
 		public String toString() {
-			return "StrongHandle(key=" + key + ")";
+			return "StrongRef(key=" + key + ")";
 		}
 
 		@Override
 		public boolean equals(Object obj) {
-			if (obj instanceof StrongHandle) {
+			if (obj instanceof CassandraRef.StrongRef) {
 				return super.equals(obj);
 			}
 
 			return false;
+		}
+
+		@Override
+		public <A, B> B handle(Operation<V, CassandraRef<V>, A, B> e, A param) throws Exception {
+			return e.compute(this, param);
 		}
 	}
 
-	public final static class WeakHandle<@Weak V> extends CassandraHandle<V> implements Serializable {
+	public final static class WeakRef<@Weak V> extends CassandraRef<V> implements Serializable {
 
-		WeakHandle(UUID key, CassandraDatabase database) {
+		WeakRef(UUID key, CassandraDatabase database) {
 			super(key, database);
 		}
 
@@ -144,16 +150,21 @@ public abstract class CassandraHandle<V> extends SerializationHandle<V> implemen
 
 		@Override
 		public String toString() {
-			return "WeakHandle(key=" + key + ")";
+			return "WeakRef(key=" + key + ")";
 		}
 
 		@Override
 		public boolean equals(Object obj) {
-			if (obj instanceof WeakHandle) {
+			if (obj instanceof CassandraRef.WeakRef) {
 				return super.equals(obj);
 			}
 
 			return false;
+		}
+
+		@Override
+		public <A, B> B handle(Operation<V, CassandraRef<V>, A, B> e, A param) throws Exception {
+			return e.compute(this, param);
 		}
 	}
 }

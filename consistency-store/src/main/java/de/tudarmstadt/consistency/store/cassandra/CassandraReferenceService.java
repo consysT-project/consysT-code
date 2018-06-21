@@ -2,9 +2,10 @@ package de.tudarmstadt.consistency.store.cassandra;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.HandleService;
-import de.tudarmstadt.consistency.store.StateEvent;
+import de.tudarmstadt.consistency.store.Ref;
+import de.tudarmstadt.consistency.store.ReferenceService;
 
+import java.lang.annotation.Annotation;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,22 +14,21 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-public class CassandraHandleService implements HandleService<UUID, StateEvent> {
+public class CassandraReferenceService implements ReferenceService<UUID> {
 
 	private final CassandraDatabase cassandraDatabase;
 
-	CassandraHandleService(CassandraDatabase cassandraDatabase) {
+	CassandraReferenceService(CassandraDatabase cassandraDatabase) {
 		this.cassandraDatabase = cassandraDatabase;
 	}
 
-	@Override
-	@SuppressWarnings("consistency")
-	public <T> CassandraHandle<T> obtain(UUID id, Class<? extends T> valueClass, Class<?> consistencyLevel) {
 
+	@Override
+	public <T, R extends Ref<T, R>> R obtain(UUID id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
 		if (Objects.equals(consistencyLevel, Weak.class)) {
-			return new CassandraHandle.WeakHandle<T>(id, cassandraDatabase);
+			return (R) new CassandraRef.WeakRef<T>(id, cassandraDatabase);
 		} else if (Objects.equals(consistencyLevel, Strong.class)) {
-			return new CassandraHandle.StrongHandle<T>(id, cassandraDatabase);
+			return (R) new CassandraRef.StrongRef<T>(id, cassandraDatabase);
 		}
 
 		throw new IllegalArgumentException("unknown consistency level");

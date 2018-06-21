@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.store;
  * @author Mirko Köhler
  */
 @FunctionalInterface
-public interface Transaction<Service extends HandleService> {
+public interface Transaction<Service extends ReferenceService> {
 
 	void executeWith(Service service) throws Exception;
 

@@ -1,15 +1,16 @@
-package de.tudarmstadt.consistency.store;
+package de.tudarmstadt.consistency.store.impl;
 
-import de.tudarmstadt.consistency.store.Handle;
-
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /**
  * Handler for databases that store serialized objects.
  *
  * @author Mirko Köhler
  */
-public abstract class SerializationHandle<V> extends ReadWriteHandle<V> {
+public abstract class SerializationRef<V, R extends SerializationRef<V, R>> extends ReadWriteRef<V, R> {
 
 	@Override
 	@SuppressWarnings("unchecked")

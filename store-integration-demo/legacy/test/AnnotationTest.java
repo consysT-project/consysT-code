@@ -1,9 +1,9 @@
 package de.tudarmstadt.consistency.demo;
 
+import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.demo.legacy.ConsistencyObject;
 import de.tudarmstadt.consistency.demo.legacy.HighValue;
 import de.tudarmstadt.consistency.demo.legacy.LowValue;
-import de.tudarmstadt.consistency.checker.qual.Strong;
 
 public class AnnotationTest {
 

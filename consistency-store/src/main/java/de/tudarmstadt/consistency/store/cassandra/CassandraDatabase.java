@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.store.cassandra;
 
 import com.datastax.driver.core.*;
-import de.tudarmstadt.consistency.store.StateEvent;
 import de.tudarmstadt.consistency.store.Store;
 import de.tudarmstadt.consistency.store.Transaction;
 import de.tudarmstadt.consistency.utils.Log;
@@ -19,7 +18,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  * @author Mirko Köhler
  */
 
-public class CassandraDatabase implements Store<UUID, StateEvent, CassandraHandleService>, AutoCloseable {
+public class CassandraDatabase implements Store<UUID, CassandraReferenceService>, AutoCloseable {
 
 	private final static String DEFAULT_KEYSPACE = "keyspace_consistency";
 	private final static String DEFAULT_TABLE_NAME = "table_data";
@@ -76,8 +75,8 @@ public class CassandraDatabase implements Store<UUID, StateEvent, CassandraHandl
 	}
 
 	@Override
-	public void commit(Transaction<CassandraHandleService> actions, Class<?> isolationLevel) throws Exception {
-		actions.executeWith(new CassandraHandleService(this));
+	public void commit(Transaction<CassandraReferenceService> actions, Class<?> isolationLevel) throws Exception {
+		actions.executeWith(new CassandraReferenceService(this));
 	}
 
 
