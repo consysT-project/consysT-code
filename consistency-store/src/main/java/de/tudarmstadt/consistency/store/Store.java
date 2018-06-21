@@ -8,9 +8,9 @@ package de.tudarmstadt.consistency.store;
  *
  * @author Mirko Köhler
  */
-public interface Store<Key, Service extends ReferenceService<Key>> {
+public interface Store<Key, Context extends TransactionContext<Key>> {
 
-	void commit(Transaction<Service> actions, Class<?> isolationLevel) throws Exception;
+	void commit(Transaction<Context> actions, Class<?> isolationLevel) throws Exception;
 
 
 }

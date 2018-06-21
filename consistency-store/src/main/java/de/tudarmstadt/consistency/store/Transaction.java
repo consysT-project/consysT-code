@@ -6,8 +6,8 @@ package de.tudarmstadt.consistency.store;
  * @author Mirko Köhler
  */
 @FunctionalInterface
-public interface Transaction<Service extends ReferenceService> {
+public interface Transaction<Context extends TransactionContext> {
 
-	void executeWith(Service service) throws Exception;
+	void executeWith(Context context) throws Exception;
 
 }

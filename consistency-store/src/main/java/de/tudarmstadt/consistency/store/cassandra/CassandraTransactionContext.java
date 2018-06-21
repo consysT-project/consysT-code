@@ -2,8 +2,7 @@ package de.tudarmstadt.consistency.store.cassandra;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Ref;
-import de.tudarmstadt.consistency.store.ReferenceService;
+import de.tudarmstadt.consistency.store.TransactionContext;
 
 import java.lang.annotation.Annotation;
 import java.util.Objects;
@@ -14,17 +13,17 @@ import java.util.UUID;
  *
  * @author Mirko Köhler
  */
-public class CassandraReferenceService implements ReferenceService<UUID> {
+public class CassandraTransactionContext implements TransactionContext<UUID> {
 
 	private final CassandraDatabase cassandraDatabase;
 
-	CassandraReferenceService(CassandraDatabase cassandraDatabase) {
+	CassandraTransactionContext(CassandraDatabase cassandraDatabase) {
 		this.cassandraDatabase = cassandraDatabase;
 	}
 
 
 	@Override
-	public <T> CassandraRef<T> obtain(UUID id, Class<? extends T> valueClass, Class<? extends Annotation> consistencyLevel) {
+	public <T> CassandraRef<T> obtain(UUID id, Class<?> valueClass, Class<? extends Annotation> consistencyLevel) {
 		if (Objects.equals(consistencyLevel, Weak.class)) {
 			return new CassandraRef.WeakRef<T>(id, cassandraDatabase);
 		} else if (Objects.equals(consistencyLevel, Strong.class)) {

@@ -18,7 +18,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
  * @author Mirko Köhler
  */
 
-public class CassandraDatabase implements Store<UUID, CassandraReferenceService>, AutoCloseable {
+public class CassandraDatabase implements Store<UUID, CassandraTransactionContext>, AutoCloseable {
 
 	private final static String DEFAULT_KEYSPACE = "keyspace_consistency";
 	private final static String DEFAULT_TABLE_NAME = "table_data";
@@ -75,8 +75,8 @@ public class CassandraDatabase implements Store<UUID, CassandraReferenceService>
 	}
 
 	@Override
-	public void commit(Transaction<CassandraReferenceService> actions, Class<?> isolationLevel) throws Exception {
-		actions.executeWith(new CassandraReferenceService(this));
+	public void commit(Transaction<CassandraTransactionContext> actions, Class<?> isolationLevel) throws Exception {
+		actions.executeWith(new CassandraTransactionContext(this));
 	}
 
 
