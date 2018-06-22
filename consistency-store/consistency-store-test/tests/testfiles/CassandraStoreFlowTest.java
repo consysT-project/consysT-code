@@ -19,6 +19,8 @@ class CassandraStoreFlowTest {
 		//? extends B is needed as we are not getting a B but, e.g., @Strong B.
 		A(int x, CassandraRef<? extends B> b, String z) {
 			this.x = x;
+			//TODO: Why is a warning given here?
+			// :: warning: (consistency.inferred)
 			this.b = b;
 			this.z = z;
 		}
@@ -43,8 +45,8 @@ class CassandraStoreFlowTest {
 
 	public void testSetStrong() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA1 = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Strong B> strongB1 = service.obtain(idB1, B.class, Strong.class);
+			CassandraRef<@Strong A> strongA1 = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Strong B> strongB1 = service.<@Strong B>obtain(idB1, B.class, Strong.class);
 
 			strongA1.write(new @Local A(312, strongB1, "hallo"));
 			strongB1.write(new @Local B(strongA1.read().z));
@@ -53,8 +55,8 @@ class CassandraStoreFlowTest {
 
 	public void testSetWeak() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Weak A> weakA1 = service.obtain(idA1, A.class, Weak.class);
-			CassandraRef<@Weak B> weakB1 = service.obtain(idB1, B.class, Weak.class);
+			CassandraRef<@Weak A> weakA1 = service.<@Weak A>obtain(idA1, A.class, Weak.class);
+			CassandraRef<@Weak B> weakB1 = service.<@Weak B>obtain(idB1, B.class, Weak.class);
 
 			weakA1.write(new @Local A(312, weakB1, "hallo"));
 			weakB1.write(new @Local B(weakA1.read().z));
@@ -63,8 +65,8 @@ class CassandraStoreFlowTest {
 
 	public void testFlowFromWeakToStrong() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Weak A> weakA = service.obtain(idA2, A.class, Weak.class);
+			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Weak A> weakA = service.<@Weak A>obtain(idA2, A.class, Weak.class);
 
 			//qq :: error: (argument.type.incompatible)
 			//strongA.handle(WRITE, weakA.read());
@@ -81,8 +83,8 @@ class CassandraStoreFlowTest {
 
 	public void testFlowFromStrongToWeak() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Weak A> weakA = service.obtain(idA2, A.class, Weak.class);
+			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Weak A> weakA = service.<@Weak A>obtain(idA2, A.class, Weak.class);
 
 //			weakA.handle(WRITE, strongA.read());
 			weakA.write(strongA.read());
@@ -95,8 +97,8 @@ class CassandraStoreFlowTest {
 
 	public void testImplicitFlowWithSimpleCondition() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Weak B> weakB = service.obtain(idB1, B.class, Weak.class);
+			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Weak B> weakB = service.<@Weak B>obtain(idB1, B.class, Weak.class);
 
 			A a = new @Local A(213, weakB,"fire");
 
@@ -111,8 +113,8 @@ class CassandraStoreFlowTest {
 
 	public void testImplicitFlowWithComplexCondition() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Weak B> weakB = service.obtain(idB1, B.class, Weak.class);
+			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Weak B> weakB = service.<@Weak B>obtain(idB1, B.class, Weak.class);
 
 
 			B b = weakB.read();
@@ -127,8 +129,8 @@ class CassandraStoreFlowTest {
 
 	public void testCorrectImplicitFlow() throws Exception {
 		database.commit(service -> {
-			CassandraRef<@Strong A> strongA = service.obtain(idA1, A.class, Strong.class);
-			CassandraRef<@Weak B> weakB = service.obtain(idB1, B.class, Weak.class);
+			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
+			CassandraRef<@Weak B> weakB = service.<@Weak B>obtain(idB1, B.class, Weak.class);
 
 			B b = new @Local B("hallo");
 

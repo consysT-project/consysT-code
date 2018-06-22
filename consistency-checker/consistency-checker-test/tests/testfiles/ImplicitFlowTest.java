@@ -104,8 +104,6 @@ class ImplicitFlowTest {
 		}
 	}
 
-
-	//TODO: Think about how type arguments work with the information flow analysis?
 	void testWeakConditionReceiverTypeArgument() {
 		B<@Weak String> b1 = new B<>();
 		B<@Strong String> b2 = new B<>();

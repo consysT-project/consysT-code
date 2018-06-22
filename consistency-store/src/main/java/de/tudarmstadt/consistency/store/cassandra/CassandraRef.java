@@ -49,6 +49,8 @@ public abstract class CassandraRef<V> extends SerializationRef<V> implements Ser
 	}
 
 	private void setDatabaseForHandleFields(Object o, Set<Object> alreadyTraversed) throws IllegalAccessException {
+		//Add the current object to the already traversed ones. This avoids an infinite loop in
+		//objects that have a reference to each other.
 		alreadyTraversed.add(o);
 
 		//If the object contains a handle, set the correct database
