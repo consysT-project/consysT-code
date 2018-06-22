@@ -20,7 +20,6 @@
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->
-        <!-- TODO Is this working correctly? The property seems to not be available, or is it a plugin error? -->
         <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
 
 

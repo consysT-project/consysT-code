@@ -23,7 +23,7 @@ public class CassandraTransactionContext implements TransactionContext<UUID> {
 
 
 	@Override
-	public <T> CassandraRef<T> obtain(UUID id, Class<?> valueClass, Class<? extends Annotation> consistencyLevel) {
+	public <T> CassandraRef<T> obtain(UUID id, Class<? super T> valueClass, Class<? extends Annotation> consistencyLevel) {
 		if (Objects.equals(consistencyLevel, Weak.class)) {
 			return new CassandraRef.WeakRef<T>(id, cassandraDatabase);
 		} else if (Objects.equals(consistencyLevel, Strong.class)) {

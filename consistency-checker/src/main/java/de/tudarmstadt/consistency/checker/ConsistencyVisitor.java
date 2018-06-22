@@ -85,9 +85,8 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 			AnnotationMirror typeAnnotation = getStrongestNonLocalAnnotationIn(type, inconsistentAnnotation());
 
 			if (typeAnnotation == null) {
-				//TODO: we can not issue the warning because else the test fails.
-				//checker.report(Result.warning("consistency.inferred", type, tree), tree);
-				Log.info(getClass(), String.format("consistency.inferred: consistency level of <%s> unknown and has been inferred to @Inconsistent.\nin: %s", type, tree));
+				checker.report(Result.warning("consistency.inferred", type, tree), tree);
+				//Log.info(getClass(), String.format("consistency.inferred: consistency level of {%s} unknown and has been inferred to @Inconsistent.\nin: %s", type, tree));
 				return true;
 			}
 
@@ -123,9 +122,6 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
     @Override
     public Void visitIf(IfTree node, Void p) {
     	AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
-
-
-    	System.out.println(conditionAnnotation);
 
     	implicitContext.set(conditionAnnotation);
 
@@ -172,9 +168,8 @@ public class ConsistencyVisitor extends BaseTypeVisitor<ConsistencyAnnotatedType
 	public Void visitForLoop(ForLoopTree node, Void p) {
 		AnnotationMirror conditionAnnotation = weakestConsistencyInExpression(node.getCondition());
 
-		Void r = scan(node.getCondition(), p);
-		//TODO: How to correctly track implicit flow for the for loop variable?
-		r = reduce(scan(node.getInitializer(), p), r);
+		Void r = scan(node.getInitializer(), p);
+		r = reduce(scan(node.getCondition(), p), r);
 
 		implicitContext.set(conditionAnnotation);
 

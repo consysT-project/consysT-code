@@ -10,7 +10,7 @@ import java.lang.annotation.Annotation;
 public interface TransactionContext<Key> {
 
 	//TODO: How can we force that T is annotated with the consistencyLevel
-	//TODO: Enforce correct type of the value class (boils down to "How to get an annotated Class, e.g., @Strong A.class".
+	//TODO: let obtain return a special kind of Ref and not the general ref
 	/**
 	 * Retrieves a new handle for an object with the specified key. The handle operates
 	 * using the specified consistency level. How a level is exactly defined depends
@@ -25,5 +25,5 @@ public interface TransactionContext<Key> {
 	 * @return A handle that handles the access to the database object specified by the
 	 * given key.
 	 */
-	<T> Ref<T, ?> obtain(Key id, Class<?/* extends T*/> valueClass, Class<? extends Annotation> consistencyLevel);
+	<T> Ref<T, ?> obtain(Key id, Class<? super T> valueClass, Class<? extends Annotation> consistencyLevel);
 }

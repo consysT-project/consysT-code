@@ -22,13 +22,11 @@ public class MapTransactionContext implements TransactionContext<Object> {
 
 
 	@Override
-	public <T> MapRef<T> obtain(Object id, Class<?> valueClass, Class<? extends Annotation> consistencyLevel) {
-
-		//TODO: Remove these casts
+	public <T> MapRef<T> obtain(Object id, Class<? super T> valueClass, Class<? extends Annotation> consistencyLevel) {
 		if (Objects.equals(Weak.class, consistencyLevel)) {
-			return new MapRef<T>(id, mapStore);
+			return new MapRef<>(id, mapStore);
 		} else if (Objects.equals(Strong.class, consistencyLevel)) {
-			return new MapRef<T>(id, mapStore);
+			return new MapRef<>(id, mapStore);
 		}
 
 		throw new IllegalArgumentException("can only obtain handles with consistency level, but got " + consistencyLevel);

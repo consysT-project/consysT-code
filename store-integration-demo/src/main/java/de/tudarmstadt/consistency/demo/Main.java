@@ -31,15 +31,6 @@ public class Main {
 			UUID id4 = new UUID(573489465L, 1675789841L);
 
 			database.commit(service -> {
-				/*
-			TODO: When using a class as valueClass argument (e.g. A.class) then the annotated type parameter does not work
-
-			In that case only a cast works, i.e.
-			Ref<@Strong A>) database.obtain(id1, A.class, Strong.class)
-
-			Is there a better way to handle that? In the current implementation the value class
-			argument is not needed.
-			 */
 				CassandraRef<@Strong A> strong1 = service.<@Strong A>obtain(id1, A.class, Strong.class);
 				//B.class returns @Inconsistent Class<@Inconsistent B>, but obtain requires @Inconsistent Class<@Strong B>
 				CassandraRef<@Strong B> strong2 = service.<@Strong B>obtain(id2, B.class, Strong.class);
