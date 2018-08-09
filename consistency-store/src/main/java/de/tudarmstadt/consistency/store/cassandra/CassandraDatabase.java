@@ -57,6 +57,8 @@ public class CassandraDatabase implements Store<UUID, CassandraTransactionContex
 		session = cluster.connect(keyspaceName);
 
 
+
+
 		//Initialize the data table
 		this.table = new ObjectTable(DEFAULT_TABLE_NAME);
 		this.table.initialize();

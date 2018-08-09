@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.store.impl;
 
-import de.tudarmstadt.consistency.store.Operation;
+
 import de.tudarmstadt.consistency.store.Ref;
 
 /**

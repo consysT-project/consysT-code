@@ -8,7 +8,6 @@ import de.tudarmstadt.consistency.store.Store;
 import de.tudarmstadt.consistency.store.data.A;
 import de.tudarmstadt.consistency.store.data.B;
 import de.tudarmstadt.consistency.store.impl.ReadWriteRef;
-import de.tudarmstadt.consistency.store.local.MapRef;
 import org.junit.Assert;
 import org.junit.Test;
 

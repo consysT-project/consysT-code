@@ -3,7 +3,6 @@ package de.tudarmstadt.consistency.store.cassandra;
 import com.datastax.driver.core.ConsistencyLevel;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.store.Operation;
 import de.tudarmstadt.consistency.store.impl.SerializationRef;
 
 import java.io.Serializable;
@@ -21,7 +20,7 @@ import java.util.UUID;
  */
 public abstract class CassandraRef<V> extends SerializationRef<V> implements Serializable {
 
-	final UUID key;
+	private final UUID key;
 
 	//Do not serialize the database, as the corresponding database objects differ on multiple hosts.
 	// The database is set to the database object that was used for reading that value.
@@ -39,6 +38,10 @@ public abstract class CassandraRef<V> extends SerializationRef<V> implements Ser
 		this.database = database;
 	}
 
+
+	UUID getKey() {
+		return key;
+	}
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -118,7 +121,7 @@ public abstract class CassandraRef<V> extends SerializationRef<V> implements Ser
 
 		@Override
 		public String toString() {
-			return "StrongRef(key=" + key + ")";
+			return "StrongRef(key=" + getKey() + ")";
 		}
 
 		@Override
@@ -151,7 +154,7 @@ public abstract class CassandraRef<V> extends SerializationRef<V> implements Ser
 
 		@Override
 		public String toString() {
-			return "WeakRef(key=" + key + ")";
+			return "WeakRef(key=" + getKey() + ")";
 		}
 
 		@Override

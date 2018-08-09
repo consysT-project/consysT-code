@@ -1,6 +1,7 @@
 package de.tudarmstadt.consistency.demo;
 
 
+import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.demo.data.A;
@@ -30,17 +31,16 @@ public class Main {
 			UUID id3 = new UUID(573489456L, 1675789879L);
 			UUID id4 = new UUID(573489465L, 1675789841L);
 
-			database.commit(service -> {
-				CassandraRef<@Strong A> strong1 = service.<@Strong A>obtain(id1, A.class, Strong.class);
-				//B.class returns @Inconsistent Class<@Inconsistent B>, but obtain requires @Inconsistent Class<@Strong B>
-				CassandraRef<@Strong B> strong2 = service.<@Strong B>obtain(id2, B.class, Strong.class);
+			database.commit(context -> {
+				CassandraRef<@Strong A> strongA = context.<@Strong A>obtain(id1, A.class, Strong.class);
+				CassandraRef<@Strong B> strongB = context.<@Strong B>obtain(id2, B.class, Strong.class);
 
 				//Types are correct: writing a local value to strong1/2 (strong)
-				strong1.write(new @Strong A(312, strong2, "hallo"));
-				strong2.write(new @Strong B("welt"));
+				strongA.write(new @Local A(312, strongB, "hello"));
+				strongB.write(new @Local B("world"));
 
-				A aStrong = strong1.read();
-				B bStrong = strong2.read();
+				A aStrong = strongA.read();
+				B bStrong = strongB.read();
 
 
 				Log.info(Main.class, aStrong);
@@ -48,37 +48,32 @@ public class Main {
 				Log.info(Main.class, aStrong.b.read());
 
 
-				CassandraRef<@Weak B> weak1 = service.<@Weak B>obtain(id3, B.class, Weak.class);
+				CassandraRef<@Weak B> weakB = context.<@Weak B>obtain(id3, B.class, Weak.class);
 
-				weak1.write(new @Weak B("gude"));
+				weakB.write(new @Local B("moon"));
 
-				B bWeak = weak1.read();
+				B bWeak = weakB.read();
 
 				//Type clash: writing weak value to strong handle
-				//strong2.write(bWeak);
-				//strong2.handle(WRITE, bWeak);
+				//strongB.write(bWeak);
 
 
 				//Types are correct: writing a strong value to a weak handle
-				weak1.write(bStrong);
+				weakB.write(bStrong);
 
 				//Type clash: Checking implicit flows
-				if (weak1.read() == null) {
+				if (weakB.read() == null) {
 					//	A a = new @Strong A(213, strong2,"fire");
 					//	strong1.write(a);
-					//	strong1.handle(WRITE, a);
 				}
 
-				CassandraRef<@Strong O> o1 = service.<@Strong O>obtain(id4, O.class, Strong.class);
-				o1.write(new @Strong O(new A(31, weak1, "lol"), "rofl"));
+				CassandraRef<@Strong O> o1 = context.<@Strong O>obtain(id4, O.class, Strong.class);
+				o1.write(new @Strong O(new A(31, weakB, "lol"), "rofl"));
 				O o = o1.read();
 
 				Log.info(Main.class, o);
 				Log.info(Main.class, o.a.b.read());
 			}, null);
-
-
-
 		}
 	}
 }

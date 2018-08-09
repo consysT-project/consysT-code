@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.store;
 
+
 /**
  * A handle corresponds to a single database object. It can be used to read the specified object or to write
  * a new value as that object.

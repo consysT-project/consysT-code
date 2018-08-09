@@ -68,14 +68,11 @@ class CassandraStoreFlowTest {
 			CassandraRef<@Strong A> strongA = service.<@Strong A>obtain(idA1, A.class, Strong.class);
 			CassandraRef<@Weak A> weakA = service.<@Weak A>obtain(idA2, A.class, Weak.class);
 
-			//qq :: error: (argument.type.incompatible)
-			//strongA.handle(WRITE, weakA.read());
 			// :: error: (argument.type.incompatible)
 			strongA.write(weakA.read());
 
 			A a = weakA.read();
-			//qq :: error: (argument.type.incompatible)
-			//strongA.handle(WRITE, a);
+
 			// :: error: (argument.type.incompatible)
 			strongA.write(a);
 		}, null);
@@ -105,8 +102,6 @@ class CassandraStoreFlowTest {
 			if (weakB.read() == null) {
 				// :: error: (invocation.receiver.implicitflow)
 				strongA.write(a);
-				//qq :: error: (invocation.receiver.implicitflow)
-				//strongA.handle(WRITE, a);
 			}
 		}, null);
 	}
@@ -121,8 +116,6 @@ class CassandraStoreFlowTest {
 			if (b.s.length() > 3) {
 				// :: error: (invocation.receiver.implicitflow) :: error: (invocation.argument.implicitflow)
 				strongA.write(strongA.read());
-				//qq :: error: (invocation.receiver.implicitflow) :: error: (invocation.argument.implicitflow)
-				//strongA.handle(WRITE, strongA.read());
 			}
 		}, null);
 	}
@@ -136,7 +129,6 @@ class CassandraStoreFlowTest {
 
 			if (strongA.read() == null) {
 				weakB.write(b);
-				//weakB.handle(WRITE, b);
 			}
 		}, null);
 	}
