@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.checker;
 
 import com.sun.source.tree.*;
-import de.tudarmstadt.consistency.utils.Log;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;

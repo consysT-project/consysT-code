@@ -16,6 +16,7 @@
         <module>store-integration-demo</module>
         <module>consistency-checker/consistency-checker-test</module>
         <module>consistency-store/consistency-store-test</module>
+        <module>shim-layer</module>
     </modules>
 
     <properties>
@@ -28,6 +29,7 @@
 
         <javaVersion>1.8</javaVersion>
         <checkerframeworkVersion>2.5.2</checkerframeworkVersion>
+        <cassandraVersion>3.5.1</cassandraVersion>
     </properties>
 
 

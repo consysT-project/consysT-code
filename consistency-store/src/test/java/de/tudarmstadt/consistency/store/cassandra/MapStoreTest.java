@@ -1,16 +1,9 @@
 package de.tudarmstadt.consistency.store.cassandra;
 
-import de.tudarmstadt.consistency.checker.qual.Local;
-import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.store.Store;
-import de.tudarmstadt.consistency.store.data.A;
-import de.tudarmstadt.consistency.store.data.B;
-import de.tudarmstadt.consistency.store.local.MapRef;
 import de.tudarmstadt.consistency.store.local.MapStore;
 import de.tudarmstadt.consistency.store.local.MapTransactionContext;
-import org.checkerframework.org.objectweb.asm.util.attrs.ASMStackMapTableAttribute;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 

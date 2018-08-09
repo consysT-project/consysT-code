@@ -1,8 +1,7 @@
 package de.tudarmstadt.consistency.store.impl;
 
+
 import de.tudarmstadt.consistency.store.Operation;
-import de.tudarmstadt.consistency.store.Ref;
-import de.tudarmstadt.consistency.store.cassandra.CassandraRef;
 
 /**
  * Created on 18.06.18.
