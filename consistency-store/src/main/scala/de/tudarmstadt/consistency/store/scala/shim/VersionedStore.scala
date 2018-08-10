@@ -56,7 +56,7 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 
 
 
-	trait VersionedRef[T <: Val] extends ReadWriteRef[T]
+
 
 	class VersionedSessionContext extends ReadWriteSessionContext {
 
@@ -64,7 +64,7 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 		private var nextDependencies : Set[VersionGraphNode] = Set.empty
 
 
-		class CausalRef[T <: Val](val context : VersionedSessionContext, val key : Key) extends VersionedRef[T] {
+		class CausalRef[T <: Val](val context : VersionedSessionContext, val key : Key) extends VersionedRef[Key, T] {
 
 			override protected def handleRead(): Option[T] = {
 				val (value, deps) = versionGraph.getValue(key)
@@ -86,7 +86,7 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 		}
 
 
-		override def obtain[T <: Val](key: Key, consistencyLevel: Class[_ <: Annotation]): VersionedRef[T] = consistencyLevel match {
+		override def obtain[T <: Val](key: Key, consistencyLevel: Class[_ <: Annotation]): VersionedRef[Key, T] = consistencyLevel match {
 			//TODO: return the correct refs
 			case x if x == classOf[Strong] => new CausalRef(this, key)
 			case x if x == classOf[Weak] => new CausalRef(this, key)
