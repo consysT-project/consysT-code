@@ -18,4 +18,8 @@ trait Store[Key, Val, Op[_,_] <: Operation[_,_]] {
 
 	def newSessionContext() : Context
 
+	def close(): Unit = {
+		//Do nothing by default
+	}
+
 }

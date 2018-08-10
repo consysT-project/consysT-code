@@ -1,5 +1,6 @@
 /* sbt build is not working (yet?) */
 
+/*
 name := "consistency-types"
 
 version := "0.1"
@@ -53,3 +54,4 @@ lazy val storeIntegrationDemo = (project in file("store-integration-demo"))
 		),
 		javacOptions ++= Seq("-source", javaVersion , "-target", javaVersion)
 	)
+*/

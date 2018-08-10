@@ -3,8 +3,8 @@ package de.tudarmstadt.consistency.store.scala.shim
 import java.lang.annotation.Annotation
 
 import de.tudarmstadt.consistency.checker.qual.{Strong, Weak}
-import de.tudarmstadt.consistency.store.scala.{Ref, SessionContext, Store}
-import de.tudarmstadt.consistency.store.scala.impl.{ReadWriteOp, ReadWriteStore}
+import de.tudarmstadt.consistency.store.scala.impl.ReadWriteStore
+import de.tudarmstadt.consistency.store.scala.shim
 
 import scala.collection.mutable
 
@@ -18,7 +18,9 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 
 	type Id
 
-	val store : ReadWriteStore[Id, Update[Id, Key, Val]]
+	type Update = shim.Update[Id, Key, Val]
+
+	val store : ReadWriteStore[Id, Update]
 	val idFactory : () => Id
 
 	private val versionGraph : VersionGraph = new VersionGraph
@@ -30,22 +32,28 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 	override def newSessionContext() : Context =
 		new VersionedSessionContext
 
+	override def close(): Unit = {
+		store.close()
+	}
 
 	private def newId() : Id = idFactory.apply()
 
-	private def addUpdateToStore(id : Id, update : Update[Id, Key, Val], consistencyLevel : Class[_ <: Annotation]) : Unit = {
+	private def addUpdateToStore(id : Id, update : Update, consistencyLevel : Class[_ <: Annotation]) : Unit = {
 		store.commit(session => {
-			val ref = session.obtain[Update[Id, Key, Val]](id, consistencyLevel)
+			val ref = session.obtain[Update](id, consistencyLevel)
 			ref.write(update)
 		})
 	}
 
-	private def getUpdateFromStore[T <: Val](id : Id, consistencyLevel : Class[_ <: Annotation]) : Option[Update[Id, Key, T]] = {
+	private def getUpdateFromStore[T <: Val](id : Id, consistencyLevel : Class[_ <: Annotation]) : Option[Update] = {
 		store.commit(session => {
-			val ref = session.obtain[Update[Id, Key, T]](id, consistencyLevel)
+			val ref = session.obtain[Update](id, consistencyLevel)
 			ref.read()
 		})
 	}
+
+
+
 
 
 	trait VersionedRef[T <: Val] extends ReadWriteRef[T]
@@ -139,11 +147,17 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 				case None => (None, Set.empty)
 				case Some(entry) => getUpdateFromStore(entry.id, classOf[Strong /*TODO: use appropriate consistency level*/]) match {
 					case None => throw new IllegalStateException("") //TODO: Causal guarantee not fulfilled. Search for value that is already propagated
-					case Some(update) => (Some(update.value), Set(entry))
+					case Some(update) => (Some(update.value.asInstanceOf[T]), Set(entry))
 				}
 			}
 		}
 	}
-
-
 }
+
+//Note: Update has to stay outside of VersionedStore to allow serializability.
+case class Update[Id, Key, Val](key : Key, value : Val, dependencies : Set[Id])
+
+
+object VersionedStore {
+}
+
