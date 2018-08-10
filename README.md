@@ -35,7 +35,7 @@ a replicated datastore.
 
 ## Installation of the project
 
-The following instructions are for *Linux* systems.
+The following instructions have been tested for *Linux Mint 19*.
  
  The project is built using Apache Maven. 
 

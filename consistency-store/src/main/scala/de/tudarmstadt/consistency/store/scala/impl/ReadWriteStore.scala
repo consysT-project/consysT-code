@@ -39,7 +39,7 @@ trait ReadWriteStore[Key, Val] extends Store[Key, Val, ReadWriteOp] {
 
 
 		protected def handleRead() : Option[T]
-		protected def handleWrite(t : T) : Unit
+		protected def handleWrite(value : T) : Unit
 
 
 		private case object ReadOp extends ReadWriteOp[Unit, Option[T]]
