@@ -44,60 +44,12 @@ class CassandraBlobStore[Key <: UUID, Val](val session : com.datastax.driver.cor
 
 	class CassandraSessionContext extends ReadWriteSessionContext {
 
-		override def obtain[T <: Val](key: Key, consistencyLevel : Class[_ <: Annotation]): CassandraRef[T] = consistencyLevel match {
-			case x if classOf[Weak] == x => new OneRef(key)
-			case x if classOf[Strong] == x => new AllRef(key)
+		override def obtain[T <: Val](key: Key, consistencyLevel : Class[_ <: Annotation]): CassandraRef[Key, T] = consistencyLevel match {
+			case x if classOf[Weak] == x => new OneRef[Key, T](CassandraBlobStore.this, key)
+			case x if classOf[Strong] == x => new AllRef(CassandraBlobStore.this, key)
 
 			case x => throw new IllegalArgumentException(s"unsupported consistency level. expected Weak or Strong, but got $x")
 		}
-	}
-
-
-	trait CassandraRef[T <: Val] extends ReadWriteRef[T] {
-		val key : Key
-		val consistencyLevel : ConsistencyLevel
-
-
-		override protected def handleRead() : Option[T] = {
-			val data = table.readWithConsistencyLevel(key, consistencyLevel)
-
-			if (data == null) return None
-
-			val bis = new ByteArrayInputStream(data)
-			val ois = new ObjectInputStream(bis)
-
-			//TODO: Handle exceptions
-			val o = ois.readObject
-
-			Some(o.asInstanceOf[T])
-		}
-
-		override protected def handleWrite(value : T) : Unit = {
-			val bos = new ByteArrayOutputStream
-			val oos = new ObjectOutputStream(bos)
-
-			//Transform object into a string representation
-			oos.writeObject(value)
-			oos.flush()
-
-			val data = bos.toByteArray
-
-			table.writeWithConsistencyLevel(key, data, consistencyLevel)
-		}
-
-
-	}
-
-	class OneRef[T <: Val](val key : Key) extends CassandraRef[T] {
-		override val consistencyLevel : ConsistencyLevel = ConsistencyLevel.ONE
-	}
-
-	class QuorumRef[T <: Val](val key : Key) extends CassandraRef[T] {
-		override val consistencyLevel : ConsistencyLevel = ConsistencyLevel.QUORUM
-	}
-
-	class AllRef[T <: Val](val key : Key) extends CassandraRef[T] {
-		override val consistencyLevel : ConsistencyLevel = ConsistencyLevel.ALL
 	}
 
 
