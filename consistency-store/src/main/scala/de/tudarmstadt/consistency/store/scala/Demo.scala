@@ -44,7 +44,7 @@ object Demo {
 
 
 		try {
-			example2(store)
+			example1 (store)
 			Thread.sleep(5000)
 		} finally {
 			//Close all asynchronous constructs
