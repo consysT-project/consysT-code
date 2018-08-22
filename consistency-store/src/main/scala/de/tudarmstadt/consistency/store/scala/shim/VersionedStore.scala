@@ -56,8 +56,6 @@ abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
 
 
 
-
-
 	class VersionedSessionContext extends ReadWriteSessionContext {
 
 		private var sessionPointer : Option[VersionGraphNode] = None
