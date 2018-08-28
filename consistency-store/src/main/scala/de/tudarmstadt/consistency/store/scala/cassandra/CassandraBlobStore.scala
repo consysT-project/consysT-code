@@ -18,7 +18,7 @@ import de.tudarmstadt.consistency.store.scala.impl.ReadWriteStore
 	*
 	* @author Mirko Köhler
 	*/
-class CassandraBlobStore[Key <: UUID, Val](val session : com.datastax.driver.core.Session) extends ReadWriteStore[Key, Val]{
+class CassandraBlobStore[Key <: UUID, Val](val session : com.datastax.driver.core.Session) extends ReadWriteStore[Key, Val, Class[_ <: Annotation]]{
 
 
 	val table = new CassandraBlobTable("blobdata")

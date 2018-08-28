@@ -8,8 +8,8 @@ import java.lang.annotation.Annotation
 	*
 	* @author Mirko Köhler
 	*/
-trait SessionContext[Key, Val, Op[_,_] <: Operation[_,_]] {
+trait SessionContext[Key, Val, Op[_,_] <: Operation[_,_], Consistency] {
 
-	def obtain[T <: Val](key : Key, consistencyLevel : Class[_ <: Annotation]) : Ref[T, Op]
+	def obtain[T <: Val](key : Key, consistencyLevel : Consistency) : Ref[T, Op]
 	//the additional type parameter could specify the concrete val type that is referenced
 }

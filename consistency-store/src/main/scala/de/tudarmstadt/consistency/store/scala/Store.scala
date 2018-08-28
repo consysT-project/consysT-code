@@ -7,9 +7,9 @@ import scala.language.higherKinds
 	*
 	* @author Mirko Köhler
 	*/
-trait Store[Key, Val, Op[_,_] <: Operation[_,_]] {
+trait Store[Key, Val, Op[_,_] <: Operation[_,_], Consistency] {
 
-	type Context <: SessionContext[Key, Val, Op]
+	type Context <: SessionContext[Key, Val, Op, Consistency]
 
 	type Session[R] = Context => R
 

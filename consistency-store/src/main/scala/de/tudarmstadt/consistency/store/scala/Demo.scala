@@ -10,6 +10,7 @@ import de.tudarmstadt.consistency.store.scala.impl.ReadWriteStore
 import de.tudarmstadt.consistency.store.scala.local.MapStore
 import de.tudarmstadt.consistency.store.scala.shim.VersionedStore
 
+import scala.annotation.Annotation
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -33,12 +34,15 @@ object Demo {
 
 
 	def main(args : Array[String]): Unit = {
+/*
+		type Key = Char
+		type Data = String
+		type Consistency = Class[_ <: Annotation]
 
 
-
-		val store = new VersionedStore[Char, String] {
+		val store = new VersionedStore[Key, Data, Consistency] {
 			override type Id = UUID
-			override val store : ReadWriteStore[Id, Update] = CassandraBlobStore.local[UUID, Update](3)
+			override val store = CassandraBlobStore.local[UUID, Update](3)
 			override val idFactory : () => Id = () => UUIDs.random()
 		}
 
@@ -191,7 +195,7 @@ object Demo {
 
 				session.printSessionTree()
 			})
-		}
+		}*/
 
 	}
 
