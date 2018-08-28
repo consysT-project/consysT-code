@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.store.scala.transactions
 
+import scala.reflect.runtime.universe._
 import scala.util.Random
 
 /**
@@ -7,23 +8,24 @@ import scala.util.Random
 	*
 	* @author Mirko Köhler
 	*/
-object SimpleCassandraTransactionStore extends CassandraTransactionStore[Int, String, String, String, String, String] {
+class SimpleCassandraTransactionStore(protected val connectionParams : ConnectionParams)
+	extends SysnameStore[Int, String, String, String, String, String]
+	with SysnameSnapshotIsolatedTransactionStore[Int, String, String, String, String, String] {
 
-	override val KEYSPACE_NAME : String = "k_transactions_simple"
 
 	import SimpleTypeFactories._
 
-	override protected def idOps : SimpleCassandraTransactionStore.IdOps[Int] =
+	override def idOps : IdOps[Int] =
 		SimpleSeqIdOps
 		//SimpleRanIdOps
 
-	override protected def txStatusOps : SimpleCassandraTransactionStore.TxStatusOps[String] =
+	override def txStatusOps : TxStatusOps[String] =
 		SimpleTxStatusOps
 
-	override protected def isolationLevelOps : SimpleCassandraTransactionStore.IsolationLevelOps[String] =
+	override def isolationLevelOps : IsolationLevelOps[String] =
 		SimpleIsolationLevelOps
 
-	override protected def consistencyLevelOps : SimpleCassandraTransactionStore.ConsistencyLevelOps[String] =
+	override def consistencyLevelOps : ConsistencyLevelOps[String] =
 		SimpleConsistencyLevelOps
 
 

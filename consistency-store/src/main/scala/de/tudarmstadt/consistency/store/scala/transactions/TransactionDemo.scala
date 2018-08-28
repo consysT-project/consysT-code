@@ -93,30 +93,47 @@ CREATE AGGREGATE aggregate_name(type1)
 	}
 
 	def simpleExample(): Unit = {
-		import de.tudarmstadt.consistency.store.scala.transactions.SimpleCassandraTransactionStore._
-		initialize()
+
+		val store = new SimpleCassandraTransactionStore(LocalClusterParams)
+		import store._
+
+		initializeKeyspace()
 
 		val session = newSession
 
-		timed {
-			Log.info(null, commitTransaction(session, List(Write("x", "Hallo", Set.empty), Write("y", "Welt", Set.empty))))
+		val transactionA : Transaction[Unit] = context => {
+			context.write("x", "Hallo")
+			context.write("y", "Welt")
 		}
-		timed {
-			Log.info(null, commitTransaction(session, List(Write("x", "Hallösche", Set.empty), Write("z", "Alle", Set.empty))))
+
+		val transactionB : Transaction[Unit] = context => {
+			context.write("x", "Hello")
+			context.write("z", "World")
+		}
+
+		val transactionC : Transaction[String] = context => {
+			val x = context.read("x")
+			println(s"x = $x")
+			val y = context.read("y")
+			println(s"y = $y")
+			val z = context.read("z")
+			println(s"z = $z")
+
+			val s = List(x, y, z).flatten.mkString(" ")
+			context.write("s", s)
+
+			s
 		}
 
 
 		timed {
-			Log.info(null, "x = " + read(session, "x"))
+			Log.info(null, commit(session, transactionA, isolationLevelOps.snapshotIsolation))
 		}
 		timed {
-			Log.info(null, "y = " + read(session, "y"))
+			Log.info(null, commit(session, transactionB, isolationLevelOps.snapshotIsolation))
 		}
 		timed {
-			Log.info(null, "z = " + read(session, "z"))
-		}
-		timed {
-			Log.info(null, "x = " + read(session, "x"))
+			Log.info(null, commit(session, transactionC, isolationLevelOps.snapshotIsolation))
 		}
 
 		session.close()
@@ -124,85 +141,85 @@ CREATE AGGREGATE aggregate_name(type1)
 		System.exit(0)
 	}
 
-	def concurrentExample(): Unit = {
-
-		import de.tudarmstadt.consistency.store.scala.transactions.SimpleCassandraTransactionStore._
-		initialize()
-
-		val executor = Executors.newFixedThreadPool(4)
-		implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
-
-		Thread.sleep(1000)
-
-		Future {
-			val session = newSession
-			try {
-				Log.info(null, "### A ===> " + commitTransaction(session, List(Write("x", "Hallo", Set.empty), Write("y", "Welt", Set.empty))))
-			} catch {
-				case e => TransactionDemo.synchronized {
-					System.err.println("NODE A")
-					e.printStackTrace()
-				}
-			}
-			Log.info(null, "A done.")
-		}
-
-		Future {
-			val session = newSession
-			try {
-				Log.info(null, "### B ===> " + commitTransaction(session, List(Write("x", "Hello", Set.empty), Write("y", "World", Set.empty))))
-			} catch {
-				case e => TransactionDemo.synchronized {
-					System.err.println("NODE B")
-					e.printStackTrace()
-				}
-			}
-			Log.info(null, "B done.")
-		}
-
-		Future {
-			val session = newSession
-			try {
-				Log.info(null, "### C ===> " + commitTransaction(session, List(Write("x", "Hallösche", Set.empty), Write("z", "Zusamme", Set.empty))))
-			} catch {
-				case e => TransactionDemo.synchronized {
-					System.err.println("NODE C")
-					e.printStackTrace()
-				}
-			}
-			Log.info(null, "C done.")
-		}
-
-		Thread.sleep(3000)
-
-		val session = newSession
-
-		printTables(session)
-
-		Thread.sleep(1000)
-
-		timed {
-			Log.info(null, "x = " + read(session, "x"))
-		}
-		timed {
-			Log.info(null, "y = " + read(session, "y"))
-		}
-		timed {
-			Log.info(null, "z = " + read(session, "z"))
-		}
-		timed {
-			Log.info(null, "x = " + read(session, "x"))
-		}
-
-		Thread.sleep(1000)
-
-		printTables(session)
-
-		System.exit(0)
-
-	}
+//	def concurrentExample(): Unit = {
+//
+//		import de.tudarmstadt.consistency.store.scala.transactions.SimpleCassandraTransactionStore._
+//		initialize()
+//
+//		val executor = Executors.newFixedThreadPool(4)
+//		implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
+//
+//		Thread.sleep(1000)
+//
+//		Future {
+//			val session = newSession
+//			try {
+//				Log.info(null, "### A ===> " + commitTransaction(session, List(Write("x", "Hallo", Set.empty), Write("y", "Welt", Set.empty))))
+//			} catch {
+//				case e => TransactionDemo.synchronized {
+//					System.err.println("NODE A")
+//					e.printStackTrace()
+//				}
+//			}
+//			Log.info(null, "A done.")
+//		}
+//
+//		Future {
+//			val session = newSession
+//			try {
+//				Log.info(null, "### B ===> " + commitTransaction(session, List(Write("x", "Hello", Set.empty), Write("y", "World", Set.empty))))
+//			} catch {
+//				case e => TransactionDemo.synchronized {
+//					System.err.println("NODE B")
+//					e.printStackTrace()
+//				}
+//			}
+//			Log.info(null, "B done.")
+//		}
+//
+//		Future {
+//			val session = newSession
+//			try {
+//				Log.info(null, "### C ===> " + commitTransaction(session, List(Write("x", "Hallösche", Set.empty), Write("z", "Zusamme", Set.empty))))
+//			} catch {
+//				case e => TransactionDemo.synchronized {
+//					System.err.println("NODE C")
+//					e.printStackTrace()
+//				}
+//			}
+//			Log.info(null, "C done.")
+//		}
+//
+//		Thread.sleep(3000)
+//
+//		val session = newSession
+//
+//		printTables(session)
+//
+//		Thread.sleep(1000)
+//
+//		timed {
+//			Log.info(null, "x = " + read(session, "x"))
+//		}
+//		timed {
+//			Log.info(null, "y = " + read(session, "y"))
+//		}
+//		timed {
+//			Log.info(null, "z = " + read(session, "z"))
+//		}
+//		timed {
+//			Log.info(null, "x = " + read(session, "x"))
+//		}
+//
+//		Thread.sleep(1000)
+//
+//		printTables(session)
+//
+//		System.exit(0)
+//
+//	}
 
 	def main(args : Array[String]): Unit = {
-		concurrentExample()
+		simpleExample()
 	}
 }

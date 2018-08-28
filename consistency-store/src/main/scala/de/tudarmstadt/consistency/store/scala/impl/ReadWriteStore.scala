@@ -9,12 +9,12 @@ import de.tudarmstadt.consistency.store.scala.{Operation, Ref, SessionContext, S
 	*
 	* @author Mirko Köhler
 	*/
-trait ReadWriteStore[Key, Val] extends Store[Key, Val, ReadWriteOp] {
+trait ReadWriteStore[Key, Val, Consistency] extends Store[Key, Val, ReadWriteOp, Consistency] {
 
 	type Context <: ReadWriteSessionContext
 
-	trait ReadWriteSessionContext extends SessionContext[Key, Val, ReadWriteOp] {
-		override def obtain[T <: Val](key: Key, consistencyLevel: Class[_ <: Annotation]): ReadWriteRef[Key, T]
+	trait ReadWriteSessionContext extends SessionContext[Key, Val, ReadWriteOp, Consistency] {
+		override def obtain[T <: Val](key: Key, consistencyLevel: Consistency): ReadWriteRef[Key, T]
 	}
 }
 

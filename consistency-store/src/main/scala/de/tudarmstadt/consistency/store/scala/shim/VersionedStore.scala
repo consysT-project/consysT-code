@@ -14,13 +14,13 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val] {
+abstract class VersionedStore[Key, Val] extends ReadWriteStore[Key, Val, Class[_ <: Annotation]] {
 
 	type Id
 
 	type Update = shim.Update[Id, Key, Val]
 
-	val store : ReadWriteStore[Id, Update]
+	val store : ReadWriteStore[Id, Update, Class[_ <: Annotation]]
 	val idFactory : () => Id
 
 	private val versionGraph : VersionGraph = new VersionGraph

@@ -12,7 +12,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-class MapStore[Key, Val] extends ReadWriteStore[Key, Val] {
+class MapStore[Key, Val] extends ReadWriteStore[Key, Val, Class[_ <: Annotation]] {
 
 	override type Context = MapSessionContext
 

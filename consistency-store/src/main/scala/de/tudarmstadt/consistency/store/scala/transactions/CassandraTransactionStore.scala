@@ -59,6 +59,8 @@ abstract class CassandraTransactionStore[Id : TypeTag,	Key : TypeTag, Data : Typ
 
 	protected def cassandraTypeOf[T : TypeTag] : String = implicitly[TypeTag[T]] match {
 
+			//TODO: Is it possible to use CodecRegistry and/or DataType for that task?
+
 		case t if t == typeTag[Boolean] => "boolean"
 
 		case t if t == typeTag[Int] => "int"
@@ -74,10 +76,7 @@ abstract class CassandraTransactionStore[Id : TypeTag,	Key : TypeTag, Data : Typ
 		case t => throw new IllegalArgumentException(s"can not infer a cassandra type from type tag $t")
 	}
 
-	protected def runtimeClassOf[T : TypeTag] : Class[T] = {
-		val tag = implicitly[TypeTag[T]]
-		tag.mirror.runtimeClass(tag.tpe.typeSymbol.asClass).asInstanceOf[Class[T]]
-	}
+
 
 	private def idType = cassandraTypeOf[Id]
 	private def keyType = cassandraTypeOf[Key]
@@ -472,18 +471,6 @@ abstract class CassandraTransactionStore[Id : TypeTag,	Key : TypeTag, Data : Typ
 		return Error(key, new IllegalStateException("unhandled transaction state: " + status))
 	}
 
-	def printTables(session : Session): Unit = {
-		val r1 = session.execute("SELECT * FROM t_tx")
-		Log.info(null, "t_tx")
-		r1.forEach(row => Log.info(null, row))
 
-		val r2 = session.execute("SELECT * FROM t_keys")
-		Log.info(null, "t_keys")
-		r2.forEach(row => Log.info(null, row))
-
-		val r3 = session.execute("SELECT * FROM t_data")
-		Log.info(null, "t_data")
-		r3.forEach(row => Log.info(null, row))
-	}
 
 }
