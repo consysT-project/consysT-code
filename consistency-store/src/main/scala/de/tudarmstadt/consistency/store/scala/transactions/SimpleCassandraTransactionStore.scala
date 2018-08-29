@@ -10,7 +10,9 @@ import scala.util.Random
 	*/
 class SimpleCassandraTransactionStore(protected val connectionParams : ConnectionParams)
 	extends SysnameStore[Int, String, String, String, String, String]
-	with SysnameSnapshotIsolatedTransactionStore[Int, String, String, String, String, String] {
+	with SysnameSnapshotIsolatedTransactionStore[Int, String, String, String, String, String]
+	with SysnameReadCommittedTransactionStore[Int, String, String, String, String, String]
+{
 
 
 	import SimpleTypeFactories._
@@ -71,11 +73,13 @@ class SimpleCassandraTransactionStore(protected val connectionParams : Connectio
 		}
 
 		object SimpleConsistencyLevelOps extends ConsistencyLevelOps[String] {
-			override def sequential : String = "sequential"
+			override def sequential : String = "seq"
 		}
 
 		object SimpleIsolationLevelOps extends IsolationLevelOps[String] {
-			override def snapshotIsolation : String = "snapshot"
+			override def snapshotIsolation : String = "ss"
+			override def readUncommitted : String = "ru"
+			override def readCommitted : String = "rc"
 		}
 
 	}

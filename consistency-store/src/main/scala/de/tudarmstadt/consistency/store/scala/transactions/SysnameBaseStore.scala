@@ -167,6 +167,7 @@ trait SysnameBaseStore[Id, Key, Data, TxStatus, Consistency, Isolation] extends 
 					 | data ${cassandraTypeOf[Data]},
 					 | deps set<${cassandraTypeOf[Id]}>,
 					 | txid ${cassandraTypeOf[Id]},
+					 | txstatus ${cassandraTypeOf[TxStatus]},
 					 | consistency ${cassandraTypeOf[Consistency]},
 					 | isolation ${cassandraTypeOf[Isolation]},
 					 | PRIMARY KEY (key, id));""".stripMargin

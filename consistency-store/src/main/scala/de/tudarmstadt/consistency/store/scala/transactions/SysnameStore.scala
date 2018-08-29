@@ -11,7 +11,9 @@ import scala.reflect.runtime.universe._
 trait SysnameStore[Id, Key, Data, TxStatus, Consistency, Isolation] {
 
 	type Context = TransactionContext
-	type Transaction[R] = Context => R
+
+	//The result R of a transaction is either some value or an abort (None)
+	type Transaction[R] = Context => Option[R]
 
 	trait TransactionContext {
 		def read(key : Key)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : Option[Data]
@@ -40,6 +42,8 @@ trait SysnameStore[Id, Key, Data, TxStatus, Consistency, Isolation] {
 
 	protected trait IsolationLevelOps[T] {
 		def snapshotIsolation : T
+		def readUncommitted : T
+		def readCommitted : T
 	}
 
 	protected trait ConsistencyLevelOps[T] {

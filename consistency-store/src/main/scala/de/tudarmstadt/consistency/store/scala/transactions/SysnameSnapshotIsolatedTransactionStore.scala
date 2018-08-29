@@ -2,12 +2,12 @@ package de.tudarmstadt.consistency.store.scala.transactions
 
 import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
+import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ConsistencyLevel, Row, Session, WriteType}
 import de.tudarmstadt.consistency.store.scala.SessionContext
 import de.tudarmstadt.consistency.store.scala.transactions.exceptions.UnsupportedIsolationLevelException
 
 import scala.collection.JavaConverters
-
 import scala.reflect.runtime.universe._
 
 /**
@@ -21,10 +21,15 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 	override def commit[Return](session : CassandraSession, transaction : Transaction[Return], isolation : Isolation)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : CommitStatus[Id, Return] = isolation match {
 		case l if l == isolationLevelOps.snapshotIsolation =>
 			val context = new SnapshotIsolatedTransactionContext(session)
-			val result = transaction(context)
 
-			val commitStatus = commitWithSnapshotIsolation(session, context, result)
-			commitStatus
+			transaction(context) match {
+				case Some(result) =>
+					val commitStatus = commitWithSnapshotIsolation(session, context, result)
+					commitStatus
+				case None =>
+					//In this case we do not add anything to the database. Note that there is also no entry in the tx table for that txid.
+					return CommitStatus.Abort(context.txid, "user abort")
+			}
 
 		case _ => super.commit(session, transaction, isolation)
 	}
@@ -58,6 +63,7 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 
 
 		override def write(key : Key, data : Data)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : Unit = {
+
 			val id = idOps.freshId() //TODO: Is it a problem that ids are generated here already?
 			updates = updates + Update(id, key, data, nextDependencies)
 			nextDependencies = Set(id)
@@ -181,10 +187,12 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 						.`with`(set("data", data))
 						.and(set("deps", writeDepsJava))
 						.and(set("txid", txid))
+						.and(set("txstatus", txStatusOps.pending))
 						.and(set("consistency", consistencyLevelOps.sequential))
   					.and(set("isolation", isolationLevelOps.snapshotIsolation))
 						.where(QueryBuilder.eq("key", key))
 						.and(QueryBuilder.eq("id", id))
+						.setConsistencyLevel(ConsistencyLevel.ONE)
 				)
 			})
 
@@ -194,10 +202,12 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 					.`with`(set("data", null))
 					.and(set("deps", depsJava))
 					.and(set("txid", txid))
+  				.and(set("txstatus", txStatusOps.pending))
 					.and(set("consistency", consistencyLevelOps.sequential))
 					.and(set("isolation", isolationLevelOps.snapshotIsolation))
 					.where(QueryBuilder.eq("key", "$trans"))
 					.and(QueryBuilder.eq("id", txid))
+					.setConsistencyLevel(ConsistencyLevel.ONE)
 			)
 
 			//6. Mark transaction as committed
@@ -263,9 +273,10 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 
 		//If the transaction was committed, remove the transaction tag from the row
 		if (status == txStatusOps.committed) {
+
 			session.execute(
 				update(keyspace.dataTable.name)
-					.`with`(set("txid", null))
+					.`with`(set("txstatus", txStatusOps.committed))
 					.where(QueryBuilder.eq("id", id))
 					.and(QueryBuilder.eq("key", key))
 			)
@@ -273,16 +284,29 @@ trait SysnameSnapshotIsolatedTransactionStore[Id, Key, Data, TxStatus, Consisten
 
 			return Success(key, id, row.get("data", runtimeClassOf[Data]))
 		} else if (status == txStatusOps.aborted) {
-			session
-				.execute(delete()
+
+
+			session.execute(
+				delete()
 					.from(keyspace.dataTable.name)
 					.where(QueryBuilder.eq("id", id))
 					.and(QueryBuilder.eq("key", key))
 				)
 
+			/*
+			Alternatively, one can set the transaction status to aborted. One have to change the reading accordingly.
+
+			session.execute(
+				update(keyspace.dataTable.name)
+				.`with`(set("txstatus", txStatusOps.committed))
+				.where(QueryBuilder.eq("id", id))
+				.and(QueryBuilder.eq("key", key))
+			)
+			*/
+
 			//Recursively read the next key
 			//TODO: Retry only for X times
-			//TODO: Recurse directly this method.
+			//TODO: Recurse directly this method instead of calling the "parent method" read.
 			return read(session, key)
 		}
 
