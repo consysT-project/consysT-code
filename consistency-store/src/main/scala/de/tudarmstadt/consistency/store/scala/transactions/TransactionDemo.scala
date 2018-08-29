@@ -104,11 +104,15 @@ CREATE AGGREGATE aggregate_name(type1)
 		val transactionA : Transaction[Unit] = context => {
 			context.write("x", "Hallo")
 			context.write("y", "Welt")
+
+			Some ()
 		}
 
 		val transactionB : Transaction[Unit] = context => {
 			context.write("x", "Hello")
 			context.write("z", "World")
+
+			Some ()
 		}
 
 		val transactionC : Transaction[String] = context => {
@@ -122,7 +126,22 @@ CREATE AGGREGATE aggregate_name(type1)
 			val s = List(x, y, z).flatten.mkString(" ")
 			context.write("s", s)
 
-			s
+			Some (s)
+		}
+
+		val transactionD : Transaction[Unit] = context => {
+			context.write("x", "Bonjour")
+			Some ()
+		}
+
+		val transactionE : Transaction[String] = context => {
+			val x : Option[String] = context.read("x")
+
+			if (x.contains("Bonjour")) {
+				None
+			}
+
+			x
 		}
 
 
@@ -130,10 +149,25 @@ CREATE AGGREGATE aggregate_name(type1)
 			Log.info(null, commit(session, transactionA, isolationLevelOps.snapshotIsolation))
 		}
 		timed {
+			Log.info(null, commit(session, transactionC, isolationLevelOps.readCommitted))
+		}
+		timed {
 			Log.info(null, commit(session, transactionB, isolationLevelOps.snapshotIsolation))
 		}
 		timed {
 			Log.info(null, commit(session, transactionC, isolationLevelOps.snapshotIsolation))
+		}
+		timed {
+			Log.info(null, commit(session, transactionD, isolationLevelOps.readCommitted))
+		}
+		timed {
+			Log.info(null, commit(session, transactionC, isolationLevelOps.snapshotIsolation))
+		}
+		timed {
+			Log.info(null, commit(session, transactionE, isolationLevelOps.snapshotIsolation))
+		}
+		timed {
+			Log.info(null, commit(session, transactionE, isolationLevelOps.readCommitted))
 		}
 
 		session.close()
