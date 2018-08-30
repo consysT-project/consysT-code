@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.store.scala.transactions.util
+package de.tudarmstadt.consistency.store.scala.extra.internalstore.util
 
 /**
 	* This code has been adapted from com.datastax.driver.core.utils.UUIDs.
@@ -36,7 +36,6 @@ import java.security.NoSuchAlgorithmException
 import java.util._
 import java.util.concurrent.atomic.AtomicLong
 
-import com.datastax.driver.core.utils.UUIDs
 
 import scala.collection.mutable
 
@@ -169,7 +168,7 @@ object UUIDs {
 		if (pid == null) {
 			pid = new Random().nextInt
 		}
-		val loader = classOf[UUIDs].getClassLoader
+		val loader = UUIDs.getClass.getClassLoader
 		val loaderId = if (loader != null) System.identityHashCode(loader)
 		else 0
 		Integer.toHexString(pid) + Integer.toHexString(loaderId)

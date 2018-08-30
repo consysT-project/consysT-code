@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.store.scala.transactions.exceptions
+package de.tudarmstadt.consistency.store.scala.extra.internalstore.exceptions
 
 /**
 	* Created on 28.08.18.

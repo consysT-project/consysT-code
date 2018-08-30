@@ -1,12 +1,12 @@
-package de.tudarmstadt.consistency.store.scala.transactions
+package de.tudarmstadt.consistency.store.scala.extra.internalstore
 
 import java.util.UUID
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{Cluster, Row, Session}
-import de.tudarmstadt.consistency.store.scala.transactions.ReadStatus.NotFound
-import de.tudarmstadt.consistency.store.scala.transactions.exceptions.UnsupportedIsolationLevelException
+import de.tudarmstadt.consistency.store.scala.extra.SysnameStore
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.exceptions.UnsupportedIsolationLevelException
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.reflect.runtime.universe._
@@ -31,6 +31,8 @@ trait SysnameBaseStore[Id, Key, Data, TxStatus, Consistency, Isolation] extends 
 
 
 	override def read(session : CassandraSession, key : Key)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : ReadStatus[Id, Key, Data] = {
+		import ReadStatus._
+
 		//Retrieve the maximum id for a given key
 		val maxResult = session.execute(select().max("id")
 			.from(keyspace.dataTable.name)
