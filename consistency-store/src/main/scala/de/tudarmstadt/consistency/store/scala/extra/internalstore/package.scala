@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.store.scala
+package de.tudarmstadt.consistency.store.scala.extra
 
 import java.util.UUID
 
@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-package object transactions {
+package object internalstore {
 
 	/**
 		* Type of sessions of the Cassandra database.
@@ -57,16 +57,16 @@ package object transactions {
 
 
 
-	private[transactions] def rowWasApplied(row : Row) : Boolean =
+	private[internalstore] def rowWasApplied(row : Row) : Boolean =
 		row.getBool("[applied]")
 
 
-	private[transactions] def runtimeClassOf[T : TypeTag] : Class[T] = {
+	private[internalstore] def runtimeClassOf[T : TypeTag] : Class[T] = {
 		val tag = implicitly[TypeTag[T]]
 		tag.mirror.runtimeClass(tag.tpe.typeSymbol.asClass).asInstanceOf[Class[T]]
 	}
 
-	private[transactions] def cassandraTypeOf[T : TypeTag] : String = implicitly[TypeTag[T]] match {
+	private[internalstore] def cassandraTypeOf[T : TypeTag] : String = implicitly[TypeTag[T]] match {
 
 		//TODO: Is it possible to use CodecRegistry and/or DataType for that task?
 

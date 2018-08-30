@@ -1,7 +1,8 @@
-package de.tudarmstadt.consistency.store.scala.transactions
+package de.tudarmstadt.consistency.store.scala.extra
+
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.{CassandraSession, CommitStatus, ReadStatus}
 
 import scala.reflect.runtime.universe._
-
 
 /**
 	* Created on 28.08.18.

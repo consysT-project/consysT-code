@@ -1,4 +1,6 @@
-package de.tudarmstadt.consistency.store.scala.transactions
+package de.tudarmstadt.consistency.store.scala.extra.internalstore
+
+import de.tudarmstadt.consistency.store.scala.extra.SysnameStore
 
 import scala.reflect.runtime.universe._
 import scala.util.Random

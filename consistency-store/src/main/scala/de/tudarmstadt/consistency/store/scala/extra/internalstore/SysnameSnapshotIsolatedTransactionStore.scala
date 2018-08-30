@@ -1,11 +1,11 @@
-package de.tudarmstadt.consistency.store.scala.transactions
+package de.tudarmstadt.consistency.store.scala.extra.internalstore
 
 import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ConsistencyLevel, Row, Session, WriteType}
 import de.tudarmstadt.consistency.store.scala.SessionContext
-import de.tudarmstadt.consistency.store.scala.transactions.exceptions.UnsupportedIsolationLevelException
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.exceptions.UnsupportedIsolationLevelException
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._

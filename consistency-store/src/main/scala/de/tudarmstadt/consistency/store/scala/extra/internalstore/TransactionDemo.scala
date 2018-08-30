@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.store.scala.transactions
+package de.tudarmstadt.consistency.store.scala.extra.internalstore
 
 import java.util.concurrent.Executors
 
