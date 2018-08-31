@@ -1,10 +1,7 @@
-package de.tudarmstadt.consistency.store.scala.extra.internalstore
+package de.tudarmstadt.consistency.store.scala.extra
 
-import java.util.concurrent.Executors
-
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.{LocalClusterParams, SysnameCassandraStoreImpl}
 import de.tudarmstadt.consistency.utils.Log
-
-import scala.concurrent.{ExecutionContext, Future}
 
 /**
 	* Created on 20.08.18.
@@ -94,84 +91,86 @@ CREATE AGGREGATE aggregate_name(type1)
 
 	def simpleExample(): Unit = {
 
-		val store = new SimpleCassandraTransactionStore(LocalClusterParams)
+		val store = Stores.newSimpleStore(LocalClusterParams, initialize = true)
 		import store._
 
-		initializeKeyspace()
 
-		val session = newSession
+		startSession { session =>
+			import session._
 
-		val transactionA : Transaction[Unit] = context => {
-			context.write("x", "Hallo")
-			context.write("y", "Welt")
+			val transactionA : Transaction[Unit] = tx => {
+				tx.update("x", "Hallo", consistencyLevelOps.sequential)
+				tx.update("y", "Welt", consistencyLevelOps.sequential)
 
-			Some ()
-		}
-
-		val transactionB : Transaction[Unit] = context => {
-			context.write("x", "Hello")
-			context.write("z", "World")
-
-			Some ()
-		}
-
-		val transactionC : Transaction[String] = context => {
-			val x = context.read("x")
-			println(s"x = $x")
-			val y = context.read("y")
-			println(s"y = $y")
-			val z = context.read("z")
-			println(s"z = $z")
-
-			val s = List(x, y, z).flatten.mkString(" ")
-			context.write("s", s)
-
-			Some (s)
-		}
-
-		val transactionD : Transaction[Unit] = context => {
-			context.write("x", "Bonjour")
-			Some ()
-		}
-
-		val transactionE : Transaction[String] = context => {
-			val x : Option[String] = context.read("x")
-
-			if (x.contains("Bonjour")) {
-				None
+				Some ()
 			}
 
-			x
-		}
+			val transactionB : Transaction[Unit] = tx => {
+				tx.update("x", "Hello", consistencyLevelOps.sequential)
+				tx.update("z", "World", consistencyLevelOps.sequential)
+
+				Some ()
+			}
+
+			val transactionC : Transaction[String] = tx => {
+				val x = tx.read("x", consistencyLevelOps.sequential)
+				println(s"x = $x")
+				val y = tx.read("y", consistencyLevelOps.sequential)
+				println(s"y = $y")
+				val z = tx.read("z", consistencyLevelOps.sequential)
+				println(s"z = $z")
+
+				val s = List(x, y, z).flatten.mkString(" ")
+				tx.update("s", s, consistencyLevelOps.sequential)
+
+				Some (s)
+			}
+
+			val transactionD : Transaction[Unit] = tx => {
+				tx.update("x", "Bonjour", consistencyLevelOps.sequential)
+				Some ()
+			}
+
+			val transactionE : Transaction[String] = tx => {
+				val x : Option[String] = tx.read("x", consistencyLevelOps.sequential)
+
+				if (x.contains("Bonjour")) {
+					None
+				}
+
+				x
+			}
 
 
-		timed {
-			Log.info(null, commit(session, transactionA, isolationLevelOps.snapshotIsolation))
-		}
-		timed {
-			Log.info(null, commit(session, transactionC, isolationLevelOps.readCommitted))
-		}
-		timed {
-			Log.info(null, commit(session, transactionB, isolationLevelOps.snapshotIsolation))
-		}
-		timed {
-			Log.info(null, commit(session, transactionC, isolationLevelOps.snapshotIsolation))
-		}
-		timed {
-			Log.info(null, commit(session, transactionD, isolationLevelOps.readCommitted))
-		}
-		timed {
-			Log.info(null, commit(session, transactionC, isolationLevelOps.snapshotIsolation))
-		}
-		timed {
-			Log.info(null, commit(session, transactionE, isolationLevelOps.snapshotIsolation))
-		}
-		timed {
-			Log.info(null, commit(session, transactionE, isolationLevelOps.readCommitted))
+			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+				transactionA
+			})
+			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
+				transactionC
+			})
+
+			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+				transactionB
+			})
+			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+				transactionC
+			})
+
+			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
+				transactionD
+			})
+			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+				transactionC
+			})
+
+			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+				transactionE
+			})
+			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
+				transactionE
+			})
 		}
 
-		session.close()
-		close()
 		System.exit(0)
 	}
 

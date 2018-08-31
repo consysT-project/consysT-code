@@ -17,7 +17,6 @@ package object internalstore {
 	/**
 		* Type of sessions of the Cassandra database.
 		*/
-	type CassandraSession = com.datastax.driver.core.Session
 
 
 	trait ConnectionParams {
@@ -32,28 +31,7 @@ package object internalstore {
 	object LocalClusterParams extends ConnectAddressPort("127.0.0.1", 9042)
 
 
-
-	trait CommitStatus[Id, Return]
-	object CommitStatus {
-		//The transaction successfully committed
-		case class Success[Id, Return](txid : Id, writtenIds : Set[Id], result : Return) extends CommitStatus[Id, Return]
-
-		//The transaction has been aborted and changes have been rolled back.
-		case class Abort[Id, Return](txid : Id, description : String) extends CommitStatus[Id, Return]
-
-		//The transaction indicated an error. It is unclear whether it (partially) committed or aborted comnpletely.
-		case class Error[Id, Return](txid : Id, error : Throwable) extends CommitStatus[Id, Return]
-
-	}
-
-	trait ReadStatus[Id, Key, Data]
-	object ReadStatus {
-		case class Success[Id, Key, Data](key : Key, id : Id, data : Data) extends ReadStatus[Id, Key, Data]
-		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
-		case class Abort[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
-		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
-	}
-
+	case class CassandraUpdate[Id, Key, Data](id : Id, key : Key, data : Data, dependencies : Set[Id])
 
 
 
