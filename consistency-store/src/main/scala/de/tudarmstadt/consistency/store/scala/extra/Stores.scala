@@ -14,19 +14,20 @@ import scala.util.Random
 	*/
 object Stores {
 
-	def newSimpleStore(connectionParams : ConnectionParams, initialize : Boolean = false) : SysnameVersionedStore[Int, String, String, String, String] = {
+	/* TODO use Int instead of Integer. Problem: It gets casted to primitive int where primitive int is not allowed */
+	def newSimpleStore(connectionParams : ConnectionParams, initialize : Boolean = false) : SysnameVersionedStore[Integer, String, String, String, String] = {
 
-		object SimpleSeqIdOps extends IdOps[Int] {
+		object SimpleSeqIdOps extends IdOps[Integer] {
 			var currentId = 0
-			override def freshId() : Int = synchronized {
+			override def freshId() : Integer = synchronized {
 				currentId += 1
 				currentId
 			}
 		}
 
-		object SimpleRanIdOps extends IdOps[Int] {
+		object SimpleRanIdOps extends IdOps[Integer] {
 			val random = new Random
-			override def freshId() : Int = {
+			override def freshId() : Integer = {
 				random.nextInt(1000)
 			}
 		}
@@ -59,12 +60,12 @@ object Stores {
 		val isolationLevelOps = SimpleIsolationLevelOps
 		val consistencyLevelOps = SimpleConsistencyLevelOps
 
-		val baseStore = new SysnameCassandraStoreImpl[Int, String, String, String, String, String](connectionParams)(keyOps, txStatusOps, isolationLevelOps, consistencyLevelOps)
+		val baseStore = new SysnameCassandraStoreImpl[Integer, String, String, String, String, String](connectionParams)(keyOps, txStatusOps, isolationLevelOps, consistencyLevelOps)
 		if (initialize) {
 			baseStore.initializeKeyspace()
 		}
 
-		val versionedStore = new SysnameVersionedStoreImpl[Int, String, String, String, String](baseStore)(idOps, isolationLevelOps, consistencyLevelOps)
+		val versionedStore = new SysnameVersionedStoreImpl[Integer, String, String, String, String](baseStore)(idOps, keyOps, isolationLevelOps, consistencyLevelOps)
 
 		versionedStore
 	}

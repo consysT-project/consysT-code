@@ -5,7 +5,7 @@ package de.tudarmstadt.consistency.store.scala.extra
 	*
 	* @author Mirko Köhler
 	*/
-trait StoreInterface[Key, Data, TxParams, OpParams] {
+trait StoreInterface[Key, Data, Update, TxParams, OpParams] {
 
 	type Session[U] = SessionContext => U
 
@@ -16,6 +16,8 @@ trait StoreInterface[Key, Data, TxParams, OpParams] {
 		type Transaction[U] = TxContext => Option[U]
 
 		def startTransaction[U](params : TxParams)(f : Transaction[U]) : Option[U]
+		def update() : Update
+		def print() : Unit
 
 		trait TxContext {
 			def update(key : Key, data : Data, params : OpParams) : Unit

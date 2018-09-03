@@ -5,6 +5,9 @@ import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import de.tudarmstadt.consistency.store.scala.extra.Util.{CommitStatus, ReadStatus}
 
+import de.tudarmstadt.consistency.store.scala.extra._
+
+
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
 
@@ -133,7 +136,7 @@ object SnapshotIsolatedTransactions {
 				store.writeData(
 					session, ConsistencyLevel.ONE
 				)(
-					id, key, data, deps.union(Set(txid)), txid, store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
+					id, key, data, deps, txid, store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
 				)
 
 

@@ -1,26 +1,31 @@
 package de.tudarmstadt.consistency.store.scala.extra.shim
 
-import de.tudarmstadt.consistency.store.scala.extra.StoreInterface
+import com.datastax.driver.core.querybuilder.QueryBuilder
+import com.datastax.driver.core.{ResultSet, Session}
+import de.tudarmstadt.consistency.store.scala.extra.{RowConverter, StoreInterface, runtimeClassOf}
 import de.tudarmstadt.consistency.store.scala.extra.Util._
-import de.tudarmstadt.consistency.store.scala.extra.shim.EventOrdering.SessionOrder
+import de.tudarmstadt.consistency.store.scala.extra.shim.EventOrdering.{Event, SessionOrder, Tx, Update}
+import de.tudarmstadt.consistency.utils.Log
+
+import scala.collection.JavaConverters
 
 /**
 	* Created on 29.08.18.
 	*
 	* @author Mirko Köhler
 	*/
-trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends StoreInterface[Key, Data, Isolation, Consistency] {
+trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends StoreInterface[Key, Data, Unit, Isolation, Consistency] {
 
 	type BaseSessionContext = baseStore.SessionContext
 
+	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : StoreInterface[Key, Data, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]]
-
+	val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]]
+	val converter : RowConverter[Event[Id, Key, Data]]
 
 	val idOps : IdOps[Id]
 	val isolationLevelOps : IsolationLevelOps[Isolation]
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
-
 
 	def startSession[U](f : SessionContext => U) : U = {
 		baseStore.startSession { baseSession =>
@@ -33,7 +38,6 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 	class SysnameShimSessionContext(val baseSession : BaseSessionContext) extends SessionContext {
 
 		type BaseTxContext = baseSession.TxContext
-
 
 		private val sessionOrder : SessionOrder[Id, Key, Data] = EventOrdering.newSessionOrder
 
@@ -58,7 +62,6 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 					}
 
 				case _ =>
-					val txid = idOps.freshId()
 					sessionOrder.startTransaction(txid)
 
 					val transactionState = baseSession.startTransaction(txParams) { baseTx =>
@@ -75,6 +78,18 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 							opt
 					}
 			}
+
+		}
+
+		override def update() : Unit = {
+			val results = baseSession.update()
+
+			converter.resultSetForeach(results, {
+				case upd@Update(id, key, _, _, _) => sessionOrder.addRaw(id, key, upd)
+				case tx@Tx(id, _) => sessionOrder.addRaw(id, tx)
+			})
+
+
 
 		}
 
@@ -114,8 +129,9 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 			}
 		}
 
-
-
+		override def print() : Unit = {
+			Log.info(classOf[SysnameShimSessionContext], sessionOrder.toString)
+		}
 	}
 }
 

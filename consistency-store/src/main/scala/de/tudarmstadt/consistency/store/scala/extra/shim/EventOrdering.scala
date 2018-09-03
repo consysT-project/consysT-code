@@ -29,7 +29,7 @@ object EventOrdering {
 //	}
 
 
-	private trait Dependency[Id, Key, Data] {
+	trait Event[Id, Key, Data] {
 		def getDependencies : Set[Id]
 		def getData : Option[Data]
 		def getId :Id
@@ -39,13 +39,14 @@ object EventOrdering {
 		def setResolved(): Unit =	resolvedDependencies(0) = true
 	}
 
-	private case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[Id], sessionDependency : Option[Id], readDependencies : Set[Id]) extends Dependency[Id, Key, Data] {
-		override def getDependencies : Set[Id] = readDependencies ++ sessionDependency ++ txid
+	//Note: val dependencies does not contain the txid.
+	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[Id]) extends Event[Id, Key, Data] {
+		override def getDependencies : Set[Id] = dependencies ++ txid
 		override def getData : Option[Data] =	Some(data)
 		override def getId : Id = id
 	}
 
-	private case class Tx[Id, Key, Data](id : Id, deps : Set[Id]) extends Dependency[Id, Key, Data] {
+	case class Tx[Id, Key, Data](id : Id, deps : Set[Id]) extends Event[Id, Key, Data] {
 		override def getDependencies : Set[Id] = deps
 		override def getData : Option[Data] = None
 		override def getId : Id = id
@@ -54,30 +55,41 @@ object EventOrdering {
 
 
 
-	private class DependencyGraph[Id, Key, Data] {
 
-		type Node = Dependency[Id, Key, Data]
+	private class DependencyGraph[Id : Ordering, Key, Data] {
+		private val ordering = implicitly[Ordering[Id]]
+
+		type Node = Event[Id, Key, Data]
 
 		/* Stores all entries of this dependency graph */
 		private val entries : mutable.Map[Id, Node] = mutable.HashMap.empty
 
 		/* Stores the pointers to the latest updates to keys. the first update in the list is the latest. updates may not be resolved yet */
-		private val latestKeys : mutable.Map[Key, mutable.Buffer[Id]] = mutable.HashMap.empty
+		private val latestKeys : mutable.Map[Key, mutable.SortedSet[Id]] = mutable.HashMap.empty
+
+
 
 
 		def addTx(id : Id, deps : Set[Id]): Tx[Id, Key, Data] = {
 			val tx = Tx[Id, Key, Data](id, deps)
-			entries.put(id, tx)
+			addRaw(id, tx)
 			tx
 		}
 
 		def addUpdate(id : Id, key : Key, data : Data, txid : Option[Id], sessionDependency : Option[Id], readDependencies : Set[Id]): Update[Id, Key, Data] = {
-			val upd = Update(id, key, data, txid, sessionDependency, readDependencies)
-			entries.put(id, upd)
-			putUpdateForKey(key, id)
+			val upd = Update(id, key, data, txid, readDependencies ++ sessionDependency)
+			addRaw(id, key, upd)
 			upd
 		}
 
+		private [shim] def addRaw(id : Id, key : Key, update : Update[Id, Key, Data]) : Unit = {
+			entries.put(id, update)
+			putUpdateForKey(key, id)
+		}
+
+		private [shim] def addRaw(id : Id, tx : Tx[Id, Key, Data]) : Unit = {
+			entries.put(id, tx)
+		}
 
 		def get(id : Id) : Option[Node] = {
 			entries.get(id)
@@ -102,9 +114,8 @@ object EventOrdering {
 						//TODO: Is it really the case? Deletion currently only happens when transaction are aborted.
 						//An aborted transaction has no transaction record and thus the dependencies on the updates
 						//are not fulfilled, i.e. deleted updates are never resolved.
-						if (i < versions.length - 1) {
-							versions.remove(i + 1, versions.length - (i + 1))
-						}
+						versions.retain(_id =>  ordering.lteq(_id, id))
+
 
 						return get(id).map(node => (id, node))
 					}
@@ -134,8 +145,8 @@ object EventOrdering {
 		}
 
 		private def putUpdateForKey(key : Key, id : Id): Unit = latestKeys.get(key) match {
-			case None => latestKeys.put(key, mutable.Buffer(id))
-			case Some(buf) => buf.prepend(id)
+			case None => latestKeys.put(key, mutable.TreeSet(id))
+			case Some(buf) => buf.add(id)
 		}
 
 
@@ -163,12 +174,21 @@ object EventOrdering {
 			checkResolved(id, Set.empty)
 		}
 
+		override def toString : String = {
+			var s = ""
+			s += "entries:"
+			s += entries.foldLeft("")((str, entry) => s"$str\n${entry._1} -> ${entry._2}")
+			s += "\nhistories:"
+			s += latestKeys.foldLeft("")((str, entry) => s"$str\nh(${entry._1}) = ${entry._2}")
+			s
+		}
+
 
 	}
 
-	class SessionOrder[Id, Key, Data] {
+	class SessionOrder[Id : Ordering, Key, Data] {
 
-		private type Node = Dependency[Id, Key, Data]
+		private type Node = Event[Id, Key, Data]
 
 		//The latest node that has been created in this transaction
 		var sessionPointer : Option[Id] = None
@@ -182,7 +202,6 @@ object EventOrdering {
 
 
 		private val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
-
 
 
 		def addUpdate(id : Id, key : Key, data : Data): Unit = {
@@ -249,13 +268,23 @@ object EventOrdering {
 				transactionDependencies = Set.empty
 				transactionPointer = None
 		}
+
+		private [shim] def addRaw(id : Id, key : Key, update : Update[Id, Key, Data]) : Unit = {
+			graph.addRaw(id, key, update)
+		}
+
+		private [shim] def addRaw(id : Id, tx : Tx[Id, Key, Data]) : Unit = {
+			graph.addRaw(id, tx)
+		}
+
+		override def toString : String = {
+			graph.toString
+		}
+
 	}
 
-	def newSessionOrder[Id, Key, Data] : SessionOrder[Id, Key, Data] =
+	def newSessionOrder[Id : Ordering, Key, Data] : SessionOrder[Id, Key, Data] =
 		new SessionOrder[Id, Key, Data]
-
-
-
 
 
 }
