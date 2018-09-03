@@ -5,6 +5,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store.scala.extra.Util.{CommitStatus, ReadStatus}
+import de.tudarmstadt.consistency.store.scala.extra._
+
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._

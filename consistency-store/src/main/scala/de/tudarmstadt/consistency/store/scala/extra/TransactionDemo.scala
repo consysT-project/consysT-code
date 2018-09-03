@@ -149,6 +149,10 @@ CREATE AGGREGATE aggregate_name(type1)
 				transactionC
 			})
 
+			print()
+			update()
+			print()
+
 			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
 				transactionB
 			})
@@ -169,6 +173,8 @@ CREATE AGGREGATE aggregate_name(type1)
 			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
 				transactionE
 			})
+
+			print()
 		}
 
 		System.exit(0)

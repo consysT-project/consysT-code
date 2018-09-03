@@ -4,9 +4,10 @@ import java.util.UUID
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.{select, set, update}
-import com.datastax.driver.core.{Cluster, ConsistencyLevel, Row, Session}
+import com.datastax.driver.core._
 import de.tudarmstadt.consistency.store.scala.extra.StoreInterface
 import de.tudarmstadt.consistency.store.scala.extra.Util._
+import de.tudarmstadt.consistency.store.scala.extra._
 import de.tudarmstadt.consistency.store.scala.extra.internalstore.exceptions.UnsupportedIsolationLevelException
 import de.tudarmstadt.consistency.utils.Log
 
@@ -18,7 +19,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag] extends StoreInterface[Key, Data, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]] {
+abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag] extends StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]] {
 
 	type CassandraSession = com.datastax.driver.core.Session
 
@@ -172,6 +173,63 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
+
+		override def update() : ResultSet = {
+			Fetcher.fetch(session)
+		}
+
+
+		object Fetcher {
+			def fetch(session : CassandraSession) : ResultSet = {
+				import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+				val results : ResultSet = session.execute(
+					select().all().from(keyspace.dataTable.name)
+				)
+
+				results
+
+			}
+
+
+//			def fetchNewerThen(session : Session, id : Id) : Unit = {
+//				import com.datastax.driver.core.querybuilder.QueryBuilder._
+//
+//				val results : ResultSet = session.execute(
+//					select().all().from(store.keyspace.dataTable.name).where(gt("id", id))
+//						//TODO: Remove performance bottleneck: allow filtering
+//						.allowFiltering()
+//				)
+//
+//				handleResultSet(results)
+//			}
+//
+//
+//			override def fetchForKey(session : Session, key : Key) : Unit = {
+//				import com.datastax.driver.core.querybuilder.QueryBuilder._
+//
+//				val results : ResultSet = session.execute(
+//					select().all().from(store.keyspace.dataTable.name).where(QueryBuilder.eq("key", key))
+//				)
+//
+//				handleResultSet(results)
+//			}
+//
+//
+//			def fetchKeyNewerThen(session : Session, key : Key, id : Id) : Unit = {
+//				import com.datastax.driver.core.querybuilder.QueryBuilder._
+//
+//				val results : ResultSet = session.execute(
+//					select().all()
+//						.from(store.keyspace.dataTable.name)
+//						.where(QueryBuilder.eq("key", key))
+//						.and(gt("id", id))
+//				)
+//
+//				handleResultSet(results)
+//			}
+		}
+		override def print() : Unit = ???
 	}
 
 
@@ -286,7 +344,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		)
 	}
 
-	private def newSession : CassandraSession =
+	private[internalstore] def newSession : CassandraSession =
 		cluster.connect(keyspace.name)
 
 	/**
