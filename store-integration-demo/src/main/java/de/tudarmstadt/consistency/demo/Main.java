@@ -7,8 +7,8 @@ import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.demo.data.A;
 import de.tudarmstadt.consistency.demo.data.B;
 import de.tudarmstadt.consistency.demo.data.O;
-import de.tudarmstadt.consistency.store.cassandra.CassandraDatabase;
-import de.tudarmstadt.consistency.store.cassandra.CassandraRef;
+import de.tudarmstadt.consistency.store.javaimpl.cassandra.CassandraDatabase;
+import de.tudarmstadt.consistency.store.javaimpl.cassandra.CassandraRef;
 import de.tudarmstadt.consistency.utils.Log;
 
 import java.util.UUID;

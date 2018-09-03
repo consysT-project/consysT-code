@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.demo.data;
 
-import de.tudarmstadt.consistency.store.cassandra.CassandraRef;
+import de.tudarmstadt.consistency.store.javaimpl.cassandra.CassandraRef;
 
 import java.io.Serializable;
 
