@@ -62,7 +62,8 @@ object Util {
 
 	case class CUpdate[Id, Data](id : Id, data : Data, deps : Set[Id])
 
-	case class CassandraOpParams[Id, Consistency](id : Id, deps : Set[Id], consistency : Consistency)
+	case class CassandraWriteParams[Id, Consistency](id : Id, deps : Set[Id], consistency : Consistency)
+	case class CassandraReadParams[Consistency](consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Id, isolation : Isolation)
 
 

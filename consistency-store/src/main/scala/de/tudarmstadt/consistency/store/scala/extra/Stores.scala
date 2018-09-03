@@ -15,7 +15,7 @@ import scala.util.Random
 object Stores {
 
 	/* TODO use Int instead of Integer. Problem: It gets casted to primitive int where primitive int is not allowed */
-	def newSimpleStore(connectionParams : ConnectionParams, initialize : Boolean = false) : SysnameVersionedStore[Integer, String, String, String, String] = {
+	def newSimpleStore(connectionParams : ConnectionParams, initialize : Boolean = false) : SysnameVersionedStore[Integer, String, String, String, String, String] = {
 
 		object SimpleSeqIdOps extends IdOps[Integer] {
 			var currentId = 0
@@ -65,7 +65,7 @@ object Stores {
 			baseStore.initializeKeyspace()
 		}
 
-		val versionedStore = new SysnameVersionedStoreImpl[Integer, String, String, String, String](baseStore)(idOps, keyOps, isolationLevelOps, consistencyLevelOps)
+		val versionedStore = new SysnameVersionedStoreImpl[Integer, String, String, String, String, String](baseStore)(idOps, keyOps, txStatusOps, isolationLevelOps, consistencyLevelOps)
 
 		versionedStore
 	}

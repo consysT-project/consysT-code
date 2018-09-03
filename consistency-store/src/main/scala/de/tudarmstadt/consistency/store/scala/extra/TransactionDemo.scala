@@ -145,36 +145,30 @@ CREATE AGGREGATE aggregate_name(type1)
 			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
 				transactionA
 			})
-			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
-				transactionC
-			})
 
-			print()
-			update()
-			print()
 
 			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
 				transactionB
 			})
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
-				transactionC
-			})
 
-			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
-				transactionD
-			})
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
-				transactionC
-			})
+//			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
+//				transactionD
+//			})
 
 			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
-				transactionE
-			})
-			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
-				transactionE
+				transactionC
 			})
 
 			print()
+
+//			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+//				transactionE
+//			})
+//			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
+//				transactionE
+//			})
+//
+//			print()
 		}
 
 		System.exit(0)
