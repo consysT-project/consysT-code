@@ -4,9 +4,8 @@ import com.datastax.driver.core.{ConsistencyLevel, Row, Session, WriteType}
 import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import de.tudarmstadt.consistency.store.scala.extra.Util.{CommitStatus, ReadStatus}
-
 import de.tudarmstadt.consistency.store.scala.extra._
-
+import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
@@ -170,6 +169,92 @@ object SnapshotIsolatedTransactions {
 				case _ => return Error(txid, e)
 			}
 		}
+	}
+
+
+	//true when the row has been committed, false if the row has been aborted/deleted
+	def commitRow[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	   session : Session,
+	   store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
+	 )(
+		 row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]
+	 ) : Boolean = {
+
+		import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+		//Check whether the given row has the correct isolation level
+		val isolation = row.isolation
+		assert(isolation == store.isolationLevelOps.snapshotIsolation, "row has wrong isolation level")
+
+		val readTxid = row.txid.getOrElse(null)
+		val txStatus = row.txStatus
+
+		//1. If the read value does not belong to a transaction or the transaction has been committed
+		if (txStatus == store.txStatusOps.committed) {
+			return true
+		}
+
+		val id = row.id
+		val key = row.key
+
+		//2. If txid != null abort the transaction
+		val abortTxResult = session.execute(
+			update(store.keyspace.txTable.name)
+			.`with`(set("status", store.txStatusOps.aborted))
+			.where(QueryBuilder.eq("txid", readTxid))
+			.onlyIf(QueryBuilder.eq("status", store.txStatusOps.pending))
+			.setConsistencyLevel(ConsistencyLevel.ALL)
+		)
+
+		val abortTxRow = abortTxResult.one()
+
+		if (abortTxRow == null) {
+			//			assert(false, "did not retrieve anything from database")
+			Log.warn(SnapshotIsolatedTransactions.getClass, "transaction has not been found in db")
+			assert(false, "transaction has not been found in db")
+			return false
+		}
+
+		if (rowWasApplied(abortTxRow)) {
+			//the transaction has been aborted, the data entry can be deleted
+			session.execute(
+				delete()
+					.from(store.keyspace.dataTable.name)
+					.where(QueryBuilder.eq("id", id))
+					.and(QueryBuilder.eq("key", key))
+			)
+
+			return false
+		}
+
+		//2.1. If the status was not pending, we have to take further actions
+		//the status of the row that should be updated
+		val status = abortTxRow.get("status", runtimeClassOf[TxStatus])
+
+		//If the transaction was committed, remove the transaction tag from the row
+		if (status == store.txStatusOps.committed) {
+			session.execute(
+				update(store.keyspace.dataTable.name)
+					.`with`(set("txstatus", store.txStatusOps.committed))
+					.where(QueryBuilder.eq("id", id))
+					.and(QueryBuilder.eq("key", key))
+			)
+
+			return true
+
+		} else { //condition: if (status == store.txStatusOps.aborted) {
+			session.execute(
+				delete()
+					.from(store.keyspace.dataTable.name)
+					.where(QueryBuilder.eq("id", id))
+					.and(QueryBuilder.eq("key", key))
+			)
+
+			return false
+		}
+
+
+
 	}
 
 

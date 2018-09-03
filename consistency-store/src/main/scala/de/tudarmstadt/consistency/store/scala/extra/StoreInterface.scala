@@ -5,7 +5,7 @@ package de.tudarmstadt.consistency.store.scala.extra
 	*
 	* @author Mirko Köhler
 	*/
-trait StoreInterface[Key, Data, Update, TxParams, OpParams] {
+trait StoreInterface[Key, Data, Update, TxParams, WriteParams, ReadParams, ReadResult] {
 
 	type Session[U] = SessionContext => U
 
@@ -20,8 +20,8 @@ trait StoreInterface[Key, Data, Update, TxParams, OpParams] {
 		def print() : Unit
 
 		trait TxContext {
-			def update(key : Key, data : Data, params : OpParams) : Unit
-			def read(key : Key, params : OpParams) : Option[Data]
+			def update(key : Key, data : Data, params : WriteParams) : Unit
+			def read(key : Key, params : ReadParams) : ReadResult
 		}
 	}
 

@@ -19,7 +19,16 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag] extends StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]] {
+abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag]
+	extends StoreInterface[
+		Key,
+		Data,
+		ResultSet,
+		CassandraTxParams[Id, Isolation],
+		CassandraWriteParams[Id, Consistency],
+		CassandraReadParams[Consistency],
+		Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]
+		] {
 
 	type CassandraSession = com.datastax.driver.core.Session
 
@@ -61,7 +70,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			isolation match {
 				case l if l == isolationLevelOps.snapshotIsolation =>
-					val txCtx = new SysnameCassandraSnapshotIsolatedTxContext
+					val txCtx = new SysnameCassandraSnapshotIsolatedTxContext(params)
 					f(txCtx) match {
 						case None =>
 							return None
@@ -78,7 +87,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 					}
 
 				case l if l == isolationLevelOps.readCommitted =>
-					val txCtx = new SysnameCassandraReadCommittedTxContext
+					val txCtx = new SysnameCassandraReadCommittedTxContext(params)
 					f(txCtx) match {
 						case None =>
 							return None
@@ -97,65 +106,81 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 
 
+		private def readHistoryOf(key : Key, txParams : CassandraTxParams[Id, Isolation], opParams : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+			import ReadStatus._
+
+			//Retrieve the history of a key.
+			val keyResult = session.execute(
+				select.all.from(keyspace.dataTable.name)
+  				.where(QueryBuilder.eq("key", key))
+			)
+
+			val buf : mutable.Buffer[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = mutable.Buffer.empty
+
+			//Iterate through all rows of the result
+			var row = keyResult.one()
+			while (row != null) {
+				val dataRow : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(row)
+
+				val rowIsCommitted = dataRow.isolation match {
+					case l if l == isolationLevelOps.snapshotIsolation =>
+						SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(dataRow)
+					case l if l == isolationLevelOps.readCommitted =>
+						ReadCommittedTransactions.commitRow(session, SysnameCassandraStore.this)(dataRow)
+				}
+
+				if (rowIsCommitted) {
+					buf.prepend(dataRow)
+				}
+
+				row = keyResult.one()
+			}
+
+			return buf
+		}
 
 
 
 
-
-		private class SysnameCassandraSnapshotIsolatedTxContext extends TxContext {
+		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends TxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 			val updates : mutable.Set[Update] = mutable.HashSet.empty
 
-			override def update(key : Key, data : Data, params : CassandraOpParams[Id, Consistency]) : Unit = {
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
 				updates.add(CassandraUpdate(params.id, key, data, params.deps))
 			}
 
-			override def read(key : Key, params : CassandraOpParams[Id, Consistency]) : Option[Data] = {
-				SnapshotIsolatedTransactions.read(session, SysnameCassandraStore.this)(key) match {
-					case ReadStatus.Success(_, id, data, deps) =>
-						return Some(data)
-					case ReadStatus.NotFound(_, desc) =>
-						Log.info(classOf[SysnameCassandraSnapshotIsolatedTxContext], desc)
-						return None
-					case ReadStatus.Error(_, e) =>
-						throw e
-				}
+			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readHistoryOf(key, txParams, params)
 			}
 		}
 
 
-		private class SysnameCassandraReadCommittedTxContext extends TxContext {
+		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends TxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 			val updates : mutable.Set[Update] = mutable.HashSet.empty
 
-			override def update(key : Key, data : Data, params : CassandraOpParams[Id, Consistency]) : Unit = {
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
 				updates.add(CassandraUpdate(params.id, key, data, params.deps))
 			}
 
-			override def read(key : Key, params : CassandraOpParams[Id, Consistency]) : Option[Data] = {
-				ReadCommittedTransactions.read(session, SysnameCassandraStore.this)(key) match {
-					case ReadStatus.Success(_, id, data, deps) =>
-						return Some(data)
-					case ReadStatus.NotFound(_, desc) =>
-						Log.info(classOf[SysnameCassandraSnapshotIsolatedTxContext], desc)
-						return None
-					case ReadStatus.Error(_, e) =>
-						throw e
-				}
+			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readHistoryOf(key, txParams, params)
 			}
 		}
 
-		private class SysnameCassandraNoneTxContext(val txid : Id) extends TxContext {
+		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation], val txid : Id) extends TxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 
-			override def update(key : Key, data : Data, params : CassandraOpParams[Id, Consistency]) : Unit = {
-				val CassandraOpParams(id, deps, consistency) = params
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
+				val CassandraWriteParams(id, deps, consistency) = params
 
 				try {
 					writeData(session, ConsistencyLevel.ONE)(
@@ -168,8 +193,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			}
 
-			override def read(key : Key, params : CassandraOpParams[Id, Consistency]) : Option[Data] = {
-				???
+			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readHistoryOf(key, txParams, params)
 			}
 		}
 
@@ -496,11 +521,6 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		Log.info(null, "t_data")
 		r3.forEach(row => Log.info(null, row))
 	}
-
-
-
-
-
 
 
 }

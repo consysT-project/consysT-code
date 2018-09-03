@@ -1,6 +1,8 @@
 package de.tudarmstadt.consistency.store.scala.extra.shim
 
 
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.DataRow
+
 import scala.collection.mutable
 
 /**
@@ -12,36 +14,19 @@ import scala.collection.mutable
 object EventOrdering {
 
 
-//	private sealed trait AnyNode[+Id, +Key, +Data] {
-//		def getData : Option[Data]
-//	}
-//	private sealed trait SessionNode[+Id, +Key, +Data] extends AnyNode[Id, Key, Data]
-//	private sealed trait TxNode[+Id, +Key, +Data] extends AnyNode[Id, Key, Data]
-//
-//	//Updates can occur in session and in transactions
-//	private case class Update[Id, Key, Data](id : Id, key : Key, data : Data) extends SessionNode[Id, Key, Data] with TxNode[Id, Key, Data] {
-//		val getData : Option[Data] = Some(data)
-//	}
-//
-//	//Transactions can occur in sessions, but no nested transactions are allowed
-//	private case class Tx[Id, Key, Data](id : Id, order : TxEventOrder[Id, Key, Data]) extends SessionNode[Id, Key, Data] {
-//		val getData : Option[Data] = None
-//	}
-
-
 	trait Event[Id, Key, Data] {
 		def getDependencies : Set[Id]
 		def getData : Option[Data]
 		def getId :Id
-		val resolvedDependencies : Array[Boolean] = Array(false)
 
+		val resolvedDependencies : Array[Boolean] = Array(false)
 		def isResolved : Boolean = resolvedDependencies(0)
 		def setResolved(): Unit =	resolvedDependencies(0) = true
 	}
 
 	//Note: val dependencies does not contain the txid.
 	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[Id]) extends Event[Id, Key, Data] {
-		override def getDependencies : Set[Id] = dependencies ++ txid
+		override def getDependencies : Set[Id] = dependencies //++ txid
 		override def getData : Option[Data] =	Some(data)
 		override def getId : Id = id
 	}
@@ -76,8 +61,8 @@ object EventOrdering {
 			tx
 		}
 
-		def addUpdate(id : Id, key : Key, data : Data, txid : Option[Id], sessionDependency : Option[Id], readDependencies : Set[Id]): Update[Id, Key, Data] = {
-			val upd = Update(id, key, data, txid, readDependencies ++ sessionDependency)
+		def addUpdate(id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[Id]): Update[Id, Key, Data] = {
+			val upd = Update(id, key, data, txid, dependencies)
 			addRaw(id, key, upd)
 			upd
 		}
@@ -114,7 +99,7 @@ object EventOrdering {
 						//TODO: Is it really the case? Deletion currently only happens when transaction are aborted.
 						//An aborted transaction has no transaction record and thus the dependencies on the updates
 						//are not fulfilled, i.e. deleted updates are never resolved.
-						versions.retain(_id =>  ordering.lteq(_id, id))
+						//versions.retain(_id =>  ordering.lteq(_id, id))
 
 
 						return get(id).map(node => (id, node))
@@ -145,7 +130,7 @@ object EventOrdering {
 		}
 
 		private def putUpdateForKey(key : Key, id : Id): Unit = latestKeys.get(key) match {
-			case None => latestKeys.put(key, mutable.TreeSet(id))
+			case None => latestKeys.put(key, mutable.TreeSet(id)(ordering.reverse))
 			case Some(buf) => buf.add(id)
 		}
 
@@ -205,7 +190,7 @@ object EventOrdering {
 
 
 		def addUpdate(id : Id, key : Key, data : Data): Unit = {
-			graph.addUpdate(id, key, data, transactionPointer, sessionPointer, readDependencies)
+			graph.addUpdate(id, key, data, transactionPointer, getNextDependencies)
 
 			sessionPointer = Some(id)
 			readDependencies = Set.empty
@@ -223,12 +208,13 @@ object EventOrdering {
 		}
 
 		def getNextDependencies : Set[Id] = {
-			readDependencies ++ transactionPointer ++ sessionPointer
+			readDependencies ++ sessionPointer
 		}
 
 		def readResolved(key : Key) : Option[(Id, Data)] = {
 			graph.readResolved(key).flatMap(t => {
 				val (id, node) = t
+				addRead(id)
 				node.getData match {
 					case None => None
 					case Some(data) => Some (id, data)
@@ -239,6 +225,7 @@ object EventOrdering {
 		def readLatest(key : Key) : Option[(Id, Data)] = {
 			graph.readLatest(key).flatMap(t => {
 				val (id, node) = t
+				addRead(id)
 				node.getData match {
 					case None => None
 					case Some(data) => Some (id, data)
@@ -276,6 +263,7 @@ object EventOrdering {
 		private [shim] def addRaw(id : Id, tx : Tx[Id, Key, Data]) : Unit = {
 			graph.addRaw(id, tx)
 		}
+
 
 		override def toString : String = {
 			graph.toString

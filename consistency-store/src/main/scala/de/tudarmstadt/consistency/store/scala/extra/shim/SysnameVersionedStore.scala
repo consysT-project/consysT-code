@@ -4,6 +4,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ResultSet, Session}
 import de.tudarmstadt.consistency.store.scala.extra.{RowConverter, StoreInterface, runtimeClassOf}
 import de.tudarmstadt.consistency.store.scala.extra.Util._
+import de.tudarmstadt.consistency.store.scala.extra.internalstore.DataRow
 import de.tudarmstadt.consistency.store.scala.extra.shim.EventOrdering.{Event, SessionOrder, Tx, Update}
 import de.tudarmstadt.consistency.utils.Log
 
@@ -14,16 +15,18 @@ import scala.collection.JavaConverters
 	*
 	* @author Mirko Köhler
 	*/
-trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends StoreInterface[Key, Data, Unit, Isolation, Consistency] {
+trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] extends StoreInterface[Key, Data, Unit, Isolation, Consistency, Consistency, Option[Data]] {
 
 	type BaseSessionContext = baseStore.SessionContext
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraOpParams[Id, Consistency]]
+	val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
 	val converter : RowConverter[Event[Id, Key, Data]]
 
 	val idOps : IdOps[Id]
+	val keyOps : KeyOps[Key]
+	val txStatusOps : TxStatusOps[TxStatus]
 	val isolationLevelOps : IsolationLevelOps[Isolation]
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
@@ -88,8 +91,27 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 				case upd@Update(id, key, _, _, _) => sessionOrder.addRaw(id, key, upd)
 				case tx@Tx(id, _) => sessionOrder.addRaw(id, tx)
 			})
+		}
 
 
+		private [shim] def addRaws(rows : Seq[DataRow[Id, Key, Data, _, _, _]]) : Unit = {
+			rows.foreach(row => {
+				val key = row.key
+
+				if (key == keyOps.transactionKey) {
+					val id = row.id
+					val deps = row.deps
+
+					sessionOrder.addRaw(id, Tx(id, deps))
+				} else {
+					val id = row.id
+					val data = row.data
+					val deps = row.deps
+					val txid = row.txid
+
+					sessionOrder.addRaw(id, key, Update(id, key, data, txid, deps))
+				}
+			})
 
 		}
 
@@ -98,7 +120,7 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 				val id = idOps.freshId()
 				val deps = sessionOrder.getNextDependencies
 
-				val opParams = CassandraOpParams(id, deps, consistency)
+				val opParams = CassandraWriteParams(id, deps, consistency)
 
 				baseTx.update(key, data, opParams)
 
@@ -107,7 +129,9 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 
 
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
-				sessionOrder.readResolved(key).map(_._2)
+				val rows = baseTx.read(key, CassandraReadParams(consistency))
+				addRaws(rows)
+				sessionOrder.readResolved(key).map(_._2) //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 			}
 		}
 
@@ -116,7 +140,7 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 				val id = idOps.freshId()
 				val deps = sessionOrder.getNextDependencies
 
-				val opParams = CassandraOpParams(id, deps, consistency)
+				val opParams = CassandraWriteParams(id, deps, consistency)
 
 				baseTx.update(key, data, opParams)
 
@@ -125,7 +149,12 @@ trait SysnameVersionedStore[Id, Key, Data, Isolation, Consistency] extends Store
 
 
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
+				val rows = baseTx.read(key, CassandraReadParams(consistency))
+				addRaws(rows)
+				Log.info(null, s"reading $key")
+				Log.info(null, sessionOrder)
 				sessionOrder.readResolved(key).map(_._2)
+
 			}
 		}
 

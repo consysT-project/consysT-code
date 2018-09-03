@@ -64,6 +64,29 @@ object ReadCommittedTransactions {
 	}
 
 
+	//true when the row has been committed, false if the row has been aborted/deleted
+	def commitRow[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	  session : Session,
+	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
+	)(
+	  row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]
+	) : Boolean = {
+
+		//Check whether the given row has the correct isolation level
+		val isolation = row.isolation
+		assert(isolation == store.isolationLevelOps.readCommitted, "row has wrong isolation level")
+
+		val txStatus = row.txStatus
+
+		//1. If the read value does not belong to a transaction or the transaction has been committed
+		if (txStatus == store.txStatusOps.committed) {
+			return true
+		}
+
+		return false
+	}
+
+
 	def read[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]

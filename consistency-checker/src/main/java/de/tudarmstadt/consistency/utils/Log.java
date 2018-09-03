@@ -27,4 +27,8 @@ public class Log {
 	public static void info(Class<?> clazz, Object text) {
 		out.println(infoToString(clazz, text));
 	}
+
+	public static void warn(Class<?> clazz, Object text) {
+		out.println(infoToString(clazz, text));
+	}
 }
