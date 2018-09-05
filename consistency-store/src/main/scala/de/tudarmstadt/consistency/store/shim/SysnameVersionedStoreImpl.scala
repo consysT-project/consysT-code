@@ -15,41 +15,44 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus, Isolation, Consistency] (
+class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus, Isolation, Consistency, Read] (
 	override val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
 )(
 	override val idOps : IdOps[Id],
 	override val keyOps : KeyOps[Key],
 	override val txStatusOps : TxStatusOps[TxStatus],
 	override val isolationLevelOps : IsolationLevelOps[Isolation],
-	override val consistencyLevelOps : ConsistencyLevelOps[Consistency]
+	override val consistencyLevelOps : ConsistencyLevelOps[Consistency],
+	val readNothing : Read,
+	val readConvert : Update[Id, Key, Data] => Read
+
 )(
   override implicit val idOrdering: Ordering[Id]
-) extends SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] {
+) extends SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] {
 
-	override val converter : RowConverter[Event[Id, Key, Data]] = new RowConverter[Event[Id, Key, Data]] {
+	override def convertNone : Read = readNothing
+	override def convertResult(upd : Update[Id, Key, Data]) : Read = readConvert(upd)
 
 
-		override def convertRow(row : Row) : Event[Id, Key, Data] = {
-			val key = row.get("key", runtimeClassOf[Key])
-			val id = row.get("id", runtimeClassOf[Id])
-			val cassandraDeps : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", classOf[TupleValue])).toSet
+	override val converter : RowConverter[Event[Id, Key, Data]] = (row : Row) => {
+		val key = row.get("key", runtimeClassOf[Key])
+		val id = row.get("id", runtimeClassOf[Id])
+		val cassandraDeps : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", classOf[TupleValue])).toSet
 
-			val deps : Set[EventRef[Id, Key]] = cassandraDeps.map(tv => {
-				val id = tv.get(0, runtimeClassOf[Id])
-				val key = tv.get(1, runtimeClassOf[Key])
-				EventRef(id, key)
-			})
+		val deps : Set[EventRef[Id, Key]] = cassandraDeps.map(tv => {
+			val id = tv.get(0, runtimeClassOf[Id])
+			val key = tv.get(1, runtimeClassOf[Key])
+			EventRef(id, key)
+		})
 
-			if (key == keyOps.transactionKey) {
-				//row is a transaction
-				Tx[Id, Key, Data](id, deps)
-			} else {
-				val data = row.get("data", runtimeClassOf[Data])
-				val txid = row.get("txid", runtimeClassOf[Id])
+		if (key == keyOps.transactionKey) {
+			//row is a transaction
+			Tx[Id, Key, Data](id, deps)
+		} else {
+			val data = row.get("data", runtimeClassOf[Data])
+			val txid = row.get("txid", runtimeClassOf[Id])
 
-				Update(id, key, data, Option(txid), deps)
-			}
+			Update(id, key, data, Option(txid), deps)
 		}
 	}
 }

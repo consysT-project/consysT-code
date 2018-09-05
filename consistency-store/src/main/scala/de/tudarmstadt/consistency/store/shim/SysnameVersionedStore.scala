@@ -12,7 +12,7 @@ import de.tudarmstadt.consistency.utils.Log
 	*
 	* @author Mirko Köhler
 	*/
-trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] extends StoreInterface[Key, Data, Unit, Isolation, Consistency, Consistency, Option[Data]] {
+trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] extends StoreInterface[Key, Data, Unit, Isolation, Consistency, Consistency, Read] {
 
 	override type SessionCtx = SysnameShimSessionContext
 	type BaseSessionContext = baseStore.SessionContext
@@ -28,13 +28,19 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 	val isolationLevelOps : IsolationLevelOps[Isolation]
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
-	def startSession[U](f : Session[U]) : U = {
+	override def startSession[U](f : Session[U]) : U = {
 		baseStore.startSession { baseSession =>
 			val session = new SysnameShimSessionContext(baseSession)
 			f(session)
 		}
 	}
 
+	override def close() : Unit = {
+		baseStore.close()
+	}
+
+	def convertResult(upd : Update[Id, Key, Data]) : Read
+	def convertNone : Read
 
 	class SysnameShimSessionContext(val baseSession : BaseSessionContext) extends SessionContext {
 
@@ -114,13 +120,13 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 		}
 
-		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Option[Data] = {
+		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
 			val rows = baseTx.read(key, CassandraReadParams(consistency))
 			addRaws(rows)
 
 			sessionOrder.readResolved(key) match {
-				case Resolved(upd, _, _) => Some(upd.data)
-				case _ => None
+				case Resolved(upd, _, _) => convertResult(upd)
+				case _ => convertNone
 			} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 		}
 
@@ -139,7 +145,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 			}
 
 
-			def read(key : Key, consistency : Consistency) : Option[Data] = {
+			def read(key : Key, consistency : Consistency) : Read = {
 				resolveRead(baseTx)(key, consistency)
 			}
 		}
@@ -157,7 +163,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 			}
 
 
-			def read(key : Key, consistency : Consistency) : Option[Data] = {
+			def read(key : Key, consistency : Consistency) : Read = {
 				resolveRead(baseTx)(key, consistency)
 			}
 		}

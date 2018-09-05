@@ -91,7 +91,7 @@ CREATE AGGREGATE aggregate_name(type1)
 
 	def simpleExample(): Unit = {
 
-		val store = Stores.newSimpleStore(LocalCluster, initialize = true)
+		val store = Stores.Simple.newStore(LocalCluster, initialize = true)
 		import store._
 
 
