@@ -4,7 +4,7 @@ import com.datastax.driver.core.ResultSet
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.DataRow
 import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
-import de.tudarmstadt.consistency.store.shim.EventOrdering.{ReadResult, SessionOrder}
+import de.tudarmstadt.consistency.store.shim.EventOrdering.{ReadResult, Resolved, SessionOrder}
 import de.tudarmstadt.consistency.utils.Log
 
 /**
@@ -114,6 +114,16 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 		}
 
+		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Option[Data] = {
+			val rows = baseTx.read(key, CassandraReadParams(consistency))
+			addRaws(rows)
+
+			sessionOrder.readResolved(key) match {
+				case Resolved(upd, _, _) => Some(upd.data)
+				case _ => None
+			} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
+		}
+
 		trait ShimTxContext extends TxContext
 
 		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
@@ -130,13 +140,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
-				val rows = baseTx.read(key, CassandraReadParams(consistency))
-				addRaws(rows)
-
-				sessionOrder.readResolved(key) match {
-					case ReadResult(None, _, _) => None
-					case ReadResult(node, _, _) => node.map(n => n.data)
-				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
+				resolveRead(baseTx)(key, consistency)
 			}
 		}
 
@@ -154,13 +158,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
-				val rows = baseTx.read(key, CassandraReadParams(consistency))
-				addRaws(rows)
-
-				sessionOrder.readResolved(key) match {
-					case ReadResult(None, _, _) => None
-					case ReadResult(node, _, _) => node.map(n => n.data)
-				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
+				resolveRead(baseTx)(key, consistency)
 			}
 		}
 
