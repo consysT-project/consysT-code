@@ -152,6 +152,7 @@ class SimpleStoreTest1 {
 
 		startSession { session =>
 			session.startTransaction(isolationLevelOps.snapshotIsolation) { tx =>
+				//Here we have to resolve the dependencies of the read (9, x) as well, and not just x
 				val x2 = tx.read("x", consistencyLevelOps.sequential)
 				assertEquals(Some(Update(9, "x", "Hello Welt", Some(8), Set(EventRef(5, "x"), EventRef(3, "y")))), x2)
 

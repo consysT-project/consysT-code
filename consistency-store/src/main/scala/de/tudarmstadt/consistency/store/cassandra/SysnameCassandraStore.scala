@@ -15,7 +15,7 @@ import scala.reflect.runtime.universe._
 	* @author Mirko Köhler
 	*/
 abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag]
-	extends StoreInterface[
+	extends Store[
 		Key,
 		Data,
 		ResultSet,
@@ -266,67 +266,6 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		override def print() : Unit = ???
 	}
 
-
-
-//	override def commit[Return](session : CassandraSession, transaction : Transaction[Return], isolation : Isolation)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : CommitStatus[Id, Return] =
-//		throw new UnsupportedIsolationLevelException(isolation)
-//
-//
-//
-//	override def read(session : CassandraSession, key : Key)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]) : ReadStatus[Id, Key, Data] = {
-//		import ReadStatus._
-//
-//		//Retrieve the maximum id for a given key
-//		val maxResult = session.execute(select().max("id")
-//			.from(keyspace.dataTable.name)
-//			.where(QueryBuilder.eq("key", key))
-//		)
-//
-//		val maxRow = maxResult.one()
-//
-//		if (maxRow == null) {
-//			//			assert(false, "did not retrieve anything from database")
-//			return NotFound(key, s"no entry for $key in database")
-//		}
-//
-//
-//		val readId = maxRow.get("system.max(id)", runtimeClassOf[Id])
-//
-//		if (readId == null) {
-//			//			assert(false, "no rows left for key " + key)
-//			return NotFound(key, s"no entry for $key in database")
-//		}
-//
-//		//Retrieve the row with the maximum id
-//		val readResult = session.execute(select().all()
-//			.from(keyspace.dataTable.name)
-//			.where(QueryBuilder.eq("id", readId))
-//			.and(QueryBuilder.eq("key", key))
-//		)
-//
-//		/*TODO: Another possibility would be to use the user defined maxRow which returns the complete row (in the aggregation) instead of just one column.
-//
-//		I have to make weigh the differences between these to possibilities.
-//
-//		select maxRow(id, key, data, deps, txid, consistency) from t_data where key = 'x';
-//
-//		 */
-//
-//		val readRow = readResult.one()
-//
-//		if (readRow == null) {
-//			//			assert(false, "did not retrieve anything from database")
-//			return NotFound(key, s"no entry for $key in database anymore (it may have been removed concurrently)")
-//			//TODO: Retry here???
-//		}
-//
-//		val isolation = readRow.get("isolation", runtimeClassOf[Isolation])
-//
-//		internalRead(session, readId, key, isolation, readRow)
-//	}
-//
-//	protected def internalRead(session : CassandraSession, id : Id, key : Key, isolation : Isolation, row : Row)(implicit idTT : TypeTag[Id], keyTT : TypeTag[Key], dataTT : TypeTag[Data], txStatusTT : TypeTag[TxStatus], consistencyTT : TypeTag[Consistency], isolationTT : TypeTag[Isolation]): ReadStatus[Id, Key, Data] =
-//		throw new UnsupportedIsolationLevelException(isolation)
 
 
 	def initializeKeyspace(): Unit = {
