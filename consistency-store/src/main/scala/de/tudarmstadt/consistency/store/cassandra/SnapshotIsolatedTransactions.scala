@@ -4,6 +4,7 @@ import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.shim.Event.EventRef
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.JavaConverters
@@ -26,7 +27,7 @@ object SnapshotIsolatedTransactions {
 		txid : Id,
 		updates : Set[CassandraUpdate[Id, Key, Data]],
 		result : Return
-	) : CommitStatus[Id, Return]	= {
+	) : CommitStatus[Id, Key, Return]	= {
 
 		import CommitStatus._
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
@@ -124,7 +125,8 @@ object SnapshotIsolatedTransactions {
 
 			//5. Add the data to the data table
 			//5.1. Get the (already generated) ids foreach write
-			val updatedIds : Set[Id] = updates.map(upd => upd.id)
+			//TODO: Use the transaction dependencies from the shim graph
+			val updatedIds : Set[EventRef[Id, Key]] = updates.map(upd => upd.toEventRef)
 
 			//5.2 Add a data entry for each write
 			updates.foreach(upd => {
@@ -311,12 +313,14 @@ object SnapshotIsolatedTransactions {
 			//TODO: Retry here???
 		}
 
-		val id = readRow.get("id", runtimeClassOf[Id])
-		val data = readRow.get("data", runtimeClassOf[Data])
-		val deps = JavaConverters.asScalaSet(readRow.getSet("deps", runtimeClassOf[Id])).toSet
+		val dataRow : CassandraRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(readRow)
 
-		val isolation = readRow.get("isolation", runtimeClassOf[Isolation])
-		val readTxid = readRow.get("txid", runtimeClassOf[Id])
+		val id = dataRow.id
+		val data = dataRow.data
+		val deps = dataRow.deps
+
+		val isolation = dataRow.isolation
+		val readTxid = dataRow.txid
 
 
 		//1. If the read value does not belong to a transaction

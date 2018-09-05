@@ -98,6 +98,7 @@ CREATE AGGREGATE aggregate_name(type1)
 		startSession { session =>
 			import session._
 
+
 			val transactionA : Transaction[Unit] = tx => {
 				tx.update("x", "Hallo", consistencyLevelOps.sequential)
 				tx.update("y", "Welt", consistencyLevelOps.sequential)

@@ -2,8 +2,8 @@ package de.tudarmstadt.consistency.store.cassandra
 
 import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.QueryBuilder
-
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.shim.Event.EventRef
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.{JavaConverters, mutable}
@@ -20,12 +20,16 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		Data,
 		ResultSet,
 		CassandraTxParams[Id, Isolation],
-		CassandraWriteParams[Id, Consistency],
+		CassandraWriteParams[Id, Key, Consistency],
 		CassandraReadParams[Consistency],
 		Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]
 		] {
 
 	type CassandraSession = com.datastax.driver.core.Session
+
+	type DepSet = Set[EventRef[Id, Key]]
+
+	override type SessionCtx = SysnameCassandraSessionContext
 
 
 	protected val connectionParams : ConnectionParams
@@ -44,7 +48,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
 
-	def startSession[U](f : SessionContext => U) : U = {
+	def startSession[U](f : Session[U]) : U = {
 		val session = newSession
 		val ctx = new SysnameCassandraSessionContext(session)
 
@@ -59,7 +63,9 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 	class SysnameCassandraSessionContext(val session : CassandraSession) extends SessionContext {
 
-		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : TxContext => Option[U]) : Option[U] = {
+		type TxCtx = CassandraTxContext
+
+		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = {
 			val isolation = params.isolation
 			val txid = params.txid
 
@@ -136,14 +142,19 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 
 
+		trait CassandraTxContext extends TxContext {
 
-		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends TxContext {
+			//def readId(id : Id, key : Key, params : CassandraReadParams[Consistency])
+		}
+
+
+		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 			val updates : mutable.Set[Update] = mutable.HashSet.empty
 
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
 				updates.add(CassandraUpdate(params.id, key, data, params.deps))
 			}
 
@@ -153,13 +164,13 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 
 
-		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends TxContext {
+		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 			val updates : mutable.Set[Update] = mutable.HashSet.empty
 
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
 				updates.add(CassandraUpdate(params.id, key, data, params.deps))
 			}
 
@@ -168,12 +179,12 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
-		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation], val txid : Id) extends TxContext {
+		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation], val txid : Id) extends CassandraTxContext {
 
 			type Update = CassandraUpdate[Id, Key, Data]
 
 
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Consistency]) : Unit = {
+			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
 				val CassandraWriteParams(id, deps, consistency) = params
 
 				try {
@@ -318,15 +329,24 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		keyspace.initialize(cluster)
 	}
 
+	private [cassandra] def eventRefToCassandraTuple(ref : EventRef[Id, Key]) : TupleValue = {
+		val typ = cluster.getMetadata.newTupleType(cassandraTypeOf[Id], cassandraTypeOf[Key])
+		typ.newValue(ref.id.asInstanceOf[AnyRef], ref.key.asInstanceOf[AnyRef])
+	}
+
+	private [cassandra] def dependencySetToCassandraSet(set : Set[EventRef[Id, Key]]) : java.util.Set[TupleValue] = {
+		JavaConverters.setAsJavaSet(set.map(eventRefToCassandraTuple))
+	}
+
 	private[cassandra] def writeData
 	(
 		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
 	)(
-		id : Id, key : Key, data : Data, deps : Set[Id], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
+		id : Id, key : Key, data : Data, deps : Set[EventRef[Id, Key]], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
 	) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val writeDepsJava : java.util.Set[Id] = JavaConverters.setAsJavaSet(deps)
+		val writeDepsJava : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
 
 		session.execute(
 			update(keyspace.dataTable.name)
@@ -347,11 +367,11 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	(
 		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
 	)(
-		id : Id, key : Key, deps : Set[Id], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
+		id : Id, key : Key, deps : Set[EventRef[Id, Key]], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
 	) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val writeDepsJava : java.util.Set[Id] = JavaConverters.setAsJavaSet(deps)
+		val writeDepsJava : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
 
 		session.execute(
 			update(keyspace.dataTable.name)
@@ -444,7 +464,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 					 | (id ${cassandraTypeOf[Id]},
 					 | key ${cassandraTypeOf[Key]},
 					 | data ${cassandraTypeOf[Data]},
-					 | deps set<${cassandraTypeOf[Id]}>,
+					 | deps set<frozen<tuple<${cassandraTypeOf[Id]}, ${cassandraTypeOf[Key]}>>>,
 					 | txid ${cassandraTypeOf[Id]},
 					 | txstatus ${cassandraTypeOf[TxStatus]},
 					 | consistency ${cassandraTypeOf[Consistency]},

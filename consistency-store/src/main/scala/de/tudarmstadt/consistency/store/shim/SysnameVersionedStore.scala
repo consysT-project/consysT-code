@@ -3,7 +3,8 @@ package de.tudarmstadt.consistency.store.shim
 import com.datastax.driver.core.ResultSet
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.DataRow
-import de.tudarmstadt.consistency.store.shim.EventOrdering.{Event, SessionOrder, Tx, Update}
+import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
+import de.tudarmstadt.consistency.store.shim.EventOrdering.{ReadResult, SessionOrder}
 import de.tudarmstadt.consistency.utils.Log
 
 /**
@@ -13,11 +14,12 @@ import de.tudarmstadt.consistency.utils.Log
 	*/
 trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] extends StoreInterface[Key, Data, Unit, Isolation, Consistency, Consistency, Option[Data]] {
 
+	override type SessionCtx = SysnameShimSessionContext
 	type BaseSessionContext = baseStore.SessionContext
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
+	val baseStore : StoreInterface[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
 	val converter : RowConverter[Event[Id, Key, Data]]
 
 	val idOps : IdOps[Id]
@@ -26,7 +28,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 	val isolationLevelOps : IsolationLevelOps[Isolation]
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
-	def startSession[U](f : SessionContext => U) : U = {
+	def startSession[U](f : Session[U]) : U = {
 		baseStore.startSession { baseSession =>
 			val session = new SysnameShimSessionContext(baseSession)
 			f(session)
@@ -36,12 +38,13 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 	class SysnameShimSessionContext(val baseSession : BaseSessionContext) extends SessionContext {
 
+		override type TxCtx = ShimTxContext
 		type BaseTxContext = baseSession.TxContext
 
 		private val sessionOrder : SessionOrder[Id, Key, Data] = EventOrdering.newSessionOrder
 
 
-		override def startTransaction[U](isolation : Isolation)(f : TxContext => Option[U]) : Option[U] = {
+		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = {
 			val txid = idOps.freshId()
 			val txParams = CassandraTxParams(txid, isolation)
 
@@ -111,7 +114,9 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 
 		}
 
-		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends TxContext {
+		trait ShimTxContext extends TxContext
+
+		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = idOps.freshId()
 				val deps = sessionOrder.getNextDependencies
@@ -127,11 +132,15 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
 				val rows = baseTx.read(key, CassandraReadParams(consistency))
 				addRaws(rows)
-				sessionOrder.readResolved(key).map(_._2) //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
+
+				sessionOrder.readResolved(key) match {
+					case ReadResult(_, false, _) => None
+					case ReadResult(node, _, _) => node.map(n => n.data)
+				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 			}
 		}
 
-		class SysnameShimDefaultTxContext(val baseTx : BaseTxContext, val isolation: Isolation) extends TxContext {
+		class SysnameShimDefaultTxContext(val baseTx : BaseTxContext, val isolation: Isolation) extends ShimTxContext {
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = idOps.freshId()
 				val deps = sessionOrder.getNextDependencies
@@ -147,10 +156,11 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 			def read(key : Key, consistency : Consistency) : Option[Data] = {
 				val rows = baseTx.read(key, CassandraReadParams(consistency))
 				addRaws(rows)
-				Log.info(null, s"reading $key")
-				Log.info(null, sessionOrder)
-				sessionOrder.readResolved(key).map(_._2)
 
+				sessionOrder.readResolved(key) match {
+					case ReadResult(_, false, _) => None
+					case ReadResult(node, _, _) => node.map(n => n.data)
+				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 			}
 		}
 
