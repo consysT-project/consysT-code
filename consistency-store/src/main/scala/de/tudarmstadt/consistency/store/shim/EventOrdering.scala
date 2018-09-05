@@ -12,7 +12,7 @@ import Event._
 object EventOrdering {
 
 
-	trait ReadResult[Id, Key, Data]
+	sealed trait ReadResult[Id, Key, Data]
 	/*Some data has been successfully found and resolved (= all dependencies have been satisfied). It also returns the latest known value, as well as all unresolved dependencies for the latest value.*/
 	case class Resolved[Id, Key, Data](data : Update[Id, Key, Data], latest : Update[Id, Key, Data], unresolved: Set[EventRef[Id, Key]])  extends ReadResult[Id, Key, Data]
 	/*Data has been found but there are still some unresolved dependencies */
@@ -71,6 +71,9 @@ object EventOrdering {
 			entries.get(id).map(dep => dep.getDependencies)
 		}
 
+		def isResolved(ref : EventRef[Id, Key]) : Boolean =
+			unresolvedDependenciesOf(ref).isEmpty
+
 
 		def readResolved(key : Key) : ReadResult[Id, Key, Data] = latestKeys.get(key) match {
 			case None => NotFound()
@@ -96,7 +99,7 @@ object EventOrdering {
 
 				while(iter.hasNext) {
 					val id = iter.next()
-					val unresolvedForId = unresolvedDependencies(EventRef(id, key))
+					val unresolvedForId = unresolvedDependenciesOf(EventRef(id, key))
 
 					//there are no unresolved dependencies
 					if (unresolvedForId.isEmpty) {
@@ -146,16 +149,21 @@ object EventOrdering {
 		}
 
 
-		private [shim] def unresolvedDependencies(ref : EventRef[Id, Key]) : Set[EventRef[Id, Key]] = {
+		//TODO: Check whether this method can be simplified... Also it is bugged
+		def unresolvedDependenciesOf(ref : EventRef[Id, Key]) : Set[EventRef[Id, Key]] = {
 
-			def unresolvedDependencies(ref : EventRef[Id, Key], visited : Set[Id]): Set[EventRef[Id, Key]] = {
-				val id = ref.id
+			def unresolvedDependencies(innerRef : EventRef[Id, Key], visited : Set[Id]): Set[EventRef[Id, Key]] = {
+				val id = innerRef.id
 
 				if (visited.contains(id))
 					return Set.empty //TODO: What to return here?
 
 				entries.get(id) match {
-					case None => Set(ref)
+					case None =>
+						if (innerRef == ref)
+							Set.empty[EventRef[Id, Key]]
+						else
+							Set(innerRef)
 					case Some(dep) => if (dep.isResolved) {
 						Set.empty
 					} else {
@@ -166,7 +174,10 @@ object EventOrdering {
 							dep.setResolved()
 							Set.empty
 						} else {
-							unresolved + ref
+							if (innerRef == ref)
+								unresolved
+							else
+								unresolved + innerRef
 						}
 					}
 				}
@@ -193,20 +204,20 @@ object EventOrdering {
 		private type Node = Event[Id, Key, Data]
 
 		//The latest node that has been created in this transaction
-		var sessionPointer : Option[EventRef[Id, Key]] = None
+		private var sessionPointer : Option[EventRef[Id, Key]] = None
 		//stores the session pointer before a transaction as a fallback in case the tx gets aborted.
-		var sessionPointerBeforeTx : Option[EventRef[Id, Key]] = None
+		private var sessionPointerBeforeTx : Option[EventRef[Id, Key]] = None
 
 		//The reads that occurred since the last node has been added
-		var readDependencies : Set[EventRef[Id, Key]] = Set.empty
+		private var readDependencies : Set[EventRef[Id, Key]] = Set.empty
 
 		//The transaction id of the current transaction
-		var transactionPointer : Option[Id] = None
+		private var transactionPointer : Option[Id] = None
 		//The ids of all updates that happened during this transaction
-		var transactionDependencies : Set[EventRef[Id, Key]] = Set.empty
+		private var transactionDependencies : Set[EventRef[Id, Key]] = Set.empty
 
 
-		private val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
+		private [store] val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
 
 
 		def addUpdate(id : Id, key : Key, data : Data): Unit = {
@@ -233,26 +244,10 @@ object EventOrdering {
 			readDependencies ++ sessionPointer
 		}
 
-		def readResolved(key : Key) : ReadResult[Id, Key, Data] = graph.readResolved(key) match {
-			case r@Resolved(upd, _, _) =>
-				addRead(EventRef(upd.id, upd.key))
-				r
-			case _ =>
-				NotFound()
-		}
+		//You need to manually add a read with addRead if this read should be visible as a dependency
+		def read(key : Key) : ReadResult[Id, Key, Data] =
+			graph.readResolved(key)
 
-
-
-		def readLatest(key : Key) : ReadResult[Id, Key, Data] = graph.readResolved(key) match {
-			case r@Resolved(upd, _, _) =>
-				addRead(EventRef(upd.id, upd.key))
-				r
-			case r@Unresolved(upd, _) =>
-				addRead(EventRef(upd.id, upd.key))
-				r
-			case _ =>
-				NotFound()
-		}
 
 		def startTransaction(id : Id): Unit = {
 			assert(transactionPointer.isEmpty)
