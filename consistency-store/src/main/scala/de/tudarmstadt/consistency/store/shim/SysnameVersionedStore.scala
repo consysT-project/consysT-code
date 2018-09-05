@@ -134,7 +134,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 				addRaws(rows)
 
 				sessionOrder.readResolved(key) match {
-					case ReadResult(_, false, _) => None
+					case ReadResult(None, _, _) => None
 					case ReadResult(node, _, _) => node.map(n => n.data)
 				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 			}
@@ -158,7 +158,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency] ext
 				addRaws(rows)
 
 				sessionOrder.readResolved(key) match {
-					case ReadResult(_, false, _) => None
+					case ReadResult(None, _, _) => None
 					case ReadResult(node, _, _) => node.map(n => n.data)
 				} //TODO: if the key cannot be resolved, try to read rows that are needed for resolution
 			}
