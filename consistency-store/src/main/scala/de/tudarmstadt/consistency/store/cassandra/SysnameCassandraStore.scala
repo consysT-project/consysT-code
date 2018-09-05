@@ -48,7 +48,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
 
-	def startSession[U](f : Session[U]) : U = {
+	override def startSession[U](f : Session[U]) : U = {
 		val session = newSession
 		val ctx = new SysnameCassandraSessionContext(session)
 
@@ -58,6 +58,10 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		} finally {
 			session.close()
 		}
+	}
+
+	override def close(): Unit = {
+		cluster.close()
 	}
 
 
@@ -485,9 +489,6 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 //	protected val maxFunctionDef : String
 
 
-	def close(): Unit = {
-		cluster.close()
-	}
 
 
 	trait KeyspaceDef {

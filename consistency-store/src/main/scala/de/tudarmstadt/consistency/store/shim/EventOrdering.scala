@@ -81,6 +81,10 @@ object EventOrdering {
 				//Store all unresolved dependencies
 				var unresolved : Set[EventRef[Id, Key]] = Set.empty
 
+				if (!iter.hasNext) {
+					return NotFound()
+				}
+
 				//Retrieve the latest known update
 				val latest : Update[Id, Key, Data] = get(versions.head) match {
 					case None => null
@@ -102,6 +106,8 @@ object EventOrdering {
 						//An aborted transaction has no transaction record and thus the dependencies on the updates
 						//are not fulfilled, i.e. deleted updates are never resolved.
 						//versions.retain(_id =>  ordering.lteq(_id, id))
+
+
 
 						val resolved = get(id) match {
 							case None => null
@@ -262,7 +268,6 @@ object EventOrdering {
 				graph.addTx(id, transactionDependencies)
 				transactionDependencies = Set.empty
 				transactionPointer = None
-				sessionPointer = sessionPointerBeforeTx
 		}
 
 		def abortTransaction() : Unit = transactionPointer match {
@@ -271,6 +276,7 @@ object EventOrdering {
 				transactionDependencies.foreach(ref => graph.remove(ref.id))
 				transactionDependencies = Set.empty
 				transactionPointer = None
+				//Reset session pointer to "before the transaction"
 				sessionPointer = sessionPointerBeforeTx
 		}
 

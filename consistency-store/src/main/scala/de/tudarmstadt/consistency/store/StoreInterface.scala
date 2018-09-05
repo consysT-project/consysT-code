@@ -11,6 +11,7 @@ trait StoreInterface[Key, Data, RefreshResult, TxParams, WriteParams, ReadParams
 	type Session[U] = SessionCtx => U
 
 	def startSession[U](f : Session[U]) : U
+	def close() : Unit
 
 	trait SessionContext {
 
@@ -18,7 +19,7 @@ trait StoreInterface[Key, Data, RefreshResult, TxParams, WriteParams, ReadParams
 		type Transaction[U] = TxCtx => Option[U]
 
 		def startTransaction[U](params : TxParams)(f : Transaction[U]) : Option[U]
-		def refresh() : RefreshResult
+		@Deprecated	def refresh() : RefreshResult
 		def print() : Unit
 
 		trait TxContext {
