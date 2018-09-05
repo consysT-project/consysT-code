@@ -170,6 +170,9 @@ object EventOrdering {
 
 		//The latest node that has been created in this transaction
 		var sessionPointer : Option[EventRef[Id, Key]] = None
+		//stores the session pointer before a transaction as a fallback in case the tx gets aborted.
+		var sessionPointerBeforeTx : Option[EventRef[Id, Key]] = None
+
 		//The reads that occurred since the last node has been added
 		var readDependencies : Set[EventRef[Id, Key]] = Set.empty
 
@@ -194,8 +197,8 @@ object EventOrdering {
 				transactionDependencies += eventRef
 		}
 
-		def addRead(id : Id, key : Key): Unit = {
-			readDependencies = readDependencies + EventRef(id, key)
+		def addRead(ref : EventRef[Id, Key]): Unit = {
+			readDependencies = readDependencies + ref
 		}
 
 		def getDependencies(id : Id) : Option[Set[EventRef[Id, Key]]] = {
@@ -207,23 +210,32 @@ object EventOrdering {
 		}
 
 		def readResolved(key : Key) : ReadResult[Id, Key, Data] = {
-			graph.readResolved(key)
+			val read = graph.readResolved(key)
+
+			read.node match {
+				case None =>
+				case Some(evt) => addRead(EventRef(evt.id, evt.key))
+			}
+
+			read
 		}
 
 		def readLatest(key : Key) : Option[(Id, Data)] = {
-			graph.readLatest(key).flatMap(t => {
-				val (id, node) = t
-				addRead(id, key)
-				node.getData match {
-					case None => None
-					case Some(data) => Some (id, data)
-				}
-			})
+			???
+//			graph.readLatest(key).flatMap(t => {
+//				val (id, node) = t
+//				addRead(id, key)
+//				node.getData match {
+//					case None => None
+//					case Some(data) => Some (id, data)
+//				}
+//			})
 		}
 
 		def startTransaction(id : Id): Unit = {
 			assert(transactionPointer.isEmpty)
 
+			sessionPointerBeforeTx = sessionPointer
 			transactionPointer = Some(id)
 			transactionDependencies = Set.empty
 		}
@@ -234,6 +246,7 @@ object EventOrdering {
 				graph.addTx(id, transactionDependencies)
 				transactionDependencies = Set.empty
 				transactionPointer = None
+				sessionPointer = sessionPointerBeforeTx
 		}
 
 		def abortTransaction() : Unit = transactionPointer match {
@@ -242,6 +255,7 @@ object EventOrdering {
 				transactionDependencies.foreach(ref => graph.remove(ref.id))
 				transactionDependencies = Set.empty
 				transactionPointer = None
+				sessionPointer = sessionPointerBeforeTx
 		}
 
 		private [shim] def addRaw(id : Id, key : Key, update : Update[Id, Key, Data]) : Unit = {
