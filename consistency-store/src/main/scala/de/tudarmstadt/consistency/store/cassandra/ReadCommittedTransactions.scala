@@ -4,6 +4,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.shim.Event.EventRef
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
@@ -31,11 +32,12 @@ object ReadCommittedTransactions {
 		txid : Id,
 		updates : Set[CassandraUpdate[Id, Key, Data]],
 		result : Return
-	): CommitStatus[Id, Return]	= {
+	): CommitStatus[Id, Key, Return]	= {
 
 		import CommitStatus._
 
-		val updatedIds : Set[Id] = updates.map(upd => upd.id)
+		//TODO: Instead of computing the updated ids here, use the transaction ids from the shim layer
+		val updatedIds : Set[EventRef[Id, Key]] = updates.map(upd => EventRef(upd.id, upd.key))
 
 		try {
 
@@ -138,11 +140,11 @@ object ReadCommittedTransactions {
 			//TODO: Retry here???
 		}
 
-		val id = readRow.get("id", runtimeClassOf[Id])
-		val data = readRow.get("data", runtimeClassOf[Data])
-		val deps = JavaConverters.asScalaSet(readRow.getSet("deps", runtimeClassOf[Id])).toSet
+		val dataRow = CassandraRow[Id, Key, Data, TxStatus, Isolation, Consistency](readRow)
 
-		return Success(key, id, data, deps)
+
+
+		return Success(key, dataRow.id, dataRow.data, dataRow.deps)
 	}
 
 }

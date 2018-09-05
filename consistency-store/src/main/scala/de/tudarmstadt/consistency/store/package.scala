@@ -2,7 +2,8 @@ package de.tudarmstadt.consistency
 
 import java.util.UUID
 
-import com.datastax.driver.core.Cluster
+import com.datastax.driver.core.{Cluster, DataType}
+import de.tudarmstadt.consistency.store.shim.Event.EventRef
 
 import scala.reflect.runtime.universe._
 
@@ -40,22 +41,22 @@ package object store {
 	}
 
 
-	trait CommitStatus[Id, Return]
+	trait CommitStatus[Id, Key, Return]
 	object CommitStatus {
 		//The transaction successfully committed
-		case class Success[Id, Return](txid : Id, writtenIds : Set[Id], result : Return) extends CommitStatus[Id, Return]
+		case class Success[Id, Key, Return](txid : Id, writtenIds : Set[EventRef[Id, Key]], result : Return) extends CommitStatus[Id, Key, Return]
 
 		//The transaction has been aborted and changes have been rolled back.
-		case class Abort[Id, Return](txid : Id, description : String) extends CommitStatus[Id, Return]
+		case class Abort[Id, Key, Return](txid : Id, description : String) extends CommitStatus[Id, Key, Return]
 
 		//The transaction indicated an error. It is unclear whether it (partially) committed or aborted comnpletely.
-		case class Error[Id, Return](txid : Id, error : Throwable) extends CommitStatus[Id, Return]
+		case class Error[Id, Key, Return](txid : Id, error : Throwable) extends CommitStatus[Id, Key, Return]
 
 	}
 
 	trait ReadStatus[Id, Key, Data]
 	object ReadStatus {
-		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[Id]) extends ReadStatus[Id, Key, Data]
+		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[EventRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
 		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
 		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
 	}
@@ -67,7 +68,7 @@ package object store {
 	}
 
 
-	case class CassandraWriteParams[Id, Consistency](id : Id, deps : Set[Id], consistency : Consistency)
+	case class CassandraWriteParams[Id, Key, Consistency](id : Id, deps : Set[EventRef[Id, Key]], consistency : Consistency)
 	case class CassandraReadParams[Consistency](consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Id, isolation : Isolation)
 
@@ -96,23 +97,6 @@ package object store {
 		tag.mirror.runtimeClass(tag.tpe.typeSymbol.asClass).asInstanceOf[Class[T]]
 	}
 
-	private[store] def cassandraTypeOf[T : TypeTag] : String = implicitly[TypeTag[T]] match {
 
-		//TODO: Is it possible to use CodecRegistry and/or DataType for that task?
-
-		case t if t == typeTag[Boolean] => "boolean"
-
-		case t if t == typeTag[Int] || t == typeTag[Integer] => "int"
-
-		case t if t == typeTag[Float] => "float"
-		case t if t == typeTag[Double] => "double"
-		case t if t == typeTag[BigDecimal] => "decimal"
-
-		case t if t == typeTag[String] => "text"
-
-		case t if t == typeTag[UUID] => "uuid" //TODO Differentiate between UUID and TimeUUID
-
-		case t => throw new IllegalArgumentException(s"can not infer a cassandra type from type tag $t")
-	}
 
 }

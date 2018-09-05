@@ -1,6 +1,7 @@
 package de.tudarmstadt.consistency.store.shim
 
 import scala.collection.mutable
+import Event._
 
 /**
 	* Created on 30.08.18.
@@ -11,36 +12,13 @@ import scala.collection.mutable
 object EventOrdering {
 
 
-	trait Event[Id, Key, Data] {
-		def getDependencies : Set[Id]
-		def getData : Option[Data]
-		def getId :Id
-
-		val resolvedDependencies : Array[Boolean] = Array(false)
-		def isResolved : Boolean = resolvedDependencies(0)
-		def setResolved(): Unit =	resolvedDependencies(0) = true
-	}
-
-	//Note: val dependencies does not contain the txid.
-	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[Id]) extends Event[Id, Key, Data] {
-		override def getDependencies : Set[Id] = dependencies //++ txid
-		override def getData : Option[Data] =	Some(data)
-		override def getId : Id = id
-	}
-
-	case class Tx[Id, Key, Data](id : Id, deps : Set[Id]) extends Event[Id, Key, Data] {
-		override def getDependencies : Set[Id] = deps
-		override def getData : Option[Data] = None
-		override def getId : Id = id
+	case class ReadResult[Id, Key, Data](node : Option[Update[Id, Key, Data]], found : Boolean, unresolved : Set[EventRef[Id, Key]]) {
+		def getId : Option[Id] = node.map(n => n.getId)
+		def isFound : Boolean = found
 	}
 
 
-
-
-
-	private class DependencyGraph[Id : Ordering, Key, Data] {
-		private val ordering = implicitly[Ordering[Id]]
-
+	private [shim] class DependencyGraph[Id : Ordering, Key, Data] {
 		type Node = Event[Id, Key, Data]
 
 		/* Stores all entries of this dependency graph */
@@ -49,16 +27,18 @@ object EventOrdering {
 		/* Stores the pointers to the latest updates to keys. the first update in the list is the latest. updates may not be resolved yet */
 		private val latestKeys : mutable.Map[Key, mutable.SortedSet[Id]] = mutable.HashMap.empty
 
+		/* Ordering of ids. Specify which ids are newer/older. */
+		private val ordering = implicitly[Ordering[Id]]
 
 
 
-		def addTx(id : Id, deps : Set[Id]): Tx[Id, Key, Data] = {
+		def addTx(id : Id, deps : Set[EventRef[Id, Key]]): Tx[Id, Key, Data] = {
 			val tx = Tx[Id, Key, Data](id, deps)
 			addRaw(id, tx)
 			tx
 		}
 
-		def addUpdate(id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[Id]): Update[Id, Key, Data] = {
+		def addUpdate(id : Id, key : Key, data : Data, txid : Option[Id], dependencies : Set[EventRef[Id, Key]]): Update[Id, Key, Data] = {
 			val upd = Update(id, key, data, txid, dependencies)
 			addRaw(id, key, upd)
 			upd
@@ -73,24 +53,30 @@ object EventOrdering {
 			entries.put(id, tx)
 		}
 
+
 		def get(id : Id) : Option[Node] = {
 			entries.get(id)
 		}
 
-		def getDependencies(id : Id) : Option[Set[Id]] = {
+		def getDependencies(id : Id) : Option[Set[EventRef[Id, Key]]] = {
 			entries.get(id).map(dep => dep.getDependencies)
 		}
 
-		def readResolved(key : Key) : Option[(Id, Node)] = latestKeys.get(key) match {
-			case None => None
+
+		def readResolved(key : Key) : ReadResult[Id, Key, Data] = latestKeys.get(key) match {
+			case None => ReadResult(None, found = false, Set.empty)
 			case Some(versions) =>
 				val iter = versions.iterator
 				var i = 0
 
+				var unresolved : Set[EventRef[Id, Key]] = Set.empty
+
 				while(iter.hasNext) {
 					val id = iter.next()
-					if (checkResolved(id)) {
+					val unresolvedForId = unresolvedDependencies(EventRef(id, key))
 
+					//there are no unresolved dependencies
+					if (unresolvedForId.isEmpty) {
 						//If there are versions that are older then the latest resolved version, then drop them
 						//We cant remove older updates, because the latest update might get deleted.
 						//TODO: Is it really the case? Deletion currently only happens when transaction are aborted.
@@ -99,11 +85,15 @@ object EventOrdering {
 						//versions.retain(_id =>  ordering.lteq(_id, id))
 
 
-						return get(id).map(node => (id, node))
+						return ReadResult(
+							//TODO: Check that the event is really an Update and act accordingly
+							get(id).asInstanceOf[Option[Update[Id, Key, Data]]], found = true, unresolved)
+					} else {
+						unresolved = unresolved ++ unresolvedForId
 					}
 					i += 1
 				}
-				return None
+				return ReadResult(None, found = true, unresolved)
 		}
 
 		def readLatest(key : Key) : Option[(Id, Node)] = latestKeys.get(key) match {
@@ -132,28 +122,34 @@ object EventOrdering {
 		}
 
 
-		private def checkResolved(id : Id) : Boolean = {
-			def checkResolved(id : Id, visited : Set[Id]): Boolean = {
+		private [shim] def unresolvedDependencies(ref : EventRef[Id, Key]) : Set[EventRef[Id, Key]] = {
+
+			def unresolvedDependencies(ref : EventRef[Id, Key], visited : Set[Id]): Set[EventRef[Id, Key]] = {
+				val id = ref.id
+
 				if (visited.contains(id))
-					return true //TODO: What to return here?
+					return Set.empty //TODO: What to return here?
 
 				entries.get(id) match {
-					case None => false
+					case None => Set(ref)
 					case Some(dep) => if (dep.isResolved) {
-						true
+						Set.empty
 					} else {
 						val extendedSet = visited + id
-						if (dep.getDependencies.forall(otherId => checkResolved(otherId, extendedSet))) {
+						val unresolved : Set[EventRef[Id, Key]] = dep.getDependencies.flatMap(other => unresolvedDependencies(other, extendedSet))
+
+						if (unresolved.isEmpty) {
 							dep.setResolved()
-							true
+							Set.empty
 						} else {
-							false
+							unresolved + ref
 						}
 					}
 				}
+
 			}
 
-			checkResolved(id, Set.empty)
+			unresolvedDependencies(ref, Set.empty)
 		}
 
 		override def toString : String = {
@@ -173,14 +169,14 @@ object EventOrdering {
 		private type Node = Event[Id, Key, Data]
 
 		//The latest node that has been created in this transaction
-		var sessionPointer : Option[Id] = None
+		var sessionPointer : Option[EventRef[Id, Key]] = None
 		//The reads that occurred since the last node has been added
-		var readDependencies : Set[Id] = Set.empty
+		var readDependencies : Set[EventRef[Id, Key]] = Set.empty
 
 		//The transaction id of the current transaction
 		var transactionPointer : Option[Id] = None
 		//The ids of all updates that happened during this transaction
-		var transactionDependencies : Set[Id] = Set.empty
+		var transactionDependencies : Set[EventRef[Id, Key]] = Set.empty
 
 
 		private val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
@@ -189,40 +185,35 @@ object EventOrdering {
 		def addUpdate(id : Id, key : Key, data : Data): Unit = {
 			graph.addUpdate(id, key, data, transactionPointer, getNextDependencies)
 
-			sessionPointer = Some(id)
+			val eventRef = EventRef(id, key)
+
+			sessionPointer = Some(eventRef)
 			readDependencies = Set.empty
 
 			if (transactionPointer.isDefined)
-				transactionDependencies += id
+				transactionDependencies += eventRef
 		}
 
-		def addRead(id : Id): Unit = {
-			readDependencies = readDependencies + id
+		def addRead(id : Id, key : Key): Unit = {
+			readDependencies = readDependencies + EventRef(id, key)
 		}
 
-		def getDependencies(id : Id) : Option[Set[Id]] = {
+		def getDependencies(id : Id) : Option[Set[EventRef[Id, Key]]] = {
 			graph.getDependencies(id)
 		}
 
-		def getNextDependencies : Set[Id] = {
+		def getNextDependencies : Set[EventRef[Id, Key]] = {
 			readDependencies ++ sessionPointer
 		}
 
-		def readResolved(key : Key) : Option[(Id, Data)] = {
-			graph.readResolved(key).flatMap(t => {
-				val (id, node) = t
-				addRead(id)
-				node.getData match {
-					case None => None
-					case Some(data) => Some (id, data)
-				}
-			})
+		def readResolved(key : Key) : ReadResult[Id, Key, Data] = {
+			graph.readResolved(key)
 		}
 
 		def readLatest(key : Key) : Option[(Id, Data)] = {
 			graph.readLatest(key).flatMap(t => {
 				val (id, node) = t
-				addRead(id)
+				addRead(id, key)
 				node.getData match {
 					case None => None
 					case Some(data) => Some (id, data)
@@ -248,7 +239,7 @@ object EventOrdering {
 		def abortTransaction() : Unit = transactionPointer match {
 			case None => assert(assertion = false, "cannot abort a transaction that has never started")
 			case Some(id) =>
-				transactionDependencies.foreach(graph.remove)
+				transactionDependencies.foreach(ref => graph.remove(ref.id))
 				transactionDependencies = Set.empty
 				transactionPointer = None
 		}

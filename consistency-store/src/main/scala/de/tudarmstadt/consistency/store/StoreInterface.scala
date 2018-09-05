@@ -7,13 +7,15 @@ package de.tudarmstadt.consistency.store
 	*/
 trait StoreInterface[Key, Data, RefreshResult, TxParams, WriteParams, ReadParams, ReadResult] {
 
-	type Session[U] = SessionContext => U
+	type SessionCtx <: SessionContext
+	type Session[U] = SessionCtx => U
 
 	def startSession[U](f : Session[U]) : U
 
 	trait SessionContext {
 
-		type Transaction[U] = TxContext => Option[U]
+		type TxCtx <: TxContext
+		type Transaction[U] = TxCtx => Option[U]
 
 		def startTransaction[U](params : TxParams)(f : Transaction[U]) : Option[U]
 		def refresh() : RefreshResult
