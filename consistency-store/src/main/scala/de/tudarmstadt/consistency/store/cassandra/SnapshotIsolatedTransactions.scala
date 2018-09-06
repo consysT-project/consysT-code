@@ -4,7 +4,8 @@ import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.EventRef
+import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.JavaConverters
@@ -24,8 +25,8 @@ object SnapshotIsolatedTransactions {
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-		txid : Id,
-		updates : Set[CassandraUpdate[Id, Key, Data]],
+		txRef : TxRef[Id],
+		updates : Set[Update[Id, Key, Data]],
 		result : Return
 	) : CommitStatus[Id, Key, Return]	= {
 
@@ -33,6 +34,7 @@ object SnapshotIsolatedTransactions {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val keyspace = store.keyspace
+		val txid = txRef.id
 
 		/* Handle writes */
 		try { //Catch exceptions when running CAS queries
@@ -125,18 +127,17 @@ object SnapshotIsolatedTransactions {
 
 			//5. Add the data to the data table
 			//5.1. Get the (already generated) ids foreach write
-			//TODO: Use the transaction dependencies from the shim graph
-			val updatedIds : Set[EventRef[Id, Key]] = updates.map(upd => upd.toEventRef)
+			val updatedIds : Set[UpdateRef[Id, Key]] = updates.map(_.toRef)
 
 			//5.2 Add a data entry for each write
 			updates.foreach(upd => {
 
-				val CassandraUpdate(id, key, data, deps) = upd
+				val Update(id, key, data, _, deps) = upd
 
 				store.writeData(
 					session, ConsistencyLevel.ONE
 				)(
-					id, key, data, deps, txid, store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
+					id, key, data, deps, Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
 				)
 
 
@@ -146,7 +147,7 @@ object SnapshotIsolatedTransactions {
 			store.writeNullData(
 				session, ConsistencyLevel.ONE
 			)(
-				txid, store.keyOps.transactionKey, updatedIds, txid, store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
+				txid, store.keyOps.transactionKey, updatedIds, Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
 			)
 
 
@@ -163,7 +164,7 @@ object SnapshotIsolatedTransactions {
 				return Abort(txid, "the transaction has been aborted by a conflicting transaction before being able to commit")
 			}
 
-			return Success(txid, updatedIds, result)
+			return Success[Id, Key, Return](txid, updates.map(_.toRef), result)
 		} catch {
 			case e : WriteTimeoutException => e.getWriteType match {
 				case WriteType.CAS => return Abort(txid, e.getMessage)
