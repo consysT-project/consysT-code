@@ -4,9 +4,9 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.EventRef
+import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 
-import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
 
 /*
@@ -29,37 +29,36 @@ object ReadCommittedTransactions {
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-		txid : Id,
-		updates : Set[CassandraUpdate[Id, Key, Data]],
+		txRef : TxRef[Id],
+		updates : Set[Update[Id, Key, Data]],
 		result : Return
 	): CommitStatus[Id, Key, Return]	= {
 
 		import CommitStatus._
 
-		//TODO: Instead of computing the updated ids here, use the transaction ids from the shim layer
-		val updatedIds : Set[EventRef[Id, Key]] = updates.map(upd => EventRef(upd.id, upd.key))
 
+		//TODO: Instead of computing the updated ids here, use the transaction ids from the shim layer
 		try {
 
 			updates.foreach(upd => {
-				val CassandraUpdate(id, key, data, deps) = upd
+				val Update(id, key, data, _, deps) = upd
 
 				store.writeData(session, ConsistencyLevel.ONE)(
-					id, key, data, deps, txid, store.txStatusOps.committed, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
+					id, key, data, deps, Some(txRef), store.txStatusOps.committed, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
 				)
 			})
 
 			store.writeNullData(session, ConsistencyLevel.ONE)(
-				txid, store.keyOps.transactionKey, updatedIds, txid, store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
+				txRef.id, store.keyOps.transactionKey, updates.map(_.toRef), Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
 			)
 
 
 		} catch {
 			//TODO: Do proper error handling here
-			case e : Exception => return Error(txid, e)
+			case e : Exception => return Error(txRef.id, e)
 		}
 
-		return Success(txid, updatedIds, result)
+		return Success(txRef.id, updates.map(_.toRef), result)
 	}
 
 

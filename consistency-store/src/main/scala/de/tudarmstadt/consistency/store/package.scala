@@ -1,9 +1,8 @@
 package de.tudarmstadt.consistency
 
-import java.util.UUID
-
-import com.datastax.driver.core.{Cluster, DataType}
-import de.tudarmstadt.consistency.store.shim.Event.EventRef
+import com.datastax.driver.core.Cluster
+import de.tudarmstadt.consistency.store.shim.EventRef
+import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 
 import scala.reflect.runtime.universe._
 
@@ -56,7 +55,7 @@ package object store {
 
 	trait ReadStatus[Id, Key, Data]
 	object ReadStatus {
-		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[EventRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
+		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[UpdateRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
 		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
 		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
 	}
@@ -68,9 +67,9 @@ package object store {
 	}
 
 
-	case class CassandraWriteParams[Id, Key, Consistency](id : Id, deps : Set[EventRef[Id, Key]], consistency : Consistency)
+	case class CassandraWriteParams[Id, Key, Consistency](id : Id, deps : Set[UpdateRef[Id, Key]], consistency : Consistency)
 	case class CassandraReadParams[Consistency](consistency : Consistency)
-	case class CassandraTxParams[Id, Isolation](txid : Id, isolation : Isolation)
+	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)
 
 
 

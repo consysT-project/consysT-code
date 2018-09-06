@@ -3,7 +3,9 @@ package de.tudarmstadt.consistency.store.cassandra
 import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.EventRef
+import de.tudarmstadt.consistency.store.shim.Event
+import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.{JavaConverters, mutable}
@@ -26,8 +28,6 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		] {
 
 	type CassandraSession = com.datastax.driver.core.Session
-
-	type DepSet = Set[EventRef[Id, Key]]
 
 	override type SessionCtx = SysnameCassandraSessionContext
 
@@ -71,7 +71,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = {
 			val isolation = params.isolation
-			val txid = params.txid
+			val Some(txid) = params.txid
 
 			isolation match {
 				case l if l == isolationLevelOps.snapshotIsolation =>
@@ -154,12 +154,10 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
-			type Update = CassandraUpdate[Id, Key, Data]
-
-			val updates : mutable.Set[Update] = mutable.HashSet.empty
+			val updates : mutable.Set[Update[Id, Key, Data]] = mutable.HashSet.empty
 
 			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
-				updates.add(CassandraUpdate(params.id, key, data, params.deps))
+				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
 			}
 
 			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
@@ -170,12 +168,10 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
-			type Update = CassandraUpdate[Id, Key, Data]
-
-			val updates : mutable.Set[Update] = mutable.HashSet.empty
+			val updates : mutable.Set[Update[Id, Key, Data]] = mutable.HashSet.empty
 
 			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
-				updates.add(CassandraUpdate(params.id, key, data, params.deps))
+				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
 			}
 
 			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
@@ -183,9 +179,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
-		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation], val txid : Id) extends CassandraTxContext {
-
-			type Update = CassandraUpdate[Id, Key, Data]
+		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
 
 			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
@@ -193,7 +187,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 				try {
 					writeData(session, ConsistencyLevel.ONE)(
-						id, key, data, deps, txid, txStatusOps.committed, consistency, isolationLevelOps.none
+						id, key, data, deps, txParams.txid, txStatusOps.committed, consistency, isolationLevelOps.none
 					)
 				} catch {
 					//TODO: Real error handling here
@@ -272,12 +266,12 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		keyspace.initialize(cluster)
 	}
 
-	private [cassandra] def eventRefToCassandraTuple(ref : EventRef[Id, Key]) : TupleValue = {
+	private [cassandra] def eventRefToCassandraTuple(ref : UpdateRef[Id, Key]) : TupleValue = {
 		val typ = cluster.getMetadata.newTupleType(cassandraTypeOf[Id], cassandraTypeOf[Key])
 		typ.newValue(ref.id.asInstanceOf[AnyRef], ref.key.asInstanceOf[AnyRef])
 	}
 
-	private [cassandra] def dependencySetToCassandraSet(set : Set[EventRef[Id, Key]]) : java.util.Set[TupleValue] = {
+	private [cassandra] def dependencySetToCassandraSet(set : Set[UpdateRef[Id, Key]]) : java.util.Set[TupleValue] = {
 		JavaConverters.setAsJavaSet(set.map(eventRefToCassandraTuple))
 	}
 
@@ -285,17 +279,18 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	(
 		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
 	)(
-		id : Id, key : Key, data : Data, deps : Set[EventRef[Id, Key]], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
+		id : Id, key : Key, data : Data, deps : Set[UpdateRef[Id, Key]], txid : Option[TxRef[Id]], txStatus : TxStatus, consistency : Consistency, isolation : Isolation
 	) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val writeDepsJava : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
+		val convertedTxid = txid.map(ref => ref.id).getOrElse(null)
+		val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
 
 		session.execute(
 			update(keyspace.dataTable.name)
 				.`with`(set("data", data))
-				.and(set("deps", writeDepsJava))
-				.and(set("txid", txid))
+				.and(set("deps", convertedDependencies))
+				.and(set("txid", convertedTxid))
 				.and(set("txstatus", txStatus))
 				.and(set("consistency", consistency))
 				.and(set("isolation", isolation))
@@ -310,17 +305,18 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	(
 		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
 	)(
-		id : Id, key : Key, deps : Set[EventRef[Id, Key]], txid : Id, txStatus : TxStatus, consistency : Consistency, isolation : Isolation
+		id : Id, key : Key, deps : Set[UpdateRef[Id, Key]], txid : Option[TxRef[Id]], txStatus : TxStatus, consistency : Consistency, isolation : Isolation
 	) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val writeDepsJava : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
+		val convertedTxid = txid.map(ref => ref.id).getOrElse(null)
+		val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
 
 		session.execute(
 			update(keyspace.dataTable.name)
 				.`with`(set("data", null))
-				.and(set("deps", writeDepsJava))
-				.and(set("txid", txid))
+				.and(set("deps", convertedDependencies))
+				.and(set("txid", convertedTxid))
 				.and(set("txstatus", txStatus))
 				.and(set("consistency", consistency))
 				.and(set("isolation", isolation))

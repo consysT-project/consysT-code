@@ -3,8 +3,9 @@ package de.tudarmstadt.consistency.store.shim
 import com.datastax.driver.core.ResultSet
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.DataRow
-import de.tudarmstadt.consistency.store.shim.Event.{EventRef, Tx, Update}
-import de.tudarmstadt.consistency.store.shim.EventOrdering._
+import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
+import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
+import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
 import de.tudarmstadt.consistency.utils.Log
 
 /**
@@ -20,7 +21,6 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 	implicit val idOrdering : Ordering[Id]
 
 	val baseStore : Store[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
-	val converter : RowConverter[Event[Id, Key, Data]]
 
 	val idOps : IdOps[Id]
 	val keyOps : KeyOps[Key]
@@ -47,12 +47,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		override type TxCtx = ShimTxContext
 		type BaseTxContext = baseSession.TxContext
 
-		private val sessionOrder : SessionOrder[Id, Key, Data] = EventOrdering.newSessionOrder
+		private val sessionOrder : SessionOrder[Id, Key, Data] = new SessionOrder[Id, Key, Data]
 
 
 		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = {
 			val txid = idOps.freshId()
-			val txParams = CassandraTxParams(txid, isolation)
+			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
 			isolation match {
 				case l if l == isolationLevelOps.none =>
@@ -89,35 +89,24 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		}
 
-		override def refresh() : Unit = {
-			val results = baseSession.refresh()
-
-			converter.resultSetForeach(results, {
-				case upd@Update(id, key, _, _, _) => sessionOrder.addRaw(id, key, upd)
-				case tx@Tx(id, _) => sessionOrder.addRaw(id, tx)
-			})
-		}
+		override def refresh() : Unit = ???
 
 
 		private [shim] def addRaws(rows : Seq[DataRow[Id, Key, Data, _, _, _]]) : Unit = {
 			rows.foreach(row => {
 				val key = row.key
-
 				if (key == keyOps.transactionKey) {
 					val id = row.id
 					val deps = row.deps
-
-					sessionOrder.addRaw(id, Tx(id, deps))
+					sessionOrder.graph.addTx(id, deps)
 				} else {
 					val id = row.id
 					val data = row.data
 					val deps = row.deps
 					val txid = row.txid
-
-					sessionOrder.addRaw(id, key, Update(id, key, data, txid, deps))
+					sessionOrder.graph.addUpdate(id, key, data, txid, deps)
 				}
 			})
-
 		}
 
 		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
@@ -130,42 +119,36 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			while (true) {
 				sessionOrder.read(key) match {
 					//If we read a resolved value and that value is already the latest, we can just return that value
-					case Resolved(upd, latest, _) if upd == latest =>
-						sessionOrder.addRead(upd.toEventRef)
-						return convertResult(upd)
+					case Found(Some(resolvedUpdate), latestUpdate, _) if resolvedUpdate == latestUpdate =>
+						sessionOrder.addRead(resolvedUpdate.toRef)
+						return convertResult(resolvedUpdate)
 					//If we have a resolved value but there is a newer value that has not been resolved yet
-					case Resolved(upd, latest, unresolved) =>
+					case Found(optionalUpdate, latestUpdate, unresolved) =>
 						//..., then try to resolve it
-						unresolved.foreach(ref => {
-							val key = ref.key
-
+						unresolved.foreach(evt => {
+							val evtKey = evt match {
+								case UpdateRef(id, refKey) => refKey
+								case TxRef(id) => keyOps.transactionKey
+							}
 							//if the key has already been updated in this run, then abort this read and return the version that could have been resolved
-							if (alreadyTried.contains(key)) {
-								sessionOrder.addRead(upd.toEventRef)
-								return convertResult(upd)
+							if (alreadyTried.contains(evtKey)) {
+								optionalUpdate match {
+									//If there was another resolved update, then return it
+									case Some(resolvedUpdate) =>
+										sessionOrder.addRead(resolvedUpdate.toRef)
+										return convertResult(resolvedUpdate)
+									//else return nothing
+									case None =>
+										return convertNone
+								}
 							}
 
+							//TODO: Only read the refId?
 							val rawRows = baseTx.read(key, params)
 							addRaws(rows)
 							alreadyTried = alreadyTried + key
 						})
 						//now, retry to read the key
-
-					//Same as previous case, if the key could not have been resolved in the first place
-					case Unresolved(_, unresolved) =>
-						//try to resolve an unresolved key
-						unresolved.foreach(ref => {
-							val key = ref.key
-
-							//if the key has already been updated in this run, then abort this read and return the version that could have been resolved
-							if (alreadyTried.contains(key)) {
-								return convertNone
-							}
-
-							val rawRows = baseTx.read(key, params)
-							addRaws(rows)
-							alreadyTried = alreadyTried + key
-						})
 
 					//If the key could not be found all together, then we can not read it
 					case NotFound() =>
@@ -174,7 +157,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			}
 
 			//fallback case: this code should never be executed
-			assert(false, "how could this be executed?!")
+			assert(false, "Oh no! How could this have been executed?! You're a wizard, Harry!")
 			return convertNone
 
 		}

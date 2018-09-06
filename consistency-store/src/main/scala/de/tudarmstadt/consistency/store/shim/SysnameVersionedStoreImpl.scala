@@ -1,11 +1,9 @@
 package de.tudarmstadt.consistency.store.shim
 
 import com.datastax.driver.core.{ResultSet, Row, TupleValue}
-import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.DataRow
-import de.tudarmstadt.consistency.store.shim.Event.{EventRef, Tx, Update}
-import de.tudarmstadt.consistency.store.shim.EventOrdering._
-import de.tudarmstadt.consistency.store.{RowConverter, Store}
+import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.{RowConverter, Store, _}
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
@@ -33,26 +31,4 @@ class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 	override def convertNone : Read = readNothing
 	override def convertResult(upd : Update[Id, Key, Data]) : Read = readConvert(upd)
 
-
-	override val converter : RowConverter[Event[Id, Key, Data]] = (row : Row) => {
-		val key = row.get("key", runtimeClassOf[Key])
-		val id = row.get("id", runtimeClassOf[Id])
-		val cassandraDeps : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", classOf[TupleValue])).toSet
-
-		val deps : Set[EventRef[Id, Key]] = cassandraDeps.map(tv => {
-			val id = tv.get(0, runtimeClassOf[Id])
-			val key = tv.get(1, runtimeClassOf[Key])
-			EventRef(id, key)
-		})
-
-		if (key == keyOps.transactionKey) {
-			//row is a transaction
-			Tx[Id, Key, Data](id, deps)
-		} else {
-			val data = row.get("data", runtimeClassOf[Data])
-			val txid = row.get("txid", runtimeClassOf[Id])
-
-			Update(id, key, data, Option(txid), deps)
-		}
-	}
 }
