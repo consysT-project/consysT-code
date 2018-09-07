@@ -29,36 +29,26 @@ object ReadCommittedTransactions {
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-		txRef : TxRef[Id],
-		updates : Set[Update[Id, Key, Data]],
-		result : Return
-	): CommitStatus[Id, Key, Return]	= {
+		txWrite : store.WriteTx,
+		updateWrites : Iterable[store.WriteUpdate]
+	): CommitStatus[Id, Key]	= {
 
 		import CommitStatus._
 
-
-		//TODO: Instead of computing the updated ids here, use the transaction ids from the shim layer
 		try {
-
-			updates.foreach(upd => {
-				val Update(id, key, data, _, deps) = upd
-
-				store.writeData(session, ConsistencyLevel.ONE)(
-					id, key, data, deps, Some(txRef), store.txStatusOps.committed, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
-				)
+			updateWrites.foreach(write => {
+				write.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.committed, store.isolationLevelOps.readCommitted)
 			})
 
-			store.writeNullData(session, ConsistencyLevel.ONE)(
-				txRef.id, store.keyOps.transactionKey, updates.map(_.toRef), Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.readCommitted
-			)
+			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.committed, store.isolationLevelOps.readCommitted)
 
 
 		} catch {
 			//TODO: Do proper error handling here
-			case e : Exception => return Error(txRef.id, e)
+			case e : Exception => return Error(txWrite.tx.id, e)
 		}
 
-		return Success(txRef.id, updates.map(_.toRef), result)
+		return Success(txWrite.tx.id, updateWrites.map(_.upd.toRef))
 	}
 
 
@@ -67,7 +57,7 @@ object ReadCommittedTransactions {
 	  session : Session,
 	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-	  row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]
+	  row : store.DataRow
 	) : Boolean = {
 
 		//Check whether the given row has the correct isolation level
@@ -139,7 +129,7 @@ object ReadCommittedTransactions {
 			//TODO: Retry here???
 		}
 
-		val dataRow = CassandraRow[Id, Key, Data, TxStatus, Isolation, Consistency](readRow)
+		val dataRow = store.CassandraRow(readRow)
 
 
 

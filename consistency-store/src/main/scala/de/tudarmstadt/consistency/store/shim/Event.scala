@@ -17,10 +17,10 @@ sealed trait Event[Id, Key, Data] {
 	 */
 	def id :Id
 	def readDependencies : Set[UpdateRef[Id, Key]]
-	def txDependency : Option[TxRef[Id]]
+	def txid : Option[TxRef[Id]]
 
 	def dependencies : Set[EventRef[Id, Key]] =
-		readDependencies ++ txDependency
+		readDependencies ++ txid
 
 	def toRef : EventRef[Id, Key]
 }
@@ -29,7 +29,7 @@ sealed trait Event[Id, Key, Data] {
 
 object Event {
 	//Note: val dependencies does not contain the txid.
-	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txDependency : Option[TxRef[Id]], readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
+	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[TxRef[Id]], readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
 		def toRef : UpdateRef[Id, Key] = UpdateRef(id, key)
 	}
 	object Update {
@@ -38,7 +38,7 @@ object Event {
 	}
 
 	case class Tx[Id, Key, Data](id : Id, readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
-		override def txDependency : Option[TxRef[Id]] = None
+		override def txid : Option[TxRef[Id]] = None
 		override def toRef : TxRef[Id] = TxRef(id)
 	}
 	object Tx {

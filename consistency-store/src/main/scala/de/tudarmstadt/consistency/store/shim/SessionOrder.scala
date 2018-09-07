@@ -46,13 +46,29 @@ class SessionOrder[Id : Ordering, Key, Data] {
 	//The ids of all updates that happened during this transaction
 	private var transactionDependencies : Set[UpdateRef[Id, Key]] = Set.empty
 
+	private var nextUpdatePointer : Option[Update[Id, Key, Data]] = None
 
 	private [shim] val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
 
 
-	def addUpdate(id : Id, key : Key, data : Data): Unit = {
-		val upd = graph.addUpdate(id, key, data, transactionPointer, getNextDependencies)
+	def lockNextUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
+		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
 
+		val upd = Update(id, key, data, transactionPointer, getNextDependencies)
+		nextUpdatePointer = Some(upd)
+		upd
+	}
+
+	def releaseNextUpdate() : Unit = {
+		assert(nextUpdatePointer.nonEmpty, "no update locked")
+
+		nextUpdatePointer = None
+	}
+
+	def confirmNextUpdate() : Unit = {
+		assert(nextUpdatePointer.nonEmpty, "no update locked")
+
+		val Some(upd) = nextUpdatePointer
 		val updRef = upd.toRef
 
 		sessionPointer = Some(updRef)
@@ -60,9 +76,19 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 		if (transactionPointer.isDefined)
 			transactionDependencies += updRef
+
+		nextUpdatePointer = None
 	}
 
+	def addUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
+		val upd = lockNextUpdate(id, key, data)
+		confirmNextUpdate()
+		upd
+	}
+
+
 	def addRead(ref : UpdateRef[Id, Key]): Unit = {
+		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
 		readDependencies = readDependencies + ref
 	}
 
@@ -76,34 +102,43 @@ class SessionOrder[Id : Ordering, Key, Data] {
 	}
 
 	//You need to manually add a read with addRead if this read should be visible as a dependency
-	def read(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] =
+	def getResolved(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] =
 		graph.read(key, transactionPointer)
 
 
 	def startTransaction(id : Id): Unit = {
 		assert(transactionPointer.isEmpty)
+		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
 
 		sessionPointerBeforeTx = sessionPointer
 		transactionPointer = Some(TxRef(id))
 		transactionDependencies = Set.empty
 	}
 
-	def commitTransaction(): Unit = transactionPointer match {
-		case None => assert(assertion = false, "cannot commit a transaction that has never started")
-		case Some(txRef) =>
-			graph.addTx(txRef.id, transactionDependencies)
-			transactionDependencies = Set.empty
-			transactionPointer = None
+	def commitTransaction(): Unit = {
+		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
+
+		transactionPointer match {
+			case None => assert(assertion = false, "cannot commit a transaction that has never started")
+			case Some(txRef) =>
+				graph.addTx(txRef.id, transactionDependencies)
+				transactionDependencies = Set.empty
+				transactionPointer = None
+		}
 	}
 
-	def abortTransaction() : Unit = transactionPointer match {
-		case None => assert(assertion = false, "cannot abort a transaction that has never started")
-		case Some(id) =>
-			transactionDependencies.foreach(ref => graph.remove(ref.id))
-			transactionDependencies = Set.empty
-			transactionPointer = None
-			//Reset session pointer to "before the transaction"
-			sessionPointer = sessionPointerBeforeTx
+	def abortTransaction() : Unit = {
+		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
+
+		transactionPointer match {
+			case None => assert(assertion = false, "cannot abort a transaction that has never started")
+			case Some(id) =>
+				transactionDependencies.foreach(ref => graph.remove(ref.id))
+				transactionDependencies = Set.empty
+				transactionPointer = None
+				//Reset session pointer to "before the transaction"
+				sessionPointer = sessionPointerBeforeTx
+		}
 	}
 
 	private [shim] def addRaw(update : Update[Id, Key, Data]) : Unit = {

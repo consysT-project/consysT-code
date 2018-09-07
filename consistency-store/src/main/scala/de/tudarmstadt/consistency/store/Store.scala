@@ -5,7 +5,7 @@ package de.tudarmstadt.consistency.store
 	*
 	* @author Mirko Köhler
 	*/
-trait Store[Key, Data, RefreshResult, TxParams, WriteParams, ReadParams, Read] {
+trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 
 	type SessionCtx <: SessionContext
 	type Session[U] = SessionCtx => U
@@ -19,7 +19,6 @@ trait Store[Key, Data, RefreshResult, TxParams, WriteParams, ReadParams, Read] {
 		type Transaction[U] = TxCtx => Option[U]
 
 		def startTransaction[U](params : TxParams)(f : Transaction[U]) : Option[U]
-		@Deprecated	def refresh() : RefreshResult
 		def print() : Unit
 
 		trait TxContext {

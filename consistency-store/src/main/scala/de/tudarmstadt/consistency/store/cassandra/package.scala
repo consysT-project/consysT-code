@@ -21,42 +21,7 @@ package object cassandra {
 	private[cassandra] def rowWasApplied(row : Row) : Boolean =
 		row.getBool("[applied]")
 
-	trait DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] {
-		def id : Id
-		def key : Key
-		def data : Data
-		def deps : Set[UpdateRef[Id, Key]]
-		def txid : Option[TxRef[Id]]
-		def txStatus : TxStatus
-		def isolation : Isolation
-		def consistency : Consistency
 
-		def cassandraTxid : Any =
-			txid.map(ref => ref.id).getOrElse(null)
-
-
-	}
-
-	case class CassandraRow[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](row : Row) extends DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] {
-		override def id : Id = row.get("id", runtimeClassOf[Id])
-		override def key : Key = row.get("key", runtimeClassOf[Key])
-		override def data : Data = row.get("data", runtimeClassOf[Data])
-		override def deps : Set[UpdateRef[Id, Key]] = {
-			val rawSet : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", runtimeClassOf[TupleValue])).toSet
-			rawSet.map(tv => {
-				val id = tv.get(0, runtimeClassOf[Id])
-				val key = tv.get(1, runtimeClassOf[Key])
-				UpdateRef(id, key)
-			})
-		}
-		override def txid : Option[TxRef[Id]] = Option(TxRef(row.get("txid", runtimeClassOf[Id])))
-		override def txStatus : TxStatus = row.get("txstatus", runtimeClassOf[TxStatus])
-		override def isolation : Isolation = row.get("isolation", runtimeClassOf[Isolation])
-		override def consistency : Consistency = row.get("consistency", runtimeClassOf[Consistency])
-	}
-
-	case class LocalRow[Id, Key, Data, TxStatus, Isolation, Consistency](id : Id, key : Key, data : Data, deps : Set[UpdateRef[Id, Key]], txid : Option[TxRef[Id]], txStatus : TxStatus, isolation : Isolation, consistency : Consistency)
-		extends DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]
 
 
 
