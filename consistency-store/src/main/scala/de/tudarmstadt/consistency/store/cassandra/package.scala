@@ -16,15 +16,6 @@ import scala.reflect.runtime.universe._
 	*/
 package object cassandra {
 
-	/**
-		* Type of sessions of the Cassandra database.
-		*/
-
-
-//	case class CassandraUpdate[Id, Key, Data](id : Id, key : Key, data : Data, dependencies : Set[EventRef[Id, Key]]) {
-//		def toEventRef : EventRef[Id, Key] =
-//			EventRef(id, key)
-//	}
 
 
 	private[cassandra] def rowWasApplied(row : Row) : Boolean =
@@ -39,6 +30,11 @@ package object cassandra {
 		def txStatus : TxStatus
 		def isolation : Isolation
 		def consistency : Consistency
+
+		def cassandraTxid : Any =
+			txid.map(ref => ref.id).getOrElse(null)
+
+
 	}
 
 	case class CassandraRow[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](row : Row) extends DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] {

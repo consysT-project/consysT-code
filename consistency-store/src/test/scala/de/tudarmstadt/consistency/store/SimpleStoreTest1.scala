@@ -14,11 +14,9 @@ import org.junit.{Before, Test}
 	*/
 class SimpleStoreTest1 extends SimpleStoreTest {
 
-
-
-
 	@Test
 	def singleSession(): Unit = {
+		val store = this.store
 		import store._
 
 		startSession { session =>
@@ -71,17 +69,17 @@ class SimpleStoreTest1 extends SimpleStoreTest {
 						"x", //x is the key that is being read
 						"Hola", //the data that has been written by this key
 						Some(7), //the update is part of the transaction with id 7
-						Set(UpdateRef(3, "y")) //the dependency (which results from read dependencies and the session dependency)
+						(3, "y") //the dependency (which results from read dependencies and the session dependency)
 				)(x)
 
 				val y = tx.read("y", consistencyLevelOps.sequential)
-				assertUpdate(3, "y", "Welt", Some(1), Set(UpdateRef(2, "x")))(y)
+				assertUpdate(3, "y", "Welt", Some(1), (2, "x"))(y)
 
 				val z = tx.read("z", consistencyLevelOps.sequential)
-				assertUpdate(9, "z", "Amigos", Some(7), Set(UpdateRef(8, "x")))(z)
+				assertUpdate(9, "z", "Amigos", Some(7), (8, "x"))(z)
 
 				val s = tx.read("s", consistencyLevelOps.sequential)
-				assertUpdate(11, "s", "Hola Welt Amigos", Some(10), Set(UpdateRef(9, "z"), UpdateRef(8, "x"), UpdateRef(3, "y")))(s)
+				assertUpdate(11, "s", "Hola Welt Amigos", Some(10), (9, "z"), (8, "x"), (3, "y"))(s)
 
 				Some ()
 			}
@@ -94,9 +92,10 @@ class SimpleStoreTest1 extends SimpleStoreTest {
 
 	@Test
 	def multiSession(): Unit = {
-		//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
-		val store = Stores.Simple.newTestStore(LocalCluster, initialize = true)
+		val store = this.store
 		import store._
+
+		println("Session 1")
 
 		startSession { session =>
 			session.startTransaction(isolationLevelOps.snapshotIsolation) { tx =>
@@ -105,6 +104,8 @@ class SimpleStoreTest1 extends SimpleStoreTest {
 				Some ()
 			}
 		}
+
+		println("Session 2")
 
 		startSession { session =>
 			session.startTransaction(isolationLevelOps.snapshotIsolation) { tx =>
@@ -118,49 +119,59 @@ class SimpleStoreTest1 extends SimpleStoreTest {
 				assertEquals(None, w)
 
 				val x = tx.read("x", consistencyLevelOps.sequential)
-				assertUpdate(5, "x", "Hello", Some(4), Set.empty)(x)
+				assertUpdate(5, "x", "Hello", Some(4))(x)
 
 				val y = tx.read("y", consistencyLevelOps.sequential)
-				assertUpdate(3, "y", "Welt", Some(1), Set(UpdateRef(2, "x")))(y)
+				assertUpdate(3, "y", "Welt", Some(1), (2, "x"))(y)
 
 				val z = tx.read("z", consistencyLevelOps.sequential)
-				assertUpdate(6, "z", "World", Some(4), Set(UpdateRef(5, "x")))(z)
+				assertUpdate(6, "z", "World", Some(4), (5, "x"))(z)
 
 				Some ()
 			}
 		}
 
+		println("Session 3")
+
 		startSession { session =>
 			session.startTransaction(isolationLevelOps.snapshotIsolation) { tx =>
 				val x = tx.read("x", consistencyLevelOps.sequential)
-				assertUpdate(5, "x", "Hello", Some(4), Set.empty)(x)
+				assertUpdate(5, "x", "Hello", Some(4))(x)
 
 				val y = tx.read("y", consistencyLevelOps.sequential)
-				assertUpdate(3, "y", "Welt", Some(1), Set(UpdateRef(2, "x")))(y)
+				assertUpdate(3, "y", "Welt", Some(1), (2, "x"))(y)
 
 				val r = List(x, y).flatten.map(upd => upd.data).mkString(" ")
 				tx.update("x", r, consistencyLevelOps.sequential)
 
 				val x2 = tx.read("x", consistencyLevelOps.sequential)
-				assertUpdate(9, "x", "Hello Welt", Some(8), Set(UpdateRef(5, "x"), UpdateRef(3, "y")))(x2)
+				assertUpdate(9, "x", "Hello Welt", Some(8), (5, "x"), (3, "y"))(x2)
 
 				Some ()
 			}
 		}
+
+		println("Session 4")
 
 		startSession { session =>
 			session.startTransaction(isolationLevelOps.snapshotIsolation) { tx =>
 				//Here we have to resolve the dependencies of the read (9, x) as well, and not just x
 				val x2 = tx.read("x", consistencyLevelOps.sequential)
-				assertUpdate(9, "x", "Hello Welt", Some(8), Set(UpdateRef(5, "x"), UpdateRef(3, "y")))(x2)
+				assertUpdate(9, "x", "Hello Welt", Some(8), (5, "x"), (3, "y"))(x2)
 
 				Some ()
 			}
 		}
 
+		println("Done.")
+
+
 		store.close()
 
+
 	}
+
+
 
 
 

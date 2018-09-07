@@ -68,7 +68,7 @@ package object store {
 
 
 	case class CassandraWriteParams[Id, Key, Consistency](id : Id, deps : Set[UpdateRef[Id, Key]], consistency : Consistency)
-	case class CassandraReadParams[Consistency](consistency : Consistency)
+	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)
 
 
@@ -85,9 +85,6 @@ package object store {
 
 		object LocalCluster extends AddressAndPort("127.0.0.1", 9042)
 	}
-
-
-
 
 
 

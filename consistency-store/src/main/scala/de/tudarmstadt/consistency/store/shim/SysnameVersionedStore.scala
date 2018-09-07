@@ -20,7 +20,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : Store[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
+	val baseStore : Store[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Id, Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
 
 	val idOps : IdOps[Id]
 	val keyOps : KeyOps[Key]
@@ -92,7 +92,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		override def refresh() : Unit = ???
 
 
-		private [shim] def addRaws(rows : Seq[DataRow[Id, Key, Data, _, _, _]]) : Unit = {
+		private [shim] def addRows(rows : Seq[DataRow[Id, Key, Data, _, _, _]]) : Unit = {
 			rows.foreach(row => {
 				val key = row.key
 				if (key == keyOps.transactionKey) {
@@ -110,11 +110,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
-			val params = CassandraReadParams(consistency)
-			val rows = baseTx.read(key, params)
-			addRaws(rows)
+			val rows = baseTx.read(key, CassandraReadParams(None, consistency))
+			addRows(rows)
 
-			var alreadyTried : Set[Key] = Set(key)
+			var alreadyTried : Set[Id] = Set.empty
 
 			while (true) {
 				sessionOrder.read(key) match {
@@ -127,11 +126,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 						//..., then try to resolve it
 						unresolved.foreach(evt => {
 							val evtKey = evt match {
-								case UpdateRef(id, refKey) => refKey
-								case TxRef(id) => keyOps.transactionKey
+								case UpdateRef(_, refKey) => refKey
+								case TxRef(_) => keyOps.transactionKey
 							}
+
 							//if the key has already been updated in this run, then abort this read and return the version that could have been resolved
-							if (alreadyTried.contains(evtKey)) {
+							if (alreadyTried.contains(evt.id)) {
 								optionalUpdate match {
 									//If there was another resolved update, then return it
 									case Some(resolvedUpdate) =>
@@ -143,10 +143,9 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 								}
 							}
 
-							//TODO: Only read the refId?
-							val rawRows = baseTx.read(key, params)
-							addRaws(rows)
-							alreadyTried = alreadyTried + key
+							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), consistency))
+							addRows(rawRows)
+							alreadyTried = alreadyTried + evt.id
 						})
 						//now, retry to read the key
 

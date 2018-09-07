@@ -188,7 +188,7 @@ object SnapshotIsolatedTransactions {
 		val isolation = row.isolation
 		assert(isolation == store.isolationLevelOps.snapshotIsolation, "row has wrong isolation level")
 
-		val readTxid = row.txid.getOrElse(null)
+		val readTxid = row.cassandraTxid
 		val txStatus = row.txStatus
 
 		//1. If the read value does not belong to a transaction or the transaction has been committed

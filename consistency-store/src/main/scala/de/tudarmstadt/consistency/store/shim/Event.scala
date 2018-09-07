@@ -32,9 +32,18 @@ object Event {
 	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txDependency : Option[TxRef[Id]], readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
 		def toRef : UpdateRef[Id, Key] = UpdateRef(id, key)
 	}
+	object Update {
+		def apply[Id, Key, Data](id : Id, key : Key, data : Data, txDependency : Option[Id], readDependencies : (Id, Key)*) : Update[Id, Key, Data] =
+			Update(id, key, data, txDependency.map(TxRef(_)), readDependencies.toSet[(Id, Key)].map(t => UpdateRef[Id, Key](t._1,t._2)))
+	}
+
 	case class Tx[Id, Key, Data](id : Id, readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
-		override val txDependency : Option[TxRef[Id]] = None
+		override def txDependency : Option[TxRef[Id]] = None
 		override def toRef : TxRef[Id] = TxRef(id)
+	}
+	object Tx {
+		def apply[Id, Key, Data](id : Id, readDependencies : (Id, Key)*) : Tx[Id, Key, Data] =
+			Tx(id, readDependencies.toSet[(Id, Key)].map(t => UpdateRef(t._1,t._2)))
 	}
 }
 
