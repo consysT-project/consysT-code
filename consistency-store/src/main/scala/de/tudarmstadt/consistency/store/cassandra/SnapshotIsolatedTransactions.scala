@@ -4,7 +4,7 @@ import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.utils.Log
 
@@ -25,16 +25,15 @@ object SnapshotIsolatedTransactions {
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-		txRef : TxRef[Id],
-		updates : Set[Update[Id, Key, Data]],
-		result : Return
-	) : CommitStatus[Id, Key, Return]	= {
+		txWrite : store.WriteTx,
+		updWrites : Iterable[store.WriteUpdate]
+	) : CommitStatus[Id, Key]	= {
 
 		import CommitStatus._
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val keyspace = store.keyspace
-		val txid = txRef.id
+		val txid = txWrite.tx.id
 
 		/* Handle writes */
 		try { //Catch exceptions when running CAS queries
@@ -57,11 +56,11 @@ object SnapshotIsolatedTransactions {
 			}
 
 			//4. Update all keys for writes in the key table
-			updates.foreach(upd => {
+			updWrites.foreach(write => {
 				val updateKeyResult = session.execute(
 					update(keyspace.keyTable.name)
 						.`with`(set("txid", txid))
-						.where(QueryBuilder.eq("key", upd.key))
+						.where(QueryBuilder.eq("key", write.upd.key))
 						.onlyIf(QueryBuilder.eq("txid", null))
 						.setConsistencyLevel(ConsistencyLevel.ALL)
 				)
@@ -95,7 +94,7 @@ object SnapshotIsolatedTransactions {
 						val updateKeyAgainResult = session.execute(
 							update(keyspace.keyTable.name)
 								.`with`(set("txid", txid))
-								.where(QueryBuilder.eq("key", upd.key))
+								.where(QueryBuilder.eq("key", write.upd.key))
 								.onlyIf(QueryBuilder.eq("txid", otherTxId))
 								.setConsistencyLevel(ConsistencyLevel.ALL)
 						)
@@ -120,35 +119,21 @@ object SnapshotIsolatedTransactions {
 					//If we already retried to change the key X times without success, give up
 					if (failed) {
 						//assert(false, "was unable to lock the key")
-						return Abort(txid, s"could not get a lock on key ${upd.key}")
+						return Abort(txid, s"could not get a lock on key ${write.upd.key}")
 					}
 				}
 			})
 
 			//5. Add the data to the data table
 			//5.1. Get the (already generated) ids foreach write
-			val updatedIds : Set[UpdateRef[Id, Key]] = updates.map(_.toRef)
 
 			//5.2 Add a data entry for each write
-			updates.foreach(upd => {
-
-				val Update(id, key, data, _, deps) = upd
-
-				store.writeData(
-					session, ConsistencyLevel.ONE
-				)(
-					id, key, data, deps, Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
-				)
-
-
+			updWrites.foreach(write => {
+				write.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.pending, store.isolationLevelOps.snapshotIsolation)
 			})
 
 			//5.3. Add a transaction record to the data table
-			store.writeNullData(
-				session, ConsistencyLevel.ONE
-			)(
-				txid, store.keyOps.transactionKey, updatedIds, Some(txRef), store.txStatusOps.pending, store.consistencyLevelOps.sequential, store.isolationLevelOps.snapshotIsolation
-			)
+			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.pending, store.isolationLevelOps.snapshotIsolation)
 
 
 			//6. Mark transaction as committed
@@ -164,7 +149,7 @@ object SnapshotIsolatedTransactions {
 				return Abort(txid, "the transaction has been aborted by a conflicting transaction before being able to commit")
 			}
 
-			return Success[Id, Key, Return](txid, updates.map(_.toRef), result)
+			return Success[Id, Key](txid, updWrites.map(_.upd.toRef))
 		} catch {
 			case e : WriteTimeoutException => e.getWriteType match {
 				case WriteType.CAS => return Abort(txid, e.getMessage)
@@ -179,7 +164,7 @@ object SnapshotIsolatedTransactions {
 	   session : Session,
 	   store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	 )(
-		 row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]
+		 row : store.DataRow
 	 ) : Boolean = {
 
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
@@ -314,7 +299,7 @@ object SnapshotIsolatedTransactions {
 			//TODO: Retry here???
 		}
 
-		val dataRow : CassandraRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(readRow)
+		val dataRow : store.CassandraRow = store.CassandraRow(readRow)
 
 		val id = dataRow.id
 		val data = dataRow.data

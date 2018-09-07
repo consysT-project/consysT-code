@@ -2,9 +2,10 @@ package de.tudarmstadt.consistency.store.cassandra
 
 import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.QueryBuilder
+import com.datastax.driver.core.querybuilder.QueryBuilder.{set, update}
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.shim.Event
-import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.utils.Log
 
@@ -19,12 +20,11 @@ import scala.reflect.runtime.universe._
 abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag]
 	extends Store[
 		Key,
-		Data,
-		ResultSet,
+		Event[Id, Key, Data],
 		CassandraTxParams[Id, Isolation],
 		CassandraWriteParams[Id, Key, Consistency],
 		CassandraReadParams[Id, Consistency],
-		Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]
+		Seq[Event[Id, Key, Data]]
 		] {
 
 	type CassandraSession = com.datastax.driver.core.Session
@@ -75,14 +75,14 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			isolation match {
 				case l if l == isolationLevelOps.snapshotIsolation =>
-					val txCtx = new SysnameCassandraSnapshotIsolatedTxContext(params)
-					f(txCtx) match {
+					val txContext = new SysnameCassandraSnapshotIsolatedTxContext(params)
+					f(txContext) match {
 						case None =>
 							return None
-						case Some(u) =>
-							SnapshotIsolatedTransactions.commit(session, SysnameCassandraStore.this)(txid, txCtx.updates.toSet, u) match {
-								case CommitStatus.Success(_, _, result) =>
-									return Some(result)
+						case result@Some(u) =>
+							SnapshotIsolatedTransactions.commit(session, SysnameCassandraStore.this)(txContext.getTx.get /*TODO: Handle case where getTx == None */, txContext.getUpdates) match {
+								case CommitStatus.Success(_, _) =>
+									return result
 								case CommitStatus.Abort(_, desc) =>
 									Log.info(classOf[SysnameCassandraSessionContext], desc)
 									return None
@@ -92,14 +92,14 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 					}
 
 				case l if l == isolationLevelOps.readCommitted =>
-					val txCtx = new SysnameCassandraReadCommittedTxContext(params)
-					f(txCtx) match {
+					val txContext = new SysnameCassandraReadCommittedTxContext(params)
+					f(txContext) match {
 						case None =>
 							return None
 						case Some(u) =>
-							ReadCommittedTransactions.commit(session, SysnameCassandraStore.this)(txid, txCtx.updates.toSet, u) match {
-								case CommitStatus.Success(_, _, result) =>
-									return Some(result)
+							ReadCommittedTransactions.commit(session, SysnameCassandraStore.this)(txContext.getTx.get /*TODO: Handle case where getTx == None */, txContext.getUpdates) match {
+								case CommitStatus.Success(_, _) =>
+									return Some(u)
 								case CommitStatus.Abort(_, desc) =>
 									Log.info(classOf[SysnameCassandraSessionContext], desc)
 									return None
@@ -110,7 +110,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
-		private def readKey(key : Key, txParams : CassandraTxParams[Id, Isolation], readParams : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency]) : Seq[Event[Id, Key, Data]] = {
 			readParams match {
 				case CassandraReadParams(Some(id), _) => readVersionOf(key, id).toSeq
 				case CassandraReadParams(None, _) => readAllVersionsOf(key)
@@ -118,7 +118,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 
 
-		private def readAllVersionsOf(key : Key) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+		private def readAllVersionsOf(key : Key) : Seq[Event[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -127,17 +127,17 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
   				.where(QueryBuilder.eq("key", key))
 			)
 
-			val buf : mutable.Buffer[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = mutable.Buffer.empty
+			val buf : mutable.Buffer[Event[Id, Key, Data]] = mutable.Buffer.empty
 
 			//Iterate through all rows of the result
 			var row = keyResult.one()
 			while (row != null) {
-				val dataRow : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(row)
+				val dataRow : DataRow = CassandraRow(row)
 
 				val rowIsCommitted = commitRow(dataRow)
 
 				if (rowIsCommitted) {
-					buf.prepend(dataRow)
+					buf.prepend(dataRow.toEvent)
 				}
 
 				row = keyResult.one()
@@ -146,7 +146,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			return buf
 		}
 
-		private def readVersionOf(key : Key, id : Id) : Option[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+		private def readVersionOf(key : Key, id : Id) : Option[Event[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -161,18 +161,18 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				return None
 			}
 
-			val dataRow : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(row)
+			val dataRow : DataRow = CassandraRow(row)
 
 			val rowIsCommitted = commitRow(dataRow)
 
 			if (rowIsCommitted) {
-				return Some(dataRow)
+				return Some(dataRow.toEvent)
 			} else {
 				return None
 			}
 		}
 
-		private def commitRow(row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]) : Boolean = row.isolation match {
+		private def commitRow(row : DataRow) : Boolean = row.isolation match {
 			case l if l == isolationLevelOps.snapshotIsolation =>
 				SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
 			case l if l == isolationLevelOps.readCommitted =>
@@ -182,48 +182,64 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 
 		trait CassandraTxContext extends TxContext {
+			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[Event[Id, Key, Data]] = {
+				readKey(key, params)
+			}
 
-			//def readId(id : Id, key : Key, params : CassandraReadParams[Consistency])
+
+			override def update(key : Key, data : Event[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+				data match {
+					case upd@Update(_, updKey, _, _, _) =>
+						assert(key == updKey, "inconsistent update: update key does not match key")
+						update(upd, params)
+					case tx : Tx[Id, Key, Data] =>
+						assert(key == keyOps.transactionKey, "inconsistent tx: key does not match default transaction key")
+						update(tx, params)
+				}
+			}
+
+			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit
+			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit
+
 		}
 
+		trait BufferedCassandraTxContext extends CassandraTxContext {
+			private val updates : mutable.Buffer[WriteUpdate] = mutable.Buffer.empty
+			private val tx : Array[WriteTx] = Array(null)
 
-		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
-
-			val updates : mutable.Set[Update[Id, Key, Data]] = mutable.HashSet.empty
-
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
-				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
+			def bufferUpdate(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+				updates += WriteUpdate(update, params)
 			}
 
-			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readKey(key, txParams, params)
+			def bufferTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+				assert(getTx.isEmpty, "already buffered another transaction record for this transaction")
+				this.tx(0) = WriteTx(tx, params)
 			}
+
+			def getTx : Option[WriteTx] =
+				Option(tx(0))
+
+			def getUpdates : Seq[WriteUpdate] =
+				updates
+
+			override def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit =
+				bufferUpdate(update, params)
+
+			override def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit =
+				bufferTx(tx, params)
 		}
 
+		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
 
-		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
-
-			val updates : mutable.Set[Update[Id, Key, Data]] = mutable.HashSet.empty
-
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
-				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
-			}
-
-			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readKey(key, txParams, params)
-			}
-		}
+		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
 
 		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
-
-			override def update(key : Key, data : Data, params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
-				val CassandraWriteParams(id, deps, consistency) = params
+			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+				assert(update.txid.isEmpty, "a transaction without isolation can not depend on a transaction record")
 
 				try {
-					writeData(session, ConsistencyLevel.ONE)(
-						id, key, data, deps, txParams.txid, txStatusOps.committed, consistency, isolationLevelOps.none
-					)
+					WriteUpdate(update, params).writeData(session, ConsistencyLevel.ONE)(txStatusOps.committed, isolationLevelOps.none)
 				} catch {
 					//TODO: Real error handling here
 					case e : Exception => throw e
@@ -231,13 +247,15 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			}
 
-			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readKey(key, txParams, params)
+			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+				assert(assertion = false, "transaction with isolation level none cannot have a transaction record")
 			}
+
 		}
 
 
-		override def refresh() : ResultSet = {
+		@Deprecated
+		def refresh() : ResultSet = {
 			Fetcher.fetch(session)
 		}
 
@@ -310,56 +328,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		JavaConverters.setAsJavaSet(set.map(eventRefToCassandraTuple))
 	}
 
-	private[cassandra] def writeData
-	(
-		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
-	)(
-		id : Id, key : Key, data : Data, deps : Set[UpdateRef[Id, Key]], txid : Option[TxRef[Id]], txStatus : TxStatus, consistency : Consistency, isolation : Isolation
-	) : Unit = {
-		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val convertedTxid = txid.map(ref => ref.id).getOrElse(null)
-		val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
-
-		session.execute(
-			update(keyspace.dataTable.name)
-				.`with`(set("data", data))
-				.and(set("deps", convertedDependencies))
-				.and(set("txid", convertedTxid))
-				.and(set("txstatus", txStatus))
-				.and(set("consistency", consistency))
-				.and(set("isolation", isolation))
-				.where(QueryBuilder.eq("key", key))
-				.and(QueryBuilder.eq("id", id))
-				.setConsistencyLevel(writeConsistency)
-		)
-	}
-
-
-	private[cassandra] def writeNullData
-	(
-		session : CassandraSession, writeConsistency : ConsistencyLevel = ConsistencyLevel.ONE
-	)(
-		id : Id, key : Key, deps : Set[UpdateRef[Id, Key]], txid : Option[TxRef[Id]], txStatus : TxStatus, consistency : Consistency, isolation : Isolation
-	) : Unit = {
-		import com.datastax.driver.core.querybuilder.QueryBuilder._
-
-		val convertedTxid = txid.map(ref => ref.id).getOrElse(null)
-		val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(deps)
-
-		session.execute(
-			update(keyspace.dataTable.name)
-				.`with`(set("data", null))
-				.and(set("deps", convertedDependencies))
-				.and(set("txid", convertedTxid))
-				.and(set("txstatus", txStatus))
-				.and(set("consistency", consistency))
-				.and(set("isolation", isolation))
-				.where(QueryBuilder.eq("key", key))
-				.and(QueryBuilder.eq("id", id))
-				.setConsistencyLevel(writeConsistency)
-		)
-	}
 
 	private[cassandra] def newSession : CassandraSession =
 		cluster.connect(keyspace.name)
@@ -512,4 +481,96 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	}
 
 
+
+	trait DataRow {
+		def id : Id
+		def key : Key
+		def data : Data
+		def txid : Option[TxRef[Id]]
+		def deps : Set[UpdateRef[Id, Key]]
+		def txStatus : TxStatus
+		def isolation : Isolation
+		def consistency : Consistency
+
+		def cassandraTxid : Any =
+			txid.map(ref => ref.id).getOrElse(null)
+
+		def toEvent : Event[Id, Key, Data] = {
+			if (key == keyOps.transactionKey) {
+				return Tx(id, deps)
+			} else {
+				return Update(id, key, data, txid, deps)
+			}
+		}
+
+
+	}
+
+	case class CassandraRow(row : Row) extends DataRow {
+		override def id : Id = row.get("id", runtimeClassOf[Id])
+		override def key : Key = row.get("key", runtimeClassOf[Key])
+		override def data : Data = row.get("data", runtimeClassOf[Data])
+		override def txid : Option[TxRef[Id]] = Option(TxRef(row.get("txid", runtimeClassOf[Id])))
+		override def deps : Set[UpdateRef[Id, Key]] = {
+			val rawSet : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", runtimeClassOf[TupleValue])).toSet
+			rawSet.map(tv => {
+				val id = tv.get(0, runtimeClassOf[Id])
+				val key = tv.get(1, runtimeClassOf[Key])
+				UpdateRef(id, key)
+			})
+		}
+		override def txStatus : TxStatus = row.get("txstatus", runtimeClassOf[TxStatus])
+		override def isolation : Isolation = row.get("isolation", runtimeClassOf[Isolation])
+		override def consistency : Consistency = row.get("consistency", runtimeClassOf[Consistency])
+	}
+
+	case class LocalRow(id: Id, key: Key, data: Data, txid: Option[TxRef[Id]], deps: Set[UpdateRef[Id, Key]], txStatus: TxStatus, isolation: Isolation, consistency: Consistency)
+		extends DataRow
+
+	trait Write {
+		def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit
+	}
+
+	case class WriteUpdate(upd : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) extends Write {
+
+		override def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit = {
+
+			val convertedTxid = upd.txid.map(ref => ref.id).getOrElse(null)
+			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(upd.readDependencies)
+
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+			session.execute(
+				update(keyspace.dataTable.name)
+					.`with`(set("data", upd.data))
+					.and(set("deps", convertedDependencies))
+					.and(set("txid", convertedTxid))
+					.and(set("txstatus", txStatus))
+					.and(set("isolation", isolation))
+					.and(set("consistency", params.consistency))
+					.where(QueryBuilder.eq("key", upd.key))
+					.and(QueryBuilder.eq("id", upd.id))
+					.setConsistencyLevel(writeConsistency)
+			)
+		}
+	}
+
+	case class WriteTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) extends Write {
+		override def writeData(session : CassandraSession, writeConsistency : ConsistencyLevel)(txStatus : TxStatus, isolation : Isolation) : Unit = {
+			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(tx.readDependencies)
+
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+			session.execute(
+				update(keyspace.dataTable.name)
+					.`with`(set("data", null))
+					.and(set("deps", convertedDependencies))
+					.and(set("txid", tx.id))
+					.and(set("txstatus", txStatus))
+					.and(set("isolation", isolation))
+					.and(set("consistency", params.consistency))
+					.where(QueryBuilder.eq("key", keyOps.transactionKey))
+					.and(QueryBuilder.eq("id", tx.id))
+					.setConsistencyLevel(writeConsistency)
+			)
+		}
+	}
 }

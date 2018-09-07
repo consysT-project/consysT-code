@@ -23,11 +23,11 @@ class SessionOrderTest {
 
 	private def assertReadResolved(id : Id, key : Key, data : Data, txid : Option[Id], deps : Set[UpdateRef[Id, Key]]): Unit = {
 		val upd = Update(id, key, data, txid.map(TxRef(_)), deps)
-		assertEquals(Found(Some(upd), upd, Set.empty), sessionOrder.read(key))
+		assertEquals(Found(Some(upd), upd, Set.empty), sessionOrder.getResolved(key))
 	}
 
 	private def assertReadNotFound(key : Key): Unit = {
-		assertEquals(NotFound(), sessionOrder.read(key))
+		assertEquals(NotFound(), sessionOrder.getResolved(key))
 	}
 
 	@Test

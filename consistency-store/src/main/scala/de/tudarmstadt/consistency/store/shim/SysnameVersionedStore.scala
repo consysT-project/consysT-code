@@ -1,9 +1,7 @@
 package de.tudarmstadt.consistency.store.shim
 
-import com.datastax.driver.core.ResultSet
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.cassandra.DataRow
-import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
+import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
 import de.tudarmstadt.consistency.utils.Log
@@ -13,14 +11,14 @@ import de.tudarmstadt.consistency.utils.Log
 	*
 	* @author Mirko Köhler
 	*/
-trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] extends Store[Key, Data, Unit, Isolation, Consistency, Consistency, Read] {
+trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] extends Store[Key, Data, Isolation, Consistency, Consistency, Read] {
 
 	override type SessionCtx = SysnameShimSessionContext
 	type BaseSessionContext = baseStore.SessionContext
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : Store[Key, Data, ResultSet, CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Id, Consistency], Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]]
+	val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 
 	val idOps : IdOps[Id]
 	val keyOps : KeyOps[Key]
@@ -75,6 +73,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 					val transactionState = baseSession.startTransaction(txParams) { baseTx =>
 						val tx = new SysnameShimDefaultTxContext(baseTx, isolation)
 						f(tx)
+						baseTx.update(keyOps.transactionKey, )
 					}
 
 					transactionState match {
@@ -89,34 +88,20 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		}
 
-		override def refresh() : Unit = ???
 
 
-		private [shim] def addRows(rows : Seq[DataRow[Id, Key, Data, _, _, _]]) : Unit = {
-			rows.foreach(row => {
-				val key = row.key
-				if (key == keyOps.transactionKey) {
-					val id = row.id
-					val deps = row.deps
-					sessionOrder.graph.addTx(id, deps)
-				} else {
-					val id = row.id
-					val data = row.data
-					val deps = row.deps
-					val txid = row.txid
-					sessionOrder.graph.addUpdate(id, key, data, txid, deps)
-				}
-			})
+		private [shim] def addEvents(events : Seq[Event[Id, Key, Data]]) : Unit = {
+			events.foreach(event => sessionOrder.graph.add(event))
 		}
 
 		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
 			val rows = baseTx.read(key, CassandraReadParams(None, consistency))
-			addRows(rows)
+			addEvents(rows)
 
 			var alreadyTried : Set[Id] = Set.empty
 
 			while (true) {
-				sessionOrder.read(key) match {
+				sessionOrder.getResolved(key) match {
 					//If we read a resolved value and that value is already the latest, we can just return that value
 					case Found(Some(resolvedUpdate), latestUpdate, _) if resolvedUpdate == latestUpdate =>
 						sessionOrder.addRead(resolvedUpdate.toRef)
@@ -144,7 +129,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 							}
 
 							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), consistency))
-							addRows(rawRows)
+							addEvents(rawRows)
 							alreadyTried = alreadyTried + evt.id
 						})
 						//now, retry to read the key
@@ -174,9 +159,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 				val opParams = CassandraWriteParams(id, deps, consistency)
 
-				baseTx.update(key, data, opParams)
-
-				sessionOrder.addUpdate(id, key, data)
+				val update = sessionOrder.lockNextUpdate(id, key, data)
+				baseTx.update(key, update, opParams)
+				//TODO: Handle errors of base update
+				sessionOrder.confirmNextUpdate()
 			}
 
 
@@ -186,15 +172,17 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 		class SysnameShimDefaultTxContext(val baseTx : BaseTxContext, val isolation: Isolation) extends ShimTxContext {
+
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = idOps.freshId()
 				val deps = sessionOrder.getNextDependencies
 
 				val opParams = CassandraWriteParams(id, deps, consistency)
 
-				baseTx.update(key, data, opParams)
-
-				sessionOrder.addUpdate(id, key, data)
+				val update = sessionOrder.lockNextUpdate(id, key, data)
+				baseTx.update(key, update, opParams)
+				//TODO: Handle errors of base update
+				sessionOrder.confirmNextUpdate()
 			}
 
 
