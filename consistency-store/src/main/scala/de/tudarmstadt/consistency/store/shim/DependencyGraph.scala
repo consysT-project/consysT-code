@@ -32,16 +32,24 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 	}
 
 
-	private def putEntry(node : Event) : Option[Event] =
-		entries.put(node.id, node)
+	private def putEntry(node : Event) : Option[Event] = {
+		val r = entries.put(node.id, node)
+		r.foreach(evt => assert(evt == node, "cannot override existing update with other update"))
+		r
+	}
 
-	private def getEntry(id : Id) : Option[Event] =
-		entries.get(id)
+
+	private def getEntry(ref : EventRef[Id, Key]) : Option[Event] = {
+		val r = entries.get(ref.id)
+		//Check whether the returned event fits the given reference
+		r.foreach(evt => assert(evt.toRef == ref, s"reference does not fit stored event. expected: $ref, but was: ${evt.toRef}"))
+		r
+	}
 
 
 	def isResolved(ref : EventRef[Id, Key]) : Boolean = {
 		//TODO: Use memoize already resolved nodes
-		def isResolved(otherRef : EventRef[Id, Key], alreadyVisited : Set[Id]) : Boolean = getEntry(otherRef.id) match {
+		def isResolved(otherRef : EventRef[Id, Key], alreadyVisited : Set[Id]) : Boolean = getEntry(otherRef) match {
 			case None => false
 			case Some(evt) if alreadyVisited.contains(evt.id) => false
 			case Some(evt) =>
@@ -53,15 +61,19 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 
 	def unresolvedDependenciesOf(ref : EventRef[Id, Key]) : Set[EventRef[Id, Key]] = {
 		//TODO: Use memoize already resolved nodes
-		def unresolvedDependenciesOf(otherRef : EventRef[Id, Key], alreadyVisited : Set[Id]): Set[EventRef[Id, Key]] = getEntry(otherRef.id) match {
-			case None => Set(otherRef)
-			case Some(evt) if alreadyVisited.contains(evt.id) => Set.empty
-			case Some(evt) =>
-				val newSet = alreadyVisited + evt.id
-				val unresolved : Set[EventRef[Id, Key]] =
-					evt.dependencies.foldLeft(Set.empty[EventRef[Id, Key]])((xs, dep) => xs ++ unresolvedDependenciesOf(dep, newSet))
-				unresolved
-		}
+		def unresolvedDependenciesOf(otherRef : EventRef[Id, Key], alreadyVisited : Set[Id]): Set[EventRef[Id, Key]] =
+			getEntry(otherRef) match {
+				case None =>
+					Set(otherRef)
+				case Some(evt) if alreadyVisited.contains(evt.id) =>
+					Set.empty
+				case Some(evt) =>
+					val newSet = alreadyVisited + evt.id
+					val unresolved : Set[EventRef[Id, Key]] =
+						evt.dependencies.flatMap(dep => unresolvedDependenciesOf(dep, newSet))
+
+					unresolved
+			}
 
 		unresolvedDependenciesOf(ref, Set.empty)
 	}
@@ -88,13 +100,25 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 		putEntry(tx)
 	}
 
+	def add(evt : Event) : Unit = evt match {
+		case e : Update => addUpdate(e)
+		case e : Tx => addTx(e)
+	}
+
 
 	private def putLatestKey(upd : Update): Unit = {
 		latestKeys.addBinding(upd.key, upd)
 	}
 
 
-	def read(key : Key) : Resolved[Update, EventRef[Id, Key]] = latestKeys.get(key) match {
+	/**
+		* Reads a key from the dependency graph.
+		* @param key The key to read from the graph.
+		* @param txid The transaction id will not be considered unresolved. Use this when a read happens inside a
+		*             transaction to satisfy "Read-your-writes".
+		* @return A resolved value that contains the update that has been read.
+		*/
+	def read(key : Key, txid : Option[TxRef[Id]] = None) : Resolved[Update, EventRef[Id, Key]] = latestKeys.get(key) match {
 		case None => NotFound()
 		case Some(updates) =>
 			//Store all unresolved dependencies
@@ -104,8 +128,7 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 			val latest : Update = updates.head
 
 			for(upd <- updates) {
-				val unresolvedForId = unresolvedDependenciesOf(upd.toRef)
-
+				val unresolvedForId = unresolvedDependenciesOf(upd.toRef) -- txid
 				//there are no unresolved dependencies
 				if (unresolvedForId.isEmpty) {
 					//If there are versions that are older then the latest resolved version, then drop them
@@ -114,7 +137,6 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 					//An aborted transaction has no transaction record and thus the dependencies on the updates
 					//are not fulfilled, i.e. deleted updates are never resolved.
 					//versions.retain(_id =>  ordering.lteq(_id, id))
-
 					return Found(Some(upd), latest, unresolved)
 				} else {
 					unresolved = unresolved ++ unresolvedForId
@@ -127,7 +149,7 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 	def remove(id : Id): Option[Event] = entries.remove(id) match {
 		case None => None
 		case opt@Some(upd@Update(_,_,_,_,_)) =>
-			latestKeys.foreach(entry => entry._2 -= upd)
+			latestKeys.keys.foreach(key => latestKeys.removeBinding(key, upd))
 			opt
 		case opt@Some(Tx(_,_)) =>
 			opt

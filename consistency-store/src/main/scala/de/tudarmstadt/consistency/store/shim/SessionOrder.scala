@@ -77,7 +77,7 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 	//You need to manually add a read with addRead if this read should be visible as a dependency
 	def read(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] =
-		graph.read(key)
+		graph.read(key, transactionPointer)
 
 
 	def startTransaction(id : Id): Unit = {

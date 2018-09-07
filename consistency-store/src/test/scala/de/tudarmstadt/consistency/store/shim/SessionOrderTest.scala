@@ -79,7 +79,7 @@ class SessionOrderTest {
 		assertReadNotFound('y)
 
 		sessionOrder.addUpdate(3, 'y, "Bonjour")
-		assertReadResolved(3, 'y, "Bonjour", Some(1), Set(UpdateRef(0, 'x)))
+		assertReadResolved(3, 'y, "Bonjour", None, Set(UpdateRef(0, 'x)))
 
 	}
 

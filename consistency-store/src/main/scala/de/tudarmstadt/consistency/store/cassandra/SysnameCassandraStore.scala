@@ -23,7 +23,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		ResultSet,
 		CassandraTxParams[Id, Isolation],
 		CassandraWriteParams[Id, Key, Consistency],
-		CassandraReadParams[Consistency],
+		CassandraReadParams[Id, Consistency],
 		Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]]
 		] {
 
@@ -110,8 +110,15 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
+		private def readKey(key : Key, txParams : CassandraTxParams[Id, Isolation], readParams : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+			readParams match {
+				case CassandraReadParams(Some(id), _) => readVersionOf(key, id).toSeq
+				case CassandraReadParams(None, _) => readAllVersionsOf(key)
+			}
+		}
 
-		private def readHistoryOf(key : Key, txParams : CassandraTxParams[Id, Isolation], opParams : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+
+		private def readAllVersionsOf(key : Key) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -127,12 +134,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			while (row != null) {
 				val dataRow : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(row)
 
-				val rowIsCommitted = dataRow.isolation match {
-					case l if l == isolationLevelOps.snapshotIsolation =>
-						SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(dataRow)
-					case l if l == isolationLevelOps.readCommitted =>
-						ReadCommittedTransactions.commitRow(session, SysnameCassandraStore.this)(dataRow)
-				}
+				val rowIsCommitted = commitRow(dataRow)
 
 				if (rowIsCommitted) {
 					buf.prepend(dataRow)
@@ -142,6 +144,39 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 
 			return buf
+		}
+
+		private def readVersionOf(key : Key, id : Id) : Option[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+			//Retrieve the history of a key.
+			val keyResult = session.execute(
+				select.all.from(keyspace.dataTable.name)
+					.where(QueryBuilder.eq("key", key))
+  				.and(QueryBuilder.eq("id", id))
+			)
+
+			val row = keyResult.one()
+			if (row == null) {
+				return None
+			}
+
+			val dataRow : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency] = CassandraRow(row)
+
+			val rowIsCommitted = commitRow(dataRow)
+
+			if (rowIsCommitted) {
+				return Some(dataRow)
+			} else {
+				return None
+			}
+		}
+
+		private def commitRow(row : DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]) : Boolean = row.isolation match {
+			case l if l == isolationLevelOps.snapshotIsolation =>
+				SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
+			case l if l == isolationLevelOps.readCommitted =>
+				ReadCommittedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
 		}
 
 
@@ -160,8 +195,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
 			}
 
-			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readHistoryOf(key, txParams, params)
+			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readKey(key, txParams, params)
 			}
 		}
 
@@ -174,8 +209,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				updates.add(Update(params.id, key, data, txParams.txid, params.deps))
 			}
 
-			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readHistoryOf(key, txParams, params)
+			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readKey(key, txParams, params)
 			}
 		}
 
@@ -196,8 +231,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			}
 
-			override def read(key : Key, params : CassandraReadParams[Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
-				readHistoryOf(key, txParams, params)
+			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[DataRow[Id, Key, Data, TxStatus, Isolation, Consistency]] = {
+				readKey(key, txParams, params)
 			}
 		}
 
