@@ -4,6 +4,7 @@ import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.{set, update}
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedIsolationLevelException
 import de.tudarmstadt.consistency.store.shim.Event
 import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
@@ -31,21 +32,29 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 	override type SessionCtx = SysnameCassandraSessionContext
 
-
 	protected val connectionParams : ConnectionParams
+
+	val keyspaceName : String
+
+	val idType : DataType
+	val keyType : DataType
+	val dataType : DataType
+	val txStatusType : DataType
+	val isolationType : DataType
+	val consistencyType : DataType
+
+	//	val idOps : IdOps[Id]
+	val keys : Keys[Key]
+	val txStatuses : TxStatuses[TxStatus]
+	val isolationLevels : IsolationLevels[Isolation]
+	val consistencyLevels : ConsistencyLevels[Consistency]
+
 
 	protected var cluster : Cluster =
 		connectionParams.connectCluster
 
-	val keyspace : KeyspaceDef =
+	private [cassandra] val keyspace : KeyspaceDef =
 		createKeyspaceDef
-
-
-//	val idOps : IdOps[Id]
-	val keyOps : KeyOps[Key]
-	val txStatusOps : TxStatusOps[TxStatus]
-	val isolationLevelOps : IsolationLevelOps[Isolation]
-	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
 
 
 	override def startSession[U](f : Session[U]) : U = {
@@ -70,7 +79,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		type TxCtx = CassandraTxContext
 
 		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = params.isolation match {
-				case l if l == isolationLevelOps.snapshotIsolation =>
+				case l if l == isolationLevels.snapshotIsolation =>
 					val txContext = new SysnameCassandraSnapshotIsolatedTxContext(params)
 					f(txContext) match {
 						case None => return None
@@ -85,7 +94,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 						}
 					}
 
-				case l if l == isolationLevelOps.readCommitted =>
+				case l if l == isolationLevels.readCommitted =>
 					val txContext = new SysnameCassandraReadCommittedTxContext(params)
 					f(txContext) match {
 						case None => return None
@@ -164,12 +173,12 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 
 		private def commitRow(row : DataRow) : Boolean = row.isolation match {
-			case l if l == isolationLevelOps.snapshotIsolation =>
+			case l if l == isolationLevels.snapshotIsolation =>
 				SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
-			case l if l == isolationLevelOps.readCommitted =>
+			case l if l == isolationLevels.readCommitted =>
 				ReadCommittedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
+			case iso => throw new UnsupportedIsolationLevelException(iso)
 		}
-
 
 
 		trait CassandraTxContext extends TxContext {
@@ -184,7 +193,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 						assert(key == updKey, "inconsistent update: update key does not match key")
 						update(upd, params)
 					case tx : Tx[Id, Key, Data] =>
-						assert(key == keyOps.transactionKey, "inconsistent tx: key does not match default transaction key")
+						assert(key == keys.transactionKey, "inconsistent tx: key does not match default transaction key")
 						update(tx, params)
 				}
 			}
@@ -237,7 +246,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				assert(update.txid.isEmpty, "a transaction without isolation can not depend on a transaction record")
 
 				try {
-					WriteUpdate(update, params).writeData(session, ConsistencyLevel.ONE)(txStatusOps.committed, isolationLevelOps.none)
+					WriteUpdate(update, params).writeData(session, ConsistencyLevel.ONE)(txStatuses.committed, isolationLevels.none)
 				} catch {
 					//TODO: Real error handling here
 					case e : Exception => throw e
@@ -318,7 +327,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	}
 
 	private [cassandra] def eventRefToCassandraTuple(ref : UpdateRef[Id, Key]) : TupleValue = {
-		val typ = cluster.getMetadata.newTupleType(cassandraTypeOf[Id], cassandraTypeOf[Key])
+		val typ = cluster.getMetadata.newTupleType(idType, keyType)
 		typ.newValue(ref.id.asInstanceOf[AnyRef], ref.key.asInstanceOf[AnyRef])
 	}
 
@@ -380,20 +389,21 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		override val txTable : TableDef = new TableDef {
 			override val name : String = "t_tx"
 			override def create(session : CassandraSession) : Unit = session.execute(
-				s"""CREATE TABLE $name
-					 | (txid ${cassandraTypeOf[Id]},
-					 | status ${cassandraTypeOf[TxStatus]},
-					 | isolation ${cassandraTypeOf[Isolation]},
-					 | PRIMARY KEY(txid));""".stripMargin
-			)
-		}
+					s"""CREATE TABLE $name
+						 | (txid ${idType.asFunctionParameterString()},
+						 | status ${txStatusType.asFunctionParameterString()},
+						 | isolation ${isolationType.asFunctionParameterString()},
+						 | PRIMARY KEY(txid));""".stripMargin
+				)
+			}
+
 
 		override val keyTable : TableDef = new TableDef {
 			override val name : String = "t_keys"
 			override def create(session : CassandraSession) : Unit = session.execute(
 				s"""CREATE TABLE $name
-					 | (key ${cassandraTypeOf[Key]},
-					 | txid ${cassandraTypeOf[Id]},
+					 | (key ${keyType.asFunctionParameterString()},
+					 | txid ${idType.asFunctionParameterString()},
 					 | PRIMARY KEY(key));""".stripMargin
 			)
 		}
@@ -402,14 +412,14 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			override val name : String = "t_data"
 			override def create(session : CassandraSession) : Unit = session.execute(
 				s"""CREATE TABLE $name
-					 | (id ${cassandraTypeOf[Id]},
-					 | key ${cassandraTypeOf[Key]},
-					 | data ${cassandraTypeOf[Data]},
-					 | deps set<frozen<tuple<${cassandraTypeOf[Id]}, ${cassandraTypeOf[Key]}>>>,
-					 | txid ${cassandraTypeOf[Id]},
-					 | txstatus ${cassandraTypeOf[TxStatus]},
-					 | consistency ${cassandraTypeOf[Consistency]},
-					 | isolation ${cassandraTypeOf[Isolation]},
+					 | (id ${idType.asFunctionParameterString()},
+					 | key ${keyType.asFunctionParameterString()},
+					 | data ${dataType.asFunctionParameterString()},
+					 | deps set<frozen<tuple<${idType.asFunctionParameterString()}, ${keyType.asFunctionParameterString()}>>>,
+					 | txid ${idType.asFunctionParameterString()},
+					 | txstatus ${txStatusType.asFunctionParameterString()},
+					 | consistency ${consistencyType.asFunctionParameterString()},
+					 | isolation ${isolationType.asFunctionParameterString()},
 					 | PRIMARY KEY (key, id));""".stripMargin
 			)
 		}
@@ -494,7 +504,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			txid.map(ref => ref.id).getOrElse(null)
 
 		def toEvent : Event[Id, Key, Data] = {
-			if (key == keyOps.transactionKey) {
+			if (key == keys.transactionKey) {
 				return Tx(id, deps)
 			} else {
 				return Update(id, key, data, txid, deps)
@@ -565,7 +575,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 					.and(set("txstatus", txStatus))
 					.and(set("isolation", isolation))
 					.and(set("consistency", params.consistency))
-					.where(QueryBuilder.eq("key", keyOps.transactionKey))
+					.where(QueryBuilder.eq("key", keys.transactionKey))
 					.and(QueryBuilder.eq("id", tx.id))
 					.setConsistencyLevel(writeConsistency)
 			)

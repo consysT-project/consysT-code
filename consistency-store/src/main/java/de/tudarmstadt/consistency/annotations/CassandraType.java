@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  *
  * @author Mirko Köhler
  */
-@Target(ElementType.TYPE_PARAMETER)
+@Target({ElementType.TYPE_PARAMETER, ElementType.TYPE, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CassandraType {
 	String cassandraType();

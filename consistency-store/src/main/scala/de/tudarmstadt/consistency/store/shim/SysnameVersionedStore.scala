@@ -1,8 +1,8 @@
 package de.tudarmstadt.consistency.store.shim
 
-import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedConsistencyLevelException
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
@@ -22,11 +22,11 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 	val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 
-	val idOps : IdOps[Id]
-	val keyOps : KeyOps[Key]
-	val txStatusOps : TxStatusOps[TxStatus]
-	val isolationLevelOps : IsolationLevelOps[Isolation]
-	val consistencyLevelOps : ConsistencyLevelOps[Consistency]
+	val ids : Ids[Id]
+	val keys : Keys[Key]
+	val txStatuses : TxStatuses[TxStatus]
+	val isolationLevels : IsolationLevels[Isolation]
+	val consistencyLevels : ConsistencyLevels[Consistency]
 
 	override def startSession[U](f : Session[U]) : U = {
 		baseStore.startSession { baseSession =>
@@ -51,12 +51,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = {
-			val txid = idOps.freshId()
+			val txid = ids.freshId()
 			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
 			//TODO: Reconsider the error handling
 			isolation match {
-				case l if l == isolationLevelOps.none =>
+				case l if l == isolationLevels.none =>
 					try {
 						baseSession.startTransaction(txParams) { baseTx =>
 							val tx = new SysnameShimNoneTxContext(baseTx)
@@ -92,7 +92,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 							//Lock the transaction and add the transaction record to the base store
 							val tx = sessionOrder.lockTransaction()
-							baseTx.update(keyOps.transactionKey, tx, CassandraWriteParams(consistencyLevelOps.sequential))
+							baseTx.update(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.weak))
 
 							res
 						} match {
@@ -120,12 +120,32 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 
-		private [shim] def addEvents(events : Seq[Event[Id, Key, Data]]) : Unit = {
-			events.foreach(event => sessionOrder.graph.add(event))
+
+
+		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = consistency match {
+			case l if l == consistencyLevels.causal => handleCausalRead(baseTx)(key)
+			case l if l == consistencyLevels.weak => handleWeakRead(baseTx)(key)
+			case _ => throw new UnsupportedConsistencyLevelException(consistency)
 		}
 
-		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
-			val rows = baseTx.read(key, CassandraReadParams(None, consistency))
+		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Read = {
+			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.weak))
+			addEvents(rows)
+
+			sessionOrder.resolve(key) match {
+				//If we got some value, just return the latest one (without checking any dependencies)
+				case Found(_, latestUpdate, _) =>
+					sessionOrder.addRead(latestUpdate.toRef)
+					return convertResult(latestUpdate)
+
+				//If the key could not be found, then we can not read it
+				case _ =>
+					return convertNone
+			}
+		}
+
+		private def handleCausalRead(baseTx : BaseTxContext)(key : Key) : Read = {
+			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.causal))
 			addEvents(rows)
 
 			var alreadyTried : Set[Id] = Set.empty
@@ -143,7 +163,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 						unresolved.foreach(evt => {
 							val evtKey = evt match {
 								case UpdateRef(_, refKey) => refKey
-								case TxRef(_) => keyOps.transactionKey
+								case TxRef(_) => keys.transactionKey
 							}
 
 							//if the key has already been updated in this run, then abort this read and return the version that could have been resolved
@@ -159,7 +179,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 								}
 							}
 
-							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), consistency))
+							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), consistencyLevels.causal))
 							addEvents(rawRows)
 							alreadyTried = alreadyTried + evt.id
 						})
@@ -174,7 +194,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			//fallback case: this code should never be executed
 			assert(assertion = false, "Oh no! How could this have been executed?! You're a wizard, Harry!")
 			return convertNone
+		}
 
+		private def addEvents(events : Seq[Event[Id, Key, Data]]) : Unit = {
+			events.foreach(event => sessionOrder.graph.add(event))
 		}
 
 		private def handleWrite(baseTx : BaseTxContext)(id : Id, key : Key, data : Data, consistency: Consistency): Unit = {
@@ -207,7 +230,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
-				val id = idOps.freshId()
+				val id = ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
 
@@ -220,7 +243,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		class SysnameShimDefaultTxContext(val baseTx : BaseTxContext, val isolation: Isolation) extends ShimTxContext {
 
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
-				val id = idOps.freshId()
+				val id = ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
 

@@ -100,47 +100,47 @@ CREATE AGGREGATE aggregate_name(type1)
 
 
 			val transactionA : Transaction[Unit] = tx => {
-				tx.update("x", "Hallo", consistencyLevelOps.sequential)
-				tx.update("y", "Welt", consistencyLevelOps.sequential)
+				tx.update("x", "Hallo", consistencyLevels.causal)
+				tx.update("y", "Welt", consistencyLevels.causal)
 
 				Some ()
 			}
 
 			val transactionB : Transaction[Unit] = tx => {
-				tx.update("x", "Hello", consistencyLevelOps.sequential)
-				tx.update("z", "World", consistencyLevelOps.sequential)
+				tx.update("x", "Hello", consistencyLevels.causal)
+				tx.update("z", "World", consistencyLevels.causal)
 
 				Some ()
 			}
 
 			val transactionB2 : Transaction[Unit] = tx => {
-				tx.update("x", "Hola", consistencyLevelOps.sequential)
-				tx.update("z", "Amigos", consistencyLevelOps.sequential)
+				tx.update("x", "Hola", consistencyLevels.causal)
+				tx.update("z", "Amigos", consistencyLevels.causal)
 
 				None
 			}
 
 			val transactionC : Transaction[String] = tx => {
-				val x = tx.read("x", consistencyLevelOps.sequential)
+				val x = tx.read("x", consistencyLevels.causal)
 				println(s"x = $x")
-				val y = tx.read("y", consistencyLevelOps.sequential)
+				val y = tx.read("y", consistencyLevels.causal)
 				println(s"y = $y")
-				val z = tx.read("z", consistencyLevelOps.sequential)
+				val z = tx.read("z", consistencyLevels.causal)
 				println(s"z = $z")
 
 				val s = List(x, y, z).flatten.mkString(" ")
-				tx.update("s", s, consistencyLevelOps.sequential)
+				tx.update("s", s, consistencyLevels.causal)
 
 				Some (s)
 			}
 
 			val transactionD : Transaction[Unit] = tx => {
-				tx.update("x", "Bonjour", consistencyLevelOps.sequential)
+				tx.update("x", "Bonjour", consistencyLevels.causal)
 				None //Aborts the transaction
 			}
 
 			val transactionE : Transaction[String] = tx => {
-				val x : Option[String] = tx.read("x", consistencyLevelOps.sequential)
+				val x : Option[String] = tx.read("x", consistencyLevels.causal)
 
 				if (x.contains("Bonjour")) {
 					None
@@ -150,24 +150,24 @@ CREATE AGGREGATE aggregate_name(type1)
 			}
 
 
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+			Log.info(null, startTransaction(isolationLevels.snapshotIsolation){
 				transactionA
 			})
 
 
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+			Log.info(null, startTransaction(isolationLevels.snapshotIsolation){
 				transactionB
 			})
 
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+			Log.info(null, startTransaction(isolationLevels.snapshotIsolation){
 				transactionB2
 			})
 
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+			Log.info(null, startTransaction(isolationLevels.snapshotIsolation){
 				transactionD
 			})
 
-			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
+			Log.info(null, startTransaction(isolationLevels.snapshotIsolation){
 				transactionC
 			})
 

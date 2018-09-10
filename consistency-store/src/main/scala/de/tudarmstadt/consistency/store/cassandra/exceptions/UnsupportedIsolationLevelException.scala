@@ -5,7 +5,7 @@ package de.tudarmstadt.consistency.store.cassandra.exceptions
 	*
 	* @author Mirko Köhler
 	*/
-class UnsupportedIsolationLevelException[Isolation](val unsupportedIsolationLevel : Isolation) extends Exception(s"isolation level is not supported. found: $unsupportedIsolationLevel") {
+class UnsupportedIsolationLevelException[Isolation](val unsupportedIsolationLevel : Isolation) extends Exception(s"isolation level is not supported by the store. found: $unsupportedIsolationLevel") {
 
 
 
