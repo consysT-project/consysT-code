@@ -1,5 +1,7 @@
 package de.tudarmstadt.consistency.store.shim
 
+import com.datastax.driver.core.ConsistencyLevel
+import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
@@ -18,7 +20,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
+	val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 
 	val idOps : IdOps[Id]
 	val keyOps : KeyOps[Key]
@@ -52,40 +54,68 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			val txid = idOps.freshId()
 			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
+			//TODO: Reconsider the error handling
 			isolation match {
 				case l if l == isolationLevelOps.none =>
-					val transactionState = baseSession.startTransaction(txParams) { baseTx =>
-						val tx = new SysnameShimNoneTxContext(baseTx)
-						f(tx)
-					}
-
-					transactionState match {
-						case None =>
-							assert(false, "a 'none'-isolated transaction can not be aborted")
-							None
-						case opt@Some(u) =>
-							opt
+					try {
+						baseSession.startTransaction(txParams) { baseTx =>
+							val tx = new SysnameShimNoneTxContext(baseTx)
+							f(tx)
+						} match {
+							case None =>
+								assert(assertion = false, "a 'none'-isolated transaction can not be aborted")
+								None
+							case opt@Some(_) =>
+								opt
+						}
+					} catch {
+						case e : NoHostAvailableException =>
+							e.printStackTrace()
+							sessionOrder.abortTransactionIfStarted()
+							return None
+						case e : QueryExecutionException =>
+							//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+							e.printStackTrace()
+							sessionOrder.abortTransactionIfStarted()
+							return None
 					}
 
 				case _ =>
+					//Start the transaction in this session
 					sessionOrder.startTransaction(txid)
 
-					val transactionState = baseSession.startTransaction(txParams) { baseTx =>
-						val tx = new SysnameShimDefaultTxContext(baseTx, isolation)
-						f(tx)
-						baseTx.update(keyOps.transactionKey, )
+					try {
+						//Start a transaction in the base store
+						baseSession.startTransaction(txParams) { baseTx =>
+							val txContext = new SysnameShimDefaultTxContext(baseTx, isolation)
+							val res = f(txContext) //execute the transaction as defined by the user
+
+							//Lock the transaction and add the transaction record to the base store
+							val tx = sessionOrder.lockTransaction()
+							baseTx.update(keyOps.transactionKey, tx, CassandraWriteParams(consistencyLevelOps.sequential))
+
+							res
+						} match {
+							case None =>
+								sessionOrder.abortTransaction()
+								return None
+							case opt@Some(_) =>
+								sessionOrder.commitTransaction()
+								return opt
+						}
+					} catch {
+						case e : NoHostAvailableException =>
+							e.printStackTrace()
+							sessionOrder.abortTransactionIfStarted()
+							return None
+						case e : QueryExecutionException =>
+							//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+							e.printStackTrace()
+							sessionOrder.abortTransactionIfStarted()
+							return None
 					}
 
-					transactionState match {
-						case None =>
-							sessionOrder.abortTransaction()
-							None
-						case opt@Some(u) =>
-							sessionOrder.commitTransaction()
-							opt
-					}
 			}
-
 		}
 
 
@@ -94,14 +124,15 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			events.foreach(event => sessionOrder.graph.add(event))
 		}
 
-		private def resolveRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
+		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = {
 			val rows = baseTx.read(key, CassandraReadParams(None, consistency))
 			addEvents(rows)
 
 			var alreadyTried : Set[Id] = Set.empty
 
+			//Iterate until all (transitive) dependencies have been fetched (or at least tried)
 			while (true) {
-				sessionOrder.getResolved(key) match {
+				sessionOrder.resolve(key) match {
 					//If we read a resolved value and that value is already the latest, we can just return that value
 					case Found(Some(resolvedUpdate), latestUpdate, _) if resolvedUpdate == latestUpdate =>
 						sessionOrder.addRead(resolvedUpdate.toRef)
@@ -141,9 +172,31 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			}
 
 			//fallback case: this code should never be executed
-			assert(false, "Oh no! How could this have been executed?! You're a wizard, Harry!")
+			assert(assertion = false, "Oh no! How could this have been executed?! You're a wizard, Harry!")
 			return convertNone
 
+		}
+
+		private def handleWrite(baseTx : BaseTxContext)(id : Id, key : Key, data : Data, consistency: Consistency): Unit = {
+			val update = sessionOrder.lockUpdate(id, key, data)
+			try {
+				baseTx.update(key, update, CassandraWriteParams(consistency))
+				sessionOrder.confirmUpdate()
+			} catch {
+				/*
+					TODO: Do we want to handle exceptions at an operation level?
+				  At the moment we catch the exception here and abort the write.
+				  Another possibility would be to catch the exception at the transaction level
+				  and thus abort the whole transaction.
+				 */
+				case e : NoHostAvailableException =>
+					e.printStackTrace()
+					sessionOrder.releaseUpdate()
+				case e : QueryExecutionException =>
+					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+					e.printStackTrace()
+					sessionOrder.releaseUpdate()
+			}
 		}
 
 
@@ -155,19 +208,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = idOps.freshId()
-				val deps = sessionOrder.getNextDependencies
-
-				val opParams = CassandraWriteParams(id, deps, consistency)
-
-				val update = sessionOrder.lockNextUpdate(id, key, data)
-				baseTx.update(key, update, opParams)
-				//TODO: Handle errors of base update
-				sessionOrder.confirmNextUpdate()
+				handleWrite(baseTx)(id, key, data, consistency)
 			}
 
 
 			def read(key : Key, consistency : Consistency) : Read = {
-				resolveRead(baseTx)(key, consistency)
+				handleRead(baseTx)(key, consistency)
 			}
 		}
 
@@ -175,19 +221,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = idOps.freshId()
-				val deps = sessionOrder.getNextDependencies
-
-				val opParams = CassandraWriteParams(id, deps, consistency)
-
-				val update = sessionOrder.lockNextUpdate(id, key, data)
-				baseTx.update(key, update, opParams)
-				//TODO: Handle errors of base update
-				sessionOrder.confirmNextUpdate()
+				handleWrite(baseTx)(id, key, data, consistency)
 			}
 
 
 			def read(key : Key, consistency : Consistency) : Read = {
-				resolveRead(baseTx)(key, consistency)
+				handleRead(baseTx)(key, consistency)
 			}
 		}
 

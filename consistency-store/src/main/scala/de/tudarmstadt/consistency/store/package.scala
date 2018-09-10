@@ -66,7 +66,7 @@ package object store {
 	}
 
 
-	case class CassandraWriteParams[Id, Key, Consistency](id : Id, deps : Set[UpdateRef[Id, Key]], consistency : Consistency)
+	case class CassandraWriteParams[Consistency](consistency : Consistency)
 	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)
 

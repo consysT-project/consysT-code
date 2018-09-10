@@ -22,7 +22,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		Key,
 		Event[Id, Key, Data],
 		CassandraTxParams[Id, Isolation],
-		CassandraWriteParams[Id, Key, Consistency],
+		CassandraWriteParams[Consistency],
 		CassandraReadParams[Id, Consistency],
 		Seq[Event[Id, Key, Data]]
 		] {
@@ -69,45 +69,36 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		type TxCtx = CassandraTxContext
 
-		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = {
-			val isolation = params.isolation
-			val Some(txid) = params.txid
-
-			isolation match {
+		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = params.isolation match {
 				case l if l == isolationLevelOps.snapshotIsolation =>
 					val txContext = new SysnameCassandraSnapshotIsolatedTxContext(params)
 					f(txContext) match {
-						case None =>
-							return None
-						case result@Some(u) =>
-							SnapshotIsolatedTransactions.commit(session, SysnameCassandraStore.this)(txContext.getTx.get /*TODO: Handle case where getTx == None */, txContext.getUpdates) match {
-								case CommitStatus.Success(_, _) =>
-									return result
-								case CommitStatus.Abort(_, desc) =>
-									Log.info(classOf[SysnameCassandraSessionContext], desc)
-									return None
-								case CommitStatus.Error(_, e) =>
-									throw e
-							}
+						case None => return None
+						case result@Some(_) => SnapshotIsolatedTransactions.commit(session, SysnameCassandraStore.this)(
+							txContext.getTxOrError, txContext.getUpdates
+						) match {
+							case CommitStatus.Success(_, _) => return result
+							case CommitStatus.Abort(_, desc) =>
+								Log.info(classOf[SysnameCassandraSessionContext], desc)
+								return None
+							case CommitStatus.Error(_, e) => throw e
+						}
 					}
 
 				case l if l == isolationLevelOps.readCommitted =>
 					val txContext = new SysnameCassandraReadCommittedTxContext(params)
 					f(txContext) match {
-						case None =>
-							return None
-						case Some(u) =>
-							ReadCommittedTransactions.commit(session, SysnameCassandraStore.this)(txContext.getTx.get /*TODO: Handle case where getTx == None */, txContext.getUpdates) match {
-								case CommitStatus.Success(_, _) =>
-									return Some(u)
-								case CommitStatus.Abort(_, desc) =>
-									Log.info(classOf[SysnameCassandraSessionContext], desc)
-									return None
-								case CommitStatus.Error(_, e) =>
-									throw e
-							}
+						case None => return None
+						case result@Some(_) => ReadCommittedTransactions.commit(session, SysnameCassandraStore.this)(
+							txContext.getTxOrError, txContext.getUpdates
+						) match {
+							case CommitStatus.Success(_, _) => return result
+							case CommitStatus.Abort(_, desc) =>
+								Log.info(classOf[SysnameCassandraSessionContext], desc)
+								return None
+							case CommitStatus.Error(_, e) => throw e
+						}
 					}
-			}
 		}
 
 		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency]) : Seq[Event[Id, Key, Data]] = {
@@ -187,7 +178,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 
 
-			override def update(key : Key, data : Event[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+			override def update(key : Key, data : Event[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				data match {
 					case upd@Update(_, updKey, _, _, _) =>
 						assert(key == updKey, "inconsistent update: update key does not match key")
@@ -198,8 +189,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				}
 			}
 
-			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit
-			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit
+			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit
+			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit
 
 		}
 
@@ -207,11 +198,11 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			private val updates : mutable.Buffer[WriteUpdate] = mutable.Buffer.empty
 			private val tx : Array[WriteTx] = Array(null)
 
-			def bufferUpdate(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+			def bufferUpdate(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				updates += WriteUpdate(update, params)
 			}
 
-			def bufferTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+			def bufferTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				assert(getTx.isEmpty, "already buffered another transaction record for this transaction")
 				this.tx(0) = WriteTx(tx, params)
 			}
@@ -219,13 +210,20 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			def getTx : Option[WriteTx] =
 				Option(tx(0))
 
+			def getTxOrError : WriteTx = {
+				if (tx(0) == null)
+					throw new IllegalStateException("cannot commit transaction without txid: no tx record supplied")
+
+				tx(0)
+			}
+
 			def getUpdates : Seq[WriteUpdate] =
 				updates
 
-			override def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit =
+			override def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit =
 				bufferUpdate(update, params)
 
-			override def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit =
+			override def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit =
 				bufferTx(tx, params)
 		}
 
@@ -235,7 +233,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
-			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				assert(update.txid.isEmpty, "a transaction without isolation can not depend on a transaction record")
 
 				try {
@@ -247,7 +245,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			}
 
-			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) : Unit = {
+			def update(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				assert(assertion = false, "transaction with isolation level none cannot have a transaction record")
 			}
 
@@ -531,7 +529,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit
 	}
 
-	case class WriteUpdate(upd : Update[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) extends Write {
+	case class WriteUpdate(upd : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) extends Write {
 
 		override def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit = {
 
@@ -554,7 +552,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 	}
 
-	case class WriteTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Id, Key, Consistency]) extends Write {
+	case class WriteTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) extends Write {
 		override def writeData(session : CassandraSession, writeConsistency : ConsistencyLevel)(txStatus : TxStatus, isolation : Isolation) : Unit = {
 			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(tx.readDependencies)
 

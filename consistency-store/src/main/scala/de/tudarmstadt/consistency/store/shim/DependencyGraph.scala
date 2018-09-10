@@ -118,7 +118,7 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 		*             transaction to satisfy "Read-your-writes".
 		* @return A resolved value that contains the update that has been read.
 		*/
-	def read(key : Key, txid : Option[TxRef[Id]] = None) : Resolved[Update, EventRef[Id, Key]] = latestKeys.get(key) match {
+	def resolve(key : Key, txid : Option[TxRef[Id]] = None) : Resolved[Update, EventRef[Id, Key]] = latestKeys.get(key) match {
 		case None => NotFound()
 		case Some(updates) =>
 			//Store all unresolved dependencies
