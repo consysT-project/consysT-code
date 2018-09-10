@@ -11,7 +11,7 @@ import scala.reflect.runtime.universe._
 	* @author Mirko Köhler
 	*/
 class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus, Isolation, Consistency, Read] (
-	override val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Id, Key, Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
+	override val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 )(
 	override val idOps : IdOps[Id],
 	override val keyOps : KeyOps[Key],

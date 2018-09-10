@@ -9,13 +9,8 @@ import org.junit.Test
 	*
 	* @author Mirko Köhler
 	*/
-class DependencyGraphUnresolvedTest {
+class DependencyGraphUnresolvedTest extends DependencyGraphTest {
 
-	type Id = Int
-	type Key = Symbol
-	type Data = String
-
-	var graph : DependencyGraph[Id, Key, Data] = new DependencyGraph[Id, Key, Data]
 
 	@Test
 	def unresolvedDependenciesNonTx(): Unit = {

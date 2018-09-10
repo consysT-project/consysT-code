@@ -35,60 +35,38 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 	//The latest node that has been created in this transaction
 	private var sessionPointer : Option[UpdateRef[Id, Key]] = None
-	//stores the session pointer before a transaction as a fallback in case the tx gets aborted.
-	private var sessionPointerBeforeTx : Option[UpdateRef[Id, Key]] = None
 
 	//The reads that occurred since the last node has been added
 	private var readDependencies : Set[UpdateRef[Id, Key]] = Set.empty
 
-	//The transaction id of the current transaction
-	private var transactionPointer : Option[TxRef[Id]] = None
-	//The ids of all updates that happened during this transaction
-	private var transactionDependencies : Set[UpdateRef[Id, Key]] = Set.empty
 
-	private var nextUpdatePointer : Option[Update[Id, Key, Data]] = None
+
+	private var state : SessionState = SessionState.Idle
+
 
 	private [shim] val graph : DependencyGraph[Id, Key, Data] = new DependencyGraph()
 
 
-	def lockNextUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
-		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
-
-		val upd = Update(id, key, data, transactionPointer, getNextDependencies)
-		nextUpdatePointer = Some(upd)
-		upd
+	def lockUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = synchronized {
+		state.lockUpdate(id, key, data)
 	}
 
-	def releaseNextUpdate() : Unit = {
-		assert(nextUpdatePointer.nonEmpty, "no update locked")
-
-		nextUpdatePointer = None
+	def releaseUpdate() : Unit = synchronized {
+		state.releaseUpdate()
 	}
 
-	def confirmNextUpdate() : Unit = {
-		assert(nextUpdatePointer.nonEmpty, "no update locked")
-
-		val Some(upd) = nextUpdatePointer
-		val updRef = upd.toRef
-
-		sessionPointer = Some(updRef)
-		readDependencies = Set.empty
-
-		if (transactionPointer.isDefined)
-			transactionDependencies += updRef
-
-		nextUpdatePointer = None
+	def confirmUpdate() : Unit = synchronized {
+		state.confirmUpdate()
 	}
 
-	def addUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
-		val upd = lockNextUpdate(id, key, data)
-		confirmNextUpdate()
+	def addUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = synchronized {
+		val upd = lockUpdate(id, key, data)
+		confirmUpdate()
 		upd
 	}
 
 
-	def addRead(ref : UpdateRef[Id, Key]): Unit = {
-		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
+	def addRead(ref : UpdateRef[Id, Key]): Unit = synchronized {
 		readDependencies = readDependencies + ref
 	}
 
@@ -97,48 +75,51 @@ class SessionOrder[Id : Ordering, Key, Data] {
 	}
 
 
-	def getNextDependencies : Set[UpdateRef[Id, Key]] = {
+	def getNextDependencies : Set[UpdateRef[Id, Key]] = synchronized {
 		readDependencies ++ sessionPointer
 	}
 
 	//You need to manually add a read with addRead if this read should be visible as a dependency
-	def getResolved(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] =
-		graph.read(key, transactionPointer)
-
-
-	def startTransaction(id : Id): Unit = {
-		assert(transactionPointer.isEmpty)
-		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
-
-		sessionPointerBeforeTx = sessionPointer
-		transactionPointer = Some(TxRef(id))
-		transactionDependencies = Set.empty
+	def resolve(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] = state match {
+		case s : SessionStateInTx => graph.resolve(key, Some(s.getTxid))
+		case _ => graph.resolve(key)
 	}
 
-	def commitTransaction(): Unit = {
-		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
 
-		transactionPointer match {
-			case None => assert(assertion = false, "cannot commit a transaction that has never started")
-			case Some(txRef) =>
-				graph.addTx(txRef.id, transactionDependencies)
-				transactionDependencies = Set.empty
-				transactionPointer = None
+
+	def startTransaction(id : Id): Unit = synchronized {
+		state.startTransaction(id)
+	}
+
+	def lockTransaction() :  Tx[Id, Key, Data] = synchronized {
+		state.lockTransaction()
+	}
+
+	def commitTransaction(): Unit = synchronized {
+		state.commitTransaction()
+	}
+
+	def abortTransaction() : Unit = synchronized {
+		state.abortTransaction()
+	}
+
+	def abortTransactionIfStarted() : Unit = synchronized {
+		state match {
+			case s : SessionState.LockedTransaction => state.abortTransaction()
+			case s : SessionState.StartedTransaction =>
+				state.lockTransaction()
+				state.abortTransaction()
 		}
 	}
 
-	def abortTransaction() : Unit = {
-		assert(nextUpdatePointer.isEmpty, "release the nextUpdate to continue")
+	def lockAndCommitTransaction() : Unit = synchronized {
+		lockTransaction()
+		commitTransaction()
+	}
 
-		transactionPointer match {
-			case None => assert(assertion = false, "cannot abort a transaction that has never started")
-			case Some(id) =>
-				transactionDependencies.foreach(ref => graph.remove(ref.id))
-				transactionDependencies = Set.empty
-				transactionPointer = None
-				//Reset session pointer to "before the transaction"
-				sessionPointer = sessionPointerBeforeTx
-		}
+	def lockAndAbortTransaction() : Unit = synchronized {
+		lockTransaction()
+		abortTransaction()
 	}
 
 	private [shim] def addRaw(update : Update[Id, Key, Data]) : Unit = {
@@ -149,10 +130,135 @@ class SessionOrder[Id : Ordering, Key, Data] {
 		graph.addTx(tx)
 	}
 
-
 	override def toString : String = {
 		graph.toString
 	}
+
+
+	trait SessionState {
+
+
+		def lockUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] =
+			throw new IllegalStateException("cannot lock update in this state")
+
+		def releaseUpdate() : Unit =
+			throw new IllegalStateException("cannot release update in this state")
+		def confirmUpdate() : Unit =
+			throw new IllegalStateException("cannot confirm update in this state")
+
+		def startTransaction(id : Id): Unit =
+			throw new IllegalStateException("cannot start transaction in this state")
+
+		def lockTransaction() :  Tx[Id, Key, Data] =
+			throw new IllegalStateException("cannot lock transaction in this state")
+
+		def commitTransaction() : Unit =
+			throw new IllegalStateException("cannot commit transaction in this state")
+		def abortTransaction() : Unit =
+			throw new IllegalStateException("cannot abort transaction in this state")
+	}
+
+	trait SessionStateInTx extends SessionState {
+		def getTxid : TxRef[Id]
+	}
+
+	object SessionState {
+
+		object Idle extends SessionState {
+
+			override def lockUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
+				val upd = Update(id, key, data, None, getNextDependencies)
+				state = LockedUpdate(upd)
+				upd
+			}
+
+			override def startTransaction(id : Id): Unit = {
+				val txRef = TxRef(id)
+				state = StartedTransaction(txRef, sessionPointer)
+			}
+		}
+
+
+		case class LockedUpdate(upd : Update[Id, Key, Data]) extends SessionState {
+
+			override def releaseUpdate() : Unit = {
+				state = Idle
+			}
+
+			override def confirmUpdate() : Unit = {
+				graph.addUpdate(upd)
+
+				sessionPointer = Some(upd.toRef)
+				readDependencies = Set.empty
+
+				state = Idle
+			}
+		}
+
+
+		case class StartedTransaction(txRef : TxRef[Id], sessionPointerBeforeTx : Option[UpdateRef[Id, Key]]) extends SessionStateInTx {
+
+			//The ids of all updates that happen during this transaction
+			var transactionDependencies : Set[UpdateRef[Id, Key]] = Set.empty
+
+			override def lockUpdate(id : Id, key : Key, data : Data) : Update[Id, Key, Data] = {
+				val upd = Update(id, key, data, Some(txRef), getNextDependencies)
+				state = LockedUpdateInTx(this, upd)
+				upd
+			}
+
+			override def lockTransaction() :  Tx[Id, Key, Data] = {
+				val tx : Tx[Id, Key, Data] = Tx(txRef.id, transactionDependencies)
+				state = LockedTransaction(this, tx)
+				tx
+			}
+
+			override def getTxid : TxRef[Id] = txRef
+		}
+
+
+		case class LockedUpdateInTx(txState : StartedTransaction, upd : Update[Id, Key, Data]) extends SessionStateInTx {
+
+			override def releaseUpdate() : Unit = {
+				state = txState
+			}
+
+			override def confirmUpdate() : Unit = {
+				graph.addUpdate(upd)
+
+				val updRef = upd.toRef
+				sessionPointer = Some(updRef)
+				readDependencies = Set.empty
+				txState.transactionDependencies += updRef
+
+				state = txState
+			}
+
+			override def getTxid : TxRef[Id] = txState.getTxid
+		}
+
+
+		case class LockedTransaction(txState : StartedTransaction, tx : Tx[Id, Key, Data]) extends SessionStateInTx {
+			override def commitTransaction() : Unit = {
+				graph.addTx(tx)
+				txState.transactionDependencies = Set.empty
+
+				state = Idle
+			}
+
+			override def abortTransaction() : Unit = {
+				txState.transactionDependencies.foreach(ref => graph.remove(ref.id))
+				//Reset session pointer to "before the transaction"
+				sessionPointer = txState.sessionPointerBeforeTx
+
+				state = Idle
+			}
+
+			override def getTxid : TxRef[Id] = txState.getTxid
+		}
+	}
+
+
 
 }
 

@@ -1,11 +1,7 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
-import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._
-import org.junit.{Before, Test}
+import org.junit.Test
 
 /**
 	* Created on 05.09.18.
