@@ -105,8 +105,8 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 	def abortTransactionIfStarted() : Unit = synchronized {
 		state match {
-			case s : SessionState.LockedTransaction => state.abortTransaction()
-			case s : SessionState.StartedTransaction =>
+			case _ : SessionState.LockedTransaction => state.abortTransaction()
+			case _ : SessionState.StartedTransaction =>
 				state.lockTransaction()
 				state.abortTransaction()
 		}

@@ -37,10 +37,10 @@ object ReadCommittedTransactions {
 
 		try {
 			updateWrites.foreach(write => {
-				write.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.committed, store.isolationLevelOps.readCommitted)
+				write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
 			})
 
-			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatusOps.committed, store.isolationLevelOps.readCommitted)
+			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
 
 
 		} catch {
@@ -62,12 +62,12 @@ object ReadCommittedTransactions {
 
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
-		assert(isolation == store.isolationLevelOps.readCommitted, "row has wrong isolation level")
+		assert(isolation == store.isolationLevels.readCommitted, "row has wrong isolation level")
 
 		val txStatus = row.txStatus
 
 		//1. If the read value does not belong to a transaction or the transaction has been committed
-		if (txStatus == store.txStatusOps.committed) {
+		if (txStatus == store.txStatuses.committed) {
 			return true
 		}
 

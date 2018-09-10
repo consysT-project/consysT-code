@@ -14,29 +14,30 @@ import scala.reflect.runtime.universe._
 package object store {
 
 
-	trait IdOps[T] {
+	trait Ids[T] {
 		def freshId() : T
 	}
 
-	trait KeyOps[T] {
+	trait Keys[T] {
 		def transactionKey : T
 	}
 
-	trait TxStatusOps[T] {
+	trait TxStatuses[T] {
 		def pending : T
 		def committed : T
 		def aborted : T
 	}
 
-	trait IsolationLevelOps[T] {
+	trait IsolationLevels[T] {
 		def snapshotIsolation : T
 		def readUncommitted : T
 		def readCommitted : T
 		def none : T
 	}
 
-	trait ConsistencyLevelOps[T] {
-		def sequential : T
+	trait ConsistencyLevels[T] {
+		def causal : T
+		def weak : T
 	}
 
 
@@ -48,7 +49,7 @@ package object store {
 		//The transaction has been aborted and changes have been rolled back.
 		case class Abort[Id, Key](txid : Id, description : String) extends CommitStatus[Id, Key]
 
-		//The transaction indicated an error. It is unclear whether it (partially) committed or aborted comnpletely.
+		//The transaction indicated an error. It is unclear whether it (partially) committed or aborted completely.
 		case class Error[Id, Key](txid : Id, error : Throwable) extends CommitStatus[Id, Key]
 	}
 
@@ -82,7 +83,11 @@ package object store {
 				Cluster.builder.addContactPoint(address).withPort(port).build
 		}
 
+		//Special params for connecting to Cassandra started locally with ccm
 		object LocalCluster extends AddressAndPort("127.0.0.1", 9042)
+		object LocalClusterNode1 extends AddressAndPort("127.0.0.1", 9042)
+		object LocalClusterNode2 extends AddressAndPort("127.0.0.2", 9042)
+		object LocalClusterNode3 extends AddressAndPort("127.0.0.3", 9042)
 	}
 
 
