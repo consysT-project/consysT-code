@@ -4,8 +4,6 @@ import com.datastax.driver.core.Cluster
 import de.tudarmstadt.consistency.store.shim.EventRef
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 
-import scala.reflect.runtime.universe._
-
 /**
 	* Created on 03.09.18.
 	*

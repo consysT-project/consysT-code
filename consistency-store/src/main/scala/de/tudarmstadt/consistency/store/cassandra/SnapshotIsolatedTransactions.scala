@@ -4,11 +4,8 @@ import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.utils.Log
 
-import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
 
 /**

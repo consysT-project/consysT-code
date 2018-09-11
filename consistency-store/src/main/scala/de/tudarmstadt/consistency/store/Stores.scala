@@ -5,7 +5,6 @@ import java.util.UUID
 
 import com.datastax.driver.core.TypeCodec
 import com.datastax.driver.core.utils.UUIDs
-import de.tudarmstadt.consistency.store.Stores.Simple._
 import de.tudarmstadt.consistency.store.cassandra.SysnameCassandraStoreImpl
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.{SysnameVersionedStore, SysnameVersionedStoreImpl}

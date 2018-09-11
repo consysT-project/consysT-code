@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.store.shim
 
-import scala.collection.mutable
-import Event._
+import de.tudarmstadt.consistency.store.shim.Event._
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 
 /**

@@ -2,7 +2,6 @@ package de.tudarmstadt.consistency.store.cassandra
 
 import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import com.datastax.driver.core.querybuilder.QueryBuilder.{set, update}
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedIsolationLevelException
 import de.tudarmstadt.consistency.store.shim.Event

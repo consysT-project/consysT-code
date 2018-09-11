@@ -4,8 +4,6 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 
 import scala.reflect.runtime.universe._
 

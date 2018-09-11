@@ -1,8 +1,6 @@
 package de.tudarmstadt.consistency.store.cassandra
 
-import java.util.UUID
-
-import com.datastax.driver.core.{DataType, TypeCodec}
+import com.datastax.driver.core.TypeCodec
 import de.tudarmstadt.consistency.store._
 
 import scala.reflect.runtime.universe._
