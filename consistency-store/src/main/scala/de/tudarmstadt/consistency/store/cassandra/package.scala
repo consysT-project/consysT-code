@@ -1,13 +1,10 @@
 package de.tudarmstadt.consistency.store
 
-import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datastax.driver.core._
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 
-import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
 
 

@@ -92,6 +92,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 							//Lock the transaction and add the transaction record to the base store
 							val tx = sessionOrder.lockTransaction()
+							//TODO: Which consistency level do we use when writing the tx record.
 							baseTx.update(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.weak))
 
 							res
