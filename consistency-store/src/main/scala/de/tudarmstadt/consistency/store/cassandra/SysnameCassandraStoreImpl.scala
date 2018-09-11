@@ -34,7 +34,6 @@ class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 	private def setType[T : TypeTag](t : TypeCodec[T]) : TypeCodec[T] =
 		if (t == null) typeCodecOf[T] else t
 
-
 	override val idType : TypeCodec[Id] = setType[Id](idTpe)
 	override val keyType : TypeCodec[Key] = setType[Key](keyTpe)
 	override val dataType : TypeCodec[Data] = setType[Data](dataTpe)

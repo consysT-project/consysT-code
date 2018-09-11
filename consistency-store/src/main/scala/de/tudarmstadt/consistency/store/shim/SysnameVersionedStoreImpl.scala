@@ -13,14 +13,14 @@ import scala.reflect.runtime.universe._
 class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus, Isolation, Consistency, Read] (
 	override val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 )(
+	val readNothing : Read,
+	val readConvert : Update[Id, Key, Data] => Read
+)(
 	override val ids : Ids[Id],
 	override val keys : Keys[Key],
 	override val txStatuses : TxStatuses[TxStatus],
 	override val isolationLevels : IsolationLevels[Isolation],
-	override val consistencyLevels : ConsistencyLevels[Consistency],
-	val readNothing : Read,
-	val readConvert : Update[Id, Key, Data] => Read
-
+	override val consistencyLevels : ConsistencyLevels[Consistency]
 )(
   override implicit val idOrdering: Ordering[Id]
 ) extends SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] {
