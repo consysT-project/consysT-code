@@ -22,9 +22,6 @@ package object cassandra {
 		row.getBool("[applied]")
 
 
-	private[cassandra] def cqlTypeOf[T : TypeTag] : DataType =
-		typeCodecOf[T].getCqlType
-
 	private[cassandra] def typeCodecOf[T : TypeTag] : TypeCodec[T] = implicitly[TypeTag[T]] match {
 		case TypeTag.Boolean => TypeCodec.cboolean().asInstanceOf[TypeCodec[T]]
 
@@ -42,7 +39,7 @@ package object cassandra {
 
 		case t if t == typeTag[ByteBuffer] => TypeCodec.blob().asInstanceOf[TypeCodec[T]]
 
-		case t => throw new IllegalArgumentException(s"can not infer a type codec from type tag $t")
+		case t => throw new IllegalArgumentException(s"can not infer a type codec from type tag $t with type ${t.tpe}")
 	}
 
 	private[cassandra] def runtimeClassOf[T : TypeTag] : Class[T] = {
