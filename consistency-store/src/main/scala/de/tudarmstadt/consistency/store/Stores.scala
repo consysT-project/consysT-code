@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.store
 
+import java.nio.ByteBuffer
 import java.util.UUID
 
 import de.tudarmstadt.consistency.store.cassandra.SysnameCassandraStoreImpl
@@ -25,7 +26,6 @@ object Stores {
 		private type Consistency = String
 
 		private val keyspaceName = "k_sysname_simple"
-
 
 		private def createSeqIds : Ids[Id] = new Ids[Id] {
 			var currentId = 0
@@ -112,10 +112,12 @@ object Stores {
 	object Default {
 		private type Id = UUID
 		private type Key = String
-		private type Data = AnyRef
+		private type Data = ByteBuffer
 		private type TxStatus = Int
 		private type Isolation = Int
 		private type Consistency = Int
+
+
 
 
 	}

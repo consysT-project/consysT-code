@@ -2,12 +2,11 @@ package de.tudarmstadt.consistency.store.cassandra
 
 import java.util.UUID
 
-import com.datastax.driver.core.DataType
+import com.datastax.driver.core.{DataType, TypeCodec}
 import de.tudarmstadt.consistency.store._
 
 import scala.reflect.runtime.universe._
 
-import SysnameCassandraStoreImpl.cassandraTypeOf
 
 /**
 	* Created on 21.08.18.
@@ -24,13 +23,25 @@ class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 	override val isolationLevels : IsolationLevels[Isolation],
 	override val consistencyLevels : ConsistencyLevels[Consistency],
 )(
-	override val idType : DataType = cassandraTypeOf[Id],
-	override val keyType : DataType = cassandraTypeOf[Key],
-	override val dataType : DataType = cassandraTypeOf[Data],
-	override val txStatusType : DataType = cassandraTypeOf[TxStatus],
-	override val isolationType : DataType = cassandraTypeOf[Isolation],
-	override val consistencyType : DataType = cassandraTypeOf[Consistency]
-) extends SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
+	val idTpe : TypeCodec[Id] = null,
+	val keyTpe : TypeCodec[Key] = null,
+	val dataTpe : TypeCodec[Data] = null,
+	val txStatusTpe : TypeCodec[TxStatus] = null,
+	val isolationTpe : TypeCodec[Isolation] = null,
+	val consistencyTpe : TypeCodec[Consistency] = null
+) extends SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency] {
+
+	private def setType[T : TypeTag](t : TypeCodec[T]) : TypeCodec[T] =
+		if (t == null) typeCodecOf[T] else t
+
+
+	override val idType : TypeCodec[Id] = setType[Id](idTpe)
+	override val keyType : TypeCodec[Key] = setType[Key](keyTpe)
+	override val dataType : TypeCodec[Data] = setType[Data](dataTpe)
+	override val txStatusType : TypeCodec[TxStatus] = setType[TxStatus](txStatusTpe)
+	override val isolationType : TypeCodec[Isolation] = setType[Isolation](isolationTpe)
+	override val consistencyType : TypeCodec[Consistency] = setType[Consistency](consistencyTpe)
+}
 
 
 //	override val maxFunctionDef : String =
@@ -48,26 +59,6 @@ class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 //			 |			return max;
 //			 |		}
 //		 """.stripMargin
-
-object SysnameCassandraStoreImpl {
-	private def cassandraTypeOf[T : TypeTag] : DataType = implicitly[TypeTag[T]] match {
-
-		//TODO: Is it possible to use CodecRegistry and/or DataType for that task?
-		case t if t == typeTag[Boolean] => DataType.cboolean()
-
-		case t if t == typeTag[Int] || t == typeTag[Integer] => DataType.cint()
-
-		case t if t == typeTag[Float] => DataType.cfloat()
-		case t if t == typeTag[Double] => DataType.cdouble()
-		case t if t == typeTag[BigDecimal] => DataType.decimal()
-
-		case t if t == typeTag[String] => DataType.text()
-
-		case t if t == typeTag[UUID] => DataType.uuid() //TODO Differentiate between UUID and TimeUUID
-
-		case t => throw new IllegalArgumentException(s"can not infer a cassandra type from type tag $t")
-	}
-}
 
 
 

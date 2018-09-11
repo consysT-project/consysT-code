@@ -36,12 +36,12 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 	val keyspaceName : String
 
-	val idType : DataType
-	val keyType : DataType
-	val dataType : DataType
-	val txStatusType : DataType
-	val isolationType : DataType
-	val consistencyType : DataType
+	val idType : TypeCodec[Id]
+	val keyType : TypeCodec[Key]
+	val dataType : TypeCodec[Data]
+	val txStatusType : TypeCodec[TxStatus]
+	val isolationType : TypeCodec[Isolation]
+	val consistencyType : TypeCodec[Consistency]
 
 	//	val idOps : IdOps[Id]
 	val keys : Keys[Key]
@@ -327,7 +327,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	}
 
 	private [cassandra] def eventRefToCassandraTuple(ref : UpdateRef[Id, Key]) : TupleValue = {
-		val typ = cluster.getMetadata.newTupleType(idType, keyType)
+		val typ = cluster.getMetadata.newTupleType(idType.getCqlType, keyType.getCqlType)
 		typ.newValue(ref.id.asInstanceOf[AnyRef], ref.key.asInstanceOf[AnyRef])
 	}
 
@@ -344,7 +344,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		* Defines the keyspace that is used for the store.
 		*/
 	private def createKeyspaceDef : KeyspaceDef = new KeyspaceDef {
-		override val name : String = "k_sysname"
+		override val name : String = keyspaceName
 
 		override protected def create(session : CassandraSession) : Unit = {
 			//Strategy NetworkTopologyStrategy does not support a replication factor.
@@ -390,9 +390,9 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			override val name : String = "t_tx"
 			override def create(session : CassandraSession) : Unit = session.execute(
 					s"""CREATE TABLE $name
-						 | (txid ${idType.asFunctionParameterString()},
-						 | status ${txStatusType.asFunctionParameterString()},
-						 | isolation ${isolationType.asFunctionParameterString()},
+						 | (txid ${idType.getCqlType.asFunctionParameterString},
+						 | status ${txStatusType.getCqlType.asFunctionParameterString},
+						 | isolation ${isolationType.getCqlType.asFunctionParameterString},
 						 | PRIMARY KEY(txid));""".stripMargin
 				)
 			}
@@ -402,8 +402,8 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			override val name : String = "t_keys"
 			override def create(session : CassandraSession) : Unit = session.execute(
 				s"""CREATE TABLE $name
-					 | (key ${keyType.asFunctionParameterString()},
-					 | txid ${idType.asFunctionParameterString()},
+					 | (key ${keyType.getCqlType.asFunctionParameterString},
+					 | txid ${idType.getCqlType.asFunctionParameterString},
 					 | PRIMARY KEY(key));""".stripMargin
 			)
 		}
@@ -412,14 +412,14 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			override val name : String = "t_data"
 			override def create(session : CassandraSession) : Unit = session.execute(
 				s"""CREATE TABLE $name
-					 | (id ${idType.asFunctionParameterString()},
-					 | key ${keyType.asFunctionParameterString()},
-					 | data ${dataType.asFunctionParameterString()},
-					 | deps set<frozen<tuple<${idType.asFunctionParameterString()}, ${keyType.asFunctionParameterString()}>>>,
-					 | txid ${idType.asFunctionParameterString()},
-					 | txstatus ${txStatusType.asFunctionParameterString()},
-					 | consistency ${consistencyType.asFunctionParameterString()},
-					 | isolation ${isolationType.asFunctionParameterString()},
+					 | (id ${idType.getCqlType.asFunctionParameterString()},
+					 | key ${keyType.getCqlType.asFunctionParameterString},
+					 | data ${dataType.getCqlType.asFunctionParameterString},
+					 | deps set<frozen<tuple<${idType.getCqlType.asFunctionParameterString}, ${keyType.getCqlType.asFunctionParameterString}>>>,
+					 | txid ${idType.getCqlType.asFunctionParameterString},
+					 | txstatus ${txStatusType.getCqlType.asFunctionParameterString},
+					 | consistency ${consistencyType.getCqlType.asFunctionParameterString},
+					 | isolation ${isolationType.getCqlType.asFunctionParameterString},
 					 | PRIMARY KEY (key, id));""".stripMargin
 			)
 		}
@@ -515,21 +515,21 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	}
 
 	case class CassandraRow(row : Row) extends DataRow {
-		override def id : Id = row.get("id", runtimeClassOf[Id])
-		override def key : Key = row.get("key", runtimeClassOf[Key])
-		override def data : Data = row.get("data", runtimeClassOf[Data])
-		override def txid : Option[TxRef[Id]] = Option(TxRef(row.get("txid", runtimeClassOf[Id])))
+		override def id : Id = row.get("id", typeCodecOf[Id])
+		override def key : Key = row.get("key", typeCodecOf[Key])
+		override def data : Data = row.get("data", typeCodecOf[Data])
+		override def txid : Option[TxRef[Id]] = Option(TxRef(row.get("txid", typeCodecOf[Id])))
 		override def deps : Set[UpdateRef[Id, Key]] = {
 			val rawSet : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", runtimeClassOf[TupleValue])).toSet
 			rawSet.map(tv => {
-				val id = tv.get(0, runtimeClassOf[Id])
-				val key = tv.get(1, runtimeClassOf[Key])
+				val id = tv.get(0, typeCodecOf[Id])
+				val key = tv.get(1, typeCodecOf[Key])
 				UpdateRef(id, key)
 			})
 		}
-		override def txStatus : TxStatus = row.get("txstatus", runtimeClassOf[TxStatus])
-		override def isolation : Isolation = row.get("isolation", runtimeClassOf[Isolation])
-		override def consistency : Consistency = row.get("consistency", runtimeClassOf[Consistency])
+		override def txStatus : TxStatus = row.get("txstatus", typeCodecOf[TxStatus])
+		override def isolation : Isolation = row.get("isolation", typeCodecOf[Isolation])
+		override def consistency : Consistency = row.get("consistency", typeCodecOf[Consistency])
 	}
 
 	case class LocalRow(id: Id, key: Key, data: Data, txid: Option[TxRef[Id]], deps: Set[UpdateRef[Id, Key]], txStatus: TxStatus, isolation: Isolation, consistency: Consistency)

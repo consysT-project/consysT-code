@@ -92,10 +92,7 @@ package object store {
 
 
 
-	private[store] def runtimeClassOf[T : TypeTag] : Class[T] = {
-		val tag = implicitly[TypeTag[T]]
-		tag.mirror.runtimeClass(tag.tpe.typeSymbol.asClass).asInstanceOf[Class[T]]
-	}
+
 
 
 
