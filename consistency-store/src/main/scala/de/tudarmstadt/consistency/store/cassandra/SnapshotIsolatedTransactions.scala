@@ -74,7 +74,7 @@ object SnapshotIsolatedTransactions {
 
 				if (!rowWasApplied(row)) {
 					//gets the next row in the result set.
-					var otherTxId : Id = row.get("txid", runtimeClassOf[Id])
+					var otherTxId : Id = row.get("txid", typeCodecOf[Id])
 
 					var retries = 10
 					var failed = true
@@ -111,7 +111,7 @@ object SnapshotIsolatedTransactions {
 						} else {
 							//If we could not change the key (because another transaction changed it before us) retry it again
 							retries = retries - 1
-							otherTxId = rowAgain.get("txid", runtimeClassOf[Id])
+							otherTxId = rowAgain.get("txid", typeCodecOf[Id])
 						}
 
 					}
@@ -216,7 +216,7 @@ object SnapshotIsolatedTransactions {
 
 		//2.1. If the status was not pending, we have to take further actions
 		//the status of the row that should be updated
-		val status = abortTxRow.get("status", runtimeClassOf[TxStatus])
+		val status = abortTxRow.get("status", typeCodecOf[TxStatus])
 
 		//If the transaction was committed, remove the transaction tag from the row
 		if (status == store.txStatuses.committed) {
@@ -269,7 +269,7 @@ object SnapshotIsolatedTransactions {
 		}
 
 
-		val readId = maxRow.get("system.max(id)", runtimeClassOf[Id])
+		val readId = maxRow.get("system.max(id)", typeCodecOf[Id])
 
 		if (readId == null) {
 			//			assert(false, "no rows left for key " + key)
@@ -334,7 +334,7 @@ object SnapshotIsolatedTransactions {
 		}
 
 		//2.1. If the status was not pending, we have to take further actions
-		val status = abortTxRow.get("status", runtimeClassOf[TxStatus])
+		val status = abortTxRow.get("status", typeCodecOf[TxStatus])
 
 		//If the transaction was committed, remove the transaction tag from the row
 		if (status == store.txStatuses.committed) {

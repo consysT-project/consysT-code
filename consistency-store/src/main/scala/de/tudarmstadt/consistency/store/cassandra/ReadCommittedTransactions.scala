@@ -99,7 +99,7 @@ object ReadCommittedTransactions {
 		}
 
 
-		val readId = maxRow.get("system.max(id)", runtimeClassOf[Id])
+		val readId = maxRow.get("system.max(id)", typeCodecOf[Id])
 
 		if (readId == null) {
 			//			assert(false, "no rows left for key " + key)
