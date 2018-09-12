@@ -1,19 +1,32 @@
 package de.tudarmstadt.consistency.store
 
+import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
+import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._
-import org.junit.Test
+import org.junit.{Before, Test}
 
 /**
 	* Created on 05.09.18.
 	*
 	* @author Mirko Köhler
 	*/
-class SimpleStoreTest1 extends SimpleStoreTest {
+class SimpleSingleStoreTest extends SimpleStoreTest[String] {
+
+
+	//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
+	protected var store : SysnameVersionedStore[Id, Key, String, TxStatus, Isolation, Consistency, Option[Update[Id, Key, String]]]  = null
+
+	@Before
+	def setup(): Unit = {
+		store = Stores.Simple.newTestStore(LocalCluster, initialize = true)
+	}
 
 	@Test
 	def singleSession(): Unit = {
 		val store = this.store
 		import store._
+
 
 		startSession { session =>
 

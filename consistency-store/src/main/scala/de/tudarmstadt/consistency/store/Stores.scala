@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.store
 
 import java.nio.ByteBuffer
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.datastax.driver.core.TypeCodec
 import com.datastax.driver.core.utils.UUIDs
@@ -10,6 +11,7 @@ import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.{SysnameVersionedStore, SysnameVersionedStoreImpl}
 
 import scala.util.Random
+import scala.reflect.runtime.universe._
 
 /**
 	* Created on 31.08.18.
@@ -22,19 +24,18 @@ object Stores {
 
 		private final type Id = Integer
 		private final type Key = String
-		private final type Data = String
 		private final type TxStatus = String
 		private final type Isolation = String
 		private final type Consistency = String
 
 		private val keyspaceName = "k_sysname_simple"
 
-		private def createSeqIds : Ids[Id] = new Ids[Id] {
-			var currentId = 0
-			override def freshId() : Integer = synchronized {
-				currentId += 1
-				currentId
-			}
+		def createSeqIds : Ids[Id] = new Ids[Id] {
+			var currentId : AtomicInteger = new AtomicInteger(0)
+
+			override def freshId() : Integer =
+				currentId.getAndIncrement()
+
 		}
 
 		private def createRanIds : Ids[Id] = new Ids[Id] {
@@ -69,7 +70,7 @@ object Stores {
 
 
 		/* TODO use Int instead of Integer. Problem: It gets casted to primitive int where primitive int is not allowed */
-		def newStore(connectionParams : ConnectionParams, idOps : Ids[Id] = createSeqIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Data]] = {
+		def newStore[Data : TypeTag](connectionParams : ConnectionParams, idOps : Ids[Id] = createSeqIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Data]] = {
 			val keys = createKeys
 			val txStatuses = createTxStatuses
 			val isolationLevels = createIsolationLevels
@@ -77,7 +78,7 @@ object Stores {
 
 			//TODO: we have to use the concrete types here instead of e.g. Id, because the type tags will not be resolved correctly
 			//You get a TypeTag[Id] instead of a TypeTag[Integer] and then the type codec can not be resolved
-			val baseStore = new SysnameCassandraStoreImpl[Integer, String, String, String, String, String](
+			val baseStore = new SysnameCassandraStoreImpl[Integer, String, Data, String, String, String](
 				connectionParams, keyspaceName
 			)(
 				keys, txStatuses, isolationLevels, consistencyLevels
@@ -87,7 +88,7 @@ object Stores {
 				baseStore.initializeKeyspace()
 			}
 
-			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, String, String, String, String, Option[Data]](
+			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, Data, String, String, String, Option[Data]](
 				baseStore
 			)(
 				None, upd => Some(upd.data)
@@ -98,13 +99,13 @@ object Stores {
 			versionedStore
 		}
 
-		def newTestStore(connectionParams : ConnectionParams, idOps : Ids[Id] = createSeqIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Update[Id, Key, Data]]] = {
+		def newTestStore[Data : TypeTag](connectionParams : ConnectionParams, idOps : Ids[Id] = createSeqIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Update[Id, Key, Data]]] = {
 			val keys = createKeys
 			val txStatuses = createTxStatuses
 			val isolationLevels = createIsolationLevels
 			val consistencyLevels = createConsistencyLevels
 
-			val baseStore = new SysnameCassandraStoreImpl[Integer, String, String, String, String, String](
+			val baseStore = new SysnameCassandraStoreImpl[Integer, String, Data, String, String, String](
 				connectionParams, keyspaceName
 			)(
 				keys, txStatuses, isolationLevels, consistencyLevels
@@ -114,7 +115,7 @@ object Stores {
 				baseStore.initializeKeyspace()
 			}
 
-			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, String, String, String, String, Option[Update[Id, Key, Data]]](
+			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, Data, String, String, String, Option[Update[Id, Key, Data]]](
 				baseStore
 			)(
 				None, upd => Some(upd)

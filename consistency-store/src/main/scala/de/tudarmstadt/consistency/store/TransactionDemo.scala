@@ -1,7 +1,11 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
+import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
+import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import de.tudarmstadt.consistency.utils.Log
+
+import scala.concurrent._
+import scala.concurrent.duration.Duration
 
 /**
 	* Created on 20.08.18.
@@ -91,7 +95,7 @@ CREATE AGGREGATE aggregate_name(type1)
 
 	def simpleExample(): Unit = {
 
-		val store = Stores.Simple.newStore(LocalCluster, initialize = true)
+		val store = Stores.Simple.newStore[String](LocalCluster, initialize = true)
 		import store._
 
 
@@ -173,98 +177,280 @@ CREATE AGGREGATE aggregate_name(type1)
 
 			print()
 
-//			Log.info(null, startTransaction(isolationLevelOps.snapshotIsolation){
-//				transactionE
-//			})
-//			Log.info(null, startTransaction(isolationLevelOps.readCommitted){
-//				transactionE
-//			})
-//
-//			print()
 		}
 
 		System.exit(0)
 	}
 
-//	def concurrentExample(): Unit = {
-//
-//		import de.tudarmstadt.consistency.store.scala.transactions.SimpleCassandraTransactionStore._
-//		initialize()
-//
-//		val executor = Executors.newFixedThreadPool(4)
-//		implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor)
-//
-//		Thread.sleep(1000)
-//
-//		Future {
-//			val session = newSession
-//			try {
-//				Log.info(null, "### A ===> " + commitTransaction(session, List(Write("x", "Hallo", Set.empty), Write("y", "Welt", Set.empty))))
-//			} catch {
-//				case e => TransactionDemo.synchronized {
-//					System.err.println("NODE A")
-//					e.printStackTrace()
-//				}
-//			}
-//			Log.info(null, "A done.")
-//		}
-//
-//		Future {
-//			val session = newSession
-//			try {
-//				Log.info(null, "### B ===> " + commitTransaction(session, List(Write("x", "Hello", Set.empty), Write("y", "World", Set.empty))))
-//			} catch {
-//				case e => TransactionDemo.synchronized {
-//					System.err.println("NODE B")
-//					e.printStackTrace()
-//				}
-//			}
-//			Log.info(null, "B done.")
-//		}
-//
-//		Future {
-//			val session = newSession
-//			try {
-//				Log.info(null, "### C ===> " + commitTransaction(session, List(Write("x", "Hallösche", Set.empty), Write("z", "Zusamme", Set.empty))))
-//			} catch {
-//				case e => TransactionDemo.synchronized {
-//					System.err.println("NODE C")
-//					e.printStackTrace()
-//				}
-//			}
-//			Log.info(null, "C done.")
-//		}
-//
-//		Thread.sleep(3000)
-//
-//		val session = newSession
-//
-//		printTables(session)
-//
-//		Thread.sleep(1000)
-//
-//		timed {
-//			Log.info(null, "x = " + read(session, "x"))
-//		}
-//		timed {
-//			Log.info(null, "y = " + read(session, "y"))
-//		}
-//		timed {
-//			Log.info(null, "z = " + read(session, "z"))
-//		}
-//		timed {
-//			Log.info(null, "x = " + read(session, "x"))
-//		}
-//
-//		Thread.sleep(1000)
-//
-//		printTables(session)
-//
-//		System.exit(0)
-//
-//	}
+
+	def multiExample(): Unit = {
+
+		val idOps = Stores.Simple.createSeqIds
+
+		//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
+		val stores : Seq[SysnameVersionedStore[Integer, String, Integer, String, String, String, Option[Integer]]]  =  Seq(
+			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps, initialize = true),
+			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps),
+			Stores.Simple.newStore[Integer](LocalClusterNode2, idOps = idOps),
+			Stores.Simple.newStore[Integer](LocalClusterNode3, idOps = idOps)
+		)
+
+		implicit val executionContext : ExecutionContext = ExecutionContext.global
+
+		//Sequential
+		{
+			val store = stores(0)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					tx.update("alice", 1000, consistencyLevels.causal)
+					tx.update("bob", 1000, consistencyLevels.causal)
+					tx.update("carol", 1000, consistencyLevels.causal)
+					Some()
+				}
+			}
+		}
+
+		//Parallel
+		val future1 = Future {
+			println("### future 1")
+			val store = stores(1)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					(tx.read("alice", consistencyLevels.causal), tx.read("bob", consistencyLevels.causal)) match {
+						case (Some(a), Some(b)) =>
+							tx.update("alice", a - 200, consistencyLevels.causal)
+							tx.update("bob", b + 200, consistencyLevels.causal)
+							Some ()
+						case _ =>
+							Some ()
+					}
+				}
+
+				println(s"future 1, tx1 $tx1")
+
+				//Commit a transaction
+				val tx2 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					val a = tx.read("alice", consistencyLevels.causal)
+					val b = tx.read("bob", consistencyLevels.causal)
+
+					println(s"alice $a, bob $b")
+
+					Some()
+				}
+
+				println(s"future 1, tx2 $tx2")
+			}
+
+			store.close()
+		} recover {
+			case e  => e.printStackTrace(System.out)
+		}
+
+		val future2 = Future {
+			println("### future 2")
+
+			val store = stores(2)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					(tx.read("alice", consistencyLevels.causal), tx.read("carol", consistencyLevels.causal)) match {
+						case (Some(a), Some(c)) =>
+							tx.update("alice", a - 300, consistencyLevels.causal)
+							tx.update("carol", c + 300, consistencyLevels.causal)
+							Some ()
+						case _ =>
+							Some ()
+					}
+				}
+
+				println(s"future 2, tx1 $tx1")
+
+				//Commit a transaction
+				val tx2 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					val c = tx.read("carol", consistencyLevels.causal)
+					println(s"carol $c")
+					Some()
+				}
+
+				println(s"future 2, tx2 $tx2")
+			}
+
+			store.close()
+		} recover {
+			case e  => e.printStackTrace(System.out)
+		}
+
+		val future3 = Future {
+			println("### future 3")
+
+			val store = stores(3)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					(tx.read("alice", consistencyLevels.causal), tx.read("carol", consistencyLevels.causal)) match {
+						case (Some(a), Some(c)) =>
+							tx.update("alice", a - 50, consistencyLevels.causal)
+							tx.update("carol", c + 50, consistencyLevels.causal)
+							Some ()
+						case _ =>
+							Some ()
+					}
+				}
+
+				println(s"future 3, tx1 $tx1")
+
+				//Commit a transaction
+				val tx2 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					val c = tx.read("carol", consistencyLevels.causal)
+					println(s"carol $c")
+					Some()
+				}
+
+				println(s"future 3, tx2 $tx2")
+
+			}
+
+			store.close()
+		} recover {
+			case e  => e.printStackTrace(System.out)
+		}
+
+		Await.result(future1, Duration.Inf)
+		Await.result(future2, Duration.Inf)
+		Await.result(future3, Duration.Inf)
+
+		{
+			val store = stores(0)
+			import store._
+
+			startSession { session =>
+				session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					val a = tx.read("alice", consistencyLevels.causal)
+					val b = tx.read("bob", consistencyLevels.causal)
+					val c = tx.read("carol", consistencyLevels.causal)
+
+					println(s"alice = $a, bob = $b, carol = $c")
+					Some ()
+				}
+
+			}
+		}
+	}
+
+
+
+
+	def multiBug(): Unit = {
+
+		val idOps = Stores.Simple.createSeqIds
+
+		//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
+		val stores : Seq[SysnameVersionedStore[Integer, String, Integer, String, String, String, Option[Integer]]]  =  Seq(
+			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps, initialize = true),
+			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps),
+			Stores.Simple.newStore[Integer](LocalClusterNode2, idOps = idOps)
+		)
+
+		implicit val executionContext : ExecutionContext = ExecutionContext.global
+
+		//Sequential
+		{
+			val store = stores(0)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					tx.update("alice", 1000, consistencyLevels.causal)
+					Some()
+				}
+			}
+		}
+
+		//Parallel
+		val future1 = Future {
+			println("### future 1")
+			val store = stores(1)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					tx.read("alice", consistencyLevels.causal) match {
+						case Some(a) =>
+							Thread.sleep(500) //<-- Problem the database changed between read and write!!!
+							tx.update("alice", a - 200, consistencyLevels.causal)
+							tx.update("bob", 200, consistencyLevels.causal)
+						case _ =>
+					}
+					Some ()
+				}
+				println(s"future 1, tx1 $tx1")
+			}
+
+			store.close()
+		} recover {
+			case e  => e.printStackTrace(System.out)
+		}
+
+		val future2 = Future {
+			println("### future 2")
+			val store = stores(2)
+			import store._
+
+			startSession { session =>
+				//Commit a transaction
+				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					tx.read("alice", consistencyLevels.causal) match {
+						case Some(a) =>
+							tx.update("alice", a - 300, consistencyLevels.causal)
+							tx.update("carol", 300, consistencyLevels.causal)
+						case _ =>
+					}
+					Some()
+				}
+				println(s"future 2, tx1 $tx1")
+			}
+
+			store.close()
+		} recover {
+			case e  => e.printStackTrace(System.out)
+		}
+
+		Await.result(future1, Duration.Inf)
+		Await.result(future2, Duration.Inf)
+
+		{
+			val store = stores(0)
+			import store._
+
+			startSession { session =>
+				session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+					val a = tx.read("alice", consistencyLevels.causal)
+					val b = tx.read("bob", consistencyLevels.causal)
+					val c = tx.read("carol", consistencyLevels.causal)
+
+					println(s"alice = $a, bob = $b, carol = $c")
+					Some ()
+				}
+
+			}
+
+			store.close()
+		}
+	}
 
 	def main(args : Array[String]): Unit = {
-		simpleExample()
+		multiBug()
 	}
 }
