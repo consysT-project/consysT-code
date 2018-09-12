@@ -109,15 +109,15 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 					}
 		}
 
-		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency]) : Seq[Event[Id, Key, Data]] = {
+		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency], txParams : CassandraTxParams[Id, Isolation]) : Seq[Event[Id, Key, Data]] = {
 			readParams match {
-				case CassandraReadParams(Some(id), _) => readVersionOf(key, id).toSeq
-				case CassandraReadParams(None, _) => readAllVersionsOf(key)
+				case CassandraReadParams(Some(id), _) => readVersionOf(key, id, txParams).toSeq
+				case CassandraReadParams(None, _) => readAllVersionsOf(key, txParams)
 			}
 		}
 
 
-		private def readAllVersionsOf(key : Key) : Seq[Event[Id, Key, Data]] = {
+		private def readAllVersionsOf(key : Key, txParams : CassandraTxParams[Id, Isolation]) : Seq[Event[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -133,7 +133,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			while (row != null) {
 				val dataRow : DataRow = CassandraRow(row)
 
-				val rowIsCommitted = commitRow(dataRow)
+				val rowIsCommitted = commitRow(dataRow, txParams)
 
 				if (rowIsCommitted) {
 					buf.prepend(dataRow.toEvent)
@@ -145,7 +145,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			return buf
 		}
 
-		private def readVersionOf(key : Key, id : Id) : Option[Event[Id, Key, Data]] = {
+		private def readVersionOf(key : Key, id : Id, txParams : CassandraTxParams[Id, Isolation]) : Option[Event[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -156,13 +156,14 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			)
 
 			val row = keyResult.one()
+
 			if (row == null) {
 				return None
 			}
 
 			val dataRow : DataRow = CassandraRow(row)
 
-			val rowIsCommitted = commitRow(dataRow)
+			val rowIsCommitted = commitRow(dataRow, txParams)
 
 			if (rowIsCommitted) {
 				return Some(dataRow.toEvent)
@@ -171,9 +172,9 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
-		private def commitRow(row : DataRow) : Boolean = row.isolation match {
+		private def commitRow(row : DataRow, txParams : CassandraTxParams[Id, Isolation]) : Boolean = row.isolation match {
 			case l if l == isolationLevels.snapshotIsolation =>
-				SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
+				SnapshotIsolatedTransactions.commitRow(session, SysnameCassandraStore.this)(txParams.txid.get.id /*TODO: Handle case where there is no txid*/, row)
 			case l if l == isolationLevels.readCommitted =>
 				ReadCommittedTransactions.commitRow(session, SysnameCassandraStore.this)(row)
 			case iso => throw new UnsupportedIsolationLevelException(iso)
@@ -181,8 +182,10 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 
 		trait CassandraTxContext extends TxContext {
+			val txParams : CassandraTxParams[Id, Isolation]
+
 			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[Event[Id, Key, Data]] = {
-				readKey(key, params)
+				readKey(key, params, txParams)
 			}
 
 
@@ -235,11 +238,11 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				bufferTx(tx, params)
 		}
 
-		private class SysnameCassandraSnapshotIsolatedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
+		private class SysnameCassandraSnapshotIsolatedTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
 
-		private class SysnameCassandraReadCommittedTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
+		private class SysnameCassandraReadCommittedTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends BufferedCassandraTxContext
 
-		private class SysnameCassandraNoneTxContext(val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
+		private class SysnameCassandraNoneTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
 			def update(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				assert(update.txid.isEmpty, "a transaction without isolation can not depend on a transaction record")
@@ -403,6 +406,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				s"""CREATE TABLE $name
 					 | (key ${keyType.getCqlType.asFunctionParameterString},
 					 | txid ${idType.getCqlType.asFunctionParameterString},
+					 | reads set<${idType.getCqlType.asFunctionParameterString}>,
 					 | PRIMARY KEY(key));""".stripMargin
 			)
 		}

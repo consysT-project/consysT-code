@@ -34,7 +34,7 @@ object Stores {
 			var currentId : AtomicInteger = new AtomicInteger(0)
 
 			override def freshId() : Integer =
-				currentId.getAndIncrement()
+				currentId.incrementAndGet()
 
 		}
 
