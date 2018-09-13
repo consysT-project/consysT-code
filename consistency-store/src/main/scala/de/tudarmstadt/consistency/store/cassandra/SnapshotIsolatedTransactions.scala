@@ -193,7 +193,6 @@ object SnapshotIsolatedTransactions {
 		val txStatus = row.txStatus
 
 
-
 		//2.a If the read value does not belong to a transaction or the transaction has been committed
 		if (txStatus == store.txStatuses.committed) {
 			return true
@@ -216,12 +215,11 @@ object SnapshotIsolatedTransactions {
 			return true
 		}
 
-
-		//3. Abort the transaction txid if it is not committed
+		//3. Abort the transaction readTxid if it is not committed
 		val abortReadTxResult = session.execute(
 			update(store.keyspace.txTable.name)
 				.`with`(set("status", store.txStatuses.aborted))
-				.where(QueryBuilder.eq("txid", txid))
+				.where(QueryBuilder.eq("txid", readTxid))
 				.onlyIf(QueryBuilder.ne("status", store.txStatuses.committed))
 				.setConsistencyLevel(ConsistencyLevel.ALL)
 		)

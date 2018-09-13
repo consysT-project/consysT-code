@@ -51,18 +51,18 @@ package object store {
 		case class Error[Id, Key](txid : Id, error : Throwable) extends CommitStatus[Id, Key]
 	}
 
-	trait ReadStatus[Id, Key, Data]
-	object ReadStatus {
-		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[UpdateRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
-		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
-		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
-	}
-
-	trait WriteStatus[Id, Key, Data]
-	object WriteStatus {
-		case class Success[Id, Key, Data](id : Id, key : Key, data : Data) extends WriteStatus[Id, Key, Data]
-		case class Error[Id, Key, Data](key : Key, e : Throwable) extends WriteStatus[Id, Key, Data]
-	}
+//	trait ReadStatus[Id, Key, Data]
+//	object ReadStatus {
+//		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[UpdateRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
+//		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
+//		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
+//	}
+//
+//	trait WriteStatus[Id, Key, Data]
+//	object WriteStatus {
+//		case class Success[Id, Key, Data](id : Id, key : Key, data : Data) extends WriteStatus[Id, Key, Data]
+//		case class Error[Id, Key, Data](key : Key, e : Throwable) extends WriteStatus[Id, Key, Data]
+//	}
 
 
 	case class CassandraWriteParams[Consistency](consistency : Consistency)
@@ -76,16 +76,21 @@ package object store {
 	}
 
 	object ConnectionParams {
-		class AddressAndPort(address : String, port : Int) extends ConnectionParams {
+		class AddressAndPort(address : String, port : Int)
+			extends UsingClusterBuilder(builder => builder.addContactPoint(address).withPort(port))
+
+		class UsingClusterBuilder(make : Cluster.Builder => Cluster.Builder) extends ConnectionParams {
 			override def connectCluster : Cluster =
-				Cluster.builder.addContactPoint(address).withPort(port).build
+				make(Cluster.builder).build()
 		}
 
 		//Special params for connecting to Cassandra started locally with ccm
 		object LocalCluster extends AddressAndPort("127.0.0.1", 9042)
-		object LocalClusterNode1 extends AddressAndPort("127.0.0.1", 9042)
-		object LocalClusterNode2 extends AddressAndPort("127.0.0.2", 9042)
-		object LocalClusterNode3 extends AddressAndPort("127.0.0.3", 9042)
+
+		//Special local cluster nodes that can be used for testing
+		private[store] object LocalClusterNode1 extends AddressAndPort("127.0.0.1", 9042)
+		private[store] object LocalClusterNode2 extends AddressAndPort("127.0.0.2", 9042)
+		private[store] object LocalClusterNode3 extends AddressAndPort("127.0.0.3", 9042)
 	}
 
 
