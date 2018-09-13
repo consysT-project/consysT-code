@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.store
 
 import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
 import de.tudarmstadt.consistency.store.Store.ITxContext
+import de.tudarmstadt.consistency.store.examples.BankingStore
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._
@@ -15,47 +16,9 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 	*
 	* @author Mirko Köhler
 	*/
-class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
+class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingStore {
 
 
-	//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
-	protected var stores : Seq[SysnameVersionedStore[Id, Key, Integer, TxStatus, Isolation, Consistency, Option[Integer]]]  = null
-
-	@Before
-	def setup(): Unit = {
-
-		val idOps = Stores.Simple.createSeqIds
-
-		stores = Seq(
-			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps, initialize = true),
-			Stores.Simple.newStore[Integer](LocalClusterNode1, idOps = idOps),
-			Stores.Simple.newStore[Integer](LocalClusterNode2, idOps = idOps),
-			Stores.Simple.newStore[Integer](LocalClusterNode3, idOps = idOps)
-		)
-	}
-
-	private def transfer(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(from : Key, to : Key, amount : Int) : Unit = {
-		(tx.read(from, consistencyLevel), tx.read(to, consistencyLevel)) match {
-			case (Some(a), Some(b)) =>
-				tx.update(from, a - amount, consistencyLevel)
-				tx.update(to, b + amount, consistencyLevel)
-			case _ =>
-		}
-	}
-
-	private def parallelSession[U](
-		store : SysnameVersionedStore[Id, Key, Integer, TxStatus, Isolation, Consistency, Option[Integer]]
-	)(
-		session : store.Session[U]
-	)(implicit execCtx : ExecutionContext): Future[U] = {
-		val fut = store.parallelSession(session).recover {
-			case e  =>
-				e.printStackTrace(System.out)
-				fail(e.getMessage)
-				null.asInstanceOf[U]
-		}
-		fut
-	}
 
 	@Test
 	def testMultipleSessions(): Unit = {
@@ -68,9 +31,10 @@ class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
 			import store._
 			//Commit a transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("alice", 1000, consistencyLevels.causal)
-				tx.update("bob", 1000, consistencyLevels.causal)
-				tx.update("carol", 1000, consistencyLevels.causal)
+				deposit(tx, consistencyLevels.causal)("alice", 1000)
+				deposit(tx, consistencyLevels.causal)("bob", 1000)
+				deposit(tx, consistencyLevels.causal)("carol", 1000)
+
 				Some()
 			}
 		}

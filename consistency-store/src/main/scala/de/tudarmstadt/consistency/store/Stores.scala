@@ -84,10 +84,6 @@ object Stores {
 				keys, txStatuses, isolationLevels, consistencyLevels
 			)()
 
-			if (initialize) {
-				baseStore.initializeKeyspace()
-			}
-
 			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, Data, String, String, String, Option[Data]](
 				baseStore
 			)(
@@ -95,6 +91,10 @@ object Stores {
 			)(
 				idOps, keys, txStatuses, isolationLevels, consistencyLevels
 			)
+
+			if (initialize) {
+				versionedStore.initialize()
+			}
 
 			versionedStore
 		}
@@ -111,10 +111,6 @@ object Stores {
 				keys, txStatuses, isolationLevels, consistencyLevels
 			)()
 
-			if (initialize) {
-				baseStore.initializeKeyspace()
-			}
-
 			val versionedStore = new SysnameVersionedStoreImpl[Integer, String, Data, String, String, String, Option[Update[Id, Key, Data]]](
 				baseStore
 			)(
@@ -122,6 +118,10 @@ object Stores {
 			)(
 				idOps, keys, txStatuses, isolationLevels, consistencyLevels
 			)
+
+			if (initialize) {
+				versionedStore.initialize()
+			}
 
 			versionedStore
 		}
@@ -178,10 +178,6 @@ object Stores {
 				idTpe = TypeCodec.timeUUID()
 			)
 
-			if (initialize) {
-				baseStore.initializeKeyspace()
-			}
-
 			val versionedStore = new SysnameVersionedStoreImpl[UUID, String, ByteBuffer, Int, Int, Int, Option[ByteBuffer]](
 				baseStore
 			)(
@@ -189,6 +185,10 @@ object Stores {
 			)(
 				idOps, keys, txStatuses, isolationLevels, consistencyLevels
 			)
+
+			if (initialize) {
+				versionedStore.initialize()
+			}
 
 			versionedStore
 		}
@@ -207,10 +207,6 @@ object Stores {
 				idTpe = TypeCodec.timeUUID()
 			)
 
-			if (initialize) {
-				baseStore.initializeKeyspace()
-			}
-
 			val versionedStore = new SysnameVersionedStoreImpl[UUID, String, ByteBuffer, Int, Int, Int, Option[Update[Id, Key, Data]]](
 				baseStore
 			)(
@@ -218,6 +214,10 @@ object Stores {
 			)(
 				idOps, keys, txStatuses, isolationLevels, consistencyLevels
 			)
+
+			if (initialize) {
+				versionedStore.initialize()
+			}
 
 			versionedStore
 		}

@@ -6,7 +6,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.languageFeature.higherKinds
 
 /**
-	* Created on 30.08.18.
+	* General interface of store implementations that supports sessions and transactions.
 	*
 	* @author Mirko Köhler
 	*/
@@ -17,6 +17,15 @@ trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 
 	def startSession[U](f : Session[U]) : U
 	def close() : Unit
+
+	/**
+		* Initializes the store to set it up before using it.
+		*/
+	def initialize() : Unit
+	/**
+		* Resets the store to a default state, i.e. the state right after initializing it.
+		*/
+	def reset() : Unit
 
 	trait SessionContext extends ISessionContext[TxParams] {
 		type TxCtx <: TxContext

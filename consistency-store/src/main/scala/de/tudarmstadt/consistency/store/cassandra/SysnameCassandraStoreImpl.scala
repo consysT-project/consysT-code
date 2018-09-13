@@ -41,21 +41,7 @@ class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 }
 
 
-//	override val maxFunctionDef : String =
-//		s"""Integer maxid = max.get(0, Integer.class);
-//			 |
-//			 |  if (maxid == null || id > maxid) {
-//			 |			max.setInt(0, id);
-//			 |			max.setString(1, key);
-//			 |			max.setString(2, data);
-//			 |			max.setSet(3, deps, Integer.class);
-//			 |			max.set(4, txid, Integer.class);
-//			 |			max.setString(5, consistency);
-//			 |			return max;
-//			 |		} else {
-//			 |			return max;
-//			 |		}
-//		 """.stripMargin
+
 
 
 

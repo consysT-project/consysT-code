@@ -35,7 +35,7 @@ object ReadCommittedTransactions {
 
 		try {
 			updateWrites.foreach(write => {
-				write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
+				write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.readCommitted)
 			})
 
 			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
@@ -58,6 +58,8 @@ object ReadCommittedTransactions {
 	  row : store.DataRow
 	) : Boolean = {
 
+		import com.datastax.driver.core.querybuilder.QueryBuilder._
+
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
 		assert(isolation == store.isolationLevels.readCommitted, "row has wrong isolation level")
@@ -69,6 +71,36 @@ object ReadCommittedTransactions {
 			return true
 		}
 
+		assert(row.txid.isDefined, "there has to be a txid at a rc isolated row")
+		val txid = row.txid.get.id
+
+		val selectTxResult = session.execute(
+			select.all().from(store.keyspace.dataTable.name)
+  			.where(QueryBuilder.eq("key", store.keys.transactionKey))
+  			.and(QueryBuilder.eq("id", txid))
+		)
+
+		val selectTxRow = selectTxResult.one()
+
+		if (selectTxRow == null) {
+			//There was no transaction row, hence we cannot commit the read yet
+			return false
+		}
+
+		val txRow = store.CassandraRow(selectTxRow)
+
+		if (txRow.txStatus == store.txStatuses.committed) {
+			//Performance: set the status to committed for further reads
+			session.execute(
+				update(store.keyspace.dataTable.name)
+  				.`with`(set("txstatus", store.txStatuses.committed))
+  				.where(QueryBuilder.eq("key", row.key))
+  				.and(QueryBuilder.eq("id", row.id))
+			)
+			return true
+		}
+
+		//The status of the transaction is not committed.
 		return false
 	}
 
@@ -111,13 +143,7 @@ object ReadCommittedTransactions {
 //			.and(QueryBuilder.eq("key", key))
 //		)
 //
-//		/*TODO: Another possibility would be to use the user defined maxRow which returns the complete row (in the aggregation) instead of just one column.
-//
-//		I have to make weigh the differences between these to possibilities.
-//
-//		select maxRow(id, key, data, deps, txid, consistency) from t_data where key = 'x';
-//
-//		 */
+
 //
 //		val readRow = readResult.one()
 //
