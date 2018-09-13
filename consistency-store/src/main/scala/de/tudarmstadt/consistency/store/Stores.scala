@@ -10,8 +10,8 @@ import de.tudarmstadt.consistency.store.cassandra.SysnameCassandraStoreImpl
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.{SysnameVersionedStore, SysnameVersionedStoreImpl}
 
-import scala.util.Random
 import scala.reflect.runtime.universe._
+import scala.util.Random
 
 /**
 	* Created on 31.08.18.
