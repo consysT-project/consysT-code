@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.store.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import com.datastax.driver.core.querybuilder.QueryBuilder.select
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import de.tudarmstadt.consistency.store._
 
@@ -103,61 +102,4 @@ object ReadCommittedTransactions {
 		//The status of the transaction is not committed.
 		return false
 	}
-
-
-//	def read[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
-//		session : Session,
-//		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
-//	)(
-//		key : Key
-//	): ReadStatus[Id, Key, Data] = {
-//
-//		import ReadStatus._
-//
-//
-//		//Retrieve the maximum id for a given key
-//		val maxResult = session.execute(select().max("id")
-//			.from(store.keyspace.dataTable.name)
-//			.where(QueryBuilder.eq("key", key))
-//		)
-//
-//		val maxRow = maxResult.one()
-//
-//		if (maxRow == null) {
-//			//			assert(false, "did not retrieve anything from database")
-//			return NotFound(key, s"no entry for $key in database")
-//		}
-//
-//
-//		val readId = maxRow.get("system.max(id)", store.idType)
-//
-//		if (readId == null) {
-//			//			assert(false, "no rows left for key " + key)
-//			return NotFound(key, s"no entry for $key in database")
-//		}
-//
-//		//Retrieve the row with the maximum id
-//		val readResult = session.execute(select().all()
-//			.from(store.keyspace.dataTable.name)
-//			.where(QueryBuilder.eq("id", readId))
-//			.and(QueryBuilder.eq("key", key))
-//		)
-//
-
-//
-//		val readRow = readResult.one()
-//
-//		if (readRow == null) {
-//			//			assert(false, "did not retrieve anything from database")
-//			return NotFound(key, s"no entry for $key in database anymore (it may have been removed concurrently)")
-//			//TODO: Retry here???
-//		}
-//
-//		val dataRow = store.CassandraRow(readRow)
-//
-//
-//
-//		return Success(key, dataRow.id, dataRow.data, dataRow.deps)
-//	}
-
 }

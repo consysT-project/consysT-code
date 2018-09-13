@@ -8,26 +8,6 @@ import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 	*
 	* @author Mirko Köhler
 	*/
-
-
-
-
-//	sealed trait ReadResult[Id, Key, Data]
-//	/*Some data has been successfully found and resolved (= all dependencies have been satisfied). It also returns the latest known value, as well as all unresolved dependencies for the latest value.*/
-//	case class Resolved[Id, Key, Data](data : Update[Id, Key, Data], latest : Update[Id, Key, Data], unresolved: Set[EventRef[Id, Key]])  extends ReadResult[Id, Key, Data]
-//	/*Data has been found but there are still some unresolved dependencies */
-//	case class Unresolved[Id, Key, Data](data : Update[Id, Key, Data], unresolved : Set[EventRef[Id, Key]])  extends ReadResult[Id, Key, Data]
-//	/*The key has not been found.*/
-//	case class NotFound[Id, Key, Data]() extends ReadResult[Id, Key, Data]
-
-
-//	case class ReadResult[Id, Key, Data](node : Option[Update[Id, Key, Data]], found : Boolean, unresolved : Set[EventRef[Id, Key]]) {
-//		def getId : Option[Id] = node.map(n => n.getId)
-//		def isFound : Boolean = found
-//	}
-
-
-
 class SessionOrder[Id : Ordering, Key, Data] {
 
 	private type Node = Event[Id, Key, Data]

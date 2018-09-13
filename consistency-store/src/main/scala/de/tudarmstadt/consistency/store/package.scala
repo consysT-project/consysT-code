@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency
 
 import com.datastax.driver.core.Cluster
 import de.tudarmstadt.consistency.store.shim.EventRef
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
+import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 
 /**
 	* Created on 03.09.18.
@@ -51,24 +51,9 @@ package object store {
 		case class Error[Id, Key](txid : Id, error : Throwable) extends CommitStatus[Id, Key]
 	}
 
-//	trait ReadStatus[Id, Key, Data]
-//	object ReadStatus {
-//		case class Success[Id, Key, Data](key : Key, id : Id, data : Data, deps : Set[UpdateRef[Id, Key]]) extends ReadStatus[Id, Key, Data]
-//		case class NotFound[Id, Key, Data](key : Key, description : String) extends ReadStatus[Id, Key, Data]
-//		case class Error[Id, Key, Data](key : Key, e : Throwable) extends ReadStatus[Id, Key, Data]
-//	}
-//
-//	trait WriteStatus[Id, Key, Data]
-//	object WriteStatus {
-//		case class Success[Id, Key, Data](id : Id, key : Key, data : Data) extends WriteStatus[Id, Key, Data]
-//		case class Error[Id, Key, Data](key : Key, e : Throwable) extends WriteStatus[Id, Key, Data]
-//	}
-
-
 	case class CassandraWriteParams[Consistency](consistency : Consistency)
 	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)
-
 
 
 	trait ConnectionParams {
