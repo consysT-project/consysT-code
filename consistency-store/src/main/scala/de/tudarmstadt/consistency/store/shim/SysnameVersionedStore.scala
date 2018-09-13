@@ -39,6 +39,14 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		baseStore.close()
 	}
 
+	override def initialize() : Unit = {
+		baseStore.initialize()
+	}
+
+	override def reset(): Unit = {
+		baseStore.reset()
+	}
+
 	def convertResult(upd : Update[Id, Key, Data]) : Read
 	def convertNone : Read
 

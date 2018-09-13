@@ -31,6 +31,13 @@ object Event {
 	//Note: val dependencies does not contain the txid.
 	case class Update[Id, Key, Data](id : Id, key : Key, data : Data, txid : Option[TxRef[Id]], readDependencies : Set[UpdateRef[Id, Key]]) extends Event[Id, Key, Data] {
 		def toRef : UpdateRef[Id, Key] = UpdateRef(id, key)
+
+		/**
+			* Computes a key by which the update can be sorted. Updates are normally sorted by their (txid, id).
+			* If there is no txid available, updates are just sorted by their id.
+			*/
+		def getSortingKey : (Id, Id) = txid.map(ref => (ref.id, id)).getOrElse((id, id))
+
 	}
 	object Update {
 		def apply[Id, Key, Data](id : Id, key : Key, data : Data, txDependency : Option[Id], readDependencies : (Id, Key)*) : Update[Id, Key, Data] =

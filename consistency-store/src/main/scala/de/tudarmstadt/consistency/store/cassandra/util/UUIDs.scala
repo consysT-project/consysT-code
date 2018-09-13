@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.store.cassandra.util
 
+/*TODO: The following description is currently not implemented*/
 /**
 	* This code has been adapted from com.datastax.driver.core.utils.UUIDs.
 	*

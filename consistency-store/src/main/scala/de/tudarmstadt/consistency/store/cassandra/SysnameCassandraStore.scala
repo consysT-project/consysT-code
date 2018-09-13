@@ -262,84 +262,29 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		}
 
-
-		@Deprecated
-		def refresh() : ResultSet = {
-			Fetcher.fetch(session)
-		}
-
-
-		object Fetcher {
-			def fetch(session : CassandraSession) : ResultSet = {
-				import com.datastax.driver.core.querybuilder.QueryBuilder._
-
-				val results : ResultSet = session.execute(
-					select().all().from(keyspace.dataTable.name)
-				)
-
-				results
-
-			}
-
-
-//			def fetchNewerThen(session : Session, id : Id) : Unit = {
-//				import com.datastax.driver.core.querybuilder.QueryBuilder._
-//
-//				val results : ResultSet = session.execute(
-//					select().all().from(store.keyspace.dataTable.name).where(gt("id", id))
-//						//TODO: Remove performance bottleneck: allow filtering
-//						.allowFiltering()
-//				)
-//
-//				handleResultSet(results)
-//			}
-//
-//
-//			override def fetchForKey(session : Session, key : Key) : Unit = {
-//				import com.datastax.driver.core.querybuilder.QueryBuilder._
-//
-//				val results : ResultSet = session.execute(
-//					select().all().from(store.keyspace.dataTable.name).where(QueryBuilder.eq("key", key))
-//				)
-//
-//				handleResultSet(results)
-//			}
-//
-//
-//			def fetchKeyNewerThen(session : Session, key : Key, id : Id) : Unit = {
-//				import com.datastax.driver.core.querybuilder.QueryBuilder._
-//
-//				val results : ResultSet = session.execute(
-//					select().all()
-//						.from(store.keyspace.dataTable.name)
-//						.where(QueryBuilder.eq("key", key))
-//						.and(gt("id", id))
-//				)
-//
-//				handleResultSet(results)
-//			}
-		}
 		override def print() : Unit = ???
 	}
 
 
 
-	def initializeKeyspace(): Unit = {
+	override def initialize(): Unit = {
 		keyspace.initialize(cluster)
 	}
 
-	private [cassandra] def eventRefToCassandraTuple(ref : UpdateRef[Id, Key]) : TupleValue = {
+	override def reset(): Unit = {
+		keyspace.reset(cluster)
+	}
+
+	private def eventRefToCassandraTuple(ref : UpdateRef[Id, Key]) : TupleValue = {
 		val typ = cluster.getMetadata.newTupleType(idType.getCqlType, keyType.getCqlType)
 		typ.newValue(ref.id.asInstanceOf[AnyRef], ref.key.asInstanceOf[AnyRef])
 	}
 
-	private [cassandra] def dependencySetToCassandraSet(set : Set[UpdateRef[Id, Key]]) : java.util.Set[TupleValue] = {
+	private def dependencySetToCassandraSet(set : Set[UpdateRef[Id, Key]]) : java.util.Set[TupleValue] = {
 		JavaConverters.setAsJavaSet(set.map(eventRefToCassandraTuple))
 	}
 
-
-
-	private[cassandra] def newSession : CassandraSession =
+	private def newSession : CassandraSession =
 		cluster.connect(keyspace.name)
 
 	/**
@@ -360,84 +305,54 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			//Use the keypsace as default keyspace
 			session.execute(s"USE $name;")
 
-
-			//Create aggregate function for reading most up-to-date row
-			//tuple of (id, key, data, deps, txid, consistency)
-//			val returnType = s"tuple<${cassandraTypeOf[Id]}, ${cassandraTypeOf[Key]}, ${cassandraTypeOf[Data]}, set<${cassandraTypeOf[Id]}>, ${cassandraTypeOf[Id]}, ${cassandraTypeOf[Consistency]}>"
-//
-//			//TODO: This function is currently not used. Remove it when decision was made to not use it...
-//			session.execute(
-//				s"""CREATE OR REPLACE FUNCTION biggerRow(
-//					 |  max $returnType,
-//					 |  id ${cassandraTypeOf[Id]}, key ${cassandraTypeOf[Key]}, data ${cassandraTypeOf[Data]}, deps set<${cassandraTypeOf[Id]}>, txid ${cassandraTypeOf[Id]}, consistency ${cassandraTypeOf[Consistency]})
-//					 |		CALLED ON NULL INPUT
-//					 |		RETURNS $returnType
-//					 |		LANGUAGE java
-//					 |		AS '$maxFunctionDef';
-//			 """.stripMargin)
-//
-//
-//			session.execute(
-//				s"""CREATE OR REPLACE AGGREGATE maxRow($idType, $keyType, $dataType, set<$idType>, $idType, $consistencyLevelType)
-//					 |SFUNC biggerRow
-//					 |STYPE $returnType
-//					 |INITCOND (null, null, null, null, null, null);
-//					 |
-//			 """.stripMargin
-//			)
 		}
 
 
 		override val txTable : TableDef = new TableDef {
 			override val name : String = "t_tx"
-			override def create(session : CassandraSession) : Unit = session.execute(
+			override def create(session : CassandraSession) : Unit = {
+				session.execute(
 					s"""CREATE TABLE $name
 						 | (txid ${idType.getCqlType.asFunctionParameterString},
 						 | status ${txStatusType.getCqlType.asFunctionParameterString},
 						 | isolation ${isolationType.getCqlType.asFunctionParameterString},
-						 | PRIMARY KEY(txid));""".stripMargin
+						 | PRIMARY KEY(txid))""".stripMargin
 				)
 			}
+		}
 
 
 		override val keyTable : TableDef = new TableDef {
 			override val name : String = "t_keys"
-			override def create(session : CassandraSession) : Unit = session.execute(
-				s"""CREATE TABLE $name
-					 | (key ${keyType.getCqlType.asFunctionParameterString},
-					 | txid ${idType.getCqlType.asFunctionParameterString},
-					 | reads set<${idType.getCqlType.asFunctionParameterString}>,
-					 | PRIMARY KEY(key));""".stripMargin
-			)
+			override def create(session : CassandraSession) : Unit = {
+				session.execute(
+					s"""CREATE TABLE $name
+						 | (key ${keyType.getCqlType.asFunctionParameterString},
+						 | txid ${idType.getCqlType.asFunctionParameterString},
+						 | reads set<${idType.getCqlType.asFunctionParameterString}>,
+						 | PRIMARY KEY(key))""".stripMargin
+				)
+			}
 		}
 
 		override val dataTable : TableDef = new TableDef {
 			override val name : String = "t_data"
-			override def create(session : CassandraSession) : Unit = session.execute(
-				s"""CREATE TABLE $name
-					 | (id ${idType.getCqlType.asFunctionParameterString()},
-					 | key ${keyType.getCqlType.asFunctionParameterString},
-					 | data ${dataType.getCqlType.asFunctionParameterString},
-					 | deps set<frozen<tuple<${idType.getCqlType.asFunctionParameterString}, ${keyType.getCqlType.asFunctionParameterString}>>>,
-					 | txid ${idType.getCqlType.asFunctionParameterString},
-					 | txstatus ${txStatusType.getCqlType.asFunctionParameterString},
-					 | consistency ${consistencyType.getCqlType.asFunctionParameterString},
-					 | isolation ${isolationType.getCqlType.asFunctionParameterString},
-					 | PRIMARY KEY (key, id));""".stripMargin
-			)
+			override def create(session : CassandraSession) : Unit = {
+				session.execute(
+					s"""CREATE TABLE $name
+						 | (id ${idType.getCqlType.asFunctionParameterString()},
+						 | key ${keyType.getCqlType.asFunctionParameterString},
+						 | data ${dataType.getCqlType.asFunctionParameterString},
+						 | deps set<frozen<tuple<${idType.getCqlType.asFunctionParameterString}, ${keyType.getCqlType.asFunctionParameterString}>>>,
+						 | txid ${idType.getCqlType.asFunctionParameterString},
+						 | txstatus ${txStatusType.getCqlType.asFunctionParameterString},
+						 | consistency ${consistencyType.getCqlType.asFunctionParameterString},
+						 | isolation ${isolationType.getCqlType.asFunctionParameterString},
+						 | PRIMARY KEY (key, id))""".stripMargin
+				)
+			}
 		}
 	}
-
-
-
-	/**
-		* Define a function body (as Java source) that is used to compute the more up-to-date
-		* row of two given rows.
-		* The parameters that are available are id, key, data, dependencies (as a set), txid, and consistency.
-		* The types are as defined by the type factories.
-		*/
-//	protected val maxFunctionDef : String
-
 
 
 
@@ -469,11 +384,27 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 			session.close()
 		}
+
+		def reset(cluster : Cluster) : Unit = {
+			var session = cluster.connect(name)
+
+			txTable.truncate(session)
+			keyTable.truncate(session)
+			dataTable.truncate(session)
+
+			session.close()
+		}
 	}
+
+
 
 	trait TableDef {
 		val name : String
 		def create(session : CassandraSession)
+
+		def truncate(session : CassandraSession): Unit = {
+			session.execute(QueryBuilder.truncate(name).setConsistencyLevel(ConsistencyLevel.ALL))
+		}
 	}
 
 	/* temporary for debugging */

@@ -28,7 +28,7 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 	private implicit val updateOrdering : Ordering[Update] = new Ordering[Update] {
 		override def compare(x : Update, y : Update) : Int =
 			//Swap x and y so that updates with higher ids are ordered before updates with lesser id
-			implicitly[Ordering[Id]].compare(y.id, x.id)
+			Ordering.Tuple2(Ordering[Id], Ordering[Id]).compare(y.getSortingKey, x.getSortingKey)
 	}
 
 

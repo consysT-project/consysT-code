@@ -11,16 +11,9 @@ import org.junit.{Before, Test}
 	*
 	* @author Mirko Köhler
 	*/
-class SimpleSingleStoreTest extends SimpleStoreTest[String] {
+class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 
 
-	//Note: We a creating a test store. Test stores provide extra meta data when reading a value.
-	protected var store : SysnameVersionedStore[Id, Key, String, TxStatus, Isolation, Consistency, Option[Update[Id, Key, String]]]  = null
-
-	@Before
-	def setup(): Unit = {
-		store = Stores.Simple.newTestStore(LocalCluster, initialize = true)
-	}
 
 	@Test
 	def singleSession(): Unit = {
