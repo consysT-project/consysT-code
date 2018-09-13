@@ -23,8 +23,6 @@ abstract class SimpleStoreTest[Data : TypeTag] {
 	type Consistency = String
 
 
-
-
 	def assertUpdate(id : Id, key : Key, data : Data, txid : Option[Id], deps : (Id, Key)*)(actual : Option[Update[Id, Key, Data]]): Unit = {
 		assertEquals(Some(Update(id, key, data, txid, deps : _*)), actual)
 	}

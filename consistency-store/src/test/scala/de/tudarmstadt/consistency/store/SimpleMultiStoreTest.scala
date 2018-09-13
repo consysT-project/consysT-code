@@ -46,18 +46,9 @@ class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
 	private def parallelSession[U](
 		store : SysnameVersionedStore[Id, Key, Integer, TxStatus, Isolation, Consistency, Option[Integer]]
 	)(
-		session : (SysnameVersionedStore[Id, Key, Integer, TxStatus, Isolation, Consistency, Option[Integer]], store.SessionCtx) => U
+		session : store.Session[U]
 	)(implicit execCtx : ExecutionContext): Future[U] = {
-		//Parallel
-		val fut : Future[U] = Future {
-			import store._
-			val u = startSession { sess =>
-				//Commit a transaction
-				session(store, sess)
-			}
-//			store.close()
-			u
-		} recover {
+		val fut = store.parallelSession(session).recover {
 			case e  =>
 				e.printStackTrace(System.out)
 				fail(e.getMessage)
@@ -85,28 +76,37 @@ class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
 		}
 
 		//Parallel
-		val future1 = parallelSession(stores(1)) { (store, session) =>
+		val store1 = stores(1)
+		val future1 = parallelSession(store1) { session =>
+			import store1._
+
 			//Commit a transaction
-			val tx1 = session.startTransaction(store.isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, store.consistencyLevels.causal)("alice", "bob", 200)
+			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+				transfer(tx, consistencyLevels.causal)("alice", "bob", 200)
 				Some ()
 			}
 			println(s"future 1, tx1 $tx1")
 		}
 
-		val future2 = parallelSession(stores(2)) { (store, session) =>
+		val store2 = stores(2)
+		val future2 = parallelSession(store2) { session =>
+			import store2._
+
 			//Commit a transaction
-			val tx1 = session.startTransaction(store.isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, store.consistencyLevels.causal)("alice", "carol", 300)
+			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+				transfer(tx, consistencyLevels.causal)("alice", "carol", 300)
 				Some ()
 			}
 			println(s"future 2, tx1 $tx1")
 		}
 
-		val future3 = parallelSession(stores(3)) { (store, session) =>
+		val store3 = stores(3)
+		val future3 = parallelSession(store3) { session =>
+			import store3._
+
 			//Commit a transaction
-			val tx1 = session.startTransaction(store.isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, store.consistencyLevels.causal)("alice", "carol", 50)
+			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+				transfer(tx, consistencyLevels.causal)("alice", "carol", 50)
 				Some ()
 			}
 			println(s"future 3, tx1 $tx1")
@@ -160,14 +160,17 @@ class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
 		}
 
 		//Parallel
-		val future1 = parallelSession(stores(1)) { (store, session) =>
+		val store1 = stores(1)
+		val future1 = parallelSession(store1) { session =>
+			import store1._
+
 			//Commit a transaction
-			val tx1 = session.startTransaction(store.isolationLevels.snapshotIsolation) { tx =>
-				tx.read("alice", store.consistencyLevels.causal) match {
+			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+				tx.read("alice", consistencyLevels.causal) match {
 					case Some(a) =>
 						Thread.sleep(1000) //<- Wait to let the other transaction finish between reading and writing
-						tx.update("alice", a - 200, store.consistencyLevels.causal)
-						tx.update("bob", 200, store.consistencyLevels.causal)
+						tx.update("alice", a - 200, consistencyLevels.causal)
+						tx.update("bob", 200, consistencyLevels.causal)
 					case _ =>
 				}
 				Some ()
@@ -175,12 +178,15 @@ class SimpleMultiStoreTest extends SimpleStoreTest[Integer] {
 			println(s"future 1, tx1 $tx1")
 		}
 
-		val future2 = parallelSession(stores(2)) { (store, session) =>
+		val store2 = stores(2)
+		val future2 = parallelSession(store2) { session =>
+			import store2._
+
 			Thread.sleep(300) //<- Make sure that the read from the other tx has been processed
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(store.isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, store.consistencyLevels.causal)("alice", "carol", 300)
+			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
+				transfer(tx, consistencyLevels.causal)("alice", "carol", 300)
 				Some ()
 			}
 			println(s"future 2, tx1 $tx1")
