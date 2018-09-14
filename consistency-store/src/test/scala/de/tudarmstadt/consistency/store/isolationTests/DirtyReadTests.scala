@@ -21,6 +21,7 @@ trait DirtyReadTests extends SimpleStoreTest.Multi[Int] {
 			session.startTransaction(isolationValue) { tx =>
 				tx.update("alice", 1000, consistencyLevel)
 				Thread.sleep(1000)
+
 				Some ()
 			}
 		}

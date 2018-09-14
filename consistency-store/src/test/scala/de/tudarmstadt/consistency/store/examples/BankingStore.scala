@@ -12,26 +12,31 @@ trait BankingStore {
 	type Key
 	type Consistency
 
-	def transfer(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(from : Key, to : Key, amount : Int) : Unit = {
-		(tx.read(from, consistencyLevel), tx.read(to, consistencyLevel)) match {
+	def transfer(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(from : Key, to : Key, amount : Integer) : Unit = {
+		val readFrom = tx.read(from, consistencyLevel)
+
+		val readTo = tx.read(to, consistencyLevel)
+
+		(readFrom, readTo) match {
 			case (Some(a), Some(b)) =>
 				tx.update(from, a - amount, consistencyLevel)
 				tx.update(to, b + amount, consistencyLevel)
 			case r =>
-				assert(false, s"transfer was not executed as the account balances have not been read, got: $r")
+				println(s"r = $r")
+				tx.abort()
 		}
 	}
 
-	def withdraw(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Int) : Unit = {
+	def withdraw(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Integer) : Unit = {
 		tx.read(account, consistencyLevel) match {
 			case Some(a) =>
 				tx.update(account, a - amount, consistencyLevel)
 			case r =>
-				assert(false, s"withdraw was not executed as the account balance have not been read, got: $r")
+				tx.abort()
 		}
 	}
 
-	def deposit(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Int) : Unit = {
+	def deposit(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Integer) : Unit = {
 		tx.read(account, consistencyLevel) match {
 			case Some(a) =>
 				tx.update(account, a + amount, consistencyLevel)
@@ -41,7 +46,7 @@ trait BankingStore {
 		}
 	}
 
-	def getBalance(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key) : Int = {
+	def getBalance(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key) : Integer = {
 		tx.read(account, consistencyLevel) match {
 			case Some(a) =>
 				a

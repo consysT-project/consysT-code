@@ -39,18 +39,6 @@ package object store {
 	}
 
 
-	trait CommitStatus[Id, Key]
-	object CommitStatus {
-		//The transaction successfully committed
-		case class Success[Id, Key](txid : Id, writtenIds : Iterable[EventRef[Id, Key]]) extends CommitStatus[Id, Key]
-
-		//The transaction has been aborted and changes have been rolled back.
-		case class Abort[Id, Key](txid : Id, description : String) extends CommitStatus[Id, Key]
-
-		//The transaction indicated an error. It is unclear whether it (partially) committed or aborted completely.
-		case class Error[Id, Key](txid : Id, error : Throwable) extends CommitStatus[Id, Key]
-	}
-
 	case class CassandraWriteParams[Consistency](consistency : Consistency)
 	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
 	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)

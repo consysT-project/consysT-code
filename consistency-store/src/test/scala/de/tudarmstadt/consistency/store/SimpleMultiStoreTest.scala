@@ -1,15 +1,10 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
-import de.tudarmstadt.consistency.store.Store.ITxContext
 import de.tudarmstadt.consistency.store.examples.BankingStore
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._
-import org.junit.{Before, Test}
+import org.junit.Test
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 /**
 	* Created on 05.09.18.
@@ -34,10 +29,11 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 				deposit(tx, consistencyLevels.causal)("alice", 1000)
 				deposit(tx, consistencyLevels.causal)("bob", 1000)
 				deposit(tx, consistencyLevels.causal)("carol", 1000)
-
 				Some()
 			}
 		}
+		//Make sure that the data has been propagated to all replicas
+		Thread.sleep(500)
 
 		//Parallel
 		val store1 = stores(1)
@@ -47,7 +43,7 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			//Commit a transaction
 			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				transfer(tx, consistencyLevels.causal)("alice", "bob", 200)
-				Some ()
+				Some()
 			}
 			println(s"future 1, tx1 $tx1")
 		}
@@ -59,7 +55,7 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			//Commit a transaction
 			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				transfer(tx, consistencyLevels.causal)("alice", "carol", 300)
-				Some ()
+				Some()
 			}
 			println(s"future 2, tx1 $tx1")
 		}
@@ -71,14 +67,12 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			//Commit a transaction
 			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				transfer(tx, consistencyLevels.causal)("alice", "carol", 50)
-				Some ()
+				Some()
 			}
 			println(s"future 3, tx1 $tx1")
 		}
 
-		Await.result(future1, Duration.Inf)
-		Await.result(future2, Duration.Inf)
-		Await.result(future3, Duration.Inf)
+		barrier(future1, future2, future3)
 
 
 		//Sequential
@@ -96,14 +90,18 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 					case t =>
 						fail(s"not all reads could be resolved: $t")
 				}
-				Some ()
+
+				Some()
 			}
 		}
 	}
 
 	@Test
 	def testMultipleSessionRepeatedly(): Unit = {
-		for (i <- 0 to 15) testMultipleSessions()
+		for (i <- 0 to 15) {
+			resetStores()
+			testMultipleSessions()
+		}
 	}
 
 	@Test
@@ -122,6 +120,9 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 				Some()
 			}
 		}
+
+		//Make sure that the data has propagated to all replicas
+		Thread.sleep(500)
 
 		//Parallel
 		val store1 = stores(1)
@@ -156,8 +157,7 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			println(s"future 2, tx1 $tx1")
 		}
 
-		Await.result(future1, Duration.Inf)
-		Await.result(future2, Duration.Inf)
+		barrier(future1, future2)
 
 		//Sequential
 		store.startSession { session =>

@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.Store.{ISessionContext, ITxContext}
+import de.tudarmstadt.consistency.store.Store.{AbortedException, ISessionContext, ITxContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.languageFeature.higherKinds
@@ -62,5 +62,10 @@ object Store {
 	trait ITxContext[Key, Data, WriteParams, ReadParams, Read] {
 		def update(key : Key, data : Data, params : WriteParams) : Unit
 		def read(key : Key, params : ReadParams) : Read
+		def abort() : Unit = throw new AbortedException
 	}
+
+	private[store] class AbortedException extends RuntimeException
+
+
 }

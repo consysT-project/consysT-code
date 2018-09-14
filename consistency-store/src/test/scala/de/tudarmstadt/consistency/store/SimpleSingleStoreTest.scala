@@ -27,6 +27,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				tx.update("x", "Hallo", consistencyLevels.causal)
 				tx.update("y", "Welt", consistencyLevels.causal)
+
 				Some ()
 			}
 
@@ -34,6 +35,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				tx.update("x", "Hello", consistencyLevels.causal)
 				tx.update("z", "World", consistencyLevels.causal)
+
 				None
 			}
 
@@ -44,6 +46,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 					case Some(str) => tx.update("z", str + "!!!", consistencyLevels.causal)
 					case None => tx.update("z", "Amigos", consistencyLevels.causal)
 				}
+
 				Some ()
 			}
 
@@ -103,6 +106,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				tx.update("x", "Hallo", consistencyLevels.causal)
 				tx.update("y", "Welt", consistencyLevels.causal)
+
 				Some ()
 			}
 		}
@@ -113,6 +117,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				tx.update("x", "Hello", consistencyLevels.causal)
 				tx.update("z", "World", consistencyLevels.causal)
+
 				Some ()
 			}
 

@@ -4,12 +4,14 @@ import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClu
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
+import de.tudarmstadt.consistency.utils.Log
 import org.junit.Assert._
 import org.junit.Before
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import scala.util.{Failure, Success}
 
 /**
 	* Created on 06.09.18.
@@ -76,19 +78,24 @@ object SimpleStoreTest {
     )(
       session : store.Session[U]
     ): Future[U] = {
-			val fut = store.parallelSession(session).recover {
-				case e  =>
-					e.printStackTrace(System.out)
-					fail(e.getMessage)
-					null.asInstanceOf[U]
-			}
+			val fut = store.parallelSession(session)
 			fut
 		}
 
 		protected def barrier(futures : Future[_]*): Unit = {
 			import scala.concurrent.duration._
-			Await.ready(Future.sequence[Any, Seq](futures), 30 seconds)
+			val result = Await.result(Future.sequence[Any, Seq](futures), Duration.Inf)
+
+//			Log.info(null, s"result = $result")
+//
+//			futures.foreach(future => future.onComplete {
+//				case Success(_) =>
+//				case Failure(e) =>
+//					throw e
+//			})
 		}
+
+
 
 
 	}

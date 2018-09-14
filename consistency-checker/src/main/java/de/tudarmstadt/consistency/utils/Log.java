@@ -23,9 +23,15 @@ public class Log {
 	}
 
 	private static PrintStream out = System.out;
+	private static PrintStream err = System.err;
 
 	public static void info(Class<?> clazz, Object text) {
 		out.println(infoToString(clazz, text));
+	}
+
+
+	public static void err(Class<?> clazz, Object text) {
+		err.println(infoToString(clazz, text));
 	}
 
 	public static void warn(Class<?> clazz, Object text) {
