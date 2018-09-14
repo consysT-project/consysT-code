@@ -128,14 +128,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 
-
-
-
 		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = consistency match {
 			case l if l == consistencyLevels.causal => handleCausalRead(baseTx)(key)
 			case l if l == consistencyLevels.weak => handleWeakRead(baseTx)(key)
 			case _ => throw new UnsupportedConsistencyLevelException(consistency)
 		}
+
 
 		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Read = {
 			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.weak))

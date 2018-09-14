@@ -26,6 +26,7 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 				tx.update("alice", 1000, consistencyLevel)
 				tx.update("bob", 1000, consistencyLevel)
 				if (useSleeps) Thread.sleep(500)
+
 				Some ()
 			}
 		}
@@ -38,6 +39,7 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 				if (useSleeps) Thread.sleep(700)
 				tx.update("bob", 500, consistencyLevel)
 				if (useSleeps) Thread.sleep(100)
+
 				Some ()
 			}
 		}

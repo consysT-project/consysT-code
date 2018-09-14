@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.store.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session}
-import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.cassandra.TransactionProcessor.{Abort, CommitStatus, Success}
 
 import scala.reflect.runtime.universe._
 
@@ -18,7 +18,7 @@ TODO: The current implementation of read committed isolation has still some prob
 	*
 	* @author Mirko Köhler
 	*/
-object ReadCommittedTransactions {
+object ReadCommittedTransactions extends TransactionProcessor {
 
 
 	def commit[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
@@ -28,34 +28,26 @@ object ReadCommittedTransactions {
 	)(
 		txWrite : store.WriteTx,
 		updateWrites : Iterable[store.WriteUpdate]
-	): CommitStatus[Id, Key]	= {
+	) : CommitStatus	= {
 
-		import CommitStatus._
+		updateWrites.foreach(write => {
+			write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.readCommitted)
+		})
 
-		try {
-			updateWrites.foreach(write => {
-				write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.readCommitted)
-			})
+		txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
 
-			txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
-
-
-		} catch {
-			//TODO: Do proper error handling here
-			case e : Exception => return Error(txWrite.tx.id, e)
-		}
-
-		return Success(txWrite.tx.id, updateWrites.map(_.upd.toRef))
+		return Success
 	}
 
 
 	//true when the row has been committed, false if the row has been aborted/deleted
-	def commitRow[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
 	  session : Session,
 	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
+		currentTxid : Id,
 	  row : store.DataRow
-	) : Boolean = {
+	) : CommitStatus = {
 
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
@@ -67,7 +59,7 @@ object ReadCommittedTransactions {
 
 		//1. If the read value does not belong to a transaction or the transaction has been committed
 		if (txStatus == store.txStatuses.committed) {
-			return true
+			return Success
 		}
 
 		assert(row.txid.isDefined, "there has to be a txid at a rc isolated row")
@@ -83,7 +75,7 @@ object ReadCommittedTransactions {
 
 		if (selectTxRow == null) {
 			//There was no transaction row, hence we cannot commit the read yet
-			return false
+			return Abort("there was no row found for the transaction")
 		}
 
 		val txRow = store.CassandraRow(selectTxRow)
@@ -96,10 +88,10 @@ object ReadCommittedTransactions {
   				.where(QueryBuilder.eq("key", row.key))
   				.and(QueryBuilder.eq("id", row.id))
 			)
-			return true
+			return Success
 		}
 
 		//The status of the transaction is not committed.
-		return false
+		return Abort("the matching transaction was not committed yet")
 	}
 }

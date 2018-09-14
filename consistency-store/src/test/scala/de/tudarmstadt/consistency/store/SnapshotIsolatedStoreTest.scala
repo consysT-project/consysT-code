@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests}
+import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests, FuzzyReadTests}
 import org.junit.Assert._
 import org.junit.Test
 
@@ -11,7 +11,7 @@ import scala.language.postfixOps
 	*
 	* @author Mirko Köhler
 	*/
-class SnapshotIsolatedStoreTest extends SimpleStoreTest.Multi[Int] with DirtyReadTests with DirtyWriteTests {
+class SnapshotIsolatedStoreTest extends SimpleStoreTest.Multi[Int] with DirtyReadTests with DirtyWriteTests with FuzzyReadTests {
 
 	override def isolationValue : Isolation =
 		stores(0).isolationLevels.snapshotIsolation

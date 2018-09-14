@@ -27,7 +27,7 @@ class DefaultStoreTest1 extends DefaultStoreTest {
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 				tx.update("x", toByteBuffer("Hallo"), consistencyLevels.causal)
 				tx.update("y", toByteBuffer("Welt"), consistencyLevels.causal)
-				Some ()
+				Some()
 			}
 
 			//Combine multiple reads
@@ -37,8 +37,7 @@ class DefaultStoreTest1 extends DefaultStoreTest {
 
 				assertUpdate("x", "Hallo")(x)
 				assertUpdate("y", "Welt", "x")(y)
-
-				Some ()
+				Some()
 			}
 		}
 

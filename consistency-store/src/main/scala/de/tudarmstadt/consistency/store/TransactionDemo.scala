@@ -146,7 +146,7 @@ CREATE AGGREGATE aggregate_name(type1)
 				None
 			}
 
-			val transactionC : Transaction[String] = tx => {
+			val transactionC : Transaction[Unit] = tx => {
 				val x = tx.read("x", consistencyLevels.causal)
 				println(s"x = $x")
 				val y = tx.read("y", consistencyLevels.causal)
@@ -156,8 +156,7 @@ CREATE AGGREGATE aggregate_name(type1)
 
 				val s = List(x, y, z).flatten.mkString(" ")
 				tx.update("s", s, consistencyLevels.causal)
-
-				Some (s)
+				Some ()
 			}
 
 			val transactionD : Transaction[Unit] = tx => {
@@ -165,14 +164,14 @@ CREATE AGGREGATE aggregate_name(type1)
 				None //Aborts the transaction
 			}
 
-			val transactionE : Transaction[String] = tx => {
+			val transactionE : Transaction[Unit] = tx => {
 				val x : Option[String] = tx.read("x", consistencyLevels.causal)
 
 				if (x.contains("Bonjour")) {
-					None
+					return None
 				}
 
-				x
+				Some ()
 			}
 
 
