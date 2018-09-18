@@ -6,13 +6,6 @@ import de.tudarmstadt.consistency.store.cassandra.TransactionProcessor.{Abort, C
 
 import scala.reflect.runtime.universe._
 
-/*
-TODO: The current implementation of read committed isolation has still some problems.
-
-* it allows dirty reads
-* it allows dirty writes
-
- */
 /**
 	* Created on 30.08.18.
 	*

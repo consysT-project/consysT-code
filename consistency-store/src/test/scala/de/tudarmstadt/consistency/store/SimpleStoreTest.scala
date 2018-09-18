@@ -82,9 +82,11 @@ object SimpleStoreTest {
 			fut
 		}
 
-		protected def barrier(futures : Future[_]*): Unit = {
+		protected def barrier[U](futures : Future[U]*): Seq[U] = {
 			import scala.concurrent.duration._
-			val result = Await.result(Future.sequence[Any, Seq](futures), Duration.Inf)
+			val result = Await.result(Future.sequence[U, Seq](futures), Duration.Inf)
+
+			result
 
 //			Log.info(null, s"result = $result")
 //

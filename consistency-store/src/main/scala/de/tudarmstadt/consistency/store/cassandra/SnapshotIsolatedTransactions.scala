@@ -172,6 +172,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 				return Success
 			} catch {
+				//when a timeout exception with write type CAS is thrown, then it is unclear whether the write has succeeded
+				//Therefore, we should retry committing the update...
+				//TODO: Add some measure to avoid infinite loops
 				case e : WriteTimeoutException if e.getWriteType == WriteType.CAS =>
 					//Wait a bit, then retry
 					Thread.sleep(300)
