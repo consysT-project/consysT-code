@@ -12,8 +12,8 @@ import scala.languageFeature.higherKinds
 	*/
 trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 
-	type SessionCtx <: SessionContext
-	type Session[U] = SessionCtx => U
+	protected type SessionCtx <: SessionContext
+	final type Session[U] = SessionCtx => U
 
 	def startSession[U](f : Session[U]) : U
 	def close() : Unit
@@ -28,8 +28,8 @@ trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 	def reset() : Unit
 
 	trait SessionContext extends ISessionContext[TxParams] {
-		type TxCtx <: TxContext
-		type Transaction[U] = TxCtx => Option[U]
+		protected type TxCtx <: TxContext
+		final type Transaction[U] = TxCtx => Option[U]
 
 		trait TxContext extends ITxContext[Key, Data, WriteParams, ReadParams, Read]
 	}

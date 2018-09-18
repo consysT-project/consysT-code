@@ -8,6 +8,8 @@ import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
 import de.tudarmstadt.consistency.utils.Log
 
+import scala.collection.mutable
+
 /**
 	* Created on 29.08.18.
 	*
@@ -59,83 +61,98 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = {
-			val txid = ids.freshId()
-			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
-			//TODO: Reconsider the error handling
+
 			isolation match {
 				case l if l == isolationLevels.none =>
-					try {
-						baseSession.startTransaction(txParams) { baseTx =>
-							val tx = new SysnameShimNoneTxContext(baseTx)
-							f(tx)
-						} match {
-							case None =>
-								assert(assertion = false, "a 'none'-isolated transaction can not be aborted")
-								None
-							case opt@Some(_) =>
-								opt
-						}
-					} catch {
-						case e : NoHostAvailableException =>
-							e.printStackTrace()
-							sessionOrder.abortTransactionIfStarted()
-							return None
-						case e : QueryExecutionException =>
-							//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
-							e.printStackTrace()
-							sessionOrder.abortTransactionIfStarted()
-							return None
-					}
+					handleNonIsolatedTransactions(f, isolation, baseTx => new SysnameShimNoneTxContext(baseTx))
 
-				case _ =>
-					//Start the transaction in this session
-					sessionOrder.startTransaction(txid)
+				case l if l == isolationLevels.readCommitted =>
+					handleIsolatedTransaction(f, isolation, baseTx => new SysnameShimReadCommittedTxContext(baseTx))
 
-					try {
-						//Start a transaction in the base store
-						baseSession.startTransaction(txParams) { baseTx =>
-							val txContext = new SysnameShimDefaultTxContext(baseTx, isolation)
-							val res = f(txContext) //execute the transaction as defined by the user
-
-							//Lock the transaction and add the transaction record to the base store
-							val tx = sessionOrder.lockTransaction()
-							//TODO: Which consistency level do we use when writing the tx record.
-							baseTx.update(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.weak))
-
-							res
-						} match {
-							case None =>
-								sessionOrder.abortTransaction()
-								return None
-							case opt@Some(_) =>
-								sessionOrder.commitTransaction()
-								return opt
-						}
-					} catch {
-						case e : NoHostAvailableException =>
-							e.printStackTrace()
-							sessionOrder.abortTransactionIfStarted()
-							return None
-						case e : QueryExecutionException =>
-							//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
-							e.printStackTrace()
-							sessionOrder.abortTransactionIfStarted()
-							return None
-					}
+				case l if l == isolationLevels.snapshotIsolation =>
+					handleIsolatedTransaction(f, isolation, baseTx => new SysnameShimSnapshotIsolatedTxContext(baseTx))
 
 			}
 		}
 
+		private def handleNonIsolatedTransactions[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
+			val txid = ids.freshId()
+			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
-		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Read = consistency match {
+			try {
+				baseSession.startTransaction(txParams) { baseTx =>
+					val tx = new SysnameShimNoneTxContext(baseTx)
+					f(tx)
+				} match {
+					case None =>
+						assert(assertion = false, "a 'none'-isolated transaction can not be aborted")
+						None
+					case opt@Some(_) =>
+						opt
+				}
+			} catch {
+				case e : NoHostAvailableException =>
+					e.printStackTrace()
+					sessionOrder.abortTransactionIfStarted()
+					return None
+				case e : QueryExecutionException =>
+					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+					e.printStackTrace()
+					sessionOrder.abortTransactionIfStarted()
+					return None
+			}
+		}
+
+		private def handleIsolatedTransaction[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
+			val txid = ids.freshId()
+			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
+
+			//Start the transaction in this session
+			sessionOrder.startTransaction(txid)
+
+			try {
+				//Start a transaction in the base store
+				baseSession.startTransaction(txParams) { baseTx =>
+					val txContext = makeCtx(baseTx)
+					val res = f(txContext) //execute the transaction as defined by the user
+
+					//Lock the transaction and add the transaction record to the base store
+					val tx = sessionOrder.lockTransaction()
+					//TODO: Which consistency level do we use when writing the tx record.
+					baseTx.update(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.causal))
+
+					res
+				} match {
+					case None =>
+						sessionOrder.abortTransaction()
+						return None
+					case opt@Some(_) =>
+						sessionOrder.commitTransaction()
+						return opt
+				}
+			} catch {
+				case e : NoHostAvailableException =>
+					e.printStackTrace()
+					sessionOrder.abortTransactionIfStarted()
+					return None
+				case e : QueryExecutionException =>
+					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+					e.printStackTrace()
+					sessionOrder.abortTransactionIfStarted()
+					return None
+			}
+		}
+
+
+		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Option[Update[Id, Key, Data]] = consistency match {
 			case l if l == consistencyLevels.causal => handleCausalRead(baseTx)(key)
 			case l if l == consistencyLevels.weak => handleWeakRead(baseTx)(key)
 			case _ => throw new UnsupportedConsistencyLevelException(consistency)
 		}
 
 
-		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Read = {
+		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Option[Update[Id, Key, Data]] = {
 			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.weak))
 			addEvents(rows)
 
@@ -143,15 +160,15 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 				//If we got some value, just return the latest one (without checking any dependencies)
 				case Found(_, latestUpdate, _) =>
 					sessionOrder.addRead(latestUpdate.toRef)
-					return convertResult(latestUpdate)
+					return Some(latestUpdate)
 
 				//If the key could not be found, then we can not read it
 				case _ =>
-					return convertNone
+					return None
 			}
 		}
 
-		private def handleCausalRead(baseTx : BaseTxContext)(key : Key) : Read = {
+		private def handleCausalRead(baseTx : BaseTxContext)(key : Key) : Option[Update[Id, Key, Data]] = {
 			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.causal))
 			addEvents(rows)
 
@@ -163,7 +180,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 					//If we read a resolved value and that value is already the latest, we can just return that value
 					case Found(Some(resolvedUpdate), latestUpdate, _) if resolvedUpdate == latestUpdate =>
 						sessionOrder.addRead(resolvedUpdate.toRef)
-						return convertResult(resolvedUpdate)
+						return Some(resolvedUpdate)
 					//If we have a resolved value but there is a newer value that has not been resolved yet
 					case Found(optionalUpdate, latestUpdate, unresolved) =>
 						//..., then try to resolve it
@@ -179,10 +196,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 									//If there was another resolved update, then return it
 									case Some(resolvedUpdate) =>
 										sessionOrder.addRead(resolvedUpdate.toRef)
-										return convertResult(resolvedUpdate)
+										return Some(resolvedUpdate)
 									//else return nothing
 									case None =>
-										return convertNone
+										return None
 								}
 							}
 
@@ -194,13 +211,13 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 					//If the key could not be found all together, then we can not read it
 					case NotFound() =>
-						return convertNone
+						return None
 				}
 			}
 
 			//fallback case: this code should never be executed
 			assert(assertion = false, "Oh no! How could this have been executed?! You're a wizard, Harry!")
-			return convertNone
+			return None
 		}
 
 		private def addEvents(events : Seq[Event[Id, Key, Data]]) : Unit = {
@@ -230,7 +247,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 
-
+		private def convertRead(maybeUpdate : Option[Update[Id, Key, Data]]) : Read = maybeUpdate match {
+			case None => convertNone
+			case Some(upd) => convertResult(upd)
+		}
 
 
 		trait ShimTxContext extends TxContext
@@ -243,11 +263,11 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 			def read(key : Key, consistency : Consistency) : Read = {
-				handleRead(baseTx)(key, consistency)
+				convertRead(handleRead(baseTx)(key, consistency))
 			}
 		}
 
-		class SysnameShimDefaultTxContext(val baseTx : BaseTxContext, val isolation: Isolation) extends ShimTxContext {
+		class SysnameShimReadCommittedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 
 			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = ids.freshId()
@@ -256,7 +276,30 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 			def read(key : Key, consistency : Consistency) : Read = {
-				handleRead(baseTx)(key, consistency)
+				convertRead(handleRead(baseTx)(key, consistency))
+			}
+		}
+
+		class SysnameShimSnapshotIsolatedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
+
+			private val readCache : mutable.Map[Key, Update[Id, Key, Data]] = mutable.HashMap.empty
+
+			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
+				val id = ids.freshId()
+				handleWrite(baseTx)(id, key, data, consistency)
+			}
+
+			def read(key : Key, consistency : Consistency) : Read = readCache.get(key) match {
+				case None => handleRead(baseTx)(key, consistency) match {
+					case None =>
+						return convertNone
+					case Some(upd) =>
+						readCache.put(key, upd)
+						return convertResult(upd)
+				}
+
+				case Some(upd) =>
+					return convertResult(upd)
 			}
 		}
 
