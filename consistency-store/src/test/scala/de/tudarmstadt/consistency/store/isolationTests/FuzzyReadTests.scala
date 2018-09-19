@@ -21,17 +21,17 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut1 = parallelSession(concurrentStore) { session =>
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1000, consistencyLevel)
-				tx.update("bob", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
+				tx.write("bob", 1000, consistencyLevel)
 				Some ()
 			}
 
 			Thread.sleep(600)
 
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1500, consistencyLevel)
+				tx.write("alice", 1500, consistencyLevel)
 				tx.read("alice", consistencyLevel)
-				tx.update("bob", 1500, consistencyLevel)
+				tx.write("bob", 1500, consistencyLevel)
 				Some ()
 			}
 
@@ -71,11 +71,11 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut1 = parallelSession(concurrentStore) { session =>
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
 				Some ()
 			}
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1500, consistencyLevel)
+				tx.write("alice", 1500, consistencyLevel)
 				Some ()
 			}
 		}
@@ -105,7 +105,7 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 		val fut1 = parallelSession(concurrentStore) { session =>
 			// ts 0
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
 				Some ()
 			}
 
@@ -113,7 +113,7 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 			// ts 600
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1500, consistencyLevel)
+				tx.write("alice", 1500, consistencyLevel)
 				None
 			}
 

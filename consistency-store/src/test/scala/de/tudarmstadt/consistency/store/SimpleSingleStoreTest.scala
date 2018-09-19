@@ -1,10 +1,7 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._
-import org.junit.{Before, Test}
+import org.junit.Test
 
 /**
 	* Created on 05.09.18.
@@ -25,26 +22,26 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 
 			//Commit a transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", "Hallo", consistencyLevels.causal)
-				tx.update("y", "Welt", consistencyLevels.causal)
+				tx.write("x", "Hallo", consistencyLevels.causal)
+				tx.write("y", "Welt", consistencyLevels.causal)
 
 				Some ()
 			}
 
 			//Abort a transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", "Hello", consistencyLevels.causal)
-				tx.update("z", "World", consistencyLevels.causal)
+				tx.write("x", "Hello", consistencyLevels.causal)
+				tx.write("z", "World", consistencyLevels.causal)
 
 				None
 			}
 
 			//Read from aborted transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", "Hola", consistencyLevels.causal)
+				tx.write("x", "Hola", consistencyLevels.causal)
 				tx.read("z", consistencyLevels.causal) match {
-					case Some(str) => tx.update("z", str + "!!!", consistencyLevels.causal)
-					case None => tx.update("z", "Amigos", consistencyLevels.causal)
+					case Some(str) => tx.write("z", str + "!!!", consistencyLevels.causal)
+					case None => tx.write("z", "Amigos", consistencyLevels.causal)
 				}
 
 				Some ()
@@ -57,7 +54,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 				val z = tx.read("z", consistencyLevels.causal)
 
 				val s = List(x, y, z).flatten.map(upd => upd.data).mkString(" ")
-				tx.update("s", s, consistencyLevels.causal)
+				tx.write("s", s, consistencyLevels.causal)
 
 				Some ()
 			}
@@ -104,8 +101,8 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 
 		startSession { session =>
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", "Hallo", consistencyLevels.causal)
-				tx.update("y", "Welt", consistencyLevels.causal)
+				tx.write("x", "Hallo", consistencyLevels.causal)
+				tx.write("y", "Welt", consistencyLevels.causal)
 
 				Some ()
 			}
@@ -115,8 +112,8 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 
 		startSession { session =>
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", "Hello", consistencyLevels.causal)
-				tx.update("z", "World", consistencyLevels.causal)
+				tx.write("x", "Hello", consistencyLevels.causal)
+				tx.write("z", "World", consistencyLevels.causal)
 
 				Some ()
 			}
@@ -149,7 +146,7 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 				assertUpdate(3, "y", "Welt", Some(1), (2, "x"))(y)
 
 				val r = List(x, y).flatten.map(upd => upd.data).mkString(" ")
-				tx.update("x", r, consistencyLevels.causal)
+				tx.write("x", r, consistencyLevels.causal)
 
 				val x2 = tx.read("x", consistencyLevels.causal)
 				assertUpdate(9, "x", "Hello Welt", Some(8), (5, "x"), (3, "y"))(x2)

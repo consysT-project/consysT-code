@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.store.shim
 
+import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams}
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.{Store, _}
 

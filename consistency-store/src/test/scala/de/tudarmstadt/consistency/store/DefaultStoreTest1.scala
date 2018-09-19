@@ -1,10 +1,5 @@
 package de.tudarmstadt.consistency.store
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-import java.nio.ByteBuffer
-
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import org.junit.Assert._
 import org.junit.Test
 
 /**
@@ -25,8 +20,8 @@ class DefaultStoreTest1 extends DefaultStoreTest {
 
 			//Commit a transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("x", toByteBuffer("Hallo"), consistencyLevels.causal)
-				tx.update("y", toByteBuffer("Welt"), consistencyLevels.causal)
+				tx.write("x", toByteBuffer("Hallo"), consistencyLevels.causal)
+				tx.write("y", toByteBuffer("Welt"), consistencyLevels.causal)
 				Some()
 			}
 

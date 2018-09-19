@@ -1,8 +1,6 @@
 package de.tudarmstadt.consistency.store
 
 import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests, FuzzyReadTests, LostUpdateTests}
-import org.junit.Assert._
-import org.junit.Test
 
 import scala.language.postfixOps
 

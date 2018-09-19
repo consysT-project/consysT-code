@@ -23,8 +23,8 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 
 			session.startTransaction(isolationLevels.readCommitted) { tx =>
 				if (useSleeps) Thread.sleep(500)
-				tx.update("alice", 1000, consistencyLevel)
-				tx.update("bob", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
+				tx.write("bob", 1000, consistencyLevel)
 				if (useSleeps) Thread.sleep(500)
 
 				Some ()
@@ -35,9 +35,9 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 			import concurrentStore2._
 
 			session.startTransaction(isolationLevels.readCommitted) { tx =>
-				tx.update("alice", 500, consistencyLevel)
+				tx.write("alice", 500, consistencyLevel)
 				if (useSleeps) Thread.sleep(700)
-				tx.update("bob", 500, consistencyLevel)
+				tx.write("bob", 500, consistencyLevel)
 				if (useSleeps) Thread.sleep(100)
 
 				Some ()

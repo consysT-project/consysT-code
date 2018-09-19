@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.store.shim
 
 import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
 import org.junit.Assert._
 import org.junit.Test

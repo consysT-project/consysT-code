@@ -114,9 +114,9 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			import store._
 			//Commit a transaction
 			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("alice", 1000, consistencyLevels.causal)
-				tx.update("bob", 0, consistencyLevels.causal)
-				tx.update("carol", 0, consistencyLevels.causal)
+				tx.write("alice", 1000, consistencyLevels.causal)
+				tx.write("bob", 0, consistencyLevels.causal)
+				tx.write("carol", 0, consistencyLevels.causal)
 				Some()
 			}
 		}
@@ -134,8 +134,8 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 				tx.read("alice", consistencyLevels.causal) match {
 					case Some(a) =>
 						Thread.sleep(1000) //<- Wait to let the other transaction finish between reading and writing
-						tx.update("alice", a - 200, consistencyLevels.causal)
-						tx.update("bob", 200, consistencyLevels.causal)
+						tx.write("alice", a - 200, consistencyLevels.causal)
+						tx.write("bob", 200, consistencyLevels.causal)
 					case _ =>
 				}
 				Some ()

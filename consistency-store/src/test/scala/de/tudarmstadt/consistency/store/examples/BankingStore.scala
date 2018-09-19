@@ -19,8 +19,8 @@ trait BankingStore {
 
 		(readFrom, readTo) match {
 			case (Some(a), Some(b)) =>
-				tx.update(from, a - amount, consistencyLevel)
-				tx.update(to, b + amount, consistencyLevel)
+				tx.write(from, a - amount, consistencyLevel)
+				tx.write(to, b + amount, consistencyLevel)
 			case r =>
 				println(s"r = $r")
 				tx.abort()
@@ -30,7 +30,7 @@ trait BankingStore {
 	def withdraw(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Integer) : Unit = {
 		tx.read(account, consistencyLevel) match {
 			case Some(a) =>
-				tx.update(account, a - amount, consistencyLevel)
+				tx.write(account, a - amount, consistencyLevel)
 			case r =>
 				tx.abort()
 		}
@@ -39,10 +39,10 @@ trait BankingStore {
 	def deposit(tx : ITxContext[Key, Integer, Consistency, Consistency, Option[Integer]], consistencyLevel : Consistency)(account : Key, amount : Integer) : Unit = {
 		tx.read(account, consistencyLevel) match {
 			case Some(a) =>
-				tx.update(account, a + amount, consistencyLevel)
+				tx.write(account, a + amount, consistencyLevel)
 			case r =>
 				//Depositing on an empty account
-				tx.update(account, amount, consistencyLevel)
+				tx.write(account, amount, consistencyLevel)
 		}
 	}
 

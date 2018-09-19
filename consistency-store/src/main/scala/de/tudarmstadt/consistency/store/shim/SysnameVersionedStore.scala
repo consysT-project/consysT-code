@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.store.shim
 
 import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams}
 import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedConsistencyLevelException
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
@@ -120,12 +121,12 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 					//Lock the transaction and add the transaction record to the base store
 					val tx = sessionOrder.lockTransaction()
 					//TODO: Which consistency level do we use when writing the tx record.
-					baseTx.update(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.causal))
+					baseTx.write(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.causal))
 
 					res
 				} match {
 					case None =>
-						sessionOrder.abortTransaction()
+						sessionOrder.abortTransactionIfStarted()
 						return None
 					case opt@Some(_) =>
 						sessionOrder.commitTransaction()
@@ -224,25 +225,31 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			events.foreach(event => sessionOrder.graph.add(event))
 		}
 
-		private def handleWrite(baseTx : BaseTxContext)(id : Id, key : Key, data : Data, consistency: Consistency): Unit = {
+		private def handleWrite(baseTx : BaseTxContext)(id : Id, key : Key, data : Data, consistency: Consistency): Update[Id, Key, Data] = {
 			val update = sessionOrder.lockUpdate(id, key, data)
 			try {
-				baseTx.update(key, update, CassandraWriteParams(consistency))
+				baseTx.write(key, update, CassandraWriteParams(consistency))
 				sessionOrder.confirmUpdate()
+				return update
+				//			} catch {
+				//				/*
+				//					TODO: Do we want to handle exceptions at an operation level?
+				//				  At the moment we catch the exception here and abort the write.
+				//				  Another possibility would be to catch the exception at the transaction level
+				//				  and thus abort the whole transaction.
+				//				 */
+				//				case e : NoHostAvailableException =>
+				//					e.printStackTrace()
+				//					sessionOrder.releaseUpdate()
+				//				case e : QueryExecutionException =>
+				//					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+				//					e.printStackTrace()
+				//					sessionOrder.releaseUpdate()
+				//			}
 			} catch {
-				/*
-					TODO: Do we want to handle exceptions at an operation level?
-				  At the moment we catch the exception here and abort the write.
-				  Another possibility would be to catch the exception at the transaction level
-				  and thus abort the whole transaction.
-				 */
-				case e : NoHostAvailableException =>
-					e.printStackTrace()
+				case e : Exception =>
 					sessionOrder.releaseUpdate()
-				case e : QueryExecutionException =>
-					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
-					e.printStackTrace()
-					sessionOrder.releaseUpdate()
+					throw e
 			}
 		}
 
@@ -256,7 +263,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		trait ShimTxContext extends TxContext
 
 		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
-			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
+			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
@@ -269,7 +276,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		class SysnameShimReadCommittedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 
-			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
+			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
@@ -284,9 +291,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 			private val readCache : mutable.Map[Key, Update[Id, Key, Data]] = mutable.HashMap.empty
 
-			def update(key : Key, data : Data, consistency : Consistency) : Unit = {
+			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
 				val id = ids.freshId()
-				handleWrite(baseTx)(id, key, data, consistency)
+				val update = handleWrite(baseTx)(id, key, data, consistency)
+				readCache.put(key, update)
 			}
 
 			def read(key : Key, consistency : Consistency) : Read = readCache.get(key) match {

@@ -19,7 +19,7 @@ trait DirtyReadTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut1 = parallelSession(concurrentStore) { session =>
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
 				Thread.sleep(1000)
 
 				Some ()
@@ -51,7 +51,7 @@ trait DirtyReadTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut1 = parallelSession(concurrentStore) { session =>
 			session.startTransaction(isolationValue) { tx =>
-				tx.update("alice", 1000, consistencyLevel)
+				tx.write("alice", 1000, consistencyLevel)
 				Thread.sleep(1000)
 				None
 			}

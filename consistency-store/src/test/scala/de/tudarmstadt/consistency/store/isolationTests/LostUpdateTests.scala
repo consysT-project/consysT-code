@@ -21,7 +21,7 @@ trait LostUpdateTests extends SimpleStoreTest.Multi[Int] {
 
 		baseStore.startSession { session =>
 				session.startTransaction(isolationValue) { tx =>
-					tx.update("alice", 1000, consistencyLevel)
+					tx.write("alice", 1000, consistencyLevel)
 
 					Some ()
 				}
@@ -39,7 +39,7 @@ trait LostUpdateTests extends SimpleStoreTest.Multi[Int] {
 						None
 					case Some(v) =>
 						Thread.sleep(300)
-						tx.update("alice", v + 300, consistencyLevel)
+						tx.write("alice", v + 300, consistencyLevel)
 						Some ()
 				}
 			}
@@ -54,7 +54,7 @@ trait LostUpdateTests extends SimpleStoreTest.Multi[Int] {
 						None
 					case Some(v) =>
 						Thread.sleep(300)
-						tx.update("alice", v + 200, consistencyLevel)
+						tx.write("alice", v + 200, consistencyLevel)
 						Some ()
 				}
 			}
