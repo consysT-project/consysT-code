@@ -1,17 +1,14 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
+import de.tudarmstadt.consistency.store.cassandra.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
 import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
 import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
-import de.tudarmstadt.consistency.utils.Log
 import org.junit.Assert._
 import org.junit.Before
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-import scala.util.{Failure, Success}
 
 /**
 	* Created on 06.09.18.

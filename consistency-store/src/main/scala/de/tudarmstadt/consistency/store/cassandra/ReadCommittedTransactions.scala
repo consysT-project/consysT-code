@@ -71,7 +71,7 @@ object ReadCommittedTransactions extends TransactionProcessor {
 			return Abort("there was no row found for the transaction")
 		}
 
-		val txRow = store.CassandraRow(selectTxRow)
+		val txRow = store.makeDataRow(selectTxRow)
 
 		if (txRow.txStatus == store.txStatuses.committed) {
 			//Performance: set the status to committed for further reads

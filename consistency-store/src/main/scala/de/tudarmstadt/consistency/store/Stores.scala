@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.datastax.driver.core.TypeCodec
 import com.datastax.driver.core.utils.UUIDs
-import de.tudarmstadt.consistency.store.cassandra.SysnameCassandraStoreImpl
+import de.tudarmstadt.consistency.store.cassandra.{ConnectionParams, SysnameCassandraStoreImpl}
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.{SysnameVersionedStore, SysnameVersionedStoreImpl}
 
@@ -46,25 +46,25 @@ object Stores {
 		}
 
 		private def createKeys : Keys[Key] = new Keys[Key] {
-			override def transactionKey : String = "$tx"
+			override val transactionKey : String = "$tx"
 		}
 
 		private def createTxStatuses : TxStatuses[TxStatus] = new TxStatuses[TxStatus] {
-			override def pending : String = "pending"
-			override def committed : String = "committed"
-			override def aborted : String = "aborted"
+			override val pending : String = "pending"
+			override val committed : String = "committed"
+			override val aborted : String = "aborted"
 		}
 
 		private def createConsistencyLevels : ConsistencyLevels[Consistency] = new ConsistencyLevels[Consistency] {
-			override def causal : String = "causal"
-			override def weak : String = "weak"
+			override val causal : String = "causal"
+			override val weak : String = "weak"
 		}
 
 		private def createIsolationLevels : IsolationLevels[Isolation] = new IsolationLevels[Isolation] {
-			override def snapshotIsolation : String = "ss"
-			override def readUncommitted : String = "ru"
-			override def readCommitted : String = "rc"
-			override def none : String = "none"
+			override val snapshotIsolation : String = "ss"
+			override val readUncommitted : String = "ru"
+			override val readCommitted : String = "rc"
+			override val none : String = "none"
 		}
 
 
@@ -142,25 +142,25 @@ object Stores {
 		}
 
 		private def createKeys : Keys[Key] = new Keys[Key] {
-			override def transactionKey : String = "$tx"
+			override val transactionKey : String = "$tx"
 		}
 
 		private def createTxStatuses : TxStatuses[TxStatus] = new TxStatuses[TxStatus] {
-			override def pending : Int = 0
-			override def committed : Int = 1
-			override def aborted : Int = -1
+			override val pending : Int = 0
+			override val committed : Int = 1
+			override val aborted : Int = -1
 		}
 
 		private def createConsistencyLevels : ConsistencyLevels[Consistency] = new ConsistencyLevels[Consistency] {
-			override def causal : Int = 3
-			override def weak : Int = 0
+			override val causal : Int = 3
+			override val weak : Int = 0
 		}
 
 		private def createIsolationLevels : IsolationLevels[Isolation] = new IsolationLevels[Isolation] {
-			override def snapshotIsolation : Int = 4
-			override def readUncommitted : Int = 1
-			override def readCommitted : Int = 2
-			override def none : Int = 0
+			override val snapshotIsolation : Int = 4
+			override val readUncommitted : Int = 1
+			override val readCommitted : Int = 2
+			override val none : Int = 0
 		}
 
 

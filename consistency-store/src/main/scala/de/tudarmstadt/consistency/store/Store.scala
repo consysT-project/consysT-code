@@ -10,7 +10,7 @@ import scala.languageFeature.higherKinds
 	*
 	* @author Mirko Köhler
 	*/
-trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
+trait Store[Key, Data, TxParams, WriteParams, ReadParams, ReadResult] {
 
 	protected type SessionCtx <: SessionContext
 	final type Session[U] = SessionCtx => U
@@ -31,7 +31,7 @@ trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 		protected type TxCtx <: TxContext
 		final type Transaction[U] = TxCtx => Option[U]
 
-		trait TxContext extends ITxContext[Key, Data, WriteParams, ReadParams, Read]
+		trait TxContext extends ITxContext[Key, Data, WriteParams, ReadParams, ReadResult]
 	}
 
 	/*
@@ -52,6 +52,7 @@ trait Store[Key, Data, TxParams, WriteParams, ReadParams, Read] {
 }
 
 object Store {
+
 	trait ISessionContext[TxParams] {
 		type Transaction[_]
 
@@ -59,13 +60,11 @@ object Store {
 		def print() : Unit
 	}
 
-	trait ITxContext[Key, Data, WriteParams, ReadParams, Read] {
-		def update(key : Key, data : Data, params : WriteParams) : Unit
-		def read(key : Key, params : ReadParams) : Read
-		def abort() : Unit = throw new AbortedException
+	trait ITxContext[Key, Data, WriteParams, ReadParams, ReadResult] {
+		def write(key : Key, data : Data, params : WriteParams) : Unit
+		def read(key : Key, params : ReadParams) : ReadResult
+		final def abort() : Unit = throw new AbortedException
 	}
 
-	private[store] class AbortedException extends RuntimeException
-
-
+	private [store] class AbortedException extends RuntimeException("the transaction has been aborted")
 }

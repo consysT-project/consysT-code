@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
+import de.tudarmstadt.consistency.store.cassandra.ConnectionParams.{LocalCluster, LocalClusterNode1, LocalClusterNode2, LocalClusterNode3}
 import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import de.tudarmstadt.consistency.utils.Log
 
@@ -102,7 +102,7 @@ CREATE AGGREGATE aggregate_name(type1)
 			import session._
 
 			startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.update("alice", 1000, consistencyLevels.causal)
+				tx.write("alice", 1000, consistencyLevels.causal)
 				Some ()
 			}
 
@@ -110,8 +110,6 @@ CREATE AGGREGATE aggregate_name(type1)
 				tx.read("alice", consistencyLevels.causal)
 				Some ()
 			}
-
-
 		}
 	}
 
@@ -126,22 +124,22 @@ CREATE AGGREGATE aggregate_name(type1)
 
 
 			val transactionA : Transaction[Unit] = tx => {
-				tx.update("x", "Hallo", consistencyLevels.causal)
-				tx.update("y", "Welt", consistencyLevels.causal)
+				tx.write("x", "Hallo", consistencyLevels.causal)
+				tx.write("y", "Welt", consistencyLevels.causal)
 
 				Some ()
 			}
 
 			val transactionB : Transaction[Unit] = tx => {
-				tx.update("x", "Hello", consistencyLevels.causal)
-				tx.update("z", "World", consistencyLevels.causal)
+				tx.write("x", "Hello", consistencyLevels.causal)
+				tx.write("z", "World", consistencyLevels.causal)
 
 				Some ()
 			}
 
 			val transactionB2 : Transaction[Unit] = tx => {
-				tx.update("x", "Hola", consistencyLevels.causal)
-				tx.update("z", "Amigos", consistencyLevels.causal)
+				tx.write("x", "Hola", consistencyLevels.causal)
+				tx.write("z", "Amigos", consistencyLevels.causal)
 
 				None
 			}
@@ -155,12 +153,12 @@ CREATE AGGREGATE aggregate_name(type1)
 				println(s"z = $z")
 
 				val s = List(x, y, z).flatten.mkString(" ")
-				tx.update("s", s, consistencyLevels.causal)
+				tx.write("s", s, consistencyLevels.causal)
 				Some ()
 			}
 
 			val transactionD : Transaction[Unit] = tx => {
-				tx.update("x", "Bonjour", consistencyLevels.causal)
+				tx.write("x", "Bonjour", consistencyLevels.causal)
 				None //Aborts the transaction
 			}
 
@@ -170,7 +168,6 @@ CREATE AGGREGATE aggregate_name(type1)
 				if (x.contains("Bonjour")) {
 					return None
 				}
-
 				Some ()
 			}
 
@@ -226,9 +223,9 @@ CREATE AGGREGATE aggregate_name(type1)
 			startSession { session =>
 				//Commit a transaction
 				session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-					tx.update("alice", 1000, consistencyLevels.causal)
-					tx.update("bob", 1000, consistencyLevels.causal)
-					tx.update("carol", 1000, consistencyLevels.causal)
+					tx.write("alice", 1000, consistencyLevels.causal)
+					tx.write("bob", 1000, consistencyLevels.causal)
+					tx.write("carol", 1000, consistencyLevels.causal)
 					Some()
 				}
 			}
@@ -245,8 +242,8 @@ CREATE AGGREGATE aggregate_name(type1)
 				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 					(tx.read("alice", consistencyLevels.causal), tx.read("bob", consistencyLevels.causal)) match {
 						case (Some(a), Some(b)) =>
-							tx.update("alice", a - 200, consistencyLevels.causal)
-							tx.update("bob", b + 200, consistencyLevels.causal)
+							tx.write("alice", a - 200, consistencyLevels.causal)
+							tx.write("bob", b + 200, consistencyLevels.causal)
 							Some ()
 						case _ =>
 							Some ()
@@ -284,8 +281,8 @@ CREATE AGGREGATE aggregate_name(type1)
 				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 					(tx.read("alice", consistencyLevels.causal), tx.read("carol", consistencyLevels.causal)) match {
 						case (Some(a), Some(c)) =>
-							tx.update("alice", a - 300, consistencyLevels.causal)
-							tx.update("carol", c + 300, consistencyLevels.causal)
+							tx.write("alice", a - 300, consistencyLevels.causal)
+							tx.write("carol", c + 300, consistencyLevels.causal)
 							Some ()
 						case _ =>
 							Some ()
@@ -320,8 +317,8 @@ CREATE AGGREGATE aggregate_name(type1)
 				val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
 					(tx.read("alice", consistencyLevels.causal), tx.read("carol", consistencyLevels.causal)) match {
 						case (Some(a), Some(c)) =>
-							tx.update("alice", a - 50, consistencyLevels.causal)
-							tx.update("carol", c + 50, consistencyLevels.causal)
+							tx.write("alice", a - 50, consistencyLevels.causal)
+							tx.write("carol", c + 50, consistencyLevels.causal)
 							Some ()
 						case _ =>
 							Some ()

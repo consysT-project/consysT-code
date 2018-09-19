@@ -4,7 +4,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, 
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
+import de.tudarmstadt.consistency.store.cassandra.ConnectionParams.LocalCluster
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
 import org.junit.Assert._

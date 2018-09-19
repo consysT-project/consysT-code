@@ -1,13 +1,7 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.ConnectionParams.LocalCluster
 import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests}
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.SysnameVersionedStore
-import org.junit.{Before, Test}
-import org.junit.Assert._
 
-import scala.concurrent.Await
 import scala.language.postfixOps
 
 /**
