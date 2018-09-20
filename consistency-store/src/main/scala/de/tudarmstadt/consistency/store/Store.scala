@@ -16,8 +16,11 @@ trait Store[Key, Data, TxParams, WriteParams, ReadParams, ReadResult] {
 	final type Session[U] = SessionCtx => U
 
 	def startSession[U](f : Session[U]) : U
-	def close() : Unit
 
+	/**
+		* Safely closes the session.
+		*/
+	def close() : Unit
 	/**
 		* Initializes the store to set it up before using it.
 		*/

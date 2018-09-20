@@ -19,16 +19,16 @@ class DefaultStoreTest1 extends DefaultStoreTest {
 		startSession { session =>
 
 			//Commit a transaction
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.write("x", toByteBuffer("Hallo"), consistencyLevels.causal)
-				tx.write("y", toByteBuffer("Welt"), consistencyLevels.causal)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				tx.write("x", toByteBuffer("Hallo"), ConsistencyLevels.CAUSAL)
+				tx.write("y", toByteBuffer("Welt"), ConsistencyLevels.CAUSAL)
 				Some()
 			}
 
 			//Combine multiple reads
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				val x = tx.read("x", consistencyLevels.causal)
-				val y = tx.read("y", consistencyLevels.causal)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				val x = tx.read("x", ConsistencyLevels.CAUSAL)
+				val y = tx.read("y", ConsistencyLevels.CAUSAL)
 
 				assertUpdate("x", "Hallo")(x)
 				assertUpdate("y", "Welt", "x")(y)

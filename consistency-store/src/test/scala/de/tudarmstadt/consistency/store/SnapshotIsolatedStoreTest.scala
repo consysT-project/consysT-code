@@ -9,8 +9,12 @@ import scala.language.postfixOps
 	*
 	* @author Mirko Köhler
 	*/
-class SnapshotIsolatedStoreTest extends SimpleStoreTest.Multi[Int] with DirtyReadTests with DirtyWriteTests with FuzzyReadTests with LostUpdateTests {
+class SnapshotIsolatedStoreTest extends SimpleStoreTest.Multi[Int]
+	with DirtyReadTests
+	with DirtyWriteTests
+	with FuzzyReadTests
+	with LostUpdateTests {
 
 	override def isolationValue : Isolation =
-		stores(0).isolationLevels.snapshotIsolation
+		stores(0).IsolationLevels.SI
 }

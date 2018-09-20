@@ -39,16 +39,26 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			insertInto(keyspace.txTable.name)
 				.values(
 					Array[String]("txid", "status", "isolation"),
-					Array[AnyRef](txid.asInstanceOf[AnyRef], store.txStatuses.pending.asInstanceOf[AnyRef], store.isolationLevels.snapshotIsolation.asInstanceOf[AnyRef])
+					Array[AnyRef](txid.asInstanceOf[AnyRef], store.TxStatuses.PENDING.asInstanceOf[AnyRef], store.IsolationLevels.SI.asInstanceOf[AnyRef])
 				)
 				.ifNotExists()
 				.setConsistencyLevel(ConsistencyLevel.ALL)
 		)
 
+		val txInsertResultRow = txInsertResult.one()
+		assert(txInsertResultRow != null)
+
 		//3.1. If the transaction id was already in use abort!
-		if (!txInsertResult.wasApplied()) {
-			//	assert(assertion = false, "transaction not added to the tx table")
-			return Abort(s"the chosen, fresh txid already exists. txid = $txid")
+		if (!rowWasApplied(txInsertResultRow)) {
+			//It is possible that the transaction already has been aborted.
+			//This is possible when it held a read lock and another transaction
+			//wanted to access the locked key.
+
+			//The status has to be "aborted" in this case.
+			assert(txInsertResultRow.get("status", store.txStatusType) == store.TxStatuses.ABORTED)
+
+			//In this case abort the transaction.
+			return Abort(s"the transaction has already been aborted. txid = $txid")
 		}
 
 		//4. Update all keys for writes in the key table
@@ -76,9 +86,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 					val updateOtherTxResult = session.execute(
 						update(keyspace.txTable.name)
-							.`with`(set("status", store.txStatuses.aborted))
+							.`with`(set("status", store.TxStatuses.ABORTED))
 							.where(QueryBuilder.eq("txid", otherTxid))
-							.onlyIf(QueryBuilder.ne("status", store.txStatuses.committed))
+							.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
 							.setConsistencyLevel(ConsistencyLevel.ALL)
 					)
 					//It does not really matter what the outcome here is, IF the update was executed at all.
@@ -95,9 +105,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 						if (rid != txid) { //it is ok for our transaction to read a value.
 							val updateOtherTxResult = session.execute(
 								update(keyspace.txTable.name)
-									.`with`(set("status", store.txStatuses.aborted))
+									.`with`(set("status", store.TxStatuses.ABORTED))
 									.where(QueryBuilder.eq("txid", rid))
-									.onlyIf(QueryBuilder.ne("status", store.txStatuses.committed))
+									.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
 									.setConsistencyLevel(ConsistencyLevel.ALL)
 							)
 							//It does not really matter what the outcome here is, IF the update was executed at all.
@@ -137,11 +147,11 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 		//5.2 Add a data entry for each write
 		updWrites.foreach(write => {
-			write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.snapshotIsolation)
+			write.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.PENDING, store.IsolationLevels.SI)
 		})
 
 		//5.3. Add a transaction record to the data table
-		txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.snapshotIsolation)
+		txWrite.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.PENDING, store.IsolationLevels.SI)
 
 
 
@@ -160,9 +170,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			try {
 				val updateTxComittedResult = session.execute(
 					update(keyspace.txTable.name)
-						.`with`(set("status", store.txStatuses.committed))
+						.`with`(set("status", store.TxStatuses.COMMITTED))
 						.where(QueryBuilder.eq("txid", txid))
-						.onlyIf(QueryBuilder.ne("status", store.txStatuses.aborted))
+						.onlyIf(QueryBuilder.ne("status", store.TxStatuses.ABORTED))
 						.setConsistencyLevel(ConsistencyLevel.ALL)
 				)
 
@@ -188,10 +198,10 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 	//true when the row has been committed, false if the row has been aborted/deleted
 	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
-    session : Session,
+    session : CassandraSession,
     store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
   )(
-    currentTxid : Id,
+    currentTxid : Option[Id],
     row : store.DataRow
   ) : CommitStatus = {
 
@@ -199,16 +209,15 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
-		assert(isolation == store.isolationLevels.snapshotIsolation, "row has wrong isolation level")
+		assert(isolation == store.IsolationLevels.SI, "row has wrong isolation level")
 
 		val readId = row.id
 		val readKey = row.key
 		val readTxid = row.cassandraTxid
 		val readTxStatus = row.txStatus
 
-
 		//2.a If the read value does not belong to a transaction or the transaction has been committed
-		if (readTxStatus == store.txStatuses.committed) {
+		if (readTxStatus == store.TxStatuses.COMMITTED) {
 			return Success
 		}
 
@@ -218,7 +227,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			//Performance optimization: set the tx status of the read row to committed
 			session.execute(
 				update(store.keyspace.dataTable.name)
-					.`with`(set("txstatus", store.txStatuses.committed))
+					.`with`(set("txstatus", store.TxStatuses.COMMITTED))
 					.where(QueryBuilder.eq("key", readKey))
 					.and(QueryBuilder.eq("id", readId))
 			)
@@ -229,9 +238,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 		//3. Abort the transaction readTxid if it is not committed
 		val abortReadTxResult = session.execute(
 			update(store.keyspace.txTable.name)
-				.`with`(set("status", store.txStatuses.aborted))
+				.`with`(set("status", store.TxStatuses.ABORTED))
 				.where(QueryBuilder.eq("txid", readTxid))
-				.onlyIf(QueryBuilder.ne("status", store.txStatuses.committed))
+				.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
 				.setConsistencyLevel(ConsistencyLevel.ALL)
 		)
 
@@ -250,10 +259,15 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			return Abort("the transaction has already been aborted")
 		}
 
-		//3.b The transaction (with row) has been committed. Add a read lock.
+		//3.a.I If the read was not made from within another transaction, then we do not need to add a read lock.
+ 		if (currentTxid.isEmpty) {
+			return Success
+		}
+
+		//3.b The transaction (with row) has been committed.
 		val updateReadKeys = session.execute(
 			update(store.keyspace.keyTable.name)
-				.`with`(add("reads", currentTxid))
+				.`with`(add("reads", currentTxid.get))
 				.where(QueryBuilder.eq("key", readKey))
 				.onlyIf(QueryBuilder.eq("txid", null))
 		)
@@ -267,9 +281,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 			val abortOtherTxResult = session.execute(
 				update(store.keyspace.txTable.name)
-					.`with`(set("status", store.txStatuses.aborted))
+					.`with`(set("status", store.TxStatuses.ABORTED))
 					.where(QueryBuilder.eq("txid", otherTxid))
-					.onlyIf(QueryBuilder.ne("status", store.txStatuses.committed))
+					.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
 					.setConsistencyLevel(ConsistencyLevel.ALL)
 			)
 			//The other transaction currently holding the lock is now either committed or aborted.
@@ -278,7 +292,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			val releaseOtherTxidLock = session.execute(
 				update(store.keyspace.keyTable.name)
 					.`with`(set("txid", null))
-					.and(add("reads", currentTxid))
+					.and(add("reads", currentTxid.get))
 					.where(QueryBuilder.eq("key", readKey))
 					.onlyIf(QueryBuilder.eq("txid", otherTxid))
 			)

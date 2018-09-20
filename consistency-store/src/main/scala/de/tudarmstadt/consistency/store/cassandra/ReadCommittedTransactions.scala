@@ -24,10 +24,10 @@ object ReadCommittedTransactions extends TransactionProcessor {
 	) : CommitStatus	= {
 
 		updateWrites.foreach(write => {
-			write.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.pending, store.isolationLevels.readCommitted)
+			write.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.PENDING, store.IsolationLevels.RC)
 		})
 
-		txWrite.writeData(session, ConsistencyLevel.ONE)(store.txStatuses.committed, store.isolationLevels.readCommitted)
+		txWrite.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.COMMITTED, store.IsolationLevels.RC)
 
 		return Success
 	}
@@ -38,7 +38,7 @@ object ReadCommittedTransactions extends TransactionProcessor {
 	  session : Session,
 	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
-		currentTxid : Id,
+		currentTxid : Option[Id],
 	  row : store.DataRow
 	) : CommitStatus = {
 
@@ -46,12 +46,12 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
-		assert(isolation == store.isolationLevels.readCommitted, "row has wrong isolation level")
+		assert(isolation == store.IsolationLevels.RC, "row has wrong isolation level")
 
 		val txStatus = row.txStatus
 
 		//1. If the read value does not belong to a transaction or the transaction has been committed
-		if (txStatus == store.txStatuses.committed) {
+		if (txStatus == store.TxStatuses.COMMITTED) {
 			return Success
 		}
 
@@ -60,7 +60,7 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 		val selectTxResult = session.execute(
 			select.all().from(store.keyspace.dataTable.name)
-  			.where(QueryBuilder.eq("key", store.keys.transactionKey))
+  			.where(QueryBuilder.eq("key", store.Keys.transactionKey))
   			.and(QueryBuilder.eq("id", txid))
 		)
 
@@ -73,11 +73,11 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 		val txRow = store.makeDataRow(selectTxRow)
 
-		if (txRow.txStatus == store.txStatuses.committed) {
+		if (txRow.txStatus == store.TxStatuses.COMMITTED) {
 			//Performance: set the status to committed for further reads
 			session.execute(
 				update(store.keyspace.dataTable.name)
-  				.`with`(set("txstatus", store.txStatuses.committed))
+  				.`with`(set("txstatus", store.TxStatuses.COMMITTED))
   				.where(QueryBuilder.eq("key", row.key))
   				.and(QueryBuilder.eq("id", row.id))
 			)
@@ -86,5 +86,7 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 		//The status of the transaction is not committed.
 		return Abort("the matching transaction was not committed yet")
+
+
 	}
 }

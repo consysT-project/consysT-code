@@ -24,20 +24,18 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 	private val latestKeys : mutable.MultiMap[Key, Update] = new mutable.HashMap[Key, mutable.Set[Update]]() with mutable.MultiMap[Key, Update] {
 		override protected def makeSet: mutable.Set[Update] = mutable.TreeSet[Update]()
 	}
+
 	//The ordering used for the sorted treeset in latestkeys
-	private implicit val updateOrdering : Ordering[Update] = new Ordering[Update] {
-		override def compare(x : Update, y : Update) : Int =
+	private implicit val updateOrdering : Ordering[Update] =
+		(x : Update, y : Update) =>
 			//Swap x and y so that updates with higher ids are ordered before updates with lesser id
 			Ordering.Tuple2(Ordering[Id], Ordering[Id]).compare(y.getSortingKey, x.getSortingKey)
-	}
-
 
 	private def putEntry(node : Event) : Option[Event] = {
 		val r = entries.put(node.id, node)
 		r.foreach(evt => assert(evt == node, "cannot override existing update with other update"))
 		r
 	}
-
 
 	private def getEntry(ref : EventRef[Id, Key]) : Option[Event] = {
 		val r = entries.get(ref.id)

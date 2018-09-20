@@ -30,7 +30,7 @@ private [cassandra] object DataRows {
 			txid.map(ref => ref.id).getOrElse(null)
 
 		def toEvent : Event[Id, Key, Data] = {
-			if (key == store.keys.transactionKey) {
+			if (key == store.Keys.transactionKey) {
 				return Tx(id, deps)
 			} else {
 				return Update(id, key, data, txid, deps)
@@ -48,7 +48,10 @@ private [cassandra] object DataRows {
 		override def id : Id = row.get("id", idType)
 		override def key : Key = row.get("key", keyType)
 		override def data : Data = row.get("data", dataType)
-		override def txid : Option[TxRef[Id]] = Option(TxRef(row.get("txid", idType)))
+		override def txid : Option[TxRef[Id]] =
+			Option(row.get("txid", idType)).map(id => TxRef(id))
+
+
 		override def deps : Set[UpdateRef[Id, Key]] = {
 			val rawSet : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", runtimeClassOf[TupleValue])).toSet
 			rawSet.map(tv => {

@@ -16,10 +16,10 @@ class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 	override protected val connectionParams : ConnectionParams,
 	override val keyspaceName : String
 )(
-	override val keys : Keys[Key],
-	override val txStatuses : TxStatuses[TxStatus],
-	override val isolationLevels : IsolationLevels[Isolation],
-	override val consistencyLevels : ConsistencyLevels[Consistency],
+	override val Keys : Keys[Key],
+	override val TxStatuses : TxStatuses[TxStatus],
+	override val IsolationLevels : IsolationLevels[Isolation],
+	override val ConsistencyLevels : ConsistencyLevels[Consistency],
 )(
 	val idTpe : TypeCodec[Id] = null,
 	val keyTpe : TypeCodec[Key] = null,

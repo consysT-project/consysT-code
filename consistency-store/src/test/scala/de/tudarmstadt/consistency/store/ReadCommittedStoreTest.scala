@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.store
 
-import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests}
+import de.tudarmstadt.consistency.store.isolationTests.{DirtyReadTests, DirtyWriteTests, FuzzyReadTests, LostUpdateTests}
 
 import scala.language.postfixOps
 
@@ -9,11 +9,11 @@ import scala.language.postfixOps
 	*
 	* @author Mirko Köhler
 	*/
-class ReadCommittedStoreTest extends SimpleStoreTest.Multi[Int] with DirtyReadTests with DirtyWriteTests {
+class ReadCommittedStoreTest extends SimpleStoreTest.Multi[Int]
+	with DirtyReadTests
+	with DirtyWriteTests {
 
 	override def isolationValue : Isolation =
-		stores(0).isolationLevels.readCommitted
-
-
+		stores(0).IsolationLevels.RC
 
 }
