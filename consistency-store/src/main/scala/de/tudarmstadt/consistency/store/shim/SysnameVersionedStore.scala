@@ -25,11 +25,11 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 	val baseStore : Store[Key, Event[Id, Key, Data], CassandraTxParams[Id, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Event[Id, Key, Data]]]
 
-	val ids : Ids[Id]
-	val keys : Keys[Key]
-	val txStatuses : TxStatuses[TxStatus]
-	val isolationLevels : IsolationLevels[Isolation]
-	val consistencyLevels : ConsistencyLevels[Consistency]
+	val Ids : Ids[Id]
+	val Keys : Keys[Key]
+	val TxStatuses : TxStatuses[TxStatus]
+	val IsolationLevels : IsolationLevels[Isolation]
+	val ConsistencyLevels : ConsistencyLevels[Consistency]
 
 	override def startSession[U](f : Session[U]) : U = {
 		baseStore.startSession { baseSession =>
@@ -61,25 +61,23 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		private val sessionOrder : SessionOrder[Id, Key, Data] = new SessionOrder[Id, Key, Data]
 
 
-		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = {
-
-
-			isolation match {
-				case l if l == isolationLevels.none =>
+		override def startTransaction[U](isolation : Isolation)(f : Transaction[U]) : Option[U] = isolation match {
+				case IsolationLevels.NONE =>
 					handleNonIsolatedTransactions(f, isolation, baseTx => new SysnameShimNoneTxContext(baseTx))
 
-				case l if l == isolationLevels.readCommitted =>
+				case IsolationLevels.RU =>
+					handleIsolatedTransaction(f, isolation, baseTx => new SysnameShimReadUncommittedTxContext(baseTx))
+
+				case IsolationLevels.RC =>
 					handleIsolatedTransaction(f, isolation, baseTx => new SysnameShimReadCommittedTxContext(baseTx))
 
-				case l if l == isolationLevels.snapshotIsolation =>
+				case IsolationLevels.SI =>
 					handleIsolatedTransaction(f, isolation, baseTx => new SysnameShimSnapshotIsolatedTxContext(baseTx))
-
 			}
-		}
+
 
 		private def handleNonIsolatedTransactions[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
-			val txid = ids.freshId()
-			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
+			val txParams = CassandraTxParams[Id, Isolation](None, isolation)
 
 			try {
 				baseSession.startTransaction(txParams) { baseTx =>
@@ -106,7 +104,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 		private def handleIsolatedTransaction[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
-			val txid = ids.freshId()
+			val txid = Ids.freshId()
 			val txParams = CassandraTxParams(Some(TxRef(txid)), isolation)
 
 			//Start the transaction in this session
@@ -121,7 +119,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 					//Lock the transaction and add the transaction record to the base store
 					val tx = sessionOrder.lockTransaction()
 					//TODO: Which consistency level do we use when writing the tx record.
-					baseTx.write(keys.transactionKey, tx, CassandraWriteParams(consistencyLevels.causal))
+					baseTx.write(Keys.transactionKey, tx, CassandraWriteParams(ConsistencyLevels.CAUSAL))
 
 					res
 				} match {
@@ -147,14 +145,14 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 		private def handleRead(baseTx : BaseTxContext)(key : Key, consistency : Consistency) : Option[Update[Id, Key, Data]] = consistency match {
-			case l if l == consistencyLevels.causal => handleCausalRead(baseTx)(key)
-			case l if l == consistencyLevels.weak => handleWeakRead(baseTx)(key)
+			case ConsistencyLevels.CAUSAL => handleCausalRead(baseTx)(key)
+			case ConsistencyLevels.WEAK => handleWeakRead(baseTx)(key)
 			case _ => throw new UnsupportedConsistencyLevelException(consistency)
 		}
 
 
 		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Option[Update[Id, Key, Data]] = {
-			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.weak))
+			val rows = baseTx.read(key, CassandraReadParams(None, ConsistencyLevels.WEAK))
 			addEvents(rows)
 
 			sessionOrder.resolve(key) match {
@@ -170,7 +168,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 		private def handleCausalRead(baseTx : BaseTxContext)(key : Key) : Option[Update[Id, Key, Data]] = {
-			val rows = baseTx.read(key, CassandraReadParams(None, consistencyLevels.causal))
+			val rows = baseTx.read(key, CassandraReadParams(None, ConsistencyLevels.CAUSAL))
 			addEvents(rows)
 
 			var alreadyTried : Set[Id] = Set.empty
@@ -188,7 +186,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 						unresolved.foreach(evt => {
 							val evtKey = evt match {
 								case UpdateRef(_, refKey) => refKey
-								case TxRef(_) => keys.transactionKey
+								case TxRef(_) => Keys.transactionKey
 							}
 
 							//if the key has already been updated in this run, then abort this read and return the version that could have been resolved
@@ -204,7 +202,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 								}
 							}
 
-							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), consistencyLevels.causal))
+							val rawRows = baseTx.read(evtKey, CassandraReadParams(Some(evt.id), ConsistencyLevels.CAUSAL))
 							addEvents(rawRows)
 							alreadyTried = alreadyTried + evt.id
 						})
@@ -233,7 +231,6 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 				return update
 				//			} catch {
 				//				/*
-				//					TODO: Do we want to handle exceptions at an operation level?
 				//				  At the moment we catch the exception here and abort the write.
 				//				  Another possibility would be to catch the exception at the transaction level
 				//				  and thus abort the whole transaction.
@@ -242,7 +239,6 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 				//					e.printStackTrace()
 				//					sessionOrder.releaseUpdate()
 				//				case e : QueryExecutionException =>
-				//					//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
 				//					e.printStackTrace()
 				//					sessionOrder.releaseUpdate()
 				//			}
@@ -264,7 +260,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		class SysnameShimNoneTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
-				val id = ids.freshId()
+				val id = Ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
 
@@ -274,10 +270,21 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			}
 		}
 
+		class SysnameShimReadUncommittedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
+			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
+				val id = Ids.freshId()
+				handleWrite(baseTx)(id, key, data, consistency)
+			}
+
+			def read(key : Key, consistency : Consistency) : Read = {
+				convertRead(handleRead(baseTx)(key, consistency))
+			}
+		}
+
 		class SysnameShimReadCommittedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 
 			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
-				val id = ids.freshId()
+				val id = Ids.freshId()
 				handleWrite(baseTx)(id, key, data, consistency)
 			}
 
@@ -289,25 +296,36 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		class SysnameShimSnapshotIsolatedTxContext(val baseTx : BaseTxContext) extends ShimTxContext {
 
-			private val readCache : mutable.Map[Key, Update[Id, Key, Data]] = mutable.HashMap.empty
+			private val readCache : mutable.Map[Key, Option[Update[Id, Key, Data]]] = mutable.HashMap.empty
 
 			def write(key : Key, data : Data, consistency : Consistency) : Unit = {
-				val id = ids.freshId()
+				val id = Ids.freshId()
 				val update = handleWrite(baseTx)(id, key, data, consistency)
-				readCache.put(key, update)
+				readCache.put(key, Some(update))
 			}
 
 			def read(key : Key, consistency : Consistency) : Read = readCache.get(key) match {
+				//The key was not found -> read from the underlying store
 				case None => handleRead(baseTx)(key, consistency) match {
+					//The underlying store did not return a valid read
 					case None =>
+						readCache.put(key, None)
 						return convertNone
+					//The underlying did return something
 					case Some(upd) =>
-						readCache.put(key, upd)
+						readCache.put(key, Some(upd))
 						return convertResult(upd)
 				}
 
-				case Some(upd) =>
-					return convertResult(upd)
+				//There was already an entry in the local cache
+				case Some(maybeUpd) => maybeUpd match {
+					//The cached value was none (i.e. the last read from that key returned none)
+					case None =>
+						return convertNone
+					//There was some real value cached
+					case Some(upd) =>
+						return convertResult(upd)
+				}
 			}
 		}
 

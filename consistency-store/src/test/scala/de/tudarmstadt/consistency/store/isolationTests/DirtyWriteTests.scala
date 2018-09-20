@@ -19,9 +19,8 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 		val concurrentStore2 = stores(3)
 
 		val fut1 = parallelSession(concurrentStore1) { session =>
-			import concurrentStore1._
 
-			session.startTransaction(isolationLevels.readCommitted) { tx =>
+			session.startTransaction(isolationValue) { tx =>
 				if (useSleeps) Thread.sleep(500)
 				tx.write("alice", 1000, consistencyLevel)
 				tx.write("bob", 1000, consistencyLevel)
@@ -32,9 +31,8 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 		}
 
 		val fut2 = parallelSession(concurrentStore2) { session =>
-			import concurrentStore2._
 
-			session.startTransaction(isolationLevels.readCommitted) { tx =>
+			session.startTransaction(isolationValue) { tx =>
 				tx.write("alice", 500, consistencyLevel)
 				if (useSleeps) Thread.sleep(700)
 				tx.write("bob", 500, consistencyLevel)
@@ -47,10 +45,8 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 		barrier(fut1, fut2)
 
 		testStore.startSession { session =>
-			import testStore._
 
-			session.startTransaction(isolationLevels.readCommitted) { tx =>
-
+			session.startTransaction(isolationValue) { tx =>
 
 				val a = tx.read("alice", consistencyLevel)
 				val b = tx.read("alice", consistencyLevel)
@@ -70,19 +66,19 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 	/*Test dirty writes*/
 	@Test
 	def testDirtyWriteCausal(): Unit = {
-		runDirtyWrite(stores(0).consistencyLevels.causal)
+		runDirtyWrite(stores(0).ConsistencyLevels.CAUSAL)
 	}
 
 	@Test
 	def testDirtyWriteWeak(): Unit = {
-		runDirtyWrite(stores(0).consistencyLevels.weak)
+		runDirtyWrite(stores(0).ConsistencyLevels.WEAK)
 	}
 
 	@Test
 	def testDirtyWritesRepeatedly(): Unit = {
 		for (i <- 0 to 15) {
 			resetStores()
-			runDirtyWrite(stores(0).consistencyLevels.causal, useSleeps = false)
+			runDirtyWrite(stores(0).ConsistencyLevels.CAUSAL, useSleeps = false)
 		}
 	}
 

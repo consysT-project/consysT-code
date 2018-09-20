@@ -50,21 +50,21 @@ object Stores {
 		}
 
 		private def createTxStatuses : TxStatuses[TxStatus] = new TxStatuses[TxStatus] {
-			override val pending : String = "pending"
-			override val committed : String = "committed"
-			override val aborted : String = "aborted"
+			override val PENDING : String = "pending"
+			override val COMMITTED : String = "committed"
+			override val ABORTED : String = "aborted"
 		}
 
 		private def createConsistencyLevels : ConsistencyLevels[Consistency] = new ConsistencyLevels[Consistency] {
-			override val causal : String = "causal"
-			override val weak : String = "weak"
+			override val CAUSAL : String = "causal"
+			override val WEAK : String = "weak"
 		}
 
 		private def createIsolationLevels : IsolationLevels[Isolation] = new IsolationLevels[Isolation] {
-			override val snapshotIsolation : String = "ss"
-			override val readUncommitted : String = "ru"
-			override val readCommitted : String = "rc"
-			override val none : String = "none"
+			override val SI : String = "ss"
+			override val RU : String = "ru"
+			override val RC : String = "rc"
+			override val NONE : String = "none"
 		}
 
 
@@ -146,21 +146,21 @@ object Stores {
 		}
 
 		private def createTxStatuses : TxStatuses[TxStatus] = new TxStatuses[TxStatus] {
-			override val pending : Int = 0
-			override val committed : Int = 1
-			override val aborted : Int = -1
+			override val PENDING : Int = 0
+			override val COMMITTED : Int = 1
+			override val ABORTED : Int = -1
 		}
 
 		private def createConsistencyLevels : ConsistencyLevels[Consistency] = new ConsistencyLevels[Consistency] {
-			override val causal : Int = 3
-			override val weak : Int = 0
+			override val CAUSAL : Int = 3
+			override val WEAK : Int = 0
 		}
 
 		private def createIsolationLevels : IsolationLevels[Isolation] = new IsolationLevels[Isolation] {
-			override val snapshotIsolation : Int = 4
-			override val readUncommitted : Int = 1
-			override val readCommitted : Int = 2
-			override val none : Int = 0
+			override val SI : Int = 4
+			override val RU : Int = 1
+			override val RC : Int = 2
+			override val NONE : Int = 0
 		}
 
 

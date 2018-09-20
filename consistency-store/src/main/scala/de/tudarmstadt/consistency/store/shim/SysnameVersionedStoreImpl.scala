@@ -17,11 +17,11 @@ class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxS
 	val readNothing : Read,
 	val readConvert : Update[Id, Key, Data] => Read
 )(
-	override val ids : Ids[Id],
-	override val keys : Keys[Key],
-	override val txStatuses : TxStatuses[TxStatus],
-	override val isolationLevels : IsolationLevels[Isolation],
-	override val consistencyLevels : ConsistencyLevels[Consistency]
+	                                                                                                                     override val Ids : Ids[Id],
+	                                                                                                                     override val Keys : Keys[Key],
+	                                                                                                                     override val TxStatuses : TxStatuses[TxStatus],
+	                                                                                                                     override val IsolationLevels : IsolationLevels[Isolation],
+	                                                                                                                     override val ConsistencyLevels : ConsistencyLevels[Consistency]
 )(
   override implicit val idOrdering: Ordering[Id]
 ) extends SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] {

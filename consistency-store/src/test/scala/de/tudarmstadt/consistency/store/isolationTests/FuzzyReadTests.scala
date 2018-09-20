@@ -84,7 +84,6 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 			session.startTransaction(isolationValue) { tx =>
 				val a1 = tx.read("alice", consistencyLevel)
-
 				val a2 = tx.read("alice", consistencyLevel)
 
 				assertTrue(s"the read state cannot change, but was $a1 at first and is now $a2", a1 == a2)
@@ -143,29 +142,29 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 	@Test
 	def testFuzzyReadCommitCausal(): Unit = {
-		runFuzzyReadCommit(stores(0).consistencyLevels.causal)
+		runFuzzyReadCommit(stores(0).ConsistencyLevels.CAUSAL)
 	}
 
 	@Test
 	def testFuzzyReadCommitWeak(): Unit = {
-		runFuzzyReadCommit(stores(0).consistencyLevels.weak)
+		runFuzzyReadCommit(stores(0).ConsistencyLevels.WEAK)
 	}
 
 	@Test
 	def testFuzzyReadAbortCausal(): Unit = {
-		runFuzzyReadAbort(stores(0).consistencyLevels.causal)
+		runFuzzyReadAbort(stores(0).ConsistencyLevels.CAUSAL)
 	}
 
 	@Test
 	def testFuzzyReadAbortWeak(): Unit = {
-		runFuzzyReadAbort(stores(0).consistencyLevels.weak)
+		runFuzzyReadAbort(stores(0).ConsistencyLevels.WEAK)
 	}
 
 	@Test
 	def testFuzzyReadRepeatedly(): Unit = {
 		for (i <- 0 to 15) {
 			resetStores()
-			runFuzzyReadStress(stores(0).consistencyLevels.causal)
+			runFuzzyReadStress(stores(0).ConsistencyLevels.CAUSAL)
 		}
 	}
 

@@ -23,21 +23,28 @@ package object store {
 	}
 
 	trait TxStatuses[T] {
-		val pending : T
-		val committed : T
-		val aborted : T
+		val PENDING : T
+		val COMMITTED : T
+		val ABORTED : T
 	}
 
 	trait IsolationLevels[T] {
-		val snapshotIsolation : T
-		val readUncommitted : T
-		val readCommitted : T
-		val none : T
+		//Snapshot isolation
+		val SI : T
+
+		//Read uncommitted
+		val RU : T
+
+		//Read committed
+		val RC : T
+
+		//None: The transaction does not provide any transactional guarantees and cannot be aborted.
+		val NONE : T
 	}
 
 	trait ConsistencyLevels[T] {
-		val causal : T
-		val weak : T
+		val CAUSAL : T
+		val WEAK : T
 	}
 
 

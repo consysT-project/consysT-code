@@ -28,9 +28,10 @@ object Writes {
 
 	trait Write[TxStatus, Isolation] {
 		def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit
+		def deleteData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE) : Unit
 	}
 
-	case class WriteUpdate[Id, Key, Data, TxStatus, Isolation, Consistency](
+	class WriteUpdate[Id, Key, Data, TxStatus, Isolation, Consistency](
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
 		val upd : Update[Id, Key, Data], val params : CassandraWriteParams[Consistency]
@@ -55,9 +56,18 @@ object Writes {
 					.setConsistencyLevel(writeConsistency)
 			)
 		}
+
+		override def deleteData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE) : Unit = {
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+			session.execute(
+				delete().from(keyspace.dataTable.name)
+  				.where(QueryBuilder.eq("key", upd.key))
+  				.and(QueryBuilder.eq("id", upd.id))
+			)
+		}
 	}
 
-	case class WriteTx[Id, Key, Data, TxStatus, Isolation, Consistency](
+	class WriteTx[Id, Key, Data, TxStatus, Isolation, Consistency](
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
 		val tx : Tx[Id, Key, Data], val params : CassandraWriteParams[Consistency]
@@ -76,9 +86,18 @@ object Writes {
 					.and(set("txstatus", txStatus))
 					.and(set("isolation", isolation))
 					.and(set("consistency", params.consistency))
-					.where(QueryBuilder.eq("key", keys.transactionKey))
+					.where(QueryBuilder.eq("key", Keys.transactionKey))
 					.and(QueryBuilder.eq("id", tx.id))
 					.setConsistencyLevel(writeConsistency)
+			)
+		}
+
+		override def deleteData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE) : Unit = {
+			import com.datastax.driver.core.querybuilder.QueryBuilder._
+			session.execute(
+				delete().from(keyspace.dataTable.name)
+					.where(QueryBuilder.eq("key", Keys.transactionKey))
+					.and(QueryBuilder.eq("id", tx.id))
 			)
 		}
 	}

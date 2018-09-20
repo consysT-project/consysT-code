@@ -87,19 +87,19 @@ trait LostUpdateTests extends SimpleStoreTest.Multi[Int] {
 
 	@Test
 	def testLostUpdateCausal(): Unit = {
-		runLostUpdateCommit(stores(0).consistencyLevels.causal)
+		runLostUpdateCommit(stores(0).ConsistencyLevels.CAUSAL)
 	}
 
 	@Test
 	def testLostUpdateWeak(): Unit = {
-		runLostUpdateCommit(stores(0).consistencyLevels.weak)
+		runLostUpdateCommit(stores(0).ConsistencyLevels.WEAK)
 	}
 
 	@Test
 	def testLostUpdateRepeatedly(): Unit = {
 		for (i <- 0 to 15) {
 			resetStores()
-			runLostUpdateCommit(stores(0).consistencyLevels.causal)
+			runLostUpdateCommit(stores(0).ConsistencyLevels.CAUSAL)
 		}
 
 	}

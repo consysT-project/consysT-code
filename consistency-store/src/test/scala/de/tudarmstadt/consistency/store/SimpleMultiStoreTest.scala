@@ -25,10 +25,10 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 		store.startSession { session =>
 			import store._
 			//Commit a transaction
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				deposit(tx, consistencyLevels.causal)("alice", 1000)
-				deposit(tx, consistencyLevels.causal)("bob", 1000)
-				deposit(tx, consistencyLevels.causal)("carol", 1000)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				deposit(tx, ConsistencyLevels.CAUSAL)("alice", 1000)
+				deposit(tx, ConsistencyLevels.CAUSAL)("bob", 1000)
+				deposit(tx, ConsistencyLevels.CAUSAL)("carol", 1000)
 				Some()
 			}
 		}
@@ -41,8 +41,8 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			import store1._
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, consistencyLevels.causal)("alice", "bob", 200)
+			val tx1 = session.startTransaction(IsolationLevels.SI) { tx =>
+				transfer(tx, ConsistencyLevels.CAUSAL)("alice", "bob", 200)
 				Some()
 			}
 			println(s"future 1, tx1 $tx1")
@@ -53,8 +53,8 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			import store2._
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, consistencyLevels.causal)("alice", "carol", 300)
+			val tx1 = session.startTransaction(IsolationLevels.SI) { tx =>
+				transfer(tx, ConsistencyLevels.CAUSAL)("alice", "carol", 300)
 				Some()
 			}
 			println(s"future 2, tx1 $tx1")
@@ -65,8 +65,8 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			import store3._
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, consistencyLevels.causal)("alice", "carol", 50)
+			val tx1 = session.startTransaction(IsolationLevels.SI) { tx =>
+				transfer(tx, ConsistencyLevels.CAUSAL)("alice", "carol", 50)
 				Some()
 			}
 			println(s"future 3, tx1 $tx1")
@@ -79,10 +79,10 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 		store.startSession { session =>
 			import store._
 
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				val a = tx.read("alice", consistencyLevels.causal)
-				val b = tx.read("bob", consistencyLevels.causal)
-				val c = tx.read("carol", consistencyLevels.causal)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				val a = tx.read("alice", ConsistencyLevels.CAUSAL)
+				val b = tx.read("bob", ConsistencyLevels.CAUSAL)
+				val c = tx.read("carol", ConsistencyLevels.CAUSAL)
 
 				(a, b, c) match {
 					case (Some(aVal), Some(bVal), Some(cVal)) =>
@@ -113,10 +113,10 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 		store.startSession { session =>
 			import store._
 			//Commit a transaction
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.write("alice", 1000, consistencyLevels.causal)
-				tx.write("bob", 0, consistencyLevels.causal)
-				tx.write("carol", 0, consistencyLevels.causal)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				tx.write("alice", 1000, ConsistencyLevels.CAUSAL)
+				tx.write("bob", 0, ConsistencyLevels.CAUSAL)
+				tx.write("carol", 0, ConsistencyLevels.CAUSAL)
 				Some()
 			}
 		}
@@ -130,12 +130,12 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			import store1._
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				tx.read("alice", consistencyLevels.causal) match {
+			val tx1 = session.startTransaction(IsolationLevels.SI) { tx =>
+				tx.read("alice", ConsistencyLevels.CAUSAL) match {
 					case Some(a) =>
 						Thread.sleep(1000) //<- Wait to let the other transaction finish between reading and writing
-						tx.write("alice", a - 200, consistencyLevels.causal)
-						tx.write("bob", 200, consistencyLevels.causal)
+						tx.write("alice", a - 200, ConsistencyLevels.CAUSAL)
+						tx.write("bob", 200, ConsistencyLevels.CAUSAL)
 					case _ =>
 				}
 				Some ()
@@ -150,8 +150,8 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			Thread.sleep(300) //<- Make sure that the read from the other tx has been processed
 
 			//Commit a transaction
-			val tx1 = session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				transfer(tx, consistencyLevels.causal)("alice", "carol", 300)
+			val tx1 = session.startTransaction(IsolationLevels.SI) { tx =>
+				transfer(tx, ConsistencyLevels.CAUSAL)("alice", "carol", 300)
 				Some ()
 			}
 			println(s"future 2, tx1 $tx1")
@@ -162,10 +162,10 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 		//Sequential
 		store.startSession { session =>
 			import store._
-			session.startTransaction(isolationLevels.snapshotIsolation) { tx =>
-				val a = tx.read("alice", consistencyLevels.causal)
-				val b = tx.read("bob", consistencyLevels.causal)
-				val c = tx.read("carol", consistencyLevels.causal)
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				val a = tx.read("alice", ConsistencyLevels.CAUSAL)
+				val b = tx.read("bob", ConsistencyLevels.CAUSAL)
+				val c = tx.read("carol", ConsistencyLevels.CAUSAL)
 				(a, b, c) match {
 					case (Some(aVal), Some(bVal), Some(cVal)) =>
 						assertEquals(s"after money transfer the sum can not change. alice = $aVal, bob = $bVal, carol = $cVal", 1000, aVal + bVal + cVal)
