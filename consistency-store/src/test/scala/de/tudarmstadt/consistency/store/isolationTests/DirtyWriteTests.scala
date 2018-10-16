@@ -11,7 +11,8 @@ import org.junit.Test
 	*/
 trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 
-	def isolationValue : Isolation
+	def isolationValueTx1 : Isolation
+	def isolationValueTx2 : Isolation
 
 	def runDirtyWrite(consistencyLevel : Consistency, useSleeps : Boolean = true): Unit = {
 		val testStore = stores(1)
@@ -20,7 +21,7 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut1 = parallelSession(concurrentStore1) { session =>
 
-			session.startTransaction(isolationValue) { tx =>
+			session.startTransaction(isolationValueTx1) { tx =>
 				if (useSleeps) Thread.sleep(500)
 				tx.write("alice", 1000, consistencyLevel)
 				tx.write("bob", 1000, consistencyLevel)
@@ -32,7 +33,7 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 
 		val fut2 = parallelSession(concurrentStore2) { session =>
 
-			session.startTransaction(isolationValue) { tx =>
+			session.startTransaction(isolationValueTx2) { tx =>
 				tx.write("alice", 500, consistencyLevel)
 				if (useSleeps) Thread.sleep(700)
 				tx.write("bob", 500, consistencyLevel)
@@ -46,10 +47,10 @@ trait DirtyWriteTests extends SimpleStoreTest.Multi[Int] {
 
 		testStore.startSession { session =>
 
-			session.startTransaction(isolationValue) { tx =>
+			session.startTransaction(testStore.IsolationLevels.NONE) { tx =>
 
 				val a = tx.read("alice", consistencyLevel)
-				val b = tx.read("alice", consistencyLevel)
+				val b = tx.read("bob", consistencyLevel)
 
 				if (useSleeps) assertTrue("alice's update has not been received", a.isDefined)
 				if (useSleeps) assertTrue("bob's update has not been received", b.isDefined)

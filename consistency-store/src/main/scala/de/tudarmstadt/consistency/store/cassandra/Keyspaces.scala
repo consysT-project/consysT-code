@@ -15,9 +15,14 @@ private [cassandra] object Keyspaces {
 			*/
 		def name : String
 
-		val txTable : TableDef
+		val casTxTable : TableDef
+
+
+
 		val keyTable : TableDef
-		val dataTable : TableDef
+
+		val updateDataTable : TableDef
+		val txDataTable : TableDef
 
 		/**
 			* Creates a new keyspace in Cassandra. Does not initialize any tables.
@@ -31,9 +36,11 @@ private [cassandra] object Keyspaces {
 
 			session.execute(s"USE $name")
 
-			txTable.create(session)
+			casTxTable.create(session)
 			keyTable.create(session)
-			dataTable.create(session)
+
+			updateDataTable.create(session)
+			txDataTable.create(session)
 
 			session.close()
 		}
@@ -41,9 +48,11 @@ private [cassandra] object Keyspaces {
 		def reset(cluster : Cluster) : Unit = {
 			var session = cluster.connect(name)
 
-			txTable.truncate(session)
+			casTxTable.truncate(session)
 			keyTable.truncate(session)
-			dataTable.truncate(session)
+
+			updateDataTable.truncate(session)
+			txDataTable.truncate(session)
 
 			session.close()
 		}
@@ -85,8 +94,8 @@ private [cassandra] object Keyspaces {
 		}
 
 
-		override val txTable : TableDef = new TableDef {
-			override val name : String = "t_tx"
+		override val casTxTable : TableDef = new TableDef {
+			override val name : String = "t_cas_tx"
 			override def create(session : CassandraSession) : Unit = {
 				session.execute(
 					s"""CREATE TABLE $name
@@ -100,7 +109,7 @@ private [cassandra] object Keyspaces {
 
 
 		override val keyTable : TableDef = new TableDef {
-			override val name : String = "t_keys"
+			override val name : String = "t_cas_keys"
 			override def create(session : CassandraSession) : Unit = {
 				session.execute(
 					s"""CREATE TABLE $name
@@ -112,7 +121,7 @@ private [cassandra] object Keyspaces {
 			}
 		}
 
-		override val dataTable : TableDef = new TableDef {
+		override val updateDataTable : TableDef = new TableDef {
 			override val name : String = "t_data"
 			override def create(session : CassandraSession) : Unit = {
 				session.execute(
@@ -126,6 +135,21 @@ private [cassandra] object Keyspaces {
 						 | consistency ${consistencyType.getCqlType.asFunctionParameterString},
 						 | isolation ${isolationType.getCqlType.asFunctionParameterString},
 						 | PRIMARY KEY (key, id))""".stripMargin
+				)
+			}
+		}
+
+		override val txDataTable : TableDef = new TableDef {
+			override val name : String = "t_dtx"
+			override def create(session : CassandraSession) : Unit = {
+				session.execute(
+					s"""CREATE TABLE $name
+						 | (id ${idType.getCqlType.asFunctionParameterString()},
+						 | deps set<frozen<tuple<${idType.getCqlType.asFunctionParameterString}, ${keyType.getCqlType.asFunctionParameterString}>>>,
+						 | txstatus ${txStatusType.getCqlType.asFunctionParameterString},
+						 | consistency ${consistencyType.getCqlType.asFunctionParameterString},
+						 | isolation ${isolationType.getCqlType.asFunctionParameterString},
+						 | PRIMARY KEY (id))""".stripMargin
 				)
 			}
 		}

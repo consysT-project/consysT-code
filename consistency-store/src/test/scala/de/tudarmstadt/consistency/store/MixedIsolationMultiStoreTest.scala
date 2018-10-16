@@ -308,5 +308,4 @@ class MixedIsolationMultiStoreTest extends SimpleStoreTest.Multi[Integer] with B
 
 
 
-
 }

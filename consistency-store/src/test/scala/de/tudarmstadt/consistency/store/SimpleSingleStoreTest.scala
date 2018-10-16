@@ -175,7 +175,28 @@ class SimpleSingleStoreTest extends SimpleStoreTest.Single[String] {
 
 	}
 
+	@Test
+	def testTransitiveDependency(): Unit = {
+		val store = this.store
+		import store._
 
+		startSession { session =>
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				tx.write("alice", "Hello", ConsistencyLevels.CAUSAL)
+				tx.write("bob", "Hi, Alice", ConsistencyLevels.CAUSAL)
+				tx.write("carol", "Hello Bob and Alice", ConsistencyLevels.CAUSAL)
+				Some()
+			}
+		}
+
+		startSession { session =>
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				val c = tx.read("carol", ConsistencyLevels.CAUSAL)
+				assertUpdate(4, "carol", "Hello Bob and Alice", Some(1), (3, "bob"))(c)
+				Some()
+			}
+		}
+	}
 
 
 

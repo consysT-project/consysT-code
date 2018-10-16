@@ -16,4 +16,10 @@ class ReadCommittedStoreTest extends SimpleStoreTest.Multi[Int]
 	override def isolationValue : Isolation =
 		stores(0).IsolationLevels.RC
 
+	override def isolationValueTx1 : Isolation =
+		isolationValue
+
+	override def isolationValueTx2 : Isolation =
+		isolationValue
+
 }

@@ -70,6 +70,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>de.mkoe</groupId>
+            <artifactId>mkoe-lib_2.12</artifactId>
+            <version>0.2.3</version>
+        </dependency>
+        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scalaVersion}</version>
@@ -87,17 +92,17 @@
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
-            <version>${cassandraVersion}</version>
+            <version>${cassandraDriverVersion}</version>
         </dependency>
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-mapping</artifactId>
-            <version>${cassandraVersion}</version>
+            <version>${cassandraDriverVersion}</version>
         </dependency>
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-extras</artifactId>
-            <version>${cassandraVersion}</version>
+            <version>${cassandraDriverVersion}</version>
         </dependency>
         <dependency>
             <groupId>org.cassandraunit</groupId>

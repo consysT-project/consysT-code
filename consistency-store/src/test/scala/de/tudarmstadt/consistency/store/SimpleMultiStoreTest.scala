@@ -1,10 +1,12 @@
 package de.tudarmstadt.consistency.store
 
+import de.mkoe.retry._
 import de.tudarmstadt.consistency.store.examples.BankingStore
 import org.junit.Assert._
 import org.junit.Test
 
 import scala.concurrent.ExecutionContext
+import scala.language.postfixOps
 
 /**
 	* Created on 05.09.18.
@@ -176,6 +178,83 @@ class SimpleMultiStoreTest extends SimpleStoreTest.Multi[Integer] with BankingSt
 			}
 		}
 
+	}
+
+	@Test
+	def testRetryTransaction(): Unit = {
+		import scala.concurrent.duration._
+
+		implicit val executionContext : ExecutionContext = ExecutionContext.global
+
+
+		//Sequential
+		val store = stores(0)
+
+		store.startSession { session =>
+			import store._
+			//Commit a transaction
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				deposit(tx, ConsistencyLevels.CAUSAL)("alice", 1000)
+				deposit(tx, ConsistencyLevels.CAUSAL)("bob", 1000)
+				deposit(tx, ConsistencyLevels.CAUSAL)("carol", 1000)
+				Some()
+			}
+		}
+		//Make sure that the data has been propagated to all replicas
+		Thread.sleep(500)
+
+		//Parallel
+		val store1 = stores(1)
+		val future1 = parallelSession(store1) { session =>
+			import store1._
+
+			//Commit a transaction
+			val tx1 = retry.untilDefined.maxDuration(3 seconds) {
+				session.startTransaction(IsolationLevels.SI) { tx =>
+					transfer(tx, ConsistencyLevels.CAUSAL)("alice", "bob", 200)
+					Some()
+				}
+			}
+			println(s"future 1, tx1 $tx1")
+		}
+
+		val store2 = stores(2)
+		val future2 = parallelSession(store2) { session =>
+			import store2._
+
+			//Commit a transaction
+			val tx1 = retry.untilDefined.maxDuration(3 seconds) {
+				session.startTransaction(IsolationLevels.SI) { tx =>
+					transfer(tx, ConsistencyLevels.CAUSAL)("alice", "carol", 300)
+					Some()
+				}
+			}
+			println(s"future 2, tx1 $tx1")
+		}
+
+		barrier(future1, future2)
+
+
+		//Sequential
+		store.startSession { session =>
+			import store._
+
+			session.startTransaction(IsolationLevels.SI) { tx =>
+				val a = tx.read("alice", ConsistencyLevels.CAUSAL)
+				val b = tx.read("bob", ConsistencyLevels.CAUSAL)
+				val c = tx.read("carol", ConsistencyLevels.CAUSAL)
+
+				(a, b, c) match {
+					case (Some(aVal), Some(bVal), Some(cVal)) =>
+						assertEquals((500, 1200, 1300), (aVal, bVal, cVal))
+						assertEquals("after money transfer the sum can not change", 3000, aVal + bVal + cVal)
+					case t =>
+						fail(s"not all reads could be resolved: $t")
+				}
+
+				Some()
+			}
+		}
 	}
 
 

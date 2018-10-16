@@ -14,7 +14,6 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 	def isolationValue : Isolation
 
 	def runFuzzyReadCommit(consistencyLevel : Consistency): Unit = {
-		val baseStore = stores(0)
 		val testStore = stores(1)
 		val concurrentStore = stores(2)
 
@@ -64,7 +63,6 @@ trait FuzzyReadTests extends SimpleStoreTest.Multi[Int] {
 
 
 	def runFuzzyReadStress(consistencyLevel : Consistency): Unit = {
-		val baseStore = stores(0)
 		val testStore = stores(1)
 		val concurrentStore = stores(2)
 

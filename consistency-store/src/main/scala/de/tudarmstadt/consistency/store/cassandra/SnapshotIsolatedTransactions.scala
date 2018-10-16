@@ -7,6 +7,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session, WriteType}
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.TransactionProcessor.{Abort, CommitStatus, Success}
+import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 
 import scala.collection.JavaConverters
 import scala.reflect.runtime.universe._
@@ -19,7 +20,7 @@ import scala.reflect.runtime.universe._
 object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 
-	def commit[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
+	def commitWrites[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
 	(
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
@@ -34,9 +35,9 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 		val txid = txWrite.tx.id
 
 		/* Handle writes */
-		//3. Add a new entry into the transaction table (lightweight transaction)
+		//1. Add a new entry into the transaction table (lightweight transaction)
 		val txInsertResult = session.execute(
-			insertInto(keyspace.txTable.name)
+			insertInto(keyspace.casTxTable.name)
 				.values(
 					Array[String]("txid", "status", "isolation"),
 					Array[AnyRef](txid.asInstanceOf[AnyRef], store.TxStatuses.PENDING.asInstanceOf[AnyRef], store.IsolationLevels.SI.asInstanceOf[AnyRef])
@@ -48,7 +49,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 		val txInsertResultRow = txInsertResult.one()
 		assert(txInsertResultRow != null)
 
-		//3.1. If the transaction id was already in use abort!
+		//1.a. If the transaction id was already in use abort!
 		if (!rowWasApplied(txInsertResultRow)) {
 			//It is possible that the transaction already has been aborted.
 			//This is possible when it held a read lock and another transaction
@@ -61,7 +62,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			return Abort(s"the transaction has already been aborted. txid = $txid")
 		}
 
-		//4. Update all keys for writes in the key table
+		//2. Acquire the write lock for all keys that are written by this transaction
 		for (write <- updWrites) {
 
 			val updateKeyResult = session.execute(
@@ -81,11 +82,11 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 				val otherTxid = row.get("txid", store.idType)
 				val otherReads : java.util.Set[Id] = row.getSet("reads", store.idType.getJavaType)
 
-				//4.a. Set the other running transaction to aborted if it uses the key
+				//2.a. Abort the transaction that held the write lock
 				if (otherTxid != null) {
 
 					val updateOtherTxResult = session.execute(
-						update(keyspace.txTable.name)
+						update(keyspace.casTxTable.name)
 							.`with`(set("status", store.TxStatuses.ABORTED))
 							.where(QueryBuilder.eq("txid", otherTxid))
 							.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
@@ -98,13 +99,13 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 				}
 
 
-				//4.b. Set all transactions that read a key
+				//2.b. Set all transactions that read a key
 				if (!otherReads.isEmpty) { //if reads == null in cassandra then otherReads will be empty
 					//Abort all pending transactions that read any of the keys.
 					for (rid <- JavaConverters.iterableAsScalaIterable(otherReads)) {
 						if (rid != txid) { //it is ok for our transaction to read a value.
 							val updateOtherTxResult = session.execute(
-								update(keyspace.txTable.name)
+								update(keyspace.casTxTable.name)
 									.`with`(set("status", store.TxStatuses.ABORTED))
 									.where(QueryBuilder.eq("txid", rid))
 									.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
@@ -118,7 +119,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 					}
 				}
 
-				//Now, we aborted all pending transactions that locked the key (either as read or write).
+				//2.c. Now, we aborted all pending transactions that locked the key (either as read or write).
 
 				//Continue to lock the key for this transactions.
 				val updateKeyAgainResult = session.execute(
@@ -142,21 +143,19 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			}
 		}
 
-		//5. Add the data to the data table
-		//5.1. Get the (already generated) ids foreach write
-
-		//5.2 Add a data entry for each write
+		//3. Add the data to the data table
+		//3.a. Add a data entry for each write
 		updWrites.foreach(write => {
 			write.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.PENDING, store.IsolationLevels.SI)
 		})
 
-		//5.3. Add a transaction record to the data table
+		//3.b. Add a transaction record to the data table
 		txWrite.writeData(session, ConsistencyLevel.ONE)(store.TxStatuses.PENDING, store.IsolationLevels.SI)
 
 
 
 
-		//6. Mark transaction as committed
+		//4. Mark transaction as committed
 		/*
 		There needs to be a proper error handling procedure for the next query:
 		This query does commit the transaction. An error of the query does not mean that
@@ -169,7 +168,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 		while (true) {
 			try {
 				val updateTxComittedResult = session.execute(
-					update(keyspace.txTable.name)
+					update(keyspace.casTxTable.name)
 						.`with`(set("status", store.TxStatuses.COMMITTED))
 						.where(QueryBuilder.eq("txid", txid))
 						.onlyIf(QueryBuilder.ne("status", store.TxStatuses.ABORTED))
@@ -196,13 +195,16 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 	}
 
 
+	def cassandraTxid[Id](txid : Option[TxRef[Id]]) : Any =
+		txid.map(ref => ref.id).getOrElse(null)
+
 	//true when the row has been committed, false if the row has been aborted/deleted
-	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	override def readIsObservable[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
     session : CassandraSession,
     store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
   )(
     currentTxid : Option[Id],
-    row : store.DataRow
+    row : store.ReadUpdate
   ) : CommitStatus = {
 
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
@@ -213,7 +215,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 		val readId = row.id
 		val readKey = row.key
-		val readTxid = row.cassandraTxid
+		val readTxid = cassandraTxid(row.txid)
 		val readTxStatus = row.txStatus
 
 		//2.a If the read value does not belong to a transaction or the transaction has been committed
@@ -226,7 +228,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 		if (readTxid == null) {
 			//Performance optimization: set the tx status of the read row to committed
 			session.execute(
-				update(store.keyspace.dataTable.name)
+				update(store.keyspace.updateDataTable.name)
 					.`with`(set("txstatus", store.TxStatuses.COMMITTED))
 					.where(QueryBuilder.eq("key", readKey))
 					.and(QueryBuilder.eq("id", readId))
@@ -237,7 +239,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 
 		//3. Abort the transaction readTxid if it is not committed
 		val abortReadTxResult = session.execute(
-			update(store.keyspace.txTable.name)
+			update(store.keyspace.casTxTable.name)
 				.`with`(set("status", store.TxStatuses.ABORTED))
 				.where(QueryBuilder.eq("txid", readTxid))
 				.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))
@@ -252,7 +254,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			//Performance: the data entry can be deleted
 			session.execute(
 				delete()
-					.from(store.keyspace.dataTable.name)
+					.from(store.keyspace.updateDataTable.name)
 					.where(QueryBuilder.eq("id", readId))
 					.and(QueryBuilder.eq("key", readKey))
 			)
@@ -280,7 +282,7 @@ object SnapshotIsolatedTransactions extends TransactionProcessor {
 			val otherTxid = updateReadKeysRow.get("txid", store.idType)
 
 			val abortOtherTxResult = session.execute(
-				update(store.keyspace.txTable.name)
+				update(store.keyspace.casTxTable.name)
 					.`with`(set("status", store.TxStatuses.ABORTED))
 					.where(QueryBuilder.eq("txid", otherTxid))
 					.onlyIf(QueryBuilder.ne("status", store.TxStatuses.COMMITTED))

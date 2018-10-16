@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 	*/
 trait TransactionProcessor {
 
-	def commit[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return](
+	def commitWrites[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return](
 		session : CassandraSession,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
@@ -21,14 +21,14 @@ trait TransactionProcessor {
 		updWrites : Iterable[store.WriteUpdate]
 	) : CommitStatus
 
-	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	def readIsObservable[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
 	  session : CassandraSession,
     store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
   )(
     //an optional id of the transaction that reads the row
     txid : Option[Id],
     //the row that is checked whether it is committed
-    row : store.DataRow
+    row : store.ReadUpdate
   ) : CommitStatus
 
 }

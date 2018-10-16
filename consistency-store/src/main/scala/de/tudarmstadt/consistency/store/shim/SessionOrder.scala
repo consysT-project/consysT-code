@@ -105,9 +105,6 @@ class SessionOrder[Id : Ordering, Key, Data] {
 		graph.addUpdate(update)
 	}
 
-	private [shim] def addRaw(tx : Tx[Id, Key, Data]) : Unit = {
-		graph.addTx(tx)
-	}
 
 	override def toString : String = {
 		graph.toString
@@ -153,7 +150,10 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 			override def startTransaction(id : Id): Unit = {
 				val txRef = TxRef(id)
+				graph.startTx(id)
+
 				state = StartedTransaction(txRef, sessionPointer)
+
 			}
 		}
 
@@ -219,14 +219,16 @@ class SessionOrder[Id : Ordering, Key, Data] {
 
 		case class LockedTransaction(txState : StartedTransaction, tx : Tx[Id, Key, Data]) extends SessionStateInTx {
 			override def commitTransaction() : Unit = {
-				graph.addTx(tx)
+				graph.commitTx(tx.id)
 				txState.transactionDependencies = Set.empty
 
 				state = Idle
 			}
 
 			override def abortTransaction() : Unit = {
-				txState.transactionDependencies.foreach(ref => graph.remove(ref.id))
+				graph.abortTx(tx.id)
+				//txState.transactionDependencies.foreach(ref => graph.remove(ref.id))
+				txState.transactionDependencies = Set.empty
 				//Reset session pointer to "before the transaction"
 				sessionPointer = txState.sessionPointerBeforeTx
 
