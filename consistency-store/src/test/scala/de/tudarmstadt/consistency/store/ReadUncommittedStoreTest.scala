@@ -11,9 +11,15 @@ import scala.language.postfixOps
 	*/
 class ReadUncommittedStoreTest extends SimpleStoreTest.Multi[Int] with DirtyWriteTests {
 
-	override def isolationValue : Isolation =
+	def isolationValue : Isolation =
 		stores(0).IsolationLevels.RU
 
+
+	override def isolationValueTx1 : Isolation =
+		isolationValue
+
+	override def isolationValueTx2 : Isolation =
+		isolationValue
 
 
 }

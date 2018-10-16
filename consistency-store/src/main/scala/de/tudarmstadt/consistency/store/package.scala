@@ -1,9 +1,5 @@
 package de.tudarmstadt.consistency
 
-import com.datastax.driver.core.Cluster
-import de.tudarmstadt.consistency.store.shim.EventRef
-import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
-
 /**
 	* Created on 03.09.18.
 	*
@@ -12,14 +8,9 @@ import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 package object store {
 
 	trait StoreOps[Key, TxStatus, Isolation, Consistency] {
-		val keys : Keys[Key]
 		val txStatuses : TxStatuses[TxStatus]
 		val isolationLevels : IsolationLevels[Isolation]
 		val consistencyLevels : ConsistencyLevels[Consistency]
-	}
-
-	trait Keys[T] {
-		val transactionKey : T
 	}
 
 	trait TxStatuses[T] {
@@ -45,10 +36,8 @@ package object store {
 	trait ConsistencyLevels[T] {
 		val CAUSAL : T
 		val WEAK : T
+		val LOCAL : T
 	}
-
-
-
 
 
 	trait Ids[T] {

@@ -44,7 +44,7 @@ object Writes {
 
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(
-				update(keyspace.dataTable.name)
+				update(keyspace.updateDataTable.name)
 					.`with`(set("data", upd.data))
 					.and(set("deps", convertedDependencies))
 					.and(set("txid", convertedTxid))
@@ -60,7 +60,7 @@ object Writes {
 		override def deleteData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE) : Unit = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(
-				delete().from(keyspace.dataTable.name)
+				delete().from(keyspace.updateDataTable.name)
   				.where(QueryBuilder.eq("key", upd.key))
   				.and(QueryBuilder.eq("id", upd.id))
 			)
@@ -79,15 +79,12 @@ object Writes {
 
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(
-				update(keyspace.dataTable.name)
-					.`with`(set("data", null))
-					.and(set("deps", convertedDependencies))
-					.and(set("txid", tx.id))
+				update(keyspace.txDataTable.name)
+					.`with`(set("deps", convertedDependencies))
 					.and(set("txstatus", txStatus))
 					.and(set("isolation", isolation))
 					.and(set("consistency", params.consistency))
-					.where(QueryBuilder.eq("key", Keys.transactionKey))
-					.and(QueryBuilder.eq("id", tx.id))
+					.where(QueryBuilder.eq("id", tx.id))
 					.setConsistencyLevel(writeConsistency)
 			)
 		}
@@ -95,9 +92,8 @@ object Writes {
 		override def deleteData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE) : Unit = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(
-				delete().from(keyspace.dataTable.name)
-					.where(QueryBuilder.eq("key", Keys.transactionKey))
-					.and(QueryBuilder.eq("id", tx.id))
+				delete().from(keyspace.txDataTable.name)
+					.where(QueryBuilder.eq("id", tx.id))
 			)
 		}
 	}

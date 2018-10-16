@@ -59,10 +59,10 @@ object SimpleStoreTest {
 			val idOps = Stores.Simple.createSeqIds
 
 			stores = Seq(
-				Stores.Simple.newStore[Data](LocalClusterNode1, idOps = idOps, initialize = true),
-				Stores.Simple.newStore[Data](LocalClusterNode1, idOps = idOps),
-				Stores.Simple.newStore[Data](LocalClusterNode2, idOps = idOps),
-				Stores.Simple.newStore[Data](LocalClusterNode3, idOps = idOps)
+				Stores.Simple.newStore[Data](LocalClusterNode1, idOps, initialize = true),
+				Stores.Simple.newStore[Data](LocalClusterNode1, idOps),
+				Stores.Simple.newStore[Data](LocalClusterNode2, idOps),
+				Stores.Simple.newStore[Data](LocalClusterNode3, idOps)
 			)
 		}
 

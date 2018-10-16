@@ -77,6 +77,13 @@ There is no need to install Cassandra manually.
 Cassandra can be started or stopped by using
     `sudo service cassandra start/stop` 
     
+#### Java 9+
+
+In order to make Cassandra work with Java versions >1.8, replace the `jvm.options` file 
+in `~/.ccm/<cluster-name>/<node-name>/conf` with the file provided in `cassandra-setup`.
+
+This configuration has been tested with OpenJDK11 and Cassandra 3.11.3.
+    
 ### IntelliJ
 
 In IntelliJ, you have to add the annotation processor manually.

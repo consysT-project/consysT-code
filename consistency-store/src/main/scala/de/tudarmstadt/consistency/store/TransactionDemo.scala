@@ -131,6 +131,8 @@ CREATE AGGREGATE aggregate_name(type1)
 				Some ()
 			}
 		}
+
+		store.close()
 	}
 
 //	def simpleExample(): Unit = {

@@ -14,7 +14,7 @@ import scala.reflect.runtime.universe._
 object ReadCommittedTransactions extends TransactionProcessor {
 
 
-	def commit[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
+	def commitWrites[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
 	(
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
@@ -34,14 +34,14 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 
 	//true when the row has been committed, false if the row has been aborted/deleted
-	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	def readIsObservable[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
 	  session : Session,
 	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
 		currentTxid : Option[Id],
-	  row : store.DataRow
+	  row : store.ReadUpdate
 	) : CommitStatus = {
-
+		import store._
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		//Check whether the given row has the correct isolation level
@@ -50,8 +50,8 @@ object ReadCommittedTransactions extends TransactionProcessor {
 
 		val txStatus = row.txStatus
 
-		//1. If the read value does not belong to a transaction or the transaction has been committed
-		if (txStatus == store.TxStatuses.COMMITTED) {
+		//1. If the read value does belong to a transaction that has been committed
+		if (txStatus == TxStatuses.COMMITTED) {
 			return Success
 		}
 
@@ -59,9 +59,8 @@ object ReadCommittedTransactions extends TransactionProcessor {
 		val txid = row.txid.get.id
 
 		val selectTxResult = session.execute(
-			select.all().from(store.keyspace.dataTable.name)
-  			.where(QueryBuilder.eq("key", store.Keys.transactionKey))
-  			.and(QueryBuilder.eq("id", txid))
+			select.all().from(keyspace.txDataTable.name)
+  			.where(QueryBuilder.eq("id", txid))
 		)
 
 		val selectTxRow = selectTxResult.one()
@@ -71,13 +70,13 @@ object ReadCommittedTransactions extends TransactionProcessor {
 			return Abort("there was no row found for the transaction")
 		}
 
-		val txRow = store.makeDataRow(selectTxRow)
+		val txRow = store.makeTxRow(selectTxRow)
 
-		if (txRow.txStatus == store.TxStatuses.COMMITTED) {
+		if (txRow.txStatus == TxStatuses.COMMITTED) {
 			//Performance: set the status to committed for further reads
 			session.execute(
-				update(store.keyspace.dataTable.name)
-  				.`with`(set("txstatus", store.TxStatuses.COMMITTED))
+				update(keyspace.updateDataTable.name)
+  				.`with`(set("txstatus", TxStatuses.COMMITTED))
   				.where(QueryBuilder.eq("key", row.key))
   				.and(QueryBuilder.eq("id", row.id))
 			)

@@ -27,10 +27,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <javaVersion>1.8</javaVersion>
-        <scalaVersion>2.12.6</scalaVersion>
+        <scalaVersion>2.12.7</scalaVersion>
 
         <checkerframeworkVersion>2.5.2</checkerframeworkVersion>
-        <cassandraVersion>3.5.1</cassandraVersion>
+        <cassandraDriverVersion>3.6.0</cassandraDriverVersion>
 
     </properties>
 

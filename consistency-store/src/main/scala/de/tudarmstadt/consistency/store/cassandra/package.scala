@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datastax.driver.core._
+import de.tudarmstadt.consistency.store.shim.Event.Tx
 import de.tudarmstadt.consistency.store.shim.EventRef.TxRef
 
 import scala.reflect.runtime.universe._
@@ -52,7 +53,7 @@ package object cassandra {
 
 	case class CassandraWriteParams[Consistency](consistency : Consistency)
 	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
-	case class CassandraTxParams[Id, Isolation](txid : Option[TxRef[Id]], isolation : Isolation)
+	case class CassandraTxParams[Id, Key, Data, Isolation](tx : Option[Tx[Id, Key, Data]], isolation : Isolation)
 
 
 	trait ConnectionParams {

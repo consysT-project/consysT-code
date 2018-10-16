@@ -14,9 +14,8 @@ import scala.reflect.runtime.universe._
 class SysnameCassandraStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag]
 (
 	override protected val connectionParams : ConnectionParams,
-	override val keyspaceName : String
+	override val keyspaceName : String,
 )(
-	override val Keys : Keys[Key],
 	override val TxStatuses : TxStatuses[TxStatus],
 	override val IsolationLevels : IsolationLevels[Isolation],
 	override val ConsistencyLevels : ConsistencyLevels[Consistency],

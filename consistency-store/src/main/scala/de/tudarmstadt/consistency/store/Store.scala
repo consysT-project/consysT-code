@@ -4,6 +4,7 @@ import de.tudarmstadt.consistency.store.Store.{AbortedException, ISessionContext
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.languageFeature.higherKinds
+import scala.util.control.NoStackTrace
 
 /**
 	* General interface of store implementations that supports sessions and transactions.
@@ -66,8 +67,15 @@ object Store {
 	trait ITxContext[Key, Data, WriteParams, ReadParams, ReadResult] {
 		def write(key : Key, data : Data, params : WriteParams) : Unit
 		def read(key : Key, params : ReadParams) : ReadResult
+
+		@throws(clazz = classOf[AbortedException])
 		final def abort() : Unit = throw new AbortedException
 	}
 
-	private [store] class AbortedException extends RuntimeException("the transaction has been aborted")
+	private [store] class AbortedException
+		extends RuntimeException("the transaction has been aborted")
+		with NoStackTrace
+
+
+
 }

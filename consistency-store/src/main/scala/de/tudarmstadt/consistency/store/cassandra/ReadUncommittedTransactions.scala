@@ -19,7 +19,7 @@ It is not clear to me whether this is a tolerated behaviour.
 object ReadUncommittedTransactions extends TransactionProcessor {
 
 
-	def commit[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
+	def commitWrites[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag, Return]
 	(
 		session : Session,
 		store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
@@ -38,12 +38,12 @@ object ReadUncommittedTransactions extends TransactionProcessor {
 
 
 	//true when the row has been committed, false if the row has been aborted/deleted
-	def isRowCommitted[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
+	def readIsObservable[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus : TypeTag, Isolation : TypeTag, Consistency : TypeTag](
 	  session : Session,
 	  store : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 	)(
 		currentTxid : Option[Id],
-	  row : store.DataRow
+	  row : store.ReadUpdate
 	) : CommitStatus = {
 		return Success
 	}
