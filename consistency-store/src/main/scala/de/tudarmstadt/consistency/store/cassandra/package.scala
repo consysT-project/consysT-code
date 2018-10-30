@@ -53,7 +53,7 @@ package object cassandra {
 
 	case class CassandraWriteParams[Consistency](consistency : Consistency)
 	case class CassandraReadParams[Id, Consistency](filterForId : Option[Id] = None, consistency : Consistency)
-	case class CassandraTxParams[Id, Key, Data, Isolation](tx : Option[Tx[Id, Key, Data]], isolation : Isolation)
+	case class CassandraTxParams[Id, Isolation](id : Option[Id], isolation : Isolation)
 
 
 	trait ConnectionParams {

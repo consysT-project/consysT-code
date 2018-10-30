@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.store.shim
 
 import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams}
+import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams, SysnameCassandraStore}
 import de.tudarmstadt.consistency.store.cassandra.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
 import de.tudarmstadt.consistency.store.shim.Event.Update
 import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
@@ -19,11 +19,11 @@ import scala.collection.mutable
 trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Read] extends Store[Key, Data, Isolation, Consistency, Consistency, Read] {
 
 	override type SessionCtx = SysnameShimSessionContext
-	type BaseSessionContext = baseStore.SessionContext
+	type BaseSessionContext = baseStore.SysnameCassandraSessionContext
 
 	implicit val idOrdering : Ordering[Id]
 
-	val baseStore : Store[Key, Update[Id, Key, Data], CassandraTxParams[Id, Key, Data, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Update[Id, Key, Data]]]
+	val baseStore : SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 
 
 	val Ids : Ids[Id]
@@ -80,7 +80,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 
 		private def handleNoneIsolatedTransactions[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
-			val txParams = CassandraTxParams[Id, Key, Data, Isolation](None, isolation)
+			val txParams = CassandraTxParams[Id, Isolation](None, isolation)
 
 			try {
 				baseSession.startTransaction(txParams) { baseTx =>
@@ -107,15 +107,14 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 		}
 
 		private def handleIsolatedTransaction[U](f : Transaction[U], isolation : Isolation, makeCtx : BaseTxContext => ShimTxContext) : Option[U] = {
-			val txid = Ids.freshId()
 
+			val txid = Ids.freshId()
 
 			//Start the transaction in this session
 			sessionOrder.startTransaction(txid)
-			//Lock the transaction and add the transaction record to the base store
-			val tx = sessionOrder.lockTransaction()
 
-			val txParams = CassandraTxParams(Some(tx), isolation)
+
+			val txParams = CassandraTxParams(Some(txid), isolation)
 
 			try {
 				//Start a transaction in the base store
@@ -123,9 +122,10 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 					val txContext = makeCtx(baseTx)
 					val res = f(txContext) //execute the transaction as defined by the user
 
-
+					//Lock the transaction and add the transaction record to the base store
+					val tx = sessionOrder.lockTransaction()
 					//TODO: Which consistency level do we use when writing the tx record.
-//					baseTx.write(Keys.TX_KEY, tx, CassandraWriteParams(ConsistencyLevels.CAUSAL))
+					baseTx.writeTx(tx, CassandraWriteParams(ConsistencyLevels.CAUSAL))
 
 					res
 				} match {
@@ -176,8 +176,8 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 
 		private def handleWeakRead(baseTx : BaseTxContext)(key : Key) : Option[Update[Id, Key, Data]] = {
 
-			val rows = baseTx.read(key, CassandraReadParams(None, ConsistencyLevels.WEAK))
-			addEvents(rows)
+			val updates = baseTx.read(key, CassandraReadParams(None, ConsistencyLevels.WEAK))
+			addUpdates(updates)
 
 			sessionOrder.resolve(key) match {
 				//If we got some value, just return the latest one (without checking any dependencies)
@@ -199,8 +199,8 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			A causal read retrieves all updates for the specified key, but for the dependencies
 			it only retrieves a single id. Is it more performant to also retrieve all updates for that key?
 			 */
-			val rows = baseTx.read(key0, CassandraReadParams(None, ConsistencyLevels.CAUSAL))
-			addEvents(rows)
+			val updates = baseTx.read(key0, CassandraReadParams(None, ConsistencyLevels.CAUSAL))
+			addUpdates(updates)
 
 			def handleCausalReadRec(key : Key, alreadyTried : Set[Id]) : Option[Update[Id, Key, Data]] = sessionOrder.resolve(key) match {
 				//If we read a resolved value and that value is already the latest, we can just return that value
@@ -224,7 +224,7 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 							}
 
 							val rawRows = baseTx.read(refKey, CassandraReadParams(Some(refId), ConsistencyLevels.CAUSAL))
-							addEvents(rawRows)
+							addUpdates(rawRows)
 							handleCausalReadRec(refKey, alreadyTried + refId)
 
 						case TxRef(refId) =>
@@ -234,8 +234,9 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 								return optionalUpdate
 							}
 
-							val rawRows = baseTx.read(Keys.TX_KEY, CassandraReadParams(Some(refId), ConsistencyLevels.CAUSAL))
-							addEvents(rawRows)
+							//TODO: How to add transaction reads? Do we even need to add them?
+//							val rawRows = baseTx.read(Keys.TX_KEY, CassandraReadParams(Some(refId), ConsistencyLevels.CAUSAL))
+//							addUpdates(rawRows)
 							None
 					}
 
@@ -254,9 +255,9 @@ trait SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Rea
 			return handleCausalReadRec(key0, Set.empty)
 		}
 
-//		private def addEvents(events : Seq[Event[Id, Key, Data]]) : Unit = {
-//			events.foreach(event => sessionOrder.graph.add(event))
-//		}
+		private def addUpdates(updates : Seq[Update[Id, Key, Data]]) : Unit = {
+			updates.foreach(upd => sessionOrder.graph.addUpdate(upd))
+		}
 
 		private def handleWrite(baseTx : BaseTxContext)(id : Id, key : Key, data : Data, consistency: Consistency): Update[Id, Key, Data] = {
 			if (consistency == ConsistencyLevels.LOCAL) {
