@@ -9,7 +9,7 @@ import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.Keyspaces.KeyspaceDef
 import de.tudarmstadt.consistency.store.cassandra.TransactionProcessor.{Abort, Success}
 import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedIsolationLevelException
-import de.tudarmstadt.consistency.store.shim.Event.Update
+import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
 import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.mutable
@@ -24,7 +24,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 	extends Store[
 		Key,
 		Update[Id, Key, Data],
-		CassandraTxParams[Id, Key, Data, Isolation],
+		CassandraTxParams[Id, Isolation],
 		CassandraWriteParams[Consistency],
 		CassandraReadParams[Id, Consistency],
 		Seq[Update[Id, Key, Data]]
@@ -103,7 +103,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 		type TxCtx = CassandraTxContext
 
-		override def startTransaction[U](params : CassandraTxParams[Id, Key, Data, Isolation])(f : Transaction[U]) : Option[U] = params.isolation match {
+		override def startTransaction[U](params : CassandraTxParams[Id, Isolation])(f : Transaction[U]) : Option[U] = params.isolation match {
 			case IsolationLevels.NONE =>
 				val txContext = new SysnameCassandraNoneTxContext(params)
 				executeNonIsolatedTransaction(f, txContext)
@@ -215,7 +215,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 		}
 
-		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency], txParams : CassandraTxParams[Id, Key, Data, Isolation]) : Seq[Update[Id, Key, Data]] = {
+		private def readKey(key : Key, readParams : CassandraReadParams[Id, Consistency], txParams : CassandraTxParams[Id, Isolation]) : Seq[Update[Id, Key, Data]] = {
 			readParams match {
 				case CassandraReadParams(Some(id), _) => readVersionOf(key, id, txParams).toSeq
 				case CassandraReadParams(None, _) => readAllVersionsOf(key, txParams)
@@ -223,7 +223,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 		}
 
 
-		private def readAllVersionsOf(key : Key, txParams : CassandraTxParams[Id, Key, Data, Isolation]) : Seq[Update[Id, Key, Data]] = {
+		private def readAllVersionsOf(key : Key, txParams : CassandraTxParams[Id, Isolation]) : Seq[Update[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -253,7 +253,7 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			return buf
 		}
 
-		private def readVersionOf(key : Key, id : Id, txParams : CassandraTxParams[Id, Key, Data, Isolation]) : Option[Update[Id, Key, Data]] = {
+		private def readVersionOf(key : Key, id : Id, txParams : CassandraTxParams[Id, Isolation]) : Option[Update[Id, Key, Data]] = {
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 			//Retrieve the history of a key.
@@ -306,13 +306,13 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 //			}
 //		}
 
-		private def readIsObservable(row : ReadUpdate, txParams : CassandraTxParams[Id, Key, Data, Isolation]) : Boolean = row.isolation match {
+		private def readIsObservable(row : ReadUpdate, txParams : CassandraTxParams[Id, Isolation]) : Boolean = row.isolation match {
 			case IsolationLevels.SI =>
-				SnapshotIsolatedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.tx.map(ref => ref.id), row).isSuccess
+				SnapshotIsolatedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.id, row).isSuccess
 			case IsolationLevels.RU =>
-				ReadUncommittedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.tx.map(ref => ref.id), row).isSuccess
+				ReadUncommittedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.id, row).isSuccess
 			case IsolationLevels.RC =>
-				ReadCommittedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.tx.map(ref => ref.id), row).isSuccess
+				ReadCommittedTransactions.readIsObservable(session, SysnameCassandraStore.this)(txParams.id, row).isSuccess
 			case IsolationLevels.NONE =>
 				true
 			case iso =>
@@ -321,18 +321,17 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 
 
 		trait CassandraTxContext extends TxContext {
-			val txParams : CassandraTxParams[Id, Key, Data, Isolation]
+			val txParams : CassandraTxParams[Id, Isolation]
 
 			override def read(key : Key, params : CassandraReadParams[Id, Consistency]) : Seq[Update[Id, Key, Data]] = {
 				readKey(key, params, txParams)
 			}
 
-
 			override def write(key : Key, data : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : Unit = {
 				data match {
 					case upd@Update(_, updKey, _, updTxid, _) =>
 						assert(key == updKey, "inconsistent update: update key does not match key")
-						assert(updTxid == txParams.tx.map(_.toRef), "inconsistent update: the txid of the update and the tx have to match")
+						//assert(updTxid. == txParams.id), "inconsistent update: the txid of the update and the tx have to match")
 
 						write(upd, params)
 //					case tx : Tx[Id, Key, Data] =>
@@ -342,12 +341,12 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 			}
 
 			def write(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteUpdate
-
+			def writeTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteTx
 		}
 
 		trait BufferedWritesCassandraTxContext extends CassandraTxContext {
 			private val updates : mutable.Buffer[WriteUpdate] = mutable.Buffer.empty
-//			private val tx : Array[WriteTx] = Array(null)
+			private var tx : WriteTx = null
 
 			def bufferUpdate(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteUpdate = {
 				val res = new WriteUpdate(SysnameCassandraStore.this)(update, params)
@@ -355,37 +354,44 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				res
 			}
 
-			def getTx : Option[WriteTx] = txParams.tx.map { tx =>
-				//TODO: Which consistency level to use here?
-				new WriteTx(SysnameCassandraStore.this)(tx, CassandraWriteParams(ConsistencyLevels.CAUSAL))
+			def bufferTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteTx = {
+				val res = new WriteTx(SysnameCassandraStore.this)(tx, params)
+				this.tx = res
+				res
 			}
+
+			def getTx : Option[WriteTx] = Option(tx)
 
 			def getUpdates : Seq[WriteUpdate] = updates
 
 			override def write(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteUpdate =
 				bufferUpdate(update, params)
+
+			override def writeTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteTx =
+				bufferTx(tx, params)
+
 		}
 
 
-		private class SysnameCassandraSnapshotIsolatedTxContext(override val txParams : CassandraTxParams[Id, Key, Data, Isolation]) extends BufferedWritesCassandraTxContext
+		private class SysnameCassandraSnapshotIsolatedTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends BufferedWritesCassandraTxContext
 
-		private class SysnameCassandraReadCommittedTxContext(override val txParams : CassandraTxParams[Id, Key, Data, Isolation]) extends BufferedWritesCassandraTxContext
+		private class SysnameCassandraReadCommittedTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends BufferedWritesCassandraTxContext
 
-		private class SysnameCassandraReadUncommittedTxContext(override val txParams : CassandraTxParams[Id, Key, Data, Isolation]) extends BufferedWritesCassandraTxContext {
+		private class SysnameCassandraReadUncommittedTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends BufferedWritesCassandraTxContext {
 
 			override def write(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteUpdate = {
 				val write = super.write(update, params)
-				write.writeData(session, ConsistencyLevel.ONE)(TxStatuses.COMMITTED, IsolationLevels.NONE)
+				write.writeData(session, ConsistencyLevel.ONE)(TxStatuses.COMMITTED, IsolationLevels.RU)
 				write
 			}
 
 			private[cassandra] def undo(): Unit = {
 				getUpdates.foreach(upd => upd.deleteData(session, ConsistencyLevel.ONE))
-				getTx.foreach(tx => tx.deleteData(session, ConsistencyLevel.ONE))
 			}
+
 		}
 
-		private class SysnameCassandraNoneTxContext(override val txParams : CassandraTxParams[Id, Key, Data, Isolation]) extends CassandraTxContext {
+		private class SysnameCassandraNoneTxContext(override val txParams : CassandraTxParams[Id, Isolation]) extends CassandraTxContext {
 
 			override def write(update : Update[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteUpdate = {
 				assert(update.txid.isEmpty, "a transaction without isolation can not depend on a transaction record")
@@ -395,7 +401,9 @@ abstract class SysnameCassandraStore[Id : TypeTag, Key : TypeTag, Data : TypeTag
 				write
 			}
 
-
+			override def writeTx(tx : Tx[Id, Key, Data], params : CassandraWriteParams[Consistency]) : WriteTx = {
+				throw new UnsupportedOperationException("cannot write tx in none isolated transaction")
+			}
 		}
 
 

@@ -40,7 +40,7 @@ object Writes {
 
 		override def writeData(session: CassandraSession, writeConsistency: ConsistencyLevel = ConsistencyLevel.ONE)(txStatus : TxStatus, isolation : Isolation) : Unit = {
 			val convertedTxid = upd.txid.map(ref => ref.id).getOrElse(null)
-			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(store)(upd.readDependencies)
+			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(store)(upd.dependencies)
 
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(
@@ -75,7 +75,7 @@ object Writes {
 		import store._
 
 		override def writeData(session : CassandraSession, writeConsistency : ConsistencyLevel)(txStatus : TxStatus, isolation : Isolation) : Unit = {
-			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(store)(tx.readDependencies)
+			val convertedDependencies : java.util.Set[TupleValue] = dependencySetToCassandraSet(store)(tx.dependencies)
 
 			import com.datastax.driver.core.querybuilder.QueryBuilder._
 			session.execute(

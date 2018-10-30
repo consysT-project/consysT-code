@@ -7,25 +7,23 @@ import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
 import scala.collection.mutable
 
 /**
-	* Created on 06.09.18.
+	* Note: The dependency graph does not store any transaction records anymore.
+	* Transaction isolation is ensured before updates are pushed to the dependency graph layer.
+	* Some tests that include transactions may not run properly.
 	*
 	* @author Mirko Köhler
 	*/
 class DependencyGraph[Id : Ordering, Key, Data] {
 
-	trait TransactionState
-	case object Committed extends TransactionState
-	case object Pending extends TransactionState
-	case object Aborted extends TransactionState
-
-
 	final type Update = de.tudarmstadt.consistency.store.shim.Event.Update[Id, Key, Data]
+	final type Tx = de.tudarmstadt.consistency.store.shim.Event.Tx[Id, Key, Data]
+
 
 
 	/* Stores all entries of this dependency graph */
 	private val entries : mutable.Map[Id, Update] = mutable.HashMap.empty
-	/* index of all transactions */
-	private val transactions : mutable.Map[Id, TransactionState] = mutable.HashMap.empty
+	/* Stores all transactions in this dependency graph */
+//	private val transactions : mutable.Map[Id, Tx] = mutable.HashMap.empty
 
 	/* indexes the pointers to the latest updates to keys. the first update in the list is the latest. updates may not be resolved yet */
 	private val latestKeys : mutable.MultiMap[Key, Update] = new mutable.HashMap[Key, mutable.Set[Update]]() with mutable.MultiMap[Key, Update] {
@@ -79,20 +77,7 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 		unresolvedDependenciesOf(ref, Set.empty)
 	}
 
-	def startTx(id : Id): Unit = {
-		val r = transactions.put(id, Pending)
-		assert(r.isEmpty, s"cannot start already started transaction")
-	}
 
-	def commitTx(id : Id): Unit = {
-		val r = transactions.put(id, Committed)
-		assert(r.contains(Pending), s"can only commit pending transaction, but was $r")
-	}
-
-	def abortTx(id : Id): Unit = {
-		val r = transactions.put(id, Aborted)
-		assert(r.contains(Pending), s"can only abort pending transaction, but was $r")
-	}
 
 	def addUpdate(update : Update) : Unit = {
 		//add the update to the tree
@@ -100,12 +85,6 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 			// if the update already existed make sure that the overriding update is the same
 			.foreach(evt => assert(evt == update, s"cannot override existing update with other update. other update was $evt"))
 
-		//add a transaction if it does not exist already
-		update.txid.foreach(txid =>
-			transactions.put(txid.id, Pending).foreach(state =>
-				assert(state == Pending, s"cannot add update to non-pending transaction. state was $state")
-			)
-		)
 		//add the update to the latestKeys index
 		latestKeys.addBinding(update.key, update)
 	}

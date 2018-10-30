@@ -147,9 +147,6 @@ class DependencyGraphReadTest extends DependencyGraphTest {
 		assertResolved(0, 'x, "Hello", Some(3))(graph.resolve('x, Some(TxRef(3))))
 		assertResolved(1, 'y, "World", Some(3), (0, 'x))(graph.resolve('y, Some(TxRef(3))))
 
-		graph.startTx(3)
-		graph.commitTx(3)
-
 		assertResolved(0, 'x, "Hello", Some(3))(graph.resolve('x))
 		assertResolved(1, 'y, "World", Some(3), (0, 'x))(graph.resolve('y))
 

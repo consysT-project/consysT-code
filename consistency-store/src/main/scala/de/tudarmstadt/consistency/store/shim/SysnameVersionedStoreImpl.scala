@@ -1,8 +1,8 @@
 package de.tudarmstadt.consistency.store.shim
 
-import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams}
+import de.tudarmstadt.consistency.store._
+import de.tudarmstadt.consistency.store.cassandra.SysnameCassandraStore
 import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.{Store, _}
 
 import scala.reflect.runtime.universe._
 
@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe._
 	* @author Mirko Köhler
 	*/
 class SysnameVersionedStoreImpl[Id : TypeTag, Key : TypeTag, Data : TypeTag, TxStatus, Isolation, Consistency, Read] (
-	override val baseStore : Store[Key, Update[Id, Key, Data], CassandraTxParams[Id, Key, Data, Isolation], CassandraWriteParams[Consistency], CassandraReadParams[Id, Consistency], Seq[Update[Id, Key, Data]]]
+	override val baseStore :  SysnameCassandraStore[Id, Key, Data, TxStatus, Isolation, Consistency]
 )(
 	val readNothing : Read,
 	val readConvert : Update[Id, Key, Data] => Read
