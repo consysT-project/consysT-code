@@ -11,8 +11,15 @@
 
     <artifactId>consistency-store</artifactId>
 
-    <build>
+    <repositories>
+        <repository>
+            <id>soot-snapshot</id>
+            <name>soot snapshots</name>
+            <url>https://soot-build.cs.uni-paderborn.de/nexus/repository/soot-snapshot/</url>
+        </repository>
+    </repositories>
 
+    <build>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -113,6 +120,11 @@
             <groupId>de.tu-darmstadt.consistency-types</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.mcgill.sable</groupId>
+            <artifactId>soot</artifactId>
+            <version>3.2.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

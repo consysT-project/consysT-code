@@ -125,33 +125,31 @@ object Stores {
 	}
 
 	object Default {
-		private type Id = UUID
-		private type Key = String
-		private type Data = ByteBuffer
-		private type TxStatus = Int
-		private type Isolation = Int
-		private type Consistency = Int
+		type Id = UUID
+		type Key = String
+		type Data = ByteBuffer
+		type TxStatus = Int
+		type Isolation = Int
+		type Consistency = Int
 
 		private val keyspaceName = "k_sysname"
 
-		private def createIds : Ids[Id] = new Ids[Id] {
-			override def freshId() : Id = UUIDs.timeBased()
-		}
+		private def createIds : Ids[Id] = () => UUIDs.timeBased()
 
 
-		private def createTxStatuses : TxStatuses[TxStatus] = new TxStatuses[TxStatus] {
+		object TxStatuses extends TxStatuses[TxStatus] {
 			override val PENDING : Int = 0
 			override val COMMITTED : Int = 1
 			override val ABORTED : Int = -1
 		}
 
-		private def createConsistencyLevels : ConsistencyLevels[Consistency] = new ConsistencyLevels[Consistency] {
+		object ConsistencyLevels extends ConsistencyLevels[Consistency] {
 			override val CAUSAL : Int = 3
 			override val WEAK : Int = 0
 			override val LOCAL : Int = -1
 		}
 
-		private def createIsolationLevels : IsolationLevels[Isolation] = new IsolationLevels[Isolation] {
+		object IsolationLevels extends IsolationLevels[Isolation] {
 			override val SI : Int = 4
 			override val RU : Int = 1
 			override val RC : Int = 2
@@ -160,14 +158,11 @@ object Stores {
 
 
 		def newStore(connectionParams : ConnectionParams, idOps : Ids[Id] = createIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Data]] = {
-			val txStatuses = createTxStatuses
-			val isolationLevels = createIsolationLevels
-			val consistencyLevels = createConsistencyLevels
 
 			val baseStore = new SysnameCassandraStoreImpl[UUID, String, ByteBuffer, Int, Int, Int](
 				connectionParams, keyspaceName
 			)(
-				txStatuses, isolationLevels, consistencyLevels
+				TxStatuses, IsolationLevels, ConsistencyLevels
 			)(
 				idTpe = TypeCodec.timeUUID()
 			)
@@ -177,7 +172,7 @@ object Stores {
 			)(
 				None, upd => Some(upd.data)
 			)(
-				idOps, txStatuses, isolationLevels, consistencyLevels
+				idOps, TxStatuses, IsolationLevels, ConsistencyLevels
 			)
 
 			if (initialize) {
@@ -188,14 +183,11 @@ object Stores {
 		}
 
 		def newTestStore(connectionParams : ConnectionParams, idOps : Ids[Id] = createIds, initialize : Boolean = false) : SysnameVersionedStore[Id, Key, Data, TxStatus, Isolation, Consistency, Option[Update[Id, Key, Data]]] = {
-			val txStatuses = createTxStatuses
-			val isolationLevels = createIsolationLevels
-			val consistencyLevels = createConsistencyLevels
 
 			val baseStore = new SysnameCassandraStoreImpl[UUID, String, ByteBuffer, Int, Int, Int](
 				connectionParams, keyspaceName
 			)(
-				txStatuses, isolationLevels, consistencyLevels
+				TxStatuses, IsolationLevels, ConsistencyLevels
 			)(
 				idTpe = TypeCodec.timeUUID()
 			)
@@ -205,7 +197,7 @@ object Stores {
 			)(
 				None, upd => Some(upd)
 			)(
-				idOps, txStatuses, isolationLevels, consistencyLevels
+				idOps, TxStatuses, IsolationLevels, ConsistencyLevels
 			)
 
 			if (initialize) {
@@ -214,8 +206,6 @@ object Stores {
 
 			versionedStore
 		}
-
-
 
 	}
 

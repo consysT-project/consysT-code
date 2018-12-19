@@ -15,7 +15,7 @@ object Demo {
 
 		val replica1 = new CurrentTimeMillisReplica(1,
 			Map(
-				100 -> StoreEntry((0L, 1).asInstanceOf[Timestamp], Causal, Num(42)),
+				100 -> StoreEntry((0L, 1), Causal, Num(42)),
 				101 -> StoreEntry((0L, 2) : Timestamp, Causal, Num(23)),
 				102 -> StoreEntry((0L, 2) : Timestamp, Causal, Num(12))
 			)
@@ -53,34 +53,36 @@ object Demo {
 	def typeExample() : Unit = {
 		import InterpreterImpl._
 
-		val expr1 : Expression = Fun('x, Local, Annotated(TRef(Annotated(TInt, Sequential)), Local),
-			Return(Fun('y, Local, Annotated(TInt, Local),
-				Do('a, UpdateRef(Var('x), Var('y)),
-					Return(Var('a))
-				)
-			))
+		val expr1 : Computation = Return(
+				Fun('x, Local, Annotated(TRef(Annotated(TInt, Sequential)), Local),
+				Return(Fun('y, Local, Annotated(TInt, Local),
+					Do('a, UpdateRef(Id('x), Id('y)),
+						Return(Id('a))
+					)
+				))
+			)
 		)
 
-		val lam1 : Expression = Fun('x, Inconsistent, Annotated(TInt, Sequential),
-			Do('a, Return(Ref(Annotated(TInt, Causal), 1)),
-				UpdateRef(Var('a), Var('x))
+		val lam1 : Computation = Return(
+			Fun('x, Inconsistent, Annotated(TInt, Sequential),
+				Do('a, Return(Ref(Annotated(TInt, Causal), 1)),
+					UpdateRef(Id('a), Id('x))
+				)
 			)
 		)
 
 		val cmpt1 : Computation =
 			Do('a, Deref(Ref(Annotated(TInt, Causal), 1)),
-				Do('r, Return(Var('a)),
+				Do('r, Return(Id('a)),
 					UpdateRef(
-						Ref(Annotated(TInt, Sequential), 2),
-						Var('r)
+						Ref(Annotated(TInt, Causal), 2),
+						Id('r)
 					)
 				)
 			)
 
-
-
 		implicit val ct : ClassTable = Map.empty
-		println(typeOf(lam1, Map.empty : TypeEnvironment))
+		println(typeOf(cmpt1, Map.empty : TypeEnvironment))
 
 	}
 
@@ -90,58 +92,44 @@ object Demo {
 
 		def BoolBranchType(typ : Type) : Annotated = Annotated(typ, Local)
 
-
 //		def True(typ : Type) : Expression = Fun('x, Local, BoolBranchType(typ),
 //			Return(Fun('y, Local, BoolBranchType(typ),
 //				Return(Var('x))
 //		)))
-//
-//		//TRef(Annotated(TInt, Causal))
-//
 //		def False(typ : Type) : Expression = Fun('x, Local, BoolBranchType(typ),
 //			Return(Fun('y, Local, BoolBranchType(typ),
 //				Return(Var('y))
 //			)))
 
 		def ifte(e : Expression, thenBranch : Expression, elseBranch : Expression) : Computation =
-			Do('x, App(e, thenBranch), App(Var('x), elseBranch))
+			Do('x, App(e, thenBranch), App(Id('x), elseBranch))
 
-		def BoolType(typ : Type) : Type = TFun(BoolBranchType(typ), Linearizable,
-			Annotated(TFun(BoolBranchType(typ), Linearizable, BoolBranchType(typ)), Local))
+		def BoolType(typ : Type) : Type = TFun(BoolBranchType(typ), Causal,
+			Annotated(TFun(BoolBranchType(typ), Causal, BoolBranchType(typ)), Local))
 
-		val BranchType : Type = TFun(Annotated(TUnit, Local), Sequential, Annotated(TUnit, Local))
+		val BranchType : Type = TFun(Annotated(TUnit, Local), Causal, Annotated(TUnit, Local))
 
 		def doSomething : Computation =
-			Do('weak, Return(Ref(Annotated(BoolType(BranchType), Linearizable), 1)),
+			Do('weak, Return(Ref(Annotated(BoolType(BranchType), Causal), 1)),
 				Do('i, Return(Ref(Annotated(TInt, Sequential), 2)),
-					Do('weakBool, Deref(Var('weak)),
-						Do('fun ,ifte(Var('weakBool),
-									Fun('a, Sequential, Annotated(TUnit, Local), UpdateRef(Var('i), Num(42))),
-									Fun('a, Sequential, Annotated(TUnit, Local), UpdateRef(Var('i), Num(41)))
+					Do('weakBool, Deref(Id('weak)),
+						Do('fun ,ifte(Id('weakBool),
+									Fun('a, Sequential, Annotated(TUnit, Local), UpdateRef(Id('i), Num(42))),
+									Fun('a, Sequential, Annotated(TUnit, Local), UpdateRef(Id('i), Num(41)))
 								),
-							App(Var('fun), UnitVal)
+							App(Id('fun), UnitVal)
 							)
 						)
 					)
 				)
 
-
-		def fun : Computation =
-			Return(Fun('x, Causal, Annotated(TInt, Causal),
-				Do('a, UpdateRef(Ref(Annotated(TInt, Sequential), 1), Num(2)),
-					Do('b, UpdateRef(Ref(Annotated(TInt, Causal), 2), Num(522)),
-						Return(Num(0))
-					)
-				)
-			))
-
-
 		implicit val ct : ClassTable = Map.empty
 //		println(typeOf(ifte(True(TInt), Num(1), Num(2)), Local, Map.empty : TypeEnvironment))
-		println(typeOf(doSomething, Local, Map.empty : TypeEnvironment))
-
-
+		println(typeOf(doSomething, Map.empty : TypeEnvironment))
 	}
+
+
+
 
 	/*
 		class X {
@@ -189,27 +177,29 @@ object Demo {
 			'h -> Ref(Annotated(TClass(Class('H)), Causal), 102)
 		)
 
-		val example1 =
+		val example1 : Computation =
 			Do('href, Enref(Sequential, New(Class('H), hconstFields)),
 			Do('xref, Enref(Sequential, New(Class('X), xconstFields)),
-			Do('h1, Deref(Var('href)),
-			Do('_, UpdateRef(FieldRead(Var('h1), 'k), Num(42)),
-			Do('x1, Deref(Var('xref)),
-			Do('xh, Deref(FieldRead(Var('x1), 'h)),
-			Do('res, Deref(FieldRead(Var('xh), 'k)),
-			Do('_, UpdateRef(FieldRead(Var('xh), 'k), Num(24)),
-				Return(Var('res))
+			Do('h1, Deref(Id('href)),
+			Do('_, UpdateRef(FieldRead(Id('h1), 'k), Num(42)),
+			Do('x1, Deref(Id('xref)),
+			Do('xh, Deref(FieldRead(Id('x1), 'h)),
+			Do('res, Deref(FieldRead(Id('xh), 'k)),
+			Do('asd, UpdateRef(FieldRead(Id('xh), 'k), Num(24)),
+				Return(Id('res))
 			))))))))
 
 
-		println(typeOf(example1, Local, Map.empty))
+		println(typeOf(example1, Map.empty : TypeEnvironment))
 
 
 	}
 
 
 	def main(args : Array[String]) : Unit = {
-		googleDocExample()
+//		googleDocExample()
+//		typeExample()
+//			typeExample2()
 
 //		import PropagationConsistencyDef._
 //		import PropagationConsistencyDef.PropagationConsistencyLattice._
