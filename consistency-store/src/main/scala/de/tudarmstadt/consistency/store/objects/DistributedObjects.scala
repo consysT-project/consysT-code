@@ -1,5 +1,7 @@
 package de.tudarmstadt.consistency.store.objects
 
+import de.tudarmstadt.consistency.store.objects.PropagationConsistencyDef.ConsistencyLevel
+
 /**
 	* Created on 07.11.18.
 	*
@@ -7,89 +9,11 @@ package de.tudarmstadt.consistency.store.objects
 	*/
 object DistributedObjects {
 
-	trait DistributedObjectLanguage {
-		type ClassName
-		type FieldName
-		type MethodName
-		type VarName
 
-		type Address
-
-		type Consistency
-
-
-		trait ClassId
-		case class Class(name : ClassName) extends ClassId
-		case object Root extends ClassId
-		case object NoClass extends ClassId
-
-		trait Type
-		case object TInt extends Type
-		case object TUnit extends Type
-		case class TFun(arg : Annotated, pc: Consistency, returnType : Annotated) extends Type {
-//			override def toString : String = s"$arg --$pc--> $returnType"
-		} //pc = strongest consistency level of effects that happen in the function body
-		case class TClass(className : ClassId) extends Type
-		case class TRef(typ : Annotated) extends Type {
-//			override def toString : String = s"Ref$typ"
-		}
-		case class TOpt(typ : Type) extends Type
-
-
-		sealed trait Expression
-		sealed trait Value extends Expression
-		case object UnitVal extends Expression with Value
-		case class Num(n : Int) extends Expression with Value
-		case class Fun(x : VarName, pc : Consistency, argType : Annotated, body : Computation) extends Expression with Value
-		case class Ref(refType : Annotated, addr : Address) extends Expression with Value
-		case class Obj(className : ClassId, fields : Map[FieldName, Value]) extends Expression with Value //Developers should use new
-		case class Defined(v : Value) extends Expression with Value
-		case object Undefined extends Expression with Value
-
-		case class Var(x : VarName) extends Expression
-		case class New(className : ClassId, fieldArguments : Map[FieldName, Expression]) extends Expression
-		case class FieldRead(recv : Expression, f : FieldName) extends Expression
-		case class FieldWrite(recv : Expression, f : FieldName, e : Expression) extends Expression
-		case class NewDefined(e : Expression) extends Expression
-
-		trait Computation //Computation result is a return(v)
-		case class Return(e : Expression) extends Computation
-		case class Do(x : VarName, c0 : Computation, c1 : Computation) extends Computation
-		case class App(e1 : Expression, e2 : Expression) extends Computation
-		case class Enref(consistency : Consistency, expr : Expression) extends Computation
-		case class Deref(expr : Expression) extends Computation
-		case class UpdateRef(refExpr : Expression, e : Expression) extends Computation
-		case class Match(e0 : Expression, valId : VarName, someBranch : Computation, noneBranch : Computation) extends Computation
-
-
-
-		case class Annotated(typ : Type, consistency : Consistency) {
-//			override def toString : String = s"($typ ^ $consistency)"
-		}
-
-
-		case class ClassDef(name : ClassName, parent : ClassId, fieldDeclarations : Map[FieldName, Type] /*, methodDeclarations */)
-
-		type ClassTable = Map[ClassName, ClassDef]
-
-		case class Program(ct : ClassTable, processes : Seq[Computation])
-
-		def isValue(e : Expression) : Boolean =
-			e.isInstanceOf[Value]
-
-		val rootClassName : ClassName
-
-		def lookupClassTable(classId: ClassId)(implicit ct : ClassTable) : ClassDef = classId match {
-			case Root => ClassDef(rootClassName, NoClass, Map.empty)
-			case Class(className) => ct(className)
-			case NoClass => sys.error(s"cannot resolve None class")
-		}
-
-	}
 
 
 	trait Replicas {
-		lang : DistributedObjectLanguage =>
+		lang : DistributedObjectLanguage with Bindings =>
 
 		type ReplicaId
 
@@ -151,20 +75,20 @@ object DistributedObjects {
 
 
 	trait Interpreter {
-		self : DistributedObjectLanguage with Replicas =>
+		self : DistributedObjectLanguage with Bindings with Replicas =>
 
-		type Environment = Map[VarName, Value]
-		type TypeEnvironment = Map[VarName, Annotated]
+		type Environment = Map[Var, Value]
+		type TypeEnvironment = Map[Var, Annotated]
 
 		type ReplicaId
 		type Timestamp
 
 		val ordering : Ordering[Timestamp]
 
-		val consistencyLattice : ConsistencyLattice[Consistency]
+		val consistencyLattice : ConsistencyLattice
 		import consistencyLattice._
-		def local = bot
-		def  inconsistent = top
+		def local : Consistency = bot
+		def  inconsistent : Consistency = top
 
 
 		case class Conf(store : Replica[Timestamp], env : Environment, c : Computation)
@@ -287,7 +211,7 @@ object DistributedObjects {
 
 
 		def interp(e : Expression, env : Environment)(implicit ct : ClassTable) : Option[Expression] = e match {
-			case Var(x) => Some (env(x))
+			case Id(x) => Some (env(x))
 
 			case New(clsid, fields) if fields.forall(f => isValue(f._2)) =>
 				assert(fieldsMatchClass(fields, clsid))
@@ -335,7 +259,7 @@ object DistributedObjects {
 				Annotated(TInt, local)
 
 			case Fun(x, pc, t, body) =>
-				val (t1, pc1) = typeOf(body, pc, tenv + (x -> t))
+				val (t1, pc1) = typeOf(body, tenv + (x -> t))
 				val res = Annotated(TFun(t, pc1, t1), local)
 				println(s"type of $e == $res")
 				res
@@ -349,7 +273,7 @@ object DistributedObjects {
 			case Defined(v) => ???
 			case Undefined => ???
 
-			case Var(x) => tenv(x)
+			case Id(x) => tenv(x)
 
 			case New(className, fieldArguments) =>
 				val fieldTypes = fieldArguments.mapValues(expr => typeOf(expr, tenv))
@@ -392,24 +316,19 @@ object DistributedObjects {
 		}
 
 		//returns the return type of the computation, as well as the required pc for all effects
-		def typeOf(c : Computation, pc : Consistency, tenv : TypeEnvironment)(implicit ct : ClassTable) : (Annotated, Consistency) = c match {
+		def typeOf(c : Computation, tenv : TypeEnvironment)(implicit ct : ClassTable) : (Annotated, Consistency) = c match {
 			case Return(e) =>
 				val t = typeOf(e, tenv)
 				(t, inconsistent)
 
 			case Do(x, c1, c2) =>
-				val (t1, pc1) = typeOf(c1, pc, tenv)
-				val (t2, pc2) = typeOf(c2, pc, tenv + (x -> t1))
-
-				if (!(pc < (pc1 cap pc2)))
-					sys.error(s"pc too weak")
-
+				val (t1, pc1) = typeOf(c1, tenv)
+				val (t2, pc2) = typeOf(c2, tenv + (x -> t1))
 				(t2, pc1 cap pc2)
 
 			case App(e1 ,e2) => (typeOf(e1, tenv), typeOf(e2, tenv)) match {
 				case (Annotated(tA1@TFun(tA, pc1, tB), l0), tA2) =>
 					if (tA != tA2) sys.error(s"type does not match, expected $tA, but got $tA2")
- 					if (!(pc < pc1)) sys.error(s"function pc too weak, expected at least $pc but got $pc1")
 					if (!(l0 < pc1))
 						sys.error(s"value too weak")
 					(tB, pc1)
@@ -420,7 +339,6 @@ object DistributedObjects {
 
 			case Deref(expr) => typeOf(expr, tenv) match {
 				case Annotated(TRef(Annotated(t0, l0)), l1) =>
-					if (!(pc < l0)) sys.error(s"pc too weak")
 					(Annotated(t0, l0 cup l1), l0)
 
 				case x => sys.error(s"expected reference type but got $x")
@@ -429,7 +347,6 @@ object DistributedObjects {
 			case Enref(l0, expr) => typeOf(expr, tenv) match {
 				case Annotated(t, l) =>
 					if (l != local) sys.error(s"can only enref local value")
-					if (!(pc < l0)) sys.error(s"pc too weak")
 					(Annotated(TRef(Annotated(t, l0)), local), l0)
 			}
 
@@ -439,8 +356,6 @@ object DistributedObjects {
 						sys.error(s"cant assign weaker level")
 					if (!(l1 < l))
 						sys.error(s"cant update reference with weaker value consistency")
-					if (!(pc < l))
-						sys.error(s"pc too weak")
 
 					(Annotated(TUnit, local), l)
 
@@ -452,7 +367,8 @@ object DistributedObjects {
 
 		}
 
-		def freeVariables(expression : Expression) : Set[VarName] = expression match {
+		def freeVariables(expression : Expression) : Set[Var] = expression match {
+			case UnitVal => Set.empty
 			case Num(_) => Set.empty
 			case Fun(x, _, _, body) => freeVariables(body) - x
 			case Ref(_, _) => Set.empty
@@ -460,7 +376,7 @@ object DistributedObjects {
 			case Defined(_) => Set.empty
 			case Undefined => Set.empty
 
-			case Var(x) => Set(x)
+			case Id(x) => Set(x)
 			case New(_, fields) =>
 				fields.values.flatMap(expr => freeVariables(expr)).toSet
 			case FieldRead(recv, f) => freeVariables(recv)
@@ -468,7 +384,7 @@ object DistributedObjects {
 			case NewDefined(e) => freeVariables(e)
 		}
 
-		def freeVariables(computation : Computation) : Set[VarName] = computation match {
+		def freeVariables(computation : Computation) : Set[Var] = computation match {
 			case Return(e) => freeVariables(e)
 			case Do(x, c0, c1) => freeVariables(c0) ++ (freeVariables(c1) - x)
 			case App(e1, e2) => freeVariables(e1) ++ freeVariables(e2)
@@ -493,15 +409,17 @@ object DistributedObjects {
 	}
 
 
-	trait SimpleLanguageBindings extends DistributedObjectLanguage {
+	trait SimpleLanguageBindings extends DistributedObjectLanguage with Bindings {
 		override type ClassName = Symbol
 		override type FieldName = Symbol
 		override type MethodName = Symbol
-		override type VarName = Symbol
+		override type Var = Symbol
 
 		override type Address = Int
 
 		override val rootClassName : Symbol = 'Root
+
+		override type Consistency = ConsistencyLevel
 	}
 
 	object InterpreterImpl extends SimpleLanguageBindings with Interpreter with Replicas with DistributedObjectLanguage {
@@ -521,7 +439,7 @@ object DistributedObjects {
 
 		override val ordering : Ordering[Timestamp] = implicitly
 
-		override val consistencyLattice : ConsistencyLattice[Consistency] = PropagationConsistencyDef.PropagationConsistencyLattice
+		override val consistencyLattice : ConsistencyLattice = PropagationConsistencyDef.PropagationConsistencyLattice.asInstanceOf[ConsistencyLattice]
 		override type Consistency = PropagationConsistencyDef.ConsistencyLevel
 	}
 

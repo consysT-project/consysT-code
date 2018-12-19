@@ -18,8 +18,6 @@ class DependencyGraph[Id : Ordering, Key, Data] {
 	final type Update = de.tudarmstadt.consistency.store.shim.Event.Update[Id, Key, Data]
 	final type Tx = de.tudarmstadt.consistency.store.shim.Event.Tx[Id, Key, Data]
 
-
-
 	/* Stores all entries of this dependency graph */
 	private val entries : mutable.Map[Id, Update] = mutable.HashMap.empty
 	/* Stores all transactions in this dependency graph */
