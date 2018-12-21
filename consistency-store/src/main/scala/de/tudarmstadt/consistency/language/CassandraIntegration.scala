@@ -1,5 +1,8 @@
 package de.tudarmstadt.consistency.language
 
+import java.nio.ByteBuffer
+
+import de.tudarmstadt.consistency.language.CassandraIntegration._
 import de.tudarmstadt.consistency.store.Stores
 import de.tudarmstadt.consistency.store.cassandra.ConnectionParams
 
@@ -12,78 +15,87 @@ import scala.reflect.runtime.universe._
 	*/
 class CassandraIntegration(val connectionParams : ConnectionParams) {
 
+	trait CassandraLanguageBinding extends Language {
+		override type Addr = Stores.Default.Key
+		override type Consistency = ConsistencyLevel
+	}
+
+	def session[A](f : CassandraLanguageBinding => A) : A = {
+		val store = Stores.Default.newStore(connectionParams, /*TODO: Do not initialize store*/ initialize = true)
+		import store._
+
+		try {
+			startSession { session =>
+				import session._
+
+				object CassandraLanguage extends CassandraLanguageBinding {
+					private val ttStrong : TypeTag[Strong] = typeTag[Strong]
+					private val ttWeak : TypeTag[Weak] = typeTag[Weak]
+
+					private def matchConsistencyLevel[C <: ConsistencyLevel : TypeTag, T](caseStrong : => T, caseWeak : => T) : T = {
+						val tt = implicitly[TypeTag[C]]
+
+						if (tt == ttStrong) {
+							caseStrong
+						} else if (tt == ttWeak) {
+							caseWeak
+						} else {
+							sys.error(s"unknown consistency type $tt")
+						}
+					}
+
+					private var currentTransaction : TxCtx = _
+
+					override def enref[T, C <: ConsistencyLevel : TypeTag](value : T) : Ref[T, C] = ???
+
+
+					override def deref[T, C <: ConsistencyLevel](ref : Ref[T, C]) : Option[T] = {
+						if (currentTransaction == null) {
+							startTransaction(Stores.Default.IsolationLevels.NONE) { tx => tx.read(ref.addr, convertConsistency(ref.consistencyLevel)) }
+								/*TODO: transform byte buffer to T*/ .asInstanceOf[Option[T]]
+						} else {
+							currentTransaction.read(ref.addr, convertConsistency(ref.consistencyLevel))
+								/*TODO: transform byte buffer to T*/ .asInstanceOf[Option[T]]
+						}
+					}
+
+					override def update[T, C <: ConsistencyLevel](ref : Ref[T, C], value : T) : Unit = {
+						if (currentTransaction == null) {
+							startTransaction(Stores.Default.IsolationLevels.NONE) { tx =>
+								tx.write(ref.addr, value /*TODO: transform T to byte buffer*/ .asInstanceOf[ByteBuffer], convertConsistency(ref.consistencyLevel))
+								Some()
+							}
+						} else {
+							currentTransaction.write(ref.addr, value /*TODO: transform T to byte buffer*/ .asInstanceOf[ByteBuffer], convertConsistency(ref.consistencyLevel))
+						}
+
+					}
+
+					override def isolate[T](c : => T) : Option[T] = {
+						startTransaction(Stores.Default.IsolationLevels.SI) { tx =>
+							currentTransaction = tx
+							val r = c
+							currentTransaction = null
+							Some(r)
+						}
+					}
+
+					override def cast[T, C <: ConsistencyLevel : TypeTag](value : T) : T = ???
+
+					implicit def convertConsistency[C <: ConsistencyLevel : TypeTag] : Stores.Default.Consistency =
+						matchConsistencyLevel(Stores.Default.ConsistencyLevels.CAUSAL, Stores.Default.ConsistencyLevels.WEAK)
+				}
+
+				f(CassandraLanguage)
+			}
+		} finally {
+			store.close()
+		}
+	}
+}
+
+object CassandraIntegration {
 	sealed trait ConsistencyLevel
 	sealed trait Strong extends ConsistencyLevel
 	sealed trait Weak extends ConsistencyLevel
-
-	def session[A](f : Language => A) : A = {
-		val store = Stores.Default.newStore(connectionParams)
-		import store._
-
-		startSession { session =>
-			import session._
-
-			object CassandraLanguage extends Language {
-				override type Addr = Stores.Default.Key
-				override type Consistency = ConsistencyLevel
-
-				private val ttStrong : TypeTag[Strong] = typeTag[Strong]
-				private val ttWeak : TypeTag[Weak] = typeTag[Weak]
-
-				private def matchConsistencyLevel[C <: ConsistencyLevel : TypeTag, T](caseStrong : =>T, caseWeak : =>T) : T = typeTag[C] match {
-					case `ttStrong` => caseStrong
-					case `ttWeak` => caseWeak
-					case x => sys.error(s"unknown consistency type $x")
-				}
-
-				private var currentTransaction : TxCtx = _
-
-
-
-				override def enref[T, C <: ConsistencyLevel : TypeTag](value : T) : Ref[T, C] = {
-
-					if (currentTransaction == null) {
-						matchConsistencyLevel[C, Ref[T, C]] (
-							session.startTransaction(Stores.Default.IsolationLevels.NONE) { tx =>
-
-							},
-							???
-						)
-					}
-					???
-				}
-
-
-				override def deref[T, C <: ConsistencyLevel](ref : Ref[T, C]) : Option[T] = {
-					if (currentTransaction == null) {
-						matchConsistencyLevel(
-							startTransaction(Stores.Default.IsolationLevels.SI) {tx => tx.read(ref.addr, Stores.Default.ConsistencyLevels.CAUSAL)},
-							startTransaction(Stores.Default.IsolationLevels.RC) {tx => tx.read(ref.addr, Stores.Default.ConsistencyLevels.WEAK)},
-						)(ref.consistencyLevel)
-					} else {
-						matchConsistencyLevel(
-							currentTransaction.read(ref.addr, Stores.Default.ConsistencyLevels.CAUSAL),
-							currentTransaction.read(ref.addr, Stores.Default.ConsistencyLevels.WEAK)
-						)
-					}
-				}
-				override def update[T, C <: ConsistencyLevel](ref : Ref[T, C], value : T) : Unit = ???
-				override def isolate[T](c : => T) : Option[T] = ???
-				override def cast[T, C <: ConsistencyLevel : TypeTag](value : T) : T = ???
-			}
-
-
-			f(CassandraLanguage)
-		}
-
-
-
-
-
-	}
-
-
-
-
-
 }

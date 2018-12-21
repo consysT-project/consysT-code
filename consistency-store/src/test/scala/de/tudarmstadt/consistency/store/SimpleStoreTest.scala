@@ -68,6 +68,8 @@ object SimpleStoreTest {
 
 		protected def resetStores(): Unit = {
 			stores.foreach(_.reset())
+			//Wait until all stores are resetted. TODO: Is this reasonable?
+			Thread.sleep(5000)
 		}
 
 		protected def parallelSession[U](

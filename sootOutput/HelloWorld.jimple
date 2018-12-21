@@ -1,0 +1,17 @@
+public class HelloWorld extends java.lang.Object
+{
+
+    public static void main(java.lang.String[])
+    {
+        java.lang.String[] frm1;
+        java.io.PrintStream tmpRef;
+
+        frm1 := @parameter0: java.lang.String[];
+
+        tmpRef = <java.lang.System: java.io.PrintStream out>;
+
+        virtualinvoke tmpRef.<java.io.PrintStream: void println(java.lang.String)>("Hello world!");
+
+        return;
+    }
+}
