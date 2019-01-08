@@ -11,16 +11,17 @@ import de.tudarmstadt.consistency.storelayer.distribution.{IsolationBindings, Tx
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraStoreBinding[Id, Key, Data, TxStatus, Isolation, Consistency]
+trait CassandraBinding[Id, Key, Data, TxStatus, Isolation, Consistency]
 	extends CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
 	with TxStatusBindings[TxStatus]
-	with CassandraStoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	with IsolationBindings[Isolation]
+	with CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 	with CassandraCoordinationService[Id, TxStatus, Isolation]
 	with CassandraOptimisticLocksService[Id, Key]
 
-object CassandraStoreBinding {
+object CassandraBinding {
 
-	class DefaultCassandraSession(connectionParams: ConnectionParams) extends CassandraStoreBinding[UUID, String, ByteBuffer, Int, Int, Int] {
+	class DefaultCassandraSession(connectionParams: ConnectionParams) extends CassandraBinding[UUID, String, ByteBuffer, Int, Int, Int] {
 		override val cluster : Cluster = connectionParams.connectCluster
 		override val session : CassandraSession = cluster.connect()
 
