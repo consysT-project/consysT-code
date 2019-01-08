@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution
 
 /**
 	* Created on 21.12.18.
@@ -6,6 +6,7 @@ package de.tudarmstadt.consistency.storelayer.cassandra
 	* @author Mirko Köhler
 	*/
 trait TxStatusBindings[TxStatus] {
+	self : SessionService[_, _, _, TxStatus, _, _] =>
 
 	def TxStatus : TxStatusOps
 
@@ -14,5 +15,4 @@ trait TxStatusBindings[TxStatus] {
 		def COMMITTED : TxStatus
 		def PENDING : TxStatus
 	}
-
 }

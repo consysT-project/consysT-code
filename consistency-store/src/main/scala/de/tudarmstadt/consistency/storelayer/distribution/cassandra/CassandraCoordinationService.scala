@@ -1,15 +1,16 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.querybuilder.QueryBuilder
+import de.tudarmstadt.consistency.storelayer.distribution.{CoordinationService, IsolationBindings, SessionService, TxStatusBindings}
 
 /**
 	* Created on 21.12.18.
 	*
 	* @author Mirko Köhler
 	*/
-trait TransactionCoordinationBinding[Id, TxStatus, Isolation] {
-	self : SessionBinding[Id, _, _, TxStatus, Isolation, _] with TxStatusBindings[TxStatus] =>
+trait CassandraCoordinationService[Id, TxStatus, Isolation] extends CoordinationService[Id, TxStatus, Isolation] {
+	self : CassandraSessionService[Id, _, _, TxStatus, Isolation, _] with TxStatusBindings[TxStatus] =>
 	import typeBinding._
 
 	private val casTxTableName : String = "t_cas_tx"
