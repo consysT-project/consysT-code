@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.TypeCodec
 

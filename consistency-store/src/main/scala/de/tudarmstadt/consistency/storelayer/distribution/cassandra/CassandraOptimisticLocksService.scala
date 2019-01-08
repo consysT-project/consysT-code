@@ -1,7 +1,8 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.querybuilder.QueryBuilder
+import de.tudarmstadt.consistency.storelayer.distribution.{OptimisticLockService, SessionService}
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -10,14 +11,13 @@ import scala.collection.{JavaConverters, mutable}
 	*
 	* @author Mirko Köhler
 	*/
-trait OptimisticLocksBinding[Id, Key] {
-	self : SessionBinding[Id, Key, _, _, _, _] =>
+trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id, Key] {
+	self : CassandraSessionService[Id, Key, _, _, _, _] =>
 	import typeBinding._
 
 	private val keyTableName : String = "t_keys"
 
-	/* class definitions */
-	case class LockDescription(key : Key, txid : Option[TxRef], reads : Set[TxRef])
+
 
 	/* queries */
 	def CREATE_LOCK_TABLE(): Unit = {
@@ -33,8 +33,8 @@ trait OptimisticLocksBinding[Id, Key] {
 
 	/* operations of the lock service */
 
-	/* returns None if the key was not used by another transaction, else returns the txid. */
-	def lockIfEmpty(key : Key, txid : Id) : Option[LockDescription] = {
+	/* returns None if the was available, else returns the reference to the lock before re-locking. */
+	override def lockIfEmpty(key : Key, txid : Id) : Option[LockDescription] = {
 		import QueryBuilder._
 
 		val lockResult = session.execute(update(keyTableName)
@@ -48,7 +48,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		val row = lockResult.one()
 		assert(row != null, s"table $keyTableName did not return a result for update query")
 
-		if (CassandraUtils.rowWasApplied(row)) {
+		if (rowWasApplied(row)) {
 			//If the lock was set
 			None
 		} else {
@@ -60,7 +60,7 @@ trait OptimisticLocksBinding[Id, Key] {
 	}
 
 	/* locks a key if it was locked by another tx before */
-	def lockIfOther(key : Key, txid : Id, otherTxid : Option[Id], otherReads : Set[Id]) : Option[LockDescription] = {
+	override def lockIfOther(key : Key, txid : Id, otherTxid : Option[Id], otherReads : Set[Id]) : Option[LockDescription] = {
 		import QueryBuilder._
 
 
@@ -80,7 +80,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		val row = lockResult.one()
 		assert(row != null, s"table $keyTableName did not return a result for update query")
 
-		if (CassandraUtils.rowWasApplied(row)) {
+		if (rowWasApplied(row)) {
 			//If lock was set
 			None
 		} else {
@@ -91,7 +91,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		}
 	}
 
-	def addReadLock(key : Key, txid : Id) : Option[Id] = {
+	override def addReadLock(key : Key, txid : Id) : Option[Id] = {
 		import QueryBuilder._
 
 		val updateReadKeys = session.execute(
@@ -104,7 +104,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		val row = updateReadKeys.one()
 		assert(row != null, s"table $keyTableName did not return a result for update query")
 
-		if (CassandraUtils.rowWasApplied(row)) {
+		if (rowWasApplied(row)) {
 			//If lock was set
 			None
 		} else {
@@ -114,7 +114,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		}
 	}
 
-	def releaseLockAndAddRead(key : Key, txid : Id, newReadTxid : Id) : Option[Id] = {
+	override def releaseLockAndAddRead(key : Key, txid : Id, newReadTxid : Id) : Option[Id] = {
 		import QueryBuilder._
 
 		val releaseOtherTxidLock = session.execute(
@@ -128,7 +128,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		val row = releaseOtherTxidLock.one()
 		assert(row != null, s"table $keyTableName did not return a result for update query")
 
-		if (CassandraUtils.rowWasApplied(row)) {
+		if (rowWasApplied(row)) {
 			//If lock was set
 			None
 		} else {
@@ -138,7 +138,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		}
 	}
 
-	def releaseLock(key : Key, txid : Id) : Option[Id] = {
+	override def releaseLock(key : Key, txid : Id) : Option[Id] = {
 		import QueryBuilder._
 
 		val releaseOtherTxidLock = session.execute(
@@ -151,7 +151,7 @@ trait OptimisticLocksBinding[Id, Key] {
 		val row = releaseOtherTxidLock.one()
 		assert(row != null, s"table $keyTableName did not return a result for update query")
 
-		if (CassandraUtils.rowWasApplied(row)) {
+		if (rowWasApplied(row)) {
 			//If lock was set
 			None
 		} else {

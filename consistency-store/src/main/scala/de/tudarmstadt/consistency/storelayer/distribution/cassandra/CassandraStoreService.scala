@@ -1,7 +1,8 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Row, TupleValue}
+import de.tudarmstadt.consistency.storelayer.distribution.StoreService
 
 import scala.collection.JavaConverters
 
@@ -10,19 +11,22 @@ import scala.collection.JavaConverters
 	*
 	* @author Mirko Köhler
 	*/
-trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
-	self : SessionBinding[Id, Key, Data, TxStatus, Isolation, Consistency] =>
+trait CassandraStoreService[Id, Key, Data, TxStatus, Isolation, Consistency] extends StoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
+	self : CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency] =>
 	import typeBinding._
 
 	private val opTableName : String = "t_data"
 	private val txTableName : String = "t_tx"
 
+	/*TODO: generalize cassandra consistency level*/
+	private val cassandraConsistency : ConsistencyLevel = ConsistencyLevel.QUORUM
+
+
 
 	/* class definitions */
 
 	/* rows that have been read from the store */
-	class OpRow(private val row : Row) {
-		//TODO: For testing purposes only
+	class CassandraOpRow(private val row : Row) extends OpRow {
 		Seq("id", "key", "data", "txid", "deps", "txstatus", "isolation", "consistency").foreach(name =>
 			assert(row.getColumnDefinitions.contains(name), s"expected update row to contain field $name")
 		)
@@ -43,9 +47,8 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	}
 
 
-	case class TxRow(private val row : Row) {
+	class CassandraTxRow(private val row : Row) extends TxRow {
 		//Check whether all fields are available
-		//TODO: These are for testing purposes only
 		Seq("id", "deps", "txstatus", "isolation", "consistency").foreach(name =>
 			assert(row.getColumnDefinitions.contains(name), s"expected tx row to contain field $name")
 		)
@@ -61,6 +64,7 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		lazy val isolation : Isolation = row.get("isolation", TypeCodecs.Isolation)
 		lazy val consistency : Consistency = row.get("consistency", TypeCodecs.Consistency)
 	}
+
 
 
 
@@ -92,13 +96,14 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	}
 
 
-	def WRITE_DATA(cassandraConsistency : ConsistencyLevel)(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
+
+	override def writeData(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val convertedTxid = txid.map(_.id).getOrElse(null)
 
 		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
-			dependencies.map(t => CassandraUtils.tupleToCassandraTuple(t.toTuple)(this))
+			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
 		)
 
 		session.execute(
@@ -116,7 +121,18 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	}
 
 
-	def DELETE_DATA(cassandraConsistency : ConsistencyLevel)(id : Id, key : Key) : Unit = {
+	override def updateTxStatusInData(id : Id, key : Key, txStatus : TxStatus) : Unit = {
+		import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+		session.execute(
+			update(opTableName)
+				.`with`(set("txstatus", txStatus))
+				.where(QueryBuilder.eq("key", key))
+				.and(QueryBuilder.eq("id", id))
+		)
+	}
+
+	override def deleteData(id : Id, key : Key) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 		session.execute(
 			delete().from(opTableName)
@@ -127,7 +143,7 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
 
 
-	def READ_DATA(cassandraConsistency : ConsistencyLevel)(id : Id, key : Key) : Option[OpRow] = {
+	override def readData(id : Id, key : Key) : Option[OpRow] = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		//Retrieve the history of a key.
@@ -141,10 +157,10 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		if (row == null) {
 			return None
 		}
-		Some(new OpRow(row))
+		Some(new CassandraOpRow(row))
 	}
 
-	def READ_ALL_DATA(cassandraConsistency : ConsistencyLevel)(key : Key) : Iterable[OpRow] = {
+	override def readAllData(key : Key) : Iterable[OpRow] = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		//Retrieve the history of a key.
@@ -157,21 +173,22 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 			private val result : ResultSet = keyResult
 			private var currentPosition : Row = result.one
 
-
 			override def hasNext : Boolean = currentPosition != null
 			override def next() : OpRow = {
 				val next = currentPosition
 				currentPosition = result.one()
-				new OpRow(next)
+				new CassandraOpRow(next)
 			}
 		}
 
 		return it.toIterable
 	}
 
-	def WRITE_TX(cassandraConsistency : ConsistencyLevel)(id : Id, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
+
+
+	override def writeTx(id : Id, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
 		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
-			dependencies.map(t => CassandraUtils.tupleToCassandraTuple(t.toTuple)(this))
+			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
 		)
 
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
@@ -186,7 +203,7 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		)
 	}
 
-	def DELETE_TX(cassandraConsistency: ConsistencyLevel)(id : Id) : Unit = {
+	override def deleteTx(id : Id) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 		session.execute(
 			delete().from(txTableName)
@@ -194,7 +211,7 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		)
 	}
 
-	def READ_TX(cassandraConsistency : ConsistencyLevel)(id : Id) : Option[TxRow] = {
+	override def readTx(id : Id) : Option[TxRow] = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		//Retrieve the history of a key.
@@ -207,7 +224,7 @@ trait DataBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		if (row == null) {
 			return None
 		}
-		Some(new TxRow(row))
+		Some(new CassandraTxRow(row))
 	}
 
 

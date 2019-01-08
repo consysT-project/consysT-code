@@ -1,31 +1,20 @@
-package de.tudarmstadt.consistency.storelayer.cassandra
+package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.Cluster
+import de.tudarmstadt.consistency.storelayer.distribution.SessionService
 
 /**
 	* Created on 21.12.18.
 	*
 	* @author Mirko Köhler
 	*/
-trait SessionBinding[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency] extends SessionService[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	type CassandraSession = com.datastax.driver.core.Session
 
 	val session : CassandraSession
 	val cluster : Cluster
 	val keyspaceName : String
 	val typeBinding : CassandraTypeBinding[Id, Key, Data, TxStatus, Isolation, Consistency]
-
-	/* class definitions */
-
-	/* references to other database entries */
-	case class OpRef(id : Id, key : Key) {
-		assert(id != null)
-		assert(key != null)
-		def toTuple : (Id, Key) =	(id, key)
-	}
-	case class TxRef(id : Id) {
-		assert(id != null)
-	}
 
 
 	/* queries */
