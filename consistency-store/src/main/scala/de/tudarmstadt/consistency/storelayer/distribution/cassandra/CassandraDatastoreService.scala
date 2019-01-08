@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Row, TupleValue}
-import de.tudarmstadt.consistency.storelayer.distribution.StoreService
+import de.tudarmstadt.consistency.storelayer.distribution.DatastoreService
 
 import scala.collection.JavaConverters
 
@@ -11,7 +11,7 @@ import scala.collection.JavaConverters
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraStoreService[Id, Key, Data, TxStatus, Isolation, Consistency] extends StoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency] extends DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	self : CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency] =>
 	import typeBinding._
 

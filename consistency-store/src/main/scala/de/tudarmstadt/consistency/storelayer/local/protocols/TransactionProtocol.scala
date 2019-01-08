@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.storelayer.local.protocols
 
-import de.tudarmstadt.consistency.storelayer.distribution.StoreService
+import de.tudarmstadt.consistency.storelayer.distribution.DatastoreService
 import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol.CommitStatus
 
 /**
@@ -10,7 +10,7 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*/
 trait TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
-	val store : StoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	val store : DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 	import store._
 
 	def commitWrites(txWrite : TxWrite, updWrites : Iterable[DataWrite]) : CommitStatus

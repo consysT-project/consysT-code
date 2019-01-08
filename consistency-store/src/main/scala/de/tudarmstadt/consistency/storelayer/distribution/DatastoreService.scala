@@ -9,7 +9,7 @@ import scala.collection.JavaConverters
 	*
 	* @author Mirko Köhler
 	*/
-trait StoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
 	self : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency] =>
 
 	/* rows that have been read from the store */

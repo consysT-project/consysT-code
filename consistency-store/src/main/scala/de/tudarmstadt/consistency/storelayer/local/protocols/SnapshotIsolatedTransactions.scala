@@ -13,7 +13,7 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 trait SnapshotIsolatedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
 	override val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with StoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 		with CoordinationService[Id, TxStatus, Isolation]
 		with OptimisticLockService[Id, Key]
 		with TxStatusBindings[TxStatus]

@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.local.protocols
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session}
-import de.tudarmstadt.consistency.storelayer.distribution.{IsolationBindings, SessionService, StoreService, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution.{IsolationBindings, SessionService, DatastoreService, TxStatusBindings}
 import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol.{Abort, CommitStatus, Success}
 
 import scala.reflect.runtime.universe._
@@ -15,7 +15,7 @@ import scala.reflect.runtime.universe._
 trait ReadCommittedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
 	override val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with StoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 		with TxStatusBindings[TxStatus]
 		with IsolationBindings[Isolation]
 
