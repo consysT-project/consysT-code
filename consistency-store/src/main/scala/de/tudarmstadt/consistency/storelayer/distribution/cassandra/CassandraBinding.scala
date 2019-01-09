@@ -30,8 +30,14 @@ object CassandraBinding {
 			override def COMMITTED : Int = 1
 			override def PENDING : Int = 0
 		}
-
 		override def TxStatus : TxStatusOps = TxStatusOpsImpl
+
+		object IsolationOpsImpl extends IsolationOps {
+			override def SI : Int = 4
+			override def RC : Int = 2
+			override def RU : Int = 1
+		}
+		override def Isolation : IsolationOps = IsolationOpsImpl
 
 		override val keyspaceName : String = "k_default"
 
@@ -45,6 +51,7 @@ object CassandraBinding {
 				TypeCodec.cint().asInstanceOf[TypeCodec[Int]]
 			)
 		}
+
 	}
 
 }

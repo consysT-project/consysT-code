@@ -165,7 +165,9 @@ trait SnapshotIsolatedTransactions[Id, Key, Data, TxStatus, Isolation, Consisten
 				//when a timeout exception with write type CAS is thrown, then it is unclear whether the write has succeeded
 				//Therefore, we should retry committing the update...
 				//TODO: Add some measure to avoid infinite loops
+				//TODO: This is only available for cassandra stores. The whole loop is designed for Cassandra. Remove it here!
 				case e : WriteTimeoutException if e.getWriteType == WriteType.CAS =>
+					System.err.println("retried commit!!!")
 					//Wait a bit, then retry
 					Thread.sleep(300)
 			}
