@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import de.tudarmstadt.consistency.storelayer.distribution.{CoordinationService, IsolationBindings, SessionService, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution.{CoordinationService, ConsistencyBindings, SessionService, TxStatusBindings}
 
 /**
 	* Created on 21.12.18.

@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.local.protocols
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, Session}
-import de.tudarmstadt.consistency.storelayer.distribution.{IsolationBindings, SessionService, DatastoreService, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol.{Abort, CommitStatus, Success}
 
 import scala.reflect.runtime.universe._

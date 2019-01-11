@@ -11,7 +11,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-class DependencyGraph[Id, Key, Data, Txid] {
+private trait DependencyGraph[Id, Key, Data, Txid] {
 	/* inner data definitions */
 	//operations
 	private case class Op(key : Key, data : Data, txid : Option[Txid])
@@ -20,7 +20,7 @@ class DependencyGraph[Id, Key, Data, Txid] {
 	operations are divided between global and local operations. Global operations
 	have been observed in the global datastore, whereas local operations have been
 	created by the local process. When a local operation is added to the datastore
-
+	they should be moved to global operations.
 	 */
 	//mutable hashmap for all operations that are consistent with the underlying datastore
 	private val globalOperations : mutable.Map[Id, Op] = mutable.Map.empty
@@ -28,10 +28,40 @@ class DependencyGraph[Id, Key, Data, Txid] {
 	private val localOperations : mutable.Map[Id, Op] = mutable.Map.empty
 
 	//mutable map for tracking transaction dependencies
-	private val transactions : mutable.MultiMap[Txid, Id] = new mutable.HashMap[Txid, mutable.Set[Id]]() with mutable.MultiMap[Txid, Id]
+	private val transactions : TransactionMap = new TransactionMap
 
 	//mutable graph for dependencies between operations
 	private val dependencyGraph : Graph[Id, DiEdge] = Graph.empty
+
+
+	private class TransactionMap extends mutable.HashMap[Txid, Set[Id]] {
+		def addTransaction(txid : Txid) : Unit = {
+			assert(!contains(txid), "transaction already exists")
+			put(txid, Set.empty)
+		}
+
+		def addOperationToTx(id : Id, txid : Option[Txid]) : Unit = {
+			txid match {
+				case None => sys.error("op has no transaction")
+				case Some(_txid) => addOperationToTx(id, _txid)
+			}
+		}
+
+		def addOperationToTx(id : Id, txid : Txid) : Unit =  {
+			assert(localOperations.contains(id) || globalOperations.contains(id), s"id $id is not a valid operation id")
+			get(txid) match {
+				case None => sys.error(s"transaction does not exist: $txid")
+				case Some(deps) => put(txid, deps + id)
+			}
+		}
+
+		def removeOperationFromTx(id : Id, txid : Txid) : Unit = {
+			get(txid) match {
+				case None => sys.error(s"transaction does not exist: $txid")
+				case Some(deps) => put(txid, deps - id)
+			}
+		}
+	}
 
 
 	final def addGlobalOp(node : OpNode[Id, Key, Data, Txid]) : Unit = {
@@ -50,6 +80,11 @@ class DependencyGraph[Id, Key, Data, Txid] {
 		dependencyGraph += id
 		dependencies.foreach { dep =>
 			dependencyGraph += (dep ~> id)
+		}
+
+		//Add operation to transaction
+		txid.foreach {_txid =>
+			transactions.addOperationToTx(id, _txid)
 		}
 	}
 
@@ -70,37 +105,36 @@ class DependencyGraph[Id, Key, Data, Txid] {
 		dependencies.foreach { dep =>
 			dependencyGraph += (dep ~> id)
 		}
-	}
 
-	final def addGlobalTx(node : TxNode[Id, Txid]) : Unit = {
-		import node._
-		addGlobalTx(txid, dependencies)
-	}
-
-	def addGlobalTx(id : Txid, dependencies : Set[Id]) : Unit = {
-		assert(!transactions.contains(id), "the txid was already in use")
-
-		dependencies.foreach { dep =>
-			transactions.addBinding(id, dep)
+		//Add operation to transaction
+		txid.foreach {_txid =>
+			transactions.addOperationToTx(id, _txid)
 		}
 	}
 
-	final def addLocalTx(node : TxNode[Id, Txid]) : Unit = {
-		import node._
-		addLocalTx(txid, dependencies)
+
+
+	def addGlobalTx(id : Txid) : Unit = {
+		assert(!transactions.contains(id), "the txid was already in use")
+		transactions.addTransaction(id)
 	}
 
-	def addLocalTx(id : Txid, dependencies : Set[Id]) : Unit = {
+
+	def addLocalTx(id : Txid) : Unit = {
 		//TODO: implement local tx
-		addGlobalTx(id, dependencies)
+		addGlobalTx(id)
 	}
 
 
 	def removeLocalOp(id : Id) : Unit = {
-		assert(localOperations.contains(id), s"cannot remove operation that is not contained in graph")
-
-		localOperations -= id
 		dependencyGraph -= id
+		localOperations.remove(id) match {
+			case None => sys.error(s"cannot remove operation that is not contained in graph")
+			case Some(op) => op.txid match {
+				case None =>
+				case Some(txid) => transactions.removeOperationFromTx(id, txid)
+			}
+		}
 	}
 
 	def changeToGlobal(id : Id) : Unit = {
@@ -111,6 +145,9 @@ class DependencyGraph[Id, Key, Data, Txid] {
 				globalOperations += ((id, op))
 		}
 	}
+
+	def getTxNode(txid : Txid): TxNode[Id, Txid] =
+		TxNode(txid, transactions(txid))
 
 
 	def dependenciesSatisfiedGlobally(id : Id) : Boolean = globalOperations.get(id) match {

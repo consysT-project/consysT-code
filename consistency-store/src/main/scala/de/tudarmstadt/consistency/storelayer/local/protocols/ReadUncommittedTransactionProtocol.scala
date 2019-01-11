@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.storelayer.local.protocols
 
-import de.tudarmstadt.consistency.storelayer.distribution.{IsolationBindings, SessionService, DatastoreService, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol.{Abort, CommitStatus, Success}
 
 /**
@@ -8,7 +8,7 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*
 	* @author Mirko Köhler
 	*/
-trait ReadUncommittedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait ReadUncommittedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
 	override val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
 		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
