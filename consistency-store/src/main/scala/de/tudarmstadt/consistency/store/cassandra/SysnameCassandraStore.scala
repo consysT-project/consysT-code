@@ -8,7 +8,7 @@ import de.tudarmstadt.consistency.store.Store.AbortedException
 import de.tudarmstadt.consistency.store._
 import de.tudarmstadt.consistency.store.cassandra.Keyspaces.KeyspaceDef
 import de.tudarmstadt.consistency.store.cassandra.TransactionProcessor.{Abort, Success}
-import de.tudarmstadt.consistency.store.cassandra.exceptions.UnsupportedIsolationLevelException
+import de.tudarmstadt.consistency.storelayer.local.exceptions.UnsupportedIsolationLevelException
 import de.tudarmstadt.consistency.store.shim.Event.{Tx, Update}
 import de.tudarmstadt.consistency.utils.Log
 

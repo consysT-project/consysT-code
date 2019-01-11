@@ -1,17 +1,9 @@
 package de.tudarmstadt.consistency.storelayer.local
 
-import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
-import de.tudarmstadt.consistency.store._
-import de.tudarmstadt.consistency.store.cassandra.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
-import de.tudarmstadt.consistency.store.cassandra.{CassandraReadParams, CassandraTxParams, CassandraWriteParams, SysnameCassandraStore}
-import de.tudarmstadt.consistency.store.shim.Event.Update
-import de.tudarmstadt.consistency.store.shim.EventRef.{TxRef, UpdateRef}
-import de.tudarmstadt.consistency.store.shim.Resolved.{Found, NotFound}
-import de.tudarmstadt.consistency.store.shim.SessionOrder
+import de.tudarmstadt.consistency.storelayer.local.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
 import de.tudarmstadt.consistency.storelayer.distribution._
-import de.tudarmstadt.consistency.storelayer.local.dependency.{DepGraph, Session}
+import de.tudarmstadt.consistency.storelayer.local.dependency.Session
 import de.tudarmstadt.consistency.storelayer.local.protocols.SnapshotIsolatedTransactionProtocol
-import de.tudarmstadt.consistency.utils.Log
 
 import scala.collection.mutable
 

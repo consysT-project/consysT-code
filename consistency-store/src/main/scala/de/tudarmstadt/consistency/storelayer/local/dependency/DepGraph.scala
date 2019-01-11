@@ -38,7 +38,7 @@ class DepGraph[Id, Key, Data, Txid] {
 		new mutable.HashMap[Txid, mutable.Set[Id]] with mutable.MultiMap[Txid, Id]
 
 
-	def addOp(id : Id, key : Key, data : Data, tx : Option[Txid] = None, deps : Iterable[Id], local : Boolean = true) : Unit = {
+	def addOp(id : Id, key : Key, data : Data, tx : Option[Txid] = None, deps : Iterable[Id] = Iterable.empty, local : Boolean = true) : Unit = {
 		/*add operation to operations*/
 		operations.put(id, new OpInfo(key, data, tx, local))
 
@@ -52,23 +52,23 @@ class DepGraph[Id, Key, Data, Txid] {
 		deps.foreach(dep => dependencyGraph.add(dep ~> id))
 	}
 
-	def removeOp(id : Id) : Option[Op[Id, Key, Data]] = operations.remove(id) match { /*remove operation from operations, and check whether it existed*/
-		case None =>
-			//TODO: Remove this assert
-			assert(false, s"operation with id $id does not exist")
-			None
-		case Some(opInfo) =>
-			/*unresolve all nodes where the node is a successor*/
-			unresolveOp(id)
+	def removeOp(id : Id) : Option[Op[Id, Key, Data]] = {
+		/*unresolve all nodes where the node is a successor, has to be done before op is removed from operations*/
+		unresolveOp(id)
 
-			/*remove op from the transaction*/
-			opInfo.tx.foreach(txid => transactions.removeBinding(txid, id))
+		operations.remove(id) match { /*remove operation from operations, and check whether it existed*/
+			case None =>
+				//TODO: Remove this assert
+				assert(false, s"operation with id $id does not exist")
+				None
+			case Some(opInfo) =>
+				/*remove op from the transaction*/
+				opInfo.tx.foreach(txid => transactions.removeBinding(txid, id))
 
-			/*remove node from the dependency graph, also removes all adjacent edges*/
-			dependencyGraph.remove(id)
-
-			/*return the removed node*/
-			Some(Op(id, opInfo.key, opInfo.data))
+				/*do not remove any dependencies with the node. The dependencies still remain!*/
+				/*return the removed node*/
+				Some(Op(id, opInfo.key, opInfo.data))
+		}
 	}
 
 
@@ -104,7 +104,8 @@ class DepGraph[Id, Key, Data, Txid] {
 	Private helper methods
 	*/
 
-	private def unresolveOp(id : Id) : Unit = operations.get(id) match {
+	private def unresolveOp(id : Id) : Unit =
+		operations.get(id) match {
 		case Some(opInfo@OpInfo(_, _, _, _, true)) =>
 			opInfo.resolvedDependencies = false
 			dependencyGraph.get(id).diSuccessors.foreach(node => unresolveOp(node.value))

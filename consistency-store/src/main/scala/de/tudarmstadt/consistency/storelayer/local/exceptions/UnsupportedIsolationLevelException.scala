@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.store.cassandra.exceptions
+package de.tudarmstadt.consistency.storelayer.local.exceptions
 
 /**
 	* Created on 28.08.18.
