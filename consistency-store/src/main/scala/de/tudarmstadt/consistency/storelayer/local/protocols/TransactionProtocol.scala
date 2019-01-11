@@ -10,7 +10,7 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*/
 trait TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
-	val store : DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	protected val store : DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 	import store._
 
 	def commitWrites(txWrite : TxWrite, updWrites : Iterable[DataWrite]) : CommitStatus

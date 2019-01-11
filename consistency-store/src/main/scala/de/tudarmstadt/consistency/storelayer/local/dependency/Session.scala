@@ -8,7 +8,7 @@ import de.tudarmstadt.consistency.storelayer.local.dependency
 	*
 	* @author Mirko Köhler
 	*/
-class DependencyGraphSession[Id, Key, Data, Txid] {
+trait Session[Id, Key, Data, Txid] {
 
 	//The latest node that has been created in this transaction
 	private var sessionPointer : Option[Id] = None
@@ -16,8 +16,7 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 	//The reads that occurred since the last node has been added
 	private var readDependencies : Set[Id] = Set.empty
 
-
-	private val graph : DependencyGraph[Id, Key, Data, Txid] = new DependencyGraph()
+	private val graph : DepGraph[Id, Key, Data, Txid] = new DepGraph
 
 	//the current state of the session
 	private var state : SessionState = SessionState.Idle
@@ -51,6 +50,12 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 	def getNextDependencies : Set[Id] = synchronized {
 		readDependencies ++ sessionPointer
 	}
+
+	def getCurrentTxid : Option[Txid] = state match {
+		case s : SessionStateInTx => Some(s.getTxid)
+		case _ => None
+	}
+
 
 	//You need to manually add a read with addRead if this read should be visible as a dependency
 //	def resolve(key : Key) : Resolved[Update[Id, Key, Data], EventRef[Id, Key]] = state match {
@@ -129,7 +134,6 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 	object SessionState {
 
 		object Idle extends SessionState {
-
 			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] = {
 				val node = OpNode[Id, Key, Data, Txid](id, key, data, None, getNextDependencies)
 				state = LockedUpdate(node)
@@ -143,14 +147,13 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 
 
 		case class LockedUpdate(node : OpNode[Id, Key, Data, Txid]) extends SessionState {
-
 			override def releaseUpdate() : Unit = {
 				state = Idle
 			}
 
 			override def confirmUpdate() : Unit = {
 				import node._
-				graph.addLocalOp(id, key, data, txid, dependencies)
+				graph.addOp(id, key, data, txid, dependencies)
 
 				sessionPointer = Some(id)
 				readDependencies = Set.empty
@@ -188,7 +191,7 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 			}
 
 			override def confirmUpdate() : Unit = {
-				graph.addLocalOp(node)
+				graph.addOp(node.id, node.key, node.data, node.txid, node.dependencies)
 
 				sessionPointer = Some(node.id)
 				readDependencies = Set.empty
@@ -204,12 +207,12 @@ class DependencyGraphSession[Id, Key, Data, Txid] {
 		case class LockedTransaction(txState : StartedTransaction, tx : TxNode[Id, Txid]) extends SessionStateInTx {
 			override def commitTransaction() : Unit = {
 				txState.transactionDependencies = Set.empty
-				graph.addLocalTx(tx)
+			//	graph.addLocalTx(tx)
 				state = Idle
 			}
 
 			override def abortTransaction() : Unit = {
-				txState.transactionDependencies.foreach(id => graph.removeLocalOp(id))
+				txState.transactionDependencies.foreach(id => graph.removeOp(id))
 				txState.transactionDependencies = Set.empty
 				//Reset session pointer to "before the transaction"
 				sessionPointer = txState.sessionPointerBeforeTx

@@ -14,5 +14,6 @@ trait IsolationBindings[Isolation] {
 		def SI : Isolation
 		def RC : Isolation
 		def RU : Isolation
+		def NONE : Isolation
 	}
 }
