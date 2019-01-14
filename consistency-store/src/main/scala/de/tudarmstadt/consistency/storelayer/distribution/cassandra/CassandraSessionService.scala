@@ -8,13 +8,13 @@ import de.tudarmstadt.consistency.storelayer.distribution.SessionService
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency] extends SessionService[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait CassandraSessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] extends SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 	type CassandraSession = com.datastax.driver.core.Session
 
 	val session : CassandraSession
 	val cluster : Cluster
 	val keyspaceName : String
-	val typeBinding : CassandraTypeBinding[Id, Key, Data, TxStatus, Isolation, Consistency]
+	val typeBinding : CassandraTypeBinding[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 
 
 	/* queries */

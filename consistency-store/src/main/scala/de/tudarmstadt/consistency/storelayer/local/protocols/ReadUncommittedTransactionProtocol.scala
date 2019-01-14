@@ -8,10 +8,10 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*
 	* @author Mirko Köhler
 	*/
-trait ReadUncommittedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait ReadUncommittedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-	override val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	override val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		with TxStatusBindings[TxStatus]
 		with IsolationBindings[Isolation]
 
@@ -26,7 +26,7 @@ trait ReadUncommittedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Con
 	}
 
 
-	def readIsObservable(currentTxid : Option[Id], row : OpRow) : CommitStatus = {
+	def readIsObservable(currentTxid : Option[Txid], row : OpRow) : CommitStatus = {
 		return Success
 	}
 

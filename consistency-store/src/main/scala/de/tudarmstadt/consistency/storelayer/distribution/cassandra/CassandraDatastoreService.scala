@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
 import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Row, TupleValue}
-import de.tudarmstadt.consistency.storelayer.distribution.DatastoreService
+import de.tudarmstadt.consistency.storelayer.distribution.{DatastoreService, OpRef, TxRef}
 
 import scala.collection.JavaConverters
 
@@ -11,8 +11,8 @@ import scala.collection.JavaConverters
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency] extends DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency] {
-	self : CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency] =>
+trait CassandraDatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] extends DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
+	self : CassandraSessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] =>
 	import typeBinding._
 
 	private val opTableName : String = "t_data"
@@ -34,7 +34,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 		lazy val id : Id = row.get("id", TypeCodecs.Id)
 		lazy val key : Key = row.get("key", TypeCodecs.Key)
 		lazy val data : Data = row.get("data", TypeCodecs.Data)
-		lazy val txid : Option[TxRef] =	Option(row.get("txid", TypeCodecs.Id)).map(id => TxRef(id))
+		lazy val txid : Option[TxRef] =	Option(row.get("txid", TypeCodecs.Txid)).map(txid => TxRef(txid))
 
 
 		lazy val deps : Set[OpRef] = {
@@ -53,7 +53,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 			assert(row.getColumnDefinitions.contains(name), s"expected tx row to contain field $name")
 		)
 
-		lazy val id : Id = row.get("id", TypeCodecs.Id)
+		lazy val id : Txid = row.get("id", TypeCodecs.Txid)
 
 		lazy val deps : Set[OpRef] = {
 			val it : Set[TupleValue] = JavaConverters.asScalaSet(row.getSet("deps", classOf[TupleValue])).toSet
@@ -77,7 +77,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 				 | key ${TypeCodecs.Key.getCqlType.asFunctionParameterString},
 				 | data ${TypeCodecs.Data.getCqlType.asFunctionParameterString},
 				 | deps set<frozen<tuple<${TypeCodecs.Id.getCqlType.asFunctionParameterString}, ${TypeCodecs.Key.getCqlType.asFunctionParameterString}>>>,
-				 | txid ${TypeCodecs.Id.getCqlType.asFunctionParameterString},
+				 | txid ${TypeCodecs.Txid.getCqlType.asFunctionParameterString},
 				 | txstatus ${TypeCodecs.TxStatus.getCqlType.asFunctionParameterString},
 				 | consistency ${TypeCodecs.Consistency.getCqlType.asFunctionParameterString},
 				 | isolation ${TypeCodecs.Isolation.getCqlType.asFunctionParameterString},
@@ -86,7 +86,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 
 		session.execute(
 			s"""CREATE TABLE $txTableName
-				 | (id ${TypeCodecs.Id.getCqlType.asFunctionParameterString()},
+				 | (id ${TypeCodecs.Txid.getCqlType.asFunctionParameterString()},
 				 | deps set<frozen<tuple<${TypeCodecs.Id.getCqlType.asFunctionParameterString}, ${TypeCodecs.Key.getCqlType.asFunctionParameterString}>>>,
 				 | txstatus ${TypeCodecs.TxStatus.getCqlType.asFunctionParameterString},
 				 | consistency ${TypeCodecs.Consistency.getCqlType.asFunctionParameterString},
@@ -100,7 +100,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 	override def writeData(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
-		val convertedTxid = txid.map(_.id).getOrElse(null)
+		val convertedTxid = txid.map(_.txid).getOrElse(null)
 
 		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
 			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
@@ -186,7 +186,7 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 
 
 
-	override def writeTx(id : Id, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
+	override def writeTx(txid : Txid, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
 		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
 			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
 		)
@@ -198,26 +198,26 @@ trait CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
 				.and(set("txstatus", txStatus))
 				.and(set("isolation", isolation))
 				.and(set("consistency", consistency))
-				.where(QueryBuilder.eq("id", id))
+				.where(QueryBuilder.eq("id", txid))
 				.setConsistencyLevel(cassandraConsistency)
 		)
 	}
 
-	override def deleteTx(id : Id) : Unit = {
+	override def deleteTx(txid : Txid) : Unit = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 		session.execute(
 			delete().from(txTableName)
-				.where(QueryBuilder.eq("id", id))
+				.where(QueryBuilder.eq("id", txid))
 		)
 	}
 
-	override def readTx(id : Id) : Option[TxRow] = {
+	override def readTx(txid : Txid) : Option[TxRow] = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		//Retrieve the history of a key.
 		val keyResult = session.execute(
 			select.all.from(txTableName)
-				.where(QueryBuilder.eq("id", id))
+				.where(QueryBuilder.eq("id", txid))
 		)
 
 		val row = keyResult.one()

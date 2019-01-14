@@ -5,26 +5,27 @@ import java.util.UUID
 
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{Cluster, TypeCodec}
-import de.tudarmstadt.consistency.storelayer.distribution.{ConsistencyBindings, IdService, IsolationBindings, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution._
 
 /**
 	* Created on 21.12.18.
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraBinding[Id, Key, Data, TxStatus, Isolation, Consistency]
-	extends CassandraSessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
+trait CassandraBinding[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+	extends CassandraSessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 	with IdService[Id]
-	with CassandraDatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
-	with CassandraCoordinationService[Id, TxStatus, Isolation]
-	with CassandraOptimisticLocksService[Id, Key]
+	with TxidService[Txid]
+	with CassandraDatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+	with CassandraCoordinationService[Txid, TxStatus, Isolation]
+	with CassandraOptimisticLocksService[Id, Txid, Key]
 	with TxStatusBindings[TxStatus]
 	with IsolationBindings[Isolation]
 	with ConsistencyBindings[Consistency]
 
 object CassandraBinding {
 
-	class DefaultCassandraSession(connectionParams: ConnectionParams) extends CassandraBinding[UUID, String, ByteBuffer, Int, Int, Int] {
+	class DefaultCassandraSession(connectionParams: ConnectionParams) extends CassandraBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int] {
 		override val cluster : Cluster = connectionParams.connectCluster
 		override val session : CassandraSession = cluster.connect()
 
@@ -51,12 +52,17 @@ object CassandraBinding {
 		}
 		override def Consistency : ConsistencyOps = ConsistencyOpsImpl
 
+
 		override def freshId() : UUID = UUIDs.timeBased()
+
+		override def freshTxid() : UUID = UUIDs.timeBased()
+
 
 		override val keyspaceName : String = "k_default"
 
-		override val typeBinding : CassandraTypeBinding[UUID, String, ByteBuffer, Int, Int, Int] = {
-			new CassandraTypeBinding[UUID, String, ByteBuffer, Int, Int, Int]()(
+		override val typeBinding : CassandraTypeBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int] = {
+			new CassandraTypeBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int]()(
+				TypeCodec.timeUUID(),
 				TypeCodec.timeUUID(),
 				TypeCodec.ascii(),
 				TypeCodec.blob(),
@@ -65,7 +71,6 @@ object CassandraBinding {
 				TypeCodec.cint().asInstanceOf[TypeCodec[Int]]
 			)
 		}
-
 	}
 
 }

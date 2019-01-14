@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 	* @author Mirko Köhler
 	*/
 trait ConsistencyBindings[Consistency] {
-	self : SessionService[_, _, _, _, _, Consistency] =>
+	self : SessionService[_, _, _, _, _, _, Consistency] =>
 
 	def Consistency: ConsistencyOps
 

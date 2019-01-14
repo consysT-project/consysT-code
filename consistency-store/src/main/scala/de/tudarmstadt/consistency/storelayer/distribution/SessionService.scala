@@ -8,18 +8,13 @@ import de.tudarmstadt.consistency.storelayer.distribution.cassandra.CassandraTyp
 	*
 	* @author Mirko Köhler
 	*/
-trait SessionService[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	/* class definitions */
+	type OpRef = de.tudarmstadt.consistency.storelayer.distribution.OpRef[Id, Key]
+	type TxRef = de.tudarmstadt.consistency.storelayer.distribution.TxRef[Txid]
 
-	/* references to other database entries */
-	case class OpRef(id : Id, key : Key) {
-		assert(id != null)
-		assert(key != null)
-		def toTuple : (Id, Key) =	(id, key)
-	}
-	case class TxRef(id : Id) {
-		assert(id != null)
-	}
+	//For communication with the outside world.
+
 
 }

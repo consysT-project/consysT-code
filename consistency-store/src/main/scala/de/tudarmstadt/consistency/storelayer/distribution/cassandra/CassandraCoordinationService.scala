@@ -9,8 +9,8 @@ import de.tudarmstadt.consistency.storelayer.distribution.{CoordinationService, 
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraCoordinationService[Id, TxStatus, Isolation] extends CoordinationService[Id, TxStatus, Isolation] {
-	self : CassandraSessionService[Id, _, _, TxStatus, Isolation, _] with TxStatusBindings[TxStatus] =>
+trait CassandraCoordinationService[Txid, TxStatus, Isolation] extends CoordinationService[Txid, TxStatus, Isolation] {
+	self : CassandraSessionService[_, Txid, _, _, TxStatus, Isolation, _] with TxStatusBindings[TxStatus] =>
 	import typeBinding._
 
 	private val casTxTableName : String = "t_cas_tx"
@@ -29,7 +29,7 @@ trait CassandraCoordinationService[Id, TxStatus, Isolation] extends Coordination
 
 
 	/* operations */
-	def addNewTransaction(txid : Id, txStatus : TxStatus, isolation : Isolation) : Boolean = {
+	def addNewTransaction(txid : Txid, txStatus : TxStatus, isolation : Isolation) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val txInsertResult = session.execute(
@@ -49,7 +49,7 @@ trait CassandraCoordinationService[Id, TxStatus, Isolation] extends Coordination
 		txInsertResult.wasApplied()
 	}
 
-	def abortIfPending(txid : Id) : Boolean = {
+	def abortIfPending(txid : Txid) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val updateOtherTxResult = session.execute(
@@ -63,7 +63,7 @@ trait CassandraCoordinationService[Id, TxStatus, Isolation] extends Coordination
 		updateOtherTxResult.wasApplied()
 	}
 
-	def commitIfPending(txid : Id) : Boolean = {
+	def commitIfPending(txid : Txid) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val updateOtherTxResult = session.execute(
