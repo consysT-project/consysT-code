@@ -9,7 +9,7 @@ import com.datastax.driver.core.{Cluster, Row, TupleValue}
 	*/
 package object cassandra {
 
-	private[cassandra] def tupleToCassandraTuple[A,B](tuple : (A,B))(implicit sessionBinding : CassandraSessionService[_, _, _, _, _, _]) : TupleValue = {
+	private[cassandra] def tupleToCassandraTuple[A,B](tuple : (A,B))(implicit sessionBinding : CassandraSessionService[_, _, _, _, _, _, _]) : TupleValue = {
 		import sessionBinding._
 		import sessionBinding.typeBinding._
 

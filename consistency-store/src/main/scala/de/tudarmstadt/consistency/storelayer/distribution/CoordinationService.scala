@@ -5,10 +5,10 @@ package de.tudarmstadt.consistency.storelayer.distribution
 	*
 	* @author Mirko Köhler
 	*/
-trait CoordinationService[Id, TxStatus, Isolation] {
-	self : SessionService[Id, _, _, TxStatus, Isolation, _] =>
+trait CoordinationService[Txid, TxStatus, Isolation] {
+	self : SessionService[_, Txid, _, _, TxStatus, Isolation, _] =>
 
-	def addNewTransaction(txid : Id, txStatus : TxStatus, isolation : Isolation) : Boolean
+	def addNewTransaction(txid : Txid, txStatus : TxStatus, isolation : Isolation) : Boolean
 
 	/**
 		* Aborts a transaction if it was pending.
@@ -16,7 +16,7 @@ trait CoordinationService[Id, TxStatus, Isolation] {
 		* @param txid the transaction to be aborted
 		* @return True, if the transaction has been aborted.
 		*/
-	def abortIfPending(txid : Id) : Boolean
+	def abortIfPending(txid : Txid) : Boolean
 
 	/**
 		* Commits a transaction if it was pending.
@@ -24,6 +24,6 @@ trait CoordinationService[Id, TxStatus, Isolation] {
 		* @param txid the transaction to be committed
 		* @return True, if the transaction has been committed.
 		*/
-	def commitIfPending(txid : Id) : Boolean
+	def commitIfPending(txid : Txid) : Boolean
 
 }

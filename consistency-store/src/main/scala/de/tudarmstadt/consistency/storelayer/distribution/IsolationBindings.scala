@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 	* @author Mirko Köhler
 	*/
 trait IsolationBindings[Isolation] {
-	self : SessionService[_, _, _, _, Isolation, _] =>
+	self : SessionService[_, _, _, _, _, Isolation, _] =>
 
 	def Isolation: IsolationOps
 

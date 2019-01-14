@@ -10,12 +10,12 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*
 	* @author Mirko Köhler
 	*/
-trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-	override protected val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with CoordinationService[Id, TxStatus, Isolation]
-		with OptimisticLockService[Id, Key]
+	override protected val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		with CoordinationService[Txid, TxStatus, Isolation]
+		with OptimisticLockService[Id, Txid, Key]
 		with TxStatusBindings[TxStatus]
 		with IsolationBindings[Isolation]
 
@@ -68,7 +68,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 
 					//2.a. Abort the transaction that held the write lock
 					if (otherTxid.isDefined) {
-						abortIfPending(otherTxid.get.id)
+						abortIfPending(otherTxid.get.txid)
 //						val updateOtherTxResult = session.execute(
 //							update(keyspace.casTxTable.name)
 //								.`with`(set("status", TxStatus.ABORTED))
@@ -87,8 +87,8 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 					if (otherReads.nonEmpty) { //if reads == null in cassandra then otherReads will be empty
 						//Abort all pending transactions that read any of the keys.
 						for (txRef <- otherReads) {
-							if (txRef.id != txid) { //it is ok for our transaction to read a value.
-								abortIfPending(txRef.id)
+							if (txRef.txid != txid) { //it is ok for our transaction to read a value.
+								abortIfPending(txRef.txid)
 
 //								val updateOtherTxResult = session.execute(
 //									update(keyspace.casTxTable.name)
@@ -108,7 +108,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 					//2.c. Now, we aborted all pending transactions that locked the key (either as read or write).
 
 					//Continue to lock the key for this transactions.
-					val writeLockAgain = lockIfOther(write.key, txid, otherTxid.map(ref => ref.id), otherReads.map(ref => ref.id))
+					val writeLockAgain = lockIfOther(write.key, txid, otherTxid.map(ref => ref.txid), otherReads.map(ref => ref.txid))
 
 //						session.execute(
 //						update(keyspace.keyTable.name)
@@ -179,7 +179,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 
 
 	//true when the row has been committed, false if the row has been aborted/deleted
-	override def readIsObservable(currentTxid : Option[Id], row : OpRow) : CommitStatus = {
+	override def readIsObservable(currentTxid : Option[Txid], row : OpRow) : CommitStatus = {
 
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
@@ -187,7 +187,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 
 		val readId = row.id
 		val readKey = row.key
-		val readTxid = row.txid.map(ref => ref.id).getOrElse(null)
+		val readTxid = row.txid.map(ref => ref.txid).getOrElse(null)
 		val readTxStatus = row.txStatus
 
 		//2.a If the read value does not belong to a transaction or the transaction has been committed
@@ -212,7 +212,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Co
 		}
 
 		//3. Abort the transaction readTxid if it is not committed
-		val abortedReadTx = abortIfPending(readTxid.asInstanceOf[Id])
+		val abortedReadTx = abortIfPending(readTxid.asInstanceOf[Txid])
 //		session.execute(
 //			update(store.keyspace.casTxTable.name)
 //				.`with`(set("status", store.TxStatuses.ABORTED))

@@ -12,10 +12,10 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait ReadCommittedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait ReadCommittedTransactions[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] extends TransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-	override val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	override val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		with TxStatusBindings[TxStatus]
 		with IsolationBindings[Isolation]
 
@@ -31,7 +31,7 @@ trait ReadCommittedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency]
 
 
 
-	def readIsObservable(currentTxid : Option[Id], row : OpRow) : CommitStatus = {
+	def readIsObservable(currentTxid : Option[Txid], row : OpRow) : CommitStatus = {
 
 		//Check whether the given row has the correct isolation level
 		val isolation = row.isolation
@@ -45,7 +45,7 @@ trait ReadCommittedTransactions[Id, Key, Data, TxStatus, Isolation, Consistency]
 		}
 
 		assert(row.txid.isDefined, "there has to be a txid at a rc isolated row")
-		val txid = row.txid.get.id
+		val txid = row.txid.get.txid
 
 
 //		val selectTxResult = session.execute(

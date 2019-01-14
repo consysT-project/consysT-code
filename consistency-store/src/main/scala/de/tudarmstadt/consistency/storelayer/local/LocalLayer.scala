@@ -12,18 +12,25 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait LocalLayer[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-	protected val store : SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
+
+
+
+	protected val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		with IdService[Id]
-		with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+		with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 
 	import store._
 
 
-	private val session : Session[Id, Key, Data, Id] = new Session[Id, Key, Data, Id] {}
+	private[local] val session : Session[Id, Key, Data, Id] = new Session[Id, Key, Data, Id] {
+		override protected val store : SessionService[Id, Id, Key, Data, _, _, _] = store
+	}
 
-	private var currentTransaction : Option[Transaction] = None
+	private[local] var currentTransaction : Option[Transaction] = None
+
+
 
 
 
@@ -108,15 +115,15 @@ trait LocalLayer[Id, Key, Data, TxStatus, Isolation, Consistency] {
 
 object LocalLayer {
 
-	trait SnapshotIsolatedTransactionsLayer[Id, Key, Data, TxStatus, Isolation, Consistency]
-		extends LocalLayer[Id, Key, Data, TxStatus, Isolation, Consistency]
-		with SnapshotIsolatedTransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+	trait SnapshotIsolatedTransactionsLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		extends LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+		with SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-		override protected val store :  SessionService[Id, Key, Data, TxStatus, Isolation, Consistency]
+		override protected val store :  SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			with IdService[Id]
-			with DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
-			with CoordinationService[Id, TxStatus, Isolation]
-			with OptimisticLockService[Id, Key]
+			with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+			with CoordinationService[Txid, TxStatus, Isolation]
+			with OptimisticLockService[Id, Txid, Key]
 			with TxStatusBindings[TxStatus]
 			with IsolationBindings[Isolation]
 
@@ -137,7 +144,9 @@ object LocalLayer {
 
 
 			override private[local] def handleWrite(consistency : Consistency, key : Key, data : Data) : Unit = {
-
+				val id = freshId()
+				val opNode = session.lockUpdate(id, key, data)
+//				writeBuffer.append(DataWrite(id, key, data, Some(TxRef(txid)), opNode.dependencies, consistency))
 			}
 
 			override protected def handleCommit() : Unit = {

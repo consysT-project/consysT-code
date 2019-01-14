@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.storelayer.local.dependency
 
+import de.tudarmstadt.consistency.storelayer.distribution.SessionService
 import de.tudarmstadt.consistency.storelayer.local.dependency
 
 
@@ -10,20 +11,25 @@ import de.tudarmstadt.consistency.storelayer.local.dependency
 	*/
 trait Session[Id, Key, Data, Txid] {
 
+	protected val store : SessionService[Id, Txid, Key, Data, _, _, _]
+	import store._
+
 	//The latest node that has been created in this transaction
-	private var sessionPointer : Option[Id] = None
+	private var sessionPointer : Option[OpRef] = None
 
 	//The reads that occurred since the last node has been added
-	private var readDependencies : Set[Id] = Set.empty
+	private var readDependencies : Set[OpRef] = Set.empty
 
-	private val graph : DepGraph[Id, Key, Data, Txid] = new DepGraph
+	private[local] val graph : DepGraph[Id, Key, Data, Txid] = new DepGraph[Id, Key, Data, Txid] {
+		override val store : SessionService[Id, Txid, Key, Data, _, _, _] = store
+	}
 
 	//the current state of the session
 	private var state : SessionState = SessionState.Idle
 
 
 
-	def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] = synchronized {
+	def lockUpdate(id : Id, key : Key, data : Data) : OpNode = synchronized {
 		state.lockUpdate(id, key, data)
 	}
 
@@ -35,19 +41,19 @@ trait Session[Id, Key, Data, Txid] {
 		state.confirmUpdate()
 	}
 
-	def addUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] = synchronized {
+	def addUpdate(id : Id, key : Key, data : Data) : OpNode = synchronized {
 		val upd = lockUpdate(id, key, data)
 		confirmUpdate()
 		upd
 	}
 
 
-	def addRead(ref : Id): Unit = synchronized {
+	def addRead(ref : OpRef): Unit = synchronized {
 		readDependencies = readDependencies + ref
 	}
 
 
-	def getNextDependencies : Set[Id] = synchronized {
+	def getNextDependencies : Set[OpRef] = synchronized {
 		readDependencies ++ sessionPointer
 	}
 
@@ -69,7 +75,7 @@ trait Session[Id, Key, Data, Txid] {
 		state.startTransaction(id)
 	}
 
-	def lockTransaction() :  TxNode[Id, Txid] = synchronized {
+	def lockTransaction() :  TxNode = synchronized {
 		state.lockTransaction()
 	}
 
@@ -107,7 +113,7 @@ trait Session[Id, Key, Data, Txid] {
 
 
 	trait SessionState {
-		def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] =
+		def lockUpdate(id : Id, key : Key, data : Data) : OpNode =
 			throw new IllegalStateException("cannot lock update in this state")
 
 		def releaseUpdate() : Unit =
@@ -118,7 +124,7 @@ trait Session[Id, Key, Data, Txid] {
 		def startTransaction(txid : Txid): Unit =
 			throw new IllegalStateException("cannot start transaction in this state")
 
-		def lockTransaction() : TxNode[Id, Txid] =
+		def lockTransaction() : TxNode =
 			throw new IllegalStateException("cannot lock transaction in this state")
 
 		def commitTransaction() : Unit =
@@ -134,8 +140,8 @@ trait Session[Id, Key, Data, Txid] {
 	object SessionState {
 
 		object Idle extends SessionState {
-			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] = {
-				val node = OpNode[Id, Key, Data, Txid](id, key, data, None, getNextDependencies)
+			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode = {
+				val node = OpNode(id, key, data, None, getNextDependencies)
 				state = LockedUpdate(node)
 				node
 			}
@@ -146,7 +152,7 @@ trait Session[Id, Key, Data, Txid] {
 		}
 
 
-		case class LockedUpdate(node : OpNode[Id, Key, Data, Txid]) extends SessionState {
+		case class LockedUpdate(node : OpNode) extends SessionState {
 			override def releaseUpdate() : Unit = {
 				state = Idle
 			}
@@ -163,18 +169,18 @@ trait Session[Id, Key, Data, Txid] {
 		}
 
 
-		case class StartedTransaction(txid : Txid, sessionPointerBeforeTx : Option[Id]) extends SessionStateInTx {
+		case class StartedTransaction(txid : Txid, sessionPointerBeforeTx : Option[OpRef]) extends SessionStateInTx {
 
 			//The ids of all updates that happen during this transaction
-			var transactionDependencies : Set[Id] = Set.empty
+			var transactionDependencies : Set[OpRef] = Set.empty
 
-			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Key, Data, Txid] = {
-				val node = OpNode(id, key, data, Some(txid), getNextDependencies)
+			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode = {
+				val node = OpNode(id, key, data, Some(TxRef(txid)), getNextDependencies)
 				state = LockedUpdateInTx(this, node)
 				node
 			}
 
-			override def lockTransaction() :  TxNode[Id, Txid] = {
+			override def lockTransaction() :  TxNode = {
 				val tx = TxNode(txid, transactionDependencies)
 				state = LockedTransaction(this, tx)
 				tx
@@ -184,14 +190,14 @@ trait Session[Id, Key, Data, Txid] {
 		}
 
 
-		case class LockedUpdateInTx(txState : StartedTransaction, node : OpNode[Id, Key, Data, Txid]) extends SessionStateInTx {
+		case class LockedUpdateInTx(txState : StartedTransaction, node : OpNode) extends SessionStateInTx {
 
 			override def releaseUpdate() : Unit = {
 				state = txState
 			}
 
 			override def confirmUpdate() : Unit = {
-				graph.addOp(node.id, node.key, node.data, node.txid, node.dependencies)
+				graph.addOp(node.id, node.key, node.data, node.txid.map(txref => txref.txid), node.dependencies)
 
 				sessionPointer = Some(node.id)
 				readDependencies = Set.empty
@@ -204,7 +210,7 @@ trait Session[Id, Key, Data, Txid] {
 		}
 
 
-		case class LockedTransaction(txState : StartedTransaction, tx : TxNode[Id, Txid]) extends SessionStateInTx {
+		case class LockedTransaction(txState : StartedTransaction, tx : TxNode) extends SessionStateInTx {
 			override def commitTransaction() : Unit = {
 				txState.transactionDependencies = Set.empty
 			//	graph.addLocalTx(tx)

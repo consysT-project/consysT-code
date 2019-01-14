@@ -8,9 +8,9 @@ import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 	*
 	* @author Mirko Köhler
 	*/
-trait TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
+trait TransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
-	protected val store : DatastoreService[Id, Key, Data, TxStatus, Isolation, Consistency]
+	protected val store : DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 	import store._
 
 	def commitWrites(txWrite : TxWrite, updWrites : Iterable[DataWrite]) : CommitStatus
@@ -21,7 +21,7 @@ trait TransactionProtocol[Id, Key, Data, TxStatus, Isolation, Consistency] {
 		* @param row the row that is checked whether it is committed
 		* @return the status of the operation
 		*/
-	def readIsObservable(txid : Option[Id], row : OpRow) : CommitStatus
+	def readIsObservable(txid : Option[Txid], row : OpRow) : CommitStatus
 
 }
 

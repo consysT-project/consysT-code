@@ -11,8 +11,8 @@ import scala.collection.{JavaConverters, mutable}
 	*
 	* @author Mirko Köhler
 	*/
-trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id, Key] {
-	self : CassandraSessionService[Id, Key, _, _, _, _] =>
+trait CassandraOptimisticLocksService[Id, Txid, Key] extends OptimisticLockService[Id, Txid, Key] {
+	self : CassandraSessionService[Id, Txid, Key, _, _, _, _] =>
 	import typeBinding._
 
 	private val keyTableName : String = "t_keys"
@@ -24,7 +24,7 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 		session.execute(
 			s"""CREATE TABLE $keyTableName
 				 | (key ${TypeCodecs.Key.getCqlType.asFunctionParameterString},
-				 | txid ${TypeCodecs.Id.getCqlType.asFunctionParameterString},
+				 | txid ${TypeCodecs.Txid.getCqlType.asFunctionParameterString},
 				 | reads set<${TypeCodecs.Id.getCqlType.asFunctionParameterString}>,
 				 | PRIMARY KEY(key))""".stripMargin
 		)
@@ -34,7 +34,7 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 	/* operations of the lock service */
 
 	/* returns None if the was available, else returns the reference to the lock before re-locking. */
-	override def lockIfEmpty(key : Key, txid : Id) : Option[LockDescription] = {
+	override def lockIfEmpty(key : Key, txid : Txid) : Option[LockDescription] = {
 		import QueryBuilder._
 
 		val lockResult = session.execute(update(keyTableName)
@@ -53,18 +53,18 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 			None
 		} else {
 			//If the lock was not set
-			val otherTxid = row.get("txid", TypeCodecs.Id)
-			val otherReads : Set[Id] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Id.getJavaType)).toSet
+			val otherTxid = row.get("txid", TypeCodecs.Txid)
+			val otherReads : Set[Txid] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Txid.getJavaType)).toSet
 			Some(LockDescription(key, Option(otherTxid).map(TxRef), otherReads.map(TxRef)))
 		}
 	}
 
 	/* locks a key if it was locked by another tx before */
-	override def lockIfOther(key : Key, txid : Id, otherTxid : Option[Id], otherReads : Set[Id]) : Option[LockDescription] = {
+	override def lockIfOther(key : Key, txid : Txid, otherTxid : Option[Txid], otherReads : Set[Txid]) : Option[LockDescription] = {
 		import QueryBuilder._
 
 
-		val mutableOtherReads = mutable.Set.empty[Id]
+		val mutableOtherReads = mutable.Set.empty[Txid]
 		mutableOtherReads ++= otherReads
 		val javaOtherReads = JavaConverters.mutableSetAsJavaSet(mutableOtherReads)
 
@@ -85,13 +85,13 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 			None
 		} else {
 			//If the lock was not set
-			val otherTxid = row.get("txid", TypeCodecs.Id)
-			val otherReads : Set[Id] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Id.getJavaType)).toSet
+			val otherTxid = row.get("txid", TypeCodecs.Txid)
+			val otherReads : Set[Txid] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Txid.getJavaType)).toSet
 			Some(LockDescription(key, Option(otherTxid).map(TxRef), otherReads.map(TxRef)))
 		}
 	}
 
-	override def addReadLock(key : Key, txid : Id) : Option[Id] = {
+	override def addReadLock(key : Key, txid : Txid) : Option[Txid] = {
 		import QueryBuilder._
 
 		val updateReadKeys = session.execute(
@@ -109,12 +109,12 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 			None
 		} else {
 			//If the lock was not set
-			val otherTxid = row.get("txid", TypeCodecs.Id)
+			val otherTxid = row.get("txid", TypeCodecs.Txid)
 			Some(otherTxid)
 		}
 	}
 
-	override def releaseLockAndAddRead(key : Key, txid : Id, newReadTxid : Id) : Option[Id] = {
+	override def releaseLockAndAddRead(key : Key, txid : Txid, newReadTxid : Txid) : Option[Txid] = {
 		import QueryBuilder._
 
 		val releaseOtherTxidLock = session.execute(
@@ -133,12 +133,12 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 			None
 		} else {
 			//If the lock was not set
-			val otherTxid = row.get("txid", TypeCodecs.Id)
+			val otherTxid = row.get("txid", TypeCodecs.Txid)
 			Some(otherTxid)
 		}
 	}
 
-	override def releaseLock(key : Key, txid : Id) : Option[Id] = {
+	override def releaseLock(key : Key, txid : Txid) : Option[Txid] = {
 		import QueryBuilder._
 
 		val releaseOtherTxidLock = session.execute(
@@ -156,7 +156,7 @@ trait CassandraOptimisticLocksService[Id, Key] extends OptimisticLockService[Id,
 			None
 		} else {
 			//If the lock was not set
-			val otherTxid = row.get("txid", TypeCodecs.Id)
+			val otherTxid = row.get("txid", TypeCodecs.Txid)
 			Some(otherTxid)
 		}
 	}

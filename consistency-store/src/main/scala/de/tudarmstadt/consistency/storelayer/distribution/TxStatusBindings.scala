@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 	* @author Mirko Köhler
 	*/
 trait TxStatusBindings[TxStatus] {
-	self : SessionService[_, _, _, TxStatus, _, _] =>
+	self : SessionService[_, _, _, _, TxStatus, _, _] =>
 
 	def TxStatus : TxStatusOps
 
