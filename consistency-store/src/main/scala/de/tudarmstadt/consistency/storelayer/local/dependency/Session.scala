@@ -1,6 +1,7 @@
 package de.tudarmstadt.consistency.storelayer.local.dependency
 
 import de.tudarmstadt.consistency.storelayer.distribution.SessionService
+import de.tudarmstadt.consistency.storelayer.{distribution, local}
 import de.tudarmstadt.consistency.storelayer.local.{OpNode, TxNode, dependency}
 
 
@@ -11,7 +12,7 @@ import de.tudarmstadt.consistency.storelayer.local.{OpNode, TxNode, dependency}
 	*/
 trait Session[Id, Key, Data, Txid] {
 
-	val store : SessionService[Id, Txid, Key, Data, _, _, _]
+	protected val store : SessionService[Id, Txid, Key, Data, _, _, _]
 	import store._
 
 	//The latest node that has been created in this transaction
@@ -93,6 +94,17 @@ trait Session[Id, Key, Data, Txid] {
 			case _ : SessionState.StartedTransaction =>
 				state.lockTransaction()
 				state.abortTransaction()
+			case _ => sys.error(s"session is not in a state to abort transactions, state: $state")
+		}
+	}
+
+	def commitTransactionIfStarted() : Unit = synchronized {
+		state match {
+			case _ : SessionState.LockedTransaction => state.commitTransaction()
+			case _ : SessionState.StartedTransaction =>
+				state.lockTransaction()
+				state.commitTransaction()
+			case _ => sys.error(s"session is not in a state to commit transactions, state: $state")
 		}
 	}
 
@@ -175,13 +187,13 @@ trait Session[Id, Key, Data, Txid] {
 			var transactionDependencies : Set[OpRef] = Set.empty
 
 			override def lockUpdate(id : Id, key : Key, data : Data) : OpNode[Id, Txid, Key, Data] = {
-				val node = OpNode(id, key, data, Some(ref(txid)), getNextDependencies)
+				val node = OpNode(id, key, data, Some(distribution.TxRef(txid)), getNextDependencies)
 				state = LockedUpdateInTx(this, node)
 				node
 			}
 
 			override def lockTransaction() :  TxNode[Id, Txid, Key] = {
-				val tx = TxNode(txid, transactionDependencies)
+				val tx = local.TxNode(txid, transactionDependencies)
 				state = LockedTransaction(this, tx)
 				tx
 			}
@@ -199,7 +211,7 @@ trait Session[Id, Key, Data, Txid] {
 			override def confirmUpdate() : Unit = {
 				graph.addOp(node.id, node.key, node.data, node.txid.map(txref => txref.txid), node.dependencies)
 
-				val op = ref(node.id, node.key)
+				val op = distribution.OpRef(node.id, node.key)
 
 				sessionPointer = Some(op)
 				readDependencies = Set.empty

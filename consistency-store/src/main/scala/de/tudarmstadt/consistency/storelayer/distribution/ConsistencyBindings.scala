@@ -8,7 +8,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 trait ConsistencyBindings[Consistency] {
 	self : SessionService[_, _, _, _, _, _, Consistency] =>
 
-	def Consistency: ConsistencyOps
+	val Consistency: ConsistencyOps
 
 	trait ConsistencyOps {
 		def INCONSISTENT : Consistency

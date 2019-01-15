@@ -17,13 +17,13 @@ trait SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 	type OpRef = de.tudarmstadt.consistency.storelayer.distribution.OpRef[Id, Key]
 	type TxRef = de.tudarmstadt.consistency.storelayer.distribution.TxRef[Txid]
 
-	def ref(id : Id, key : Key) : OpRef = OpRef(id, key)
-	def ref(txid : Txid) : TxRef = TxRef(txid)
+	implicit def ref(id : Id, key : Key) : OpRef = OpRef(id, key)
+	implicit def ref(txid : Txid) : TxRef = TxRef(txid)
 
-	implicit def tupleToRef(t : (Id, Key)) : OpRef = OpRef(t._1, t._2)
+	implicit def tupleToRef(t : (Id, Key)) : OpRef = ref(t._1, t._2)
 
 
-	//For communication with the outside world.
+	def initialize(reset  : Boolean = false) : Unit = { }
 
 
 }
