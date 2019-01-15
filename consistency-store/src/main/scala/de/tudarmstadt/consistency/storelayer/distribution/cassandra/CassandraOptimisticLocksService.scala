@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import de.tudarmstadt.consistency.storelayer.distribution.{OptimisticLockService, SessionService}
+import de.tudarmstadt.consistency.storelayer.distribution.{OptimisticLockService, SessionService, TxRef}
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -55,7 +55,7 @@ trait CassandraOptimisticLocksService[Id, Txid, Key] extends OptimisticLockServi
 			//If the lock was not set
 			val otherTxid = row.get("txid", TypeCodecs.Txid)
 			val otherReads : Set[Txid] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Txid.getJavaType)).toSet
-			Some(LockDescription(key, Option(otherTxid).map(TxRef), otherReads.map(TxRef)))
+			Some(LockDescription(key, Option(otherTxid).map(id => TxRef(id)), otherReads.map(id => TxRef(id))))
 		}
 	}
 
@@ -87,7 +87,7 @@ trait CassandraOptimisticLocksService[Id, Txid, Key] extends OptimisticLockServi
 			//If the lock was not set
 			val otherTxid = row.get("txid", TypeCodecs.Txid)
 			val otherReads : Set[Txid] = JavaConverters.asScalaSet(row.getSet("reads", TypeCodecs.Txid.getJavaType)).toSet
-			Some(LockDescription(key, Option(otherTxid).map(TxRef), otherReads.map(TxRef)))
+			Some(LockDescription(key, Option(otherTxid).map(id => TxRef(id)), otherReads.map(id => TxRef(id))))
 		}
 	}
 
