@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.storelayer.local.dependency
 
+import de.tudarmstadt.consistency.storelayer.distribution
 import de.tudarmstadt.consistency.storelayer.distribution.SessionService
 import de.tudarmstadt.consistency.storelayer.local.dependency.DepGraph.Op
 import scalax.collection.mutable.Graph
@@ -21,7 +22,7 @@ import scala.collection.mutable
 	*/
 trait DepGraph[Id, Key, Data, Txid] {
 
-	protected val store : SessionService[Id, Txid, Key, Data, _, _, _]
+	val store : SessionService[Id, Txid, Key, Data, _, _, _]
 	import store._
 
 	private case class OpInfo(
@@ -57,16 +58,26 @@ trait DepGraph[Id, Key, Data, Txid] {
 		operations(id) = OpInfo(key, data, tx, local)
 
 		/*add an entry to the transaction if there is one*/
-		val ref = OpRef(id, key)
+		val ref = distribution.OpRef(id, key)
 		tx.foreach(txid => transactions.addBinding(txid, ref))
 
 		/*add operation node to dependency graph*/
-		dependencyGraph.add(OpRef(id, key))
+		dependencyGraph.add(distribution.OpRef(id, key))
 
 		/*add all dependencies to the graph*/
-		deps.foreach(dep => dependencyGraph.add(dep ~> ref))
+		deps.foreach(dep => {
+			dependencyGraph.add(dep ~> ref)
+		})
 
 		unresolveOp(id)
+	}
+
+	def +=(id : Id, key : Key, data : Data, tx : Option[Txid], deps : OpRef*) : Unit = {
+		addOp(id, key, data, tx, deps)
+	}
+
+	def +=(id : Id, key : Key, data : Data, deps : OpRef*) : Unit = {
+		addOp(id, key, data, deps = deps)
 	}
 
 	/**
@@ -86,7 +97,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 				None
 			case Some(opInfo) =>
 				/*remove op from the transaction*/
-				opInfo.tx.foreach(txid => transactions.removeBinding(txid, OpRef(id, opInfo.key)))
+				opInfo.tx.foreach(txid => transactions.removeBinding(txid, distribution.OpRef(id, opInfo.key)))
 
 				/*do not remove any dependencies with the node. The dependencies still remain!*/
 				/*return the removed node*/
@@ -132,7 +143,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 					Set()
 
 				case Some(opInfo) =>
-					val predecessorsInGraph : Set[OpRef] = dependencyGraph.get(OpRef(id, opInfo.key)).diPredecessors.map(_.value)
+					val predecessorsInGraph : Set[OpRef] = dependencyGraph.get(distribution.OpRef(id, opInfo.key)).diPredecessors.map(_.value)
 					val unresolvedPreds = predecessorsInGraph.flatMap(pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id])
 
 					val dependenciesInTx : Set[OpRef] = opInfo.tx.map(txid => transactions(txid).toSet).getOrElse(Set.empty)
@@ -148,13 +159,19 @@ trait DepGraph[Id, Key, Data, Txid] {
 	}
 
 
-	def getDependencies(ref : OpRef) : Set[OpRef] =
+	def getDependencies(ref : OpRef) : Set[OpRef] = {
+		require(operations.contains(ref.id))
 		dependencyGraph.get(ref).diPredecessors.map(_.value)
+	}
 
 
-	def getOp(id : Id) : Op[Id, Key, Data] = {
-		val opInfo = operations(id)
-		Op(id, opInfo.key, opInfo.data)
+	def getDependencies(id : Id, key : Key) : Set[OpRef] =
+		getDependencies(distribution.OpRef(id, key))
+
+
+	def getOp(id : Id) : Op[Id, Key, Data] = operations.get(id) match {
+		case None => throw new NoSuchElementException(s"operation with id $id does not exist")
+		case Some(opInfo) => Op(id, opInfo.key, opInfo.data)
 	}
 
 

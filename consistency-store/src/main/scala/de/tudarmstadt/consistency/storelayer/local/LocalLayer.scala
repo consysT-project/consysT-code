@@ -18,14 +18,14 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 
 	protected val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
-		with IdService[Id]
+		with TxidService[Txid]
 		with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 
 	import store._
 
 
-	private[local] val session : Session[Id, Key, Data, Id] = new Session[Id, Key, Data, Id] {
-		override protected val store : SessionService[Id, Id, Key, Data, _, _, _] = store
+	private[local] val session : Session[Id, Key, Data, Txid] = new Session[Id, Key, Data, Txid] {
+		override protected val store : SessionService[Id, Txid, Key, Data, _, _, _] = LocalLayer.this.store
 	}
 
 	private[local] var currentTransaction : Option[Transaction] = None
@@ -93,7 +93,7 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	final def startTransaction(isolation : Isolation) : Transaction = currentTransaction match {
 		case None =>
-			val txid = freshId()
+			val txid : Txid = freshTxid()
 
 			val tx = handleStartTransaction(isolation, txid)
 
@@ -105,7 +105,7 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 			throw new IllegalStateException(s"transaction already in process: $tx")
 	}
 
-	protected def handleStartTransaction(isolation : Isolation, txid : Id) : Transaction =
+	protected def handleStartTransaction(isolation : Isolation, txid : Txid) : Transaction =
 		throw new UnsupportedIsolationLevelException[Isolation](isolation)
 
 
@@ -121,6 +121,7 @@ object LocalLayer {
 
 		override protected val store :  SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			with IdService[Id]
+			with TxidService[Txid]
 			with DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			with CoordinationService[Txid, TxStatus, Isolation]
 			with OptimisticLockService[Id, Txid, Key]
@@ -129,7 +130,7 @@ object LocalLayer {
 
 		import store._
 
-		override protected def handleStartTransaction(isolation : Isolation, txid : Id) : Transaction =
+		override protected def handleStartTransaction(isolation : Isolation, txid : Txid) : Transaction =
 			if (isolation == Isolation.SI) {
 				new SnapshotIsolatedTransaction(txid)
 			} else {
@@ -137,7 +138,7 @@ object LocalLayer {
 			}
 
 
-		private class SnapshotIsolatedTransaction(val txid : Id) extends Transaction {
+		private class SnapshotIsolatedTransaction(val txid : Txid) extends Transaction {
 
 			private val writeBuffer : mutable.Buffer[DataWrite] = mutable.Buffer.empty
 
