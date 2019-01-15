@@ -22,7 +22,7 @@ import scala.collection.mutable
 	*/
 trait DepGraph[Id, Key, Data, Txid] {
 
-	val store : SessionService[Id, Txid, Key, Data, _, _, _]
+	protected val store : SessionService[Id, Txid, Key, Data, _, _, _]
 	import store._
 
 	private case class OpInfo(
@@ -167,6 +167,14 @@ trait DepGraph[Id, Key, Data, Txid] {
 
 	def getDependencies(id : Id, key : Key) : Set[OpRef] =
 		getDependencies(distribution.OpRef(id, key))
+
+	def getDependencies(txid : Txid) : Set[OpRef] = {
+		transactions(txid).toSet
+	}
+
+	def getDependencies(ref : TxRef) : Set[OpRef] = {
+		getDependencies(ref.txid)
+	}
 
 
 	def getOp(id : Id) : Op[Id, Key, Data] = operations.get(id) match {

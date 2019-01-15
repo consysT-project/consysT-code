@@ -8,7 +8,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 trait TxStatusBindings[TxStatus] {
 	self : SessionService[_, _, _, _, TxStatus, _, _] =>
 
-	def TxStatus : TxStatusOps
+	val TxStatus : TxStatusOps
 
 	trait TxStatusOps {
 		def ABORTED : TxStatus

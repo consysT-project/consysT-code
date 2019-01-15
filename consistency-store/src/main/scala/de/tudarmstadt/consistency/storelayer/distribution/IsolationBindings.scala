@@ -8,7 +8,7 @@ package de.tudarmstadt.consistency.storelayer.distribution
 trait IsolationBindings[Isolation] {
 	self : SessionService[_, _, _, _, _, Isolation, _] =>
 
-	def Isolation: IsolationOps
+	val Isolation: IsolationOps
 
 	trait IsolationOps {
 		def SI : Isolation

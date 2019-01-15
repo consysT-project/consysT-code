@@ -1,8 +1,9 @@
 package de.tudarmstadt.consistency.storelayer.local
 
-import de.tudarmstadt.consistency.storelayer.local.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
+import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.dependency.Session
+import de.tudarmstadt.consistency.storelayer.local.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
 import de.tudarmstadt.consistency.storelayer.local.protocols.SnapshotIsolatedTransactionProtocol
 
 import scala.collection.mutable
@@ -13,9 +14,6 @@ import scala.collection.mutable
 	* @author Mirko Köhler
 	*/
 trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
-
-
-
 
 	protected val store : SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		with TxidService[Txid]
@@ -28,13 +26,10 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 		override protected val store : SessionService[Id, Txid, Key, Data, _, _, _] = LocalLayer.this.store
 	}
 
-	private[local] var currentTransaction : Option[Transaction] = None
+	private[local] var currentTransaction : Option[Transaction[_]] = None
 
 
-
-
-
-	/* writes and reads */
+	/* interface methods for writes reads and transactions */
 	final def write(consistency : Consistency, key : Key, data : Data) : Unit = currentTransaction match {
 		case None => handleWrite(consistency, key, data)
 		case Some(tx) => tx.handleWrite(consistency, key, data)
@@ -45,71 +40,68 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 		case Some(tx) => tx.handleRead(consistency, key)
 	}
 
+	final def transaction[B](isolation : Isolation)(f : => B) : Option[B] = currentTransaction match {
+		case None =>
+			//create a new fresh transaction id
+			val txid : Txid = freshTxid()
+
+			//create a new transaction object with the generated transaction id
+			val tx : Transaction[B] = createTransaction(isolation, txid)
+
+			//start transaction in the local data structures
+			session.startTransaction(txid)
+			currentTransaction = Some(tx)
+
+			//start the transaction
+			val res = tx(() => f)
+
+			//update local data structures after the transaction has finished
+			currentTransaction = None
+			res match {
+				case Some(_) =>
+					session.commitTransactionIfStarted()
+				case None =>
+					session.abortTransactionIfStarted()
+			}
+
+			//return the result of the transaction
+			res
+
+		case Some(tx) =>
+			throw new IllegalStateException(s"transaction already in process: $tx")
+	}
+
+	//aborts a transaction
+	final def abort() : Nothing =	throw new AbortedException
+
+
+	/* these methods are overwritten by subclasses*/
 	private[local] def handleWrite(consistency : Consistency, key : Key, data : Data) : Unit  =
 		throw new UnsupportedConsistencyLevelException[Consistency](consistency)
 
 	private[local] def handleRead(consistency : Consistency, key : Key) : Option[Data] =
 		throw new UnsupportedConsistencyLevelException[Consistency](consistency)
 
-	/* transactions */
-	trait Transaction {
+	protected def createTransaction[B](isolation : Isolation, txid : Txid) : Transaction[B] =
+		throw new UnsupportedIsolationLevelException[Isolation](isolation)
+
+
+
+	/* definition of a transaction. A transaction is a function that returns None if the transaction has been
+	 * aborted somehow. */
+	trait Transaction[B] extends ((() => B) => Option[B]) {
+
+		def apply(f : () => B) : Option[B]
 
 		private[local] def handleWrite(consistency : Consistency, key : Key, data : Data) : Unit =
 			throw new UnsupportedConsistencyLevelException[Consistency](consistency)
 
 		private[local] def handleRead(consistency : Consistency, key : Key) : Option[Data] =
 			throw new UnsupportedConsistencyLevelException[Consistency](consistency)
-
-		final def commit() : Unit = currentTransaction match {
-			case None => throw new IllegalStateException("no transaction running.")
-			case Some(tx) =>
-				if(tx != this) {
-					throw new IllegalStateException("can only commit transaction that is currently running")
-				}
-				handleCommit()
-				session.lockAndCommitTransaction()
-				currentTransaction = None
-		}
-
-
-		final def abort() : Unit = currentTransaction match {
-			case None => throw new IllegalStateException("no transaction running.")
-			case Some(tx) =>
-				if(tx != this) {
-					throw new IllegalStateException("can only abort transaction that is currently running")
-				}
-				handleAbort()
-				session.lockAndAbortTransaction()
-				currentTransaction = None
-		}
-
-		protected def handleCommit() : Unit =
-			throw new UnsupportedOperationException
-
-		protected def handleAbort() : Unit =
-			throw new UnsupportedOperationException
-
 	}
 
-	final def startTransaction(isolation : Isolation) : Transaction = currentTransaction match {
-		case None =>
-			val txid : Txid = freshTxid()
-
-			val tx = handleStartTransaction(isolation, txid)
-
-			session.startTransaction(txid)
-			currentTransaction = Some(tx)
-			tx
-
-		case Some(tx) =>
-			throw new IllegalStateException(s"transaction already in process: $tx")
-	}
-
-	protected def handleStartTransaction(isolation : Isolation, txid : Txid) : Transaction =
-		throw new UnsupportedIsolationLevelException[Isolation](isolation)
-
-
-
+	/* thrown when the transaction is aborted */
+	private[local] class AbortedException extends RuntimeException("the transaction has been aborted")
 
 }
 
@@ -126,39 +118,59 @@ object LocalLayer {
 			with CoordinationService[Txid, TxStatus, Isolation]
 			with OptimisticLockService[Id, Txid, Key]
 			with TxStatusBindings[TxStatus]
+			with ConsistencyBindings[Consistency]
 			with IsolationBindings[Isolation]
 
 		import store._
 
-		override protected def handleStartTransaction(isolation : Isolation, txid : Txid) : Transaction =
-			if (isolation == Isolation.SI) {
-				new SnapshotIsolatedTransaction(txid)
-			} else {
-				super.handleStartTransaction(isolation, txid)
+
+		override protected def createTransaction[B](isolation : Isolation, txid : Txid) : Transaction[B] =
+			isolation match {
+				case x if x == Isolation.SI => new SnapshotIsolatedTransaction(txid)
+				case _ => super.createTransaction[B](isolation, txid)
 			}
 
 
-		private class SnapshotIsolatedTransaction(val txid : Txid) extends Transaction {
+		private class SnapshotIsolatedTransaction[B](val txid : Txid) extends Transaction[B] {
 
 			private val writeBuffer : mutable.Buffer[DataWrite] = mutable.Buffer.empty
 
 
+			def apply(f : () => B) : Option[B] = {
+				try {
+					val res = f.apply()
+
+					val txNode = session.lockTransaction()
+					commitWrites(TxWrite(txid, txNode.dependencies, Consistency.CAUSAL), writeBuffer)
+
+					return Some(res)
+
+				} catch {
+					case e : AbortedException =>
+						//the transaction has been aborted by the user
+						None
+
+					/* Cassandra related exception. TODO: move this somewhere else */
+					case e : NoHostAvailableException =>
+						e.printStackTrace()
+						None
+					case e : QueryExecutionException =>
+						//TODO: Differentiate between different errors here. What to do if the write was accepted partially?
+						e.printStackTrace()
+						None
+				}
+
+			}
 
 			override private[local] def handleWrite(consistency : Consistency, key : Key, data : Data) : Unit = {
 				val id = freshId()
 				val opNode = session.lockUpdate(id, key, data)
-//				writeBuffer.append(DataWrite(id, key, data, Some(TxRef(txid)), opNode.dependencies, consistency))
-			}
-
-			override protected def handleCommit() : Unit = {
-//				(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], consistency : Consistency)
-//
-//				val txWrite = TxWrite(txid, )
-//				commitWrites()
-
+				writeBuffer.append(DataWrite(id, key, data, Some(TxRef(txid)), opNode.dependencies, consistency))
+				session.confirmUpdate()
 			}
 
 		}
+	}
 
 /*
 
@@ -201,7 +213,7 @@ object LocalLayer {
 		}
 */
 
-	}
+
 
 }
 /*

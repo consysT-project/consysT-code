@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import java.nio.ByteBuffer
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{Cluster, TypeCodec}
@@ -21,20 +22,37 @@ trait CassandraBinding[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 	with CassandraOptimisticLocksService[Id, Txid, Key]
 	with TxStatusBindings[TxStatus]
 	with IsolationBindings[Isolation]
-	with ConsistencyBindings[Consistency]
+	with ConsistencyBindings[Consistency] {
+
+	val connectionParams: ConnectionParams
+
+	override val cluster : Cluster = connectionParams.connectCluster
+	override val session : CassandraSession = cluster.connect()
+
+	override def initialize(reset : Boolean = false): Unit = {
+		if (reset) {
+			CREATE_KEYSPACE()
+			USE_KEYSPACE()
+			CREATE_CAS_TX_TABLE()
+			CREATE_DATA_TABLE()
+			CREATE_LOCK_TABLE()
+		} else {
+			USE_KEYSPACE()
+		}
+	}
+
+}
 
 object CassandraBinding {
 
-	class DefaultCassandraSession(connectionParams: ConnectionParams) extends CassandraBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int] {
-		override val cluster : Cluster = connectionParams.connectCluster
-		override val session : CassandraSession = cluster.connect()
+	class DefaultCassandraStore(val connectionParams: ConnectionParams = ConnectionParams.LocalCluster) extends CassandraBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int] {
 
 		object TxStatusOpsImpl extends TxStatusOps {
 			override def ABORTED : Int = -1
 			override def COMMITTED : Int = 1
 			override def PENDING : Int = 0
 		}
-		override def TxStatus : TxStatusOps = TxStatusOpsImpl
+		override val TxStatus : TxStatusOps = TxStatusOpsImpl
 
 		object IsolationOpsImpl extends IsolationOps {
 			override def SI : Int = 4
@@ -42,7 +60,7 @@ object CassandraBinding {
 			override def RU : Int = 1
 			override def NONE : Int = 0
 		}
-		override def Isolation : IsolationOps = IsolationOpsImpl
+		override val Isolation : IsolationOps = IsolationOpsImpl
 
 		object ConsistencyOpsImpl extends ConsistencyOps {
 			override def INCONSISTENT : Int = 12
@@ -50,7 +68,7 @@ object CassandraBinding {
 			override def WEAK : Int = 1
 			override def LOCAL : Int = 0
 		}
-		override def Consistency : ConsistencyOps = ConsistencyOpsImpl
+		override val Consistency : ConsistencyOps = ConsistencyOpsImpl
 
 
 		override def freshId() : UUID = UUIDs.timeBased()
@@ -64,11 +82,60 @@ object CassandraBinding {
 			new CassandraTypeBinding[UUID, UUID, String, ByteBuffer, Int, Int, Int]()(
 				TypeCodec.timeUUID(),
 				TypeCodec.timeUUID(),
-				TypeCodec.ascii(),
+				TypeCodec.varchar(),
 				TypeCodec.blob(),
 				TypeCodec.cint().asInstanceOf[TypeCodec[Int]],
 				TypeCodec.cint().asInstanceOf[TypeCodec[Int]],
 				TypeCodec.cint().asInstanceOf[TypeCodec[Int]]
+			)
+		}
+	}
+
+
+
+	class SimpleCassandraStore(val connectionParams: ConnectionParams = ConnectionParams.LocalCluster) extends CassandraBinding[Int, Int, String, Double, String, String, String] {
+
+		object TxStatusOpsImpl extends TxStatusOps {
+			override def ABORTED : String = "abort"
+			override def COMMITTED : String = "commit"
+			override def PENDING : String = "pending"
+		}
+		override val TxStatus : TxStatusOps = TxStatusOpsImpl
+
+		object IsolationOpsImpl extends IsolationOps {
+			override def SI : String = "SI"
+			override def RC : String = "RC"
+			override def RU : String = "RU"
+			override def NONE : String = "XX"
+		}
+		override val Isolation : IsolationOps = IsolationOpsImpl
+
+		object ConsistencyOpsImpl extends ConsistencyOps {
+			override def INCONSISTENT : String = "INCONST"
+			override def CAUSAL : String = "CAUSAL"
+			override def WEAK : String = "WEAK"
+			override def LOCAL : String = "LOCAL"
+		}
+		override val Consistency : ConsistencyOps = ConsistencyOpsImpl
+
+		private var currentId : AtomicInteger = new AtomicInteger(0)
+		private var currentTxid : AtomicInteger = new AtomicInteger(0)
+
+		override def freshId() : Int = currentId.incrementAndGet()
+		override def freshTxid() : Int = currentTxid.addAndGet(1000)
+
+
+		override val keyspaceName : String = "k_simple"
+
+		override val typeBinding : CassandraTypeBinding[Int, Int, String, Double, String, String, String] = {
+			new CassandraTypeBinding[Int, Int, String, Double, String, String, String]()(
+				TypeCodec.cint().asInstanceOf[TypeCodec[Int]],
+				TypeCodec.cint().asInstanceOf[TypeCodec[Int]],
+				TypeCodec.ascii(),
+				TypeCodec.cdouble().asInstanceOf[TypeCodec[Double]],
+				TypeCodec.varchar(),
+				TypeCodec.varchar(),
+				TypeCodec.varchar()
 			)
 		}
 	}

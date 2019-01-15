@@ -45,7 +45,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolati
 		//2. Acquire the write lock for all keys that are written by this transaction
 		for (write <- dataWrites) {
 			assert(write.txid.isDefined)
-			assert(write.txid.get == txid)
+			assert(write.txid.get.txid == txid)
 
 			val writeLock = lockIfEmpty(write.key, txid)
 //			session.execute(

@@ -10,7 +10,7 @@ import org.junit.{Assert, Test}
 	*/
 class SessionTest extends SessionTests {
 
-	import session.store._
+	import store._
 
 	@Test
 	def simpleSessionTest(): Unit = {
