@@ -6,8 +6,6 @@ import java.util.UUID
 import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.distribution.cassandra.CassandraBinding.DefaultCassandraStore
 import de.tudarmstadt.consistency.storelayer.distribution.cassandra.ConnectionParams
-import de.tudarmstadt.consistency.storelayer.local.LocalLayer.SnapshotIsolatedTransactionsLayer
-import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol
 import org.junit.Test
 
 /**
