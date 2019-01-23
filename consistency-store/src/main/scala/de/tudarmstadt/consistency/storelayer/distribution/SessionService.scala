@@ -1,9 +1,5 @@
 package de.tudarmstadt.consistency.storelayer.distribution
 
-import com.datastax.driver.core.Cluster
-import de.tudarmstadt.consistency.storelayer.distribution
-import de.tudarmstadt.consistency.storelayer.distribution.cassandra.CassandraTypeBinding
-
 import scala.language.implicitConversions
 
 /**
@@ -14,11 +10,14 @@ import scala.language.implicitConversions
 trait SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	/* class definitions */
+	type Ref = de.tudarmstadt.consistency.storelayer.distribution.Ref[Id, Key, Txid]
 	type OpRef = de.tudarmstadt.consistency.storelayer.distribution.OpRef[Id, Key]
 	type TxRef = de.tudarmstadt.consistency.storelayer.distribution.TxRef[Txid]
 
+
 	implicit def ref(id : Id, key : Key) : OpRef = OpRef(id, key)
 	implicit def ref(txid : Txid) : TxRef = TxRef(txid)
+
 
 	implicit def tupleToRef(t : (Id, Key)) : OpRef = ref(t._1, t._2)
 

@@ -1,13 +1,9 @@
 package de.tudarmstadt.consistency.storelayer.local
 
-import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.LocalLayer.{ReadHandler, WriteHandler}
 import de.tudarmstadt.consistency.storelayer.local.dependency.Session
 import de.tudarmstadt.consistency.storelayer.local.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
-import de.tudarmstadt.consistency.storelayer.local.protocols.SnapshotIsolatedTransactionProtocol
-
-import scala.collection.mutable
 
 /**
 	* Created on 29.08.18.
@@ -52,17 +48,20 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 
 	final def read(consistency : Consistency, key : Key) : Option[Data]  = {
 
-		val opRows = store.readAllData(key)
+		val opRows : Iterable[OpRow] = store.readAllData(key)
 
-
-		opRows foreach { row =>
-			row.
+		val data = currentTransaction match {
+			case None => handleAllRead(consistency, opRows)
+			case Some(tx) => tx.handleAllRead(consistency, opRows)
 		}
 
-		currentTransaction match {
-			case None => handleRead(consistency, key)
-			case Some(tx) => tx.handleRead(consistency, key)
+		data.foreach { node =>
+			session.graph.addOp(node.id, node.key, node.data, node.txid.map(_.txid), node.dependencies, local = false)
 		}
+
+//		session.graph.read
+		//TODO: Complete
+		None
 	}
 
 	final def transaction[B](isolation : Isolation)(f : => B) : Option[B] = currentTransaction match {
@@ -132,7 +131,7 @@ object LocalLayer {
 
 	private[local] trait ReadHandler[Id, Txid, Key, Data, Consistency] {
 
-		private[local] def handleAllRead(consistency : Consistency, key : Key) : Set[OpNode[Id, Txid, Key, Data]] =
+		private[local] def handleAllRead(consistency : Consistency, rows : Iterable[/* TODO: OpRow*/ Any]) : Iterable[OpNode[Id, Txid, Key, Data]] =
 			throw new UnsupportedConsistencyLevelException[Consistency](consistency)
 
 		private[local] def handleSingleRead(consistency : Consistency, id : Id, key : Key) : Option[OpNode[Id, Txid, Key, Data]] =

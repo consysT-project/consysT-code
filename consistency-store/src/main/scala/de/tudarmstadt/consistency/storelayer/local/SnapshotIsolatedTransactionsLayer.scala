@@ -3,6 +3,7 @@ package de.tudarmstadt.consistency.storelayer.local
 import com.datastax.driver.core.exceptions.{NoHostAvailableException, QueryExecutionException}
 import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.protocols.SnapshotIsolatedTransactionProtocol
+import de.tudarmstadt.consistency.storelayer.local.protocols.TransactionProtocol.{Abort, Success}
 
 import scala.collection.mutable
 
@@ -74,10 +75,15 @@ trait SnapshotIsolatedTransactionsLayer[Id, Txid, Key, Data, TxStatus, Isolation
 			true
 		}
 
-		override private[local] def handleRead(consistency: Consistency, key : Key) : Set[OpNode[Id, Txid, Key, Data]] = {
-			val data = store.readAllData(key)
+		/* TODO: override*/ private[local] def handleAllRead(consistency: Consistency, key : Key) : Iterable[OpNode[Id, Txid, Key, Data]] = {
+			val data : Iterable[OpRow] = store.readAllData(key)
 
-			readIsObservable()
+			data.filter(row => readIsObservable(Some(txid), row) match {
+				case Success => true
+				case Abort(msg) =>
+					Console.err.println(msg)
+					false
+			}).map(row => OpNode(row.id, row.key, row.data, row.txid, row.deps))
 		}
 
 	}
