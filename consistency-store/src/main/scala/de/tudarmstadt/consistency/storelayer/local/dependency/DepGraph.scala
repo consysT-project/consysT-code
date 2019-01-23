@@ -25,23 +25,59 @@ trait DepGraph[Id, Key, Data, Txid] {
 	protected val store : SessionService[Id, Txid, Key, Data, _, _, _]
 	import store._
 
+	private trait NodeInfo {
+		var local : Boolean
+	}
+
 	private case class OpInfo(
 		/*non-modifiable*/
     key : Key,
 	  data : Data,
-	  tx : Option[Txid],
     /*modifiable*/
-		var local : Boolean = true,
-//		var unresolvedDependencies : Option[Set[Id]] = None //unresolved dependencies of this Op, or None if the dependencies have not been checked yet
-  )
+		override var local : Boolean = true
+//		var unresolvedDependencies : Boolean = false //true, if all depedencies of this op have been resolved
+  ) extends NodeInfo
 
-	private val dependencyGraph : Graph[OpRef, DiEdge] = Graph.empty
+	private case class TxInfo(
+		override var local : Boolean = true
+	) extends NodeInfo
 
+	/* ### Data structures ### */
+	/**
+		* Graph of dependencies between operations. The graph stores identifiers
+		* to operations (as OpRef). These identifiers are looked up in the
+		* operations map.
+		* OpRefs in the graph can be unavailable in the operations map. This means
+		* that the operation has not been resolved from the underlying store
+		* but is known to the graph (e.g. through a dependency of another node).
+		*/
+	private val dependencyGraph : Graph[Ref, DiEdge] = Graph.empty
+
+	/**
+		* Maps ids to their respective operations. Ids that can not be resolved
+		* in the map (i.e. there is no entry), have not been resolved in the
+		* underlying graph, or simply do not exist (although this can not be said for sure).
+		*/
 	private val operations : mutable.Map[Id, OpInfo] = new mutable.HashMap
 
-	private val transactions : mutable.MultiMap[Txid, OpRef] =
-		new mutable.HashMap[Txid, mutable.Set[OpRef]] with mutable.MultiMap[Txid, OpRef]
+	/**
+		* Maps transaction ids to all operations that are contained in that transaction.
+		* This map is used to resolve transaction dependencies. An entry in this map
+		* can be seen as a dependency of all nodes in the tx to each other.
+		*/
+	private val transactions : mutable.Map[Txid, TxInfo] = new mutable.HashMap
 
+	/**
+		* Stores the "newest" operation ids for each key. "New" here means that it stores
+		* all operations that no other operation of the same key has a transitive dependency
+		* to that dependency. The concrete conflict resolution algorithm is not
+		* defined here.
+		*/
+//	private val keys : mutable.MultiMap[Key, Id] =
+//		new mutable.HashMap[Key, Id] with mutable.MultiMap[Key, Id]
+
+
+	/* ### Operations ### */
 
 	/**
 		* Adds a new operation to this dependency graph.
@@ -54,23 +90,71 @@ trait DepGraph[Id, Key, Data, Txid] {
 		* @param local true, if the operation should be flagged as a local operation (i.e. if it is not part of the distributed data store and only available locally)
 		*/
 	def addOp(id : Id, key : Key, data : Data, tx : Option[Txid] = None, deps : Iterable[OpRef] = Iterable.empty, local : Boolean = true) : Unit = {
+		val newRef = store.ref(id, key)
+
 		/*add operation to operations*/
-		operations(id) = OpInfo(key, data, tx, local)
+		operations(id) = OpInfo(key, data, local)
 
 		/*add an entry to the transaction if there is one*/
-		val ref = distribution.OpRef(id, key)
-		tx.foreach(txid => transactions.addBinding(txid, ref))
+		tx.foreach { txid => addOpsToTx(txid, newRef) }
 
 		/*add operation node to dependency graph*/
-		dependencyGraph.add(distribution.OpRef(id, key))
-
+		dependencyGraph.add(newRef)
 		/*add all dependencies to the graph*/
 		deps.foreach(dep => {
-			dependencyGraph.add(dep ~> ref)
+			dependencyGraph.add(dep ~> newRef)
 		})
 
-		unresolveOp(id)
+		/*update keys*/
+//		updatePointersForKey(newRef)
 	}
+
+
+//	private def updatePointersForKey(newRef : OpRef) : Unit = {
+//		//The key to be checked
+//		val key = newRef.key
+//		//the id of the new update
+//		val newId = newRef.id
+//
+//		//obtains the node of the new ref from the graph
+//		val newNode = dependencyGraph.get(newRef)
+//		//obtains the current node ids for the key that is checked
+//		val pointers = keys.get(key).toSet.flatten
+//
+//
+//		//Check whether to delete entries in the keys map
+//		pointers.foreach { id =>
+//			val node = dependencyGraph.get(ref(id, key))
+//
+//			val maybePath = node
+//				.withSubgraph(nodes = nodeT => operations.contains(nodeT.id)) //
+//				.pathTo(newNode)
+//
+//			maybePath match {
+//				case None => //if there is no path between the previousNode and the currentNode
+//
+//				case Some(path) => //if there is a path between the old node and the new node, then it is safe to delete
+//					keys.removeBinding(key, id)
+//			}
+//		}
+//
+//		//Check whether to add the new node to the keys table.
+//		pointers.foreach { id =>
+//			val previousNode = dependencyGraph.get(ref(id, key))
+//
+//			val maybePath = previousNode
+//				.withSubgraph(nodes = nodeT => operations.contains(nodeT.id)) //
+//				.pathTo(newNode)
+//
+//			maybePath match {
+//				case None => //if there is no path between the previousNode and the currentNode
+//
+//				case Some(path) => //if there is a path between the old node and the new node, then it is safe to delete
+//					keys.removeBinding(key, id)
+//			}
+//		}
+//	}
+
 
 	def +=(id : Id, key : Key, data : Data, tx : Option[Txid], deps : OpRef*) : Unit = {
 		addOp(id, key, data, tx, deps)
@@ -88,117 +172,161 @@ trait DepGraph[Id, Key, Data, Txid] {
 		*/
 	def removeOp(id : Id) : Option[Op[Id, Key, Data]] = {
 		/*unresolve all nodes where the node is a successor, has to be done before op is removed from operations*/
-		unresolveOp(id)
-
-		operations.remove(id) match { /*remove operation from operations, and check whether it existed*/
-			case None =>
-				//TODO: Remove this assert
-				assert(false, s"operation with id $id does not exist")
-				None
-			case Some(opInfo) =>
-				/*remove op from the transaction*/
-				opInfo.tx.foreach(txid => transactions.removeBinding(txid, distribution.OpRef(id, opInfo.key)))
-
-				/*do not remove any dependencies with the node. The dependencies still remain!*/
-				/*return the removed node*/
-				Some(Op(id, opInfo.key, opInfo.data))
-		}
+		operations.remove(id).map(opInfo => Op(id, opInfo.key, opInfo.data))
 	}
 
 	/**
 		* Adds a new dependency to a transaction.
 		*
 		* @param txid the transaction that is appended
-		* @param id the id of the operation that is added
+		* @param ops the id of the operation that is added
 		*/
-	def addOpToTx(txid : Txid, id : OpRef*) : Unit = transactions.get(txid) match {
-		case None =>
-			val set = new mutable.HashSet[OpRef]()
-			set ++= id
-			transactions(txid) = set
-		case Some(set) =>
-			set ++= id
-			set.foreach(e => unresolveOp(e.id))
+	def addOpsToTx(txid : Txid, ops : OpRef*) : Unit = {
+		val txRef = ref(txid)
+
+		//automatically adds a node if one of the edge endpoints does not exist
+		ops.foreach { opRef =>
+			dependencyGraph.add(opRef ~> txRef)
+			dependencyGraph.add(txRef ~> opRef)
+		}
 	}
 
-
-	def removeTx(txid : Txid) : Unit = transactions.get(txid) match {
-		case None =>
-			assert(false, s"transaction does not exist: $txid")
-		case Some(deps) =>
-			deps.foreach(dep => removeOp(dep.id))
-			transactions.remove(txid)
+	/**
+		* Adds a new transaction to the dependency graph.
+		*
+		* @param txid the identifier of the transaction.
+		*/
+	def addTx(txid : Txid) : Unit = {
+		transactions(txid) = TxInfo()
 	}
 
-	def unresolvedDependencies(id : Id) : Set[Id] = {
+	/**
+		* Removes a transaction from the dependency graph. Does not remove
+		* operations in the transaction.
+		*
+		* @param txid id of the removed transaction
+		*/
+	def removeTx(txid : Txid) : Unit = {
+		transactions.remove(txid)
+	}
 
+	/**
+		* Removes a transaction and all operations in that transaction.
+		*/
+	def purgeTx(txid : Txid) : Unit = {
+		transactions.remove(txid)
 
-		def unresolvedDependencies(id : Id, alreadyVisited : Set[Id]) : Set[Id] =	{
-			operations.get(id) match {
-				case None => Set(id) //id is unresolved itself
+		val txNode = getNode(txid)
 
-//				case Some(OpInfo(_, _, _, _)) => x //the operation id has been resolved already
-
-				case Some(opInfo) if alreadyVisited.contains(id) => //in this case we have visited id, and did not resolve it.
-					Set()
-
-				case Some(opInfo) =>
-					val predecessorsInGraph : Set[OpRef] = dependencyGraph.get(distribution.OpRef(id, opInfo.key)).diPredecessors.map(_.value)
-					val unresolvedPreds = predecessorsInGraph.flatMap(pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id])
-
-					val dependenciesInTx : Set[OpRef] = opInfo.tx.map(txid => transactions(txid).toSet).getOrElse(Set.empty)
-					val unresolvedTx = dependenciesInTx.flatMap(pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id])
-
-					val unresolved = unresolvedPreds ++ unresolvedTx
-
-					unresolved
+		txNode.diSuccessors.foreach { node => node.value match {
+				case distribution.OpRef(id : Id, _) => operations.remove(id)
+				case _ => sys.error(s"dependency of tx is expected to be opref")
 			}
 		}
+	}
 
-		unresolvedDependencies(id, Set.empty)
+	/**
+		* Computes one (transitive) reference of an operation
+		* that is not resolved.
+		*
+		* @param ref the reference to the operation.
+		* @return Some reference that is not resolved or None if all references are resolved.
+		*/
+	def unresolvedDependencies(ref : Ref) : Option[Ref] = {
+
+//		def unresolvedDependencies(r : Ref, visitedOps : Set[Id], visitedTxs : Set[Txid]) : Set[Ref] =	getInfo(r) match {
+//			case None => Set(r) //id is unresolved itself
+//
+//			case Some(distribution.OpRef(id : Id, _)) if visitedOps.contains(id) => //in this case we have visited id, and did not resolve it.
+//				Set()
+//
+//			case Some(distribution.TxRef(txid : Txid)) if visitedTxs.contains(txid) => //in this case we have visited id, and did not resolve it.
+//				Set()
+//
+//			case Some(ref : Ref) =>
+//
+//
+//
+//
+//					diPredecessors.map(_.value)
+//
+//				val unresolvedPreds = predecessorsInGraph.flatMap { predNode =>
+//					pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id]
+//				}
+//
+//				val dependenciesInTx : Set[OpRef] = opInfo.tx.map(txid => transactions(txid).toSet).getOrElse(Set.empty)
+//				val unresolvedTx = dependenciesInTx.flatMap(pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id])
+//
+//				val unresolved = unresolvedPreds ++ unresolvedTx
+//
+//				unresolved
+//		}
+
+		val predecessorsInGraph : Option[dependencyGraph.NodeT] = getNode(ref).findPredecessor(node => node.value match {
+			case distribution.OpRef(id : Id, _) => operations.contains(id)
+			case distribution.TxRef(txid : Txid) => transactions.contains(txid)
+		})
+
+		predecessorsInGraph.map(node => node.value)
 	}
 
 
-	def getDependencies(ref : OpRef) : Set[OpRef] = {
-		require(operations.contains(ref.id))
+	def getDependencies(ref : Ref) : Set[Ref] = {
+		require(getInfo(ref).isDefined)
 		dependencyGraph.get(ref).diPredecessors.map(_.value)
 	}
 
+	def getDependencies(id : Id, key : Key) : Set[Ref] =
+		getDependencies(ref(id, key))
 
-	def getDependencies(id : Id, key : Key) : Set[OpRef] =
-		getDependencies(distribution.OpRef(id, key))
-
-	def getDependencies(txid : Txid) : Set[OpRef] = {
-		transactions(txid).toSet
-	}
-
-	def getDependencies(ref : TxRef) : Set[OpRef] = {
-		getDependencies(ref.txid)
+	def getDependencies(txid : Txid) : Set[Ref] = {
+		getDependencies(ref(txid) : Ref)
 	}
 
 
-	def getOp(id : Id) : Op[Id, Key, Data] = operations.get(id) match {
+	def getOp(id : Id) : Option[Op[Id, Key, Data]] =
+		operations.get(id).map(opInfo => Op(id, opInfo.key, opInfo.data))
+
+
+	def apply(id : Id) : Op[Id, Key, Data] = getOp(id) match {
 		case None => throw new NoSuchElementException(s"operation with id $id does not exist")
-		case Some(opInfo) => Op(id, opInfo.key, opInfo.data)
+		case Some(op) => op
 	}
+
+
+//	def read(key : Key) : Set[Op[Id, Key, Data]] = {
+//
+//	}
 
 
 	/*
 	Private helper methods
 	*/
-	private def unresolveOp(id : Id) : Unit = {}
-//		operations.get(id) match {
-//		case Some(opInfo@OpInfo(_, _, _, _, Some(_))) =>
-//			opInfo.unresolvedDependencies = None
-//			dependencyGraph.get(id).diSuccessors.foreach(node => unresolveOp(node.value))
-//			opInfo.tx.foreach(txid => transactions(txid).foreach(txdep => unresolveOp(txdep)))
-//		case _ => /*Nothing has to be done*/
-//	}
+	private def getOpInfo(id : Id) : Option[OpInfo] = operations.get(id)
+	private def getTxInfo(txid : Txid) : Option[TxInfo] = transactions.get(txid)
+
+	private def getInfo(ref : Ref) : Option[NodeInfo] = ref match {
+		case distribution.OpRef(id, key) => operations.get(id)
+		case distribution.TxRef(txid) => transactions.get(txid)
+	}
+
+	private def getNode(id : Id, key : Key) : dependencyGraph.NodeT =
+		dependencyGraph.get(ref(id, key))
+	private def getNode(txid : Txid) : dependencyGraph.NodeT =
+		dependencyGraph.get(ref(txid))
+	private def getNode(ref : Ref) : dependencyGraph.NodeT =
+		dependencyGraph.get(ref)
+
+
 }
 
 
 object DepGraph {
-	case class Op[Id, Key, Data](id : Id, key : Key, data : Data)
+	case class Op[Id, Key, Data](id : Id, key : Key, data : Data) extends Product3[Id, Key, Data] {
+		@inline override final def _1 : Id = id
+		@inline override final def _2 : Key = key
+		@inline override final def _3 : Data = data
+	}
 
 
 	private class TransactionMap[Id, Txid] {
