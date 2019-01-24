@@ -6,6 +6,7 @@ import de.tudarmstadt.consistency.storelayer.local.dependency.DepGraph.Op
 import scalax.collection.mutable.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.GraphEdge._
+import scalax.collection.GraphTraversal.{Parameters, Predecessors}
 
 import scala.collection.mutable
 
@@ -73,8 +74,8 @@ trait DepGraph[Id, Key, Data, Txid] {
 		* to that dependency. The concrete conflict resolution algorithm is not
 		* defined here.
 		*/
-//	private val keys : mutable.MultiMap[Key, Id] =
-//		new mutable.HashMap[Key, Id] with mutable.MultiMap[Key, Id]
+	private val keyPointers : mutable.MultiMap[Key, Id] =
+		new mutable.HashMap[Key, mutable.Set[Id]] with mutable.MultiMap[Key, Id]
 
 
 	/* ### Operations ### */
@@ -106,54 +107,38 @@ trait DepGraph[Id, Key, Data, Txid] {
 		})
 
 		/*update keys*/
-//		updatePointersForKey(newRef)
+		updatePointersForNewKey(newRef)
 	}
 
 
-//	private def updatePointersForKey(newRef : OpRef) : Unit = {
-//		//The key to be checked
-//		val key = newRef.key
-//		//the id of the new update
-//		val newId = newRef.id
-//
-//		//obtains the node of the new ref from the graph
-//		val newNode = dependencyGraph.get(newRef)
-//		//obtains the current node ids for the key that is checked
-//		val pointers = keys.get(key).toSet.flatten
-//
-//
-//		//Check whether to delete entries in the keys map
-//		pointers.foreach { id =>
-//			val node = dependencyGraph.get(ref(id, key))
-//
-//			val maybePath = node
-//				.withSubgraph(nodes = nodeT => operations.contains(nodeT.id)) //
-//				.pathTo(newNode)
-//
-//			maybePath match {
-//				case None => //if there is no path between the previousNode and the currentNode
-//
-//				case Some(path) => //if there is a path between the old node and the new node, then it is safe to delete
-//					keys.removeBinding(key, id)
-//			}
-//		}
-//
-//		//Check whether to add the new node to the keys table.
-//		pointers.foreach { id =>
-//			val previousNode = dependencyGraph.get(ref(id, key))
-//
-//			val maybePath = previousNode
-//				.withSubgraph(nodes = nodeT => operations.contains(nodeT.id)) //
-//				.pathTo(newNode)
-//
-//			maybePath match {
-//				case None => //if there is no path between the previousNode and the currentNode
-//
-//				case Some(path) => //if there is a path between the old node and the new node, then it is safe to delete
-//					keys.removeBinding(key, id)
-//			}
-//		}
-//	}
+	private def updatePointersForNewKey(newRef : OpRef) : Unit = {
+		//The key to be checked
+		val key = newRef.key
+		//the id of the new update
+		val newId = newRef.id
+
+		//obtains the node of the new ref from the graph
+		val newNode = dependencyGraph.get(newRef)
+		//obtains the current node ids for the key that is checked
+		val pointers = keyPointers.get(key).toSet.flatten
+
+
+		//Check whether to delete entries in the keys map
+		val isPredecessor = pointers.exists({ id =>
+			val r = ref(id, key)
+			val node = dependencyGraph.get(r)
+
+			if (newNode.isSuccessorOf(node)) {
+				keyPointers.removeBinding(key, id)
+			}
+
+			newNode.isPredecessorOf(node)
+		})
+
+		if (!isPredecessor) {
+			keyPointers.addBinding(key, newId)
+		}
+	}
 
 
 	def +=(id : Id, key : Key, data : Data, tx : Option[Txid], deps : OpRef*) : Unit = {
@@ -232,7 +217,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 		* @param ref the reference to the operation.
 		* @return Some reference that is not resolved or None if all references are resolved.
 		*/
-	def unresolvedDependencies(ref : Ref) : Option[Ref] = {
+	def unresolvedDependencies(ref : Ref) : Traversable[Ref] = {
 
 //		def unresolvedDependencies(r : Ref, visitedOps : Set[Id], visitedTxs : Set[Txid]) : Set[Ref] =	getInfo(r) match {
 //			case None => Set(r) //id is unresolved itself
@@ -262,12 +247,17 @@ trait DepGraph[Id, Key, Data, Txid] {
 //				unresolved
 //		}
 
-		val predecessorsInGraph : Option[dependencyGraph.NodeT] = getNode(ref).findPredecessor(node => node.value match {
-			case distribution.OpRef(id : Id, _) => operations.contains(id)
-			case distribution.TxRef(txid : Txid) => transactions.contains(txid)
-		})
+//		val predecessorsInGraph : Option[dependencyGraph.NodeT] = getNode(ref).findPredecessor(node => node.value match {
+//			case distribution.OpRef(id : Id, _) => !operations.contains(id)
+//			case distribution.TxRef(txid : Txid) => !transactions.contains(txid)
+//		})
 
-		predecessorsInGraph.map(node => node.value)
+		getNode(ref).outerNodeTraverser(parameters = Parameters(direction = Predecessors)).filter(node => node.value match {
+			case distribution.OpRef(id : Id, _) => !operations.contains(id)
+			case distribution.TxRef(txid : Txid) => !transactions.contains(txid)
+		}).toSet
+
+//		predecessorsInGraph.map(node => node.value)
 	}
 
 
@@ -294,9 +284,12 @@ trait DepGraph[Id, Key, Data, Txid] {
 	}
 
 
-//	def read(key : Key) : Set[Op[Id, Key, Data]] = {
-//
-//	}
+	def read(key : Key) : Set[Op[Id, Key, Data]] = {
+		keyPointers.get(key).toSet.flatten.map(id => {
+			val op = operations(id)
+			Op(id, key, op.data)
+		})
+	}
 
 
 	/*
@@ -322,17 +315,11 @@ trait DepGraph[Id, Key, Data, Txid] {
 
 
 object DepGraph {
+
 	case class Op[Id, Key, Data](id : Id, key : Key, data : Data) extends Product3[Id, Key, Data] {
 		@inline override final def _1 : Id = id
 		@inline override final def _2 : Key = key
 		@inline override final def _3 : Data = data
 	}
 
-
-	private class TransactionMap[Id, Txid] {
-
-		private val transactions : mutable.Map[Txid, Set[Id]] = new mutable.HashMap
-
-
-	}
 }
