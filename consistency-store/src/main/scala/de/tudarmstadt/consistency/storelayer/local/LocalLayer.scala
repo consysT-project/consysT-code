@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.storelayer.local
 
 import de.tudarmstadt.consistency.storelayer.distribution._
 import de.tudarmstadt.consistency.storelayer.local.LocalLayer.{ReadHandler, WriteHandler}
+import de.tudarmstadt.consistency.storelayer.local.dependency.DepGraph.Op
 import de.tudarmstadt.consistency.storelayer.local.dependency.Session
 import de.tudarmstadt.consistency.storelayer.local.exceptions.{UnsupportedConsistencyLevelException, UnsupportedIsolationLevelException}
 
@@ -46,7 +47,7 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			session.releaseUpdate()
 	}
 
-	final def read(consistency : Consistency, key : Key) : Option[Data]  = {
+	final def read(consistency : Consistency, key : Key, conflictResolution : Set[Op[Id, Key, Data]] => Option[Op[Id, Key, Data]]) : Option[Data]  = {
 
 		val opRows : Iterable[OpRow] = store.readAllData(key)
 
@@ -59,9 +60,13 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			session.graph.addOp(node.id, node.key, node.data, node.txid.map(_.txid), node.dependencies, local = false)
 		}
 
-//		session.graph.read
-		//TODO: Complete
-		None
+		val ops = session.graph.read(key)
+
+		//TODO: Resolve dependecies
+
+		//TODO: Integrate conflict resolution correctly
+		conflictResolution(ops)
+			.map(_.data)
 	}
 
 	final def transaction[B](isolation : Isolation)(f : => B) : Option[B] = currentTransaction match {

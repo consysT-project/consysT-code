@@ -152,4 +152,25 @@ class DepGraphTest extends GraphTests {
 
 		Assert.assertEquals(Set(Op(6, 'x, 7.7), Op(5, 'x, 1.1)), graph.read('x))
 	}
+
+	@Test
+	def testRead2(): Unit = {
+		graph += (1, 'x, 4.4)
+
+		Assert.assertEquals(Set(Op(1, 'x, 4.4)), graph.read('x))
+
+		graph += (2, 'x, 3.3, (1, 'x))
+
+		Assert.assertEquals(Set(Op(2, 'x, 3.3)), graph.read('x))
+
+		graph += (3, 'x, 11.11, (2, 'x), (4, 'x))
+
+		//TODO: We do not check whether the new node is resolved.
+		Assert.assertEquals(Set(Op(2, 'x, 3.3), Op(3, 'x, 11.11)), graph.read('x))
+
+		graph += (4, 'x, 2.2)
+
+		Assert.assertEquals(Set(Op(3, 'x, 11.11)), graph.read('x))
+
+		}
 }

@@ -26,4 +26,14 @@ trait CoordinationService[Txid, TxStatus, Isolation] {
 		*/
 	def commitIfPending(txid : Txid) : Boolean
 
+	/**
+		* Commits a transaction if it was pending. This method has to
+		* make sure that the transaction has been committed on each replica,
+		* or that it has been aborted on each replica.
+		*
+		* @param txid the transaction to be committed
+		* @return True, if the transaction has been committed.
+		*/
+	def forceCommitIfPending(txid : Txid) : Boolean
+
 }

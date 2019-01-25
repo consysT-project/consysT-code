@@ -1,8 +1,9 @@
 package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
-import com.datastax.driver.core.ConsistencyLevel
+import com.datastax.driver.core.{ConsistencyLevel, WriteType}
+import com.datastax.driver.core.exceptions.WriteTimeoutException
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import de.tudarmstadt.consistency.storelayer.distribution.{CoordinationService, ConsistencyBindings, SessionService, TxStatusBindings}
+import de.tudarmstadt.consistency.storelayer.distribution.{ConsistencyBindings, CoordinationService, SessionService, TxStatusBindings}
 
 /**
 	* Created on 21.12.18.
@@ -29,7 +30,7 @@ trait CassandraCoordinationService[Txid, TxStatus, Isolation] extends Coordinati
 
 
 	/* operations */
-	def addNewTransaction(txid : Txid, txStatus : TxStatus, isolation : Isolation) : Boolean = {
+	override def addNewTransaction(txid : Txid, txStatus : TxStatus, isolation : Isolation) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val txInsertResult = session.execute(
@@ -49,7 +50,7 @@ trait CassandraCoordinationService[Txid, TxStatus, Isolation] extends Coordinati
 		txInsertResult.wasApplied()
 	}
 
-	def abortIfPending(txid : Txid) : Boolean = {
+	override def abortIfPending(txid : Txid) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val updateOtherTxResult = session.execute(
@@ -63,7 +64,7 @@ trait CassandraCoordinationService[Txid, TxStatus, Isolation] extends Coordinati
 		updateOtherTxResult.wasApplied()
 	}
 
-	def commitIfPending(txid : Txid) : Boolean = {
+	override def commitIfPending(txid : Txid) : Boolean = {
 		import com.datastax.driver.core.querybuilder.QueryBuilder._
 
 		val updateOtherTxResult = session.execute(
@@ -75,6 +76,27 @@ trait CassandraCoordinationService[Txid, TxStatus, Isolation] extends Coordinati
 		)
 
 		updateOtherTxResult.wasApplied()
+	}
+
+	override def forceCommitIfPending(txid : Txid) : Boolean = {
+
+		while (true) {
+			try {
+ 				val wasCommitted = commitIfPending(txid)
+				return wasCommitted
+			} catch {
+				//when a timeout exception with write type CAS is thrown, then it is unclear whether the write has succeeded
+				//Therefore, we should retry committing the update...
+				//TODO: Add some measure to avoid infinite loops
+				//TODO: This is only available for cassandra stores. The whole loop is designed for Cassandra. Remove it here!
+				case e : WriteTimeoutException if e.getWriteType == WriteType.CAS =>
+					System.err.println("commit retry!")
+					//Wait a bit, then retry
+					Thread.sleep(300)
+			}
+		}
+
+		sys.error("?????")
 	}
 
 
