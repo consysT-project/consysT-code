@@ -32,10 +32,9 @@ trait DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 		def consistency : Consistency
 	}
 
-
-	case class DataWrite(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], consistency : Consistency)
-
-	case class TxWrite(id : Txid, dependencies : Set[OpRef], consistency : Consistency)
+	sealed trait Write
+	case class DataWrite(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], consistency : Consistency) extends Write
+	case class TxWrite(txid : Txid, dependencies : Set[OpRef], consistency : Consistency) extends Write
 
 
 	def writeData(dataWrite : DataWrite, txStatus : TxStatus, isolation : Isolation) : Unit = {
@@ -56,12 +55,18 @@ trait DatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	def writeTx(txWrite: TxWrite, txStatus : TxStatus, isolation : Isolation) : Unit = {
 		import txWrite._
-		writeTx(id, dependencies, txStatus, isolation, consistency)
+		writeTx(txid, dependencies, txStatus, isolation, consistency)
 	}
 	def writeTx(txid : Txid, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit
 
 	def deleteTx(txid : Txid) : Unit
 
 	def readTx(txid : Txid) : Option[TxRow]
+
+	def writeAll(writes : Traversable[Write], txStatus: TxStatus, isolation: Isolation) : Unit = writes.foreach {
+		case x : DataWrite => writeData(x, txStatus, isolation)
+		case x : TxWrite => writeTx(x, txStatus, isolation)
+	}
+
 
 }

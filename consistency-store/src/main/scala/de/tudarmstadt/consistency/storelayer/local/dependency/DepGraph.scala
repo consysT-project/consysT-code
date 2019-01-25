@@ -43,6 +43,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 		override var local : Boolean = true
 	) extends NodeInfo
 
+
 	/* ### Data structures ### */
 	/**
 		* Graph of dependencies between operations. The graph stores identifiers
@@ -52,7 +53,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 		* that the operation has not been resolved from the underlying store
 		* but is known to the graph (e.g. through a dependency of another node).
 		*/
-	private val dependencyGraph : Graph[Ref, DiEdge] = Graph.empty
+	private val graph : Graph[Ref, DiEdge] = Graph.empty
 
 	/**
 		* Maps ids to their respective operations. Ids that can not be resolved
@@ -100,10 +101,10 @@ trait DepGraph[Id, Key, Data, Txid] {
 		tx.foreach { txid => addOpsToTx(txid, newRef) }
 
 		/*add operation node to dependency graph*/
-		dependencyGraph.add(newRef)
+		graph.add(newRef)
 		/*add all dependencies to the graph*/
 		deps.foreach(dep => {
-			dependencyGraph.add(dep ~> newRef)
+			graph.add(dep ~> newRef)
 		})
 
 		/*update keys*/
@@ -118,7 +119,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 		val newId = newRef.id
 
 		//obtains the node of the new ref from the graph
-		val newNode = dependencyGraph.get(newRef)
+		val newNode = graph.get(newRef)
 		//obtains the current node ids for the key that is checked
 		val pointers = keyPointers.get(key).toSet.flatten
 
@@ -126,7 +127,7 @@ trait DepGraph[Id, Key, Data, Txid] {
 		//Check whether to delete entries in the keys map
 		val isPredecessor = pointers.exists({ id =>
 			val r = ref(id, key)
-			val node = dependencyGraph.get(r)
+			val node = graph.get(r)
 
 			if (newNode.isSuccessorOf(node)) {
 				keyPointers.removeBinding(key, id)
@@ -171,8 +172,8 @@ trait DepGraph[Id, Key, Data, Txid] {
 
 		//automatically adds a node if one of the edge endpoints does not exist
 		ops.foreach { opRef =>
-			dependencyGraph.add(opRef ~> txRef)
-			dependencyGraph.add(txRef ~> opRef)
+			graph.add(opRef ~> txRef)
+			graph.add(txRef ~> opRef)
 		}
 	}
 
@@ -217,53 +218,17 @@ trait DepGraph[Id, Key, Data, Txid] {
 		* @param ref the reference to the operation.
 		* @return Some reference that is not resolved or None if all references are resolved.
 		*/
-	def unresolvedDependencies(ref : Ref) : Traversable[Ref] = {
-
-//		def unresolvedDependencies(r : Ref, visitedOps : Set[Id], visitedTxs : Set[Txid]) : Set[Ref] =	getInfo(r) match {
-//			case None => Set(r) //id is unresolved itself
-//
-//			case Some(distribution.OpRef(id : Id, _)) if visitedOps.contains(id) => //in this case we have visited id, and did not resolve it.
-//				Set()
-//
-//			case Some(distribution.TxRef(txid : Txid)) if visitedTxs.contains(txid) => //in this case we have visited id, and did not resolve it.
-//				Set()
-//
-//			case Some(ref : Ref) =>
-//
-//
-//
-//
-//					diPredecessors.map(_.value)
-//
-//				val unresolvedPreds = predecessorsInGraph.flatMap { predNode =>
-//					pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id]
-//				}
-//
-//				val dependenciesInTx : Set[OpRef] = opInfo.tx.map(txid => transactions(txid).toSet).getOrElse(Set.empty)
-//				val unresolvedTx = dependenciesInTx.flatMap(pred => if (pred != id) unresolvedDependencies(pred.id, alreadyVisited + id) else Set.empty[Id])
-//
-//				val unresolved = unresolvedPreds ++ unresolvedTx
-//
-//				unresolved
-//		}
-
-//		val predecessorsInGraph : Option[dependencyGraph.NodeT] = getNode(ref).findPredecessor(node => node.value match {
-//			case distribution.OpRef(id : Id, _) => !operations.contains(id)
-//			case distribution.TxRef(txid : Txid) => !transactions.contains(txid)
-//		})
-
+	def unresolvedDependencies(ref : Ref) : Set[Ref] = {
 		getNode(ref).outerNodeTraverser(parameters = Parameters(direction = Predecessors)).filter(node => node.value match {
 			case distribution.OpRef(id : Id, _) => !operations.contains(id)
 			case distribution.TxRef(txid : Txid) => !transactions.contains(txid)
 		}).toSet
-
-//		predecessorsInGraph.map(node => node.value)
 	}
 
 
 	def getDependencies(ref : Ref) : Set[Ref] = {
 		require(getInfo(ref).isDefined)
-		dependencyGraph.get(ref).diPredecessors.map(_.value)
+		graph.get(ref).diPredecessors.map(_.value)
 	}
 
 	def getDependencies(id : Id, key : Key) : Set[Ref] =
@@ -291,6 +256,9 @@ trait DepGraph[Id, Key, Data, Txid] {
 		})
 	}
 
+	/*For testing purposes only*/
+	private[dependency] def getGraph : Graph[store.Ref, DiEdge] = graph
+
 
 	/*
 	Private helper methods
@@ -303,14 +271,12 @@ trait DepGraph[Id, Key, Data, Txid] {
 		case distribution.TxRef(txid) => transactions.get(txid)
 	}
 
-	private def getNode(id : Id, key : Key) : dependencyGraph.NodeT =
-		dependencyGraph.get(ref(id, key))
-	private def getNode(txid : Txid) : dependencyGraph.NodeT =
-		dependencyGraph.get(ref(txid))
-	private def getNode(ref : Ref) : dependencyGraph.NodeT =
-		dependencyGraph.get(ref)
-
-
+	private def getNode(id : Id, key : Key) : graph.NodeT =
+		graph.get(ref(id, key))
+	private def getNode(txid : Txid) : graph.NodeT =
+		graph.get(ref(txid))
+	private def getNode(ref : Ref) : graph.NodeT =
+		graph.get(ref)
 }
 
 

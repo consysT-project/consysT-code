@@ -23,7 +23,7 @@ trait SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolati
 
 	override def commitWrites(txWrite : TxWrite, dataWrites : Iterable[DataWrite]) : CommitStatus	= {
 
-		val txid = txWrite.id
+		val txid = txWrite.txid
 
 		/* Handle writes */
 		//1. Add a new entry into the transaction table (lightweight transaction)
@@ -129,10 +129,8 @@ trait SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolati
 
 		//3. Add the data to the data table
 		//3.a. Add a data entry for each write
-		dataWrites.foreach(write => writeData(write, TxStatus.PENDING, Isolation.SI))
-
 		//3.b. Add a transaction record to the data table
-		writeTx(txWrite, TxStatus.PENDING, Isolation.SI)
+		writeAll(dataWrites ++ Iterable(txWrite), TxStatus.PENDING, Isolation.SI)
 
 
 		//4. Mark transaction as committed
@@ -145,36 +143,11 @@ trait SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolati
 		When returning an abort to the shim layer, we have to make sure that the transaction
 		really has been aborted. TODO: Is the last point really that important?
 		 */
-		while (true) {
-			try {
-				val wasCommitted = commitIfPending(txid)
-//				val updateTxComittedResult = session.execute(
-//					update(keyspace.casTxTable.name)
-//						.`with`(set("status", store.TxStatuses.COMMITTED))
-//						.where(QueryBuilder.eq("txid", txid))
-//						.onlyIf(QueryBuilder.ne("status", store.TxStatuses.ABORTED))
-//						.setConsistencyLevel(ConsistencyLevel.ALL)
-//				)
-
-				if (!wasCommitted) {
-					return Abort("the transaction has been aborted by a conflicting transaction before being able to commit")
-				}
-
-				return Success
-			} catch {
-				//when a timeout exception with write type CAS is thrown, then it is unclear whether the write has succeeded
-				//Therefore, we should retry committing the update...
-				//TODO: Add some measure to avoid infinite loops
-				//TODO: This is only available for cassandra stores. The whole loop is designed for Cassandra. Remove it here!
-				case e : WriteTimeoutException if e.getWriteType == WriteType.CAS =>
-					System.err.println("retried commit!!!")
-					//Wait a bit, then retry
-					Thread.sleep(300)
-			}
+		if (forceCommitIfPending(txid)) {
+			return Success
+		} else {
+			return Abort("the transaction has been aborted by a conflicting transaction before being able to commit")
 		}
-
-		//This code should never be executed.
-		return Abort("the transaction has been aborted for unknown reasons")
 	}
 
 

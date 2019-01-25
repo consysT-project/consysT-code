@@ -1,7 +1,7 @@
 package de.tudarmstadt.consistency.storelayer.distribution.cassandra
 
 import com.datastax.driver.core.querybuilder.QueryBuilder
-import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Row, TupleValue}
+import com.datastax.driver.core._
 import de.tudarmstadt.consistency.storelayer.distribution.{DatastoreService, OpRef, TxRef}
 
 import scala.collection.JavaConverters
@@ -98,26 +98,7 @@ trait CassandraDatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consis
 
 
 	override def writeData(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
-		import com.datastax.driver.core.querybuilder.QueryBuilder._
-
-		val convertedTxid = txid.map(_.txid).getOrElse(null)
-
-		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
-			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
-		)
-
-		session.execute(
-			update(opTableName)
-				.`with`(set("data", data))
-				.and(set("deps", convertedDependencies))
-				.and(set("txid", convertedTxid))
-				.and(set("txstatus", txStatus))
-				.and(set("isolation", isolation))
-				.and(set("consistency", consistency))
-				.where(QueryBuilder.eq("key", key))
-				.and(QueryBuilder.eq("id", id))
-				.setConsistencyLevel(cassandraConsistency)
-		)
+		session.execute(dataWrite(id, key, data, txid, dependencies, txStatus, isolation, consistency))
 	}
 
 
@@ -186,21 +167,11 @@ trait CassandraDatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consis
 
 
 
-	override def writeTx(txid : Txid, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
-		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
-			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
-		)
 
-		import com.datastax.driver.core.querybuilder.QueryBuilder._
-		session.execute(
-			update(txTableName)
-				.`with`(set("deps", convertedDependencies))
-				.and(set("txstatus", txStatus))
-				.and(set("isolation", isolation))
-				.and(set("consistency", consistency))
-				.where(QueryBuilder.eq("id", txid))
-				.setConsistencyLevel(cassandraConsistency)
-		)
+
+
+	override def writeTx(txid : Txid, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Unit = {
+		session.execute(txWrite(txid, dependencies, txStatus, isolation, consistency))
 	}
 
 	override def deleteTx(txid : Txid) : Unit = {
@@ -225,6 +196,58 @@ trait CassandraDatastoreService[Id, Txid, Key, Data, TxStatus, Isolation, Consis
 			return None
 		}
 		Some(new CassandraTxRow(row))
+	}
+
+	override def writeAll(writes : Traversable[Write], txStatus: TxStatus, isolation: Isolation) : Unit = {
+		val batch = new BatchStatement()
+
+		writes.foreach {
+			case TxWrite(txid, dependencies, consistency) =>
+				batch.add(txWrite(txid, dependencies, txStatus, isolation, consistency))
+			case DataWrite(id, key, data, txid, dependencies, consistency) =>
+				batch.add(dataWrite(id, key, data, txid, dependencies, txStatus, isolation, consistency))
+		}
+
+		session.execute(batch)
+	}
+
+
+	/* private helper methods */
+	private def dataWrite(id : Id, key : Key, data : Data, txid : Option[TxRef], dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Statement = {
+		import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+		val convertedTxid = txid.map(_.txid).getOrElse(null)
+
+		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
+			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
+		)
+
+		update(opTableName)
+			.`with`(set("data", data))
+			.and(set("deps", convertedDependencies))
+			.and(set("txid", convertedTxid))
+			.and(set("txstatus", txStatus))
+			.and(set("isolation", isolation))
+			.and(set("consistency", consistency))
+			.where(QueryBuilder.eq("key", key))
+			.and(QueryBuilder.eq("id", id))
+			.setConsistencyLevel(cassandraConsistency)
+	}
+
+	private def txWrite(txid : Txid, dependencies : Set[OpRef], txStatus : TxStatus, isolation : Isolation, consistency : Consistency) : Statement = {
+		import com.datastax.driver.core.querybuilder.QueryBuilder._
+
+		val convertedDependencies : java.util.Set[TupleValue] = JavaConverters.setAsJavaSet(
+			dependencies.map(t => tupleToCassandraTuple(t.toTuple)(this))
+		)
+
+		update(txTableName)
+			.`with`(set("deps", convertedDependencies))
+			.and(set("txstatus", txStatus))
+			.and(set("isolation", isolation))
+			.and(set("consistency", consistency))
+			.where(QueryBuilder.eq("id", txid))
+			.setConsistencyLevel(cassandraConsistency)
 	}
 
 
