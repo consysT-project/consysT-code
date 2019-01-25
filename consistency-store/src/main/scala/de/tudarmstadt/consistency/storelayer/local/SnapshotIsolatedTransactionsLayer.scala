@@ -75,7 +75,7 @@ trait SnapshotIsolatedTransactionsLayer[Id, Txid, Key, Data, TxStatus, Isolation
 			true
 		}
 
-		/* TODO: override*/ private[local] def handleAllRead(consistency: Consistency, key : Key) : Iterable[OpNode[Id, Txid, Key, Data]] = {
+		override private[local] def handleAllRead(consistency: Consistency, key : Key) : Iterable[OpNode[Id, Txid, Key, Data]] = {
 			val data : Iterable[OpRow] = store.readAllData(key)
 
 			data.filter(row => readIsObservable(Some(txid), row) match {

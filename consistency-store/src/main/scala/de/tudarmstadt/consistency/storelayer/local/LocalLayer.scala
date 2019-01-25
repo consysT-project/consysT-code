@@ -28,6 +28,7 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		override protected val store : SessionService[Id, Txid, Key, Data, _, _, _] = LocalLayer.this.store
 	}
 
+
 	protected var currentTransaction : Option[Transaction[_]] = None
 
 
@@ -47,18 +48,23 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 			session.releaseUpdate()
 	}
 
-	final def read(consistency : Consistency, key : Key, conflictResolution : Set[Op[Id, Key, Data]] => Option[Op[Id, Key, Data]]) : Option[Data]  = {
 
+	final def read(consistency : Consistency, key : Key, conflictResolution : Set[Op[Id, Key, Data]] => Option[Op[Id, Key, Data]]) : Option[Data]  = {
+		//Read the update history of one key
 		val opRows : Iterable[OpRow] = store.readAllData(key)
 
+		//Handle all the reads
 		val data = currentTransaction match {
 			case None => handleAllRead(consistency, opRows)
 			case Some(tx) => tx.handleAllRead(consistency, opRows)
 		}
 
+		//Add the whole history to the dependency graph
 		data.foreach { node =>
 			session.graph.addOp(node.id, node.key, node.data, node.txid.map(_.txid), node.dependencies, local = false)
 		}
+
+		/*Review the process from here on out */
 
 		val ops = session.graph.read(key)
 
@@ -120,8 +126,7 @@ trait LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		// def apply(f : () => B) : Option[B]
 	}
 
-	/* thrown when the transaction is aborted */
-	private[local] class AbortedException extends RuntimeException("the transaction has been aborted")
+
 }
 
 
@@ -136,7 +141,7 @@ object LocalLayer {
 
 	private[local] trait ReadHandler[Id, Txid, Key, Data, Consistency] {
 
-		private[local] def handleAllRead(consistency : Consistency, rows : Iterable[/* TODO: OpRow*/ Any]) : Iterable[OpNode[Id, Txid, Key, Data]] =
+		private[local] def handleAllRead(consistency : Consistency, rows : Iterable[/*TODO: OpRow*/ Any]) : Iterable[OpNode[Id, Txid, Key, Data]] =
 			throw new UnsupportedConsistencyLevelException[Consistency](consistency)
 
 		private[local] def handleSingleRead(consistency : Consistency, id : Id, key : Key) : Option[OpNode[Id, Txid, Key, Data]] =
