@@ -16,6 +16,7 @@
         <module>store-integration-demo</module>
         <module>consistency-checker/consistency-checker-test</module>
         <module>consistency-store/consistency-store-test</module>
+        <module>replicated-objects</module>
     </modules>
 
     <properties>

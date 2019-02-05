@@ -13,7 +13,7 @@ import scala.collection.mutable
 	* @author Mirko Köhler
 	*/
 trait SnapshotIsolatedTransactionsLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
-	extends LocalLayer[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
+	extends LocalLayerImpl[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
 		with SnapshotIsolatedTransactionProtocol[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	override protected val store :  SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency]
@@ -29,14 +29,14 @@ trait SnapshotIsolatedTransactionsLayer[Id, Txid, Key, Data, TxStatus, Isolation
 	import store._
 
 
-	override protected def createTransaction[B](isolation : Isolation, txid : Txid) : Transaction[B] =
+	override protected def createTransaction[B](isolation : Isolation, txid : Txid) : TransactionCtx[B] =
 		isolation match {
 			case x if x == Isolation.SI => new SnapshotIsolatedTransaction(txid)
 			case _ => super.createTransaction[B](isolation, txid)
 		}
 
 
-	private class SnapshotIsolatedTransaction[B](val txid : Txid) extends Transaction[B] {
+	private class SnapshotIsolatedTransaction[B](val txid : Txid) extends TransactionCtxImpl[B] {
 		/* buffers all writes so that they can be applied at the end of the transaction */
 		private val writeBuffer : mutable.Buffer[DataWrite] = mutable.Buffer.empty
 		/* locally stores already read nodes */

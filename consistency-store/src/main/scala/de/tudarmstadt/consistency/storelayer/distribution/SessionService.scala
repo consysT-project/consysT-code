@@ -10,9 +10,9 @@ import scala.language.implicitConversions
 trait SessionService[Id, Txid, Key, Data, TxStatus, Isolation, Consistency] {
 
 	/* class definitions */
-	type Ref = de.tudarmstadt.consistency.storelayer.distribution.Ref[Id, Key, Txid]
-	type OpRef = de.tudarmstadt.consistency.storelayer.distribution.OpRef[Id, Key]
-	type TxRef = de.tudarmstadt.consistency.storelayer.distribution.TxRef[Txid]
+	final type Ref = de.tudarmstadt.consistency.storelayer.distribution.Ref[Id, Key, Txid]
+	final type OpRef = de.tudarmstadt.consistency.storelayer.distribution.OpRef[Id, Key]
+	final type TxRef = de.tudarmstadt.consistency.storelayer.distribution.TxRef[Txid]
 
 
 	implicit def ref(id : Id, key : Key) : OpRef = OpRef(id, key)
