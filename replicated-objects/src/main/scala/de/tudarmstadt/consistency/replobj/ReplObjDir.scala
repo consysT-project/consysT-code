@@ -1,5 +1,7 @@
 package de.tudarmstadt.consistency.replobj
 
+import de.tudarmstadt.consistency.replobj.actors.R
+
 import scala.collection.mutable
 
 /**
@@ -9,6 +11,6 @@ import scala.collection.mutable
 	*/
 class ReplObjDir {
 
-	private val index : mutable.Map[Symbol, ReplObj[_]] = mutable.HashMap.empty
+	private val index : mutable.Map[Symbol, R[_]] = mutable.HashMap.empty
 
 }
