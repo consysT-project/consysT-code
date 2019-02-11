@@ -1,13 +1,12 @@
 package de.tudarmstadt.consistency.replobj.classes
 
-import de.tudarmstadt.consistency.replobj.actors.{R, Replicateable}
-
+import de.tudarmstadt.consistency.replobj.actors.R
 /**
 	* Created on 06.02.19.
 	*
 	* @author Mirko Köhler
 	*/
-case class B(distA : R[A], locA : A) extends Replicateable[B] {
+case class B(distA : R[A], locA : A) {
 
 	def incAll() : Unit = {
 		distA.call("inc")
@@ -15,5 +14,4 @@ case class B(distA : R[A], locA : A) extends Replicateable[B] {
 		println(distA.call[String]("toString") + " -- " + locA)
 	}
 
-	override def replicate() : B = copy()
 }
