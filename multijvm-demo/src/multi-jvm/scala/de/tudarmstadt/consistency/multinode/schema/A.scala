@@ -1,5 +1,4 @@
-package de.tudarmstadt.consistency.replobj.classes
-
+package de.tudarmstadt.consistency.multinode.schema
 
 /**
 	* Created on 05.02.19.

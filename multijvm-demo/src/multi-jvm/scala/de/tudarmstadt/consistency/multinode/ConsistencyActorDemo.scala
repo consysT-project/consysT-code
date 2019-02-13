@@ -4,6 +4,8 @@ import akka.actor.{Actor, Props}
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import akka.util.Timeout
+import de.tudarmstadt.consistency.multinode.schema.A
+import de.tudarmstadt.consistency.replobj.actors.ActorStore
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -17,25 +19,29 @@ import scala.concurrent.duration._
 class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
   with STMultiNodeSpec with ImplicitSender {
 
-  import ConsistencyActorDemo._
   import ConsistencyActorDemoConfig._
 
   def initialParticipants : Int = roles.size
 
 
   runOn(node1) {
-    import akka.pattern.ask
-
     println("started node1...")
 
     implicit val timeout : Timeout = Timeout(5 seconds)
+	  val store = new ActorStore
 
-    enterBarrier("deployed")
+	  enterBarrier("init")
 
-    val ponger = system.actorSelection(node(node2) / "user" / "ponger")
-    val response = Await.result(ponger ? "ping", 5 seconds)
+	  val a = store.distribute("a", A())
 
-    println(response)
+	  enterBarrier("deployed")
+
+	  a("f") = 4
+	  val f : Int = a("f")
+    println("node1: " + f)
+
+//    val ponger = system.actorSelection(node(node2) / "user" / "ponger")
+//    val response = Await.result(ponger ? "ping", 5 seconds)
 
     enterBarrier("finished")
   }
@@ -46,20 +52,20 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
     println("started node2...")
 
+	  val store = new ActorStore
 
-    system.actorOf(Props[Ponger], "ponger")
+	  enterBarrier("init")
+
+//    system.actorOf(Props[Ponger], "ponger")
 
     enterBarrier("deployed")
+
+	  val replica = store.replicate[A, Nothing](node(node1) / "user" / "a")
+	  val f : Int = replica("f")
+
+	  println("node2: " + f)
 
     enterBarrier("finished")
   }
 
-}
-
-object ConsistencyActorDemo {
-  class Ponger extends Actor {
-    def receive : Receive = {
-      case "ping" => sender() ! "pong"
-    }
-  }
 }
