@@ -8,22 +8,35 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait DistributedStore[Addr] {
+trait DistributedStore[Addr, Path] {
 
-	def distribute[T, L : TypeTag](addr : Addr, value : T) : Ref[T, L]
+	/**
+		* Creates a new distributed object in this store and returns a reference to that object.
+		* The object can be referenced by other nodes using a path generated from the specified address.
+		* @param addr The (distributed) address of the object
+		* @param value The object to distribute
+		* @return A reference to the created object
+		*/
+	def distribute[T : TypeTag, L : TypeTag](addr : Addr, value : T) : Ref[T, L]
 
-	def replicate[T, L : TypeTag](addr : Addr) : Ref[T, L]
 
-	def ref[T, L](addr : Addr) : Ref[T, L]
+	def replicate[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
+
+	def ref[T, L](path : Path) : Ref[T, L]
 
 
 	abstract class Ref[T, L : TypeTag] {
 
-		def getField[R](fieldName : String) : R
+		def remote : T = throw new IllegalAccessException("remote can not be accessed here")
 
-		def setField[R](fieldName : String, value : R) : Unit
+		private[replobj] def getField[R](fieldName : String) : R
 
-		def call[R](methodName : String, args : Any*) : R
+		private[replobj] def setField[R](fieldName : String, value : R) : Unit
+
+		private[replobj] def call[R](methodName : String, args : Any*) : R
+
+		//Optional print method for debugging purposes
+		private[replobj] def print() : Unit = throw new UnsupportedOperationException("print is not supported")
 
 
 		/* syntactic sugar*/

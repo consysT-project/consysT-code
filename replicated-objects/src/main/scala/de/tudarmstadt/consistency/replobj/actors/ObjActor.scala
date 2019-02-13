@@ -1,32 +1,23 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import akka.actor.{Actor, Props}
-import de.tudarmstadt.consistency.replobj.actors.ObjActor._
+import akka.actor.Actor
+import de.tudarmstadt.consistency.replobj.actors.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
 import de.tudarmstadt.consistency.replobj.typeToClassTag
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
+
 /**
-	* Created on 06.02.19.
+	* Created on 13.02.19.
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] class ObjActor[T <: AnyRef](val obj : T, implicit val ttag : TypeTag[T]) extends Actor {
-
-	private implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
-
-//	/* create a new object using reflection */
-//	private val obj : T = {
-//		val mirror = runtimeMirror(ct.runtimeClass.getClassLoader)
-//		val classMirror = mirror.reflectClass(typeOf[T].typeSymbol.asClass)
-//		val constructor = classMirror.reflectConstructor(typeOf[T].decl(termNames.CONSTRUCTOR).asMethod)
-//
-//		constructor.apply(constructorArgs : _*).asInstanceOf[T]
-//	}
+abstract class ObjActor[T <: AnyRef](var obj : T, implicit val ttag : TypeTag[T]) extends Actor {
 
 	/* predefined for reflection */
-	private lazy val objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
+	protected implicit lazy val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
+	protected lazy val objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 
 
 
@@ -41,17 +32,15 @@ private[actors] class ObjActor[T <: AnyRef](val obj : T, implicit val ttag : Typ
 		case FieldSet(fldName, value) =>
 			setField[Any](fldName, value)
 
-		/*distributed operations*/
-		case Replicate =>
-			val replActor = this.context.actorOf(Props(classOf[ObjActor[T]], obj /*TODO: This uses the same object*/, ttag))
-			sender() ! obj
-
 		/* for debugging purposes */
 		case Print =>
 			println("Obj" + this.self + ": " + obj)
 	}
 
-	private def invoke[R](methodName : String, args : Any*) : R = {
+
+
+
+	protected def invoke[R](methodName : String, args : Any*) : R = {
 		val methodSymbol = typeOf[T].decl(TermName(methodName)).asMethod
 		val methodMirror = objMirror.reflectMethod(methodSymbol)
 
@@ -60,7 +49,7 @@ private[actors] class ObjActor[T <: AnyRef](val obj : T, implicit val ttag : Typ
 		result.asInstanceOf[R]
 	}
 
-	private def getField[R](fieldName : String) : R = {
+	protected def getField[R](fieldName : String) : R = {
 		val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
 		val fieldMirror = objMirror.reflectField(fieldSymbol)
 
@@ -69,12 +58,13 @@ private[actors] class ObjActor[T <: AnyRef](val obj : T, implicit val ttag : Typ
 		result.asInstanceOf[R]
 	}
 
-	private def setField[R](fieldName : String, value : R) : Unit = {
+	protected def setField[R](fieldName : String, value : R) : Unit = {
 		val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
 		val fieldMirror = objMirror.reflectField(fieldSymbol)
 
 		fieldMirror.set(value)
 	}
+
 }
 
 
@@ -84,6 +74,10 @@ object ObjActor {
 	private[actors] case class MethodInv(methodName : String, args : Seq[Any]) extends Message
 	private[actors] case class FieldGet(fieldName : String) extends Message
 	private[actors] case class FieldSet(fieldName : String, newVal : Any) extends Message
+	private[actors] case object Init extends Message
 	private[actors] case object Replicate extends Message
 	private[actors] case object Print extends Message
+
+	private[actors] trait Response
+	private[actors] case class Replicated[T](obj : T) extends Response
 }
