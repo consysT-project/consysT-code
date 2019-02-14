@@ -60,6 +60,9 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 	  val replica = store.replicate[A, ConsistencyLevels.Inconsistent](node(node1) / "user" / "a")
 	  Thread.sleep(2000)
 
+	  replica.remote.f
+	  replica.remote.inc()
+
 	  enterBarrier("replicated")
 
 	  enterBarrier("fieldset")
