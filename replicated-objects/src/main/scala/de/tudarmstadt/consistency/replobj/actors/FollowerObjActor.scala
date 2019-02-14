@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.ActorRef
 import akka.util.Timeout
-import de.tudarmstadt.consistency.replobj.actors.ObjActor.{Init, Replicate, Replicated}
+import de.tudarmstadt.consistency.replobj.actors.ObjActor.{Init, Replicate, SetObj}
 
 import scala.collection.mutable
 import scala.concurrent.Await
@@ -15,8 +15,9 @@ import scala.language.postfixOps
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] class FollowerObjActor[T <: AnyRef](private val master : ActorRef, tt : TypeTag[T]) extends ObjActor[T](null.asInstanceOf[T], tt) {
+private[actors] trait FollowerObjActor[T <: AnyRef, L] extends ObjActor[T, L] {
 
+	protected val leader : ActorRef
 
 	override def receive : Receive = {
 		case Init =>
@@ -24,7 +25,7 @@ private[actors] class FollowerObjActor[T <: AnyRef](private val master : ActorRe
 
 			implicit val timeout : Timeout = Timeout(5 seconds)
 
-			val response = master ? Replicate
+			val response = leader ? Replicate(self, consistencytag)
 
 			val state = Await.result(response, 5 seconds)
 			obj = state.asInstanceOf[T]
