@@ -69,7 +69,7 @@ class ActorStore(implicit val actorSystem : ActorSystem) extends DistributedStor
 
 	private class ObjRef[T, L : TypeTag] (private val objActor : ActorRef) extends Ref[T, L]{
 
-		def call[R](methodName : String, args : Any*) : R = {
+		override def call[R](methodName : String, args : Any*) : R = {
 			import akka.pattern.ask
 
 			implicit val timeout : Timeout = Timeout(5 seconds)
