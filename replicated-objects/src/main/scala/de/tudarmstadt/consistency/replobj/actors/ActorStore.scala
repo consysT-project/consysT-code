@@ -25,21 +25,43 @@ class ActorStore(implicit val actorSystem : ActorSystem) extends DistributedStor
 		* @return A reference to the created object
 		*/
 	override def distribute[T : TypeTag, L : TypeTag](addr : String, value : T) : Ref[T, L] = {
-		val actorRef = actorSystem.actorOf(Props(classOf[MasterObjActor[T]], value, typeTag[T]), addr)
-		new ObjRef(actorRef)
+		val ltt = implicitly[TypeTag[L]]
+
+		if (ltt == typeTag[ConsistencyLevels.Inconsistent]) {
+			val actorRef = actorSystem.actorOf(Props(classOf[InconsistentActors.LeaderActor[T]], value, typeTag[T]), addr)
+			new ObjRef[T, L](actorRef)
+		} else if (ltt == typeTag[ConsistencyLevels.Weak]) {
+			val actorRef = actorSystem.actorOf(Props(classOf[WeakActors.LeaderActor[T]], value, typeTag[T]), addr)
+			new ObjRef[T, L](actorRef)
+		} else {
+			throw new UnsupportedOperationException("unknown consistency level: " + ltt)
+		}
+
+
 	}
 
+
+	//TODO: replicate can return even though the state replication has not finished yet. Thus it can include "future updates" that happened after the call
 	override def replicate[T : TypeTag, L : TypeTag](path : ActorPath) : Ref[T, L] = {
+		val ltt = implicitly[TypeTag[L]]
 
-		implicit val timeout : Timeout = Timeout(10 seconds)
+		if (ltt == typeTag[ConsistencyLevels.Inconsistent]) {
+			val remoteMaster = Await.result(actorSystem.actorSelection(path).resolveOne(10 seconds), 12 seconds)
+			val localActor =  actorSystem.actorOf(Props(classOf[InconsistentActors.FollowerActor[T]], remoteMaster, typeTag[T]))
+			localActor ! Init
+			new ObjRef[T, L](localActor)
 
-		val remoteMaster = Await.result(actorSystem.actorSelection(path).resolveOne, 12 seconds)
+		} else if (ltt == typeTag[ConsistencyLevels.Weak]) {
+			val remoteMaster = Await.result(actorSystem.actorSelection(path).resolveOne(10 seconds), 12 seconds)
+			val localActor =  actorSystem.actorOf(Props(classOf[WeakActors.FollowerActor[T]], remoteMaster, typeTag[T]))
+			localActor ! Init
+			new ObjRef[T, L](localActor)
 
-		val localActor =  actorSystem.actorOf(Props(classOf[FollowerObjActor[T]], remoteMaster, typeTag[T]))
+		} else {
+			throw new UnsupportedOperationException("unknown consistency level: " + ltt)
+		}
 
-		localActor ! Init
 
-		new ObjRef(localActor)
 	}
 
 	override def ref[T, L](path : ActorPath) : Ref[T, L] = ???

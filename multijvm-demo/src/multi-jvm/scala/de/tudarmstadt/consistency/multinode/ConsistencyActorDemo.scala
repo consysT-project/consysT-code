@@ -1,14 +1,9 @@
 package de.tudarmstadt.consistency.multinode
 
-import akka.actor.{Actor, Props}
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import akka.util.Timeout
 import de.tudarmstadt.consistency.multinode.schema.A
-import de.tudarmstadt.consistency.replobj.actors.ActorStore
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import de.tudarmstadt.consistency.replobj.actors.{ActorStore, ConsistencyLevels}
 
 
 /**
@@ -26,17 +21,22 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node1) {
     println("started node1...")
-
-    implicit val timeout : Timeout = Timeout(5 seconds)
 	  val store = new ActorStore
-
 	  enterBarrier("init")
 
-	  val a = store.distribute("a", A())
-
+	  val a = store.distribute[A, ConsistencyLevels.Inconsistent]("a", new A)
 	  enterBarrier("deployed")
 
+	  enterBarrier("replicated")
+
 	  a("f") = 4
+	  a("f") = 32
+	  a <= "inc"
+
+	  Thread.sleep(2000)
+
+	  enterBarrier("fieldset")
+
 	  val f : Int = a("f")
     println("node1: " + f)
 
@@ -49,20 +49,22 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
 
   runOn(node2) {
-
     println("started node2...")
-
 	  val store = new ActorStore
-
 	  enterBarrier("init")
 
 //    system.actorOf(Props[Ponger], "ponger")
 
     enterBarrier("deployed")
 
-	  val replica = store.replicate[A, Nothing](node(node1) / "user" / "a")
-	  val f : Int = replica("f")
+	  val replica = store.replicate[A, ConsistencyLevels.Inconsistent](node(node1) / "user" / "a")
+	  Thread.sleep(2000)
 
+	  enterBarrier("replicated")
+
+	  enterBarrier("fieldset")
+
+	  val f : Int = replica("f")
 	  println("node2: " + f)
 
     enterBarrier("finished")

@@ -5,6 +5,10 @@ package de.tudarmstadt.consistency.multinode.schema
 	*
 	* @author Mirko Köhler
 	*/
-case class A(var f : Int = 0) {
+@SerialVersionUID(3145521L)
+class A extends Serializable {
+
+	var f : Int = 0
+
 	def inc(): Unit = f += 1
 }
