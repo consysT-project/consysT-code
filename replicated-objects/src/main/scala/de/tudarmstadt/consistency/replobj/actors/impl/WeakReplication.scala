@@ -1,11 +1,10 @@
-package de.tudarmstadt.consistency.replobj.actors
+package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.ActorRef
-import de.tudarmstadt.consistency.replobj.actors.ConsistencyLevels.Weak
-import de.tudarmstadt.consistency.replobj.actors.ObjActor._
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, Message, MethodInv}
 
 import scala.reflect.runtime.universe._
-
 
 /**
 	* Weak consistent actors propagate their changes to other actors, but
@@ -14,11 +13,12 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] object WeakActors {
+private[actors] object WeakReplication extends SingleLeaderReplication {
 
-	class LeaderActor[T <: AnyRef](protected var obj : T, protected implicit val objtag : TypeTag[T]) extends LeaderObjActor[T, Weak] {
+	class LeaderActor[T <: AnyRef](protected var obj : T, protected implicit val objtag : TypeTag[T])
+		extends super.LeaderActor[T, Weak] {
 
-		override protected def consistencytag : TypeTag[Weak] = typeTag[Weak]
+		override protected def consistencyTag : TypeTag[Weak] = typeTag[Weak]
 
 		override def receive : Receive = {
 			/*object operations*/
@@ -61,11 +61,12 @@ private[actors] object WeakActors {
 	}
 
 
-	class FollowerActor[T <: AnyRef](protected val leader : ActorRef, protected implicit val objtag : TypeTag[T]) extends FollowerObjActor[T, Weak] {
+	class FollowerActor[T <: AnyRef](protected val leader : ActorRef, protected implicit val objtag : TypeTag[T])
+		extends super.FollowerActor[T, Weak] {
 
 		var obj : T = _
 
-		override protected def consistencytag : TypeTag[Weak] = typeTag[Weak]
+		override protected def consistencyTag : TypeTag[Weak] = typeTag[Weak]
 
 		override def receive : Receive = {
 			/*object operations*/
@@ -96,5 +97,7 @@ private[actors] object WeakActors {
 	}
 
 
-
+	trait CoordinationMessage extends Message
+	case class Invoked(methodName : String, args : Seq[Any]) extends CoordinationMessage
+	case class Set(fieldName : String, newVal : Any) extends CoordinationMessage
 }

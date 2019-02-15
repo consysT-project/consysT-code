@@ -22,7 +22,6 @@ trait DistributedStore[Addr, Path] {
 
 	def replicate[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
 
-	def ref[T, L](path : Path) : Ref[T, L]
 
 
 	abstract class Ref[T, L : TypeTag] {

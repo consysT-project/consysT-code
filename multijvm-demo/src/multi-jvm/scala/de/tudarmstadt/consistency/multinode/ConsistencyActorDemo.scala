@@ -3,8 +3,7 @@ package de.tudarmstadt.consistency.multinode
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import de.tudarmstadt.consistency.multinode.schema.A
-import de.tudarmstadt.consistency.replobj.actors.{ActorStore, ConsistencyLevels}
-
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, actors}
 
 /**
 	* Created on 08.02.19.
@@ -21,10 +20,10 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node1) {
     println("started node1...")
-	  val store = new ActorStore
+	  val store = actors.store
 	  enterBarrier("init")
 
-	  val a = store.distribute[A, ConsistencyLevels.Inconsistent]("a", new A)
+	  val a = store.distribute[A, ConsistencyLevels.Weak]("a", new A)
 	  enterBarrier("deployed")
 
 	  enterBarrier("replicated")
@@ -50,18 +49,15 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node2) {
     println("started node2...")
-	  val store = new ActorStore
+	  val store = actors.store
 	  enterBarrier("init")
 
 //    system.actorOf(Props[Ponger], "ponger")
 
     enterBarrier("deployed")
 
-	  val replica = store.replicate[A, ConsistencyLevels.Inconsistent](node(node1) / "user" / "a")
+	  val replica = store.replicate[A, ConsistencyLevels.Weak](node(node1) / "user" / "a")
 	  Thread.sleep(2000)
-
-	  replica.remote.f
-	  replica.remote.inc()
 
 	  enterBarrier("replicated")
 
