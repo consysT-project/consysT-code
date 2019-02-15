@@ -1,7 +1,7 @@
-package de.tudarmstadt.consistency.replobj.actors
+package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.{Actor, ActorRef}
-import de.tudarmstadt.consistency.replobj.actors.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
 import de.tudarmstadt.consistency.replobj.typeToClassTag
 
 import scala.reflect.ClassTag
@@ -17,12 +17,11 @@ private[actors] trait ObjActor[T <: AnyRef, L] extends Actor {
 
 	protected var obj : T
 	protected implicit def objtag : TypeTag[T]
-	protected def consistencytag : TypeTag[L]
+	protected def consistencyTag : TypeTag[L]
 
 	/* predefined for reflection */
 	protected implicit lazy val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
 	protected lazy val objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
-
 
 
 	override def receive : Receive = {
@@ -74,21 +73,13 @@ private[actors] trait ObjActor[T <: AnyRef, L] extends Actor {
 
 object ObjActor {
 
-	private[actors] sealed trait Message
-	private[actors] case class MethodInv(methodName : String, args : Seq[Any]) extends Message
-	private[actors] case class FieldGet(fieldName : String) extends Message
-	private[actors] case class FieldSet(fieldName : String, newVal : Any) extends Message
+	trait Message
 
-	private[actors] sealed trait InternalMessage extends Message
-	private[actors] case object Init extends InternalMessage
-	private[actors] case object Print extends InternalMessage
-	private[actors] case class Replicate[L](follower : ActorRef, consistencyLevel : TypeTag[L]) extends InternalMessage
-	private[actors] case class SetObj[T](obj : T) extends InternalMessage
+	sealed trait ObjectMessage extends Message
+	case class MethodInv(methodName : String, args : Seq[Any]) extends ObjectMessage
+	case class FieldGet(fieldName : String) extends ObjectMessage
+	case class FieldSet(fieldName : String, newVal : Any) extends ObjectMessage
 
-	private[actors] trait CoordinationMessage extends Message
-	private[actors] case class Invoked(methodName : String, args : Seq[Any]) extends CoordinationMessage
-	private[actors] case class Get(fieldName : String) extends CoordinationMessage
-	private[actors] case class Set(fieldName : String, newVal : Any) extends CoordinationMessage
-
-
+	sealed trait DebugMessage extends Message
+	case object Print extends DebugMessage
 }

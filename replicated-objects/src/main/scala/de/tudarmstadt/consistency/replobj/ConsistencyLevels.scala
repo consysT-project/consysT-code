@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.replobj.actors
+package de.tudarmstadt.consistency.replobj
 
 /**
 	* Created on 14.02.19.

@@ -1,22 +1,22 @@
-package de.tudarmstadt.consistency.replobj.actors
+package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.ActorRef
-import de.tudarmstadt.consistency.replobj.actors.ConsistencyLevels.{Inconsistent, Weak}
-import de.tudarmstadt.consistency.replobj.actors.ObjActor._
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Inconsistent
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, MethodInv}
 
 import scala.reflect.runtime.universe._
-
 
 /**
 	* Inconsistent actors do not coordinate any updates.
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] object InconsistentActors {
+private[actors] object InconsistentReplication extends SingleLeaderReplication {
 
-	class LeaderActor[T <: AnyRef](protected var obj : T, protected implicit val objtag : TypeTag[T]) extends LeaderObjActor[T, Inconsistent] {
+	class LeaderActor[T <: AnyRef](protected var obj : T, protected implicit val objtag : TypeTag[T])
+		extends super.LeaderActor[T, Inconsistent] {
 
-		override protected def consistencytag : TypeTag[Inconsistent] = typeTag[Inconsistent]
+		override protected def consistencyTag : TypeTag[Inconsistent] = typeTag[Inconsistent]
 
 		override def receive : Receive = {
 			/*object operations*/
@@ -35,15 +35,14 @@ private[actors] object InconsistentActors {
 
 			case msg => super.receive(msg)
 		}
-
 	}
 
-
-	class FollowerActor[T <: AnyRef](protected val leader : ActorRef, protected implicit val objtag : TypeTag[T]) extends FollowerObjActor[T, Inconsistent] {
+	class FollowerActor[T <: AnyRef](protected val leader : ActorRef, protected implicit val objtag : TypeTag[T])
+		extends super.FollowerActor[T, Inconsistent] {
 
 		var obj : T = _
 
-		override protected def consistencytag : TypeTag[Inconsistent] = typeTag[Inconsistent]
+		override protected def consistencyTag : TypeTag[Inconsistent] = typeTag[Inconsistent]
 
 		override def receive : Receive = {
 			/*object operations*/
