@@ -11,7 +11,7 @@ import java.util.regex.Matcher
 object Preprocessor {
 
 	private val mthdInvokeRegex = "(?<inv>(\\w+)\\.remote\\.(\\w+)\\((.*)\\))".r
-	private	val fldSetRegex = "(?<fldset>(\\w+)\\.remote\\.(\\w+)\\s*=([^\n;]*))".r
+	private	val fldSetRegex = "(?<fldset>(\\w+)\\.remote\\.(\\w+)\\s*=\\s*([^\n;]*))".r
 	private val fldGetRegex = "(?<fldget>(\\w+)\\.remote\\.(\\w+))".r
 
 
