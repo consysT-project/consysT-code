@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.ActorRef
 import akka.util.Timeout
+import de.tudarmstadt.consistency.replobj.Replicable
 import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.Message
 import de.tudarmstadt.consistency.replobj.actors.impl.SingleLeaderReplication.{Init, Replicate}
 
@@ -49,9 +50,13 @@ private[actors] trait SingleLeaderReplication {
 				implicit val timeout : Timeout = Timeout(5 seconds)
 
 				val response = leader ? Replicate(self, consistencyTag)
+				val state : T = Await.result(response, 5 seconds).asInstanceOf[T]
 
-				val state = Await.result(response, 5 seconds)
-				obj = state.asInstanceOf[T]
+				state match {
+					case s : Replicable => s.replicated()
+				}
+
+				obj = state
 
 			case msg => super.receive(msg)
 		}

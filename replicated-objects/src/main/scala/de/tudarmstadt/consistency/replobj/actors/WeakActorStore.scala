@@ -1,7 +1,7 @@
 package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{ActorPath, Props}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref}
 import de.tudarmstadt.consistency.replobj.actors.impl.SingleLeaderReplication.Init
 
 import scala.reflect.runtime.universe._
