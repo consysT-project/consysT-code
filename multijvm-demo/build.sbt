@@ -1,7 +1,7 @@
 import com.typesafe.sbt.SbtMultiJvm.multiJvmSettings
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 
-val akkaVersion = "2.5.20"
+val akkaVersion = "2.5.21"
 
 organization := "de.tu-darmstadt.consistency-types"
 
@@ -20,6 +20,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-remote" % akkaVersion,
   "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion,
+  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
 //  "de.tu-darmstadt.consistency-types" % "replicated-objects" % "1.0.0",
   "org.scalatest" %% "scalatest" % "3.0.5" % Test)
 
