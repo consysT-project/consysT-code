@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors.impl
 import akka.actor.ActorRef
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.Replicable
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.Message
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.Message
 import de.tudarmstadt.consistency.replobj.actors.impl.SingleLeaderReplication.{Init, Replicate}
 
 import scala.collection.mutable
@@ -19,7 +19,7 @@ import scala.reflect.runtime.universe._
 private[actors] trait SingleLeaderReplication {
 
 
-	protected trait LeaderActor[T <: AnyRef, L] extends ObjActor[T, L] {
+	protected trait LeaderActor[T <: AnyRef, L] extends ObjectActor[T, L] {
 
 		protected val followers : mutable.Set[ActorRef] = mutable.HashSet.empty
 
@@ -38,7 +38,7 @@ private[actors] trait SingleLeaderReplication {
 	}
 
 
-	protected trait FollowerActor[T <: AnyRef, L] extends ObjActor[T, L] {
+	protected trait FollowerActor[T <: AnyRef, L] extends ObjectActor[T, L] {
 
 		protected val leader : ActorRef
 

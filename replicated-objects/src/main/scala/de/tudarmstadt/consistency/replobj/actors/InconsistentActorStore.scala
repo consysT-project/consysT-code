@@ -18,7 +18,7 @@ trait InconsistentActorStore extends ActorStore {
 
 	override def distribute[T : TypeTag, L : TypeTag](addr : String, value : T) : Ref[T, L] = {
 		if (implicitly[TypeTag[L]] == typeTag[ConsistencyLevels.Inconsistent]) {
-			new ObjRef[T, L](actorSystem.actorOf(Props(classOf[LeaderActor[T]], value, typeTag[T]), addr))
+			new ObjectRef[T, L](actorSystem.actorOf(Props(classOf[LeaderActor[T]], value, typeTag[T]), addr))
 		} else {
 			super.distribute[T, L](addr, value)
 		}
@@ -29,7 +29,7 @@ trait InconsistentActorStore extends ActorStore {
 		if (implicitly[TypeTag[L]] == typeTag[ConsistencyLevels.Inconsistent]) {
 			val localActor = actorSystem.actorOf(Props(classOf[FollowerActor[T]], getMaster(path), typeTag[T]))
 			localActor ! Init
-			new ObjRef[T, L](localActor)
+			new ObjectRef[T, L](localActor)
 		} else {
 			super.replicate[T, L](path)
 		}
