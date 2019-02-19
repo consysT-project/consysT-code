@@ -30,7 +30,7 @@
 
         <javaVersion>1.8</javaVersion>
         <scalaVersion>2.12.8</scalaVersion>
-        <akkaVersion>2.5.20</akkaVersion>
+        <akkaVersion>2.5.21</akkaVersion>
 
         <checkerframeworkVersion>2.5.2</checkerframeworkVersion>
         <cassandraDriverVersion>3.6.0</cassandraDriverVersion>
