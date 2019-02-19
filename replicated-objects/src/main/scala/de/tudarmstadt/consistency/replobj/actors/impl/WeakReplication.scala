@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.ActorRef
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, Message, MethodInv}
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.{FieldGet, FieldSet, Message, MethodInv}
 
 import scala.reflect.runtime.universe._
 

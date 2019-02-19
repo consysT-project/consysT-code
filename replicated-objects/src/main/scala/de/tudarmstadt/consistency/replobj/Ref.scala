@@ -1,34 +1,28 @@
 package de.tudarmstadt.consistency.replobj
 
-import scala.reflect.runtime.universe._
-
 /**
 	* Created on 18.02.19.
 	*
 	* @author Mirko Köhler
 	*/
 
-abstract class Ref[T, L : TypeTag] extends Serializable {
+trait Ref[T, L] extends Serializable {
 
-	def remote : T = throw new IllegalAccessException("remote can not be accessed here")
+	def getField[R](fieldName : String) : R
 
-	private[replobj] def getField[R](fieldName : String) : R
+	def setField[R](fieldName : String, value : R) : Unit
 
-	private[replobj] def setField[R](fieldName : String, value : R) : Unit
-
-	private[replobj] def call[R](methodName : String, args : Any*) : R
+	def call[R](methodName : String, args : Any*) : R
 
 	//Optional print method for debugging purposes
 	private[replobj] def print() : Unit = throw new UnsupportedOperationException("print is not supported")
+}
 
+object Ref {
 
-	/* syntactic sugar*/
-	def apply[R](fieldName : String) : R =
-		getField(fieldName)
+	trait LocalRef[T, L] extends Ref[T, L] {
+		def merge() : Unit
+	}
 
-	def update[R](fieldName : String, value : R) : Unit =
-		setField(fieldName, value)
-
-	def <=[R](methodName : String, args : Any*) : R =
-		call[R](methodName, args : _*)
+	trait RemoteRef[T, L] extends Ref[T, L]
 }

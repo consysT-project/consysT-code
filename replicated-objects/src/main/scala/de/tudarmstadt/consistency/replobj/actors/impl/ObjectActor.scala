@@ -1,7 +1,7 @@
 package de.tudarmstadt.consistency.replobj.actors.impl
 
 import akka.actor.{Actor, ActorRef}
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.{FieldGet, FieldSet, MethodInv, Print}
 import de.tudarmstadt.consistency.replobj.typeToClassTag
 
 import scala.reflect.ClassTag
@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] trait ObjActor[T <: AnyRef, L] extends Actor {
+private[actors] trait ObjectActor[T <: AnyRef, L] extends Actor {
 
 	protected var obj : T
 	protected implicit def objtag : TypeTag[T]
@@ -71,11 +71,11 @@ private[actors] trait ObjActor[T <: AnyRef, L] extends Actor {
 }
 
 
-object ObjActor {
+object ObjectActor {
 
 	trait Message
 
-	sealed trait ObjectMessage extends Message
+	trait Command
 	case class MethodInv(methodName : String, args : Seq[Any]) extends ObjectMessage
 	case class FieldGet(fieldName : String) extends ObjectMessage
 	case class FieldSet(fieldName : String, newVal : Any) extends ObjectMessage

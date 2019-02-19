@@ -3,11 +3,12 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.ActorRef
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.Ref
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.{FieldGet, FieldSet, MethodInv, Print}
 
 import scala.concurrent.Await
 import scala.reflect.runtime.universe._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 /**
 	* Created on 18.02.19.
@@ -15,10 +16,7 @@ import scala.concurrent.duration._
 	* @author Mirko Köhler
 	*/
 @SerialVersionUID(5634024L)
-class ObjRef[T, L : TypeTag] (@transient private val objActor : ActorRef) extends Ref[T, L]{
-	//TODO: Is there a way to check whether the actorref references a local actor?
-	//Conceptually, ObjRef always has to reference a local actor
-
+abstract class ObjectRef[T, L : TypeTag](private val objActor : ActorRef) extends Ref[T, L]{
 
 	override def call[R](methodName : String, args : Any*) : R = {
 		import akka.pattern.ask

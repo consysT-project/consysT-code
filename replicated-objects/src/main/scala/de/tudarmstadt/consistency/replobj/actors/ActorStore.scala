@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{ActorPath, ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.{DistributedStore, Ref}
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjActor.{FieldGet, FieldSet, MethodInv, Print}
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.{FieldGet, FieldSet, MethodInv, Print}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -28,6 +28,10 @@ trait ActorStore extends DistributedStore[String, ActorPath] {
 	override def replicate[T : TypeTag, L : TypeTag](path : ActorPath) : Ref[T, L] =
 		throw new UnsupportedOperationException("unknown consistency level: " + implicitly[TypeTag[L]])
 
+
+	override def remote[T : TypeTag,	L : TypeTag](path : ActorPath) : Ref[T, L] = {
+		new ObjectRef[T, L](getMaster(path))
+	}
 
 	protected def getMaster(path : ActorPath) : ActorRef = {
 		Await.result(actorSystem.actorSelection(path).resolveOne(10 seconds), 12 seconds)
