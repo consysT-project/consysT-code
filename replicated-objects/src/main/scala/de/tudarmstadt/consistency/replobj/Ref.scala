@@ -12,17 +12,10 @@ trait Ref[T, L] extends Serializable {
 
 	def setField[R](fieldName : String, value : R) : Unit
 
-	def call[R](methodName : String, args : Any*) : R
+	def invoke[R](methodName : String, args : Any*) : R
+
+	def synchronize() : Unit
 
 	//Optional print method for debugging purposes
 	private[replobj] def print() : Unit = throw new UnsupportedOperationException("print is not supported")
-}
-
-object Ref {
-
-	trait LocalRef[T, L] extends Ref[T, L] {
-		def merge() : Unit
-	}
-
-	trait RemoteRef[T, L] extends Ref[T, L]
 }
