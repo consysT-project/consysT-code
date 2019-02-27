@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors.impl
 import akka.actor.ActorRef
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.Replicable
-import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.Message
+import de.tudarmstadt.consistency.replobj.actors.impl.ObjectActor.Event
 import de.tudarmstadt.consistency.replobj.actors.impl.SingleLeaderReplication.{Init, Replicate}
 
 import scala.collection.mutable
@@ -23,7 +23,7 @@ private[actors] trait SingleLeaderReplication {
 
 		protected val followers : mutable.Set[ActorRef] = mutable.HashSet.empty
 
-		override def receive : Receive = {
+		override def receiveEvent : PartialFunction[Event, Unit] = {
 			/*distributed operations*/
 			case Replicate(follower, ctt) =>
 				//Dynamically check that replicas have the correct consistency level
@@ -33,7 +33,7 @@ private[actors] trait SingleLeaderReplication {
 				followers += follower
 				sender() ! obj
 
-			case msg => super.receive(msg)
+			case evt => super.receiveEvent(evt)
 		}
 	}
 
@@ -42,7 +42,7 @@ private[actors] trait SingleLeaderReplication {
 
 		protected val leader : ActorRef
 
-		override def receive : Receive = {
+		override def receiveEvent : PartialFunction[Event, Unit] = {
 			case Init =>
 				import akka.pattern.ask
 				import scala.concurrent.duration._
@@ -58,16 +58,13 @@ private[actors] trait SingleLeaderReplication {
 
 				obj = state
 
-			case msg => super.receive(msg)
+			case evt => super.receiveEvent(evt)
 		}
 	}
 }
 
 object SingleLeaderReplication {
 
-	sealed trait CoordinationMessage extends Message
-	case object Init extends CoordinationMessage
-	case class Replicate[L](follower : ActorRef, consistencyLevel : TypeTag[L]) extends CoordinationMessage
-
-
+	case object Init extends Event
+	case class Replicate[L](follower : ActorRef, consistencyLevel : TypeTag[L]) extends Event
 }

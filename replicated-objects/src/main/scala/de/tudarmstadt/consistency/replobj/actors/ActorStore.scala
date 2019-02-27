@@ -29,7 +29,7 @@ trait ActorStore extends DistributedStore[String, ActorPath] {
 		throw new UnsupportedOperationException("unknown consistency level: " + implicitly[TypeTag[L]])
 
 
-	override def remote[T : TypeTag,	L : TypeTag](path : ActorPath) : Ref[T, L] = {
+	override def ref[T : TypeTag,	L : TypeTag](path : ActorPath) : Ref[T, L] = {
 		new ObjectRef[T, L](getMaster(path))
 	}
 
