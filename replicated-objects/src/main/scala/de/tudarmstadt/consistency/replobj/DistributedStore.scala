@@ -23,5 +23,5 @@ trait DistributedStore[Addr, Path] {
 	def replicate[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
 
 
-	def remote[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
+	def ref[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
 }

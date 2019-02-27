@@ -13,33 +13,26 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] object WeakReplication extends SingleLeaderReplication {
+private[actors] object StrongReplication extends SingleLeaderReplication {
 
 	class LeaderActor[T <: AnyRef](protected var obj : T, protected implicit val objtag : TypeTag[T])
 		extends super.LeaderActor[T, Weak] {
 
 		override protected def consistencyTag : TypeTag[Weak] = typeTag[Weak]
 
+
+
+
 		override def receiveCommand : PartialFunction[Command, Unit] = {
 			/*object operations*/
 			case MethodInv(mthdName, args) =>
-				val res = invoke[Any](mthdName, args : _*)
-				sender() ! res
-				val msg = Invoked(mthdName, args) //TODO: Only send invoked when method mutates object
-				followers.foreach { ref =>
-					ref ! msg
-				}
+
 
 			case FieldGet(fldName) => //No coordination needed in the get case
-				val res = getField[Any](fldName)
-				sender() ! res
+
 
 			case FieldSet(fldName, value) =>
-				setField[Any](fldName, value)
-				val msg = Set(fldName, value)
-				followers.foreach { ref =>
-					ref ! msg
-				}
+
 
 			case cmd => super.receiveCommand(cmd)
 		}
@@ -48,8 +41,9 @@ private[actors] object WeakReplication extends SingleLeaderReplication {
 			/*Coordination with other actors*/
 			case msg@Invoked(mthdName, args) =>
 				invoke[Any](mthdName, args : _*)
+
 				followers.foreach { ref =>
-					if (ref != sender()) ref ! msg
+					ref ! Merge(Invoked)
 				}
 
 			case msg@Set(fldName, value) =>
@@ -102,6 +96,9 @@ private[actors] object WeakReplication extends SingleLeaderReplication {
 			case evt => super.receiveEvent(evt)
 		}
 	}
+
+
+	case class Merge(op : Operation) extends Event
 
 
 	case class Invoked(methodName : String, args : Seq[Any]) extends Event
