@@ -30,7 +30,7 @@ package object replobj {
 			ref.setField(fieldName, value)
 
 		def <=[R](methodName : String, args : Any*) : R =
-			ref.call[R](methodName, args : _*)
+			ref.invoke[R](methodName, args : _*)
 
 
 	}

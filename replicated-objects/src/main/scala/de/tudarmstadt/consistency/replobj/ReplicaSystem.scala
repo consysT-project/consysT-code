@@ -8,7 +8,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait DistributedStore[Addr, Path] {
+trait ReplicaSystem[Addr] {
 
 	/**
 		* Creates a new distributed object in this store and returns a reference to that object.
@@ -17,11 +17,8 @@ trait DistributedStore[Addr, Path] {
 		* @param value The object to distribute
 		* @return A reference to the created object
 		*/
-	def distribute[T : TypeTag, L : TypeTag](addr : Addr, value : T) : Ref[T, L]
+	def replicate[T : TypeTag, L : TypeTag](addr : Addr, value : T) : Ref[T, L]
 
 
-	def replicate[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
-
-
-	def ref[T : TypeTag, L : TypeTag](path : Path) : Ref[T, L]
+	def ref[T : TypeTag, L : TypeTag](addr : Addr) : Ref[T, L]
 }

@@ -1,8 +1,10 @@
 package de.tudarmstadt.consistency.multinode
 
+import akka.actor.ActorSystem
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import de.tudarmstadt.consistency.multinode.schema.{A, B}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, actors}
 
 /**
@@ -20,11 +22,21 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node1) {
     println("started node1...")
-	  val store = actors.store
+
+	  val replica = new AkkaReplicaSystem[String] {
+		  override def actorSystem : ActorSystem = system
+		  override def name : String = "replica1"
+	  }
+
+
+	  enterBarrier("setup")
+
+
 	  enterBarrier("init")
 
-	  val a = store.distribute[A, ConsistencyLevels.Weak]("a", new A)
-	  val b = store.distribute[B, ConsistencyLevels.Weak]("b", new B(a))
+	  val a = replica.replicate[A, ConsistencyLevels.Weak]("a", new A)
+	  val b = replica.replicate[B, ConsistencyLevels.Weak]("b", new B(a))
+
 	  enterBarrier("deployed")
 
 	  enterBarrier("replicated")
@@ -44,28 +56,37 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node2) {
     println("started node2...")
-	  val store = actors.store
+	  val replica = new AkkaReplicaSystem[String] {
+		  override def actorSystem : ActorSystem = system
+		  override def name : String = "replica2"
+	  }
+
+	  enterBarrier("setup")
+
+
+
+
 	  enterBarrier("init")
 
 //    system.actorOf(Props[Ponger], "ponger")
 
     enterBarrier("deployed")
 
-	  val replica = store.replicate[B, ConsistencyLevels.Weak](node(node1) / "user" / "b")
+	  val ref = replica.ref[B, ConsistencyLevels.Weak]("b")
 	  Thread.sleep(2000)
 
 	  enterBarrier("replicated")
 
-	  replica("x") = 3
+	  ref("x") = 3
 	  Thread.sleep(500)
-	  val i : Int = replica <= "incAndGet"
+	  val i : Int = ref <= "incAndGet"
 		println(s"i = $i")
 	  Thread.sleep(500)
 
 	  enterBarrier("fieldset")
 
-	  val x : Int = replica("x")
-	  val f : Int = (replica("a") : Ref[A, ConsistencyLevels.Weak])("f")
+	  val x : Int = ref("x")
+	  val f : Int = (ref("a") : Ref[A, ConsistencyLevels.Weak])("f")
 	  println(s"x = $x, a.f = $f")
 
     enterBarrier("finished")
