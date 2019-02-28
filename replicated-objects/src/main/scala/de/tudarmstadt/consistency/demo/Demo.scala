@@ -1,8 +1,13 @@
 package de.tudarmstadt.consistency.demo
 
+import java.io.{ByteArrayOutputStream, ObjectOutputStream, OutputStream}
+
 import akka.actor.ActorSystem
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, ReplicaSystem, ReplicatedObject}
+import de.tudarmstadt.consistency.replobj.actors.{AkkaReplicaSystem, NewObject}
+
+import scala.reflect.runtime.universe._
 
 /**
 	* Created on 27.02.19.
@@ -14,15 +19,12 @@ object Demo extends App {
 
 	val system = ActorSystem.create("demo")
 
-	val replica = new AkkaReplicaSystem[String] {
-		override def actorSystem : ActorSystem = system
-		override def name : String = "replica1"
-	}
+	val replica : ReplicaSystem[String] = AkkaReplicaSystem.create[String](system, "replica1")
 
+	val ref  = replica.replicate[A, Weak]("a", A(3))
 
-	replica.replicate[A, ConsistencyLevels.Weak]("a", A(3))
-
-
+	ref("i") = 55
+	println(ref("i"))
 
 }
 
