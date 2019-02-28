@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorRef}
 import akka.util.Timeout
-import de.tudarmstadt.consistency.replobj.{Ref, typeToClassTag}
+import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -15,13 +15,9 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-@SerialVersionUID(5634024L)
-abstract class AkkaRef[Addr, T : TypeTag, L : TypeTag] extends Ref[T, L]{
+abstract class AkkaReplicatedObject[T : TypeTag, L : TypeTag] extends ReplicatedObject[T, L] {
 
-	val objActor : ActorRef
-	val addr : Addr
-
-	protected val replica : AkkaReplicaSystem[Addr]
+	private[actors] val objActor : ActorRef
 
 	override def invoke[R](methodName : String, args : Any*) : R = {
 		import akka.pattern.ask
@@ -50,6 +46,7 @@ abstract class AkkaRef[Addr, T : TypeTag, L : TypeTag] extends Ref[T, L]{
 	}
 
 
+
 	/*trait for implementing actors of this ref*/
 	protected trait ObjectActor extends Actor {
 
@@ -66,11 +63,9 @@ abstract class AkkaRef[Addr, T : TypeTag, L : TypeTag] extends Ref[T, L]{
 			typeTag[L] == typeTag[L0]
 
 
-
 		override def receive : Receive = {
 			case Print =>	println("Obj" + this.self + ": " + obj)
 		}
-
 
 		protected def applyEvent[R](op : Event[R]) : R = op match {
 			case SetFieldOp(fldName, newVal) =>
@@ -104,7 +99,6 @@ abstract class AkkaRef[Addr, T : TypeTag, L : TypeTag] extends Ref[T, L]{
 
 			fieldMirror.set(value)
 		}
-
 	}
 }
 
