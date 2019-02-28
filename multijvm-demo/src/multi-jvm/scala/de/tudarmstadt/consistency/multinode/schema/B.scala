@@ -16,4 +16,7 @@ class B(var a : Ref[String, A, Weak]) extends Serializable {
 		a.invoke("inc")
 		a.getField[Int]("f") + x
 	}
+
+	override def toString : String =
+		s"B(a = $a, x = $x)"
 }

@@ -3,6 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObject}
+import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicatedObject.{StrongAkkaFollowerReplicatedObject, StrongAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicatedObject.{WeakAkkaFollowerReplicatedObject, WeakAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject}
 
@@ -39,7 +40,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		val rob = createMasterReplicatedObject[T, L](obj, addr)
 
 		otherReplicas.foreach { actorRef =>
-			val msg = NewObject(addr, obj, typeTag[T], typeTag[Weak], rob.objActor)
+			val msg = NewObject(addr, obj, typeTag[T], typeTag[L], rob.objActor)
 			actorRef ! msg
 		}
 		localObjects.put(addr, rob)
@@ -57,9 +58,9 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		val ref : AkkaReplicatedObject[T, _] =
 			if (ConsistencyLevels.isWeak[L])
-				new WeakAkkaMasterReplicatedObject[Addr, T](obj, actorSystem)
+				new WeakAkkaMasterReplicatedObject[T](obj, this)
 			else if (ConsistencyLevels.isStrong[L])
-				???
+				new StrongAkkaMasterReplicatedObject[T](obj, this)
 			else
 				sys.error("unknown consistency")
 
@@ -71,9 +72,9 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		val ref : AkkaReplicatedObject[T, _] =
 			if (ConsistencyLevels.isWeak[L])
-				new WeakAkkaFollowerReplicatedObject[Addr, T](obj, masterRef, actorSystem)
+				new WeakAkkaFollowerReplicatedObject[T](obj, masterRef, this)
 			else if (ConsistencyLevels.isStrong[L])
-				???
+				new StrongAkkaFollowerReplicatedObject[T](obj, masterRef, this)
 			else
 				sys.error("unknown consistency")
 
@@ -81,6 +82,29 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
+
+	private[actors] def initializeRefFields(obj : AnyRef) : Unit = {
+		//TODO: Is this possible with scala reflection?
+		obj.getClass.getDeclaredFields.foreach { field =>
+
+			val ft = field.getType
+
+			if (ft.isAssignableFrom(classOf[AkkaRef[_,_,_]])) {
+				field.setAccessible(true)
+				val ref = field.get(obj)
+
+				ref match {
+					case akkaRef : AkkaRef[Addr, _, _] =>
+						akkaRef.replicaSystem = AkkaReplicaSystem.this
+					case _ =>
+				}
+
+				field.setAccessible(false)
+			}
+
+			//TODO: Check recursively for ref fields
+		}
+	}
 
 
 
@@ -99,7 +123,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				require(!localObjects.contains(addr))
 
 				//Set the replica system of all refs
-				setReplicaSystemOfFields(obj.asInstanceOf[AnyRef])
+				initializeRefFields(obj)
 
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplicatedObject(obj, addr, masterRef)(objtype, consistency)
@@ -107,28 +131,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		}
 
 
-		private def setReplicaSystemOfFields(obj : AnyRef) : Unit = {
-			//TODO: Is this possible with scala reflection?
-			obj.getClass.getDeclaredFields.foreach { field =>
 
-				val ft = field.getType
-
-				if (ft.isAssignableFrom(classOf[AkkaRef[_,_,_]])) {
-					field.setAccessible(true)
-					val ref = field.get(obj)
-
-					ref match {
-						case akkaRef : AkkaRef[Addr, _, _] =>
-							akkaRef.replicaSystem = AkkaReplicaSystem.this
-						case _ =>
-					}
-
-					field.setAccessible(false)
-				}
-
-				//TODO: CHeck recursively for ref fields
-			}
-		}
 	}
 }
 
@@ -140,15 +143,23 @@ object AkkaReplicaSystem {
 		new AkkaReplicaSystemImpl[Addr](actorSystem, name)
 
 
-	class AkkaRef[Addr, T <: AnyRef, L](val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
+	class AkkaRef[Addr, T <: AnyRef, L : TypeTag](val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
 
 		override implicit def toReplicatedObject : ReplicatedObject[T, L] = replicaSystem match {
 			case null =>
-				sys.error(s"replica system has not been initialized properly")
+				sys.error(s"replica system has not been initialized properly. $toString")
 			case akkaReplicaSystem: AkkaReplicaSystem[Addr] =>
-				akkaReplicaSystem.localObjects(addr).asInstanceOf[ReplicatedObject[T, L]]
+				val res = akkaReplicaSystem.localObjects(addr).asInstanceOf[ReplicatedObject[T, L]]
+
+				val thisL = implicitly[TypeTag[L]].tpe
+				val objL = res.getConsistencyLevel.tpe
+				require(thisL =:= objL, s"non-matching consistency levels. ref was $thisL and object was $objL")
+
+				res
 		}
 
+		override def toString : String =
+			s"AkkaRef($addr)"
 	}
 
 	trait ReplicaActorMessage

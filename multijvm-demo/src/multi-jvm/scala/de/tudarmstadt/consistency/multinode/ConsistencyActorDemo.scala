@@ -4,7 +4,7 @@ import akka.actor.{ActorSelection, ActorSystem}
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import de.tudarmstadt.consistency.multinode.schema.{A, B}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.{Strong, Weak}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, actors}
 
@@ -38,7 +38,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 	  enterBarrier("init")
 
 	  val a = replica.replicate[A, Weak]("a", new A)
-	  val b = replica.replicate[B, Weak]("b", new B(a))
+	  val b = replica.replicate[B, Strong]("b", new B(a))
 
 	  Thread.sleep(3000)
 
@@ -58,6 +58,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 		  val f : Int = (b("a") : Ref[String, A, ConsistencyLevels.Weak]) ("f")
 		  val af : Int = a("f")
 		  println(s"b.x = $x, b.a.f = $f, a.f = $af")
+		  println(s"b = ${b <= "toString"}")
 	  }
 
 	  enterBarrier("synchronized")
@@ -67,6 +68,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 		  val f : Int = (b("a") : Ref[String, A, ConsistencyLevels.Weak]) ("f")
 		  val af : Int = a("f")
 		  println(s"b.x = $x, b.a.f = $f, a.f = $af")
+		  println(s"b = ${b <= "toString"}")
 	  }
 
     enterBarrier("finished")
@@ -90,7 +92,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
 
 		val refA = replica.ref[A, Weak]("a")
-	  val refB = replica.ref[B, Weak]("b")
+	  val refB = replica.ref[B, Strong]("b")
 	  Thread.sleep(2000)
 
 	  enterBarrier("replicated")
@@ -105,7 +107,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
 	  enterBarrier("synchronize")
 
-	  refB.synchronize()
+	  refA.synchronize()
 	  Thread.sleep(500)
 
 	  enterBarrier("synchronized")
@@ -113,6 +115,7 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 	  val x : Int = refB("x")
 	  val f : Int = (refB("a") : Ref[String, A, ConsistencyLevels.Weak])("f")
 	  println(s"x = $x, a.f = $f")
+	  println(s"b = ${refB <= "toString"}")
 
     enterBarrier("finished")
   }
