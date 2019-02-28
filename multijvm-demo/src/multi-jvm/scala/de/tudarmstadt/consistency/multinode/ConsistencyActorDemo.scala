@@ -1,11 +1,15 @@
 package de.tudarmstadt.consistency.multinode
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSelection, ActorSystem}
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import de.tudarmstadt.consistency.multinode.schema.{A, B}
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
-import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, actors}
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, actors}
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
 	* Created on 08.02.19.
@@ -23,31 +27,47 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
   runOn(node1) {
     println("started node1...")
 
-	  val replica = new AkkaReplicaSystem[String] {
-		  override def actorSystem : ActorSystem = system
-		  override def name : String = "replica1"
-	  }
-
+	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system, "replica1")
 
 	  enterBarrier("setup")
 
+	  val replica2 = system.actorSelection(node(node2) / "user" / "replica2")
+	  val replica2Ref = Await.result(replica2.resolveOne(5 seconds), 5 seconds)
+	  replica.addOtherReplica(replica2Ref)
 
 	  enterBarrier("init")
 
-	  val a = replica.replicate[A, ConsistencyLevels.Weak]("a", new A)
-	  val b = replica.replicate[B, ConsistencyLevels.Weak]("b", new B(a))
+	  val a = replica.replicate[A, Weak]("a", new A)
+	  val b = replica.replicate[B, Weak]("b", new B(a))
+
+	  Thread.sleep(3000)
 
 	  enterBarrier("deployed")
+
 
 	  enterBarrier("replicated")
 
 
-	  enterBarrier("fieldset")
+	  enterBarrier("unsynchronized")
 
-	  val x : Int = b("x")
-	  val f : Int = (b("a") : Ref[A, ConsistencyLevels.Weak])("f")
-	  val af : Int = a("f")
-	  println(s"b.x = $x, b.a.f = $f, a.f = $af")
+
+	  enterBarrier("synchronize")
+
+	  {
+		  val x : Int = b("x")
+		  val f : Int = (b("a") : Ref[String, A, ConsistencyLevels.Weak]) ("f")
+		  val af : Int = a("f")
+		  println(s"b.x = $x, b.a.f = $f, a.f = $af")
+	  }
+
+	  enterBarrier("synchronized")
+
+	  {
+		  val x : Int = b("x")
+		  val f : Int = (b("a") : Ref[String, A, ConsistencyLevels.Weak]) ("f")
+		  val af : Int = a("f")
+		  println(s"b.x = $x, b.a.f = $f, a.f = $af")
+	  }
 
     enterBarrier("finished")
   }
@@ -56,37 +76,42 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node2) {
     println("started node2...")
-	  val replica = new AkkaReplicaSystem[String] {
-		  override def actorSystem : ActorSystem = system
-		  override def name : String = "replica2"
-	  }
+	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system, "replica2")
 
 	  enterBarrier("setup")
 
-
-
+	  val replica1 = system.actorSelection(node(node1) / "user" / "replica1")
+	  val replica1Ref = Await.result(replica1.resolveOne(5 seconds), 5 seconds)
+	  replica.addOtherReplica(replica1Ref)
 
 	  enterBarrier("init")
 
-//    system.actorOf(Props[Ponger], "ponger")
-
     enterBarrier("deployed")
 
-	  val ref = replica.ref[B, ConsistencyLevels.Weak]("b")
+
+		val refA = replica.ref[A, Weak]("a")
+	  val refB = replica.ref[B, Weak]("b")
 	  Thread.sleep(2000)
 
 	  enterBarrier("replicated")
 
-	  ref("x") = 3
+	  refB("x") = 3
 	  Thread.sleep(500)
-	  val i : Int = ref <= "incAndGet"
+	  val i : Int = refB <= "incAndGet"
 		println(s"i = $i")
+
+	  enterBarrier("unsynchronized")
+
+
+	  enterBarrier("synchronize")
+
+	  refB.synchronize()
 	  Thread.sleep(500)
 
-	  enterBarrier("fieldset")
+	  enterBarrier("synchronized")
 
-	  val x : Int = ref("x")
-	  val f : Int = (ref("a") : Ref[A, ConsistencyLevels.Weak])("f")
+	  val x : Int = refB("x")
+	  val f : Int = (refB("a") : Ref[String, A, ConsistencyLevels.Weak])("f")
 	  println(s"x = $x, a.f = $f")
 
     enterBarrier("finished")

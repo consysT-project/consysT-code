@@ -9,6 +9,7 @@ package de.tudarmstadt.consistency.multinode.schema
 class A extends Serializable {
 
 	var f : Int = 0
+	val step : Int = 31
 
-	def inc(): Unit = f += 1
+	def inc(): Unit = f += step
 }
