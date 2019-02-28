@@ -17,15 +17,15 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class WeakAkkaReplicatedObject[Addr, T <: AnyRef : TypeTag] extends AkkaReplicatedObject[T, Weak]
+abstract class WeakAkkaReplicatedObject[T <: AnyRef : TypeTag] extends AkkaReplicatedObject[T, Weak]
 
 
 object WeakAkkaReplicatedObject {
 
-	class WeakAkkaMasterReplicatedObject[Addr, T <: AnyRef : TypeTag](obj : T, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
+	class WeakAkkaMasterReplicatedObject[T <: AnyRef : TypeTag](obj : T, val replicaSystem : AkkaReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
-			actorSystem.actorOf(Props(classOf[MasterActor], this, obj, typeTag[T]))
+			replicaSystem.actorSystem.actorOf(Props(classOf[MasterActor], this, obj, typeTag[T]))
 
 
 		override def synchronize() : Unit =
@@ -56,10 +56,10 @@ object WeakAkkaReplicatedObject {
 	}
 
 
-	class WeakAkkaFollowerReplicatedObject[Addr, T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
+	class WeakAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : AkkaReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
-			actorSystem.actorOf(Props(classOf[FollowerActor], this, obj, typeTag[T]))
+			replicaSystem.actorSystem.actorOf(Props(classOf[FollowerActor], this, obj, typeTag[T]))
 
 
 		override def synchronize() : Unit = {
@@ -96,13 +96,21 @@ object WeakAkkaReplicatedObject {
 					implicit val timeout : Timeout = Timeout(5 seconds)
 					val response = masterRef ? SynchronizeReq(unsynchronized)
 
-					val SynchronizeRes(newObj) = Await.result(response, 5 seconds)
+					val SynchronizeRes(newObj : T) = Await.result(response, 5 seconds)
 
-					obj = newObj.asInstanceOf[T]
+					setObject(newObj)
 					unsynchronized.clear()
 
 				case msg => super.receive(msg)
 			}
 		}
 	}
+
+	private sealed trait Internal
+	private case class SynchronizeReq(events : Seq[Event[_]]) extends Internal
+	private case class SynchronizeRes(obj : AnyRef) extends Internal
+
+
+
+
 }

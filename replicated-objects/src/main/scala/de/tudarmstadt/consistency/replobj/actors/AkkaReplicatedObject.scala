@@ -9,6 +9,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
 
 /**
@@ -20,21 +21,23 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 
 	private[actors] val objActor : ActorRef
 
+	protected val replicaSystem : AkkaReplicaSystem[_]
+
 	override def invoke[R](methodName : String, args : Any*) : R = {
 		import akka.pattern.ask
 
-		implicit val timeout : Timeout = Timeout(5 seconds)
+		implicit val timeout : Timeout = Timeout(60 seconds)
 		val asked = objActor ? MethodInv(methodName, args)
-		val res = Await.result(asked, 5 seconds)
+		val res = Await.result(asked, 60 seconds)
 		res.asInstanceOf[R]
 	}
 
 	override def getField[R](fieldName : String) : R = {
 		import akka.pattern.ask
 
-		implicit val timeout : Timeout = Timeout(5 seconds)
+		implicit val timeout : Timeout = Timeout(10 seconds)
 		val asked = objActor ? FieldGet(fieldName)
-		val res = Await.result(asked, 5 seconds)
+		val res = Await.result(asked, 10 seconds)
 		res.asInstanceOf[R]
 	}
 
@@ -45,6 +48,9 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 	override def print() : Unit = {
 		objActor ! Print
 	}
+
+	override def getConsistencyLevel : TypeTag[L] =
+		implicitly[TypeTag[L]]
 
 
 
@@ -59,6 +65,10 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 		protected implicit lazy val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
 		protected lazy val objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 
+		protected def setObject(newObj : T) : Unit = {
+			replicaSystem.initializeRefFields(newObj)
+			obj = newObj
+		}
 
 		def hasConsistency[L0 : TypeTag] : Boolean =
 			typeTag[L] == typeTag[L0]
@@ -105,20 +115,15 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 
 object AkkaReplicatedObject {
 
-
-	trait Operation
+	sealed trait Operation
 	case class MethodInv(methodName : String, args : Seq[Any]) extends Operation
 	case class FieldGet(fieldName : String) extends Operation
 	case class FieldSet(fieldName : String, newVal : Any) extends Operation
 	case object Synchronize extends Operation
 	case object Print extends Operation //Only for debugging
 
-	trait Internal
-	case class SynchronizeReq(events : Seq[Event[_]]) extends Internal
-	case class SynchronizeRes(obj : Any) extends Internal
 
-
-	trait Event[R]
+	sealed trait Event[R]
 	case class SetFieldOp(fldName : String, newVal : Any) extends Event[Unit]
 	case class InvokeOp[R](mthdName : String, args : Seq[Any]) extends Event[R]
 

@@ -1,5 +1,7 @@
 package de.tudarmstadt.consistency.replobj
 
+import scala.reflect.runtime.universe._
+
 /**
 	* Created on 18.02.19.
 	*
@@ -7,6 +9,9 @@ package de.tudarmstadt.consistency.replobj
 	*/
 
 trait ReplicatedObject[T <: AnyRef, L] {
+
+	def getConsistencyLevel : TypeTag[L]
+
 
 	def getField[R](fieldName : String) : R
 
