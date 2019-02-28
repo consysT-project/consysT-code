@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.replobj
 	* @author Mirko Köhler
 	*/
 
-trait ReplicatedObject[T, L] {
+trait ReplicatedObject[T <: AnyRef, L] {
 
 	def getField[R](fieldName : String) : R
 

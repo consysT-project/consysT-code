@@ -1,13 +1,9 @@
 package de.tudarmstadt.consistency.demo
 
-import java.io.{ByteArrayOutputStream, ObjectOutputStream, OutputStream}
-
 import akka.actor.ActorSystem
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
-import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, ReplicaSystem, ReplicatedObject}
-import de.tudarmstadt.consistency.replobj.actors.{AkkaReplicaSystem, NewObject}
-
-import scala.reflect.runtime.universe._
+import de.tudarmstadt.consistency.replobj.ReplicaSystem
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
 
 /**
 	* Created on 27.02.19.

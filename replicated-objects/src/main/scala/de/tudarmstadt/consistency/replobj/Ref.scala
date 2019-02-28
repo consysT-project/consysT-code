@@ -6,7 +6,7 @@ package de.tudarmstadt.consistency.replobj
 	*
 	* @author Mirko Köhler
 	*/
-trait Ref[Addr, T, L] extends Serializable {
+trait Ref[Addr, T <: AnyRef, L] extends Serializable {
 
 	val addr : Addr
 

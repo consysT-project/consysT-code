@@ -1,7 +1,5 @@
 package de.tudarmstadt.consistency
 
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
-
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
@@ -17,6 +15,6 @@ package object replobj {
 		ClassTag[T]( typeTag[T].mirror.runtimeClass( typeTag[T].tpe ) )
 
 
-	implicit def refToRob[Addr, T, L](ref : Ref[Addr, T, L]) : ReplicatedObject[T, L] =
+	implicit def refToRob[Addr, T <: AnyRef, L](ref : Ref[Addr, T, L]) : ReplicatedObject[T, L] =
 		ref.toReplicatedObject
 }
