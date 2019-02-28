@@ -1,15 +1,13 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.lang.reflect.Field
-
-import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Props}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.{Strong, Weak}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObject}
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicatedObject.{WeakAkkaFollowerReplicatedObject, WeakAkkaMasterReplicatedObject}
-import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject, typeToClassTag}
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject}
 
 import scala.collection.mutable
 import scala.language.postfixOps
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
@@ -30,13 +28,12 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				this),
 			name)
 
-
 	/*private[actors]*/ val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[ _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
-	override def replicate[T : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
+	override def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
 		require(!localObjects.contains(addr))
 
 		val rob = createMasterReplicatedObject[T, L](obj, addr)
@@ -50,7 +47,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		new AkkaRef(addr, this)
 	}
 
-	def createMasterReplicatedObject[T : TypeTag, L : TypeTag](obj : T, addr : Addr) : AkkaReplicatedObject[T, L] = {
+	override def ref[T  <: AnyRef : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
+		require(localObjects.contains(addr))
+		new AkkaRef(addr, this)
+	}
+
+
+	private def createMasterReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag](obj : T, addr : Addr) : AkkaReplicatedObject[T, L] = {
 
 		val ref : AkkaReplicatedObject[T, _] =
 			if (ConsistencyLevels.isWeak[L])
@@ -64,7 +67,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
-	def createFollowerReplicatedObject[T : TypeTag, L : TypeTag](obj : T, addr : Addr, masterRef : ActorRef) : AkkaReplicatedObject[T, L] = {
+	private def createFollowerReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag](obj : T, addr : Addr, masterRef : ActorRef) : AkkaReplicatedObject[T, L] = {
 
 		val ref : AkkaReplicatedObject[T, _] =
 			if (ConsistencyLevels.isWeak[L])
@@ -80,18 +83,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 
-	override def ref[T : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
-		require(localObjects.contains(addr))
-		new AkkaRef(addr, this)
-	}
-
 
 	def addOtherReplica(replicaActorRef : ActorRef) : Unit =
 		otherReplicas.add(replicaActorRef)
 
 
 
-	class ReplicaActor extends Actor {
+	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
 			case NewObject(addr : Addr, obj, objtype, consistency, masterRef) =>
@@ -140,23 +138,28 @@ object AkkaReplicaSystem {
 
 	def create[Addr](actorSystem : ActorSystem, name : String) : AkkaReplicaSystem[Addr] =
 		new AkkaReplicaSystemImpl[Addr](actorSystem, name)
-}
 
-class AkkaRef[Addr, T, L](val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
 
-	override implicit def toReplicatedObject : ReplicatedObject[T, L] = replicaSystem match {
-		case null =>
-			sys.error(s"replica system has not been initialized properly")
-		case akkaReplicaSystem: AkkaReplicaSystem[Addr] =>
-			akkaReplicaSystem.localObjects(addr).asInstanceOf[ReplicatedObject[T, L]]
+	class AkkaRef[Addr, T <: AnyRef, L](val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
+
+		override implicit def toReplicatedObject : ReplicatedObject[T, L] = replicaSystem match {
+			case null =>
+				sys.error(s"replica system has not been initialized properly")
+			case akkaReplicaSystem: AkkaReplicaSystem[Addr] =>
+				akkaReplicaSystem.localObjects(addr).asInstanceOf[ReplicatedObject[T, L]]
+		}
+
 	}
 
+	trait ReplicaActorMessage
+	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
 }
 
 
 
-trait ReplicaActorMessage
-case class NewObject[Addr, T, L](addr : Addr, obj : Any, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
+
+
+
 
 
 

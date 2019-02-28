@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorRef}
 import akka.util.Timeout
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
 import scala.concurrent.Await
@@ -15,7 +16,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class AkkaReplicatedObject[T : TypeTag, L : TypeTag] extends ReplicatedObject[T, L] {
+abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends ReplicatedObject[T, L] {
 
 	private[actors] val objActor : ActorRef
 
@@ -102,23 +103,24 @@ abstract class AkkaReplicatedObject[T : TypeTag, L : TypeTag] extends Replicated
 	}
 }
 
-
-trait Operation
-case class MethodInv(methodName : String, args : Seq[Any]) extends Operation
-case class FieldGet(fieldName : String) extends Operation
-case class FieldSet(fieldName : String, newVal : Any) extends Operation
-case object Synchronize extends Operation
-case object Print extends Operation //Only for debugging
-
-trait Internal
-case class SynchronizeReq(events : Seq[Event[_]]) extends Internal
-case class SynchronizeRes(obj : Any) extends Internal
+object AkkaReplicatedObject {
 
 
+	trait Operation
+	case class MethodInv(methodName : String, args : Seq[Any]) extends Operation
+	case class FieldGet(fieldName : String) extends Operation
+	case class FieldSet(fieldName : String, newVal : Any) extends Operation
+	case object Synchronize extends Operation
+	case object Print extends Operation //Only for debugging
+
+	trait Internal
+	case class SynchronizeReq(events : Seq[Event[_]]) extends Internal
+	case class SynchronizeRes(obj : Any) extends Internal
 
 
-trait Event[R]
-case class SetFieldOp(fldName : String, newVal : Any) extends Event[Unit]
-case class InvokeOp[R](mthdName : String, args : Seq[Any]) extends Event[R]
+	trait Event[R]
+	case class SetFieldOp(fldName : String, newVal : Any) extends Event[Unit]
+	case class InvokeOp[R](mthdName : String, args : Seq[Any]) extends Event[R]
 
+}
 

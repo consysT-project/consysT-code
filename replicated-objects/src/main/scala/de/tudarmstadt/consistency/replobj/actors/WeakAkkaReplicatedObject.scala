@@ -3,6 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 
 import scala.collection.mutable
 import scala.concurrent.Await
@@ -16,12 +17,12 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class WeakAkkaReplicatedObject[Addr, T : TypeTag] extends AkkaReplicatedObject[T, Weak]
+abstract class WeakAkkaReplicatedObject[Addr, T <: AnyRef : TypeTag] extends AkkaReplicatedObject[T, Weak]
 
 
 object WeakAkkaReplicatedObject {
 
-	class WeakAkkaMasterReplicatedObject[Addr, T : TypeTag](obj : T, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
+	class WeakAkkaMasterReplicatedObject[Addr, T <: AnyRef : TypeTag](obj : T, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
 
 		override val objActor : ActorRef =
 			actorSystem.actorOf(Props(classOf[MasterActor], this, obj, typeTag[T]))
@@ -55,7 +56,7 @@ object WeakAkkaReplicatedObject {
 	}
 
 
-	class WeakAkkaFollowerReplicatedObject[Addr, T : TypeTag](obj : T, masterRef : ActorRef, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
+	class WeakAkkaFollowerReplicatedObject[Addr, T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, actorSystem : ActorSystem) extends WeakAkkaReplicatedObject[Addr, T] {
 
 		override val objActor : ActorRef =
 			actorSystem.actorOf(Props(classOf[FollowerActor], this, obj, typeTag[T]))

@@ -18,8 +18,8 @@ trait ReplicaSystem[Addr] {
 		* @param value The object to distribute
 		* @return A reference to the created object
 		*/
-	def replicate[T : TypeTag, L : TypeTag](addr : Addr, value : T) : Ref[Addr, T, L]
+	def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, value : T) : Ref[Addr, T, L]
 
 
-	def ref[T : TypeTag, L : TypeTag](addr : Addr) : Ref[Addr, T, L]
+	def ref[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr) : Ref[Addr, T, L]
 }
