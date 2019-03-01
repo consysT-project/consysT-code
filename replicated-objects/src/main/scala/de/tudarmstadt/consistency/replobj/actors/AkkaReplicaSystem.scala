@@ -129,9 +129,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				val ref = createFollowerReplicatedObject(obj, addr, masterRef)(objtype, consistency)
 				localObjects.put(addr, ref)
 		}
-
-
-
 	}
 }
 
@@ -157,6 +154,7 @@ object AkkaReplicaSystem {
 
 				res
 		}
+
 
 		override def toString : String =
 			s"AkkaRef($addr)"

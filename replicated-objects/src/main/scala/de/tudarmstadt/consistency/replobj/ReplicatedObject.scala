@@ -27,7 +27,8 @@ trait ReplicatedObject[T <: AnyRef, L] {
 
 
 	/*this syntax can only be used with the preprocessor. The preprocessor rewrites calls to .remote.*/
-	final def remote : T = throw new IllegalAccessException("remote can not be accessed here")
+	final def remote : T =
+		throw new UnsupportedOperationException("remote can not be called. use a preprocessor to replace all calls to remote.")
 
 	/*syntactic sugar*/
 	final def apply[R](fieldName : String) : R =
