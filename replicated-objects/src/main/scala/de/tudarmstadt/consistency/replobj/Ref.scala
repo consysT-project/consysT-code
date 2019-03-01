@@ -11,4 +11,7 @@ trait Ref[Addr, T <: AnyRef, L] extends Serializable {
 	val addr : Addr
 
 	def toReplicatedObject : ReplicatedObject[T, L]
+
+	/* shortcut for Java implementation */
+	final def remote : T = toReplicatedObject.remote
 }
