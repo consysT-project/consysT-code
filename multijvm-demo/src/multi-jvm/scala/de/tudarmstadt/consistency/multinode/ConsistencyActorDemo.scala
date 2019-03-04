@@ -27,13 +27,11 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
   runOn(node1) {
     println("started node1...")
 
-	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system, "replica1")
+	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system)
 
 	  enterBarrier("setup")
 
-	  val replica2 = system.actorSelection(node(node2) / "user" / "replica2")
-	  val replica2Ref = Await.result(replica2.resolveOne(5 seconds), 5 seconds)
-	  replica.addOtherReplica(replica2Ref)
+	  replica.addOtherReplica(node(node2).address)
 
 	  enterBarrier("init")
 
@@ -78,13 +76,13 @@ class ConsistencyActorDemo extends MultiNodeSpec(ConsistencyActorDemoConfig)
 
   runOn(node2) {
     println("started node2...")
-	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system, "replica2")
+	  val replica : AkkaReplicaSystem[String] = AkkaReplicaSystem.create(system)
 
 	  enterBarrier("setup")
 
-	  val replica1 = system.actorSelection(node(node1) / "user" / "replica1")
-	  val replica1Ref = Await.result(replica1.resolveOne(5 seconds), 5 seconds)
-	  replica.addOtherReplica(replica1Ref)
+	  println(node(node1).root)
+
+	  replica.addOtherReplica(node(node1).address)
 
 	  enterBarrier("init")
 

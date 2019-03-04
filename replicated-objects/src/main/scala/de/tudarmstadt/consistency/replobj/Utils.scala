@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj
 
-import scala.reflect.api.{Mirror, TypeCreator, Universe}
+import scala.reflect.api.{TypeCreator, Universe}
 
 import scala.reflect.runtime.universe._
 
@@ -12,18 +12,20 @@ import scala.reflect.runtime.universe._
 private[replobj] object Utils {
 
 	def typeTagFromCls[T](cls : Class[T]) : TypeTag[T] = {
-		val mirror = runtimeMirror(cls.getClassLoader)
+		val mirror : Mirror = runtimeMirror(cls.getClassLoader)
 		val tpe = mirror.classSymbol(cls).toType
 
-		val objTypeCreator = new TypeCreator {
-			def apply[U <: Universe with Singleton](m1: Mirror[U]): U#Type =
-				if (m1 != mirror)
-					sys.error("wrong mirror")
-				else
-					tpe.asInstanceOf[U#Type]
-		}
+		val objTypeCreator = SimpleTypeCreator(mirror, tpe)
 
 		TypeTag[T](mirror, objTypeCreator)
+	}
+
+	private case class SimpleTypeCreator(mirror : Mirror, tpe : Type) extends TypeCreator {
+		override def apply[U <: Universe with Singleton](m1: scala.reflect.api.Mirror[U]): U#Type =
+			if (m1 != mirror)
+				sys.error("wrong mirror")
+			else
+				tpe.asInstanceOf[U#Type]
 	}
 
 }

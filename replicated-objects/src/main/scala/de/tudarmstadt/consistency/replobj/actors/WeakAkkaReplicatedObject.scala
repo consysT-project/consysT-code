@@ -45,6 +45,7 @@ object WeakAkkaReplicatedObject {
 
 				case FieldSet(fldName, value) =>
 					setField[Any](fldName, value)
+					sender() ! SetAck
 
 				case SynchronizeReq(events) =>
 					events.foreach(e => applyEvent(e))
@@ -63,7 +64,10 @@ object WeakAkkaReplicatedObject {
 
 
 		override def synchronize() : Unit = {
-			objActor ! Synchronize
+			import akka.pattern.ask
+			implicit val timeout : Timeout = Timeout(10 seconds)
+			val response = objActor ? Synchronize
+			Await.ready(response, 10 seconds)
 		}
 
 
@@ -87,6 +91,7 @@ object WeakAkkaReplicatedObject {
 				case FieldSet(fldName, value) =>
 					unsynchronized += SetFieldOp(fldName, value)
 					setField[Any](fldName, value)
+					sender() ! SetAck
 
 				case Synchronize =>
 					import akka.pattern.ask
@@ -101,6 +106,8 @@ object WeakAkkaReplicatedObject {
 					setObject(newObj)
 					unsynchronized.clear()
 
+					sender() ! SynchronizeAck
+
 				case msg => super.receive(msg)
 			}
 		}
@@ -109,8 +116,6 @@ object WeakAkkaReplicatedObject {
 	private sealed trait Internal
 	private case class SynchronizeReq(events : Seq[Event[_]]) extends Internal
 	private case class SynchronizeRes(obj : AnyRef) extends Internal
-
-
-
+	private case object SynchronizeAck extends Internal
 
 }

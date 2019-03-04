@@ -19,6 +19,11 @@ trait ReplicatedObject[T <: AnyRef, L] {
 
 	def invoke[R](methodName : String, args : Any*) : R
 
+	/* for Java binding */
+	def invoke[R](methodName : String, args : Array[Any]) : R = {
+		invoke[R](methodName, args.toSeq : _*)
+	}
+
 	def synchronize() : Unit
 
 	//Optional print method for debugging purposes
