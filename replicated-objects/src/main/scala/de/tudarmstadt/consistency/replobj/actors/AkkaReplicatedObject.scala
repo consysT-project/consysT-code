@@ -66,12 +66,13 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 		/* dynamic type information */
 //		protected implicit def objtag : TypeTag[T]
 		/* predefined for reflection */
-		protected implicit lazy val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
-		protected lazy val objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
+		protected implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
+		protected var objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 
 		protected def setObject(newObj : T) : Unit = {
 			replicaSystem.initializeRefFields(newObj)
 			obj = newObj
+			objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 		}
 
 		def hasConsistency[L0 : TypeTag] : Boolean =
