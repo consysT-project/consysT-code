@@ -85,11 +85,7 @@ object StrongAkkaReplicatedObject {
 
 				case msg => super.receive(msg)
 			}
-
 		}
-
-
-
 	}
 
 	class StrongAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : AkkaReplicaSystem[_]) extends StrongAkkaReplicatedObject[T] {
@@ -102,8 +98,12 @@ object StrongAkkaReplicatedObject {
 			throw new UnsupportedOperationException("synchronize on strong consistent object")
 
 
-		class FollowerActor(protected var obj : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+		private case class OpTag(opid : Int, seq : Int, parent : Option[Int] = None)
 
+		private val opCache : mutable.Map[OpTag, Any] = mutable.Map.empty
+
+
+		class FollowerActor(protected var obj : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
 
 			override def receive : Receive = {
 
@@ -139,6 +139,9 @@ object StrongAkkaReplicatedObject {
 				import akka.pattern.ask
 				val lockResponse = masterRef.ask(LockReq)(Timeout(60 seconds))
 				Await.ready(lockResponse, 60 seconds)
+
+
+
 
 				val res = applyEvent(op)
 

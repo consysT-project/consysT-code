@@ -12,6 +12,7 @@ import scala.reflect.runtime.universe._
 private[replobj] object Utils {
 
 	def typeTagFromCls[T](cls : Class[T]) : TypeTag[T] = {
+		/*TODO: Is there a better way to obtain TypeTags in Java code? These type tags here are not serializable.*/
 		val mirror : Mirror = runtimeMirror(cls.getClassLoader)
 		val tpe = mirror.classSymbol(cls).toType
 
