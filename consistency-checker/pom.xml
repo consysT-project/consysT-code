@@ -42,6 +42,11 @@
 		  <artifactId>checker</artifactId>
 		  <version>${checkerframeworkVersion}</version>
 		</dependency>
+        <dependency>
+            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <artifactId>replicated-objects</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
     
 </project>

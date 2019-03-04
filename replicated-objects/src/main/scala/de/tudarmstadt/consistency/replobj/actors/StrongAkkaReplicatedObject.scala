@@ -46,6 +46,7 @@ object StrongAkkaReplicatedObject {
 
 				case FieldSet(fldName, value) =>
 					setField[Any](fldName, value)
+					sender() ! SetAck
 
 				case LockReq =>
 					context.become {
@@ -126,8 +127,8 @@ object StrongAkkaReplicatedObject {
 
 
 				case FieldSet(fldName, value) =>
-					val res = applyMutatingEvent(SetFieldOp(fldName, value))
-					sender() ! res
+					applyMutatingEvent(SetFieldOp(fldName, value))
+					sender() ! SetAck
 
 
 				case msg => super.receive(msg)

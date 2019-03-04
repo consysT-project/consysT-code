@@ -89,9 +89,14 @@
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-persistence_2.12</artifactId>
+            <artifactId>akka-remote_2.12</artifactId>
             <version>${akkaVersion}</version>
         </dependency>
+   <!--     <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-persistence_2.12</artifactId>
+            <version>${akkaVersion}</version>
+        </dependency> -->
         <dependency>
             <groupId>org.fusesource.leveldbjni</groupId>
             <artifactId>leveldbjni-all</artifactId>

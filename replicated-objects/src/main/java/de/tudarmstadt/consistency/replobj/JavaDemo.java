@@ -2,7 +2,6 @@ package de.tudarmstadt.consistency.replobj;
 
 import akka.actor.ActorSystem;
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
-import de.tudarmstadt.consistency.replobj.actors.ReplicaSystems;
 
 /**
  * Created on 01.03.19.
@@ -14,12 +13,11 @@ public class JavaDemo {
 
 	public static void main(String[] args) {
 
-		ActorSystem actorSystem = ActorSystem.create("java-test");
-		AkkaReplicaSystem<String> replicaSystem = ReplicaSystems.fromActors(actorSystem, "replica1");
+		AkkaReplicaSystem<String> replicaSystem = ReplicaSystems.fromActorSystem(2552);
 
 		Ref<String, SomeObj, ConsistencyLevels.Weak> ref = replicaSystem.replicate("a", new SomeObj(), SomeObj.class, ConsistencyLevels.Weak.class);
 
-		int i = ref.remote().f; //ref.toReplicatedObject().getField("f");
+		int i = ref.toReplicatedObject().getField("f");
 
 		ref.toReplicatedObject().setField("f", 45);
 

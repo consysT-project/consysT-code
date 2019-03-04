@@ -42,7 +42,11 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 	}
 
 	override def setField[R](fieldName : String, value : R) : Unit = {
-		objActor ! FieldSet(fieldName, value)
+		import akka.pattern.ask
+
+		implicit val timeout : Timeout = Timeout(10 seconds)
+		val asked = objActor ? FieldSet(fieldName, value)
+		Await.ready(asked, 10 seconds)
 	}
 
 	override def print() : Unit = {
@@ -121,6 +125,8 @@ object AkkaReplicatedObject {
 	case class FieldSet(fieldName : String, newVal : Any) extends Operation
 	case object Synchronize extends Operation
 	case object Print extends Operation //Only for debugging
+
+	case object SetAck
 
 
 	sealed trait Event[R]

@@ -13,9 +13,7 @@ import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
 object Demo extends App {
 
 
-	val system = ActorSystem.create("demo")
-
-	val replica : ReplicaSystem[String] = AkkaReplicaSystem.create[String](system, "replica1")
+	val replica : ReplicaSystem[String] = AkkaReplicaSystem.create[String](3773)
 
 	val ref  = replica.replicate[A, Weak]("a", A(3))
 
