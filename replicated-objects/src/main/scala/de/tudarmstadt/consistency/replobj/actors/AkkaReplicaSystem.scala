@@ -1,9 +1,11 @@
 package de.tudarmstadt.consistency.replobj.actors
 
+import java.util.Random
+
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObjectC}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObjectJ}
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicatedObject.{StrongAkkaFollowerReplicatedObject, StrongAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicatedObject.{WeakAkkaFollowerReplicatedObject, WeakAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject, Utils}
@@ -34,6 +36,27 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[ _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
+	private object CurrentState {
+		val methodStack : mutable.ArrayStack[Int] = new mutable.ArrayStack
+
+	}
+
+	private val random = new Random()
+	private[actors] def freshid() : Int = random.nextInt()
+
+	private[actors] def enterMethod(id : Int) : Unit =
+		CurrentState.methodStack.push(id)
+
+	private[actors] def currentMethod : Int =
+		CurrentState.methodStack.head
+
+	private[actors] def exitMethod(id : Int) : Unit = {
+		val r = CurrentState.methodStack.pop()
+		assert(r == id)
+	}
+
+
+
 	override def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
 		require(!localObjects.contains(addr))
 
@@ -41,9 +64,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		println(s"created master actor at ${rob.objActor.path}")
 
+		val ccls = typeTag[L].mirror.runtimeClass(typeTag[L].tpe)
+
 		otherReplicas.foreach { actorRef =>
 //			val msg = NewObject(addr, obj, null /*typeTag[T]*/, null /*typeTag[L]*/, rob.objActor)
-			val msg = NewObjectC(addr, obj, typeTag[L].mirror.runtimeClass(typeTag[L].tpe), rob.objActor)
+			val msg = NewObjectJ(addr, obj, ccls, rob.objActor)
 			actorRef ! msg
 		}
 		localObjects.put(addr, rob)
@@ -154,7 +179,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 //				//Create the replicated object on this replica and add it to the object map
 //				val ref = createFollowerReplicatedObject(obj, addr, masterRef)(objtype, consistency)
 //				localObjects.put(addr, ref)
-			case NewObjectC(addr : Addr, obj, consistencyCls, masterRef) =>
+			case NewObjectJ(addr : Addr, obj, consistencyCls, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 
 				//Ensure that no object already exists under this name
@@ -240,7 +265,7 @@ object AkkaReplicaSystem {
 		}
 
 		/* Java binding */
-		def jcreate[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : AkkaRef[Addr, T, L] = {
+		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : AkkaRef[Addr, T, L] = {
 			implicit val ltt : TypeTag[L] = Utils.typeTagFromCls(consistencyCls)
 			val ref : AkkaRef[Addr, T, L] = create[Addr, T, L](addr, replicaSystem)
 			ref
@@ -249,7 +274,8 @@ object AkkaReplicaSystem {
 
 	trait ReplicaActorMessage
 //	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
-	case class NewObjectC[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
+	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
+	case class NewObjectJ[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
 }
 
 

@@ -5,6 +5,7 @@ import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
+import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -69,6 +70,7 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 		protected implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
 		protected var objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 
+
 		protected def setObject(newObj : T) : Unit = {
 			replicaSystem.initializeRefFields(newObj)
 			obj = newObj
@@ -83,37 +85,45 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 			case Print =>	println("Obj" + this.self + ": " + obj)
 		}
 
-		protected def applyEvent[R](op : Event[R]) : R = op match {
-			case SetFieldOp(fldName, newVal) =>
-				setField(fldName, newVal).asInstanceOf[R]
-			case InvokeOp(mthdName, args) =>
-				invoke[R](mthdName, args)
+		protected def applyEvent[R](op : Event[R]) : R = {
+
+
+
+
+			val result = op match {
+				case GetFieldOp(fldName) =>
+					val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
+					val fieldMirror = objMirror.reflectField(fieldSymbol)
+					val result = fieldMirror.get
+					result.asInstanceOf[R]
+
+				case SetFieldOp(fldName, newVal) =>
+					val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
+					val fieldMirror = objMirror.reflectField(fieldSymbol)
+					fieldMirror.set(newVal).asInstanceOf[R]
+
+				case InvokeOp(mthdName, args) =>
+					val methodSymbol = typeOf[T].decl(TermName(mthdName)).asMethod
+					val methodMirror = objMirror.reflectMethod(methodSymbol)
+					val result = methodMirror.apply(args : _*)
+					result.asInstanceOf[R]
+			}
+
+
+			result
 		}
 
 
 		protected def invoke[R](methodName : String, args : Any*) : R = {
-			val methodSymbol = typeOf[T].decl(TermName(methodName)).asMethod
-			val methodMirror = objMirror.reflectMethod(methodSymbol)
-
-			val result = methodMirror.apply(args : _*)
-
-			result.asInstanceOf[R]
+			applyEvent(InvokeOp(methodName, args))
 		}
 
 		protected def getField[R](fieldName : String) : R = {
-			val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
-			val fieldMirror = objMirror.reflectField(fieldSymbol)
-
-			val result = fieldMirror.get
-
-			result.asInstanceOf[R]
+			applyEvent(GetFieldOp(fieldName))
 		}
 
 		protected def setField[R](fieldName : String, value : R) : Unit = {
-			val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
-			val fieldMirror = objMirror.reflectField(fieldSymbol)
-
-			fieldMirror.set(value)
+			applyEvent(SetFieldOp(fieldName, value))
 		}
 	}
 }
@@ -131,8 +141,10 @@ object AkkaReplicatedObject {
 
 
 	sealed trait Event[R]
+	case class GetFieldOp[R](fldName : String) extends Event[R]
 	case class SetFieldOp(fldName : String, newVal : Any) extends Event[Unit]
 	case class InvokeOp[R](mthdName : String, args : Seq[Any]) extends Event[R]
+
 
 }
 
