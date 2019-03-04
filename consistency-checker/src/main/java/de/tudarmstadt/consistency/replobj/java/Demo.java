@@ -26,7 +26,7 @@ public class Demo {
 		JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, ConsistencyLevels.Strong.class);
 
 		JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), ConsistencyLevels.Weak.class);
-		JRef<SomeObj> ref2Weak = replicaSystem1.ref("ow", SomeObj.class, ConsistencyLevels.Weak.class);
+		JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, ConsistencyLevels.Weak.class);
 
 
 		Thread.sleep(3000);
@@ -34,15 +34,17 @@ public class Demo {
 		ref1Strong.setField("f", 34);
 		ref1Weak.setField("f", 42);
 
-		System.out.println("ref1Strong.f = "  + ref1Strong.<Integer>getField("f"));
-		System.out.println("ref2Strong.f = "  + ref2Strong.<Integer>getField("f"));
+//		int i = ref1Strong.getField("f");
 
-		System.out.println("ref1Weak.f = "  + ref1Strong.<Integer>getField("f"));
-		System.out.println("ref2Weak.f = "  + ref2Strong.<Integer>getField("f"));
+		System.out.println("ref1Strong.f = "  + ref1Strong.getField("f"));
+		System.out.println("ref2Strong.f = "  + ref2Strong.getField("f"));
+
+		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
+		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
 
 		ref2Weak.synchronize();
 
-		System.out.println("ref1Weak.f = "  + ref1Strong.<Integer>getField("f"));
-		System.out.println("ref2Weak.f = "  + ref2Strong.<Integer>getField("f"));
+		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
+		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
 	}
 }
