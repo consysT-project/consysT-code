@@ -18,17 +18,6 @@ public class ConsistencyTest extends CheckerFrameworkPerFileTest {
 				"-nowarn");
     }
 
-//    @Parameters
-//    public static List<File> getTestFiles() {
-//
-//
-//
-//        File dir = new File ("/consistencyCheckerTest/consistency");
-//        List<File> files = new ArrayList<File>();
-//        files.addAll(Arrays.asList(dir.listFiles()));
-//        return files;
-//    }
-
 	@Parameters
 	public static String[] getTestDirs() {
     	return new String[] {"testfiles"};

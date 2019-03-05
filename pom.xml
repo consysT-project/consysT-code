@@ -12,18 +12,15 @@
 
     <modules>
 		<module>consistency-checker</module>
-        <module>consistency-store</module>
-        <module>store-integration-demo</module>
         <module>consistency-checker/consistency-checker-test</module>
-        <module>consistency-store/consistency-store-test</module>
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
+        <module>replobj-integration-demo</module>
     </modules>
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->
         <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
-
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

@@ -3,14 +3,13 @@ package de.tudarmstadt.consistency.replobj.actors
 import java.util.Random
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
-import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
+import com.typesafe.config.{Config, ConfigFactory}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObjectJ}
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicatedObject.{StrongAkkaFollowerReplicatedObject, StrongAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicatedObject.{WeakAkkaFollowerReplicatedObject, WeakAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
-import scala.collection.{JavaConverters, mutable}
+import scala.collection.mutable
 import scala.concurrent.Await
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._

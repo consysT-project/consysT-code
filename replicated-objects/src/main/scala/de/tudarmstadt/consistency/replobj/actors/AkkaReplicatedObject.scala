@@ -87,10 +87,7 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 
 		protected def applyEvent[R](op : Event[R]) : R = {
 
-
-
-
-			val result = op match {
+			val result : R = op match {
 				case GetFieldOp(fldName) =>
 					val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
 					val fieldMirror = objMirror.reflectField(fieldSymbol)

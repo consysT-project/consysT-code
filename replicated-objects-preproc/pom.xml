@@ -84,11 +84,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.mkoe</groupId>
-            <artifactId>mkoe-lib_2.12</artifactId>
-            <version>0.3.1</version>
-        </dependency>
-        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scalaVersion}</version>
