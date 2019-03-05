@@ -7,11 +7,11 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
  *
  * @author Mirko Köhler
  */
-public class ClassA {
+public class ObjA {
 
 	public int f;
 
-	public ClassA() {
+	public ObjA() {
 		f = 0;
 	}
 }

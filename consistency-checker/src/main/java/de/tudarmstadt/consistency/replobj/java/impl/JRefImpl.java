@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.replobj.java.impl;
 
+import de.tudarmstadt.consistency.checker.qual.PolyConsistent;
 import de.tudarmstadt.consistency.replobj.Ref;
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
 import de.tudarmstadt.consistency.replobj.java.JRef;
