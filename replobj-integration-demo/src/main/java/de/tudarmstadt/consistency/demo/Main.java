@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.demo;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.demo.schema.ClassA;
+import de.tudarmstadt.consistency.demo.schema.ObjA;
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels;
 import de.tudarmstadt.consistency.replobj.java.JRef;
 import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
@@ -25,11 +25,11 @@ public class Main {
 		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
 
 
-		JRef<@Strong ClassA> ref1Strong = replicaSystem1.<@Strong ClassA>replicate("os", (@Strong ClassA) new ClassA(), ConsistencyLevels.Strong.class);
-		JRef<@Strong ClassA> ref2Strong = replicaSystem2.<@Strong ClassA>ref("os", (Class<@Strong ClassA>) ClassA.class, ConsistencyLevels.Strong.class);
+		JRef<@Strong ObjA> ref1Strong = replicaSystem1.<@Strong ObjA>replicate("os", (@Strong ObjA) new ObjA(), ConsistencyLevels.Strong.class);
+		JRef<@Strong ObjA> ref2Strong = replicaSystem2.<@Strong ObjA>ref("os", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
 
-		JRef<@Weak ClassA> ref1Weak = replicaSystem1.replicate("ow", (@Weak ClassA) new ClassA(), ConsistencyLevels.Weak.class);
-		JRef<@Weak ClassA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ClassA>) ClassA.class, ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", (@Weak ObjA) new ObjA(), ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, ConsistencyLevels.Weak.class);
 
 
 		Thread.sleep(3000);
