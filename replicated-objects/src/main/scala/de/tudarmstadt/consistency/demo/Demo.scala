@@ -1,6 +1,5 @@
 package de.tudarmstadt.consistency.demo
 
-import akka.actor.ActorSystem
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
 import de.tudarmstadt.consistency.replobj.ReplicaSystem
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem

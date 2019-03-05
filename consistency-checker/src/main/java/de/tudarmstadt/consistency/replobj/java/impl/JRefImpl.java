@@ -18,7 +18,7 @@ public class JRefImpl<T> implements JRef<T> {
 	}
 
 	public JRefImpl(String addr, AkkaReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
-		this.ref = AkkaReplicaSystem.AkkaRef$.MODULE$.<String, T, Object>jcreate(addr, replicaSystem, (Class<Object>) consistencyCls);
+		this.ref = AkkaReplicaSystem.AkkaRef$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
 	}
 
 	@Override

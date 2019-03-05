@@ -92,27 +92,7 @@
             <artifactId>akka-remote_2.12</artifactId>
             <version>${akkaVersion}</version>
         </dependency>
-   <!--     <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-persistence_2.12</artifactId>
-            <version>${akkaVersion}</version>
-        </dependency> -->
-        <dependency>
-            <groupId>org.fusesource.leveldbjni</groupId>
-            <artifactId>leveldbjni-all</artifactId>
-            <version>1.8</version>
-        </dependency>
-        <dependency>
-            <groupId>org.iq80.leveldb</groupId>
-            <artifactId>leveldb</artifactId>
-            <version>0.7</version>
-        </dependency>
-        <dependency>
-            <groupId>de.mkoe</groupId>
-            <artifactId>mkoe-lib_2.12</artifactId>
-            <version>0.3.1</version>
-        </dependency>
-        <dependency>
+         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scalaVersion}</version>
@@ -121,11 +101,6 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-reflect</artifactId>
             <version>${scalaVersion}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-graph</groupId>
-            <artifactId>graph-core_2.12</artifactId>
-            <version>1.12.5</version>
         </dependency>
     </dependencies>
 
