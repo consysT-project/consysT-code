@@ -25,11 +25,11 @@ public class Main {
 		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
 
 
-		JRef<@Strong ObjA> ref1Strong = replicaSystem1.<@Strong ObjA>replicate("os", (@Strong ObjA) new ObjA(), ConsistencyLevels.Strong.class);
-		JRef<@Strong ObjA> ref2Strong = replicaSystem2.<@Strong ObjA>ref("os", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
+		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), ConsistencyLevels.Strong.class);
+		JRef<@Strong ObjA> ref2Strong = replicaSystem2.<@Strong ObjA>ref("os", ObjA.class, ConsistencyLevels.Strong.class);
 
-		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", (@Weak ObjA) new ObjA(), ConsistencyLevels.Weak.class);
-		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", new ObjA(), ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref2Weak = replicaSystem2.<@Weak ObjA>ref("ow", ObjA.class, ConsistencyLevels.Weak.class);
 
 
 		Thread.sleep(3000);

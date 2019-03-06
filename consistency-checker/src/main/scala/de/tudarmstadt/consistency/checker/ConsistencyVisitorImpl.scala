@@ -3,13 +3,11 @@ package de.tudarmstadt.consistency.checker
 import java.util
 
 import com.sun.source.tree._
-import de.tudarmstadt.consistency.replobj.java.JRef
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.source.Result
-import org.checkerframework.javacutil.AnnotationUtils
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -19,20 +17,12 @@ import scala.collection.{JavaConverters, mutable}
 	* @author Mirko Köhler
 	*/
 class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[ConsistencyAnnotatedTypeFactory](checker){
+	import TypeFactoryUtils._
+
+	implicit val implicitTypeFactory : ConsistencyAnnotatedTypeFactory = atypeFactory
 
 	//Current context of the consistency check
 	private val implicitContext : ImplicitContext = new ImplicitContext
-
-
-	/*
-		Annotation definitions
-	 */
-	private lazy val localAnnotation : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations, "de.tudarmstadt.consistency.checker.qual.Local")
-
-	private lazy val inconsistentAnnotation : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tudarmstadt.consistency.checker.qual.Inconsistent")
-
 
 
 	/*
@@ -129,7 +119,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
 
-		println("method inv " +node)
+//		println("method inv " +node)
 
 		if (methodInvocationIsReplicate(node)) {
 			println("FOUND SET FIELD")
@@ -161,7 +151,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 			val expr : ExpressionTree = memberSelectTree.getExpression
 			val recvType = atypeFactory.getAnnotatedType(expr)
 
-			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
+//			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
 
 			recvType match {
 				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JReplicaSystem" =>
@@ -174,11 +164,8 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 							println("WARNING: Non-local value replicated")
 						}
 
-						val targs = node.getTypeArguments.get(0)
+						val targs = node.getTypeArguments
 
-						atypeFactory.addComputedTypeAnnotations()
-
-						atypeFactory.addComputedTypeAnnotations()
 
 
 						println(s"args = ${node.getArguments}, targs = $targs")
