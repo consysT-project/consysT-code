@@ -2,6 +2,7 @@ package de.tudarmstadt.consistency.replobj.java.impl;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.replobj.Ref;
 import de.tudarmstadt.consistency.replobj.ReplicaSystems;
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
@@ -27,7 +28,7 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	}
 
 	@Override
-	public <T> JRef<T> replicate(String addr, T obj, Class<?> consistencyCls) {
+	public <T> JRef<T> replicate(String addr, @Local T obj, Class<?> consistencyCls) {
 
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T, ?> ref = replicaSystem.replicate(addr, obj, objCls, consistencyCls);

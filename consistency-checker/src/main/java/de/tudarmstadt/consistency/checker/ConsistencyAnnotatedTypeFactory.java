@@ -1,18 +1,15 @@
 package de.tudarmstadt.consistency.checker;
 
-import com.sun.source.tree.*;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.javacutil.AnnotationUtils;
-
-import javax.lang.model.element.AnnotationMirror;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
+
+
     public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
         	Set useFlow to false if the flow analysis should be used.
@@ -20,7 +17,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         super(checker, true);
         this.postInit();
     }
-
 
 
     @Override
@@ -36,16 +32,11 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
 
-
-
-
     private class ExtendedImplicitTypeAnnotator extends TypeAnnotator {
-
         public ExtendedImplicitTypeAnnotator() {
             super(ConsistencyAnnotatedTypeFactory.this);
         }
     }
-
 
 
 //    @Override
@@ -59,6 +50,5 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 //    public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
 //        super.addComputedTypeAnnotations(elt, type);
 //    }
-
 
 }
