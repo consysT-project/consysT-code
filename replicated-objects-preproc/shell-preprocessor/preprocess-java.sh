@@ -6,4 +6,4 @@
 ###
 # See also: https://unix.stackexchange.com/questions/112023/how-can-i-replace-a-string-in-a-files
 ###
-find $1 -iname '*.scala' -type f -exec sed -E -i.bak -f patterns-scala.txt {} \;
+find $1 -iname '*.java' -type f -exec sed -E -i.bak -f patterns-java.txt {} \;

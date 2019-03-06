@@ -14,4 +14,14 @@ public class ObjA {
 	public ObjA() {
 		f = 0;
 	}
+
+	public String inc() {
+		f = f + 1;
+		return "done";
+	}
+
+	public int incBy(int x) {
+		f = f + x;
+		return f;
+	}
 }

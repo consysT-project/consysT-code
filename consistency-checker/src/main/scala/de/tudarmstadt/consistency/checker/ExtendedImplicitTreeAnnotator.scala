@@ -1,9 +1,12 @@
 package de.tudarmstadt.consistency.checker
 
 import com.sun.source.tree.{LiteralTree, MemberSelectTree, NewClassTree}
+import javax.lang.model.`type`.DeclaredType
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
+import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
+import org.checkerframework.framework.`type`.visitor.{AnnotatedTypeVisitor, SimpleAnnotatedTypeVisitor}
 import org.checkerframework.javacutil.AnnotationUtils
 
 /**
@@ -21,7 +24,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 
 
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
-		//Add @Local for every constructor call (new).
+		//Locally generated objects (new Obj...) are always @Local.
 		annotatedTypeMirror.clearAnnotations()
 		annotatedTypeMirror.addAnnotation(localAnnotation)
 
@@ -29,6 +32,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 	}
 
 	override def visitLiteral(node : LiteralTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
+		//Literals are always @Local.
 		annotatedTypeMirror.clearAnnotations()
 		annotatedTypeMirror.addAnnotation(localAnnotation)
 		super.visitLiteral(node, annotatedTypeMirror)
@@ -36,11 +40,22 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 
 	override def visitMemberSelect(node : MemberSelectTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
 
-		//Class literals are always @Local
+		//Class literals are always @Local.
 		if (node.getIdentifier.contentEquals("class")) {
-			//TODO: Add annotation to type parameter instead
+			//Change type to: @Local Class...
 			annotatedTypeMirror.clearAnnotations()
 			annotatedTypeMirror.addAnnotation(localAnnotation)
+
+			//Change type to: Class<@Local ...>
+//			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
+//				override def visitDeclared(typ : AnnotatedTypeMirror.AnnotatedDeclaredType, p : Void) : Void = {
+//					require(typ.getUnderlyingType.asElement().getSimpleName.toString == "Class")
+//					val typeArg = typ.getTypeArguments.get(0)
+//					typeArg.clearAnnotations()
+//					typeArg.addAnnotation(localAnnotation)
+//					null
+//				}
+//			}, null)
 		}
 
 		super.visitMemberSelect(node, annotatedTypeMirror)

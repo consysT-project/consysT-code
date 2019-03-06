@@ -26,10 +26,10 @@ public class Main {
 
 
 		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), ConsistencyLevels.Strong.class);
-		JRef<@Strong ObjA> ref2Strong = replicaSystem2.<@Strong ObjA>ref("os", ObjA.class, ConsistencyLevels.Strong.class);
+		JRef<@Strong ObjA> ref2Strong = replicaSystem2.ref("os", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
 
 		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", new ObjA(), ConsistencyLevels.Weak.class);
-		JRef<@Weak ObjA> ref2Weak = replicaSystem2.<@Weak ObjA>ref("ow", ObjA.class, ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, ConsistencyLevels.Weak.class);
 
 
 		Thread.sleep(3000);
@@ -37,7 +37,15 @@ public class Main {
 		ref1Strong.setField("f", 34);
 		ref1Weak.setField("f", 42);
 
-//		int i = ref1Strong.getField("f");
+		int i = ref1Strong.getField("f"); //.getField("f");
+
+		ref1Strong.setField("f", 42);
+
+		ref1Strong.invoke("inc");
+		ref1Strong.invoke("incBy", 4 + 21);
+
+		ref1Strong.invoke("incBy", 4 + (21 * 13) );
+
 
 		System.out.println("ref1Strong.f = "  + ref1Strong.getField("f"));
 		System.out.println("ref2Strong.f = "  + ref2Strong.getField("f"));

@@ -14,4 +14,6 @@ public interface JRef<T> {
 	<R> R invoke(String methodName, Object... args);
 
 	void synchronize();
+
+	T remote();
 }

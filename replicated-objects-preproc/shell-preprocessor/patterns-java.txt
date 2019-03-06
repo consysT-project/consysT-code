@@ -1,0 +1,13 @@
+######
+# sed patterns for replacing .remote calls to references
+# Run with: sed -E -f patterns.txt <file-to-parse>
+# Add -i.bak to replace occurences in file
+######
+# Method calls with no arguments
+s/(\w+)\.remote\(\)\.(\w+)\(\s*\)/\1.invoke("\2")/g
+# Method calls with arguments
+s/(\w+)\.remote\(\)\.(\w+)\((.+)\)/\1.invoke("\2", \3)/g
+# Field set
+s/(\w+)\.remote\(\)\.(\w+)\s*=\s*([^\n;]*)/\1.setField("\2", \3)/g
+#Field get
+s/(\w+)\.remote\(\)\.(\w+)/\1.getField("\2")/g

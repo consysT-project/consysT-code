@@ -41,4 +41,11 @@ public class JRefImpl<T> implements JRef<T> {
 	public void synchronize() {
 		ref.toReplicatedObject().synchronize();
 	}
+
+	@Override
+	public T remote() {
+		return ref.remote(); //Throws an exception
+	}
+
+
 }
