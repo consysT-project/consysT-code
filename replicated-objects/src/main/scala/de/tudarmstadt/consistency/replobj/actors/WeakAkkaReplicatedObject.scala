@@ -22,13 +22,13 @@ abstract class WeakAkkaReplicatedObject[T <: AnyRef : TypeTag] extends AkkaRepli
 
 object WeakAkkaReplicatedObject {
 
-	class WeakAkkaMasterReplicatedObject[T <: AnyRef : TypeTag](obj : T, val replicaSystem : AkkaReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
+	class WeakAkkaMasterReplicatedObject[T <: AnyRef : TypeTag](obj : T, val replicaSystem : ActorReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
 			replicaSystem.actorSystem.actorOf(Props(classOf[MasterActor], this, obj, typeTag[T]))
 
 
-		override def synchronize() : Unit =
+		override def sync() : Unit =
 			throw new UnsupportedOperationException("synchronize on master")
 
 
@@ -57,13 +57,13 @@ object WeakAkkaReplicatedObject {
 	}
 
 
-	class WeakAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : AkkaReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
+	class WeakAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : ActorReplicaSystem[_]) extends WeakAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
 			replicaSystem.actorSystem.actorOf(Props(classOf[FollowerActor], this, obj, typeTag[T]))
 
 
-		override def synchronize() : Unit = {
+		override def sync() : Unit = {
 			import akka.pattern.ask
 			implicit val timeout : Timeout = Timeout(10 seconds)
 			val response = objActor ? Synchronize

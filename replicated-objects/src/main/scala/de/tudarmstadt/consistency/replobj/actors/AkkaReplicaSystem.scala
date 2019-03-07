@@ -4,11 +4,12 @@ import java.util.Random
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import com.typesafe.config.{Config, ConfigFactory}
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{AkkaRef, NewObjectJ}
+import de.tudarmstadt.consistency.replobj.actors.ActorReplicaSystem.{RefImpl, NewObjectJ}
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicatedObject.{StrongAkkaFollowerReplicatedObject, StrongAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicatedObject.{WeakAkkaFollowerReplicatedObject, WeakAkkaMasterReplicatedObject}
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevels, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
+import scala.collection.immutable.Stack
 import scala.collection.mutable
 import scala.concurrent.Await
 import scala.language.postfixOps
@@ -23,35 +24,34 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
   def actorSystem : ActorSystem
 
-	private val replicaActor : ActorRef =
-		actorSystem.actorOf(
-			Props(
-				classOf[ReplicaActor],
-				this),
-			AkkaReplicaSystem.replicaActorName)
+	private val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	ActorReplicaSystem.replicaActorName)
 
 	/*private[actors]*/ val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[ _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
-	private object CurrentState {
-		val methodStack : mutable.ArrayStack[Int] = new mutable.ArrayStack
 
-	}
+	private [actors] object Context {
 
-	private val random = new Random()
-	private[actors] def freshid() : Int = random.nextInt()
+		final type CtxType = Int
+		final type ContextPath = List[CtxType]
 
-	private[actors] def enterMethod(id : Int) : Unit =
-		CurrentState.methodStack.push(id)
+		private var currentContextPath : ContextPath = List.empty[CtxType]
 
-	private[actors] def currentMethod : Int =
-		CurrentState.methodStack.head
+		private val random = new Random()
 
-	private[actors] def exitMethod(id : Int) : Unit = {
-		val r = CurrentState.methodStack.pop()
-		assert(r == id)
+
+		def createCtxType() : Int = random.nextInt()
+
+		def enterCtx(ctx : CtxType = createCtxType()) : Unit =
+			currentContextPath = ctx :: currentContextPath
+
+		def leaveCtx() : Unit =
+			currentContextPath = currentContextPath.tail
+
+		def getCurrentContext : ContextPath = currentContextPath
+
 	}
 
 
@@ -72,11 +72,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		}
 		localObjects.put(addr, rob)
 
-		AkkaRef.create(addr, this)
+		RefImpl.create(addr, this)
 	}
 
 	override def ref[T  <: AnyRef : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
-		AkkaRef.create(addr, this)
+		RefImpl.create(addr, this)
 	}
 
 
@@ -115,13 +115,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			val ft = field.getType
 
-			if (ft.isAssignableFrom(classOf[AkkaRef[_,_,_]])) {
+			if (ft.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
 				field.setAccessible(true)
 				val ref = field.get(obj)
 
 				ref match {
-					case akkaRef : AkkaRef[Addr, _, _] =>
-						akkaRef.replicaSystem = AkkaReplicaSystem.this
+					case akkaRef : RefImpl[Addr, _, _] =>
+						akkaRef.replicaSystem = ActorReplicaSystem.this
 					case _ =>
 				}
 
@@ -149,7 +149,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 	def addOtherReplica(hostname : String, port : Int) : Unit = {
-		val sysname = AkkaReplicaSystem.defaultActorSystemName
+		val sysname = ActorReplicaSystem.defaultActorSystemName
 		val address = Address("akka.tcp", sysname, hostname, port)
 		addOtherReplica(address)
 	}
@@ -159,7 +159,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
 		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
 		 */
-		addOtherReplica(RootActorPath(address) / "user" / AkkaReplicaSystem.replicaActorName)
+		addOtherReplica(RootActorPath(address) / "user" / ActorReplicaSystem.replicaActorName)
 	}
 
 
@@ -203,14 +203,13 @@ object AkkaReplicaSystem {
 	private[AkkaReplicaSystem] final val defaultActorSystemName : String = "replica-system"
 
 
-	private class AkkaReplicaSystemImpl[Addr](override val actorSystem: ActorSystem) extends AkkaReplicaSystem[Addr]
+	private class AkkaReplicaSystemImpl[Addr](override val actorSystem: ActorSystem) extends ActorReplicaSystem[Addr]
 
 
-	def create[Addr](actorSystem : ActorSystem) : AkkaReplicaSystem[Addr] =
+	def create[Addr](actorSystem : ActorSystem) : ActorReplicaSystem[Addr] =
 		new AkkaReplicaSystemImpl[Addr](actorSystem)
 
-	def create[Addr](port : Int) : AkkaReplicaSystem[Addr] = {
-
+	def create[Addr](port : Int) : ActorReplicaSystem[Addr] = {
 		val config : Config = ConfigFactory.parseString(
 			s"""
 				|akka {
@@ -224,7 +223,6 @@ object AkkaReplicaSystem {
 				|}
 			""".stripMargin)
 
-
 		val system = ActorSystem(defaultActorSystemName, config)
 
 		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
@@ -233,12 +231,12 @@ object AkkaReplicaSystem {
 	}
 
 
-	class AkkaRef[Addr, T <: AnyRef, L : TypeTag] private (val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
+	class AkkaRef[Addr, T <: AnyRef, L : TypeTag] private (val addr : Addr, @transient private[actors] var replicaSystem : ActorReplicaSystem[Addr]) extends Ref[Addr, T, L] {
 
 		override implicit def toReplicatedObject : ReplicatedObject[T, L] = replicaSystem match {
 			case null =>
 				sys.error(s"replica system has not been initialized properly. $toString")
-			case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.localObjects.get(addr) match {
+			case akkaReplicaSystem: ActorReplicaSystem[Addr] => akkaReplicaSystem.localObjects.get(addr) match {
 				case None =>
 					sys.error("the replicated object is not (yet) available on this host.")
 
@@ -259,12 +257,12 @@ object AkkaReplicaSystem {
 
 	object AkkaRef {
 
-		def create[Addr, T <: AnyRef, L : TypeTag](addr : Addr, replicaSystem : AkkaReplicaSystem[Addr]) : AkkaRef[Addr, T, L] = {
+		def create[Addr, T <: AnyRef, L : TypeTag](addr : Addr, replicaSystem : ActorReplicaSystem[Addr]) : AkkaRef[Addr, T, L] = {
 			new AkkaRef[Addr, T, L](addr, replicaSystem)
 		}
 
 		/* Java binding */
-		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : AkkaRef[Addr, T, L] = {
+		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: ActorReplicaSystem[Addr], consistencyCls : Class[L]) : AkkaRef[Addr, T, L] = {
 			implicit val ltt : TypeTag[L] = Utils.typeTagFromCls(consistencyCls)
 			val ref : AkkaRef[Addr, T, L] = create[Addr, T, L](addr, replicaSystem)
 			ref

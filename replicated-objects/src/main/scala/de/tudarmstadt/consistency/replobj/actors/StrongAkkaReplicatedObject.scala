@@ -21,17 +21,22 @@ abstract class StrongAkkaReplicatedObject[T <: AnyRef : TypeTag] extends AkkaRep
 
 object StrongAkkaReplicatedObject {
 
-	class StrongAkkaMasterReplicatedObject[T <: AnyRef : TypeTag](obj : T/*creates actor in constructor*/, val replicaSystem : AkkaReplicaSystem[_]) extends StrongAkkaReplicatedObject[T] {
+	class StrongAkkaMasterReplicatedObject[T <: AnyRef : TypeTag](obj : T/*creates actor in constructor*/, val replicaSystem : ActorReplicaSystem[_]) extends StrongAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
 			replicaSystem.actorSystem.actorOf(Props(classOf[MasterActor], this, obj, typeTag[T]))
 
 
-		override def synchronize() : Unit =
+		override def sync() : Unit =
 			throw new UnsupportedOperationException("synchronize on strong consistent object")
 
 
 		class MasterActor(protected var obj : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+
+			private case class OpTag(opid : Int, seq : Int, parent : Option[Int] = None)
+
+			private val opCache : mutable.Map[OpTag, Any] = mutable.Map.empty
+
 
 			private val lockQueue : mutable.Queue[(ActorRef, Any)] = mutable.Queue.empty
 
@@ -88,19 +93,16 @@ object StrongAkkaReplicatedObject {
 		}
 	}
 
-	class StrongAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : AkkaReplicaSystem[_]) extends StrongAkkaReplicatedObject[T] {
+	class StrongAkkaFollowerReplicatedObject[T <: AnyRef : TypeTag](obj : T, masterRef : ActorRef, val replicaSystem : ActorReplicaSystem[_]) extends StrongAkkaReplicatedObject[T] {
 
 		override val objActor : ActorRef =
 			replicaSystem.actorSystem.actorOf(Props(classOf[FollowerActor], this, obj, typeTag[T]))
 
 
-		override def synchronize() : Unit =
+		override def sync() : Unit =
 			throw new UnsupportedOperationException("synchronize on strong consistent object")
 
 
-		private case class OpTag(opid : Int, seq : Int, parent : Option[Int] = None)
-
-		private val opCache : mutable.Map[OpTag, Any] = mutable.Map.empty
 
 
 		class FollowerActor(protected var obj : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {

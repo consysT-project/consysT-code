@@ -1,8 +1,7 @@
 package de.tudarmstadt.consistency.replobj.java.impl;
 
-import de.tudarmstadt.consistency.checker.qual.PolyConsistent;
 import de.tudarmstadt.consistency.replobj.Ref;
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
+import de.tudarmstadt.consistency.replobj.actors.ActorReplicaSystem;
 import de.tudarmstadt.consistency.replobj.java.JRef;
 
 /**
@@ -18,8 +17,8 @@ public class JRefImpl<T> implements JRef<T> {
 		this.ref = ref;
 	}
 
-	public JRefImpl(String addr, AkkaReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
-		this.ref = AkkaReplicaSystem.AkkaRef$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
+	public JRefImpl(String addr, ActorReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
+		this.ref = ActorReplicaSystem.RefImpl$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
 	}
 
 	@Override
@@ -39,7 +38,7 @@ public class JRefImpl<T> implements JRef<T> {
 
 	@Override
 	public void synchronize() {
-		ref.toReplicatedObject().synchronize();
+		ref.toReplicatedObject().sync();
 	}
 
 	@Override
