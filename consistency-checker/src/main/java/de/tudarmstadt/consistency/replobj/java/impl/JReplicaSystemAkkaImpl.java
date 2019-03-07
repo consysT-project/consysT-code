@@ -1,11 +1,10 @@
 package de.tudarmstadt.consistency.replobj.java.impl;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import de.tudarmstadt.consistency.checker.qual.Local;
 import de.tudarmstadt.consistency.replobj.Ref;
 import de.tudarmstadt.consistency.replobj.ReplicaSystems;
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
+import de.tudarmstadt.consistency.replobj.actors.ActorReplicaSystem;
 import de.tudarmstadt.consistency.replobj.java.JRef;
 import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
 
@@ -16,7 +15,7 @@ import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
  */
 public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
-	private final AkkaReplicaSystem<String> replicaSystem;
+	private final ActorReplicaSystem<String> replicaSystem;
 
 
 	public JReplicaSystemAkkaImpl(ActorSystem actorSystem) {

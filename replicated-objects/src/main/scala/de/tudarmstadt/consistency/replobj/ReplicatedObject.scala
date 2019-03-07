@@ -24,7 +24,7 @@ trait ReplicatedObject[T <: AnyRef, L] {
 		invoke[R](methodName, args.toSeq : _*)
 	}
 
-	def synchronize() : Unit
+	def sync() : Unit
 
 	//Optional print method for debugging purposes
 	private[replobj] def print() : Unit = throw new UnsupportedOperationException("print is not supported")

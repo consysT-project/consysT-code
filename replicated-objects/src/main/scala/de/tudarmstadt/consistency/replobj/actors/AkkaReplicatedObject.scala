@@ -22,7 +22,7 @@ abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends 
 
 	private[actors] val objActor : ActorRef
 
-	protected val replicaSystem : AkkaReplicaSystem[_]
+	protected val replicaSystem : ActorReplicaSystem[_]
 
 	override def invoke[R](methodName : String, args : Any*) : R = {
 		import akka.pattern.ask
