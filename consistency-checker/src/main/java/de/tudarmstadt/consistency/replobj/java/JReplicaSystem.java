@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.replobj.java;
 
 import akka.actor.ActorSystem;
 import de.tudarmstadt.consistency.checker.qual.Local;
-import de.tudarmstadt.consistency.replobj.java.impl.JReplicaSystemAkkaImpl;
+import de.tudarmstadt.consistency.replobj.actors.java.JReplicaSystemAkkaImpl;
 
 /**
  * Created on 01.03.19.

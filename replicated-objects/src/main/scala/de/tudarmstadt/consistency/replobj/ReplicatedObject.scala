@@ -12,7 +12,6 @@ trait ReplicatedObject[T <: AnyRef, L] {
 
 	def getConsistencyLevel : TypeTag[L]
 
-
 	def getField[R](fieldName : String) : R
 
 	def setField[R](fieldName : String, value : R) : Unit
