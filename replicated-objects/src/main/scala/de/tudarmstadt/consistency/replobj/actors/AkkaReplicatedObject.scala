@@ -1,16 +1,12 @@
 package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorRef}
-import akka.util.Timeout
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{RefImpl, Request, ReturnRequest}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
-import scala.collection.mutable
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
 
 /**
@@ -18,129 +14,132 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-abstract class AkkaReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag] extends ReplicatedObject[T, L] {
+trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] {
+
+	val addr : Addr
 
 	private[actors] val objActor : ActorRef
+	protected val replicaSystem : AkkaReplicaSystem[Addr]
 
-	protected val replicaSystem : ActorReplicaSystem[_]
+	protected implicit def ttt : TypeTag[T]
+	protected implicit def ltt : TypeTag[L]
 
+
+	//TODO: Sending requests may lead to deadlocks, just call the methods instead
 	override def invoke[R](methodName : String, args : Any*) : R = {
-		import akka.pattern.ask
-
-		implicit val timeout : Timeout = Timeout(60 seconds)
-		val asked = objActor ? MethodInv(methodName, args)
-		val res = Await.result(asked, 60 seconds)
+		val res = replicaSystem.request(addr, InvokeReq(methodName, args))
 		res.asInstanceOf[R]
 	}
 
 	override def getField[R](fieldName : String) : R = {
-		import akka.pattern.ask
-
-		implicit val timeout : Timeout = Timeout(10 seconds)
-		val asked = objActor ? FieldGet(fieldName)
-		val res = Await.result(asked, 10 seconds)
+		val res = replicaSystem.request(addr, GetFieldReq(fieldName))
 		res.asInstanceOf[R]
 	}
 
 	override def setField[R](fieldName : String, value : R) : Unit = {
-		import akka.pattern.ask
-
-		implicit val timeout : Timeout = Timeout(10 seconds)
-		val asked = objActor ? FieldSet(fieldName, value)
-		Await.ready(asked, 10 seconds)
+		val res = replicaSystem.request(addr, SetFieldReq(fieldName, value))
+		res.asInstanceOf[Unit]
 	}
 
-	override def print() : Unit = {
-		objActor ! Print
+	override def sync() : Unit = {
+		val res = replicaSystem.request(addr, SyncReq)
+		res.asInstanceOf[Unit]
 	}
 
-	override def getConsistencyLevel : TypeTag[L] =
-		implicitly[TypeTag[L]]
+	override def getConsistencyLevel : TypeTag[L] = ltt
 
 
 
 	/*trait for implementing actors of this ref*/
 	protected trait ObjectActor extends Actor {
 
-		protected var obj : T
-
-		/* dynamic type information */
-//		protected implicit def objtag : TypeTag[T]
-		/* predefined for reflection */
-		protected implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
-		protected var objMirror : InstanceMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
+		private var obj : T = null.asInstanceOf[T]
 
 
 		protected def setObject(newObj : T) : Unit = {
-			replicaSystem.initializeRefFields(newObj)
 			obj = newObj
-			objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
+			initializeRefFields()
+			ReflectiveAccess.updateObj()
 		}
 
-		def hasConsistency[L0 : TypeTag] : Boolean =
-			typeTag[L] == typeTag[L0]
+		protected def getObject : T =
+			obj
 
 
-		override def receive : Receive = {
-			case Print =>	println("Obj" + this.self + ": " + obj)
+		private def initializeRefFields() : Unit = {
+			obj.getClass.getDeclaredFields.foreach { field =>
+				if (field.getType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
+					field.setAccessible(true)
+					field.get(obj) match {
+						case refImpl : RefImpl[Addr, _, _] =>
+							refImpl.replicaSystem = replicaSystem
+						case _ =>
+					}
+				}
+				//TODO: Check recursively for ref fields. Care for cycles (fields of type of the class the declares it)
+			}
 		}
 
-		protected def applyEvent[R](op : Event[R]) : R = {
+		protected final object ReflectiveAccess {
 
-			val result : R = op match {
-				case GetFieldOp(fldName) =>
-					val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
-					val fieldMirror = objMirror.reflectField(fieldSymbol)
-					val result = fieldMirror.get
-					result.asInstanceOf[R]
+			private implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
+			//TODO: Define this as field and keep in sync with obj
+			private var objMirror : InstanceMirror = null
 
-				case SetFieldOp(fldName, newVal) =>
-					val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
-					val fieldMirror = objMirror.reflectField(fieldSymbol)
-					fieldMirror.set(newVal).asInstanceOf[R]
-
-				case InvokeOp(mthdName, args) =>
-					val methodSymbol = typeOf[T].decl(TermName(mthdName)).asMethod
-					val methodMirror = objMirror.reflectMethod(methodSymbol)
-					val result = methodMirror.apply(args : _*)
-					result.asInstanceOf[R]
+			private[ObjectActor] def updateObj() : Unit = {
+				objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 			}
 
+			def applyOp[R](op : Operation[R]) : R = synchronized {
+				val result : R = op match {
+					case GetFieldOp(fldName) =>
+						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
+						val fieldMirror = objMirror.reflectField(fieldSymbol)
+						val result = fieldMirror.get
+						result.asInstanceOf[R]
 
-			result
+					case SetFieldOp(fldName, newVal) =>
+						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
+						val fieldMirror = objMirror.reflectField(fieldSymbol)
+						fieldMirror.set(newVal).asInstanceOf[R]
+
+					case InvokeOp(mthdName, args) =>
+						val methodSymbol = typeOf[T].decl(TermName(mthdName)).asMethod
+						val methodMirror = objMirror.reflectMethod(methodSymbol)
+						val result = methodMirror.apply(args : _*)
+						result.asInstanceOf[R]
+				}
+				result
+			}
+
+			@inline def doInvoke[R](methodName : String, args : Any*) : R = {
+				applyOp(InvokeOp(methodName, args))
+			}
+
+			@inline def doGetField[R](fieldName : String) : R = {
+				applyOp(GetFieldOp(fieldName))
+			}
+
+			@inline def doSetField[R](fieldName : String, value : R) : Unit = {
+				applyOp(SetFieldOp(fieldName, value))
+			}
 		}
 
-
-		protected def invoke[R](methodName : String, args : Any*) : R = {
-			applyEvent(InvokeOp(methodName, args))
-		}
-
-		protected def getField[R](fieldName : String) : R = {
-			applyEvent(GetFieldOp(fieldName))
-		}
-
-		protected def setField[R](fieldName : String, value : R) : Unit = {
-			applyEvent(SetFieldOp(fieldName, value))
-		}
 	}
 }
 
 object AkkaReplicatedObject {
 
-	sealed trait Operation
-	case class MethodInv(methodName : String, args : Seq[Any]) extends Operation
-	case class FieldGet(fieldName : String) extends Operation
-	case class FieldSet(fieldName : String, newVal : Any) extends Operation
-	case object Synchronize extends Operation
-	case object Print extends Operation //Only for debugging
+	sealed trait ObjectReq extends Request
+	case class InvokeReq(methodName : String, args : Seq[Any]) extends ObjectReq with ReturnRequest
+	case class GetFieldReq(fieldName : String) extends ObjectReq with ReturnRequest
+	case class SetFieldReq(fieldName : String, newVal : Any) extends ObjectReq with ReturnRequest
+	case object SyncReq extends ObjectReq with ReturnRequest
 
-	case object SetAck
-
-
-	sealed trait Event[R]
-	case class GetFieldOp[R](fldName : String) extends Event[R]
-	case class SetFieldOp(fldName : String, newVal : Any) extends Event[Unit]
-	case class InvokeOp[R](mthdName : String, args : Seq[Any]) extends Event[R]
+	sealed trait Operation[+R]
+	case class GetFieldOp[+R](fldName : String) extends Operation[R]
+	case class SetFieldOp(fldName : String, newVal : Any) extends Operation[Unit]
+	case class InvokeOp[+R](mthdName : String, args : Seq[Any]) extends Operation[R]
 
 
 }

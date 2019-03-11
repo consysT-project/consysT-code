@@ -1,7 +1,7 @@
-package de.tudarmstadt.consistency.replobj.java.impl;
+package de.tudarmstadt.consistency.replobj.actors.java;
 
 import de.tudarmstadt.consistency.replobj.Ref;
-import de.tudarmstadt.consistency.replobj.actors.ActorReplicaSystem;
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
 import de.tudarmstadt.consistency.replobj.java.JRef;
 
 /**
@@ -13,13 +13,13 @@ public class JRefImpl<T> implements JRef<T> {
 
 	private final Ref<String, T,?> ref;
 
-	public JRefImpl(Ref<String, T,?> ref) {
+	JRefImpl(Ref<String, T,?> ref) {
 		this.ref = ref;
 	}
 
-	public JRefImpl(String addr, ActorReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
-		this.ref = ActorReplicaSystem.RefImpl$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
-	}
+//	public JRefImpl(String addr, AkkaReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
+//		this.ref = AkkaReplicaSystem.RefImpl$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
+//	}
 
 	@Override
 	public <R> R getField(String fieldName) {

@@ -1,9 +1,8 @@
 package de.tudarmstadt.consistency.replobj.java;
 
-import akka.actor.ActorSystem;
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels;
-import de.tudarmstadt.consistency.replobj.SomeObj;
-import de.tudarmstadt.consistency.replobj.java.impl.JReplicaSystemAkkaImpl;
+
+import java.io.Serializable;
 
 /**
  * Created on 01.03.19.
@@ -11,6 +10,11 @@ import de.tudarmstadt.consistency.replobj.java.impl.JReplicaSystemAkkaImpl;
  * @author Mirko Köhler
  */
 public class Demo {
+
+
+	static class SomeObj implements Serializable {
+		public int f = 0;
+	}
 
 
 	public static void main(String[] args) throws InterruptedException {
