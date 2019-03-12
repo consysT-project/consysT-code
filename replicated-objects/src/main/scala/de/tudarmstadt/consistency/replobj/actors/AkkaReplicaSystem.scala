@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.util.Random
+import java.util.function.Supplier
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
@@ -12,6 +12,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import scala.util.Random
 
 /**
 	* Created on 13.02.19.
@@ -51,8 +52,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
+	protected def freshAddr() : Addr
 
-	override def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
+
+	override final def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
 		require(!localObjects.contains(addr))
 
 		val rob = createMasterReplica[T, L](addr, obj)
@@ -68,7 +71,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		Ref.create(addr, this)
 	}
 
-	override def ref[T  <: AnyRef : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
+	override final def replicate[T <: AnyRef : TypeTag, L : TypeTag](obj : T) : Ref[Addr, T, L] = {
+		replicate[T, L](freshAddr(), obj)
+	}
+
+	override final def ref[T  <: AnyRef : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
 		Ref.create(addr, this)
 	}
 
@@ -106,7 +113,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 //		ref.asInstanceOf[AkkaReplicatedObject[T, L]] //<- L has to be the consistency level ref
 //	}
 
-	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 10 seconds) : Any = {
+	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 3600 seconds) : Any = {
 		val reqMsg = ObjReq(addr, req)
 
 		if (req.returns) {
@@ -168,7 +175,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			case ObjReq(addr : Addr, request) => localObjects.get(addr) match {
 				case None => sys.error("object not found, address: " + addr)
-				case Some(rob) => rob.objActor.tell(request, sender())
+				case Some(rob) =>
+					rob.objActor.tell(request, sender())
+
+
 			}
 		}
 	}
@@ -204,9 +214,9 @@ object AkkaReplicaSystem {
 				case Some(rob : ReplicatedObject[T,L]) =>
 
 					//Check consistency level
-					val thisL = implicitly[TypeTag[L]].tpe
-					val objL = rob.getConsistencyLevel.tpe
-					require(thisL =:= objL, s"non-matching consistency levels. ref was $thisL and object was $objL")
+//					val thisL = implicitly[TypeTag[L]].tpe
+//					val objL = rob.getConsistencyLevel.tpe
+//					require(thisL =:= objL, s"non-matching consistency levels. ref was $thisL and object was $objL")
 
 					rob
 			}

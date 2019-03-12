@@ -11,11 +11,11 @@ import de.tudarmstadt.consistency.replobj.actors.package$;
  */
 public class ReplicaSystems {
 
-	public static <Addr> AkkaReplicaSystem<Addr> fromActorSystem(ActorSystem actorSystem) {
+	public static AkkaReplicaSystem<String> fromActorSystem(ActorSystem actorSystem) {
 		return package$.MODULE$.createReplicaSystem(actorSystem);
 	}
 
-	public static <Addr> AkkaReplicaSystem<Addr> fromActorSystem(int port) {
+	public static AkkaReplicaSystem<String> fromActorSystem(int port) {
 		return package$.MODULE$.createReplicaSystem(port);
 	}
 

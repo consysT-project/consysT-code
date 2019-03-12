@@ -28,9 +28,16 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
 	@Override
 	public <T> JRef<T> replicate(String addr, @Local T obj, Class<?> consistencyCls) {
-
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T, ?> ref = replicaSystem.replicate(addr, obj, objCls, consistencyCls);
+
+		return new JRefImpl<>(ref);
+	}
+
+	@Override
+	public <T> JRef<T> replicate(@Local T obj, Class<?> consistencyCls) {
+		Class<T> objCls = (Class<T>) obj.getClass();
+		Ref<String, T, ?> ref = replicaSystem.replicate(obj, objCls, consistencyCls);
 
 		return new JRefImpl<>(ref);
 	}
@@ -41,6 +48,7 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		return new JRefImpl<>(ref);
 	}
 
+	@Override
 	public void addReplicaSystem(String hostname, int port) {
 		replicaSystem.addOtherReplica(hostname, port);
 	}

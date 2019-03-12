@@ -53,25 +53,25 @@ object StrongAkkaReplicaSystem {
 		) extends StrongReplicatedObject[Addr, T] {
 
 			override val objActor : ActorRef =
-				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
+				replicaSystem.actorSystem.actorOf(Props(classOf[ActorImpl], this, init, typeTag[T]))
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
 				setObject(init)
 
-				private val lockQueue : mutable.Queue[(ActorRef, Any)] = mutable.Queue.empty
+				private val lockQueue : mutable.Queue[(ActorRef, Request)] = mutable.Queue.empty
 
 				override def receive : Receive = {
 					case InvokeReq(mthdName, args) =>
-						val res = ReflectiveAccess.doInvoke[Any](mthdName, args : _*)
+						val res = internalInvoke[Any](mthdName, args : _*)
 						sender() ! res
 
 					case GetFieldReq(fldName) => //No coordination needed in the get case
-						val res = ReflectiveAccess.doGetField[Any](fldName)
+						val res = internalGetField[Any](fldName)
 						sender() ! res
 
 					case SetFieldReq(fldName, value) =>
-						ReflectiveAccess.doSetField[Any](fldName, value)
-						sender() ! Unit
+						internalSetField(fldName, value)
+						sender() ! SetFieldAck
 
 					case SyncReq =>
 						throw new UnsupportedOperationException("cannot synchronize strong consistent object: already synchronized")
@@ -92,7 +92,7 @@ object StrongAkkaReplicaSystem {
 
 							case MergeAndUnlock(newObj : T) =>
 								setObject(newObj)
-								sender() ! "ack"
+								sender() ! MergeAck
 
 								context.unbecome()
 
@@ -115,10 +115,10 @@ object StrongAkkaReplicaSystem {
 		) extends StrongReplicatedObject[Addr, T] {
 
 			override val objActor : ActorRef =
-				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
+				replicaSystem.actorSystem.actorOf(Props(classOf[ActorImpl], this, init, typeTag[T]))
 
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
 				setObject(init)
 
 				override def receive : Receive = {
@@ -126,7 +126,7 @@ object StrongAkkaReplicaSystem {
 					case InvokeReq(mthdName, args) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
-						val res = ReflectiveAccess.doInvoke(mthdName, args : _*)
+						val res = internalInvoke[Any](mthdName, args : _*)
 						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
 						sender() ! res
 
@@ -137,9 +137,9 @@ object StrongAkkaReplicaSystem {
 					case SetFieldReq(fldName, value) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
-						ReflectiveAccess.doSetField(fldName, value)
+						internalSetField(fldName, value)
 						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
-						sender() ! Unit
+						sender() ! SetFieldAck
 
 					case SyncReq =>
 						throw new UnsupportedOperationException("cannot synchronize strong consistent object: already synchronized")
@@ -147,13 +147,14 @@ object StrongAkkaReplicaSystem {
 
 			}
 		}
-
-
-		private sealed trait StrongReq extends Request
-		private case object LockReq extends StrongReq with ReturnRequest
-		private case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-		private case class MergeAndUnlock(obj : AnyRef) extends StrongReq with ReturnRequest
-
 	}
+
+
+	private sealed trait StrongReq extends Request
+	private case object LockReq extends StrongReq with ReturnRequest
+	private case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
+	private case class MergeAndUnlock(obj : AnyRef) extends StrongReq with ReturnRequest
+
+	private case object MergeAck
 
 }

@@ -13,6 +13,8 @@ public interface JReplicaSystem {
 
 	<T> JRef<T> replicate(String addr, @Local T obj, Class<?> consistencyCls);
 
+	<T> JRef<T> replicate(@Local T obj, Class<?> consistencyCls);
+
 	<T> JRef<T> ref(String addr, Class<T> objCls, Class<?> consistencyCls);
 
 	void addReplicaSystem(String hostname, int port);
