@@ -40,38 +40,41 @@ trait WeakAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object WeakAkkaReplicaSystem {
 
-	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Weak]
+	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Weak] with AkkaMultiversionReplicatedObject[Addr, T, Weak]
 
 
 	object WeakReplicatedObject {
 
 		class WeakMasterReplicatedObject[Addr, T <: AnyRef](
 	     init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
-	   )(
+	  )(
 	     protected implicit val ttt : TypeTag[T],
 	     protected implicit val ltt : TypeTag[Weak]
-	   ) extends WeakReplicatedObject[Addr, T] {
+	  )
+		extends WeakReplicatedObject[Addr, T] {
 
 			override val objActor : ActorRef =
 				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
 
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T])
+				extends ObjectActor
+				with MultiversionObjectActor {
 				setObject(init)
 
 				private val lockQueue : mutable.Queue[(ActorRef, Any)] = mutable.Queue.empty
 
 				override def receive : Receive = {
-					case InvokeReq(mthdName, args) =>
-						val res = internalInvoke[Any](mthdName, args : _*)
+					case OpReq(InvokeOp(id, mthdName, args)) =>
+						val res = internalInvoke[Any](id, mthdName, args : _*)
 						sender() ! res
 
-					case GetFieldReq(fldName) => //No coordination needed in the get case
-						val res = internalGetField[Any](fldName)
+					case OpReq(GetFieldOp(id, fldName)) => //No coordination needed in the get case
+						val res = internalGetField[Any](id, fldName)
 						sender() ! res
 
-					case SetFieldReq(fldName, value) =>
-						internalSetField(fldName, value)
+					case OpReq(SetFieldOp(id, fldName, value)) =>
+						internalSetField(id, fldName, value)
 						sender() ! SetFieldAck
 
 					case SynchronizeWithWeakMaster(ops) =>
@@ -94,7 +97,9 @@ object WeakAkkaReplicaSystem {
 
 
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T])
+				extends ObjectActor
+				with MultiversionObjectActor {
 				setObject(init)
 
 				/*stores the operations since last synchronize*/
@@ -102,19 +107,19 @@ object WeakAkkaReplicaSystem {
 
 				override def receive : Receive = {
 
-					case InvokeReq(mthdName, args) =>
-						unsynchronized += InvokeOp(mthdName, args)
-						val res = internalInvoke[Any](mthdName, args : _*)
+					case OpReq(InvokeOp(id, mthdName, args)) =>
+						unsynchronized += InvokeOp(id, mthdName, args)
+						val res = internalInvoke[Any](id, mthdName, args : _*)
 						sender() ! res
 
-					case GetFieldReq(fldName) => //No coordination needed in the get case
+					case OpReq(GetFieldOp(id, fldName)) => //No coordination needed in the get case
 						//unsynchronized += GetFieldOp(fldName)
-						val res = internalGetField[Any](fldName)
+						val res = internalGetField[Any](id, fldName)
 						sender() ! res
 
-					case SetFieldReq(fldName, value) =>
-						unsynchronized += SetFieldOp(fldName, value)
-						internalSetField(fldName, value)
+					case OpReq(SetFieldOp(id, fldName, value)) =>
+						unsynchronized += SetFieldOp(id, fldName, value)
+						internalSetField(id, fldName, value)
 						sender() ! SetFieldAck
 
 					case SyncReq =>

@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject.Operation
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.Operation
 
 import scala.collection.mutable
 

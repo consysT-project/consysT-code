@@ -40,7 +40,7 @@ trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object StrongAkkaReplicaSystem {
 
-	trait StrongReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Strong] with AkkaCachingReplicatedObject[Addr, T, Strong]
+	trait StrongReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Strong] with AkkaMultiversionReplicatedObject[Addr, T, Strong]
 
 
 	object StrongReplicatedObject {
@@ -55,22 +55,25 @@ object StrongAkkaReplicaSystem {
 			override val objActor : ActorRef =
 				replicaSystem.actorSystem.actorOf(Props(classOf[ActorImpl], this, init, typeTag[T]))
 
-			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+
+			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T])
+				extends ObjectActor
+				with MultiversionObjectActor {
 				setObject(init)
 
 				private val lockQueue : mutable.Queue[(ActorRef, Request)] = mutable.Queue.empty
 
 				override def receive : Receive = {
-					case InvokeReq(mthdName, args) =>
-						val res = internalInvoke[Any](mthdName, args : _*)
+					case OpReq(InvokeOp(id, mthdName, args)) =>
+						val res = internalInvoke[Any](id, mthdName, args : _*)
 						sender() ! res
 
-					case GetFieldReq(fldName) => //No coordination needed in the get case
-						val res = internalGetField[Any](fldName)
+					case OpReq(GetFieldOp(id, fldName)) => //No coordination needed in the get case
+						val res = internalGetField[Any](id, fldName)
 						sender() ! res
 
-					case SetFieldReq(fldName, value) =>
-						internalSetField(fldName, value)
+					case OpReq(SetFieldOp(id, fldName, value)) =>
+						internalSetField(id, fldName, value)
 						sender() ! SetFieldAck
 
 					case SyncReq =>
@@ -81,10 +84,10 @@ object StrongAkkaReplicaSystem {
 
 					case LockReq =>
 						context.become {
-							case msg : InvokeReq =>
+							case msg@OpReq(InvokeOp(_, _, _)) =>
 								lockQueue.enqueue((sender(), msg))
 
-							case msg : SetFieldReq =>
+							case msg@OpReq(SetFieldOp(_, _, _)) =>
 								lockQueue.enqueue((sender(), msg))
 
 							case msg@LockReq =>
@@ -103,10 +106,10 @@ object StrongAkkaReplicaSystem {
 								}
 
 
-							case msg@GetFieldReq(fldName) =>
+							case OpReq(GetFieldOp(id, fldName)) =>
 								//No coordination needed in the get case
 								//Lock does not prevent get from happening
-								val res = internalGetField[Any](fldName)
+								val res = internalGetField[Any](id, fldName)
 								sender() ! res
 
 							case SynchronizeWithStrongMaster =>
@@ -130,28 +133,30 @@ object StrongAkkaReplicaSystem {
 				replicaSystem.actorSystem.actorOf(Props(classOf[ActorImpl], this, init, typeTag[T]))
 
 
-			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
+			private class ActorImpl(init : T, protected implicit val objtag : TypeTag[T])
+				extends ObjectActor
+				with MultiversionObjectActor {
 				setObject(init)
 
 				override def receive : Receive = {
 
-					case InvokeReq(mthdName, args) =>
+					case OpReq(InvokeOp(id, mthdName, args)) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
-						val res = internalInvoke[Any](mthdName, args : _*)
+						val res = internalInvoke[Any](id, mthdName, args : _*)
 						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
 						sender() ! res
 
-					case GetFieldReq(fldName) =>
+					case OpReq(GetFieldOp(id, fldName)) =>
 						val StrongSynchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithStrongMaster, masterReplica)
 						setObject(newObj)
-						sender() ! internalGetField[Any](fldName)
+						sender() ! internalGetField[Any](id, fldName)
 
 
-					case SetFieldReq(fldName, value) =>
+					case OpReq(SetFieldOp(id, fldName, value)) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
-						internalSetField(fldName, value)
+						internalSetField(id, fldName, value)
 						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
 						sender() ! SetFieldAck
 

@@ -26,17 +26,17 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 
 	override final def invoke[R](methodName : String, args : Any*) : R = {
-		val res = replicaSystem.request(addr, InvokeReq(methodName, args))
+		val res = replicaSystem.request(addr, OpReq(InvokeOp(freshId(), methodName, args)))
 		res.asInstanceOf[R]
 	}
 
 	override final def getField[R](fieldName : String) : R = {
-		val res = replicaSystem.request(addr, GetFieldReq(fieldName))
+		val res = replicaSystem.request(addr, OpReq(GetFieldOp(freshId(), fieldName)))
 		res.asInstanceOf[R]
 	}
 
 	override final def setField[R](fieldName : String, value : R) : Unit = {
-		val res = replicaSystem.request(addr, SetFieldReq(fieldName, value))
+		val res = replicaSystem.request(addr, OpReq(SetFieldOp(freshId(), fieldName, value)))
 		assert(res == SetFieldAck)
 	}
 
@@ -109,16 +109,16 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 		}
 
 
-		protected final def internalInvoke[R](methodName : String, args : Any*) : R = {
-			internalApplyOp(InvokeOp[R](methodName, args))
+		protected final def internalInvoke[R](opid : Int, methodName : String, args : Any*) : R = {
+			internalApplyOp(InvokeOp[R](opid, methodName, args))
 		}
 
-		protected final def internalGetField[R](fldName : String) : R = {
-			internalApplyOp(GetFieldOp[R](fldName))
+		protected final def internalGetField[R](opid : Int, fldName : String) : R = {
+			internalApplyOp(GetFieldOp[R](opid, fldName))
 		}
 
-		protected final def internalSetField(fldName : String, newVal : Any) : Unit = {
-			internalApplyOp(SetFieldOp(fldName, newVal))
+		protected final def internalSetField(opid : Int, fldName : String, newVal : Any) : Unit = {
+			internalApplyOp(SetFieldOp(opid, fldName, newVal))
 		}
 
 		protected def internalApplyOp[R](op : Operation[R]) : R = {
@@ -138,18 +138,18 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 			def applyOp[R](op : Operation[R]) : R = ObjectActor.this.synchronized {
 				val result : R = op match {
-					case GetFieldOp(fldName) =>
+					case GetFieldOp(contextPath, fldName) =>
 						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
 						val fieldMirror = objMirror.reflectField(fieldSymbol)
 						val result = fieldMirror.get
 						result.asInstanceOf[R]
 
-					case SetFieldOp(fldName, newVal) =>
+					case SetFieldOp(contextPath, fldName, newVal) =>
 						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
 						val fieldMirror = objMirror.reflectField(fieldSymbol)
 						fieldMirror.set(newVal).asInstanceOf[R]
 
-					case InvokeOp(mthdName, args) =>
+					case InvokeOp(contextPath, mthdName, args) =>
 						val methodSymbol = typeOf[T].decl(TermName(mthdName)).asMethod
 						val methodMirror = objMirror.reflectMethod(methodSymbol)
 						val result = methodMirror.apply(args : _*)
@@ -158,16 +158,16 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 				result
 			}
 
-			@inline def doInvoke[R](methodName : String, args : Any*) : R = {
-				applyOp(InvokeOp(methodName, args))
+			@inline def doInvoke[R](opid : Int, methodName : String, args : Any*) : R = {
+				applyOp(InvokeOp(opid, methodName, args))
 			}
 
-			@inline def doGetField[R](fieldName : String) : R = {
-				applyOp(GetFieldOp(fieldName))
+			@inline def doGetField[R](opid : Int, fieldName : String) : R = {
+				applyOp(GetFieldOp(opid, fieldName))
 			}
 
-			@inline def doSetField(fieldName : String, value : Any) : Unit = {
-				applyOp(SetFieldOp(fieldName, value))
+			@inline def doSetField(opid : Int, fieldName : String, value : Any) : Unit = {
+				applyOp(SetFieldOp(opid, fieldName, value))
 			}
 		}
 
@@ -181,10 +181,7 @@ object AkkaReplicatedObject {
 	case object SetFieldAck
 	case object SyncAck
 
-	sealed trait Operation[+R]
-	case class GetFieldOp[+R](fldName : String) extends Operation[R]
-	case class SetFieldOp(fldName : String, newVal : Any) extends Operation[Unit]
-	case class InvokeOp[+R](mthdName : String, args : Seq[Any]) extends Operation[R]
+
 
 
 }

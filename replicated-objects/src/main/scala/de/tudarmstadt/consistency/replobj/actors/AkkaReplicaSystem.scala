@@ -32,9 +32,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	private [actors] object Context {
 
-		final type CtxType = Int
-		final type ContextPath = List[CtxType]
-
 		private var currentContextPath : ContextPath = List.empty[CtxType]
 
 		private val random = new Random()
@@ -94,8 +91,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		else
 			HandleRemoteRequest(addr, req)
 
-		replicaRef ! Debug(null)
-
 		if (req.returns) {
 			import akka.pattern.ask
 			val response = replicaRef.ask(reqMsg)(Timeout(receiveTimeout))
@@ -108,7 +103,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 
-	protected final def log(msg : String) : Unit = {
+	private[actors] final def log(msg : String) : Unit = {
 		println(s"[$this] $msg")
 	}
 
@@ -192,15 +187,28 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 
+	final type CtxType = Int
+	final type ContextPath = List[CtxType]
+
+
+
 	trait Request {	def returns : Boolean }
 	trait ReturnRequest { self : Request =>	override def returns : Boolean = true }
 	trait NonReturnRequest { self : Request => override def returns : Boolean = false}
 
 	sealed trait LocalReq extends Request
-	case class InvokeReq(methodName : String, args : Seq[Any]) extends LocalReq with ReturnRequest
-	case class GetFieldReq(fieldName : String) extends LocalReq with ReturnRequest
-	case class SetFieldReq(fieldName : String, newVal : Any) extends LocalReq with ReturnRequest
+	case class OpReq(op : Operation[_]) extends LocalReq with ReturnRequest
 	case object SyncReq extends LocalReq with ReturnRequest
+
+
+	def freshId() : Int = Random.nextInt()
+
+	sealed trait Operation[+R] {
+		def id : Int
+	}
+	case class GetFieldOp[+R](id : Int, fldName : String) extends Operation[R]
+	case class SetFieldOp(id : Int, fldName : String, newVal : Any) extends Operation[Unit]
+	case class InvokeOp[+R](id : Int, mthdName : String, args : Seq[Any]) extends Operation[R]
 
 
 
