@@ -26,4 +26,9 @@ public class ObjA implements Serializable {
 		f = f + x;
 		return f;
 	}
+
+	@Override
+	public String toString() {
+		return "ObjA(f = " + f + ")";
+	}
 }

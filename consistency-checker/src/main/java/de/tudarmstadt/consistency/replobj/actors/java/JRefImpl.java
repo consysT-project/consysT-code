@@ -1,25 +1,22 @@
 package de.tudarmstadt.consistency.replobj.actors.java;
 
 import de.tudarmstadt.consistency.replobj.Ref;
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
 import de.tudarmstadt.consistency.replobj.java.JRef;
+
+import java.io.Serializable;
 
 /**
  * Created on 01.03.19.
  *
  * @author Mirko Köhler
  */
-public class JRefImpl<T> implements JRef<T> {
+public class JRefImpl<T> implements JRef<T>, Serializable {
 
 	private final Ref<String, T,?> ref;
 
 	JRefImpl(Ref<String, T,?> ref) {
 		this.ref = ref;
 	}
-
-//	public JRefImpl(String addr, AkkaReplicaSystem<String> replicaSystem, Class<?> consistencyCls) {
-//		this.ref = AkkaReplicaSystem.RefImpl$.MODULE$.<String, T, Object>create(addr, replicaSystem, (Class<Object>) consistencyCls);
-//	}
 
 	@Override
 	public <R> R getField(String fieldName) {
@@ -37,13 +34,18 @@ public class JRefImpl<T> implements JRef<T> {
 	}
 
 	@Override
-	public void synchronize() {
+	public void sync() {
 		ref.toReplicatedObject().sync();
 	}
 
 	@Override
 	public T remote() {
 		return ref.remote(); //Throws an exception
+	}
+
+	@Override
+	public String toString() {
+		return "JRef(" + ref + ")";
 	}
 
 

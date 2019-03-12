@@ -55,9 +55,6 @@ object WeakAkkaReplicaSystem {
 			override val objActor : ActorRef =
 				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
 
-			override def sync() : Unit =
-				throw new UnsupportedOperationException("synchronize on strong consistent object")
-
 
 			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T]) extends ObjectActor {
 				setObject(init)
@@ -66,19 +63,19 @@ object WeakAkkaReplicaSystem {
 
 				override def receive : Receive = {
 					case InvokeReq(mthdName, args) =>
-						val res = ReflectiveAccess.doInvoke[Any](mthdName, args : _*)
+						val res = internalInvoke[Any](mthdName, args : _*)
 						sender() ! res
 
 					case GetFieldReq(fldName) => //No coordination needed in the get case
-						val res = ReflectiveAccess.doGetField[Any](fldName)
+						val res = internalGetField[Any](fldName)
 						sender() ! res
 
 					case SetFieldReq(fldName, value) =>
-						ReflectiveAccess.doSetField[Any](fldName, value)
-						sender() ! Unit
+						internalSetField(fldName, value)
+						sender() ! SetFieldAck
 
 					case SynchronizeWithMaster(ops) =>
-						ops.foreach(ReflectiveAccess.applyOp[Any])
+						ops.foreach(internalApplyOp[Any])
 						sender() ! Synchronized(getObject)
 				}
 			}
@@ -107,38 +104,33 @@ object WeakAkkaReplicaSystem {
 
 					case InvokeReq(mthdName, args) =>
 						unsynchronized += InvokeOp(mthdName, args)
-						val res = ReflectiveAccess.doInvoke[Any](mthdName, args : _*)
+						val res = internalInvoke[Any](mthdName, args : _*)
 						sender() ! res
 
 					case GetFieldReq(fldName) => //No coordination needed in the get case
 						//unsynchronized += GetFieldOp(fldName)
-						val res = ReflectiveAccess.doGetField[Any](fldName)
+						val res = internalGetField[Any](fldName)
 						sender() ! res
 
 					case SetFieldReq(fldName, value) =>
 						unsynchronized += SetFieldOp(fldName, value)
-						ReflectiveAccess.doSetField[Any](fldName, value)
-						sender() ! Unit
+						internalSetField(fldName, value)
+						sender() ! SetFieldAck
 
 					case SyncReq =>
 						val Synchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithMaster(unsynchronized), masterReplica)
 						setObject(newObj)
 						unsynchronized.clear()
-						sender() ! Unit
+						sender() ! SyncAck
 				}
 
 			}
 		}
-
-
-
-
-
-		private sealed trait WeakReq extends Request
-		private case class SynchronizeWithMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
-		private case class Synchronized[T <: AnyRef](obj : T) extends WeakReq with ReturnRequest
-
 	}
+
+	private sealed trait WeakReq extends Request
+	private case class SynchronizeWithMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
+	private case class Synchronized[T <: AnyRef](obj : T) extends WeakReq with ReturnRequest
 
 }
 

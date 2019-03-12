@@ -25,28 +25,28 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	protected implicit def ltt : TypeTag[L]
 
 
-	//TODO: Sending requests may lead to deadlocks, just call the methods instead
-	override def invoke[R](methodName : String, args : Any*) : R = {
+	override final def invoke[R](methodName : String, args : Any*) : R = {
 		val res = replicaSystem.request(addr, InvokeReq(methodName, args))
 		res.asInstanceOf[R]
 	}
 
-	override def getField[R](fieldName : String) : R = {
+	override final def getField[R](fieldName : String) : R = {
 		val res = replicaSystem.request(addr, GetFieldReq(fieldName))
 		res.asInstanceOf[R]
 	}
 
-	override def setField[R](fieldName : String, value : R) : Unit = {
+	override final def setField[R](fieldName : String, value : R) : Unit = {
 		val res = replicaSystem.request(addr, SetFieldReq(fieldName, value))
-		res.asInstanceOf[Unit]
+		assert(res == SetFieldAck)
 	}
 
-	override def sync() : Unit = {
+	override final def sync() : Unit = {
 		val res = replicaSystem.request(addr, SyncReq)
-		res.asInstanceOf[Unit]
+		assert(res == SyncAck)
 	}
 
 	override def getConsistencyLevel : TypeTag[L] = ltt
+
 
 
 
@@ -67,20 +67,59 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 
 		private def initializeRefFields() : Unit = {
-			obj.getClass.getDeclaredFields.foreach { field =>
-				if (field.getType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
-					field.setAccessible(true)
-					field.get(obj) match {
-						case refImpl : RefImpl[Addr, _, _] =>
-							refImpl.replicaSystem = replicaSystem
-						case _ =>
+
+			def initializeObject(any : AnyRef) : Unit = {
+				require(any != null, "cannot initialize null object")
+
+				any.getClass.getDeclaredFields.foreach { field =>
+
+					//Field is a ref => initialize the replica system
+					if (field.getType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
+						field.setAccessible(true)
+						field.get(any) match {
+							case null =>
+							case refImpl : RefImpl[Addr, _, _] =>
+								refImpl.replicaSystem = replicaSystem
+							case x =>
+								sys.error(s"cannot initialize unknown implementation of Ref: $x")
+						}
+					}
+					//Field is an object => recursively initialize refs in that object
+					else if (!field.getType.isPrimitive) {
+						field.setAccessible(true)
+						field.get(any) match {
+							case null =>
+							case someObj =>
+								initializeObject(someObj)
+						}
 					}
 				}
-				//TODO: Check recursively for ref fields. Care for cycles (fields of type of the class the declares it)
 			}
+
+			initializeObject(obj)
+
+
 		}
 
-		protected final object ReflectiveAccess {
+
+		protected final def internalInvoke[R](methodName : String, args : Any*) : R = {
+			internalApplyOp(InvokeOp[R](methodName, args))
+		}
+
+		protected final def internalGetField[R](fldName : String) : R = {
+			internalApplyOp(GetFieldOp[R](fldName))
+		}
+
+		protected final def internalSetField(fldName : String, newVal : Any) : Unit = {
+			internalApplyOp(SetFieldOp(fldName, newVal))
+		}
+
+		protected def internalApplyOp[R](op : Operation[R]) : R = {
+			ReflectiveAccess.applyOp(op)
+		}
+
+
+		private final object ReflectiveAccess {
 
 			private implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
 			//TODO: Define this as field and keep in sync with obj
@@ -90,7 +129,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 				objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(obj)
 			}
 
-			def applyOp[R](op : Operation[R]) : R = synchronized {
+			def applyOp[R](op : Operation[R]) : R = ObjectActor.this.synchronized {
 				val result : R = op match {
 					case GetFieldOp(fldName) =>
 						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
@@ -120,7 +159,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 				applyOp(GetFieldOp(fieldName))
 			}
 
-			@inline def doSetField[R](fieldName : String, value : R) : Unit = {
+			@inline def doSetField(fieldName : String, value : Any) : Unit = {
 				applyOp(SetFieldOp(fieldName, value))
 			}
 		}
@@ -135,6 +174,9 @@ object AkkaReplicatedObject {
 	case class GetFieldReq(fieldName : String) extends ObjectReq with ReturnRequest
 	case class SetFieldReq(fieldName : String, newVal : Any) extends ObjectReq with ReturnRequest
 	case object SyncReq extends ObjectReq with ReturnRequest
+
+	case object SetFieldAck
+	case object SyncAck
 
 	sealed trait Operation[+R]
 	case class GetFieldOp[+R](fldName : String) extends Operation[R]

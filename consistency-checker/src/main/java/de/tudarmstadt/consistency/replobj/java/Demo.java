@@ -46,7 +46,7 @@ public class Demo {
 		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
 		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
 
-		ref2Weak.synchronize();
+		ref2Weak.sync();
 
 		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
 		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));

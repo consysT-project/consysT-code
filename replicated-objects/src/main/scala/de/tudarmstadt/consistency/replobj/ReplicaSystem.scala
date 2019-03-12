@@ -22,6 +22,9 @@ trait ReplicaSystem[Addr] {
 		*/
 	def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L]
 
+	def replicate[T <: AnyRef : TypeTag, L : TypeTag](obj : T) : Ref[Addr, T, L]
+
+
 	def ref[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr) : Ref[Addr, T, L]
 
 
@@ -29,7 +32,10 @@ trait ReplicaSystem[Addr] {
 	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
 		replicate(addr, obj)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
 	}
-
+	/* Java interface for replicate */
+	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
+		replicate(obj)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
+	}
 	/* Java interface for ref */
 	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
 		ref(addr)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
