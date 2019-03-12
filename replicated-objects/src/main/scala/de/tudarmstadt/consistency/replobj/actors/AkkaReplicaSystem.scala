@@ -4,7 +4,7 @@ import java.util.function.Supplier
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{NewObjectJ, ObjReq, Ref, Request}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.{Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
@@ -58,12 +58,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	override final def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
 		require(!localObjects.contains(addr))
 
-		val rob = createMasterReplica[T, L](addr, obj)
+		log(s"replicating object $addr := $obj")
 
+		val rob = createMasterReplica[T, L](addr, obj)
 		val ccls = typeTag[L].mirror.runtimeClass(typeTag[L].tpe)
 
 		otherReplicas.foreach { actorRef =>
-			val msg = NewObjectJ(addr, obj, ccls, replicaActor)
+			val msg = NewJObject(addr, obj, ccls, replicaActor)
 			actorRef ! msg
 		}
 		localObjects.put(addr, rob)
@@ -86,35 +87,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	protected def createFollowerReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T, L] =
 		sys.error("unknown consistency")
 
-//	private def createMasterReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag](obj : T, addr : Addr) : AkkaReplicatedObject[T, L] = {
-//
-//		val ref : AkkaReplicatedObject[T, _] =
-//			if (ConsistencyLevels.isWeak[L])
-//				new WeakAkkaMasterReplicatedObject[T](obj, this)
-//			else if (ConsistencyLevels.isStrong[L])
-//				new StrongAkkaMasterReplicatedObject[T](obj, this)
-//			else
-//				sys.error("unknown consistency")
-//
-//		ref.asInstanceOf[AkkaReplicatedObject[T, L]] //<- L has to be the consistency level ref
-//	}
-//
-//
-//	private def createFollowerReplicatedObject[T <: AnyRef : TypeTag, L : TypeTag](obj : T, addr : Addr, masterRef : ActorRef) : AkkaReplicatedObject[T, L] = {
-//
-//		val ref : AkkaReplicatedObject[T, _] =
-//			if (ConsistencyLevels.isWeak[L])
-//				new WeakAkkaFollowerReplicatedObject[T](obj, masterRef, this)
-//			else if (ConsistencyLevels.isStrong[L])
-//				new StrongAkkaFollowerReplicatedObject[T](obj, masterRef, this)
-//			else
-//				sys.error("unknown consistency")
-//
-//		ref.asInstanceOf[AkkaReplicatedObject[T, L]] //<- L has to be the consistency level ref
-//	}
 
 	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 3600 seconds) : Any = {
-		val reqMsg = ObjReq(addr, req)
+		val reqMsg = if (replicaRef.path == replicaActor.path)
+			HandleLocalRequest(addr, req)
+		else
+			HandleRemoteRequest(addr, req)
+
+		replicaRef ! Debug(null)
 
 		if (req.returns) {
 			import akka.pattern.ask
@@ -126,6 +106,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		}
 	}
 
+
+
+	protected final def log(msg : String) : Unit = {
+		println(s"[$this] $msg")
+	}
 
 	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {
 		otherReplicas.add(replicaActorRef)
@@ -160,8 +145,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	private class ReplicaActor extends Actor {
 		override def receive : Receive = {
-			case NewObjectJ(addr : Addr, obj, consistencyCls, masterRef) =>
+
+			case Debug(x) =>
+				println(s"Debug $x from ${sender()}")
+
+			case NewJObject(addr : Addr, obj, consistencyCls, masterRef) =>
 				/*Initialize a new replicated object on this host*/
+				log(s"received object $addr := $obj")
 
 				//Ensure that no object already exists under this name
 				require(!localObjects.contains(addr))
@@ -173,13 +163,26 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				)
 				localObjects.put(addr, ref)
 
-			case ObjReq(addr : Addr, request) => localObjects.get(addr) match {
-				case None => sys.error("object not found, address: " + addr)
-				case Some(rob) =>
-					rob.objActor.tell(request, sender())
+			case HandleLocalRequest(addr : Addr, request) =>
+				require(request.isInstanceOf[LocalReq], s"can only handle local requests on local replica, but got $request")
 
+				log(s"received local request for object $addr: $request")
+				localObjects.get(addr) match {
+					case None => sys.error("object not found, address: " + addr)
+					case Some(rob) =>
+						rob.objActor.tell(request, sender())
+				}
 
-			}
+			case HandleRemoteRequest(addr : Addr, request) =>
+				require(!request.isInstanceOf[LocalReq], s"can only handle non-local requests on remote replica, but got $request")
+
+				log(s"received remote request for object $addr: $request")
+				localObjects.get(addr) match {
+					case None => sys.error("object not found, address: " + addr)
+					case Some(rob) =>
+						rob.objActor.tell(request, sender())
+				}
+
 		}
 	}
 }
@@ -193,12 +196,22 @@ object AkkaReplicaSystem {
 	trait ReturnRequest { self : Request =>	override def returns : Boolean = true }
 	trait NonReturnRequest { self : Request => override def returns : Boolean = false}
 
+	sealed trait LocalReq extends Request
+	case class InvokeReq(methodName : String, args : Seq[Any]) extends LocalReq with ReturnRequest
+	case class GetFieldReq(fieldName : String) extends LocalReq with ReturnRequest
+	case class SetFieldReq(fieldName : String, newVal : Any) extends LocalReq with ReturnRequest
+	case object SyncReq extends LocalReq with ReturnRequest
+
+
 
 	trait ReplicaActorMessage
 	//	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
 	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
-	case class NewObjectJ[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
-	case class ObjReq[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
+	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
+	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
+	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
+	case class Debug(any : Any) extends ReplicaActorMessage
+
 
 
 

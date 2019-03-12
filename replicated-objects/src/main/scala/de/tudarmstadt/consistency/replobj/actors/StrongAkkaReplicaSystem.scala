@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{ActorRef, Props}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Strong
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{Request, ReturnRequest}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
@@ -40,7 +40,7 @@ trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object StrongAkkaReplicaSystem {
 
-	trait StrongReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Strong]
+	trait StrongReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Strong] with AkkaCachingReplicatedObject[Addr, T, Strong]
 
 
 	object StrongReplicatedObject {
@@ -76,19 +76,20 @@ object StrongAkkaReplicaSystem {
 					case SyncReq =>
 						throw new UnsupportedOperationException("cannot synchronize strong consistent object: already synchronized")
 
+					case SynchronizeWithStrongMaster =>
+						sender() ! StrongSynchronized(getObject)
+
 					case LockReq =>
 						context.become {
-							case msg@InvokeReq(mthdName, args) =>
+							case msg : InvokeReq =>
 								lockQueue.enqueue((sender(), msg))
 
-							case msg@GetFieldReq(fldName) => //No coordination needed in the get case
-								lockQueue.enqueue((sender(), msg))
-
-							case msg@SetFieldReq(fldName, value) =>
+							case msg : SetFieldReq =>
 								lockQueue.enqueue((sender(), msg))
 
 							case msg@LockReq =>
 								lockQueue.enqueue((sender(), msg))
+
 
 							case MergeAndUnlock(newObj : T) =>
 								setObject(newObj)
@@ -100,6 +101,17 @@ object StrongAkkaReplicaSystem {
 									val (senderRef, message) = lockQueue.dequeue()
 									self.tell(message, senderRef)
 								}
+
+
+							case msg@GetFieldReq(fldName) =>
+								//No coordination needed in the get case
+								//Lock does not prevent get from happening
+								val res = internalGetField[Any](fldName)
+								sender() ! res
+
+							case SynchronizeWithStrongMaster =>
+								//Synchronization still works even if the object is locked
+								sender() ! StrongSynchronized(getObject)
 						}
 						sender() ! LockRes(getObject)
 				}
@@ -131,7 +143,9 @@ object StrongAkkaReplicaSystem {
 						sender() ! res
 
 					case GetFieldReq(fldName) =>
-						sender() ! replicaSystem.request(addr, GetFieldReq(fldName), masterReplica)
+						val StrongSynchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithStrongMaster, masterReplica)
+						setObject(newObj)
+						sender() ! internalGetField[Any](fldName)
 
 
 					case SetFieldReq(fldName, value) =>
@@ -154,6 +168,10 @@ object StrongAkkaReplicaSystem {
 	private case object LockReq extends StrongReq with ReturnRequest
 	private case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
 	private case class MergeAndUnlock(obj : AnyRef) extends StrongReq with ReturnRequest
+	private case object SynchronizeWithStrongMaster extends StrongReq with ReturnRequest
+
+	private case class StrongSynchronized[T <: AnyRef](obj : T)
+
 
 	private case object MergeAck
 

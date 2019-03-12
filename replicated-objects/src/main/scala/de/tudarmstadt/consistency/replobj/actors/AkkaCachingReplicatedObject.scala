@@ -9,16 +9,23 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaCachingReplicatedObject[Addr, T <: AnyRef, L] extends AkkaReplicatedObject[Addr, T, L] {
+trait AkkaCachingReplicatedObject[Addr, T <: AnyRef, L] {
+ self : AkkaReplicatedObject[Addr, T, L] =>
 
 
 	protected trait CachingObjectActor extends ObjectActor {
 
 		private val opCache : mutable.Map[Operation[_], Any] = mutable.HashMap.empty
 
+		protected def clearCache() : Unit = {
+			opCache.clear()
+		}
 
-		override protected def internalApplyOp[R](op : Operation[R]) : R =
+
+		override protected def internalApplyOp[R](op : Operation[R]) : R = {
 			//TODO: Cannot match on operation only. Need operation id.
+
+
 			opCache.get(op) match {
 				case None =>
 					val res = super.internalApplyOp(op)
@@ -27,6 +34,8 @@ trait AkkaCachingReplicatedObject[Addr, T <: AnyRef, L] extends AkkaReplicatedOb
 				case Some(cachedRes) =>
 					cachedRes.asInstanceOf[R]
 			}
+		}
+
 	}
 
 }

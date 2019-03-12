@@ -1,7 +1,7 @@
 package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorRef}
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{RefImpl, Request, ReturnRequest}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
@@ -60,10 +60,14 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 			obj = newObj
 			initializeRefFields()
 			ReflectiveAccess.updateObj()
+			initialize()
 		}
 
 		protected def getObject : T =
 			obj
+
+		/* For overriding only. Do not call this method manually. */
+		protected def initialize() : Unit = { /*do nothing*/	}
 
 
 		private def initializeRefFields() : Unit = {
@@ -73,8 +77,10 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 				any.getClass.getDeclaredFields.foreach { field =>
 
+					val fieldType = field.getType
+
 					//Field is a ref => initialize the replica system
-					if (field.getType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
+					if (fieldType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
 						field.setAccessible(true)
 						field.get(any) match {
 							case null =>
@@ -85,7 +91,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 						}
 					}
 					//Field is an object => recursively initialize refs in that object
-					else if (!field.getType.isPrimitive) {
+					//TODO: Exclude java/scala library classes?
+					else if (!fieldType.isPrimitive && !fieldType.isArray && !fieldType.isSynthetic) {
 						field.setAccessible(true)
 						field.get(any) match {
 							case null =>
@@ -169,11 +176,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 object AkkaReplicatedObject {
 
-	sealed trait ObjectReq extends Request
-	case class InvokeReq(methodName : String, args : Seq[Any]) extends ObjectReq with ReturnRequest
-	case class GetFieldReq(fieldName : String) extends ObjectReq with ReturnRequest
-	case class SetFieldReq(fieldName : String, newVal : Any) extends ObjectReq with ReturnRequest
-	case object SyncReq extends ObjectReq with ReturnRequest
+
 
 	case object SetFieldAck
 	case object SyncAck

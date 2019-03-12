@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{ActorRef, Props}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.{Strong, Weak}
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{Request, ReturnRequest}
+import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
@@ -74,9 +74,9 @@ object WeakAkkaReplicaSystem {
 						internalSetField(fldName, value)
 						sender() ! SetFieldAck
 
-					case SynchronizeWithMaster(ops) =>
+					case SynchronizeWithWeakMaster(ops) =>
 						ops.foreach(internalApplyOp[Any])
-						sender() ! Synchronized(getObject)
+						sender() ! WeakSynchronized(getObject)
 				}
 			}
 
@@ -118,7 +118,7 @@ object WeakAkkaReplicaSystem {
 						sender() ! SetFieldAck
 
 					case SyncReq =>
-						val Synchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithMaster(unsynchronized), masterReplica)
+						val WeakSynchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithWeakMaster(unsynchronized), masterReplica)
 						setObject(newObj)
 						unsynchronized.clear()
 						sender() ! SyncAck
@@ -129,8 +129,9 @@ object WeakAkkaReplicaSystem {
 	}
 
 	private sealed trait WeakReq extends Request
-	private case class SynchronizeWithMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
-	private case class Synchronized[T <: AnyRef](obj : T) extends WeakReq with ReturnRequest
+	private case class SynchronizeWithWeakMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
+
+	private case class WeakSynchronized[T <: AnyRef](obj : T)
 
 }
 
