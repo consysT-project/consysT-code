@@ -3,6 +3,8 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{Actor, ActorRef}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
+import de.tudarmstadt.consistency.replobj.actors.Context.ContextPath
+import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
 import scala.language.postfixOps
@@ -26,17 +28,61 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 
 	override final def invoke[R](methodName : String, args : Any*) : R = {
-		val res = replicaSystem.request(addr, OpReq(InvokeOp(freshId(), methodName, args)))
+		import replicaSystem.context
+
+		val res = if (context.isEmpty) {
+			context.createFresh()
+
+			val request = OpReq(InvokeOp(context.getPath, methodName, args))
+			replicaSystem.log(s"invoking method $request in context ${replicaSystem.context.getPath}")
+
+			val tempRes = replicaSystem.request(addr, request)
+			context.leave()
+			tempRes
+		} else {
+			context.next()
+			context.push()
+
+			val request = OpReq(InvokeOp(context.getPath, methodName, args))
+			replicaSystem.log(s"invoking method $request in context ${replicaSystem.context.getPath}")
+
+			val tempRes = replicaSystem.request(addr, request)
+			context.pop()
+			tempRes
+		}
+
 		res.asInstanceOf[R]
 	}
 
 	override final def getField[R](fieldName : String) : R = {
-		val res = replicaSystem.request(addr, OpReq(GetFieldOp(freshId(), fieldName)))
+		import replicaSystem.context
+
+		val request = if (context.isEmpty) {
+			OpReq(GetFieldOp(Context.emptyPath, fieldName))
+		} else {
+			context.next()
+			OpReq(GetFieldOp(context.getNextPath, fieldName))
+		}
+
+		replicaSystem.log(s"field get $request in context ${replicaSystem.context.getPath}")
+
+		val res = replicaSystem.request(addr, request)
 		res.asInstanceOf[R]
 	}
 
 	override final def setField[R](fieldName : String, value : R) : Unit = {
-		val res = replicaSystem.request(addr, OpReq(SetFieldOp(freshId(), fieldName, value)))
+		import replicaSystem.context
+
+		val request = if (context.isEmpty) {
+			OpReq(SetFieldOp(Context.emptyPath, fieldName, value))
+		} else {
+			context.next()
+			OpReq(SetFieldOp(context.getNextPath, fieldName, value))
+		}
+
+		replicaSystem.log(s"field set $request in context ${replicaSystem.context.getPath}")
+
+		val res = replicaSystem.request(addr, request)
 		assert(res == SetFieldAck)
 	}
 
@@ -109,15 +155,15 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 		}
 
 
-		protected final def internalInvoke[R](opid : Int, methodName : String, args : Any*) : R = {
+		protected final def internalInvoke[R](opid : ContextPath, methodName : String, args : Any*) : R = {
 			internalApplyOp(InvokeOp[R](opid, methodName, args))
 		}
 
-		protected final def internalGetField[R](opid : Int, fldName : String) : R = {
+		protected final def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 			internalApplyOp(GetFieldOp[R](opid, fldName))
 		}
 
-		protected final def internalSetField(opid : Int, fldName : String, newVal : Any) : Unit = {
+		protected final def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 			internalApplyOp(SetFieldOp(opid, fldName, newVal))
 		}
 
@@ -138,18 +184,18 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 			def applyOp[R](op : Operation[R]) : R = ObjectActor.this.synchronized {
 				val result : R = op match {
-					case GetFieldOp(contextPath, fldName) =>
+					case GetFieldOp(id, fldName) =>
 						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
 						val fieldMirror = objMirror.reflectField(fieldSymbol)
 						val result = fieldMirror.get
 						result.asInstanceOf[R]
 
-					case SetFieldOp(contextPath, fldName, newVal) =>
+					case SetFieldOp(id, fldName, newVal) =>
 						val fieldSymbol = typeOf[T].decl(TermName(fldName)).asTerm
 						val fieldMirror = objMirror.reflectField(fieldSymbol)
 						fieldMirror.set(newVal).asInstanceOf[R]
 
-					case InvokeOp(contextPath, mthdName, args) =>
+					case InvokeOp(id, mthdName, args) =>
 						val methodSymbol = typeOf[T].decl(TermName(mthdName)).asMethod
 						val methodMirror = objMirror.reflectMethod(methodSymbol)
 						val result = methodMirror.apply(args : _*)
@@ -158,15 +204,15 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 				result
 			}
 
-			@inline def doInvoke[R](opid : Int, methodName : String, args : Any*) : R = {
+			@inline def doInvoke[R](opid : ContextPath, methodName : String, args : Any*) : R = {
 				applyOp(InvokeOp(opid, methodName, args))
 			}
 
-			@inline def doGetField[R](opid : Int, fieldName : String) : R = {
+			@inline def doGetField[R](opid : ContextPath, fieldName : String) : R = {
 				applyOp(GetFieldOp(opid, fieldName))
 			}
 
-			@inline def doSetField(opid : Int, fieldName : String, value : Any) : Unit = {
+			@inline def doSetField(opid : ContextPath, fieldName : String, value : Any) : Unit = {
 				applyOp(SetFieldOp(opid, fieldName, value))
 			}
 		}

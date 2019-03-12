@@ -2,15 +2,14 @@ package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{ActorRef, Props}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.{Strong, Weak}
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
+import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
+import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
 import scala.collection.mutable
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-import scala.concurrent.duration._
 
 
 /**
@@ -78,7 +77,7 @@ object WeakAkkaReplicaSystem {
 						sender() ! SetFieldAck
 
 					case SynchronizeWithWeakMaster(ops) =>
-						ops.foreach(internalApplyOp[Any])
+						ops.foreach(op => internalApplyOp[Any](op))
 						sender() ! WeakSynchronized(getObject)
 				}
 			}

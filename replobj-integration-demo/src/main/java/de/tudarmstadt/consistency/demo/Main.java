@@ -78,7 +78,7 @@ public class Main {
 
 		Thread.sleep(2000);
 
-		b1.invoke("incAll");
+		b1.invoke("incAll"); //n1
 
 		System.out.println("#1");
 		System.out.println("a1 = " + a1.getField("f"));

@@ -5,6 +5,7 @@ import java.util.function.Supplier
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
+import de.tudarmstadt.consistency.replobj.actors.Requests.{LocalReq, Request}
 import de.tudarmstadt.consistency.replobj.{Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
@@ -30,23 +31,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
-	private [actors] object Context {
-
-		private var currentContextPath : ContextPath = List.empty[CtxType]
-
-		private val random = new Random()
-
-
-		def createCtxType() : Int = random.nextInt()
-
-		def enterCtx(ctx : CtxType = createCtxType()) : Unit =
-			currentContextPath = ctx :: currentContextPath
-
-		def leaveCtx() : Unit =
-			currentContextPath = currentContextPath.tail
-
-		def getCurrentContext : ContextPath = currentContextPath
-	}
+	private[actors] object context extends Context
 
 
 	protected def freshAddr() : Addr
@@ -187,32 +172,12 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 
-	final type CtxType = Int
-	final type ContextPath = List[CtxType]
 
 
 
-	trait Request {	def returns : Boolean }
-	trait ReturnRequest { self : Request =>	override def returns : Boolean = true }
-	trait NonReturnRequest { self : Request => override def returns : Boolean = false}
-
-	sealed trait LocalReq extends Request
-	case class OpReq(op : Operation[_]) extends LocalReq with ReturnRequest
-	case object SyncReq extends LocalReq with ReturnRequest
 
 
-	def freshId() : Int = Random.nextInt()
-
-	sealed trait Operation[+R] {
-		def id : Int
-	}
-	case class GetFieldOp[+R](id : Int, fldName : String) extends Operation[R]
-	case class SetFieldOp(id : Int, fldName : String, newVal : Any) extends Operation[Unit]
-	case class InvokeOp[+R](id : Int, mthdName : String, args : Seq[Any]) extends Operation[R]
-
-
-
-	trait ReplicaActorMessage
+	sealed trait ReplicaActorMessage
 	//	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
 	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
 	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
@@ -260,8 +225,6 @@ object AkkaReplicaSystem {
 			ref
 		}
 	}
-
-
 }
 
 

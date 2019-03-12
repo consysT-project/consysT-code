@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem.{InvokeOp, Operation}
+import de.tudarmstadt.consistency.replobj.actors.Requests.{InvokeOp, Operation}
 
 import scala.collection.mutable
 
@@ -24,10 +24,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef, L] {
 
 		override protected def internalApplyOp[R](op : Operation[R]) : R = op match {
 			case InvokeOp(id, mthdName, args) =>
-				replicaSystem.log(s"invoking method $op in context ${replicaSystem.Context.getCurrentContext}")
-				replicaSystem.Context.enterCtx()
 				val res = super.internalApplyOp(op)
-				replicaSystem.Context.leaveCtx()
 				res
 
 			case x => super.internalApplyOp(x)

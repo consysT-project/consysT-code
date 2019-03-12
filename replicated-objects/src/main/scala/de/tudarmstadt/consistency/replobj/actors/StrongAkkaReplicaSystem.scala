@@ -5,6 +5,7 @@ import de.tudarmstadt.consistency.replobj.ConsistencyLevels
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Strong
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
+import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
 import scala.collection.mutable
