@@ -140,12 +140,20 @@ public class Main {
 		b2.sync();
 
 		System.out.println("#4");
-		System.out.println("a1 = " + a1.getField("f"));
-		System.out.println("b1 = " + b1.getField("g"));
-		System.out.println("a2 = " + a2.getField("f"));
-		System.out.println("b2 = " + b2.getField("g"));
 
+		Object[] results = new Object[] {
+				a1.getField("f"),
+				a2.getField("f"),
+				b1.getField("g"),
+				b2.getField("g")
+		};
 
+		System.out.println(
+			"a1.f = " + results[0] + ", " +
+			"a2.f = " + results[1] + ", " +
+			"b1.g = " + results[2] + ", " +
+			"b2.f = " + results[3]
+		);
 	}
 
 	public static void main(String... args) throws Exception {

@@ -51,6 +51,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 			val tempRes : R = replicaSystem.request(addr, request).asInstanceOf[R]
 			context.setPath(_.pop())
 			tempRes
+
 		}
 
 		res.asInstanceOf[R]
@@ -176,6 +177,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 		}
 
 		protected def internalApplyOp[R](op : Operation[R]) : R = {
+
+
 			ReflectiveAccess.applyOp(op)
 		}
 

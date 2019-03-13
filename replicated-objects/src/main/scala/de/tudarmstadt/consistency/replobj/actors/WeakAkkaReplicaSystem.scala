@@ -77,7 +77,16 @@ object WeakAkkaReplicaSystem {
 						sender() ! SetFieldAck
 
 					case SynchronizeWithWeakMaster(ops) =>
-						ops.foreach(op => internalApplyOp[Any](op))
+
+						ops.foreach(op => {
+							replicaSystem.context.setContext(op.path)
+							replicaSystem.context.setPath(_.push())
+							internalApplyOp[Any](op)
+//							replicaSystem.request(addr, OpReq(op))
+
+							replicaSystem.context.setPath(_.pop())
+							replicaSystem.context.resetContext()
+						})
 						sender() ! WeakSynchronized(getObject)
 				}
 			}

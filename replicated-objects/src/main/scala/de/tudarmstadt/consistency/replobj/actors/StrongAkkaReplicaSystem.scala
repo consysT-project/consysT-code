@@ -80,8 +80,9 @@ object StrongAkkaReplicaSystem {
 					case SyncReq =>
 						throw new UnsupportedOperationException("cannot synchronize strong consistent object: already synchronized")
 
-					case SynchronizeWithStrongMaster =>
-						sender() ! StrongSynchronized(getObject)
+					case ReadStrongField(op@GetFieldOp(path, fldName)) =>
+						sender() ! ReadResult(internalGetField(path, fldName))
+
 
 					case LockReq =>
 						context.become {
@@ -95,8 +96,9 @@ object StrongAkkaReplicaSystem {
 								lockQueue.enqueue((sender(), msg))
 
 
-							case MergeAndUnlock(newObj : T) =>
+							case MergeAndUnlock(newObj : T, op, result) =>
 								setObject(newObj)
+								cache(op, result)
 								sender() ! MergeAck
 
 								context.unbecome()
@@ -113,9 +115,8 @@ object StrongAkkaReplicaSystem {
 								val res = internalGetField[Any](id, fldName)
 								sender() ! res
 
-							case SynchronizeWithStrongMaster =>
-								//Synchronization still works even if the object is locked
-								sender() ! StrongSynchronized(getObject)
+							case ReadStrongField(op@GetFieldOp(path, fldName)) =>
+								sender() ! ReadResult(internalGetField(path, fldName))
 						}
 						sender() ! LockRes(getObject)
 				}
@@ -141,24 +142,23 @@ object StrongAkkaReplicaSystem {
 
 				override def receive : Receive = {
 
-					case OpReq(InvokeOp(id, mthdName, args)) =>
+					case OpReq(op@InvokeOp(id, mthdName, args)) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
 						val res = internalInvoke[Any](id, mthdName, args : _*)
-						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
+						replicaSystem.request(addr, MergeAndUnlock(getObject, op, res), masterReplica)
 						sender() ! res
 
-					case OpReq(GetFieldOp(id, fldName)) =>
-						val StrongSynchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithStrongMaster, masterReplica)
-						setObject(newObj)
-						sender() ! internalGetField[Any](id, fldName)
+					case OpReq(op@GetFieldOp(id, fldName)) =>
+						val ReadResult(res) = replicaSystem.request(addr, ReadStrongField(op), masterReplica)
+						sender() ! res
 
 
-					case OpReq(SetFieldOp(id, fldName, value)) =>
+					case OpReq(op@SetFieldOp(id, fldName, value)) =>
 						val LockRes(masterObj : T) = replicaSystem.request(addr, LockReq, masterReplica, receiveTimeout = 60 seconds)
 						setObject(masterObj)
 						internalSetField(id, fldName, value)
-						replicaSystem.request(addr, MergeAndUnlock(getObject), masterReplica)
+						replicaSystem.request(addr, MergeAndUnlock(getObject, op, ()), masterReplica)
 						sender() ! SetFieldAck
 
 					case SyncReq =>
@@ -173,10 +173,16 @@ object StrongAkkaReplicaSystem {
 	private sealed trait StrongReq extends Request
 	private case object LockReq extends StrongReq with ReturnRequest
 	private case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	private case class MergeAndUnlock(obj : AnyRef) extends StrongReq with ReturnRequest
-	private case object SynchronizeWithStrongMaster extends StrongReq with ReturnRequest
+	private case class MergeAndUnlock(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
+	private case class ReadStrongField(op : GetFieldOp[Any]) extends StrongReq with ReturnRequest
 
-	private case class StrongSynchronized[T <: AnyRef](obj : T)
+
+
+//	private case object SynchronizeWithStrongMaster extends StrongReq with ReturnRequest
+//
+//	private case class StrongSynchronized[T <: AnyRef](obj : T)
+	private case class ReadResult(res : Any)
+
 
 
 	private case object MergeAck
