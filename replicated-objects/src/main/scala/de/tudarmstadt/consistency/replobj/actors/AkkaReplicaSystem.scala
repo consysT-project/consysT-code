@@ -31,7 +31,37 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
-	private[actors] object context extends Context
+	private[actors] object context {
+		private var currentPath : Option[ContextPath] = None
+
+		def newTransaction() : Unit = {
+			require(currentPath.isEmpty)
+			currentPath = Some(ContextPath.create(Random.nextInt))
+			setPath(_.push())
+		}
+
+
+
+		def endTransaction() : Unit = {
+			require(currentPath.nonEmpty)
+			setPath(_.pop())
+			require(currentPath.get.isEmpty)
+			currentPath = None
+		}
+
+		def isEmpty : Boolean = currentPath.isEmpty
+
+		def getPath : ContextPath = {
+			require(currentPath.nonEmpty)
+			currentPath.get
+		}
+
+		def setPath(transformer : ContextPath => ContextPath) : Unit = {
+			require(currentPath.nonEmpty)
+			currentPath = currentPath.map(transformer)
+		}
+
+	}
 
 
 	protected def freshAddr() : Addr
@@ -89,7 +119,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	private[actors] final def log(msg : String) : Unit = {
-		println(s"[$this] $msg")
+		val thisString = toString
+		val printString = thisString.substring(thisString.indexOf("$"))
+
+		println(s"[$printString] $msg")
 	}
 
 	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {

@@ -115,7 +115,40 @@ public class Main {
 
 	}
 
+
+	public static void example2Small() throws InterruptedException {
+
+		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
+		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
+
+		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
+		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+
+
+		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), ConsistencyLevels.Strong.class);
+		JRef<@Weak ObjB> b1 = replicaSystem1.replicate("b", new ObjB(a1), ConsistencyLevels.Weak.class);
+
+		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
+		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, ConsistencyLevels.Weak.class);
+
+		Thread.sleep(2000);
+
+		b1.invoke("incAll"); //n1
+
+		b2.invoke("incAll");
+
+		b2.sync();
+
+		System.out.println("#4");
+		System.out.println("a1 = " + a1.getField("f"));
+		System.out.println("b1 = " + b1.getField("g"));
+		System.out.println("a2 = " + a2.getField("f"));
+		System.out.println("b2 = " + b2.getField("g"));
+
+
+	}
+
 	public static void main(String... args) throws Exception {
-		example2();
+		example2Small();
 	}
 }

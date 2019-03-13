@@ -1,8 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import de.tudarmstadt.consistency.replobj.actors.Context.ContextPath
 
-import scala.util.Random
 
 /**
 	* Created on 12.03.19.
