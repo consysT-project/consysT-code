@@ -88,7 +88,7 @@ import scala.util.Random
 //}
 //
 
-case class ContextPath(head : Int, sequence : List[Int] = Nil) {
+case class ContextPath(txid : Int, sequence : List[Int] = Nil) {
 
 	def push() : ContextPath = {
 		copy(sequence = 0 :: sequence)
@@ -105,7 +105,7 @@ case class ContextPath(head : Int, sequence : List[Int] = Nil) {
 	def isEmpty : Boolean = sequence.isEmpty
 
 	override def toString : String = {
-		"[" + sequence.reverse.foldLeft(s"$head::")((acc, e) => acc + "/" + e) + "]"
+		"[" + sequence.reverse.foldLeft(s"$txid::")((acc, e) => acc + "/" + e) + "]"
 	}
 
 }

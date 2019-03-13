@@ -31,10 +31,10 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 		val needNewTx = context.isEmpty
 
-		if (needNewTx) context.newTransaction()
+		if (needNewTx) context.startNewTransaction()
 		else context.set(_.next())
 
-		val request = OpReq(InvokeOp(context.getPath, methodName, args))
+		val request = OpReq(InvokeOp(context.getCurrentPath, methodName, args))
 		replicaSystem.log(s"invoking method $request")
 
 		context.set(_.push())
@@ -51,10 +51,10 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 		val needNewTx = context.isEmpty
 
-		if (needNewTx) context.newTransaction()
+		if (needNewTx) context.startNewTransaction()
 		else context.set(_.next())
 
-		val request = OpReq(GetFieldOp(context.getPath, fieldName))
+		val request = OpReq(GetFieldOp(context.getCurrentPath, fieldName))
 		val res = replicaSystem.request(addr, request)
 
 		if (needNewTx)context.endTransaction()
@@ -68,10 +68,10 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 		val needNewTx = context.isEmpty
 
-		if (needNewTx) context.newTransaction()
+		if (needNewTx) context.startNewTransaction()
 		else context.set(_.next())
 
-		val request = OpReq(SetFieldOp(context.getPath, fieldName, value))
+		val request = OpReq(SetFieldOp(context.getCurrentPath, fieldName, value))
 		val res = replicaSystem.request(addr, request)
 
 		if (needNewTx) context.endTransaction()
@@ -83,7 +83,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 		import replicaSystem.context
 
-		context.newTransaction()
+		context.startNewTransaction()
 
 		val res = replicaSystem.request(addr, SyncReq)
 		assert(res == SyncAck)
