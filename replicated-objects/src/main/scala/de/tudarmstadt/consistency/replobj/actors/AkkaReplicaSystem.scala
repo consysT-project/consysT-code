@@ -32,34 +32,44 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	private[actors] object context {
-		private var currentPath : Option[ContextPath] = None
+		private var pathStack : Option[ContextPath] = None
 
 		def newTransaction() : Unit = {
-			require(currentPath.isEmpty)
-			currentPath = Some(ContextPath.create(Random.nextInt))
+			require(pathStack.isEmpty)
+			pathStack = Some(ContextPath.create(Random.nextInt))
 			setPath(_.push())
 		}
 
-
-
 		def endTransaction() : Unit = {
-			require(currentPath.nonEmpty)
+			require(pathStack.nonEmpty)
 			setPath(_.pop())
-			require(currentPath.get.isEmpty)
-			currentPath = None
+			require(pathStack.get.isEmpty)
+			pathStack = None
 		}
 
-		def isEmpty : Boolean = currentPath.isEmpty
+		def isEmpty : Boolean = pathStack.isEmpty
 
 		def getPath : ContextPath = {
-			require(currentPath.nonEmpty)
-			currentPath.get
+			require(pathStack.nonEmpty)
+			pathStack.get
 		}
 
 		def setPath(transformer : ContextPath => ContextPath) : Unit = {
-			require(currentPath.nonEmpty)
-			currentPath = currentPath.map(transformer)
+			require(pathStack.nonEmpty)
+			pathStack = pathStack.map(transformer)
 		}
+
+		def setContext(path : ContextPath) : Unit = {
+			require(pathStack.isEmpty)
+			pathStack = Some(path)
+		}
+
+		def resetContext() : Unit = {
+			require(pathStack.nonEmpty)
+			pathStack = None
+		}
+
+		override def toString : String = s"context($pathStack)"
 
 	}
 
@@ -100,7 +110,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		sys.error("unknown consistency")
 
 
-	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 3600 seconds) : Any = {
+	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 30 seconds) : Any = {
 		val reqMsg = if (replicaRef.path == replicaActor.path)
 			HandleLocalRequest(addr, req)
 		else
