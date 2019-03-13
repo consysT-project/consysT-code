@@ -13,7 +13,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-import scala.util.Random
+import scala.util.{DynamicVariable, Random}
 
 /**
 	* Created on 13.02.19.
@@ -32,59 +32,65 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	private[actors] object context {
-		private var currentPath : Option[ContextPath] = None
+		private var currentPath : DynamicVariable[Option[ContextPath]] = new DynamicVariable(None)
 
-		def newTransaction() : Unit = {
-			require(currentPath.isEmpty)
-			currentPath = Some(ContextPath.create(Random.nextInt))
-			set(_.push())
+		def startNewTransaction() : Unit = {
+			require(currentPath.value.isEmpty)
+
+			val txid = Random.nextInt
 
 			import akka.pattern.ask
 			implicit val timeout = Timeout(30 seconds)
-			replicaActor ? StartTransaction(getTxid)
+			replicaActor ? StartTransaction(txid)
+
+			currentPath.value = Some(ContextPath.create(txid))
+			set(_.push())
 		}
 
 		def endTransaction() : Unit = {
-			require(currentPath.nonEmpty)
+			require(currentPath.value.nonEmpty)
 			set(_.pop())
-			require(currentPath.get.isEmpty)
+			require(currentPath.value.get.isEmpty)
 
 			val txid = getTxid
-			currentPath = None
+			currentPath.value = None
 
 			replicaActor ! EndTransaction(txid)
 		}
 
 		def getTxid : Int = {
-			require(currentPath.nonEmpty)
-			currentPath.get.head
+			require(currentPath.value.nonEmpty)
+			currentPath.value.get.txid
 		}
 
-		def isEmpty : Boolean = currentPath.isEmpty
+		def isEmpty : Boolean = currentPath.value.isEmpty
 
-		def getPath : ContextPath = {
-			require(currentPath.nonEmpty)
-			currentPath.get
+		def getCurrentPath : ContextPath = {
+			require(currentPath.value.nonEmpty)
+			currentPath.value.get
 		}
 
 		def set(transformer : ContextPath => ContextPath) : Unit = {
-			require(currentPath.nonEmpty)
-			currentPath = currentPath.map(transformer)
+			require(currentPath.value.nonEmpty)
+			currentPath.value = currentPath.value.map(transformer)
 		}
 
 		def setContext(path : ContextPath) : Unit = {
-			require(currentPath.isEmpty)
-			currentPath = Some(path)
+			require(currentPath.value.isEmpty)
 
 			import akka.pattern.ask
 			implicit val timeout = Timeout(30 seconds)
-			replicaActor ? StartTransaction(getTxid)
+			replicaActor ? StartTransaction(path.txid)
+
+			currentPath.value = Some(path)
+
+
 		}
 
 		def resetContext() : Unit = {
-			require(currentPath.nonEmpty)
+			require(currentPath.value.nonEmpty)
 			val txid = getTxid
-			currentPath = None
+			currentPath.value = None
 
 			replicaActor ! EndTransaction(txid)
 		}
@@ -217,7 +223,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 				(txStack, request) match {
 					case (Nil, _) => sys.error(s"local request during non-transaction: $request")//handleRequest(addr, request) //TODO: Do we want to have that?
-					case (txid :: _, OpReq(op)) if op.path.head == txid => handleRequest(addr, request)
+					case (txid :: _, OpReq(op)) if op.path.txid == txid => handleRequest(addr, request)
 					case (_, SyncReq) => handleRequest(addr, request)
 					case _ => lockQueue.enqueue((sender(), msg))
 				}
