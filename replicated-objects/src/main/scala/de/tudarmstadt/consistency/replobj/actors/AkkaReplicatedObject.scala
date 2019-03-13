@@ -3,7 +3,6 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{Actor, ActorRef}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
-import de.tudarmstadt.consistency.replobj.actors.Context.ContextPath
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
@@ -30,24 +29,27 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def invoke[R](methodName : String, args : Any*) : R = {
 		import replicaSystem.context
 
-		val res = if (context.isEmpty) {
-			context.createFresh()
+		val res : R = if (context.isEmpty) {
+			context.newTransaction()
 
 			val request = OpReq(InvokeOp(context.getPath, methodName, args))
-			replicaSystem.log(s"invoking method $request in context ${replicaSystem.context.getPath}")
+			replicaSystem.log(s"invoking method $request")
 
-			val tempRes = replicaSystem.request(addr, request)
-			context.leave()
+			context.setPath(_.push())
+			val tempRes : R = replicaSystem.request(addr, request).asInstanceOf[R]
+			context.setPath(_.pop())
+
+			context.endTransaction()
 			tempRes
 		} else {
-			context.next()
-			context.push()
+			context.setPath(_.next())
 
 			val request = OpReq(InvokeOp(context.getPath, methodName, args))
-			replicaSystem.log(s"invoking method $request in context ${replicaSystem.context.getPath}")
+			replicaSystem.log(s"invoking method $request")
 
-			val tempRes = replicaSystem.request(addr, request)
-			context.pop()
+			context.setPath(_.push())
+			val tempRes : R = replicaSystem.request(addr, request).asInstanceOf[R]
+			context.setPath(_.pop())
 			tempRes
 		}
 
@@ -57,14 +59,17 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def getField[R](fieldName : String) : R = {
 		import replicaSystem.context
 
-		val request = if (context.isEmpty) {
-			OpReq(GetFieldOp(Context.emptyPath, fieldName))
+		val request : Request = if (context.isEmpty) {
+			context.newTransaction()
+			val r = OpReq(GetFieldOp(context.getPath, fieldName))
+			context.endTransaction()
+			r
 		} else {
-			context.next()
-			OpReq(GetFieldOp(context.getNextPath, fieldName))
+			context.setPath(_.next())
+			OpReq(GetFieldOp(context.getPath, fieldName))
 		}
 
-		replicaSystem.log(s"field get $request in context ${replicaSystem.context.getPath}")
+//		replicaSystem.log(s"field get $request")
 
 		val res = replicaSystem.request(addr, request)
 		res.asInstanceOf[R]
@@ -74,13 +79,16 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 		import replicaSystem.context
 
 		val request = if (context.isEmpty) {
-			OpReq(SetFieldOp(Context.emptyPath, fieldName, value))
+			context.newTransaction()
+			val r = OpReq(SetFieldOp(context.getPath, fieldName, value))
+			context.endTransaction()
+			r
 		} else {
-			context.next()
-			OpReq(SetFieldOp(context.getNextPath, fieldName, value))
+			context.setPath(_.next())
+			OpReq(SetFieldOp(context.getPath, fieldName, value))
 		}
 
-		replicaSystem.log(s"field set $request in context ${replicaSystem.context.getPath}")
+//		replicaSystem.log(s"field set $request")
 
 		val res = replicaSystem.request(addr, request)
 		assert(res == SetFieldAck)

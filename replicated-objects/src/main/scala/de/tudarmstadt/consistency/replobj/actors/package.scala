@@ -32,6 +32,7 @@ package object actors {
 			s"""
 				 |akka {
 				 | actor.provider = "remote"
+				 | actor.warn-about-java-serializer-usage = false
 				 | remote {
 				 |   netty.tcp {
 				 |     hostname = "127.0.0.1"
