@@ -80,11 +80,11 @@ object WeakAkkaReplicaSystem {
 
 						ops.foreach(op => {
 							replicaSystem.context.setContext(op.path)
-							replicaSystem.context.setPath(_.push())
+							replicaSystem.context.set(_.push())
 							internalApplyOp[Any](op)
 //							replicaSystem.request(addr, OpReq(op))
 
-							replicaSystem.context.setPath(_.pop())
+							replicaSystem.context.set(_.pop())
 							replicaSystem.context.resetContext()
 						})
 						sender() ! WeakSynchronized(getObject)

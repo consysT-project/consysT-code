@@ -9,6 +9,10 @@ import de.tudarmstadt.consistency.replobj.ConsistencyLevels;
 import de.tudarmstadt.consistency.replobj.java.JRef;
 import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 /**
  * Created on 29.05.18.
  *
@@ -78,45 +82,47 @@ public class Main {
 
 		Thread.sleep(2000);
 
-		b1.invoke("incAll"); //n1
+		b1.invoke("incAll");
+		b2.invoke("incAll");
+
 
 		System.out.println("#1");
-		System.out.println("a1 = " + a1.getField("f"));
-		System.out.println("b1 = " + b1.getField("g"));
-		System.out.println("a2 = " + a2.getField("f"));
-		System.out.println("b2 = " + b2.getField("g"));
+
+		Object[] results1 = new Object[] {
+				a1.getField("f"),
+				a2.getField("f"),
+				b1.getField("g"),
+				b2.getField("g")
+		};
+
+		System.out.println(
+				"a1.f = " + results1[0] + ", " +
+						"a2.f = " + results1[1] + ", " +
+						"b1.g = " + results1[2] + ", " +
+						"b2.g = " + results1[3]
+		);
+
 
 		b2.sync();
 
 		System.out.println("#2");
-		System.out.println("a1 = " + a1.getField("f"));
-		System.out.println("b1 = " + b1.getField("g"));
-		System.out.println("a2 = " + a2.getField("f"));
-		System.out.println("b2 = " + b2.getField("g"));
 
+		Object[] results2 = new Object[] {
+				a1.getField("f"),
+				a2.getField("f"),
+				b1.getField("g"),
+				b2.getField("g")
+		};
 
-		b2.invoke("incAll");
-
-		System.out.println("#3");
-		System.out.println("a1 = " + a1.getField("f"));
-		System.out.println("b1 = " + b1.getField("g"));
-		System.out.println("a2 = " + a2.getField("f"));
-		System.out.println("b2 = " + b2.getField("g"));
-
-
-		b2.sync();
-
-		System.out.println("#4");
-		System.out.println("a1 = " + a1.getField("f"));
-		System.out.println("b1 = " + b1.getField("g"));
-		System.out.println("a2 = " + a2.getField("f"));
-		System.out.println("b2 = " + b2.getField("g"));
-
-
+		System.out.println(
+			"a1.f = " + results2[0] + ", " +
+			"a2.f = " + results2[1] + ", " +
+			"b1.g = " + results2[2] + ", " +
+			"b2.g = " + results2[3]
+		);
 	}
 
-
-	public static void example2Small() throws InterruptedException {
+	public static void example2Parallel() throws InterruptedException {
 
 		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
 		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
@@ -133,15 +139,16 @@ public class Main {
 
 		Thread.sleep(2000);
 
-		b1.invoke("incAll"); //n1
 
-		b2.invoke("incAll");
+		ExecutorService exec = Executors.newFixedThreadPool(4);
+		Future<Void> fut1 = exec.submit(() -> b1.invoke("incAll"));
+		Future<Void> fut2 = exec.submit(() -> b2.invoke("incAll"));
 
-		b2.sync();
+		Thread.sleep(3000);
 
-		System.out.println("#4");
+		System.out.println("#1");
 
-		Object[] results = new Object[] {
+		Object[] results1 = new Object[] {
 				a1.getField("f"),
 				a2.getField("f"),
 				b1.getField("g"),
@@ -149,14 +156,33 @@ public class Main {
 		};
 
 		System.out.println(
-			"a1.f = " + results[0] + ", " +
-			"a2.f = " + results[1] + ", " +
-			"b1.g = " + results[2] + ", " +
-			"b2.f = " + results[3]
+				"a1.f = " + results1[0] + ", " +
+						"a2.f = " + results1[1] + ", " +
+						"b1.g = " + results1[2] + ", " +
+						"b2.g = " + results1[3]
+		);
+
+
+		b2.sync();
+
+		System.out.println("#2");
+
+		Object[] results2 = new Object[] {
+				a1.getField("f"),
+				a2.getField("f"),
+				b1.getField("g"),
+				b2.getField("g")
+		};
+
+		System.out.println(
+				"a1.f = " + results2[0] + ", " +
+						"a2.f = " + results2[1] + ", " +
+						"b1.g = " + results2[2] + ", " +
+						"b2.g = " + results2[3]
 		);
 	}
 
 	public static void main(String... args) throws Exception {
-		example2Small();
+		example2Parallel();
 	}
 }

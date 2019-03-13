@@ -29,75 +29,66 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def invoke[R](methodName : String, args : Any*) : R = {
 		import replicaSystem.context
 
-		val res : R = if (context.isEmpty) {
-			context.newTransaction()
+		val needNewTx = context.isEmpty
 
-			val request = OpReq(InvokeOp(context.getPath, methodName, args))
-			replicaSystem.log(s"invoking method $request")
+		if (needNewTx) context.newTransaction()
+		else context.set(_.next())
 
-			context.setPath(_.push())
-			val tempRes : R = replicaSystem.request(addr, request).asInstanceOf[R]
-			context.setPath(_.pop())
+		val request = OpReq(InvokeOp(context.getPath, methodName, args))
+		replicaSystem.log(s"invoking method $request")
 
-			context.endTransaction()
-			tempRes
-		} else {
-			context.setPath(_.next())
+		context.set(_.push())
+		val res : R = replicaSystem.request(addr, request).asInstanceOf[R]
+		context.set(_.pop())
 
-			val request = OpReq(InvokeOp(context.getPath, methodName, args))
-			replicaSystem.log(s"invoking method $request")
-
-			context.setPath(_.push())
-			val tempRes : R = replicaSystem.request(addr, request).asInstanceOf[R]
-			context.setPath(_.pop())
-			tempRes
-
-		}
-
+		if (needNewTx) context.endTransaction()
 		res.asInstanceOf[R]
+
 	}
 
 	override final def getField[R](fieldName : String) : R = {
 		import replicaSystem.context
 
-		val request : Request = if (context.isEmpty) {
-			context.newTransaction()
-			val r = OpReq(GetFieldOp(context.getPath, fieldName))
-			context.endTransaction()
-			r
-		} else {
-			context.setPath(_.next())
-			OpReq(GetFieldOp(context.getPath, fieldName))
-		}
+		val needNewTx = context.isEmpty
 
-//		replicaSystem.log(s"field get $request")
+		if (needNewTx) context.newTransaction()
+		else context.set(_.next())
 
+		val request = OpReq(GetFieldOp(context.getPath, fieldName))
 		val res = replicaSystem.request(addr, request)
+
+		if (needNewTx)context.endTransaction()
+
 		res.asInstanceOf[R]
 	}
 
 	override final def setField[R](fieldName : String, value : R) : Unit = {
 		import replicaSystem.context
 
-		val request = if (context.isEmpty) {
-			context.newTransaction()
-			val r = OpReq(SetFieldOp(context.getPath, fieldName, value))
-			context.endTransaction()
-			r
-		} else {
-			context.setPath(_.next())
-			OpReq(SetFieldOp(context.getPath, fieldName, value))
-		}
 
-//		replicaSystem.log(s"field set $request")
+		val needNewTx = context.isEmpty
 
+		if (needNewTx) context.newTransaction()
+		else context.set(_.next())
+
+		val request = OpReq(SetFieldOp(context.getPath, fieldName, value))
 		val res = replicaSystem.request(addr, request)
+
+		if (needNewTx) context.endTransaction()
+
 		assert(res == SetFieldAck)
 	}
 
 	override final def sync() : Unit = {
+
+		import replicaSystem.context
+
+		context.newTransaction()
+
 		val res = replicaSystem.request(addr, SyncReq)
 		assert(res == SyncAck)
+
+		context.endTransaction()
 	}
 
 	override def getConsistencyLevel : TypeTag[L] = ltt

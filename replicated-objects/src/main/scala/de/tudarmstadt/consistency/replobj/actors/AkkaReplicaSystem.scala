@@ -5,7 +5,7 @@ import java.util.function.Supplier
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
-import de.tudarmstadt.consistency.replobj.actors.Requests.{LocalReq, Request}
+import de.tudarmstadt.consistency.replobj.actors.Requests.{LocalReq, OpReq, Request, SyncReq}
 import de.tudarmstadt.consistency.replobj.{Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
@@ -32,44 +32,64 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	private[actors] object context {
-		private var pathStack : Option[ContextPath] = None
+		private var currentPath : Option[ContextPath] = None
 
 		def newTransaction() : Unit = {
-			require(pathStack.isEmpty)
-			pathStack = Some(ContextPath.create(Random.nextInt))
-			setPath(_.push())
+			require(currentPath.isEmpty)
+			currentPath = Some(ContextPath.create(Random.nextInt))
+			set(_.push())
+
+			import akka.pattern.ask
+			implicit val timeout = Timeout(30 seconds)
+			replicaActor ? StartTransaction(getTxid)
 		}
 
 		def endTransaction() : Unit = {
-			require(pathStack.nonEmpty)
-			setPath(_.pop())
-			require(pathStack.get.isEmpty)
-			pathStack = None
+			require(currentPath.nonEmpty)
+			set(_.pop())
+			require(currentPath.get.isEmpty)
+
+			val txid = getTxid
+			currentPath = None
+
+			replicaActor ! EndTransaction(txid)
 		}
 
-		def isEmpty : Boolean = pathStack.isEmpty
+		def getTxid : Int = {
+			require(currentPath.nonEmpty)
+			currentPath.get.head
+		}
+
+		def isEmpty : Boolean = currentPath.isEmpty
 
 		def getPath : ContextPath = {
-			require(pathStack.nonEmpty)
-			pathStack.get
+			require(currentPath.nonEmpty)
+			currentPath.get
 		}
 
-		def setPath(transformer : ContextPath => ContextPath) : Unit = {
-			require(pathStack.nonEmpty)
-			pathStack = pathStack.map(transformer)
+		def set(transformer : ContextPath => ContextPath) : Unit = {
+			require(currentPath.nonEmpty)
+			currentPath = currentPath.map(transformer)
 		}
 
 		def setContext(path : ContextPath) : Unit = {
-			require(pathStack.isEmpty)
-			pathStack = Some(path)
+			require(currentPath.isEmpty)
+			currentPath = Some(path)
+
+			import akka.pattern.ask
+			implicit val timeout = Timeout(30 seconds)
+			replicaActor ? StartTransaction(getTxid)
 		}
 
 		def resetContext() : Unit = {
-			require(pathStack.nonEmpty)
-			pathStack = None
+			require(currentPath.nonEmpty)
+			val txid = getTxid
+			currentPath = None
+
+			replicaActor ! EndTransaction(txid)
 		}
 
-		override def toString : String = s"context($pathStack)"
+		override def toString : String = s"context($currentPath)"
 
 	}
 
@@ -167,6 +187,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	private class ReplicaActor extends Actor {
+
+		private var txStack : List[Int] = Nil
+		private val lockQueue : mutable.Queue[(ActorRef, ReplicaActorMessage)] = mutable.Queue.empty
+
+
 		override def receive : Receive = {
 
 			case Debug(x) =>
@@ -186,26 +211,53 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				)
 				localObjects.put(addr, ref)
 
-			case HandleLocalRequest(addr : Addr, request) =>
+			case msg@HandleLocalRequest(addr : Addr, request) =>
 				require(request.isInstanceOf[LocalReq], s"can only handle local requests on local replica, but got $request")
-
 				log(s"received local request for object $addr: $request")
-				localObjects.get(addr) match {
-					case None => sys.error("object not found, address: " + addr)
-					case Some(rob) =>
-						rob.objActor.tell(request, sender())
+
+				(txStack, request) match {
+					case (Nil, _) => sys.error(s"local request during non-transaction: $request")//handleRequest(addr, request) //TODO: Do we want to have that?
+					case (txid :: _, OpReq(op)) if op.path.head == txid => handleRequest(addr, request)
+					case (_, SyncReq) => handleRequest(addr, request)
+					case _ => lockQueue.enqueue((sender(), msg))
 				}
 
-			case HandleRemoteRequest(addr : Addr, request) =>
+			case msg@HandleRemoteRequest(addr : Addr, request) =>
 				require(!request.isInstanceOf[LocalReq], s"can only handle non-local requests on remote replica, but got $request")
-
 				log(s"received remote request for object $addr: $request")
-				localObjects.get(addr) match {
-					case None => sys.error("object not found, address: " + addr)
-					case Some(rob) =>
-						rob.objActor.tell(request, sender())
-				}
 
+				handleRequest(addr, request)
+//				txStack match {
+//					case Nil => handleRequest(addr, request)
+//					case _ :: _ => lockQueue.enqueue((sender(), msg))
+//				}
+
+			case StartTransaction(txid) =>
+				log(s"started transaction $txid")
+				txStack = txid :: txStack
+				sender() ! ()
+
+			case msg@EndTransaction(txid) => txStack match {
+				case head :: tail if head == txid =>
+					log(s"ended transaction $txid")
+					txStack = tail
+					while (lockQueue.nonEmpty) {
+						val (senderRef, message) = lockQueue.dequeue()
+						self.tell(message, senderRef)
+					}
+				case _ :: _ => lockQueue.enqueue((sender(), msg))
+				case Nil => sys.error("cannot end transaction: no transaction available")
+			}
+
+
+		}
+
+		private def handleRequest(addr : Addr, request : Request) : Unit = {
+			localObjects.get(addr) match {
+				case None => sys.error("object not found, address: " + addr)
+				case Some(rob) =>
+					rob.objActor.tell(request, sender())
+			}
 		}
 	}
 }
@@ -226,6 +278,8 @@ object AkkaReplicaSystem {
 	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
 	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
+	case class StartTransaction(txid : Int) extends ReplicaActorMessage
+	case class EndTransaction(txid : Int) extends ReplicaActorMessage
 	case class Debug(any : Any) extends ReplicaActorMessage
 
 
