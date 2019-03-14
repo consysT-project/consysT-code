@@ -49,7 +49,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def getField[R](fieldName : String) : R = {
 		import replicaSystem.context
 
-		val needNewTx = context.isEmpty
+		val needNewTx = Thread.currentThread().getId context.isEmpty
 
 		if (needNewTx) context.startNewTransaction()
 		else context.set(_.next())
