@@ -39,9 +39,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			val txid = Random.nextInt
 
-			import akka.pattern.ask
-			implicit val timeout = Timeout(30 seconds)
-			replicaActor ? StartTransaction(txid)
 
 			currentPath.value = Some(ContextPath.create(txid))
 			set(_.push())
@@ -55,7 +52,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			val txid = getTxid
 			currentPath.value = None
 
-			replicaActor ! EndTransaction(txid)
 		}
 
 		def getTxid : Int = {
@@ -77,13 +73,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		def setContext(path : ContextPath) : Unit = {
 			require(currentPath.value.isEmpty)
-
-			import akka.pattern.ask
-			implicit val timeout = Timeout(30 seconds)
-			replicaActor ? StartTransaction(path.txid)
-
 			currentPath.value = Some(path)
-
 
 		}
 
@@ -92,7 +82,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			val txid = getTxid
 			currentPath.value = None
 
-			replicaActor ! EndTransaction(txid)
 		}
 
 		override def toString : String = s"context($currentPath)"
@@ -194,9 +183,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	private class ReplicaActor extends Actor {
 
-		private var txStack : List[Int] = Nil
-		private val lockQueue : mutable.Queue[(ActorRef, ReplicaActorMessage)] = mutable.Queue.empty
-
 
 		override def receive : Receive = {
 
@@ -221,12 +207,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				require(request.isInstanceOf[LocalReq], s"can only handle local requests on local replica, but got $request")
 				log(s"received local request for object $addr: $request")
 
-				(txStack, request) match {
-					case (Nil, _) => sys.error(s"local request during non-transaction: $request")//handleRequest(addr, request) //TODO: Do we want to have that?
-					case (txid :: _, OpReq(op)) if op.path.txid == txid => handleRequest(addr, request)
-					case (_, SyncReq) => handleRequest(addr, request)
-					case _ => lockQueue.enqueue((sender(), msg))
-				}
+				handleRequest(addr, request)
 
 			case msg@HandleRemoteRequest(addr : Addr, request) =>
 				require(!request.isInstanceOf[LocalReq], s"can only handle non-local requests on remote replica, but got $request")
@@ -238,22 +219,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 //					case _ :: _ => lockQueue.enqueue((sender(), msg))
 //				}
 
-			case StartTransaction(txid) =>
-				log(s"started transaction $txid")
-				txStack = txid :: txStack
-				sender() ! ()
-
-			case msg@EndTransaction(txid) => txStack match {
-				case head :: tail if head == txid =>
-					log(s"ended transaction $txid")
-					txStack = tail
-					while (lockQueue.nonEmpty) {
-						val (senderRef, message) = lockQueue.dequeue()
-						self.tell(message, senderRef)
-					}
-				case _ :: _ => lockQueue.enqueue((sender(), msg))
-				case Nil => sys.error("cannot end transaction: no transaction available")
-			}
 
 
 		}
@@ -284,8 +249,7 @@ object AkkaReplicaSystem {
 	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
 	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
-	case class StartTransaction(txid : Int) extends ReplicaActorMessage
-	case class EndTransaction(txid : Int) extends ReplicaActorMessage
+
 	case class Debug(any : Any) extends ReplicaActorMessage
 
 

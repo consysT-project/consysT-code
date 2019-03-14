@@ -24,7 +24,6 @@ trait ReplicaSystem[Addr] {
 
 	def replicate[T <: AnyRef : TypeTag, L : TypeTag](obj : T) : Ref[Addr, T, L]
 
-
 	def ref[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr) : Ref[Addr, T, L]
 
 
