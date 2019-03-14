@@ -1,11 +1,9 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.util.function.Supplier
-
-import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
+import akka.actor.{Actor, ActorContext, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
-import de.tudarmstadt.consistency.replobj.actors.Requests.{LocalReq, OpReq, Request, SyncReq}
+import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
@@ -31,14 +29,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _, _]] = scala.collection.concurrent.TrieMap.empty
 
 
-	private[actors] object context {
+	private[actors] object GlobalContext {
 		private var currentPath : DynamicVariable[Option[ContextPath]] = new DynamicVariable(None)
 
 		def startNewTransaction() : Unit = {
 			require(currentPath.value.isEmpty)
 
 			val txid = Random.nextInt
-
 
 			currentPath.value = Some(ContextPath.create(txid))
 			set(_.push())
@@ -51,7 +48,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			val txid = getTxid
 			currentPath.value = None
-
 		}
 
 		def getTxid : Int = {
@@ -81,7 +77,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			require(currentPath.value.nonEmpty)
 			val txid = getTxid
 			currentPath.value = None
+		}
 
+		def clear() : Unit = {
+			currentPath.value = None
 		}
 
 		override def toString : String = s"context($currentPath)"
@@ -125,21 +124,18 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		sys.error("unknown consistency")
 
 
-	private[actors] final def request(addr : Addr, req : Request, replicaRef : ActorRef = replicaActor, receiveTimeout : FiniteDuration = 30 seconds) : Any = {
-		val reqMsg = if (replicaRef.path == replicaActor.path)
-			HandleLocalRequest(addr, req)
-		else
-			HandleRemoteRequest(addr, req)
-
-		if (req.returns) {
-			import akka.pattern.ask
-			val response = replicaRef.ask(reqMsg)(Timeout(receiveTimeout))
-			val result = Await.result(response, receiveTimeout)
-			result
-		} else {
-			replicaRef ! reqMsg
-		}
-	}
+//	private[actors] final def request(addr : Addr, req : Request, receiveTimeout : FiniteDuration = 30 seconds) : Any = {
+//		val reqMsg = HandleRemoteRequest(addr, req)
+//
+//		if (req.returns) {
+//			import akka.pattern.ask
+//			val response = replicaRef.ask(reqMsg)(Timeout(receiveTimeout))
+//			val result = Await.result(response, receiveTimeout)
+//			result
+//		} else {
+//			replicaRef ! reqMsg
+//		}
+//	}
 
 
 
@@ -180,6 +176,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 
+	def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
+		import akka.pattern.ask
+		val response = replicaRef.ask(AcquireHandler)(Timeout(receiveTimeout))
+		val result = Await.result(response, receiveTimeout)
+		result.asInstanceOf[RequestHandler[Addr]]
+	}
+
 
 	private class ReplicaActor extends Actor {
 
@@ -203,31 +206,40 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				)
 				localObjects.put(addr, ref)
 
-			case msg@HandleLocalRequest(addr : Addr, request) =>
-				require(request.isInstanceOf[LocalReq], s"can only handle local requests on local replica, but got $request")
-				log(s"received local request for object $addr: $request")
-
-				handleRequest(addr, request)
 
 			case msg@HandleRemoteRequest(addr : Addr, request) =>
-				require(!request.isInstanceOf[LocalReq], s"can only handle non-local requests on remote replica, but got $request")
 				log(s"received remote request for object $addr: $request")
 
-				handleRequest(addr, request)
-//				txStack match {
-//					case Nil => handleRequest(addr, request)
-//					case _ :: _ => lockQueue.enqueue((sender(), msg))
-//				}
+				val handlerRef = context.actorOf(Props(classOf[RequestHandlerActor], this))
+				handlerRef.tell(HandleRequest(addr, request), sender())
 
-
-
+			case AcquireHandler =>
+				val handler = new RequestHandlerImpl(
+					context.actorOf(
+						Props(classOf[RequestHandlerActor], this)
+							.withDispatcher("request-dispatcher")
+					)
+				)
+				sender() ! handler
 		}
 
-		private def handleRequest(addr : Addr, request : Request) : Unit = {
-			localObjects.get(addr) match {
-				case None => sys.error("object not found, address: " + addr)
-				case Some(rob) =>
-					rob.objActor.tell(request, sender())
+
+		private class RequestHandlerActor extends Actor {
+
+			override def receive : Receive = {
+				case InitHandler =>
+					GlobalContext.clear()
+
+				case HandleRequest(addr : Addr, request) =>
+					localObjects.get(addr) match {
+						case None =>
+							sys.error(s"object $addr not found")
+						case Some(obj) =>
+							sender() ! obj.handleRequest(request)
+					}
+
+				case CloseHandler =>
+					context.stop(self)
 			}
 		}
 	}
@@ -240,17 +252,17 @@ object AkkaReplicaSystem {
 
 
 
-
-
-
 	sealed trait ReplicaActorMessage
 	//	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
 	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
 	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
-	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
+//	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 
+	case object AcquireHandler extends ReplicaActorMessage
+
 	case class Debug(any : Any) extends ReplicaActorMessage
+
 
 
 
