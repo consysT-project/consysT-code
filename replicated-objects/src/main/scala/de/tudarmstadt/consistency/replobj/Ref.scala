@@ -6,11 +6,12 @@ package de.tudarmstadt.consistency.replobj
 	*
 	* @author Mirko Köhler
 	*/
-trait Ref[Addr, T <: AnyRef, L] extends Serializable {
+trait Ref[Addr, T <: AnyRef] extends Serializable {
 
 	val addr : Addr
+	val consistencyLevel : ConsistencyLevel
 
-	def toReplicatedObject : ReplicatedObject[T, L]
+	def toReplicatedObject : ReplicatedObject[T]
 
 	/* shortcut for Java implementation */
 	final def remote : T = toReplicatedObject.remote

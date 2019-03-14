@@ -1,9 +1,8 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import akka.actor.{ActorRef, Props}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
-
+import akka.actor.ActorRef
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel.Weak
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
@@ -20,26 +19,23 @@ import scala.reflect.runtime.universe._
 
 trait WeakAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T, L] = {
-		if (ConsistencyLevels.isWeak[L])
-		//We have to cast here because the type system can not infer L == Strong
-			new WeakMasterReplicatedObject[Addr, T](obj, addr, this).asInstanceOf[AkkaReplicatedObject[Addr, T, L]]
-		else
-			super.createMasterReplica[T, L](addr, obj)
+
+	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+		case Weak => new WeakMasterReplicatedObject[Addr, T](obj, addr, this)
+		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T, L] = {
-		if (ConsistencyLevels.isWeak[L])
-		//We have to cast here because the type system can not infer L == Strong
-			new WeakFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this).asInstanceOf[AkkaReplicatedObject[Addr, T, L]]
-		else
-			super.createFollowerReplica[T, L](addr, obj, masterRef)
+	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+		case Weak => new WeakFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
+		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
 }
 
 object WeakAkkaReplicaSystem {
 
-	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Weak]
+	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
+		override final def consistencyLevel : ConsistencyLevel = Weak
+	}
 
 
 	object WeakReplicatedObject {
@@ -47,8 +43,7 @@ object WeakAkkaReplicaSystem {
 		class WeakMasterReplicatedObject[Addr, T <: AnyRef](
 	     init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
 	  )(
-	     protected implicit val ttt : TypeTag[T],
-	     protected implicit val ltt : TypeTag[Weak]
+	     protected implicit val ttt : TypeTag[T]
 	  )
 		extends WeakReplicatedObject[Addr, T] {
 			setObject(init)
@@ -74,18 +69,14 @@ object WeakAkkaReplicaSystem {
 
 					ops.foreach(op => {
 						replicaSystem.GlobalContext.setContext(op.path)
-//						replicaSystem.GlobalContext.set(_.push())
-						replicaSystem.log(s"weak synchronize $op in context ${replicaSystem.GlobalContext.getCurrentPath}")
+						replicaSystem.log(s"weak synchronize $op in context ${replicaSystem.GlobalContext.getBuilder.getParentPath}")
 
 						op match {
-							case InvokeOp(_, mthdName, args) => invoke(mthdName, args : _*)
-							case SetFieldOp(_, fldName, newVal) => setField(fldName, newVal)
+							case InvokeOp(path, mthdName, args) => internalInvoke(path, mthdName, args)
+							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
 
-					//							replicaSystem.request(addr, OpReq(op))
-
-//						replicaSystem.GlobalContext.set(_.pop())
-						replicaSystem.GlobalContext.resetContext()
+						replicaSystem.GlobalContext.resetBuilder()
 					})
 
 					WeakSynchronized(getObject)
@@ -99,8 +90,7 @@ object WeakAkkaReplicaSystem {
 		class WeakFollowerReplicatedObject[Addr, T <: AnyRef](
 			init : T, val addr : Addr, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem[Addr]
 		)(
-			protected implicit val ttt : TypeTag[T],
-			protected implicit val ltt : TypeTag[Weak]
+			protected implicit val ttt : TypeTag[T]
 		) extends WeakReplicatedObject[Addr, T] {
 			setObject(init)
 

@@ -15,6 +15,6 @@ package object replobj {
 		ClassTag[T]( typeTag[T].mirror.runtimeClass( typeTag[T].tpe ) )
 
 
-	implicit def refToRob[Addr, T <: AnyRef, L](ref : Ref[Addr, T, L]) : ReplicatedObject[T, L] =
+	implicit def refToRob[Addr, T <: AnyRef](ref : Ref[Addr, T]) : ReplicatedObject[T] =
 		ref.toReplicatedObject
 }

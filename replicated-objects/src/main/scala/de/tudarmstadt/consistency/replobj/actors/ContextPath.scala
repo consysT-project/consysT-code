@@ -1,16 +1,18 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import scala.util.Random
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel
+
+import scala.collection.mutable
 
 /**
 	* Created on 12.03.19.
 	*
 	* @author Mirko Köhler
 	*/
-case class ContextPath(txid : Int, sequence : List[Int] = Nil) {
+case class ContextPath(txid : Int, sequence : List[(ConsistencyLevel, Int)] = Nil) {
 
-	def push() : ContextPath = {
-		copy(sequence = 0 :: sequence)
+	def push(l : ConsistencyLevel) : ContextPath = {
+		copy(sequence = (l, 0) :: sequence)
 	}
 
 	def pop() : ContextPath = {
@@ -18,24 +20,64 @@ case class ContextPath(txid : Int, sequence : List[Int] = Nil) {
 	}
 
 	def next() : ContextPath = {
-		copy(sequence = (sequence.head + 1) :: sequence.tail )
+		val (l, seqnr) = sequence.head
+		copy(sequence = (l, seqnr + 1) :: sequence.tail )
 	}
 
 	def isEmpty : Boolean = sequence.isEmpty
 
 	override def toString : String = {
-		"[" + sequence.reverse.foldLeft(s"$txid::")((acc, e) => acc + "/" + e) + "]"
+		"[" + sequence.reverse.foldLeft(s"$txid::")((acc, e) => acc + "/" + e._1.toString.charAt(0) + e._2 ) + "]"
 	}
 
 }
 
 object ContextPath {
 
-	def create(head : Int) : ContextPath = ContextPath(head, Nil)
+	class ContextPathBuilder(path : ContextPath) {
+
+		def this(txid : Int) = {
+			this(ContextPath(txid))
+		}
+
+		val txid : Int = path.txid
+
+		private val seqStack : mutable.Stack[mutable.Map[ConsistencyLevel, Int]] = new mutable.Stack()
+		seqStack.push(mutable.Map.empty)
+
+		private val currSeq : mutable.Stack[(ConsistencyLevel, Int)] = new mutable.Stack()
+		currSeq.elems = path.sequence
 
 
-	def createFresh : ContextPath = {
-		def freshId() : Int = Random.nextInt()
-		create(freshId())
+		def push(l : ConsistencyLevel) : Unit = {
+			currSeq.push((l, seqStack.head(l)))
+			seqStack.push(mutable.Map.empty)
+		}
+
+		def pop() : Unit = {
+			require(currSeq.nonEmpty)
+
+			currSeq.pop()
+			seqStack.pop()
+		}
+
+		def nextPath(l : ConsistencyLevel) : ContextPath = {
+			def increaseAndGetSeqNr() : Int = seqStack.head.get(l) match {
+				case None =>
+					seqStack.head(l) = 0
+					0
+				case Some(n) =>
+					seqStack.head(l) = n + 1
+					n + 1
+			}
+
+			val nextHead : (ConsistencyLevel, Int) = (l, increaseAndGetSeqNr())
+
+			ContextPath(txid, nextHead :: currSeq.toList)
+		}
+
+		def getParentPath : ContextPath =
+			ContextPath(txid, currSeq.toList)
 	}
+
 }

@@ -5,13 +5,15 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.demo.schema.ObjA;
 import de.tudarmstadt.consistency.demo.schema.ObjB;
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels;
+import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
 import de.tudarmstadt.consistency.replobj.java.JRef;
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static de.tudarmstadt.consistency.demo.Replicas.replicaSystem1;
+import static de.tudarmstadt.consistency.demo.Replicas.replicaSystem2;
 
 /**
  * Created on 29.05.18.
@@ -20,19 +22,15 @@ import java.util.concurrent.Future;
  */
 public class Main {
 
+
+
 	public static void example1() throws InterruptedException {
-		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
 
-		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), JConsistencyLevel.STRONG);
+		JRef<@Strong ObjA> ref2Strong = replicaSystem2.ref("os", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
 
-
-		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), ConsistencyLevels.Strong.class);
-		JRef<@Strong ObjA> ref2Strong = replicaSystem2.ref("os", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
-
-		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", new ObjA(), ConsistencyLevels.Weak.class);
-		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, ConsistencyLevels.Weak.class);
+		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", new ObjA(), JConsistencyLevel.WEAK);
+		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevel.WEAK);
 
 
 		Thread.sleep(3000);
@@ -67,18 +65,12 @@ public class Main {
 
 	public static void example2() throws InterruptedException {
 
-		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
 
-		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
+		JRef<@Weak ObjB> b1 = replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevel.WEAK);
 
-
-		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), ConsistencyLevels.Strong.class);
-		JRef<@Weak ObjB> b1 = replicaSystem1.replicate("b", new ObjB(a1), ConsistencyLevels.Weak.class);
-
-		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
-		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, ConsistencyLevels.Weak.class);
+		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
+		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
 
 		Thread.sleep(2000);
 
@@ -124,18 +116,12 @@ public class Main {
 
 	public static void example2Parallel() throws InterruptedException {
 
-		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
 
-		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
+		JRef<@Weak ObjB> b1 = replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevel.WEAK);
 
-
-		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), ConsistencyLevels.Strong.class);
-		JRef<@Weak ObjB> b1 = replicaSystem1.replicate("b", new ObjB(a1), ConsistencyLevels.Weak.class);
-
-		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, ConsistencyLevels.Strong.class);
-		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, ConsistencyLevels.Weak.class);
+		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
+		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
 
 		Thread.sleep(2000);
 
@@ -183,6 +169,6 @@ public class Main {
 	}
 
 	public static void main(String... args) throws Exception {
-		example2();
+		example2Parallel();
 	}
 }

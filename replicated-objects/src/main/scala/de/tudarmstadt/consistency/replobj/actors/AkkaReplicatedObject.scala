@@ -1,8 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import akka.actor.{Actor, ActorRef}
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
 
@@ -15,13 +13,11 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] {
+trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 	protected val replicaSystem : AkkaReplicaSystem[Addr]
 
 	protected implicit def ttt : TypeTag[T]
-	protected implicit def ltt : TypeTag[L]
-
 
 	val addr : Addr
 
@@ -42,25 +38,20 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 
 
-	override def getConsistencyLevel : TypeTag[L] = ltt
-
-
-
-
 	override final def invoke[R](methodName : String, args : Any*) : R = {
 		import replicaSystem.GlobalContext
 
-		val needNewTx = GlobalContext.isEmpty
+		val needNewTx = !GlobalContext.hasBuilder
 
 		if (needNewTx) GlobalContext.startNewTransaction()
 
 
-		val path = GlobalContext.getCurrentPath
+		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
 		replicaSystem.log(s"invoking method $addr.$methodName(${args.mkString(", ")}) in context $path")
 
+		GlobalContext.getBuilder.push(consistencyLevel)
 		val res : R = internalInvoke[R](path, methodName, args)
-
-		GlobalContext.set(_.next())
+		GlobalContext.getBuilder.pop()
 
 		if (needNewTx) GlobalContext.endTransaction()
 		res.asInstanceOf[R]
@@ -70,17 +61,15 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def getField[R](fieldName : String) : R = {
 		import replicaSystem.GlobalContext
 
-		val needNewTx = GlobalContext.isEmpty
+		val needNewTx = !GlobalContext.hasBuilder
 
 		if (needNewTx) GlobalContext.startNewTransaction()
 
-
-		val path = GlobalContext.getCurrentPath
+		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
 		replicaSystem.log(s"getting field $addr.$fieldName in context $path")
 
 		val res = internalGetField[R](path, fieldName)
 
-		GlobalContext.set(_.next())
 		if (needNewTx)GlobalContext.endTransaction()
 
 		res.asInstanceOf[R]
@@ -89,19 +78,17 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 	override final def setField[R](fieldName : String, value : R) : Unit = {
 		import replicaSystem.GlobalContext
 
-		val needNewTx = GlobalContext.isEmpty
+		val needNewTx = !GlobalContext.hasBuilder
 
 		if (needNewTx) GlobalContext.startNewTransaction()
 
 
-		val path = GlobalContext.getCurrentPath
+		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
 		replicaSystem.log(s"setting field $addr.$fieldName = $value in context $path")
 
 		internalSetField(path, fieldName, value)
 
-		GlobalContext.set(_.next())
 		if (needNewTx) GlobalContext.endTransaction()
-
 	}
 
 	override final def sync() : Unit = {
@@ -120,13 +107,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef, L] extends ReplicatedObject[T, L] 
 
 
 	protected def internalInvoke[R](path: ContextPath, methodName: String, args: Seq[Any]) : R = {
-		import replicaSystem.GlobalContext
-
-		GlobalContext.set(_.push())
-		val res = ReflectiveAccess.doInvoke[R](path, methodName, args)
-		GlobalContext.set(_.pop())
-
-		res
+		ReflectiveAccess.doInvoke[R](path, methodName, args)
 	}
 
 	protected def internalGetField[R](path : ContextPath, fldName : String) : R = {

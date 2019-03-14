@@ -1,10 +1,11 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import akka.actor.{Actor, ActorContext, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
+import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
+import de.tudarmstadt.consistency.replobj.actors.ContextPath.ContextPathBuilder
 import de.tudarmstadt.consistency.replobj.actors.Requests._
-import de.tudarmstadt.consistency.replobj.{Ref, ReplicaSystem, ReplicatedObject, Utils}
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevel, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
 import scala.concurrent.Await
@@ -26,64 +27,46 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	/*private[actors]*/ val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
-	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _, _]] = scala.collection.concurrent.TrieMap.empty
+	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = scala.collection.concurrent.TrieMap.empty
 
 
 	private[actors] object GlobalContext {
-		private var currentPath : DynamicVariable[Option[ContextPath]] = new DynamicVariable(None)
+		private var builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
+
+		private def setBuilder(builder: ContextPathBuilder) : Unit = {
+			this.builder.value = Some(builder)
+		}
+
+		def resetBuilder() : Unit = {
+			this.builder.value = None
+		}
+
+		def getBuilder : ContextPathBuilder = {
+			require(hasBuilder)
+			builder.value.get
+		}
+
+		def hasBuilder : Boolean =
+			builder.value.nonEmpty
+
 
 		def startNewTransaction() : Unit = {
-			require(currentPath.value.isEmpty)
-
+			require(!hasBuilder)
 			val txid = Random.nextInt
-
-			currentPath.value = Some(ContextPath.create(txid))
-			set(_.push())
+			setBuilder(new ContextPathBuilder(txid))
 		}
 
 		def endTransaction() : Unit = {
-			require(currentPath.value.nonEmpty)
-			set(_.pop())
-			require(currentPath.value.get.isEmpty)
-
-			val txid = getTxid
-			currentPath.value = None
-		}
-
-		def getTxid : Int = {
-			require(currentPath.value.nonEmpty)
-			currentPath.value.get.txid
-		}
-
-		def isEmpty : Boolean = currentPath.value.isEmpty
-
-		def getCurrentPath : ContextPath = {
-			require(currentPath.value.nonEmpty)
-			currentPath.value.get
-		}
-
-		def set(transformer : ContextPath => ContextPath) : Unit = {
-			require(currentPath.value.nonEmpty)
-			currentPath.value = currentPath.value.map(transformer)
+			require(hasBuilder)
+			resetBuilder()
 		}
 
 		def setContext(path : ContextPath) : Unit = {
-			require(currentPath.value.isEmpty)
-			currentPath.value = Some(path)
-
+			require(builder.value.isEmpty)
+			setBuilder(new ContextPathBuilder(path))
 		}
 
-		def resetContext() : Unit = {
-			require(currentPath.value.nonEmpty)
-			val txid = getTxid
-			currentPath.value = None
-		}
-
-		def clear() : Unit = {
-			currentPath.value = None
-		}
-
-		override def toString : String = s"context($currentPath)"
+		override def toString : String = s"context($builder)"
 
 	}
 
@@ -91,36 +74,35 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	protected def freshAddr() : Addr
 
 
-	override final def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L] = {
+	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[Addr, T] = {
 		require(!localObjects.contains(addr))
-
 		log(s"replicating object $addr := $obj")
 
-		val rob = createMasterReplica[T, L](addr, obj)
-		val ccls = typeTag[L].mirror.runtimeClass(typeTag[L].tpe)
+		val rob = createMasterReplica[T](l, addr, obj)
 
 		otherReplicas.foreach { actorRef =>
-			val msg = NewJObject(addr, obj, ccls, replicaActor)
+			val msg = CreateObjectReplica(addr, obj, l, replicaActor)
 			actorRef ! msg
 		}
 		localObjects.put(addr, rob)
 
-		Ref.create(addr, this)
-	}
-
-	override final def replicate[T <: AnyRef : TypeTag, L : TypeTag](obj : T) : Ref[Addr, T, L] = {
-		replicate[T, L](freshAddr(), obj)
-	}
-
-	override final def ref[T  <: AnyRef : TypeTag,	L : TypeTag](addr : Addr) : Ref[Addr, T, L] = {
-		Ref.create(addr, this)
+		Ref.create(addr, l, this)
 	}
 
 
-	protected def createMasterReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T, L] =
+	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[Addr, T] = {
+		replicate[T](freshAddr(), obj, l)
+	}
+
+	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[Addr, T] = {
+		Ref.create(addr, l, this)
+	}
+
+
+	protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
-	protected def createFollowerReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T, L] =
+	protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
 
@@ -192,7 +174,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			case Debug(x) =>
 				println(s"Debug $x from ${sender()}")
 
-			case NewJObject(addr : Addr, obj, consistencyCls, masterRef) =>
+			case CreateObjectReplica(addr : Addr, obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				log(s"received object $addr := $obj")
 
@@ -200,9 +182,8 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				require(!localObjects.contains(addr))
 
 				//Create the replicated object on this replica and add it to the object map
-				val ref = createFollowerReplica(addr, obj, masterRef)(
-					Utils.typeTagFromCls(obj.asInstanceOf[AnyRef].getClass.asInstanceOf[Class[AnyRef]]),
-					Utils.typeTagFromCls(consistencyCls)
+				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
+					Utils.typeTagFromCls(obj.asInstanceOf[AnyRef].getClass.asInstanceOf[Class[AnyRef]])
 				)
 				localObjects.put(addr, ref)
 
@@ -228,7 +209,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			override def receive : Receive = {
 				case InitHandler =>
-					GlobalContext.clear()
+					GlobalContext.resetBuilder()
 
 				case HandleRequest(addr : Addr, request) =>
 					localObjects.get(addr) match {
@@ -255,7 +236,7 @@ object AkkaReplicaSystem {
 	sealed trait ReplicaActorMessage
 	//	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
 	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
-	case class NewJObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyCls : Class[L], masterRef : ActorRef) extends ReplicaActorMessage
+	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage
 //	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
 
@@ -268,15 +249,15 @@ object AkkaReplicaSystem {
 
 
 
-	private[actors] class RefImpl[Addr, T <: AnyRef, L : TypeTag](val addr : Addr, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T, L] {
-		override implicit def toReplicatedObject : ReplicatedObject[T, L] = replicaSystem match {
+	private[actors] class RefImpl[Addr, T <: AnyRef, L](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
+		override implicit def toReplicatedObject : ReplicatedObject[T] = replicaSystem match {
 			case null =>
 				sys.error(s"replica system has not been initialized properly. $toString")
 			case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.localObjects.get(addr) match {
 				case None =>
 					sys.error("the replicated object is not (yet) available on this host.")
 
-				case Some(rob : ReplicatedObject[T,L]) =>
+				case Some(rob : ReplicatedObject[T]) =>
 
 					//Check consistency level
 //					val thisL = implicitly[TypeTag[L]].tpe
@@ -287,22 +268,21 @@ object AkkaReplicaSystem {
 			}
 		}
 
-		override def toString : String =
-			s"RefImpl($addr)"
+		override def toString : String = s"RefImpl($addr, $consistencyLevel)"
 	}
 
 	private object Ref {
 
-		def create[Addr, T <: AnyRef, L : TypeTag](addr : Addr, replicaSystem : AkkaReplicaSystem[Addr]) : RefImpl[Addr, T, L] = {
-			new RefImpl[Addr, T, L](addr, replicaSystem)
+		def create[Addr, T <: AnyRef, L](addr : Addr, consistencyLevel : ConsistencyLevel, replicaSystem : AkkaReplicaSystem[Addr]) : RefImpl[Addr, T, L] = {
+			new RefImpl[Addr, T, L](addr, consistencyLevel, replicaSystem)
 		}
 
-		/* Java binding */
-		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : RefImpl[Addr, T, L] = {
-			implicit val ltt : TypeTag[L] = Utils.typeTagFromCls(consistencyCls)
-			val ref : RefImpl[Addr, T, L] = create[Addr, T, L](addr, replicaSystem)
-			ref
-		}
+//		/* Java binding */
+//		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : RefImpl[Addr, T, L] = {
+//			implicit val ltt : TypeTag[L] = Utils.typeTagFromCls(consistencyCls)
+//			val ref : RefImpl[Addr, T, L] = create[Addr, T, L](addr, replicaSystem)
+//			ref
+//		}
 	}
 }
 

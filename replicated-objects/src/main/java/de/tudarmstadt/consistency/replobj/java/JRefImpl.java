@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.replobj.actors.java;
+package de.tudarmstadt.consistency.replobj.java;
 
 import de.tudarmstadt.consistency.replobj.Ref;
 import de.tudarmstadt.consistency.replobj.java.JRef;
@@ -12,9 +12,9 @@ import java.io.Serializable;
  */
 public class JRefImpl<T> implements JRef<T>, Serializable {
 
-	private final Ref<String, T,?> ref;
+	private final Ref<String, T> ref;
 
-	JRefImpl(Ref<String, T,?> ref) {
+	JRefImpl(Ref<String, T> ref) {
 		this.ref = ref;
 	}
 

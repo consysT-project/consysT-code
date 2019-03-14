@@ -1,7 +1,6 @@
 package de.tudarmstadt.consistency.replobj
 
 import scala.reflect.api.{TypeCreator, Universe}
-
 import scala.reflect.runtime.universe._
 
 /**

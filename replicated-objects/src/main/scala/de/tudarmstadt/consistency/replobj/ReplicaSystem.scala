@@ -1,7 +1,5 @@
 package de.tudarmstadt.consistency.replobj
 
-import scala.reflect.ClassTag
-import scala.reflect.api.{TypeCreator, Universe, Mirror}
 import scala.reflect.runtime.universe._
 
 
@@ -20,24 +18,24 @@ trait ReplicaSystem[Addr] {
 		* @param obj The object to distribute
 		* @return A reference to the created object
 		*/
-	def replicate[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : Ref[Addr, T, L]
+	def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[Addr, T]
 
-	def replicate[T <: AnyRef : TypeTag, L : TypeTag](obj : T) : Ref[Addr, T, L]
+	def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[Addr, T]
 
-	def ref[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr) : Ref[Addr, T, L]
+	def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[Addr, T]
 
 
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
-		replicate(addr, obj)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
+	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+		replicate(addr, obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
-		replicate(obj)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
+	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+		replicate(obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for ref */
-	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], consistencyCls : Class[L]) : Ref[Addr, T, L] = {
-		ref(addr)(Utils.typeTagFromCls(objCls), Utils.typeTagFromCls(consistencyCls))
+	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+		ref(addr, l)(Utils.typeTagFromCls(objCls))
 	}
 
 
