@@ -3,8 +3,8 @@ package de.tudarmstadt.consistency.replobj.actors
 import java.util.concurrent.locks.ReentrantLock
 
 import akka.actor.ActorRef
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Strong
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel.Strong
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
@@ -20,29 +20,26 @@ import scala.reflect.runtime.universe._
 
 trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T, L] = {
-		if (ConsistencyLevels.isStrong[L])
-		//We have to cast here because the type system can not infer L == Strong
-			new StrongMasterReplicatedObject[Addr, T](obj, addr, this).asInstanceOf[AkkaReplicatedObject[Addr, T, L]]
-		else
-			super.createMasterReplica[T, L](addr, obj)
+	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+		case Strong => new StrongMasterReplicatedObject[Addr, T](obj, addr, this)
+		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag, L : TypeTag](addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T, L] = {
-		if (ConsistencyLevels.isStrong[L])
-		//We have to cast here because the type system can not infer L == Strong
-			new StrongFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this).asInstanceOf[AkkaReplicatedObject[Addr, T, L]]
-		else
-			super.createFollowerReplica[T, L](addr, obj, masterRef)
+	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+		case Strong => new StrongFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
+		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
 }
 
 object StrongAkkaReplicaSystem {
 
 	trait StrongReplicatedObject[Addr, T <: AnyRef]
-		extends AkkaReplicatedObject[Addr, T, Strong]
+		extends AkkaReplicatedObject[Addr, T]
 		//Strong objects cache their results for MVCC
-		with AkkaMultiversionReplicatedObject[Addr, T, Strong]
+		with AkkaMultiversionReplicatedObject[Addr, T] {
+
+		override final def consistencyLevel : ConsistencyLevel = Strong
+	}
 
 
 	object StrongReplicatedObject {
@@ -50,8 +47,7 @@ object StrongAkkaReplicaSystem {
 		class StrongMasterReplicatedObject[Addr, T <: AnyRef](
 			init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
 		)(
-			protected implicit val ttt : TypeTag[T],
-			protected implicit val ltt : TypeTag[Strong]
+			protected implicit val ttt : TypeTag[T]
 		) extends StrongReplicatedObject[Addr, T] {
 			setObject(init)
 
@@ -97,8 +93,7 @@ object StrongAkkaReplicaSystem {
 		class StrongFollowerReplicatedObject[Addr, T <: AnyRef](
 			init : T, val addr : Addr, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem[Addr]
 		)(
-			protected implicit val ttt : TypeTag[T],
-			protected implicit val ltt : TypeTag[Strong]
+			protected implicit val ttt : TypeTag[T]
 		) extends StrongReplicatedObject[Addr, T] {
 			setObject(init)
 

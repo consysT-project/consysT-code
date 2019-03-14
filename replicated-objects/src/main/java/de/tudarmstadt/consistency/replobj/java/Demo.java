@@ -1,7 +1,5 @@
 package de.tudarmstadt.consistency.replobj.java;
 
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels;
-
 import java.io.Serializable;
 
 /**
@@ -26,11 +24,11 @@ public class Demo {
 		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
 
 
-		JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), ConsistencyLevels.Strong.class);
-		JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, ConsistencyLevels.Strong.class);
+		JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevel.STRONG);
+		JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, JConsistencyLevel.STRONG);
 
-		JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), ConsistencyLevels.Weak.class);
-		JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, ConsistencyLevels.Weak.class);
+		JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevel.WEAK);
+		JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, JConsistencyLevel.WEAK);
 
 
 		Thread.sleep(3000);

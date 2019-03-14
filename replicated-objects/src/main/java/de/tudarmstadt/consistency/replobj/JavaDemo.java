@@ -1,5 +1,7 @@
 package de.tudarmstadt.consistency.replobj;
 
+import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
+
 import java.io.Serializable;
 
 /**
@@ -13,7 +15,7 @@ public class JavaDemo {
 	public static void main(String[] args) {
 		ReplicaSystem<String> replicaSystem = ReplicaSystems.fromActorSystem(2552);
 
-		Ref<String, SomeObj, ConsistencyLevels.Weak> ref = replicaSystem.replicate("a", new SomeObj(), SomeObj.class, ConsistencyLevels.Weak.class);
+		Ref<String, SomeObj> ref = replicaSystem.replicate("a", new SomeObj(), SomeObj.class, JConsistencyLevel.WEAK);
 
 		int i = ref.toReplicatedObject().getField("f");
 

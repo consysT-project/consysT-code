@@ -2,7 +2,8 @@ package de.tudarmstadt.consistency.replobj.java;
 
 import akka.actor.ActorSystem;
 import de.tudarmstadt.consistency.checker.qual.Local;
-import de.tudarmstadt.consistency.replobj.actors.java.JReplicaSystemAkkaImpl;
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel;
+
 
 /**
  * Created on 01.03.19.
@@ -11,11 +12,11 @@ import de.tudarmstadt.consistency.replobj.actors.java.JReplicaSystemAkkaImpl;
  */
 public interface JReplicaSystem {
 
-	<T> JRef<T> replicate(String addr, @Local T obj, Class<?> consistencyCls);
+	<T> JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel);
 
-	<T> JRef<T> replicate(@Local T obj, Class<?> consistencyCls);
+	<T> JRef<T> replicate(@Local T obj, ConsistencyLevel consistencyLevel);
 
-	<T> JRef<T> ref(String addr, Class<T> objCls, Class<?> consistencyCls);
+	<T> JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
 
 	void addReplicaSystem(String hostname, int port);
 

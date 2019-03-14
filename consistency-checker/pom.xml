@@ -104,11 +104,6 @@
 		  <version>${checkerframeworkVersion}</version>
 		</dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>replicated-objects</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scalaVersion}</version>

@@ -102,6 +102,11 @@
             <artifactId>scala-reflect</artifactId>
             <version>${scalaVersion}</version>
         </dependency>
+        <dependency>
+            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <artifactId>consistency-checker</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>

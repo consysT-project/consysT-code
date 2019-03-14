@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import de.tudarmstadt.consistency.replobj.actors.Requests.{InvokeOp, Operation, SetFieldOp}
+import de.tudarmstadt.consistency.replobj.actors.Requests.{GetFieldOp, InvokeOp, Operation, SetFieldOp}
 
 import scala.collection.mutable
 
@@ -9,7 +9,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef, L] extends AkkaReplicatedObject[Addr, T, L] {
+trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
 
 
 	private val opCache : mutable.Map[ContextPath, (Operation[_], Any)] = mutable.HashMap.empty
@@ -47,6 +47,18 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef, L] extends AkkaReplica
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == SetFieldOp(path, fldName, newVal))
 			println(s"cache hit with $cachedOp")
+	}
+
+	override protected def internalGetField[R](path : ContextPath, fieldName : String) : R =  opCache.get(path) match {
+		case None =>
+			val res = super.internalGetField[R](path, fieldName)
+			opCache.put(path, (GetFieldOp(path, fieldName), res))
+			res
+
+		case Some((cachedOp, cachedResult)) =>
+			assert(cachedOp == GetFieldOp(path, fieldName))
+			println(s"cache hit with $cachedOp: $cachedResult")
+			cachedResult.asInstanceOf[R]
 	}
 
 
