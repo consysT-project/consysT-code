@@ -40,6 +40,11 @@ package object actors {
 				 |   }
 				 | }
 				 |}
+				 |
+				 |request-dispatcher {
+				 |  executor = "thread-pool-executor"
+				 |  type = PinnedDispatcher
+				 |}
 			""".stripMargin)
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)

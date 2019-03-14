@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.replobj.actors
 import akka.actor.{ActorRef, Props}
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels
 import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject._
+
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
@@ -39,7 +39,7 @@ trait WeakAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object WeakAkkaReplicaSystem {
 
-	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Weak] with AkkaMultiversionReplicatedObject[Addr, T, Weak]
+	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T, Weak]
 
 
 	object WeakReplicatedObject {
@@ -51,44 +51,47 @@ object WeakAkkaReplicaSystem {
 	     protected implicit val ltt : TypeTag[Weak]
 	  )
 		extends WeakReplicatedObject[Addr, T] {
+			setObject(init)
 
-			override val objActor : ActorRef =
-				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
+			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+				super.internalInvoke(opid, methodName, args)
+			}
 
+			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+				super.internalGetField(opid, fldName)
+			}
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T])
-				extends ObjectActor
-				with MultiversionObjectActor {
-				setObject(init)
+			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+				super.internalSetField(opid, fldName, newVal)
+			}
 
-				private val lockQueue : mutable.Queue[(ActorRef, Any)] = mutable.Queue.empty
+			override protected def internalSync() : Unit = {
+				super.internalSync()
+			}
 
-				override def receive : Receive = {
-					case OpReq(InvokeOp(id, mthdName, args)) =>
-						val res = internalInvoke[Any](id, mthdName, args : _*)
-						sender() ! res
+			override def handleRequest(request : Request) : Any = request match {
+				case SynchronizeWithWeakMaster(ops) =>
 
-					case OpReq(GetFieldOp(id, fldName)) => //No coordination needed in the get case
-						val res = internalGetField[Any](id, fldName)
-						sender() ! res
+					ops.foreach(op => {
+						replicaSystem.GlobalContext.setContext(op.path)
+//						replicaSystem.GlobalContext.set(_.push())
+						replicaSystem.log(s"weak synchronize $op in context ${replicaSystem.GlobalContext.getCurrentPath}")
 
-					case OpReq(SetFieldOp(id, fldName, value)) =>
-						internalSetField(id, fldName, value)
-						sender() ! SetFieldAck
+						op match {
+							case InvokeOp(_, mthdName, args) => invoke(mthdName, args : _*)
+							case SetFieldOp(_, fldName, newVal) => setField(fldName, newVal)
+						}
 
-					case SynchronizeWithWeakMaster(ops) =>
+					//							replicaSystem.request(addr, OpReq(op))
 
-						ops.foreach(op => {
-							replicaSystem.context.setContext(op.path)
-							replicaSystem.context.set(_.push())
-							internalApplyOp[Any](op)
-							//							replicaSystem.request(addr, OpReq(op))
+//						replicaSystem.GlobalContext.set(_.pop())
+						replicaSystem.GlobalContext.resetContext()
+					})
 
-							replicaSystem.context.set(_.pop())
-							replicaSystem.context.resetContext()
-						})
-						sender() ! WeakSynchronized(getObject)
-				}
+					WeakSynchronized(getObject)
+
+				case _ =>
+					super.handleRequest(request)
 			}
 
 		}
@@ -99,44 +102,35 @@ object WeakAkkaReplicaSystem {
 			protected implicit val ttt : TypeTag[T],
 			protected implicit val ltt : TypeTag[Weak]
 		) extends WeakReplicatedObject[Addr, T] {
-
-			override val objActor : ActorRef =
-				replicaSystem.actorSystem.actorOf(Props(classOf[ObjectActorImpl], this, init, typeTag[T]))
+			setObject(init)
 
 
+			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
-			private class ObjectActorImpl(init : T, protected implicit val objtag : TypeTag[T])
-				extends ObjectActor
-				with MultiversionObjectActor {
-				setObject(init)
 
-				/*stores the operations since last synchronize*/
-				val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
+			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+				unsynchronized += InvokeOp(opid, methodName, args)
+				super.internalInvoke(opid, methodName, args)
+			}
 
-				override def receive : Receive = {
+			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+				super.internalGetField(opid, fldName)
+			}
 
-					case OpReq(InvokeOp(id, mthdName, args)) =>
-						unsynchronized += InvokeOp(id, mthdName, args)
-						val res = internalInvoke[Any](id, mthdName, args : _*)
-						sender() ! res
+			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+				unsynchronized += SetFieldOp(opid, fldName, newVal)
+				super.internalSetField(opid, fldName, newVal)
+			}
 
-					case OpReq(GetFieldOp(id, fldName)) => //No coordination needed in the get case
-						//unsynchronized += GetFieldOp(fldName)
-						val res = internalGetField[Any](id, fldName)
-						sender() ! res
 
-					case OpReq(SetFieldOp(id, fldName, value)) =>
-						unsynchronized += SetFieldOp(id, fldName, value)
-						internalSetField(id, fldName, value)
-						sender() ! SetFieldAck
+			override protected def internalSync() : Unit = {
+				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-					case SyncReq =>
-						val WeakSynchronized(newObj : T) = replicaSystem.request(addr, SynchronizeWithWeakMaster(unsynchronized), masterReplica)
-						setObject(newObj)
-						unsynchronized.clear()
-						sender() ! SyncAck
-				}
+				val WeakSynchronized(newObj : T) = handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
+				handler.close()
 
+				setObject(newObj)
+				unsynchronized.clear()
 			}
 		}
 	}
