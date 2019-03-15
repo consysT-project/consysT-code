@@ -47,7 +47,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-		replicaSystem.log(s"invoking method $addr.$methodName(${args.mkString(", ")}) in context $path")
+//		replicaSystem.log(s"invoking method $addr.$methodName(${args.mkString(", ")}) in context $path")
 
 		GlobalContext.getBuilder.push(consistencyLevel)
 		val res : R = internalInvoke[R](path, methodName, args)
@@ -66,7 +66,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		if (needNewTx) GlobalContext.startNewTransaction()
 
 		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-		replicaSystem.log(s"getting field $addr.$fieldName in context $path")
+//		replicaSystem.log(s"getting field $addr.$fieldName in context $path")
 
 		val res = internalGetField[R](path, fieldName)
 
@@ -84,7 +84,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-		replicaSystem.log(s"setting field $addr.$fieldName = $value in context $path")
+//		replicaSystem.log(s"setting field $addr.$fieldName = $value in context $path")
 
 		internalSetField(path, fieldName, value)
 

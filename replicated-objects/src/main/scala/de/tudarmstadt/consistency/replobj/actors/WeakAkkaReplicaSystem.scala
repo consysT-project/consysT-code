@@ -69,13 +69,10 @@ object WeakAkkaReplicaSystem {
 
 					ops.foreach(op => {
 						replicaSystem.GlobalContext.setContext(op.path)
-						replicaSystem.log(s"weak synchronize $op in context ${replicaSystem.GlobalContext.getBuilder.getParentPath}")
-
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke(path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
-
 						replicaSystem.GlobalContext.resetBuilder()
 					})
 
