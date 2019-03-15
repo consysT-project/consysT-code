@@ -1,6 +1,5 @@
 package de.tudarmstadt.consistency.multinode.schema
 
-import de.tudarmstadt.consistency.replobj.ConsistencyLevels.Weak
 import de.tudarmstadt.consistency.replobj._
 
 /**
@@ -9,7 +8,7 @@ import de.tudarmstadt.consistency.replobj._
 	* @author Mirko Köhler
 	*/
 @SerialVersionUID(932632L)
-class B(var a : Ref[String, A, Weak]) extends Serializable {
+class B(var a : Ref[String, A]) extends Serializable {
 	var x : Int = 0
 
 	def incAndGet : Int = {
