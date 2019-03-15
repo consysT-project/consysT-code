@@ -111,9 +111,16 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+				//TODO: This is pretty hacky and undurchdacht. Are there some better ways to do this?
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 				val ReadResult(res : R) = handler.request(addr, ReadStrongField(GetFieldOp(opid, fldName)))
 				handler.close()
+
+				res match {
+					case anyRef : AnyRef => replicaSystem.initializeRefFieldsFor(anyRef)
+					case _ =>
+				}
+
 				res
 			}
 

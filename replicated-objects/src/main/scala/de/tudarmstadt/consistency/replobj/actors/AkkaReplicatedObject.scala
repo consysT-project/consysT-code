@@ -26,7 +26,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 	protected def setObject(newObj : T) : Unit = {
 		state = newObj
-		initializeRefFields()
+		replicaSystem.initializeRefFieldsFor(state)
 		ReflectiveAccess.updateObj()
 		initialize()
 	}
@@ -173,41 +173,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 
-	private def initializeRefFields() : Unit = {
 
-		def initializeObject(any : AnyRef) : Unit = {
-			require(any != null, "cannot initialize null object")
-
-			any.getClass.getDeclaredFields.foreach { field =>
-
-				val fieldType = field.getType
-
-				//Field is a ref => initialize the replica system
-				if (fieldType.isAssignableFrom(classOf[RefImpl[_,_,_]])) {
-					field.setAccessible(true)
-					field.get(any) match {
-						case null =>
-						case refImpl : RefImpl[Addr, _, _] =>
-							refImpl.replicaSystem = replicaSystem
-						case x =>
-							sys.error(s"cannot initialize unknown implementation of Ref: $x")
-					}
-				}
-				//Field is an object => recursively initialize refs in that object
-				//TODO: Exclude java/scala library classes?
-				else if (!fieldType.isPrimitive && !fieldType.isArray && !fieldType.isSynthetic) {
-					field.setAccessible(true)
-					field.get(any) match {
-						case null =>
-						case someObj =>
-							initializeObject(someObj)
-					}
-				}
-			}
-		}
-
-		initializeObject(state)
-	}
 }
 
 object AkkaReplicatedObject {

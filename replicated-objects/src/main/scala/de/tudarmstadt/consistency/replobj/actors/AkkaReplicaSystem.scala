@@ -80,10 +80,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		val rob = createMasterReplica[T](l, addr, obj)
 
-		otherReplicas.foreach { actorRef =>
-			val msg = CreateObjectReplica(addr, obj, l, replicaActor)
-			actorRef ! msg
-		}
+		otherReplicas.foreach(actorRef =>	actorRef ! CreateObjectReplica(addr, obj, l, replicaActor))
 		localObjects.put(addr, rob)
 
 		Ref.create(addr, l, this)
@@ -105,19 +102,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
-
-//	private[actors] final def request(addr : Addr, req : Request, receiveTimeout : FiniteDuration = 30 seconds) : Any = {
-//		val reqMsg = HandleRemoteRequest(addr, req)
-//
-//		if (req.returns) {
-//			import akka.pattern.ask
-//			val response = replicaRef.ask(reqMsg)(Timeout(receiveTimeout))
-//			val result = Await.result(response, receiveTimeout)
-//			result
-//		} else {
-//			replicaRef ! reqMsg
-//		}
-//	}
 
 
 
@@ -154,6 +138,52 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
 		 */
 		addOtherReplica(RootActorPath(address) / "user" / AkkaReplicaSystem.replicaActorName)
+	}
+
+
+	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
+
+		val alreadyVisited : mutable.Set[Any] = mutable.Set.empty
+
+		def initializeObject(any : Any) : Unit = {
+			if (any == null) {
+				return
+			}
+
+			any match {
+				//If the object is a RefImpl
+				case refImpl : RefImpl[Addr, _, _] =>
+					refImpl.replicaSystem = this
+
+				case ref : Ref[Addr, _] =>
+					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
+
+				case _ =>
+
+					val anyClass = any.getClass
+					//If the value is not an object class then stop TODO: Initialize arrays
+					if (anyClass.isPrimitive || anyClass.isArray) {
+						return
+					}
+
+					val anyPackage = anyClass.getPackage
+					//Check that the object has a package declaration and that it is not the Java standard library
+					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment") {
+						return
+					}
+
+					//If the object should be initialized, then initialize all fields
+					any.getClass.getDeclaredFields.foreach { field =>
+						//Field is an object => recursively initialize refs in that object
+						field.setAccessible(true)
+						val fieldObj = field.get(any)
+						if (!alreadyVisited.contains(fieldObj)) initializeObject(fieldObj)
+					}
+			}
+		}
+
+
+		initializeObject(obj)
 	}
 
 
