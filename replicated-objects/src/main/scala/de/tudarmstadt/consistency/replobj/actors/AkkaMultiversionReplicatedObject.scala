@@ -34,7 +34,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == InvokeOp(path, methodName, args))
-			println(s"cache hit with $cachedOp: $cachedResult")
 			cachedResult.asInstanceOf[R]
 	}
 

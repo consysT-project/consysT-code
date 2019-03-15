@@ -23,13 +23,18 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
   def actorSystem : ActorSystem
 
-	private[actors] final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
+	protected def freshAddr() : Addr
 
-	/*private[actors]*/ val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
+	/*The replicated objects stored by this replica*/
+	private final val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = mutable.HashMap.empty
 
-	/*private[actors]*/ val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = scala.collection.concurrent.TrieMap.empty
+	/*The actor that is used to communicate with this replica.*/
+	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
 
+	/*Other replicas known to this replica.*/
+	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
+	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
 	private[actors] object GlobalContext {
 		private var builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
 
@@ -67,23 +72,20 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		}
 
 		override def toString : String = s"context($builder)"
-
 	}
-
-
-	protected def freshAddr() : Addr
 
 
 	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[Addr, T] = {
 		require(!localObjects.contains(addr))
-		log(s"replicating object $addr := $obj")
 
+		/*create the replicated object*/
 		val rob = createMasterReplica[T](l, addr, obj)
-
+		/*notify other replicas for the new object. TODO this happens asynchronously*/
 		otherReplicas.foreach(actorRef =>	actorRef ! CreateObjectReplica(addr, obj, l, replicaActor))
+		/*put the object in the local replica store*/
 		localObjects.put(addr, rob)
-
-		Ref.create(addr, l, this)
+		/*create a ref to that object*/
+		createRef(addr, l)
 	}
 
 
@@ -92,7 +94,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[Addr, T] = {
-		Ref.create(addr, l, this)
+		createRef(addr, l)
 	}
 
 
@@ -104,13 +106,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 
-
+	/*writes a message to the standard out*/
 	private[actors] final def log(msg : String) : Unit = {
 		val thisString = toString
 		val printString = thisString.substring(thisString.indexOf("$"))
-
 		println(s"[$printString] $msg")
 	}
+
 
 	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {
 		otherReplicas.add(replicaActorRef)
@@ -141,12 +143,20 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
+	private[actors] def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
+		import akka.pattern.ask
+		val response = replicaRef.ask(AcquireHandler)(Timeout(receiveTimeout))
+		val result = Await.result(response, receiveTimeout)
+		result.asInstanceOf[RequestHandler[Addr]]
+	}
+
+
 	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
 
-		val alreadyVisited : mutable.Set[Any] = mutable.Set.empty
-
-		def initializeObject(any : Any) : Unit = {
-			if (any == null) {
+		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
+			//If the object is null, there is nothing to initialize
+			//If the object has already been initialized than stop
+			if (any == null || alreadyInitialized.contains(any)) {
 				return
 			}
 
@@ -177,63 +187,40 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 						//Field is an object => recursively initialize refs in that object
 						field.setAccessible(true)
 						val fieldObj = field.get(any)
-						if (!alreadyVisited.contains(fieldObj)) initializeObject(fieldObj)
+						initializeObject(fieldObj, alreadyInitialized + any)
 					}
 			}
 		}
 
-
-		initializeObject(obj)
+		initializeObject(obj, Set.empty)
 	}
 
 
-
-	def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
-		import akka.pattern.ask
-		val response = replicaRef.ask(AcquireHandler)(Timeout(receiveTimeout))
-		val result = Await.result(response, receiveTimeout)
-		result.asInstanceOf[RequestHandler[Addr]]
+	private def createRef[T <: AnyRef, L](addr : Addr, consistencyLevel : ConsistencyLevel) : RefImpl[Addr, T, L] = {
+		new RefImpl[Addr, T, L](addr, consistencyLevel, this)
 	}
+
+
 
 
 	private class ReplicaActor extends Actor {
 
-
 		override def receive : Receive = {
-
-			case Debug(x) =>
-				println(s"Debug $x from ${sender()}")
-
 			case CreateObjectReplica(addr : Addr, obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
-				log(s"received object $addr := $obj")
-
 				//Ensure that no object already exists under this name
 				require(!localObjects.contains(addr))
-
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
-					Utils.typeTagFromCls(obj.asInstanceOf[AnyRef].getClass.asInstanceOf[Class[AnyRef]])
+					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
 				)
 				localObjects.put(addr, ref)
 
-
-			case msg@HandleRemoteRequest(addr : Addr, request) =>
-				log(s"received remote request for object $addr: $request")
-
-				val handlerRef = context.actorOf(Props(classOf[RequestHandlerActor], this))
-				handlerRef.tell(HandleRequest(addr, request), sender())
-
 			case AcquireHandler =>
-				val handler = new RequestHandlerImpl(
-					context.actorOf(
-						Props(classOf[RequestHandlerActor], this)
-							.withDispatcher("request-dispatcher")
-					)
-				)
+				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
+				val handler = new RequestHandlerImpl(requestActor)
 				sender() ! handler
 		}
-
 
 		private class RequestHandlerActor extends Actor {
 
@@ -241,13 +228,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				case InitHandler =>
 					GlobalContext.resetBuilder()
 
-				case HandleRequest(addr : Addr, request) =>
-					localObjects.get(addr) match {
-						case None =>
-							sys.error(s"object $addr not found")
-						case Some(obj) =>
-							sender() ! obj.handleRequest(request)
-					}
+				case HandleRequest(addr : Addr, request) =>	localObjects.get(addr) match {
+					case None => sys.error(s"object $addr not found")
+					case Some(obj) =>	sender() ! obj.handleRequest(request)
+				}
 
 				case CloseHandler =>
 					context.stop(self)
@@ -260,40 +244,22 @@ object AkkaReplicaSystem {
 
 	private final val replicaActorName : String = "replica-base"
 
-
-
-
 	sealed trait ReplicaActorMessage
-	//	case class NewObject[Addr, T <: AnyRef, L](addr : Addr, obj : T, objtype : TypeTag[T], consistency : TypeTag[L], masterRef : ActorRef) extends ReplicaActorMessage
-	/*TODO: The case class above is the preferred way to handle it, but our self made type tags (that are used for the Java integration) are not serializable.*/
 	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage
-//	case class HandleLocalRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
-	case class HandleRemoteRequest[Addr](addr : Addr, request : Request) extends ReplicaActorMessage
-
 	case object AcquireHandler extends ReplicaActorMessage
-
-	case class Debug(any : Any) extends ReplicaActorMessage
-
-
-
-
 
 
 	private[actors] class RefImpl[Addr, T <: AnyRef, L](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
+
 		override implicit def toReplicatedObject : ReplicatedObject[T] = replicaSystem match {
-			case null =>
-				sys.error(s"replica system has not been initialized properly. $toString")
+			case null => sys.error(s"replica system has not been initialized properly. $toString")
+
 			case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.localObjects.get(addr) match {
 				case None =>
 					sys.error("the replicated object is not (yet) available on this host.")
-
 				case Some(rob : ReplicatedObject[T]) =>
-
-					//Check consistency level
-//					val thisL = implicitly[TypeTag[L]].tpe
-//					val objL = rob.getConsistencyLevel.tpe
-//					require(thisL =:= objL, s"non-matching consistency levels. ref was $thisL and object was $objL")
-
+					//Check that consistency level of reference matches the referenced object
+					assert(rob.consistencyLevel == consistencyLevel, s"non-matching consistency levels. ref was $consistencyLevel and object was ${rob.consistencyLevel}")
 					rob
 			}
 		}
@@ -301,19 +267,7 @@ object AkkaReplicaSystem {
 		override def toString : String = s"RefImpl($addr, $consistencyLevel)"
 	}
 
-	private object Ref {
 
-		def create[Addr, T <: AnyRef, L](addr : Addr, consistencyLevel : ConsistencyLevel, replicaSystem : AkkaReplicaSystem[Addr]) : RefImpl[Addr, T, L] = {
-			new RefImpl[Addr, T, L](addr, consistencyLevel, replicaSystem)
-		}
-
-//		/* Java binding */
-//		def create[Addr, T <: AnyRef, L](addr : Addr, replicaSystem: AkkaReplicaSystem[Addr], consistencyCls : Class[L]) : RefImpl[Addr, T, L] = {
-//			implicit val ltt : TypeTag[L] = Utils.typeTagFromCls(consistencyCls)
-//			val ref : RefImpl[Addr, T, L] = create[Addr, T, L](addr, replicaSystem)
-//			ref
-//		}
-	}
 }
 
 
