@@ -16,6 +16,7 @@
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
         <module>replobj-integration-demo</module>
+        <module>concert-tickets</module>
     </modules>
 
     <properties>
