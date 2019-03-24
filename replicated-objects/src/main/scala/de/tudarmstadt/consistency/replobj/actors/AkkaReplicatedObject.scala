@@ -24,17 +24,17 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	private var state : T = _
 
 
-	protected def setObject(newObj : T) : Unit = {
+	def setObject(newObj : T) : Unit = {
 		state = newObj
 		replicaSystem.initializeRefFieldsFor(state)
 		ReflectiveAccess.updateObj()
 		initialize()
 	}
 
-	protected def getObject : T = state
+	def getObject : T = state
 
 	/* For overriding only. Do not call this method manually. */
-	protected def initialize() : Unit = { /*do nothing*/	}
+	def initialize() : Unit = { /*do nothing*/	}
 
 
 
@@ -106,19 +106,19 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	protected def internalInvoke[R](path: ContextPath, methodName: String, args: Seq[Any]) : R = {
+	def internalInvoke[R](path: ContextPath, methodName: String, args: Seq[Any]) : R = {
 		ReflectiveAccess.doInvoke[R](path, methodName, args)
 	}
 
-	protected def internalGetField[R](path : ContextPath, fldName : String) : R = {
+	def internalGetField[R](path : ContextPath, fldName : String) : R = {
 		ReflectiveAccess.doGetField(path, fldName)
 	}
 
-	protected def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = {
+	def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = {
 		ReflectiveAccess.doSetField(path, fldName, newVal)
 	}
 
-	protected final def internalApplyOp[R](op : Operation[R]) : R = op match {
+	final def internalApplyOp[R](op : Operation[R]) : R = op match {
 		case GetFieldOp(id, fldName) =>
 			internalGetField(id, fldName)
 
@@ -130,7 +130,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	protected def internalSync() : Unit = {
+	def internalSync() : Unit = {
 		throw new UnsupportedOperationException("synchronize not supported on this object")
 	}
 

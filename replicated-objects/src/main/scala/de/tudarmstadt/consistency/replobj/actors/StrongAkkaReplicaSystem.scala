@@ -53,19 +53,19 @@ object StrongAkkaReplicaSystem {
 
 			private val lock : ReentrantLock = new ReentrantLock()
 
-			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
 				lock.lock()
 				val res = super.internalInvoke[R](opid, methodName, args)
 				lock.unlock()
 				res
 			}
 
-			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				/*get is not synchronized*/
 				super.internalGetField[R](opid, fldName)
 			}
 
-			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 				lock.lock()
 				super.internalSetField(opid, fldName, newVal)
 				lock.unlock()
@@ -98,7 +98,7 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 
-			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
 
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
@@ -110,7 +110,7 @@ object StrongAkkaReplicaSystem {
 				res
 			}
 
-			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				//TODO: This is pretty hacky and undurchdacht. Are there some better ways to do this?
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 				val ReadResult(res : R) = handler.request(addr, ReadStrongField(GetFieldOp(opid, fldName)))
@@ -124,7 +124,7 @@ object StrongAkkaReplicaSystem {
 				res
 			}
 
-			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
@@ -137,28 +137,28 @@ object StrongAkkaReplicaSystem {
 				handler.close()
 			}
 
-			override protected def internalSync() : Unit = {
+			override def internalSync() : Unit = {
 				super.internalSync()
 			}
 		}
 	}
 
 
-	private sealed trait StrongReq extends Request
-	private case object LockReq extends StrongReq with ReturnRequest
-	private case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	private case class MergeAndUnlock(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
-	private case class ReadStrongField(op : GetFieldOp[Any]) extends StrongReq with ReturnRequest
+	sealed trait StrongReq extends Request
+	case object LockReq extends StrongReq with ReturnRequest
+	case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
+	case class MergeAndUnlock(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
+	case class ReadStrongField(op : GetFieldOp[Any]) extends StrongReq with ReturnRequest
 
 
 
 //	private case object SynchronizeWithStrongMaster extends StrongReq with ReturnRequest
 //
 //	private case class StrongSynchronized[T <: AnyRef](obj : T)
-	private case class ReadResult(res : Any)
+	case class ReadResult(res : Any)
 
 
 
-	private case object MergeAck
+	case object MergeAck
 
 }

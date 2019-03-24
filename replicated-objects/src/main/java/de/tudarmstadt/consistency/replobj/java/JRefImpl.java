@@ -18,6 +18,10 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 		this.ref = ref;
 	}
 
+	public Ref<String, T> getRef() {
+		return ref;
+	}
+
 	@Override
 	public <R> R getField(String fieldName) {
 		return ref.toReplicatedObject().getField(fieldName);

@@ -48,19 +48,19 @@ object WeakAkkaReplicaSystem {
 		extends WeakReplicatedObject[Addr, T] {
 			setObject(init)
 
-			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
 				super.internalInvoke(opid, methodName, args)
 			}
 
-			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				super.internalGetField(opid, fldName)
 			}
 
-			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 				super.internalSetField(opid, fldName, newVal)
 			}
 
-			override protected def internalSync() : Unit = {
+			override def internalSync() : Unit = {
 				super.internalSync()
 			}
 
@@ -92,25 +92,24 @@ object WeakAkkaReplicaSystem {
 			setObject(init)
 
 
-			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
+			val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
-
-			protected override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
 				unsynchronized += InvokeOp(opid, methodName, args)
 				super.internalInvoke(opid, methodName, args)
 			}
 
-			override protected def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				super.internalGetField(opid, fldName)
 			}
 
-			override protected def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 				unsynchronized += SetFieldOp(opid, fldName, newVal)
 				super.internalSetField(opid, fldName, newVal)
 			}
 
 
-			override protected def internalSync() : Unit = {
+			override def internalSync() : Unit = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
 				val WeakSynchronized(newObj : T) = handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
@@ -122,10 +121,10 @@ object WeakAkkaReplicaSystem {
 		}
 	}
 
-	private sealed trait WeakReq extends Request
-	private case class SynchronizeWithWeakMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
+	sealed trait WeakReq extends Request
+	case class SynchronizeWithWeakMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
 
-	private case class WeakSynchronized[T <: AnyRef](obj : T)
+	case class WeakSynchronized[T <: AnyRef](obj : T)
 
 }
 
