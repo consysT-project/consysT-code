@@ -35,7 +35,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
-	private[actors] object GlobalContext {
+	object GlobalContext {
 		private var builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
 
 		private def setBuilder(builder: ContextPathBuilder) : Unit = {
@@ -143,7 +143,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
-	private[actors] def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
+	def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
 		import akka.pattern.ask
 		val response = replicaRef.ask(AcquireHandler)(Timeout(receiveTimeout))
 		val result = Await.result(response, receiveTimeout)
@@ -151,7 +151,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
-	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
+	def initializeRefFieldsFor(obj : Any) : Unit = {
 
 		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
 			//If the object is null, there is nothing to initialize

@@ -26,7 +26,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 		}
 	}
 
-	override protected def internalInvoke[R](path : ContextPath, methodName : String, args : Seq[Any]) : R =  opCache.get(path) match {
+	override def internalInvoke[R](path : ContextPath, methodName : String, args : Seq[Any]) : R =  opCache.get(path) match {
 		case None =>
 			val res = super.internalInvoke[R](path, methodName, args)
 			opCache.put(path, (InvokeOp(path, methodName, args), res))
@@ -37,7 +37,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 			cachedResult.asInstanceOf[R]
 	}
 
-	override protected def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = opCache.get(path) match {
+	override def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = opCache.get(path) match {
 		case None =>
 			super.internalSetField(path, fldName, newVal)
 			opCache.put(path, (SetFieldOp(path, fldName, newVal), ()))
@@ -48,7 +48,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 			println(s"cache hit with $cachedOp")
 	}
 
-	override protected def internalGetField[R](path : ContextPath, fieldName : String) : R =  opCache.get(path) match {
+	override def internalGetField[R](path : ContextPath, fieldName : String) : R =  opCache.get(path) match {
 		case None =>
 			val res = super.internalGetField[R](path, fieldName)
 			opCache.put(path, (GetFieldOp(path, fieldName), res))

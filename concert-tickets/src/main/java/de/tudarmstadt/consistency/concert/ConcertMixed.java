@@ -6,9 +6,8 @@ import de.tudarmstadt.consistency.replobj.java.JRef;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Optional;
 
-public class Concert implements Serializable {
+public class ConcertMixed implements Serializable {
     public Date date;
     public JRef<@Strong ConcertHall> hall;
     public JRef<@Weak Band> band;
@@ -18,17 +17,17 @@ public class Concert implements Serializable {
         return soldTickets.getField("value");
     }
 
-    public Optional<Ticket> buyTicket() {
+    public Ticket buyTicket() {
         if (hall.<Integer>getField("maxAudience") > getSoldTickets()) {
             soldTickets.invoke("inc");
-            return Optional.of(new Ticket());
+            return new Ticket();
         }
         else {
-            return Optional.empty();
+            return null;
         }
     }
 
-    public Concert(Date date, JRef<@Strong ConcertHall> hall, JRef<@Weak Band> band, JRef<@Strong Counter> soldTickets) {
+    public ConcertMixed(Date date, JRef<@Strong ConcertHall> hall, JRef<@Weak Band> band, JRef<@Strong Counter> soldTickets) {
         this.date = date;
         this.hall = hall;
         this.band = band;
