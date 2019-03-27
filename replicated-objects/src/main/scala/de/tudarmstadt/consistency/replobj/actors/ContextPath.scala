@@ -9,7 +9,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-case class ContextPath(txid : Int, sequence : List[(ConsistencyLevel, Int)] = Nil) {
+case class ContextPath(txid : Long, sequence : List[(ConsistencyLevel, Int)] = Nil) {
 
 	def push(l : ConsistencyLevel) : ContextPath = {
 		copy(sequence = (l, 0) :: sequence)
@@ -36,11 +36,11 @@ object ContextPath {
 
 	class ContextPathBuilder(path : ContextPath) {
 
-		def this(txid : Int) = {
+		def this(txid : Long) = {
 			this(ContextPath(txid))
 		}
 
-		val txid : Int = path.txid
+		val txid : Long = path.txid
 
 		private val seqStack : mutable.Stack[mutable.Map[ConsistencyLevel, Int]] = new mutable.Stack()
 		seqStack.push(mutable.Map.empty)
