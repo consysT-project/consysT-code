@@ -57,7 +57,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		def startNewTransaction() : Unit = {
 			require(!hasBuilder)
-			val txid = Random.nextInt
+			val txid = Random.nextLong
 			setBuilder(new ContextPathBuilder(txid))
 		}
 
