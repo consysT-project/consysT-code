@@ -11,12 +11,13 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>concert-tickets</module>
 		<module>consistency-checker</module>
         <module>consistency-checker/consistency-checker-test</module>
+        <module>microbenchmarks</module>
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
         <module>replobj-integration-demo</module>
-        <module>concert-tickets</module>
     </modules>
 
     <properties>
