@@ -14,7 +14,7 @@ import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
  */
 public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
-	private final AkkaReplicaSystem<String> replicaSystem;
+	public final AkkaReplicaSystem<String> replicaSystem;
 
 
 	public JReplicaSystemAkkaImpl(ActorSystem actorSystem) {
