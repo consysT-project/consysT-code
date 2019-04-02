@@ -14,7 +14,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 	private val opCache : mutable.Map[ContextPath, (Operation[_], Any)] = mutable.HashMap.empty
 
-
 	protected def clearCache() : Unit = {
 		opCache.clear()
 	}
