@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.locks.{ReentrantLock, ReentrantReadWriteLock}
 
 import akka.actor.ActorRef
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel
@@ -51,35 +51,38 @@ object StrongAkkaReplicaSystem {
 		) extends StrongReplicatedObject[Addr, T] {
 			setObject(init)
 
-			private val lock : ReentrantLock = new ReentrantLock()
+			private val lock : ReentrantReadWriteLock = new ReentrantReadWriteLock()
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-				lock.lock()
+				lock.writeLock().lock()
 				val res = super.internalInvoke[R](opid, methodName, args)
-				lock.unlock()
+				lock.writeLock().unlock()
 				res
 			}
 
 			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				/*get is not synchronized*/
-				super.internalGetField[R](opid, fldName)
+				lock.readLock().lock()
+				val result = super.internalGetField[R](opid, fldName)
+				lock.readLock().unlock()
+				result
 			}
 
 			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				lock.lock()
+				lock.writeLock().lock()
 				super.internalSetField(opid, fldName, newVal)
-				lock.unlock()
+				lock.writeLock().unlock()
 			}
 
 			override def handleRequest(request : Request) : Any = request match {
 				case LockReq =>
-					lock.lock()
+					lock.writeLock().lock()
 					LockRes(getObject)
 
 				case MergeAndUnlock(newObj : T, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					lock.unlock()
+					lock.writeLock().unlock()
 
 
 				case ReadStrongField(GetFieldOp(path, fldName)) =>
