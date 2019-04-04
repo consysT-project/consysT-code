@@ -24,6 +24,10 @@ public interface JReplicaSystem {
 		return new JReplicaSystemAkkaImpl(actorSystem);
 	}
 
+	static JReplicaSystem fromActorSystem(String hostname, int port) {
+		return new JReplicaSystemAkkaImpl(hostname, port);
+	}
+
 	static JReplicaSystem fromActorSystem(int port) {
 		return new JReplicaSystemAkkaImpl(port);
 	}

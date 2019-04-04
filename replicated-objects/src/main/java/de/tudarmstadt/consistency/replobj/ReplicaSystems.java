@@ -19,5 +19,9 @@ public class ReplicaSystems {
 		return package$.MODULE$.createReplicaSystem(port);
 	}
 
+	public static AkkaReplicaSystem<String> fromActorSystem(String hostname, int port) {
+		return package$.MODULE$.createReplicaSystem(hostname, port);
+	}
+
 }
 

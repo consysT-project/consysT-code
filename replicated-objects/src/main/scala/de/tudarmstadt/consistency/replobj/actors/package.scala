@@ -27,7 +27,10 @@ package object actors {
 	def createReplicaSystem(actorSystem : ActorSystem) : AkkaReplicaSystem[String] =
 		new AkkaReplicaSystemImpl(actorSystem)
 
-	def createReplicaSystem[Addr](port : Int) : AkkaReplicaSystem[String] = {
+	def createReplicaSystem[Addr](port : Int) : AkkaReplicaSystem[String] =
+		createReplicaSystem("127.0.0.1", port)
+
+	def createReplicaSystem[Addr](hostname : String, port : Int) : AkkaReplicaSystem[String] = {
 		val config : Config = ConfigFactory.parseString(
 			s"""
 				 |akka {
@@ -35,7 +38,7 @@ package object actors {
 				 | actor.warn-about-java-serializer-usage = false
 				 | remote {
 				 |   netty.tcp {
-				 |     hostname = "127.0.0.1"
+				 |     hostname = "$hostname"
 				 |     port = $port
 				 |   }
 				 | }

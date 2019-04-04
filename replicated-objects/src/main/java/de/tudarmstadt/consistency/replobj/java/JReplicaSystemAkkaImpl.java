@@ -21,6 +21,10 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		replicaSystem = ReplicaSystems.fromActorSystem(actorSystem);
 	}
 
+	public JReplicaSystemAkkaImpl(String hostname, int port) {
+		replicaSystem = ReplicaSystems.fromActorSystem(hostname, port);
+	}
+
 	public JReplicaSystemAkkaImpl(int port) {
 		replicaSystem = ReplicaSystems.fromActorSystem(port);
 	}

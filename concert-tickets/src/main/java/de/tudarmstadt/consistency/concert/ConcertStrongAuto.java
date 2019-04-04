@@ -7,7 +7,7 @@ import de.tudarmstadt.consistency.replobj.java.JRef;
 import java.io.Serializable;
 import java.util.Date;
 
-public class ConcertMixed implements Serializable {
+public class ConcertStrongAuto implements Serializable {
     public Date date;
     public JRef<@Strong ConcertHall> hall;
     public JRef<@Weak Band> band;
@@ -27,7 +27,7 @@ public class ConcertMixed implements Serializable {
         }
     }
 
-    public ConcertMixed(Date date, JRef<@Strong ConcertHall> hall, JRef<@Weak Band> band, JRef<@Strong Counter> soldTickets) {
+    public ConcertStrongAuto(Date date, JRef<@Strong ConcertHall> hall, JRef<@Weak Band> band, JRef<@Strong Counter> soldTickets) {
         this.date = date;
         this.hall = hall;
         this.band = band;
