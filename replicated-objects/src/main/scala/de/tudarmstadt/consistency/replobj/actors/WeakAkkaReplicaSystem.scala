@@ -61,7 +61,8 @@ object WeakAkkaReplicaSystem {
 			}
 
 			override def internalSync() : Unit = {
-				super.internalSync()
+				//super.internalSync()
+			//	println("WARNING: sync on master")
 			}
 
 			override def handleRequest(request : Request) : Any = request match {
@@ -70,7 +71,7 @@ object WeakAkkaReplicaSystem {
 					ops.foreach(op => {
 						replicaSystem.GlobalContext.setContext(op.path)
 						op match {
-							case InvokeOp(path, mthdName, args) => internalInvoke(path, mthdName, args)
+							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
 						replicaSystem.GlobalContext.resetBuilder()

@@ -14,6 +14,7 @@
         <module>concert-tickets</module>
 		<module>consistency-checker</module>
         <module>consistency-checker/consistency-checker-test</module>
+        <module>message-groups</module>
         <module>microbenchmarks</module>
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>

@@ -74,6 +74,10 @@ object StrongAkkaReplicaSystem {
 				lock.writeLock().unlock()
 			}
 
+			override def internalSync() : Unit = {
+
+			}
+
 			override def handleRequest(request : Request) : Any = request match {
 				case LockReq =>
 					lock.writeLock().lock()
@@ -141,7 +145,7 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override def internalSync() : Unit = {
-				super.internalSync()
+
 			}
 		}
 	}
