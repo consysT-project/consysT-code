@@ -23,8 +23,6 @@ object ConsistencyLevel {
 	@SerialVersionUID(639388L)
 	case object Local extends ConsistencyLevel
 
-	val WEAKLUL = Weak
-
 //	private val WeakType : Class[Weak] = classOf[Weak]
 //	private val StrongType : Class[Strong] = classOf[Strong]
 //

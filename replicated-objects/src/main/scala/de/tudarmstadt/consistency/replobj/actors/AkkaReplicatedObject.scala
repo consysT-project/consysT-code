@@ -149,21 +149,24 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		}
 
 		def doInvoke[R](opid : ContextPath, methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
-			val methodSymbol = typeOf[T].decl(TermName(methodName)).asMethod
+			val tpe = typeOf[T]
+			val mthdTerm = TermName(methodName)
+
+			val methodSymbol = tpe.member(mthdTerm).asMethod
 			val methodMirror = objMirror.reflectMethod(methodSymbol)
 			val result = methodMirror.apply(args : _*)
 			result.asInstanceOf[R]
 		}
 
 		def doGetField[R](opid : ContextPath, fieldName : String) : R = ReflectiveAccess.synchronized {
-			val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
+			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
 			val fieldMirror = objMirror.reflectField(fieldSymbol)
 			val result = fieldMirror.get
 			result.asInstanceOf[R]
 		}
 
 		def doSetField(opid : ContextPath, fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
-			val fieldSymbol = typeOf[T].decl(TermName(fieldName)).asTerm
+			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
 			val fieldMirror = objMirror.reflectField(fieldSymbol)
 			fieldMirror.set(value)
 		}
