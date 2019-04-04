@@ -17,9 +17,9 @@ public class Main {
         JRef<@Weak ConcertHall> concertHall = replicaSystem1.replicate(new ConcertHall(5), JConsistencyLevel.WEAK);
         JRef<@Weak Band> band = replicaSystem1.replicate(new Band("some band"), JConsistencyLevel.WEAK);
         JRef<@Weak Counter> soldTickets = replicaSystem1.replicate(new Counter(0), JConsistencyLevel.WEAK);
-        JRef<@Strong ConcertWeak> concert1 = replicaSystem1.replicate("concert", new ConcertWeak(new Date(), concertHall, band, soldTickets), JConsistencyLevel.STRONG);
+        JRef<@Strong ConcertStrongManual> concert1 = replicaSystem1.replicate("concert", new ConcertStrongManual(new Date(), concertHall, band, soldTickets), JConsistencyLevel.STRONG);
 
-        JRef<@Strong ConcertWeak> concert2 = replicaSystem2.ref("concert", ConcertWeak.class, JConsistencyLevel.STRONG);
+        JRef<@Strong ConcertStrongManual> concert2 = replicaSystem2.ref("concert", ConcertStrongManual.class, JConsistencyLevel.STRONG);
 
         Thread.sleep(1000);
 
@@ -49,7 +49,7 @@ public class Main {
 
         // manually access "soldTickets"
 
-        ReplicatedObject<@Strong ConcertWeak> replica1 = ReplicatedObject.from(concert2);
+        ReplicatedObject<@Strong ConcertStrongManual> replica1 = ReplicatedObject.from(concert2);
 
         AkkaReplicaSystem.GlobalContext$ context1 = replica1.internal.replicaSystem().GlobalContext();
 
@@ -115,9 +115,9 @@ public class Main {
 //        JRef<@Strong ConcertHall> concertHall = replicaSystem1.replicate(new ConcertHall(5), JConsistencyLevel.STRONG);
 //        JRef<@Weak Band> band = replicaSystem1.replicate(new Band("some band"), JConsistencyLevel.WEAK);
 //        JRef<@Strong Counter> soldTickets = replicaSystem1.replicate(new Counter(0), JConsistencyLevel.STRONG);
-//        JRef<@Strong ConcertMixed> concert1 = replicaSystem1.replicate("concert", new ConcertMixed(new Date(), concertHall, band, soldTickets), JConsistencyLevel.STRONG);
+//        JRef<@Strong ConcertStrongAuto> concert1 = replicaSystem1.replicate("concert", new ConcertStrongAuto(new Date(), concertHall, band, soldTickets), JConsistencyLevel.STRONG);
 //
-//        JRef<@Strong ConcertMixed> concert2 = replicaSystem2.ref("concert", ConcertMixed.class, JConsistencyLevel.STRONG);
+//        JRef<@Strong ConcertStrongAuto> concert2 = replicaSystem2.ref("concert", ConcertStrongAuto.class, JConsistencyLevel.STRONG);
 //
 //        Thread.sleep(1000);
 //
@@ -147,9 +147,9 @@ public class Main {
 //
 //        // manually access "soldTickets"
 //
-//        ReplicatedObject<@Strong ConcertWeak> replica1 = ReplicatedObject.from(concert2);
+//        ReplicatedObject<@Strong ConcertStrongAuto> replica1 = ReplicatedObject.from(concert2);
 //
-//        AkkaReplicaSystem.GlobalContext$ context1 = replica1.internal.replicaSystem().context();
+//        AkkaReplicaSystem.GlobalContext$ context1 = replica1.internal.replicaSystem().GlobalContext();
 //
 //        boolean needNewTx = !context1.hasBuilder();
 //
@@ -182,7 +182,7 @@ public class Main {
 //
 //        ReplicatedObject<@Strong Counter> replica2 = ReplicatedObject.from(result1);
 //
-//        AkkaReplicaSystem.GlobalContext$ context2 = replica2.internal.replicaSystem().context();
+//        AkkaReplicaSystem.GlobalContext$ context2 = replica2.internal.replicaSystem().GlobalContext();
 //
 //        context2.startNewTransaction();
 //
