@@ -15,7 +15,8 @@
 		<module>consistency-checker</module>
         <module>consistency-checker/consistency-checker-test</module>
         <module>message-groups</module>
-        <module>microbenchmarks</module>
+        <module>microbenchmarks-counter</module>
+        <module>microbenchmarks-object-structure</module>
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
         <module>replobj-integration-demo</module>
