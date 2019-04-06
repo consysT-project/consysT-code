@@ -50,28 +50,21 @@ public class Main {
     }
 
     public static void runBenchmark() throws InterruptedException {
-        System.out.println("Creating replica systems...");
-        MessageGroupsBenchmark.createWith(replicaSystems);
 
-        Thread.sleep(1000);
+        int numReplicas = replicaSystems.length;
 
-        System.out.println("Initializing benchmarks...");
-        ExecutorService exec = Executors.newFixedThreadPool(4);
-
-        MessageGroupsBenchmark[] benchmarks = new MessageGroupsBenchmark[4];
-        //Initialize benchmarks
-        for (int i = 0; i < 4; i++) {
-            benchmarks[i] = new MessageGroupsBenchmark(replicaSystems[i]);
-            benchmarks[i].initialize();
-        }
+         System.out.println("Initializing benchmarks...");
+        MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(replicaSystems, 10000);
 
         //Run benchmarks
         System.out.println("Run benchmarks...");
-        for (int i = 0; i < 4; i++) {
+        ExecutorService exec = Executors.newFixedThreadPool(numReplicas);
+        for (int i = 0; i < numReplicas; i++) {
             final int index = i;
             exec.submit(() -> benchmarks[index].runFor(180000));
         }
     }
+
 
     static class MessageGroupsBenchmark {
 
@@ -86,33 +79,40 @@ public class Main {
             this.replicaSystem = replicaSystem;
         }
 
-        public static void createWith(JReplicaSystem[] replicaSystems) throws InterruptedException {
-
-            int entriesPerSystem = 10000;
+        public static MessageGroupsBenchmark[] createWith(JReplicaSystem[] replicaSystems, int entriesPerSystem) throws InterruptedException {
 
             for (int i = 0; i <= entriesPerSystem; i++) {
 
                 for (int j = 0; j < replicaSystems.length; j++) {
                     JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$"+ j, new Group(), JConsistencyLevel.STRONG);
-                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevel.STRONG);
-                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevel.STRONG);
+                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevel.WEAK);
+                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevel.WEAK);
 
                     Thread.sleep(2);
                     group.invoke("addUser", user);
                     System.out.println("Added user$" + i + "$"+ j);
                 }
-
             }
+
+            Thread.sleep(1000);
+
+
+            MessageGroupsBenchmark[] benchmarks = new MessageGroupsBenchmark[4];
+            //Initialize benchmarks
+            for (int i = 0; i < 4; i++) {
+                benchmarks[i] = new MessageGroupsBenchmark(replicaSystems[i]);
+                benchmarks[i].initialize(entriesPerSystem, replicaSystems.length);
+            }
+
+            return benchmarks;
         }
 
-        public void initialize() {
-            int entriesPerSystem = 10000;
-            int numReplicaSystems = 4;
+        private void initialize(int entriesPerSystem, int numReplicas) {
 
             for (int i = 0; i <= entriesPerSystem; i++) {
-                for (int j = 0; j < numReplicaSystems; j++) {
+                for (int j = 0; j < numReplicas; j++) {
                     JRef<Group> group = replicaSystem.ref("group$" + i + "$" + j, Group.class, JConsistencyLevel.STRONG);
-                    JRef<User> user = replicaSystem.ref("user$" + i + "$" + j, User.class, JConsistencyLevel.STRONG);
+                    JRef<User> user = replicaSystem.ref("user$" + i + "$" + j, User.class, JConsistencyLevel.WEAK);
 
                     groups.add(group);
                     users.add(user);
@@ -171,7 +171,7 @@ public class Main {
 
         private int randomTransaction() {
             int rand = random.nextInt(100);
-            if (rand < 12) {
+            if (rand < 58) /*12*/ {
                 //inbox checking with sync
                 return transaction2b();
             } else if (rand < 58) {
