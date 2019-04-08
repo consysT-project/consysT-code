@@ -14,36 +14,7 @@ import java.util.concurrent.TimeUnit;
 import static de.tudarmstadt.consistency.messagegroups.Replicas.replicaSystems;
 
 
-public class Main {
-
-    public static void example() throws InterruptedException {
-        JRef<Group> messageGroup1 = replicaSystems[0].replicate("group1", new Group(), JConsistencyLevel.STRONG);
-
-        JRef<Group> messageGroup2 = replicaSystems[1].ref("group1", Group.class, JConsistencyLevel.STRONG);
-
-        Thread.sleep(1000);
-
-        messageGroup1.invoke("addNewUser", new User(null,"Alice"));
-        messageGroup2.invoke("addNewUser", new User(null,"Bob"));
-
-        Thread.sleep(1000);
-
-        messageGroup1.invoke("addPost", "Hello World!");
-
-
-        JRef<User> alice2 = messageGroup2.invoke("getUser", 0);
-        JRef<User> bob2 = messageGroup2.invoke("getUser", 1);
-
-        JRef<Set<String>> inboxA = alice2.getField("inbox");
-        JRef<Set<String>> inboxB = bob2.getField("inbox");
-
-        inboxA.sync();
-        inboxB.sync();
-
-        System.out.println(inboxA.<String>invoke("toString"));
-        System.out.println(inboxB.<String>invoke("toString"));
-    }
-
+public class Demo {
 
 	public static void main(String... args) throws Exception {
         runBenchmark();
@@ -64,6 +35,9 @@ public class Main {
             exec.submit(() -> benchmarks[index].runFor(180000));
         }
     }
+
+
+
 
 
     static class MessageGroupsBenchmark {
