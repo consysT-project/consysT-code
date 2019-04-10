@@ -69,12 +69,12 @@ object WeakAkkaReplicaSystem {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
-						replicaSystem.GlobalContext.setContext(op.path)
+						replicaSystem.GlobalContext.setCurrentTransaction(op.path)
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
-						replicaSystem.GlobalContext.resetBuilder()
+						replicaSystem.GlobalContext.endTransaction()
 					})
 
 					WeakSynchronized(getObject)
@@ -82,6 +82,8 @@ object WeakAkkaReplicaSystem {
 				case _ =>
 					super.handleRequest(request)
 			}
+
+			override def toString : String = s"WeakMaster($addr, $getObject)"
 
 		}
 
@@ -119,6 +121,8 @@ object WeakAkkaReplicaSystem {
 				setObject(newObj)
 				unsynchronized.clear()
 			}
+
+			override def toString : String = s"WeakFollower($addr, $getObject)"
 		}
 	}
 

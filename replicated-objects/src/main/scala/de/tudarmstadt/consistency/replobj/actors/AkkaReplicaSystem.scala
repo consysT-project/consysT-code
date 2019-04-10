@@ -1,9 +1,10 @@
 package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
+import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
-import de.tudarmstadt.consistency.replobj.actors.ContextPath.ContextPathBuilder
+import de.tudarmstadt.consistency.replobj.actors.ContextPath.ContextPathTracker
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevel, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
@@ -35,65 +36,76 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
-	object GlobalContext {
-		private var builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
+	protected[actors] object GlobalContext {
+		private val builder : DynamicVariable[Option[ContextPathTracker]] = new DynamicVariable(None)
 
-		private def setBuilder(builder: ContextPathBuilder) : Unit = {
+		private def setBuilder(builder: ContextPathTracker) : Unit = {
 			this.builder.value = Some(builder)
 		}
 
-		def resetBuilder() : Unit = {
+		private[AkkaReplicaSystem] def resetBuilder() : Unit = {
 			this.builder.value = None
 		}
 
-		def getBuilder : ContextPathBuilder = {
-			require(hasBuilder)
+		def getBuilder : ContextPathTracker = {
+			require(hasCurrentTransaction)
 			builder.value.get
 		}
 
-		def hasBuilder : Boolean =
+		/**
+			* Checks whether there is an active transaction on the
+			* @return
+			*/
+		def hasCurrentTransaction : Boolean =
 			builder.value.nonEmpty
 
 
 		def startNewTransaction() : Unit = {
-			require(!hasBuilder)
+			require(!hasCurrentTransaction)
 			val txid = Random.nextLong
-			setBuilder(new ContextPathBuilder(txid))
+			setBuilder(new ContextPathTracker(txid))
 		}
 
 		def endTransaction() : Unit = {
-			require(hasBuilder)
+			require(hasCurrentTransaction)
 			resetBuilder()
 		}
 
-		def setContext(path : ContextPath) : Unit = {
-			require(builder.value.isEmpty)
-			setBuilder(new ContextPathBuilder(path))
+		def setCurrentTransaction(path : ContextPath) : Unit = {
+			require(!hasCurrentTransaction)
+			setBuilder(new ContextPathTracker(path))
 		}
 
 		override def toString : String = s"context($builder)"
 	}
 
 
-	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[Addr, T] = {
+	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
 		require(!localObjects.contains(addr))
+
+		import akka.pattern.ask
 
 		/*create the replicated object*/
 		val rob = createMasterReplica[T](l, addr, obj)
-		/*notify other replicas for the new object. TODO this happens asynchronously*/
-		otherReplicas.foreach(actorRef =>	actorRef ! CreateObjectReplica(addr, obj, l, replicaActor))
 		/*put the object in the local replica store*/
 		localObjects.put(addr, rob)
+
+		/*notify other replicas for the new object.*/
+		implicit val timeout : Timeout = Timeout(30L, SECONDS)
+		val futures = otherReplicas.map(actorRef =>	actorRef ? CreateObjectReplica(addr, obj, l, replicaActor))
+
+		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
+
 		/*create a ref to that object*/
 		createRef(addr, l)
 	}
 
 
-	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[Addr, T] = {
+	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
 		replicate[T](freshAddr(), obj, l)
 	}
 
-	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[Addr, T] = {
+	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
 		createRef(addr, l)
 	}
 
@@ -105,6 +117,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		sys.error("unknown consistency")
 
 
+	override def close() : Unit = {
+		Await.ready(actorSystem.terminate(), 30 seconds)
+	}
+
 
 	/*writes a message to the standard out*/
 	private[actors] final def log(msg : String) : Unit = {
@@ -112,6 +128,8 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		val printString = thisString.substring(thisString.indexOf("$"))
 		println(s"[$printString] $msg")
 	}
+
+
 
 
 	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {
@@ -161,20 +179,22 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 			any match {
 				//If the object is a RefImpl
-				case refImpl : RefImpl[Addr, _, _] =>
+				case refImpl : RefImpl[Addr, _] =>
 					refImpl.replicaSystem = this
 
-				case ref : Ref[Addr, _] =>
+				//The object is a ref, but is not supported by the replica system
+				case ref : Ref[_] =>
 					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
 
 				case _ =>
 
 					val anyClass = any.getClass
-					//If the value is not an object class then stop TODO: Initialize arrays
+					//If the value is primitive (e.g. int) then stop
 					if (anyClass.isPrimitive) {
 						return
 					}
 
+					//If the value is an array, then initialize ever element of the array.
 					if (anyClass.isArray) {
 						val anyArray : Array[_] = any.asInstanceOf[Array[_]]
 						val initSet = alreadyInitialized + any
@@ -190,7 +210,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 					//If the object should be initialized, then initialize all fields
 					anyClass.getDeclaredFields.foreach { field =>
-						//Field is an object => recursively initialize refs in that object
+						//Recursively initialize refs in the fields
 						field.setAccessible(true)
 						val fieldObj = field.get(any)
 						initializeObject(fieldObj, alreadyInitialized + any)
@@ -202,8 +222,8 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
-	private def createRef[T <: AnyRef, L](addr : Addr, consistencyLevel : ConsistencyLevel) : RefImpl[Addr, T, L] = {
-		new RefImpl[Addr, T, L](addr, consistencyLevel, this)
+	private def createRef[T <: AnyRef](addr : Addr, consistencyLevel : ConsistencyLevel) : RefImpl[Addr, T] = {
+		new RefImpl[Addr, T](addr, consistencyLevel, this)
 	}
 
 
@@ -221,6 +241,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
 				)
 				localObjects.put(addr, ref)
+				sender() ! ()
 
 			case AcquireHandler =>
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
@@ -231,8 +252,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		private class RequestHandlerActor extends Actor {
 
 			override def receive : Receive = {
-				case InitHandler =>
-					GlobalContext.resetBuilder()
+				case InitHandler => if (GlobalContext.hasCurrentTransaction) {
+					//Ends a transaction that might be present from an previous RequestHandlerActor that was
+					//executed on this thread. TODO: Does this actually happen?
+					GlobalContext.endTransaction()
+				}
 
 				case HandleRequest(addr : Addr, request) =>	localObjects.get(addr) match {
 					case None => sys.error(s"object $addr not found")
@@ -251,11 +275,14 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 	sealed trait ReplicaActorMessage
-	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage
+	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
+		require(obj.isInstanceOf[Serializable])
+	}
 	case object AcquireHandler extends ReplicaActorMessage
 
 
-	private[actors] class RefImpl[Addr, T <: AnyRef, L](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
+
+	private[actors] class RefImpl[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
 
 		override implicit def toReplicatedObject : ReplicatedObject[T] = replicaSystem match {
 			case null => sys.error(s"replica system has not been initialized properly. $toString")
@@ -266,7 +293,7 @@ object AkkaReplicaSystem {
 
 				akkaReplicaSystem.localObjects.get(addr) match {
 					case None => //retry
-						sys.error("the replicated object is not available on this host.")
+						sys.error(s"the replicated object '$addr' with consistency level $consistencyLevel is not available on this host.")
 
 					case Some(rob : ReplicatedObject[T]) =>
 						//Check that consistency level of reference matches the referenced object

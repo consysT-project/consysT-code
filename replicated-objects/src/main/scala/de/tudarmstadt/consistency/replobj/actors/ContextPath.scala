@@ -34,7 +34,7 @@ case class ContextPath(txid : Long, sequence : List[(ConsistencyLevel, Int)] = N
 
 object ContextPath {
 
-	class ContextPathBuilder(path : ContextPath) {
+	class ContextPathTracker(path : ContextPath) {
 
 		def this(txid : Long) = {
 			this(ContextPath(txid))
