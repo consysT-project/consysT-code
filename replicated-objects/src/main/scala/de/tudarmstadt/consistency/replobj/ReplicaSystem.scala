@@ -10,6 +10,7 @@ import scala.reflect.runtime.universe._
 	*/
 trait ReplicaSystem[Addr] {
 
+	final type Ref[T <: AnyRef] = de.tudarmstadt.consistency.replobj.Ref[Addr, T]
 
 	/**
 		* Creates a new distributed object in this store and returns a reference to that object.
@@ -18,26 +19,27 @@ trait ReplicaSystem[Addr] {
 		* @param obj The object to distribute
 		* @return A reference to the created object
 		*/
-	def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[Addr, T]
+	def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T]
 
-	def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[Addr, T]
+	def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T]
 
-	def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[Addr, T]
+	def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
 
 
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		replicate(addr, obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		replicate(obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for ref */
-	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[Addr, T] = {
+	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		ref(addr, l)(Utils.typeTagFromCls(objCls))
 	}
 
+	def close() : Unit
 
 
 }

@@ -55,4 +55,10 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	public void addReplicaSystem(String hostname, int port) {
 		replicaSystem.addOtherReplica(hostname, port);
 	}
+
+
+	@Override
+	public void close() throws Exception {
+		replicaSystem.close();
+	}
 }

@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.{ReentrantLock, ReentrantReadWriteLock}
 
 import akka.actor.ActorRef
@@ -51,9 +52,13 @@ object StrongAkkaReplicaSystem {
 		) extends StrongReplicatedObject[Addr, T] {
 			setObject(init)
 
-			private val lock : ReentrantReadWriteLock = new ReentrantReadWriteLock()
+
+			val lock = new ReentrantReadWriteLock()
+//			val txMutex = new TxMutex
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+
+
 				lock.writeLock().lock()
 				val res = super.internalInvoke[R](opid, methodName, args)
 				lock.writeLock().unlock()
@@ -94,6 +99,8 @@ object StrongAkkaReplicaSystem {
 
 				case _ => super.handleRequest(request)
 			}
+
+			override def toString : String = s"StrongMaster($addr, $getObject)"
 		}
 
 
@@ -147,8 +154,13 @@ object StrongAkkaReplicaSystem {
 			override def internalSync() : Unit = {
 
 			}
+
+			override def toString : String = s"StrongFollower($addr, $getObject)"
 		}
 	}
+
+
+
 
 
 	sealed trait StrongReq extends Request

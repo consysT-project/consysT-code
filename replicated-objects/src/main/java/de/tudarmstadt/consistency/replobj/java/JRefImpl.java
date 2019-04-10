@@ -43,6 +43,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public void syncAll() {
+		ref.toReplicatedObject().syncAll();
+	}
+
+	@Override
 	public T remote() {
 		return ref.remote(); //Throws an exception
 	}

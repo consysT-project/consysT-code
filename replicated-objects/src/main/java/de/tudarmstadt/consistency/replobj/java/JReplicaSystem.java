@@ -20,6 +20,8 @@ public interface JReplicaSystem {
 
 	void addReplicaSystem(String hostname, int port);
 
+	void close() throws Exception;
+
 	static JReplicaSystem fromActorSystem(ActorSystem actorSystem) {
 		return new JReplicaSystemAkkaImpl(actorSystem);
 	}

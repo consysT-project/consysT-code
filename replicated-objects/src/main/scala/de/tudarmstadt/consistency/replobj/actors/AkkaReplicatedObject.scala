@@ -1,8 +1,10 @@
 package de.tudarmstadt.consistency.replobj.actors
 
+import java.lang.reflect.{Field, Modifier}
+
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
 import de.tudarmstadt.consistency.replobj.actors.Requests._
-import de.tudarmstadt.consistency.replobj.{ReplicatedObject, typeToClassTag}
+import de.tudarmstadt.consistency.replobj.{Ref, ReplicatedObject, typeToClassTag}
 
 import scala.language.postfixOps
 import scala.reflect.ClassTag
@@ -37,58 +39,38 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	def initialize() : Unit = { /*do nothing*/	}
 
 
-
-	override final def invoke[R](methodName : String, args : Any*) : R = {
+	private def transaction[R](f : ContextPath => R) : R = {
 		import replicaSystem.GlobalContext
 
-		val needNewTx = !GlobalContext.hasBuilder
-
-		if (needNewTx) GlobalContext.startNewTransaction()
-
+		//Checks whether there is an active transaction
+		val isInTx = GlobalContext.hasCurrentTransaction
+		if (!isInTx) GlobalContext.startNewTransaction()
 
 		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-//		replicaSystem.log(s"invoking method $addr.$methodName(${args.mkString(", ")}) in context $path")
 
 		GlobalContext.getBuilder.push(consistencyLevel)
-		val res : R = internalInvoke[R](path, methodName, args)
+
+		//Execute f
+		val result = f(path)
+
 		GlobalContext.getBuilder.pop()
 
-		if (needNewTx) GlobalContext.endTransaction()
-		res.asInstanceOf[R]
+		if (!isInTx) GlobalContext.endTransaction()
+
+		result
 	}
 
 
-	override final def getField[R](fieldName : String) : R = {
-		import replicaSystem.GlobalContext
-
-		val needNewTx = !GlobalContext.hasBuilder
-
-		if (needNewTx) GlobalContext.startNewTransaction()
-
-		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-//		replicaSystem.log(s"getting field $addr.$fieldName in context $path")
-
-		val res = internalGetField[R](path, fieldName)
-
-		if (needNewTx)GlobalContext.endTransaction()
-
-		res.asInstanceOf[R]
+	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { path =>
+		internalInvoke[R](path, methodName, args)
 	}
 
-	override final def setField[R](fieldName : String, value : R) : Unit = {
-		import replicaSystem.GlobalContext
+	override final def getField[R](fieldName : String) : R = transaction[R] { path =>
+		internalGetField[R](path, fieldName)
+	}
 
-		val needNewTx = !GlobalContext.hasBuilder
-
-		if (needNewTx) GlobalContext.startNewTransaction()
-
-
-		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
-//		replicaSystem.log(s"setting field $addr.$fieldName = $value in context $path")
-
+	override final def setField[R](fieldName : String, value : R) : Unit = transaction[Unit] { path =>
 		internalSetField(path, fieldName, value)
-
-		if (needNewTx) GlobalContext.endTransaction()
 	}
 
 	override final def sync() : Unit = {
@@ -98,6 +80,60 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		GlobalContext.startNewTransaction()
 		internalSync()
 		GlobalContext.endTransaction()
+	}
+
+
+	override final def syncAll() : Unit = {
+
+		def syncObject(obj : Any, alreadySynced : Set[Any]) : Unit = {
+			//TODO:Change contains so that it uses eq?
+			if (obj == null || alreadySynced.contains(obj)) {
+				return
+			}
+
+			obj match {
+				case rob : AkkaReplicatedObject[_, _] if rob.replicaSystem == replicaSystem =>
+					rob.sync()
+					syncObject(rob.state, alreadySynced + rob)
+
+				case ref : RefImpl[_, _] if ref.replicaSystem == replicaSystem =>
+					val rob = ref.toReplicatedObject
+					syncObject(rob, alreadySynced + ref)
+
+				case _ =>
+
+					val anyClass = obj.getClass
+					//If the value is primitive (e.g. int) then stop
+					if (anyClass.isPrimitive) {
+						return
+					}
+
+					//If the value is an array, then initialize ever element of the array.
+					if (anyClass.isArray) {
+						val anyArray : Array[_] = obj.asInstanceOf[Array[_]]
+						val initSet = alreadySynced + obj
+						anyArray.foreach(e => syncObject(e, initSet))
+					}
+
+
+					val anyPackage = anyClass.getPackage
+					if (anyPackage == null) {
+						return
+					}
+
+					//If the object should be initialized, then initialize all fields
+					anyClass.getDeclaredFields.foreach { field =>
+						if ((field.getModifiers & Modifier.STATIC) == 0) { //If field is not static
+							//Recursively initialize refs in the fields
+							field.setAccessible(true)
+							val fieldObj = field.get(obj)
+							syncObject(fieldObj, alreadySynced + obj)
+						}
+					}
+			}
+		}
+
+		syncObject(this, Set.empty)
 	}
 
 
@@ -159,7 +195,10 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		}
 
 		def doGetField[R](opid : ContextPath, fieldName : String) : R = ReflectiveAccess.synchronized {
-			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
+			val tpe = typeOf[T]
+			val fldTerm = TermName(fieldName)
+
+			val fieldSymbol = tpe.member(fldTerm).asTerm
 			val fieldMirror = objMirror.reflectField(fieldSymbol)
 			val result = fieldMirror.get
 			result.asInstanceOf[R]
