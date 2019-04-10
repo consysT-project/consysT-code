@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.demo
 
-import de.tudarmstadt.consistency.replobj.ConsistencyLevel.Strong
+import de.tudarmstadt.consistency.replobj.ConsistencyLevel.{Strong, Weak}
 import de.tudarmstadt.consistency.replobj.actors
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
 
@@ -20,13 +20,14 @@ object Demo extends App {
 
 	Thread.sleep(1000)
 
-	val ref1  = replica1.replicate("a", A(3), Strong)
-	val ref2 = replica2.ref[A]("a", Strong)
+	val ref1  = replica1.replicate("a", A(3), Weak)
+	val ref2 = replica2.ref[A]("a", Weak)
 
 	Thread.sleep(1000)
 
 
 	ref2("i") = 55
+
 	println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}")
 
 	ref2.sync()
@@ -34,6 +35,8 @@ object Demo extends App {
 	println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}")
 
 
+	replica1.close()
+	replica2.close()
 
 }
 

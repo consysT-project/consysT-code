@@ -77,6 +77,8 @@ object TxMutex extends Serializable {
 			if (compareAndSetState(-1, acquires)) {
 				setExclusiveOwnerThread(Thread.currentThread)
 				return true
+			} else if (getState == acquires) {
+				return true
 			}
 			false
 		}

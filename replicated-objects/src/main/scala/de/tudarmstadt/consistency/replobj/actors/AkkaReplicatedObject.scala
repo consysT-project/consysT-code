@@ -43,21 +43,47 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		import replicaSystem.GlobalContext
 
 		//Checks whether there is an active transaction
-		val isInTx = GlobalContext.hasCurrentTransaction
-		if (!isInTx) GlobalContext.startNewTransaction()
+		val isNested = GlobalContext.hasCurrentTransaction
+		if (!isNested) GlobalContext.startNewTransaction()
 
 		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
 
 		GlobalContext.getBuilder.push(consistencyLevel)
 
+		if (!isNested) toplevelTransactionStarted()
+		else nestedTransactionStarted()
+
 		//Execute f
 		val result = f(path)
 
+		if (!isNested) toplevelTransactionFinished()
+		else nestedTransactionFinished()
+
 		GlobalContext.getBuilder.pop()
 
-		if (!isInTx) GlobalContext.endTransaction()
+		if (!isNested) GlobalContext.endTransaction()
 
 		result
+	}
+
+	protected def toplevelTransactionStarted() : Unit = {
+//		replicaSystem.log.info("toplevel started")
+		println("toplevel started")
+	}
+
+	protected def nestedTransactionStarted() : Unit = {
+//		replicaSystem.log.info("nested started")
+		println("nested started")
+	}
+
+	protected def nestedTransactionFinished() : Unit = {
+//		replicaSystem.log.info("nested finished")
+		println("nested finished")
+	}
+
+	protected def toplevelTransactionFinished() : Unit = {
+//		replicaSystem.log.info("toplevel finished")
+		println("toplevel finished")
 	}
 
 

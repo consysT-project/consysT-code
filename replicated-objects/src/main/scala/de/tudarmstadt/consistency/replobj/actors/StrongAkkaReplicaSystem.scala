@@ -53,30 +53,28 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 
-			val lock = new ReentrantReadWriteLock()
-//			val txMutex = new TxMutex
+//			val lock = new ReentrantReadWriteLock()
+			val txMutex = new TxMutex
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-
-
-				lock.writeLock().lock()
+				txMutex.lockFor(opid.txid)
 				val res = super.internalInvoke[R](opid, methodName, args)
-				lock.writeLock().unlock()
+				txMutex.unlockFor(opid.txid)
 				res
 			}
 
 			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
 				/*get is not synchronized*/
-				lock.readLock().lock()
+				txMutex.lockFor(opid.txid)
 				val result = super.internalGetField[R](opid, fldName)
-				lock.readLock().unlock()
+				txMutex.unlockFor(opid.txid)
 				result
 			}
 
 			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				lock.writeLock().lock()
+				txMutex.lockFor(opid.txid)
 				super.internalSetField(opid, fldName, newVal)
-				lock.writeLock().unlock()
+				txMutex.unlockFor(opid.txid)
 			}
 
 			override def internalSync() : Unit = {
@@ -84,14 +82,14 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override def handleRequest(request : Request) : Any = request match {
-				case LockReq =>
-					lock.writeLock().lock()
+				case LockReq(txid) =>
+					txMutex.lockFor(txid)
 					LockRes(getObject)
 
-				case MergeAndUnlock(newObj : T, op, result) =>
+				case MergeAndUnlock(txid, newObj : T, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					lock.writeLock().unlock()
+					txMutex.unlockFor(txid)
 
 
 				case ReadStrongField(GetFieldOp(path, fldName)) =>
@@ -116,10 +114,10 @@ object StrongAkkaReplicaSystem {
 
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val LockRes(masterObj : T) = handler.request(addr, LockReq)
+				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
 				setObject(masterObj)
 				val res = super.internalInvoke[R](opid, methodName, args)
-				handler.request(addr, MergeAndUnlock(getObject, InvokeOp(opid, methodName, args), res))
+				handler.request(addr, MergeAndUnlock(opid.txid, getObject, InvokeOp(opid, methodName, args), res))
 				handler.close()
 				res
 			}
@@ -142,11 +140,11 @@ object StrongAkkaReplicaSystem {
 
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val LockRes(masterObj : T) = handler.request(addr, LockReq)
+				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
 				setObject(masterObj)
 				super.internalSetField(opid, fldName, newVal)
 
-				val mergeReq = MergeAndUnlock(getObject, SetFieldOp(opid, fldName, newVal), ())
+				val mergeReq = MergeAndUnlock(opid.txid, getObject, SetFieldOp(opid, fldName, newVal), ())
 				handler.request(addr, mergeReq)
 				handler.close()
 			}
@@ -164,9 +162,9 @@ object StrongAkkaReplicaSystem {
 
 
 	sealed trait StrongReq extends Request
-	case object LockReq extends StrongReq with ReturnRequest
+	case class LockReq(txid : Long) extends StrongReq with ReturnRequest
 	case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	case class MergeAndUnlock(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
+	case class MergeAndUnlock(txid : Long, obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
 	case class ReadStrongField(op : GetFieldOp[Any]) extends StrongReq with ReturnRequest
 
 
