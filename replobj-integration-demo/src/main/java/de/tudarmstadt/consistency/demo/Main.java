@@ -63,7 +63,7 @@ public class Main {
 	}
 
 
-	public static void example2() throws InterruptedException {
+	public static void example2() throws Exception {
 
 
 		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
@@ -112,9 +112,12 @@ public class Main {
 			"b1.g = " + results2[2] + ", " +
 			"b2.g = " + results2[3]
 		);
+
+		replicaSystem1.close();
+		replicaSystem2.close();
 	}
 
-	public static void example2Parallel() throws InterruptedException {
+	public static void example2Parallel() throws Exception {
 
 
 		JRef<@Strong ObjA> a1 = replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
@@ -166,6 +169,9 @@ public class Main {
 						"b1.g = " + results2[2] + ", " +
 						"b2.g = " + results2[3]
 		);
+
+		replicaSystem1.close();
+		replicaSystem2.close();
 	}
 
 	public static void main(String... args) throws Exception {
