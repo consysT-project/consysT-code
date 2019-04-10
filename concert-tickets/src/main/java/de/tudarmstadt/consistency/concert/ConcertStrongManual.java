@@ -28,7 +28,7 @@ public class ConcertStrongManual implements Serializable {
         if (soldTicketsReplica.isFollower) {
             AkkaReplicaSystem.GlobalContext$ context = soldTicketsReplica.internal.replicaSystem().GlobalContext();
 
-            boolean needNewTx = !context.hasBuilder();
+            boolean needNewTx = !context.hasCurrentTransaction();
 
             if (needNewTx) context.startNewTransaction();
 
@@ -64,7 +64,7 @@ public class ConcertStrongManual implements Serializable {
         if (hallReplica.isFollower) {
             AkkaReplicaSystem.GlobalContext$ context = hallReplica.internal.replicaSystem().GlobalContext();
 
-            boolean needNewTx = !context.hasBuilder();
+            boolean needNewTx = !context.hasCurrentTransaction();
 
             if (needNewTx) context.startNewTransaction();
 
@@ -95,7 +95,7 @@ public class ConcertStrongManual implements Serializable {
             if (soldTicketsReplica.isFollower) {
                 AkkaReplicaSystem.GlobalContext$ context = soldTicketsReplica.internal.replicaSystem().GlobalContext();
 
-                boolean needNewTx = !context.hasBuilder();
+                boolean needNewTx = !context.hasCurrentTransaction();
 
                 if (needNewTx) context.startNewTransaction();
 

@@ -53,7 +53,7 @@ public class Main {
 
         AkkaReplicaSystem.GlobalContext$ context1 = replica1.internal.replicaSystem().GlobalContext();
 
-        boolean needNewTx = !context1.hasBuilder();
+        boolean needNewTx = !context1.hasCurrentTransaction();
 
         if (needNewTx) context1.startNewTransaction();
 

@@ -1,6 +1,7 @@
 package de.tudarmstadt.consistency.replobj.actors
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
+import akka.event.LoggingAdapter
 import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
@@ -123,11 +124,8 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 
 	/*writes a message to the standard out*/
-	private[actors] final def log(msg : String) : Unit = {
-		val thisString = toString
-		val printString = thisString.substring(thisString.indexOf("$"))
-		println(s"[$printString] $msg")
-	}
+	protected[actors] def log : LoggingAdapter = actorSystem.log
+
 
 
 
@@ -168,7 +166,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	}
 
 
-	def initializeRefFieldsFor(obj : Any) : Unit = {
+	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
 
 		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
 			//If the object is null, there is nothing to initialize
@@ -276,7 +274,7 @@ object AkkaReplicaSystem {
 
 	sealed trait ReplicaActorMessage
 	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
-		require(obj.isInstanceOf[Serializable])
+		require(obj.isInstanceOf[java.io.Serializable])
 	}
 	case object AcquireHandler extends ReplicaActorMessage
 
