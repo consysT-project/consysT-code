@@ -14,7 +14,7 @@ import scala.language.postfixOps
 	*
 	* @author Mirko Köhler
 	*/
-class TxMutex {
+class TxMutex extends Serializable {
 
 	private val sync : Sync = new Sync
 
@@ -26,42 +26,7 @@ class TxMutex {
 }
 
 
-object TxMutex extends Serializable {
-
-
-	def main(args : Array[String]) : Unit = {
-		val mutex = new TxMutex
-
-
-		implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
-
-
-		def f(txid : Long) : Unit = Future {
-			println(s"Try $txid...")
-			mutex.lockFor(txid)
-			println(s"Start $txid...")
-
-			Await.ready(Future {
-				mutex.assertTx(txid)
-				println(txid)
-				Thread.sleep(100)
-				mutex.assertTx(txid)
-				println(txid)
-				Thread.sleep(100)
-			}, 30 seconds)
-
-			println(s"Finish $txid...")
-			mutex.unlockFor(txid)
-		}
-
-		f(100)
-		f(200)
-		f(300)
-
-		Thread.sleep(5000)
-
-	}
-
+object TxMutex {
 
 
 
@@ -100,14 +65,7 @@ object TxMutex extends Serializable {
 		// Provides a Condition
 		def newCondition = new ConditionObject
 
-		// Deserializes properly
-//		@throws[IOException]
-//		@throws[ClassNotFoundException]
-//		private def readObject(s : ObjectInputStream) : Unit = {
-//			s.defaultReadObject()
-//			setState(0) // reset to unlocked state
-//
-//		}
+
 	}
 
 

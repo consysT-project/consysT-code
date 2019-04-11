@@ -5,7 +5,7 @@ import akka.event.LoggingAdapter
 import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem._
-import de.tudarmstadt.consistency.replobj.actors.ContextPath.ContextPathTracker
+import de.tudarmstadt.consistency.replobj.actors.ContextPath.ContextPathBuilder
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevel, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
@@ -38,9 +38,9 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
 	protected[actors] object GlobalContext {
-		private val builder : DynamicVariable[Option[ContextPathTracker]] = new DynamicVariable(None)
+		private val builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
 
-		private def setBuilder(builder: ContextPathTracker) : Unit = {
+		private def setBuilder(builder: ContextPathBuilder) : Unit = {
 			this.builder.value = Some(builder)
 		}
 
@@ -48,7 +48,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			this.builder.value = None
 		}
 
-		def getBuilder : ContextPathTracker = {
+		def getBuilder : ContextPathBuilder = {
 			require(hasCurrentTransaction)
 			builder.value.get
 		}
@@ -64,7 +64,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		def startNewTransaction() : Unit = {
 			require(!hasCurrentTransaction)
 			val txid = Random.nextLong
-			setBuilder(new ContextPathTracker(txid))
+			setBuilder(new ContextPathBuilder(txid))
 		}
 
 		def endTransaction() : Unit = {
@@ -74,7 +74,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 		def setCurrentTransaction(path : ContextPath) : Unit = {
 			require(!hasCurrentTransaction)
-			setBuilder(new ContextPathTracker(path))
+			setBuilder(new ContextPathBuilder(path))
 		}
 
 		override def toString : String = s"context($builder)"
