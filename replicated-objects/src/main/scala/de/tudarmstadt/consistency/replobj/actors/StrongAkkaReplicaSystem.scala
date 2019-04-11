@@ -53,28 +53,21 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 
-//			val lock = new ReentrantReadWriteLock()
-			val txMutex = new TxMutex
+			val lock = new ReentrantLock()
+//			val txMutex = new TxMutex
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-				txMutex.lockFor(opid.txid)
 				val res = super.internalInvoke[R](opid, methodName, args)
-				txMutex.unlockFor(opid.txid)
 				res
 			}
 
 			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
-				/*get is not synchronized*/
-				txMutex.lockFor(opid.txid)
 				val result = super.internalGetField[R](opid, fldName)
-				txMutex.unlockFor(opid.txid)
 				result
 			}
 
 			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				txMutex.lockFor(opid.txid)
 				super.internalSetField(opid, fldName, newVal)
-				txMutex.unlockFor(opid.txid)
 			}
 
 			override def internalSync() : Unit = {
@@ -83,19 +76,42 @@ object StrongAkkaReplicaSystem {
 
 			override def handleRequest(request : Request) : Any = request match {
 				case LockReq(txid) =>
-					txMutex.lockFor(txid)
+					lock.lock()
 					LockRes(getObject)
+
+				case MergeAndUnlock(txid, null, op, result) =>
+					cache(op, result)
+					lock.unlock()
 
 				case MergeAndUnlock(txid, newObj : T, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					txMutex.unlockFor(txid)
-
+					lock.unlock()
 
 				case ReadStrongField(GetFieldOp(path, fldName)) =>
 					ReadResult(internalGetField(path, fldName))
 
 				case _ => super.handleRequest(request)
+			}
+
+			override protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
+//				txMutex.lockFor(ctx.txid)
+				lock.lock()
+			}
+
+			override protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
+//				txMutex.lockFor(ctx.txid)
+				lock.lock()
+			}
+
+			override protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
+//				txMutex.unlockFor(ctx.txid)
+				lock.unlock()
+			}
+
+			override protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
+//				txMutex.unlockFor(ctx.txid)
+				lock.unlock()
 			}
 
 			override def toString : String = s"StrongMaster($addr, $getObject)"
@@ -111,7 +127,6 @@ object StrongAkkaReplicaSystem {
 
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
@@ -123,21 +138,20 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
-				//TODO: This is pretty hacky and undurchdacht. Are there some better ways to do this?
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
-				val ReadResult(res : R) = handler.request(addr, ReadStrongField(GetFieldOp(opid, fldName)))
-				handler.close()
 
-				res match {
-					case anyRef : AnyRef => replicaSystem.initializeRefFieldsFor(anyRef)
-					case _ =>
-				}
+				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
+				setObject(masterObj)
+				val res = super.internalGetField[R](opid, fldName)
+
+				val mergeReq = MergeAndUnlock(opid.txid, null, GetFieldOp(opid, fldName), res)
+				handler.request(addr, mergeReq)
+				handler.close()
 
 				res
 			}
 
 			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
@@ -149,9 +163,7 @@ object StrongAkkaReplicaSystem {
 				handler.close()
 			}
 
-			override def internalSync() : Unit = {
-
-			}
+			override def internalSync() : Unit = {	}
 
 			override def toString : String = s"StrongFollower($addr, $getObject)"
 		}

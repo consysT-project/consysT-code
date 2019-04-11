@@ -1,10 +1,14 @@
 package de.tudarmstadt.consistency.replobj.actors
 
+import java.util.concurrent.{Executors, TimeUnit}
+
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel.Strong
 import de.tudarmstadt.consistency.replobj.actors.Data.A
 import de.tudarmstadt.consistency.replobj.{ConsistencyLevel, Ref, actors}
 import org.scalatest.{Outcome, fixture}
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
 
 /**
@@ -49,6 +53,23 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 		} finally {
 			replicaSystems.foreach { replica => if (replica != null) replica.close() }
 		}
+	}
+
+
+	protected def concurrent(fixture : F)(f : Int => Any) : Unit = {
+		val service = Executors.newFixedThreadPool(numOfReplicas)
+		implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(service)
+
+		val futures = new Array[Future[_]](numOfReplicas)
+		for (i <- fixture.replicas.indices) {
+			futures(i) = Future {	f(i) }
+		}
+
+		for(i <- fixture.replicas.indices) {
+			Await.result(futures(i), Duration(20, TimeUnit.SECONDS))
+		}
+
+		service.awaitTermination(3, TimeUnit.SECONDS)
 	}
 
 }
