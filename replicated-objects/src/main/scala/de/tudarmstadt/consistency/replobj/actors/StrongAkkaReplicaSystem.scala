@@ -52,9 +52,15 @@ object StrongAkkaReplicaSystem {
 		) extends StrongReplicatedObject[Addr, T] {
 			setObject(init)
 
+			private val txMutex = new TxMutex()
 
-			val lock = new ReentrantLock()
-//			val txMutex = new TxMutex
+			private def lock(txid : Long) : Unit = {
+				txMutex.lockTxid(txid)
+			}
+
+			private def unlock(txid : Long) : Unit = {
+				txMutex.unlockTxid()
+			}
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
 				val res = super.internalInvoke[R](opid, methodName, args)
@@ -76,17 +82,17 @@ object StrongAkkaReplicaSystem {
 
 			override def handleRequest(request : Request) : Any = request match {
 				case LockReq(txid) =>
-					lock.lock()
+					lock(txid)
 					LockRes(getObject)
 
 				case MergeAndUnlock(txid, null, op, result) =>
 					cache(op, result)
-					lock.unlock()
+					unlock(txid)
 
 				case MergeAndUnlock(txid, newObj : T, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					lock.unlock()
+					unlock(txid)
 
 				case ReadStrongField(GetFieldOp(path, fldName)) =>
 					ReadResult(internalGetField(path, fldName))
@@ -95,23 +101,19 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
-//				txMutex.lockFor(ctx.txid)
-				lock.lock()
+				lock(ctx.txid)
 			}
 
 			override protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
-//				txMutex.lockFor(ctx.txid)
-				lock.lock()
+				lock(ctx.txid)
 			}
 
 			override protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
-//				txMutex.unlockFor(ctx.txid)
-				lock.unlock()
+				unlock(ctx.txid)
 			}
 
 			override protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
-//				txMutex.unlockFor(ctx.txid)
-				lock.unlock()
+				unlock(ctx.txid)
 			}
 
 			override def toString : String = s"StrongMaster($addr, $getObject)"

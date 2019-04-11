@@ -60,16 +60,18 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 		val service = Executors.newFixedThreadPool(numOfReplicas)
 		implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(service)
 
-		val futures = new Array[Future[_]](numOfReplicas)
-		for (i <- fixture.replicas.indices) {
-			futures(i) = Future {	f(i) }
-		}
+		try {
+			val futures = new Array[Future[_]](numOfReplicas)
+			for (i <- fixture.replicas.indices) {
+				futures(i) = Future {	f(i) }
+			}
 
-		for(i <- fixture.replicas.indices) {
-			Await.result(futures(i), Duration(20, TimeUnit.SECONDS))
+			for (i <- fixture.replicas.indices) {
+				Await.result(futures(i), Duration(20, TimeUnit.SECONDS))
+			}
+		} finally {
+			service.awaitTermination(20, TimeUnit.SECONDS)
 		}
-
-		service.awaitTermination(3, TimeUnit.SECONDS)
 	}
 
 }

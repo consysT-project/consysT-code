@@ -66,25 +66,13 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		result
 	}
 
-	protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
-//		replicaSystem.log.info("toplevel started")
-		println("toplevel started")
-	}
+	protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = { }
 
-	protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
-//		replicaSystem.log.info("nested started")
-		println("nested started")
-	}
+	protected def nestedTransactionStarted(ctx : ContextPath) : Unit = { }
 
-	protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
-//		replicaSystem.log.info("nested finished")
-		println("nested finished")
-	}
+	protected def nestedTransactionFinished(ctx : ContextPath) : Unit = { }
 
-	protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
-//		replicaSystem.log.info("toplevel finished")
-		println("toplevel finished")
-	}
+	protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = { }
 
 
 	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { path =>
