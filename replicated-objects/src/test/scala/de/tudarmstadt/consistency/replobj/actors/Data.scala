@@ -33,13 +33,23 @@ object Data {
 
 
 	case class B(a1 : Ref[String, A], a2 : Ref[String, A]) {
-
 		def incAll() : Int = {
 			a1.invoke("incByAndGet", 1)
 			a2.invoke("incByAndGet", 2)
 			a1.invoke("incByAndGet", 3)
 		}
+	}
 
+	case class C(a1 : Ref[String, A], a2 : Ref[String, A]) {
+		def change(i : Int) : Unit = {
+			a1.setField("i", i)
+			Thread.sleep(10)
+			a2.setField("i", i)
+		}
+
+		def get() : (Int, Int) = {
+			(a1.getField("i"), a2.getField("i"))
+		}
 	}
 
 }

@@ -27,15 +27,15 @@ class AkkaReplicaSystemWeakRefUnitTests extends fixture.FunSuite with AkkaReplic
 
 		assertResult(expectedReturn)(result)
 
-		var index = 0
-		for (ref <- refs) {
+		refs.zipWithIndex.foreach { t =>
+			val (ref, index) = t
 			if (index == replicaIndex) {
 				assertResult(expectedFld) { ref.getField("i")	}
 			}	else {
 				assertResult(initialField) { ref.getField("i")	}
 			}
-			index = index + 1
 		}
+
 
 		//Need to sync ref that produced the changes
 		refs(replicaIndex).sync()

@@ -50,14 +50,14 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 		GlobalContext.getBuilder.push(consistencyLevel)
 
-		if (!isNested) toplevelTransactionStarted()
-		else nestedTransactionStarted()
+		if (!isNested) toplevelTransactionStarted(path)
+		else nestedTransactionStarted(path)
 
 		//Execute f
 		val result = f(path)
 
-		if (!isNested) toplevelTransactionFinished()
-		else nestedTransactionFinished()
+		if (!isNested) toplevelTransactionFinished(path)
+		else nestedTransactionFinished(path)
 
 		GlobalContext.getBuilder.pop()
 
@@ -66,22 +66,22 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		result
 	}
 
-	protected def toplevelTransactionStarted() : Unit = {
+	protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
 //		replicaSystem.log.info("toplevel started")
 		println("toplevel started")
 	}
 
-	protected def nestedTransactionStarted() : Unit = {
+	protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
 //		replicaSystem.log.info("nested started")
 		println("nested started")
 	}
 
-	protected def nestedTransactionFinished() : Unit = {
+	protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
 //		replicaSystem.log.info("nested finished")
 		println("nested finished")
 	}
 
-	protected def toplevelTransactionFinished() : Unit = {
+	protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
 //		replicaSystem.log.info("toplevel finished")
 		println("toplevel finished")
 	}
