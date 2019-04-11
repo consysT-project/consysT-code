@@ -120,4 +120,41 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 	}
 
 
+	test("testWeakWithWeakNested") { F =>
+		val replica0 = F(0)
+
+		replica0.replicate("b", B(
+			replica0.replicate("a1", A(100), Weak),
+			replica0.replicate("a2", A(200), Weak)),
+			Weak)
+
+		val result = F(1).ref[B]("b", Weak).invoke[Int]("incAll")
+
+		assertResult (104) { result }
+
+		F.replicas.foreach { replica =>
+			if (replica == F(1)) {
+				assertResult(104) { replica.ref("a1", Weak).getField("i") }
+				assertResult(202) { replica.ref("a2", Weak).getField("i") }
+			} else {
+				assertResult(100) { replica.ref("a1", Weak).getField("i") }
+				assertResult(200) { replica.ref("a2", Weak).getField("i") }
+			}
+		}
+
+		F(1).ref[B]("b", Weak).syncAll()
+
+		println("test")
+
+		F.replicas.zipWithIndex.foreach {replicaWithIndex =>
+			val (replica, index) = replicaWithIndex
+			replica.ref("a1", Weak).sync()
+			replica.ref("a2", Weak).sync()
+			assertResult(104, "index: " + index) { replica.ref("a1", Weak).getField("i") }
+			assertResult(202, "index: " + index) { replica.ref("a2", Weak).getField("i") }
+		}
+	}
+
+
+
 }
