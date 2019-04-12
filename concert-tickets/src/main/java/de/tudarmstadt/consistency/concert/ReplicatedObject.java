@@ -8,8 +8,8 @@ import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem$StrongR
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem$StrongReplicatedObject$StrongMasterReplicatedObject;
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem$WeakReplicatedObject$WeakFollowerReplicatedObject;
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem$WeakReplicatedObject$WeakMasterReplicatedObject;
-import de.tudarmstadt.consistency.replobj.java.JRef;
-import de.tudarmstadt.consistency.replobj.java.JRefImpl;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRefImpl;
 import scala.collection.mutable.Buffer;
 
 public class ReplicatedObject<T> {

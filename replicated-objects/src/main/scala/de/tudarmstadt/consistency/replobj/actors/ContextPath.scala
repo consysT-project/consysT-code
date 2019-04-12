@@ -78,6 +78,8 @@ object ContextPath {
 
 		def getParentPath : ContextPath =
 			ContextPath(txid, currSeq.toList)
+
+		def getTxid : Long = txid
 	}
 
 }

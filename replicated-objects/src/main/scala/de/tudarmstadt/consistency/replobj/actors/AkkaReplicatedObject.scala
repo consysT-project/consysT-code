@@ -56,8 +56,13 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		//Execute f
 		val result = f(path)
 
-		if (!isNested) toplevelTransactionFinished(path)
-		else nestedTransactionFinished(path)
+		if (!isNested) {
+			toplevelTransactionFinished(path)
+			println("unlock all " + replicaSystem.GlobalContext.locked)
+			replicaSystem.GlobalContext.unlockAllObjects()
+		} else {
+			nestedTransactionFinished(path)
+		}
 
 		GlobalContext.getBuilder.pop()
 

@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.concert;
 
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
+import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 
 public class Replicas {
 	public static final JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);

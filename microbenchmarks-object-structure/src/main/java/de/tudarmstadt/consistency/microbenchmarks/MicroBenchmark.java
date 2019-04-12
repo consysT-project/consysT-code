@@ -3,7 +3,7 @@ package de.tudarmstadt.consistency.microbenchmarks;
 import akka.actor.Terminated;
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel;
 import de.tudarmstadt.consistency.replobj.actors.AkkaReplicatedObject;
-import de.tudarmstadt.consistency.replobj.java.*;
+import de.tudarmstadt.consistency.replobj.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 import scala.concurrent.Await;

@@ -33,7 +33,8 @@ trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 object StrongAkkaReplicaSystem {
 
 	trait StrongReplicatedObject[Addr, T <: AnyRef]
-		extends AkkaReplicatedObject[Addr, T]	{
+		extends AkkaReplicatedObject[Addr, T]
+		with LockableReplicatedObject[T] {
 		override final def consistencyLevel : ConsistencyLevel = Strong
 	}
 
@@ -48,14 +49,13 @@ object StrongAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-			//TODO: Implement correct 2PL
 			private val txMutex = new TxMutex()
 
-			private def lock(txid : Long) : Unit = {
+			private[actors] def lock(txid : Long) : Unit = {
 				txMutex.lockTxid(txid)
 			}
 
-			private def unlock(txid : Long) : Unit = {
+			private[actors] def unlock(txid : Long) : Unit = {
 				txMutex.unlockTxid(txid)
 			}
 
@@ -101,18 +101,20 @@ object StrongAkkaReplicaSystem {
 
 			override protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
 				lock(ctx.txid)
+				replicaSystem.GlobalContext.addLockedObject(this)
 			}
 
 			override protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
 				lock(ctx.txid)
+				replicaSystem.GlobalContext.addLockedObject(this)
 			}
 
 			override protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
-				unlock(ctx.txid)
+			//	unlock(ctx.txid)
 			}
 
 			override protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
-				unlock(ctx.txid)
+			//	unlock(ctx.txid)
 			}
 
 			override def toString : String = s"StrongMaster($addr, $getObject)"
@@ -133,11 +135,14 @@ object StrongAkkaReplicaSystem {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
+				replicaSystem.GlobalContext.addLockedObject(this)
+
 				setObject(masterObj)
 				val res = super.internalInvoke[R](opid, methodName, args)
 
 				handler.request(addr, MergeReq(getObject, InvokeOp(opid, methodName, args), res))
-				handler.request(addr, UnlockReq(opid.txid))
+				//handler.request(addr, UnlockReq(opid.txid))
+
 				handler.close()
 				res
 			}
@@ -146,11 +151,14 @@ object StrongAkkaReplicaSystem {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
+				replicaSystem.GlobalContext.addLockedObject(this)
+
 				setObject(masterObj)
 				val res = super.internalGetField[R](opid, fldName)
 
 				handler.request(addr,  MergeReq(null, GetFieldOp(opid, fldName), res))
-				handler.request(addr, UnlockReq(opid.txid))
+				//handler.request(addr, UnlockReq(opid.txid))
+
 				handler.close()
 
 				res
@@ -159,18 +167,42 @@ object StrongAkkaReplicaSystem {
 			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
-				setObject(masterObj)
+				lockWithHandler(opid.txid, handler)
 				super.internalSetField(opid, fldName, newVal)
 
 				handler.request(addr, MergeReq(getObject, SetFieldOp(opid, fldName, newVal), ()))
-				handler.request(addr, UnlockReq(opid.txid))
+				//handler.request(addr, UnlockReq(opid.txid))
+
 				handler.close()
 			}
 
 			override def internalSync() : Unit = {	}
 
+
+
+			override private[actors] def lock(txid : Long) : Unit = ???
+
+			override private[actors] def unlock(txid : Long) : Unit = {
+				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
+				unlockWithHandler(txid, handler)
+			}
+
+			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
+				val LockRes(masterObj : T) = handler.request(addr, LockReq(txid))
+				replicaSystem.GlobalContext.addLockedObject(this)
+				setObject(masterObj)
+			}
+
+			private def unlockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
+				handler.request(addr, UnlockReq(txid))
+			}
+
+
 			override def toString : String = s"StrongFollower($addr, $getObject)"
+
+
+
+
 		}
 	}
 

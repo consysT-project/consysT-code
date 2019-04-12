@@ -5,8 +5,8 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.demo.schema.ObjA;
 import de.tudarmstadt.consistency.demo.schema.ObjB;
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -1,10 +1,15 @@
 package de.tudarmstadt.consistency.replobj
 
 import java.util
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
+import akka.actor.{Actor, ActorRef}
+import akka.util.Timeout
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.reflect.api.{TypeCreator, Universe}
 import scala.reflect.runtime.universe._
 
@@ -34,6 +39,50 @@ private[replobj] object Utils {
 			else
 				tpe.asInstanceOf[U#Type]
 	}
+
+
+	class TxMutexImpl {
+
+		class TxMutexActor extends Actor {
+
+			private val mutex = new TxMutex
+
+			override def receive : Receive = {
+				case Lock(txid) =>
+					mutex.lockTxid(txid)
+					sender ! ()
+				case Unlock(txid) =>
+					mutex.unlockTxid(txid)
+					sender ! ()
+				case UnlockAll(txid) =>
+					mutex.unlockAllTxid(txid)
+					sender ! ()
+			}
+		}
+
+		case class Lock(txid : Long)
+		case class Unlock(txid : Long)
+		case class UnlockAll(txid : Long)
+
+
+		class TxMutexRef private[TxMutexImpl] (private val actorRef : ActorRef) extends Serializable {
+			import akka.pattern.ask
+
+			def lock(txid : Long) : Unit =
+				Await.result(actorRef.ask(Lock(txid))(timeout = Timeout(180, TimeUnit.SECONDS)), Duration(180, TimeUnit.SECONDS))
+
+			def unlock(txid : Long) : Unit =
+				Await.result(actorRef.ask(Unlock(txid))(timeout = Timeout(30, TimeUnit.SECONDS)), Duration(30, TimeUnit.SECONDS))
+
+			def unlockAll(txid : Long) : Unit =
+				Await.result(actorRef.ask(UnlockAll(txid))(timeout = Timeout(30, TimeUnit.SECONDS)), Duration(30, TimeUnit.SECONDS))
+		}
+
+
+
+	}
+
+
 
 
 

@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.messagegroups;
 
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
+import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 
 public class Replicas {
 	public static final JReplicaSystem[] replicaSystems = new JReplicaSystem[4];

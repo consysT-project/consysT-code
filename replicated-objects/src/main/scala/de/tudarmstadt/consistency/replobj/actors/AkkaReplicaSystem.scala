@@ -39,7 +39,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
 	protected[actors] object GlobalContext {
 		private val builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
-		private val locked : DynamicVariable[mutable.Set[ReplicatedObject[_]]] = new DynamicVariable(mutable.Set.empty)
+		val locked : DynamicVariable[mutable.Buffer[LockableReplicatedObject[_]]] = new DynamicVariable(mutable.Buffer.empty)
 
 		private def setBuilder(builder: ContextPathBuilder) : Unit = {
 			this.builder.value = Some(builder)
@@ -78,8 +78,12 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			setBuilder(new ContextPathBuilder(path))
 		}
 
-		def addLockedObject(obj : ReplicatedObject[_]) : Unit = {
-			locked.value.add(obj)
+		def addLockedObject(obj : LockableReplicatedObject[_]) : Unit = {
+			locked.value += obj
+		}
+
+		def unlockAllObjects() : Unit = {
+			locked.value.foreach(obj => obj.unlock(getBuilder.txid))
 		}
 
 		override def toString : String = s"context($builder)"

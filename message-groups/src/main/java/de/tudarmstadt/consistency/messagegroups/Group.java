@@ -1,13 +1,10 @@
 package de.tudarmstadt.consistency.messagegroups;
 
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
 import java.util.Objects;
-
-import static de.tudarmstadt.consistency.messagegroups.Replicas.replicaSystems;
 
 /**
  * Created on 04.04.19.

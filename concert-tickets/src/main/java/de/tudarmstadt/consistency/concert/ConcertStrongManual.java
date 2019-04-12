@@ -7,7 +7,7 @@ import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem;
 import de.tudarmstadt.consistency.replobj.actors.ContextPath;
 import de.tudarmstadt.consistency.replobj.actors.Requests;
 import de.tudarmstadt.consistency.replobj.actors.WeakAkkaReplicaSystem;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 import scala.collection.Seq$;
 import scala.collection.immutable.Nil$;
 

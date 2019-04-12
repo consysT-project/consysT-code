@@ -1,7 +1,7 @@
 package de.tudarmstadt.consistency.demo.schema;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
 
