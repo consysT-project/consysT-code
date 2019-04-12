@@ -2,9 +2,9 @@ package de.tudarmstadt.consistency.messagegroups;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.java.JRef;
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
+import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 

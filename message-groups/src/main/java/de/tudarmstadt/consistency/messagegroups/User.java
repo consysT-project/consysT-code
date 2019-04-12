@@ -1,10 +1,8 @@
 package de.tudarmstadt.consistency.messagegroups;
 
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Set;
 
 

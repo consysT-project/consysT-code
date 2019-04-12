@@ -2,7 +2,7 @@ package de.tudarmstadt.consistency.concert;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
 import java.util.Date;

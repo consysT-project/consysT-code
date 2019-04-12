@@ -2,14 +2,13 @@ package de.tudarmstadt.consistency.messagegroups;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.java.JRef;
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
+import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static de.tudarmstadt.consistency.messagegroups.Replicas.replicaSystems;
 

@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.microbenchmarks;
 
-import de.tudarmstadt.consistency.replobj.java.JRef;
+import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 public class BenchmarkObject4 implements BenchmarkObject {
     public JRef<BenchmarkObject> ref0;

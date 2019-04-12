@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.demo;
 
-import de.tudarmstadt.consistency.replobj.java.JReplicaSystem;
+import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 
 /**
  * Created on 14.03.19.
