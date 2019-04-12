@@ -44,7 +44,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == SetFieldOp(path, fldName, newVal))
-			println(s"cache hit with $cachedOp")
 	}
 
 	override def internalGetField[R](path : ContextPath, fieldName : String) : R =  opCache.get(path) match {
@@ -55,7 +54,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == GetFieldOp(path, fieldName))
-			println(s"cache hit with $cachedOp: $cachedResult")
 			cachedResult.asInstanceOf[R]
 	}
 

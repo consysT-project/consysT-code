@@ -70,6 +70,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 				Await.result(futures(i), Duration(20, TimeUnit.SECONDS))
 			}
 		} finally {
+			service.shutdown()
 			service.awaitTermination(20, TimeUnit.SECONDS)
 		}
 	}

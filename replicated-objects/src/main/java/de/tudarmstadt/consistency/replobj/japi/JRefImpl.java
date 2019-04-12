@@ -1,7 +1,6 @@
-package de.tudarmstadt.consistency.replobj.java;
+package de.tudarmstadt.consistency.replobj.japi;
 
 import de.tudarmstadt.consistency.replobj.Ref;
-import de.tudarmstadt.consistency.replobj.java.JRef;
 
 import java.io.Serializable;
 
