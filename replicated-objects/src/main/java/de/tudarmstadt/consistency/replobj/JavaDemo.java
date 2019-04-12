@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj;
 
-import de.tudarmstadt.consistency.replobj.java.JConsistencyLevel;
+import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
 
 import java.io.Serializable;
 

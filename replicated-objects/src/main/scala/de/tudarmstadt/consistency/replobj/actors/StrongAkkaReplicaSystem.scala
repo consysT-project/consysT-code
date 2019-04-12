@@ -1,11 +1,9 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.locks.{ReentrantLock, ReentrantReadWriteLock}
-
 import akka.actor.ActorRef
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel.Strong
+import de.tudarmstadt.consistency.replobj.Utils.TxMutex
 import de.tudarmstadt.consistency.replobj.actors.Requests._
 import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
@@ -35,10 +33,7 @@ trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 object StrongAkkaReplicaSystem {
 
 	trait StrongReplicatedObject[Addr, T <: AnyRef]
-		extends AkkaReplicatedObject[Addr, T]
-		//Strong objects cache their results for MVCC
-		with AkkaMultiversionReplicatedObject[Addr, T] {
-
+		extends AkkaReplicatedObject[Addr, T]	{
 		override final def consistencyLevel : ConsistencyLevel = Strong
 	}
 
@@ -49,9 +44,11 @@ object StrongAkkaReplicaSystem {
 			init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
 		)(
 			protected implicit val ttt : TypeTag[T]
-		) extends StrongReplicatedObject[Addr, T] {
+		) extends StrongReplicatedObject[Addr, T]
+			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
+			//TODO: Implement correct 2PL
 			private val txMutex = new TxMutex()
 
 			private def lock(txid : Long) : Unit = {
@@ -59,7 +56,7 @@ object StrongAkkaReplicaSystem {
 			}
 
 			private def unlock(txid : Long) : Unit = {
-				txMutex.unlockTxid()
+				txMutex.unlockTxid(txid)
 			}
 
 			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
@@ -85,17 +82,19 @@ object StrongAkkaReplicaSystem {
 					lock(txid)
 					LockRes(getObject)
 
-				case MergeAndUnlock(txid, null, op, result) =>
+				case MergeReq(null, op, result) =>
 					cache(op, result)
-					unlock(txid)
+					()
 
-				case MergeAndUnlock(txid, newObj : T, op, result) =>
+				case MergeReq(newObj : T, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					unlock(txid)
+					()
 
-				case ReadStrongField(GetFieldOp(path, fldName)) =>
-					ReadResult(internalGetField(path, fldName))
+				case UnlockReq(txid) =>
+					unlock(txid)
+					()
+
 
 				case _ => super.handleRequest(request)
 			}
@@ -124,7 +123,9 @@ object StrongAkkaReplicaSystem {
 			init : T, val addr : Addr, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem[Addr]
 		)(
 			protected implicit val ttt : TypeTag[T]
-		) extends StrongReplicatedObject[Addr, T] {
+		) extends StrongReplicatedObject[Addr, T]
+			//TODO: Multiversion on follower? How to GC this?
+			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
 
@@ -134,7 +135,9 @@ object StrongAkkaReplicaSystem {
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
 				setObject(masterObj)
 				val res = super.internalInvoke[R](opid, methodName, args)
-				handler.request(addr, MergeAndUnlock(opid.txid, getObject, InvokeOp(opid, methodName, args), res))
+
+				handler.request(addr, MergeReq(getObject, InvokeOp(opid, methodName, args), res))
+				handler.request(addr, UnlockReq(opid.txid))
 				handler.close()
 				res
 			}
@@ -146,8 +149,8 @@ object StrongAkkaReplicaSystem {
 				setObject(masterObj)
 				val res = super.internalGetField[R](opid, fldName)
 
-				val mergeReq = MergeAndUnlock(opid.txid, null, GetFieldOp(opid, fldName), res)
-				handler.request(addr, mergeReq)
+				handler.request(addr,  MergeReq(null, GetFieldOp(opid, fldName), res))
+				handler.request(addr, UnlockReq(opid.txid))
 				handler.close()
 
 				res
@@ -160,8 +163,8 @@ object StrongAkkaReplicaSystem {
 				setObject(masterObj)
 				super.internalSetField(opid, fldName, newVal)
 
-				val mergeReq = MergeAndUnlock(opid.txid, getObject, SetFieldOp(opid, fldName, newVal), ())
-				handler.request(addr, mergeReq)
+				handler.request(addr, MergeReq(getObject, SetFieldOp(opid, fldName, newVal), ()))
+				handler.request(addr, UnlockReq(opid.txid))
 				handler.close()
 			}
 
@@ -173,23 +176,10 @@ object StrongAkkaReplicaSystem {
 
 
 
-
-
 	sealed trait StrongReq extends Request
 	case class LockReq(txid : Long) extends StrongReq with ReturnRequest
 	case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	case class MergeAndUnlock(txid : Long, obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
-	case class ReadStrongField(op : GetFieldOp[Any]) extends StrongReq with ReturnRequest
-
-
-
-//	private case object SynchronizeWithStrongMaster extends StrongReq with ReturnRequest
-//
-//	private case class StrongSynchronized[T <: AnyRef](obj : T)
-	case class ReadResult(res : Any)
-
-
-
-	case object MergeAck
+	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
+	case class UnlockReq(txid : Long) extends StrongReq with ReturnRequest
 
 }

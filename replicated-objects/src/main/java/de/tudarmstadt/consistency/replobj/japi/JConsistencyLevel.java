@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.replobj.java;
+package de.tudarmstadt.consistency.replobj.japi;
 
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel;
 
