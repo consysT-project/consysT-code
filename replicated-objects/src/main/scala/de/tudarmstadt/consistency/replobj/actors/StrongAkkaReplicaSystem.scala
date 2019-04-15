@@ -53,24 +53,26 @@ object StrongAkkaReplicaSystem {
 
 			private[actors] def lock(txid : Long) : Unit = {
 				txMutex.lockTxid(txid)
+				println(s"locked $this for $txid")
 			}
 
 			private[actors] def unlock(txid : Long) : Unit = {
 				txMutex.unlockTxid(txid)
+				println(s"unlocked $this for $txid")
 			}
 
-			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-				val res = super.internalInvoke[R](opid, methodName, args)
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+				val res = super.internalInvoke[R](tx, methodName, args)
 				res
 			}
 
-			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
-				val result = super.internalGetField[R](opid, fldName)
+			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
+				val result = super.internalGetField[R](tx, fldName)
 				result
 			}
 
-			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				super.internalSetField(opid, fldName, newVal)
+			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
+				super.internalSetField(tx, fldName, newVal)
 			}
 
 			override def internalSync() : Unit = {
@@ -99,22 +101,16 @@ object StrongAkkaReplicaSystem {
 				case _ => super.handleRequest(request)
 			}
 
-			override protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = {
-				lock(ctx.txid)
-				replicaSystem.GlobalContext.addLockedObject(this)
+			override protected def transactionStarted(tx : Transaction) : Unit = {
+				lock(tx.txid)
+				super.transactionFinished(tx)
+
 			}
 
-			override protected def nestedTransactionStarted(ctx : ContextPath) : Unit = {
-				lock(ctx.txid)
-				replicaSystem.GlobalContext.addLockedObject(this)
-			}
+			override protected def transactionFinished(tx : Transaction) : Unit = {
+				unlock(tx.txid)
+				super.transactionFinished(tx)
 
-			override protected def nestedTransactionFinished(ctx : ContextPath) : Unit = {
-			//	unlock(ctx.txid)
-			}
-
-			override protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = {
-			//	unlock(ctx.txid)
 			}
 
 			override def toString : String = s"StrongMaster($addr, $getObject)"
@@ -131,47 +127,41 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 
-			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
-				replicaSystem.GlobalContext.addLockedObject(this)
+				lockWithHandler(tx.txid, handler)
+				val res = super.internalInvoke[R](tx, methodName, args)
 
-				setObject(masterObj)
-				val res = super.internalInvoke[R](opid, methodName, args)
-
-				handler.request(addr, MergeReq(getObject, InvokeOp(opid, methodName, args), res))
-				//handler.request(addr, UnlockReq(opid.txid))
+				handler.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
+				handler.request(addr, UnlockReq(tx.txid))
 
 				handler.close()
 				res
 			}
 
-			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
+			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val LockRes(masterObj : T) = handler.request(addr, LockReq(opid.txid))
-				replicaSystem.GlobalContext.addLockedObject(this)
+				lockWithHandler(tx.txid, handler)
+				val res = super.internalGetField[R](tx, fldName)
 
-				setObject(masterObj)
-				val res = super.internalGetField[R](opid, fldName)
-
-				handler.request(addr,  MergeReq(null, GetFieldOp(opid, fldName), res))
-				//handler.request(addr, UnlockReq(opid.txid))
+				handler.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
+				handler.request(addr, UnlockReq(tx.txid))
 
 				handler.close()
 
 				res
 			}
 
-			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
+			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				lockWithHandler(opid.txid, handler)
-				super.internalSetField(opid, fldName, newVal)
+				lockWithHandler(tx.txid, handler)
+				super.internalSetField(tx, fldName, newVal)
 
-				handler.request(addr, MergeReq(getObject, SetFieldOp(opid, fldName, newVal), ()))
-				//handler.request(addr, UnlockReq(opid.txid))
+				handler.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
+				handler.request(addr, UnlockReq(tx.txid))
 
 				handler.close()
 			}
@@ -189,7 +179,7 @@ object StrongAkkaReplicaSystem {
 
 			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(txid))
-				replicaSystem.GlobalContext.addLockedObject(this)
+//				replicaSystem.GlobalContext.addLockedObject(this)
 				setObject(masterObj)
 			}
 

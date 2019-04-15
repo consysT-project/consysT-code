@@ -21,11 +21,12 @@ object Requests {
 
 
 	sealed trait Operation[+R] {
-		def path : ContextPath
+		//The transaction in which the operation happens
+		def tx : Transaction
 	}
-	case class GetFieldOp[+R](path : ContextPath, fldName : String) extends Operation[R]
-	case class SetFieldOp(path : ContextPath, fldName : String, newVal : Any) extends Operation[Unit]
-	case class InvokeOp[+R](path : ContextPath, mthdName : String, args : Seq[Any]) extends Operation[R]
+	case class GetFieldOp[+R](tx : Transaction, fldName : String) extends Operation[R]
+	case class SetFieldOp(tx : Transaction, fldName : String, newVal : Any) extends Operation[Unit]
+	case class InvokeOp[+R](tx : Transaction, mthdName : String, args : Seq[Any]) extends Operation[R]
 
 
 

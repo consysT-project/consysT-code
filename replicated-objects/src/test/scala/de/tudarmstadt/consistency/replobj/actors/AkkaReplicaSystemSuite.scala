@@ -48,8 +48,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 				populate(replicaSystems(i), i)
 			}
 
-			val result = testCode(F(replicaSystems))
-			result
+			testCode(F(replicaSystems))
 		} finally {
 			replicaSystems.foreach { replica => if (replica != null) replica.close() }
 		}

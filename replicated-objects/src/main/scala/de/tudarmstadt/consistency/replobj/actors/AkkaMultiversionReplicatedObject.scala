@@ -12,48 +12,48 @@ import scala.collection.mutable
 trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
 
 	//TODO: implement correct garbage collection for multi version cache
-	private val opCache : mutable.Map[ContextPath, (Operation[_], Any)] = mutable.HashMap.empty
+	private val opCache : mutable.Map[Transaction, (Operation[_], Any)] = mutable.HashMap.empty
 
 	protected def clearCache() : Unit = {
 		opCache.clear()
 	}
 
 	protected def cache[R](op : Operation[R], value : R) : Unit = {
-		opCache.put(op.path, (op, value)) match {
+		opCache.put(op.tx, (op, value)) match {
 			case None => //alles supi!
 			case Some(_) => sys.error(s"cannot cache $op. already cached.")
 		}
 	}
 
-	override def internalInvoke[R](path : ContextPath, methodName : String, args : Seq[Any]) : R =  opCache.get(path) match {
+	override def internalInvoke[R](tx : Transaction, methodName : String, args : Seq[Any]) : R =  opCache.get(tx) match {
 		case None =>
-			val res = super.internalInvoke[R](path, methodName, args)
-			opCache.put(path, (InvokeOp(path, methodName, args), res))
+			val res = super.internalInvoke[R](tx, methodName, args)
+			opCache.put(tx, (InvokeOp(tx, methodName, args), res))
 			res
 
 		case Some((cachedOp, cachedResult)) =>
-			assert(cachedOp == InvokeOp(path, methodName, args))
+			assert(cachedOp == InvokeOp(tx, methodName, args))
 			cachedResult.asInstanceOf[R]
 	}
 
-	override def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = opCache.get(path) match {
+	override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = opCache.get(tx) match {
 		case None =>
-			super.internalSetField(path, fldName, newVal)
-			opCache.put(path, (SetFieldOp(path, fldName, newVal), ()))
+			super.internalSetField(tx, fldName, newVal)
+			opCache.put(tx, (SetFieldOp(tx, fldName, newVal), ()))
 
 
 		case Some((cachedOp, cachedResult)) =>
-			assert(cachedOp == SetFieldOp(path, fldName, newVal))
+			assert(cachedOp == SetFieldOp(tx, fldName, newVal))
 	}
 
-	override def internalGetField[R](path : ContextPath, fieldName : String) : R =  opCache.get(path) match {
+	override def internalGetField[R](tx : Transaction, fieldName : String) : R =  opCache.get(tx) match {
 		case None =>
-			val res = super.internalGetField[R](path, fieldName)
-			opCache.put(path, (GetFieldOp(path, fieldName), res))
+			val res = super.internalGetField[R](tx, fieldName)
+			opCache.put(tx, (GetFieldOp(tx, fieldName), res))
 			res
 
 		case Some((cachedOp, cachedResult)) =>
-			assert(cachedOp == GetFieldOp(path, fieldName))
+			assert(cachedOp == GetFieldOp(tx, fieldName))
 			cachedResult.asInstanceOf[R]
 	}
 

@@ -39,66 +39,50 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	def initialize() : Unit = { /*do nothing*/	}
 
 
-	private def transaction[R](f : ContextPath => R) : R = {
-		import replicaSystem.GlobalContext
+	private def transaction[R](f : Transaction => R) : R = {
+		import replicaSystem.Tx
 
 		//Checks whether there is an active transaction
-		val isNested = GlobalContext.hasCurrentTransaction
-		if (!isNested) GlobalContext.startNewTransaction()
+		Tx.get.newTransaction(consistencyLevel)
 
-		val path = GlobalContext.getBuilder.nextPath(consistencyLevel)
+		val currentTransaction = Tx.get.getCurrentTransaction
 
-		GlobalContext.getBuilder.push(consistencyLevel)
-
-		if (!isNested) toplevelTransactionStarted(path)
-		else nestedTransactionStarted(path)
-
+		transactionStarted(currentTransaction)
 		//Execute f
-		val result = f(path)
+		val result = f(currentTransaction)
+		transactionFinished(currentTransaction)
 
-		if (!isNested) {
-			toplevelTransactionFinished(path)
-			println("unlock all " + replicaSystem.GlobalContext.locked)
-			replicaSystem.GlobalContext.unlockAllObjects()
-		} else {
-			nestedTransactionFinished(path)
-		}
-
-		GlobalContext.getBuilder.pop()
-
-		if (!isNested) GlobalContext.endTransaction()
+		println(Thread.currentThread() + " try commit " + currentTransaction.txid)
+		Tx.get.commitTransaction()
 
 		result
 	}
 
-	protected def toplevelTransactionStarted(ctx : ContextPath) : Unit = { }
+	protected def transactionStarted(tx : Transaction) : Unit = { }
 
-	protected def nestedTransactionStarted(ctx : ContextPath) : Unit = { }
-
-	protected def nestedTransactionFinished(ctx : ContextPath) : Unit = { }
-
-	protected def toplevelTransactionFinished(ctx : ContextPath) : Unit = { }
+	protected def transactionFinished(tx : Transaction) : Unit = { }
 
 
-	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { path =>
-		internalInvoke[R](path, methodName, args)
+	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { tx =>
+		println(Thread.currentThread() + " invoke " + methodName + "  " + tx)
+		internalInvoke[R](tx, methodName, args)
 	}
 
-	override final def getField[R](fieldName : String) : R = transaction[R] { path =>
-		internalGetField[R](path, fieldName)
+	override final def getField[R](fieldName : String) : R = transaction[R] { tx =>
+		println(Thread.currentThread() + " get " + fieldName + "  " + tx)
+		internalGetField[R](tx, fieldName)
 	}
 
-	override final def setField[R](fieldName : String, value : R) : Unit = transaction[Unit] { path =>
-		internalSetField(path, fieldName, value)
+	override final def setField[R](fieldName : String, value : R) : Unit = transaction[Unit] { tx =>
+		println(Thread.currentThread() + " set " + fieldName + " " + value + "  " + tx)
+		internalSetField(tx, fieldName, value)
 	}
 
 	override final def sync() : Unit = {
+		require(!replicaSystem.Tx.get.hasCurrentTransaction)
 
-		import replicaSystem.GlobalContext
+		transaction( tx => internalSync()	)
 
-		GlobalContext.startNewTransaction()
-		internalSync()
-		GlobalContext.endTransaction()
 	}
 
 
@@ -161,27 +145,27 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	def internalInvoke[R](path: ContextPath, methodName: String, args: Seq[Any]) : R = {
-		ReflectiveAccess.doInvoke[R](path, methodName, args)
+	def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
+		ReflectiveAccess.doInvoke[R](methodName, args)
 	}
 
-	def internalGetField[R](path : ContextPath, fldName : String) : R = {
-		ReflectiveAccess.doGetField(path, fldName)
+	def internalGetField[R](tx: Transaction, fldName : String) : R = {
+		ReflectiveAccess.doGetField(fldName)
 	}
 
-	def internalSetField(path : ContextPath, fldName : String, newVal : Any) : Unit = {
-		ReflectiveAccess.doSetField(path, fldName, newVal)
+	def internalSetField(tx: Transaction, fldName : String, newVal : Any) : Unit = {
+		ReflectiveAccess.doSetField(fldName, newVal)
 	}
 
 	final def internalApplyOp[R](op : Operation[R]) : R = op match {
-		case GetFieldOp(id, fldName) =>
-			internalGetField(id, fldName)
+		case GetFieldOp(tx, fldName) =>
+			internalGetField(tx, fldName)
 
-		case SetFieldOp(id, fldName, newVal) =>
-			internalSetField(id, fldName, newVal).asInstanceOf[R]
+		case SetFieldOp(tx, fldName, newVal) =>
+			internalSetField(tx, fldName, newVal).asInstanceOf[R]
 
-		case InvokeOp(id, mthdName, args) =>
-			internalInvoke(id, mthdName, args)
+		case InvokeOp(tx, mthdName, args) =>
+			internalInvoke(tx, mthdName, args)
 	}
 
 
@@ -190,7 +174,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-
+	override def toString : String =
+		s"AkkaReplicatedObject[$consistencyLevel]($state)"
 
 
 	private final object ReflectiveAccess {
@@ -203,7 +188,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 			objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(state)
 		}
 
-		def doInvoke[R](opid : ContextPath, methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
+		def doInvoke[R](methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
 			val tpe = typeOf[T]
 			val mthdTerm = TermName(methodName)
 
@@ -213,7 +198,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 			result.asInstanceOf[R]
 		}
 
-		def doGetField[R](opid : ContextPath, fieldName : String) : R = ReflectiveAccess.synchronized {
+		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
 			val tpe = typeOf[T]
 			val fldTerm = TermName(fieldName)
 
@@ -223,7 +208,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 			result.asInstanceOf[R]
 		}
 
-		def doSetField(opid : ContextPath, fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
+		def doSetField(fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
 			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
 			val fieldMirror = objMirror.reflectField(fieldSymbol)
 			fieldMirror.set(value)

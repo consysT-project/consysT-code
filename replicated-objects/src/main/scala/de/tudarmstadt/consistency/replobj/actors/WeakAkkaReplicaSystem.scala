@@ -49,16 +49,16 @@ object WeakAkkaReplicaSystem {
 		with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-				super.internalInvoke(opid, methodName, args)
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+				super.internalInvoke(tx, methodName, args)
 			}
 
-			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
-				super.internalGetField(opid, fldName)
+			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
+				super.internalGetField(tx, fldName)
 			}
 
-			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				super.internalSetField(opid, fldName, newVal)
+			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
+				super.internalSetField(tx, fldName, newVal)
 			}
 
 			override def internalSync() : Unit = {
@@ -70,12 +70,12 @@ object WeakAkkaReplicaSystem {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
-						replicaSystem.GlobalContext.setCurrentTransaction(op.path)
+						replicaSystem.Tx.get.setCurrentTransaction(op.tx)
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
-						replicaSystem.GlobalContext.endTransaction()
+						replicaSystem.Tx.get.commitTransaction()
 					})
 
 					WeakSynchronized(getObject)
@@ -98,18 +98,18 @@ object WeakAkkaReplicaSystem {
 
 			val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
-			override def internalInvoke[R](opid: ContextPath, methodName: String, args: Seq[Any]) : R = {
-				unsynchronized += InvokeOp(opid, methodName, args)
-				super.internalInvoke(opid, methodName, args)
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+				unsynchronized += InvokeOp(tx, methodName, args)
+				super.internalInvoke(tx, methodName, args)
 			}
 
-			override def internalGetField[R](opid : ContextPath, fldName : String) : R = {
-				super.internalGetField(opid, fldName)
+			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
+				super.internalGetField(tx, fldName)
 			}
 
-			override def internalSetField(opid : ContextPath, fldName : String, newVal : Any) : Unit = {
-				unsynchronized += SetFieldOp(opid, fldName, newVal)
-				super.internalSetField(opid, fldName, newVal)
+			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
+				unsynchronized += SetFieldOp(tx, fldName, newVal)
+				super.internalSetField(tx, fldName, newVal)
 			}
 
 
