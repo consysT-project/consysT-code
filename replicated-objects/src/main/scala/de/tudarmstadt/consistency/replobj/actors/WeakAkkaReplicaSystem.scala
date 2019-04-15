@@ -75,7 +75,7 @@ object WeakAkkaReplicaSystem {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
-						replicaSystem.Tx.get.commitTransaction()
+						replicaSystem.Tx.get.clear()
 					})
 
 					WeakSynchronized(getObject)

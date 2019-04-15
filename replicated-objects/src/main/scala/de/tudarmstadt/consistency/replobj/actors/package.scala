@@ -20,7 +20,7 @@ package object actors {
 		with WeakAkkaReplicaSystem[String] {
 
 		override protected def freshAddr() : String =
-			"$$" + String.valueOf(Random.alphanumeric.take(12).toArray)
+			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
 
 	}
 

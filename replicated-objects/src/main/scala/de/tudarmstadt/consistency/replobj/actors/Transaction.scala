@@ -10,7 +10,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait Transaction {
+trait Transaction extends Serializable {
 
 	def consistencyLevel : ConsistencyLevel
 	def txid : Long
@@ -25,23 +25,29 @@ trait Transaction {
 		new NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
 	}
 
-	private val sequence : mutable.Map[ConsistencyLevel, Int] = mutable.HashMap.empty
+	//TODO: Where to put this?
+	@transient private var sequence : mutable.Map[ConsistencyLevel, Int] = null
 
-	private def incAndGetSeqFor(level : ConsistencyLevel): Int = sequence.get(level) match {
-		case None =>
-			sequence.put(level, 0)
-			0
-		case Some(x) =>
-			sequence.put(level, x + 1)
-			x + 1
+	private def incAndGetSeqFor(level : ConsistencyLevel): Int = {
+		if (sequence == null)
+			sequence = mutable.HashMap.empty
+
+		sequence.get(level) match {
+			case None =>
+				sequence.put(level, 0)
+				0
+			case Some(x) =>
+				sequence.put(level, x + 1)
+				x + 1
+		}
 	}
 }
 
 object Transaction {
 
 	@SerialVersionUID(-9453185352L)
-	class ToplevelTransaction(override val txid : Long, override val consistencyLevel : ConsistencyLevel)
-		extends Transaction with Serializable {
+	case class ToplevelTransaction(override val txid : Long, override val consistencyLevel : ConsistencyLevel)
+		extends Transaction {
 
 		override def contextPath : ContextPath = ContextPath(txid)
 		override def getParent : Option[Transaction] = None
@@ -50,8 +56,8 @@ object Transaction {
 	}
 
 	@SerialVersionUID(-1542145564L)
-	class NestedTransaction(val parent : Transaction, val seqId : Int, override val consistencyLevel : ConsistencyLevel)
-		extends Transaction with Serializable {
+	case class NestedTransaction(parent : Transaction, seqId : Int, override val consistencyLevel : ConsistencyLevel)
+		extends Transaction {
 
 		override def txid : Long = parent.txid
 

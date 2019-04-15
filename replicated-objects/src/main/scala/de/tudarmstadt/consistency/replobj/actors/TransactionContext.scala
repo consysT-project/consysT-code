@@ -41,16 +41,9 @@ class TransactionContext {
 		} else {
 			currentTransaction = new ToplevelTransaction(Random.nextLong, consistencyLevel)
 		}
-		println(Thread.currentThread() + " new tx " + currentTransaction)
 	}
 
 	def commitTransaction() : Unit = {
-		println(Thread.currentThread() + " commit tx " + currentTransaction)
-
-		if (!hasCurrentTransaction) {
-			assert(false, "thread: " + Thread.currentThread())
-		}
-
 		require(hasCurrentTransaction)
 
 		currentTransaction.getParent match {
@@ -68,7 +61,6 @@ class TransactionContext {
 		* Clears the current state of the transaction and resets it to fresh
 		*/
 	def clear() : Unit = {
-		println(Thread.currentThread() + " clear tx " + currentTransaction)
 		currentTransaction = null
 	}
 
