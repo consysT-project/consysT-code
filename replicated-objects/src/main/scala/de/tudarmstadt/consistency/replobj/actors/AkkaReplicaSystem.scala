@@ -37,56 +37,73 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
-	protected[actors] object GlobalContext {
-		private val builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
-		val locked : DynamicVariable[mutable.Buffer[LockableReplicatedObject[_]]] = new DynamicVariable(mutable.Buffer.empty)
+	protected[actors] object Tx {
+		//TODO: Create a TX context for every thread!
+		private val context : DynamicVariable[TransactionContext] = new DynamicVariable(null)
 
-		private def setBuilder(builder: ContextPathBuilder) : Unit = {
-			this.builder.value = Some(builder)
+		def get : TransactionContext = {
+			if (context.value == null)
+				context.value = new TransactionContext
+
+			context.value
 		}
 
-		private[AkkaReplicaSystem] def resetBuilder() : Unit = {
-			this.builder.value = None
+		def clear() : Unit = {
+			if (context.value != null) {
+				context.value.clear()
+				context.value = null
+			}
 		}
 
-		def getBuilder : ContextPathBuilder = {
-			require(hasCurrentTransaction)
-			builder.value.get
-		}
-
-		/**
-			* Checks whether there is an active transaction on the
-			* @return
-			*/
-		def hasCurrentTransaction : Boolean =
-			builder.value.nonEmpty
-
-
-		def startNewTransaction() : Unit = {
-			require(!hasCurrentTransaction)
-			val txid = Random.nextLong
-			setBuilder(new ContextPathBuilder(txid))
-		}
-
-		def endTransaction() : Unit = {
-			require(hasCurrentTransaction)
-			resetBuilder()
-		}
-
-		def setCurrentTransaction(path : ContextPath) : Unit = {
-			require(!hasCurrentTransaction)
-			setBuilder(new ContextPathBuilder(path))
-		}
-
-		def addLockedObject(obj : LockableReplicatedObject[_]) : Unit = {
-			locked.value += obj
-		}
-
-		def unlockAllObjects() : Unit = {
-			locked.value.foreach(obj => obj.unlock(getBuilder.txid))
-		}
-
-		override def toString : String = s"context($builder)"
+//		private val builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
+//		val locked : DynamicVariable[mutable.Buffer[LockableReplicatedObject[_]]] = new DynamicVariable(mutable.Buffer.empty)
+//
+//		private def setBuilder(builder: ContextPathBuilder) : Unit = {
+//			this.builder.value = Some(builder)
+//		}
+//
+//		private[AkkaReplicaSystem] def resetBuilder() : Unit = {
+//			this.builder.value = None
+//		}
+//
+//		def getBuilder : ContextPathBuilder = {
+//			require(hasCurrentTransaction)
+//			builder.value.get
+//		}
+//
+//		/**
+//			* Checks whether there is an active transaction on the
+//			* @return
+//			*/
+//		def hasCurrentTransaction : Boolean =
+//			builder.value.nonEmpty
+//
+//
+//		def startNewTransaction() : Unit = {
+//			require(!hasCurrentTransaction)
+//			val txid = Random.nextLong
+//			setBuilder(new ContextPathBuilder(txid))
+//		}
+//
+//		def endTransaction() : Unit = {
+//			require(hasCurrentTransaction)
+//			resetBuilder()
+//		}
+//
+//		def setCurrentTransaction(path : ContextPath) : Unit = {
+//			require(!hasCurrentTransaction)
+//			setBuilder(new ContextPathBuilder(path))
+//		}
+//
+//		def addLockedObject(obj : LockableReplicatedObject[_]) : Unit = {
+//			locked.value += obj
+//		}
+//
+//		def unlockAllObjects() : Unit = {
+//			locked.value.foreach(obj => obj.unlock(getBuilder.txid))
+//		}
+//
+//		override def toString : String = s"context($builder)"
 	}
 
 
@@ -259,11 +276,9 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 		private class RequestHandlerActor extends Actor {
 
 			override def receive : Receive = {
-				case InitHandler => if (GlobalContext.hasCurrentTransaction) {
-					//Ends a transaction that might be present from an previous RequestHandlerActor that was
-					//executed on this thread. TODO: Does this actually happen?
-					GlobalContext.endTransaction()
-				}
+				case InitHandler =>
+					Tx.clear()
+					()
 
 				case HandleRequest(addr : Addr, request) =>	localObjects.get(addr) match {
 					case None => sys.error(s"object $addr not found")
@@ -271,6 +286,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 				}
 
 				case CloseHandler =>
+					//Clears all transaction data for the next actor that runs on this thread.
 					context.stop(self)
 			}
 		}

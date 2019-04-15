@@ -24,6 +24,10 @@ case class ContextPath(txid : Long, sequence : List[(ConsistencyLevel, Int)] = N
 		copy(sequence = (l, seqnr + 1) :: sequence.tail )
 	}
 
+	def withSeq(consistencyLevel : ConsistencyLevel, seq : Int) : ContextPath = {
+		copy(sequence = sequence ++ Seq((consistencyLevel, seq)) )
+	}
+
 	def isEmpty : Boolean = sequence.isEmpty
 
 	override def toString : String = {

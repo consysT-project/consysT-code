@@ -28,6 +28,8 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
 			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
 		}
+
+		println("done.")
 	}
 
 
