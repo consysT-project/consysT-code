@@ -23,12 +23,4 @@ object ConsistencyLevel {
 	@SerialVersionUID(639388L)
 	case object Local extends ConsistencyLevel
 
-//	private val WeakType : Class[Weak] = classOf[Weak]
-//	private val StrongType : Class[Strong] = classOf[Strong]
-//
-//	def isWeak[L : Class] : Boolean =
-//		implicitly[Class[L]] == WeakType
-//
-//	def isStrong[L : Class] : Boolean =
-//		implicitly[Class[L]] == StrongType
 }

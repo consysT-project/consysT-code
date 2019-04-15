@@ -38,7 +38,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 
 	/*The current global context of this replica. The context is different for each thread that is accessing it.*/
 	protected[actors] object Tx {
-		//TODO: Create a TX context for every thread!
 		private val context : DynamicVariable[TransactionContext] = new DynamicVariable(null)
 
 		def get : TransactionContext = {
@@ -55,55 +54,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr] {
 			}
 		}
 
-//		private val builder : DynamicVariable[Option[ContextPathBuilder]] = new DynamicVariable(None)
-//		val locked : DynamicVariable[mutable.Buffer[LockableReplicatedObject[_]]] = new DynamicVariable(mutable.Buffer.empty)
-//
-//		private def setBuilder(builder: ContextPathBuilder) : Unit = {
-//			this.builder.value = Some(builder)
-//		}
-//
-//		private[AkkaReplicaSystem] def resetBuilder() : Unit = {
-//			this.builder.value = None
-//		}
-//
-//		def getBuilder : ContextPathBuilder = {
-//			require(hasCurrentTransaction)
-//			builder.value.get
-//		}
-//
-//		/**
-//			* Checks whether there is an active transaction on the
-//			* @return
-//			*/
-//		def hasCurrentTransaction : Boolean =
-//			builder.value.nonEmpty
-//
-//
-//		def startNewTransaction() : Unit = {
-//			require(!hasCurrentTransaction)
-//			val txid = Random.nextLong
-//			setBuilder(new ContextPathBuilder(txid))
-//		}
-//
-//		def endTransaction() : Unit = {
-//			require(hasCurrentTransaction)
-//			resetBuilder()
-//		}
-//
-//		def setCurrentTransaction(path : ContextPath) : Unit = {
-//			require(!hasCurrentTransaction)
-//			setBuilder(new ContextPathBuilder(path))
-//		}
-//
-//		def addLockedObject(obj : LockableReplicatedObject[_]) : Unit = {
-//			locked.value += obj
-//		}
-//
-//		def unlockAllObjects() : Unit = {
-//			locked.value.foreach(obj => obj.unlock(getBuilder.txid))
-//		}
-//
-//		override def toString : String = s"context($builder)"
 	}
 
 

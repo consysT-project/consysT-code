@@ -52,7 +52,6 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		val result = f(currentTransaction)
 		transactionFinished(currentTransaction)
 
-		println(Thread.currentThread() + " try commit " + currentTransaction.txid)
 		Tx.get.commitTransaction()
 
 		result
@@ -64,25 +63,23 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { tx =>
-		println(Thread.currentThread() + " invoke " + methodName + "  " + tx)
 		internalInvoke[R](tx, methodName, args)
 	}
 
 	override final def getField[R](fieldName : String) : R = transaction[R] { tx =>
-		println(Thread.currentThread() + " get " + fieldName + "  " + tx)
 		internalGetField[R](tx, fieldName)
 	}
 
 	override final def setField[R](fieldName : String, value : R) : Unit = transaction[Unit] { tx =>
-		println(Thread.currentThread() + " set " + fieldName + " " + value + "  " + tx)
 		internalSetField(tx, fieldName, value)
 	}
 
 	override final def sync() : Unit = {
 		require(!replicaSystem.Tx.get.hasCurrentTransaction)
 
-		transaction( tx => internalSync()	)
-
+		transaction {
+			tx => internalSync()
+		}
 	}
 
 

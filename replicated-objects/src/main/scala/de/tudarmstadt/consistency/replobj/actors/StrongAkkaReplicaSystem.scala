@@ -53,12 +53,10 @@ object StrongAkkaReplicaSystem {
 
 			private[actors] def lock(txid : Long) : Unit = {
 				txMutex.lockTxid(txid)
-				println(s"locked $this for $txid")
 			}
 
 			private[actors] def unlock(txid : Long) : Unit = {
 				txMutex.unlockTxid(txid)
-				println(s"unlocked $this for $txid")
 			}
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
