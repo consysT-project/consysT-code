@@ -11,7 +11,7 @@ import org.scalatest.fixture
 	* @author Mirko Köhler
 	*/
 class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSystemSuite {
-	override def numOfReplicas : Int = 2
+	override def numOfReplicas : Int = 4
 
 	test("testStrongMasterWithStrongNested") { F =>
 		val replica0 = F(0)
