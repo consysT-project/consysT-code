@@ -26,40 +26,41 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	private var state : T = _
 
 
-	def setObject(newObj : T) : Unit = {
+	protected def setObject(newObj : T) : Unit = {
 		state = newObj
 		replicaSystem.initializeRefFieldsFor(state)
 		ReflectiveAccess.updateObj()
-		initialize()
 	}
 
-	def getObject : T = state
-
-	/* For overriding only. Do not call this method manually. */
-	def initialize() : Unit = { /*do nothing*/	}
+	protected def getObject : T = state
 
 
 	private def transaction[R](f : Transaction => R) : R = {
-		import replicaSystem.Tx
 
 		//Checks whether there is an active transaction
-		Tx.get.newTransaction(consistencyLevel)
+		replicaSystem.newTransaction(consistencyLevel)
 
-		val currentTransaction = Tx.get.getCurrentTransaction
+		val currentTransaction = replicaSystem.getCurrentTransaction
 
 		transactionStarted(currentTransaction)
 		//Execute f
 		val result = f(currentTransaction)
 		transactionFinished(currentTransaction)
 
-		Tx.get.commitTransaction()
+		replicaSystem.commitTransaction()
 
 		result
 	}
 
 	protected def transactionStarted(tx : Transaction) : Unit = { }
 
-	protected def transactionFinished(tx : Transaction) : Unit = { }
+	protected def transactionFinished(tx : Transaction) : Unit = {
+		//Unlock all objects that are locked by this transaction
+		if (tx.isToplevel) {
+			println(Thread.currentThread() + ": unlock tx = " + tx)
+			tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
+		}
+	}
 
 
 	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { tx =>
@@ -75,7 +76,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 	override final def sync() : Unit = {
-		require(!replicaSystem.Tx.get.hasCurrentTransaction)
+		require(!replicaSystem.hasCurrentTransaction)
 
 		transaction {
 			tx => internalSync()
@@ -97,7 +98,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 					syncObject(rob.state, alreadySynced + rob)
 
 				case ref : RefImpl[_, _] if ref.replicaSystem == replicaSystem =>
-					val rob = ref.toReplicatedObject
+					val rob = ref.lookupObject
 					syncObject(rob, alreadySynced + ref)
 
 				case _ =>

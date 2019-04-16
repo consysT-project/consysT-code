@@ -9,6 +9,7 @@ import de.tudarmstadt.consistency.replobj.actors.StrongAkkaReplicaSystem.StrongR
 
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import scala.util.DynamicVariable
 
 
 /**
@@ -95,20 +96,22 @@ object StrongAkkaReplicaSystem {
 					unlock(txid)
 					()
 
-
 				case _ => super.handleRequest(request)
 			}
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
-				lock(tx.txid)
-				super.transactionFinished(tx)
-
+				if (opCache.keys.exists(tx2 => tx2.txid == tx.txid)) {
+					println("transaction is cached. No locking required.")
+				} else {
+					println(Thread.currentThread() + s": locked on master $addr for tx = $tx")
+					lock(tx.txid)
+					tx.addLock(addr.asInstanceOf[String])
+				}
+				super.transactionStarted(tx)
 			}
 
 			override protected def transactionFinished(tx : Transaction) : Unit = {
-				unlock(tx.txid)
 				super.transactionFinished(tx)
-
 			}
 
 			override def toString : String = s"StrongMaster($addr, $getObject)"
@@ -124,60 +127,42 @@ object StrongAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
+			//Handles communication with the master
+			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
 
 			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
-				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
-
-				lockWithHandler(tx.txid, handler)
 				val res = super.internalInvoke[R](tx, methodName, args)
+				handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
 
-				handler.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
-				handler.request(addr, UnlockReq(tx.txid))
-
-				handler.close()
 				res
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
-				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
-
-				lockWithHandler(tx.txid, handler)
 				val res = super.internalGetField[R](tx, fldName)
-
-				handler.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
-				handler.request(addr, UnlockReq(tx.txid))
-
-				handler.close()
+				handler.value.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
 
 				res
 			}
 
 			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
-				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
-
-				lockWithHandler(tx.txid, handler)
 				super.internalSetField(tx, fldName, newVal)
-
-				handler.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
-				handler.request(addr, UnlockReq(tx.txid))
-
-				handler.close()
+				handler.value.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
 			}
 
 			override def internalSync() : Unit = {	}
 
 
 
-			override private[actors] def lock(txid : Long) : Unit = ???
+			override private[actors] def lock(txid : Long) : Unit = {
+				lockWithHandler(txid, replicaSystem.acquireHandlerFrom(masterReplica))
+			}
 
 			override private[actors] def unlock(txid : Long) : Unit = {
-				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
-				unlockWithHandler(txid, handler)
+				unlockWithHandler(txid, replicaSystem.acquireHandlerFrom(masterReplica))
 			}
 
 			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
 				val LockRes(masterObj : T) = handler.request(addr, LockReq(txid))
-//				replicaSystem.GlobalContext.addLockedObject(this)
 				setObject(masterObj)
 			}
 
@@ -185,9 +170,31 @@ object StrongAkkaReplicaSystem {
 				handler.request(addr, UnlockReq(txid))
 			}
 
-
 			override def toString : String = s"StrongFollower($addr, $getObject)"
 
+
+			override protected def transactionStarted(tx : Transaction) : Unit = {
+				assert(handler.value == null)
+
+				handler.value = replicaSystem.acquireHandlerFrom(masterReplica)
+
+				if (opCache.keys.exists(tx2 => tx2.txid == tx.txid)) {
+					println("transaction is cached. No locking required.")
+				} else {
+					println(Thread.currentThread() + s": locked on follower $addr for tx = $tx")
+					lockWithHandler(tx.txid, handler.value)
+					tx.addLock(addr.asInstanceOf[String])
+				}
+
+				super.transactionStarted(tx)
+			}
+
+			override protected def transactionFinished(tx : Transaction) : Unit = {
+				handler.value.close()
+				handler.value = null
+
+				super.transactionFinished(tx)
+			}
 
 
 

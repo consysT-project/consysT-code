@@ -11,8 +11,8 @@ trait Ref[Addr, T <: AnyRef] extends Serializable {
 	val addr : Addr
 	val consistencyLevel : ConsistencyLevel
 
-	def toReplicatedObject : ReplicatedObject[T]
+	def lookupObject : ReplicatedObject[T]
 
 	/* shortcut for Java implementation */
-	final def remote : T = toReplicatedObject.remote
+	final def remote : T = lookupObject.remote
 }
