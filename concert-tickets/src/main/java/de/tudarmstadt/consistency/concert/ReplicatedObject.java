@@ -75,6 +75,6 @@ public class ReplicatedObject<T> {
     }
 
     public static <T> ReplicatedObject<T> from(JRef<T> ref) {
-        return new ReplicatedObject<T>((AkkaReplicatedObject<String, T>) ((JRefImpl<T>) ref).getRef().toReplicatedObject());
+        return new ReplicatedObject<T>((AkkaReplicatedObject<String, T>) ((JRefImpl<T>) ref).getRef().lookupObject());
     }
 }
