@@ -1,0 +1,22 @@
+Current:
+
+- information-flow analysis for replicated objects
+
+- better integration of transactions
+
+
+
+Future:
+
+- collections of replicated objects
+
+- information-flow type system for Scala
+
+- investigate cyclic object structures
+
+- investigate recursive methods
+
+- compiler (extension) for .remote
+
+- "standalone" transactions, i.e. transactions outside of methods
+
