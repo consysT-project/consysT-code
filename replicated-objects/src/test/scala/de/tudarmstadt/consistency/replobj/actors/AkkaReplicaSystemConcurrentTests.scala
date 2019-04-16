@@ -36,8 +36,6 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 	}
 
 
-
-
 	test("testTransactionOnDoubleObjects") { F =>
 
 		val refA1 = F(0).replicate("a1", A(100), Strong)

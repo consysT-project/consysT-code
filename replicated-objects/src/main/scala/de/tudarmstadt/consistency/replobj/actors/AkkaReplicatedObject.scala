@@ -57,7 +57,6 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	protected def transactionFinished(tx : Transaction) : Unit = {
 		//Unlock all objects that are locked by this transaction
 		if (tx.isToplevel) {
-			println(Thread.currentThread() + ": unlock tx = " + tx)
 			tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
 		}
 	}

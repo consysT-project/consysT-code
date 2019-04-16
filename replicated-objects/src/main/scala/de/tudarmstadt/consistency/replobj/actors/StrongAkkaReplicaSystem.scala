@@ -100,10 +100,9 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
-				if (opCache.keys.exists(tx2 => tx2.txid == tx.txid)) {
-					println("transaction is cached. No locking required.")
+				if (opCache.contains(tx)) {
+					//transaction is cached. No locking required.
 				} else {
-					println(Thread.currentThread() + s": locked on master $addr for tx = $tx")
 					lock(tx.txid)
 					tx.addLock(addr.asInstanceOf[String])
 				}
@@ -178,10 +177,9 @@ object StrongAkkaReplicaSystem {
 
 				handler.value = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				if (opCache.keys.exists(tx2 => tx2.txid == tx.txid)) {
-					println("transaction is cached. No locking required.")
+				if (opCache.contains(tx)) {
+					//transaction is cached. No locking required.
 				} else {
-					println(Thread.currentThread() + s": locked on follower $addr for tx = $tx")
 					lockWithHandler(tx.txid, handler.value)
 					tx.addLock(addr.asInstanceOf[String])
 				}
