@@ -12,14 +12,14 @@ import scala.collection.mutable
 trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
 
 	//TODO: implement correct garbage collection for multi version cache
-	private val opCache : mutable.Map[Transaction, (Operation[_], Any)] = mutable.HashMap.empty
+	protected val opCache : mutable.Map[Transaction, (Operation[_], Any)] = mutable.HashMap.empty
 
 	protected def clearCache() : Unit = {
 		opCache.clear()
 	}
 
 	protected def cache[R](op : Operation[R], value : R) : Unit = {
-		println(s"${Thread.currentThread()}: $this cached $op -> $value")
+//		println(s"${Thread.currentThread()}: $this cached $op -> $value")
 		opCache.put(op.tx, (op, value)) match {
 			case None => //alles supi!
 			case Some(_) => sys.error(s"cannot cache $op. already cached.")
@@ -34,6 +34,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == InvokeOp(tx, methodName, args))
+//			tx.removeLock(addr.asInstanceOf[String])
 			cachedResult.asInstanceOf[R]
 	}
 
@@ -45,6 +46,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == SetFieldOp(tx, fldName, newVal))
+//			tx.removeLock(addr.asInstanceOf[String])
 			assert(cachedResult == ())
 	}
 
@@ -56,7 +58,16 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == GetFieldOp(tx, fieldName))
+//			tx.removeLock(addr.asInstanceOf[String])
 			cachedResult.asInstanceOf[R]
+	}
+
+	override protected def transactionStarted(tx : Transaction) : Unit = {
+		super.transactionStarted(tx)
+	}
+
+	override protected def transactionFinished(tx : Transaction) : Unit = {
+		super.transactionFinished(tx)
 	}
 
 

@@ -17,11 +17,11 @@ public class JavaDemo {
 
 		Ref<String, SomeObj> ref = replicaSystem.replicate("a", new SomeObj(), SomeObj.class, JConsistencyLevel.WEAK);
 
-		int i = ref.toReplicatedObject().getField("f");
+		int i = ref.lookupObject().getField("f");
 
-		ref.toReplicatedObject().setField("f", 45);
+		ref.lookupObject().setField("f", 45);
 
-		int i2 = ref.toReplicatedObject().getField("f");
+		int i2 = ref.lookupObject().getField("f");
 
 		System.out.println("i = " + i + ", i2 = " + i2);
 	}

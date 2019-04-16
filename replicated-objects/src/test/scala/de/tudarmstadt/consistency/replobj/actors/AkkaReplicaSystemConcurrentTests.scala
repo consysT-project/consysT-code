@@ -19,10 +19,10 @@ import scala.util.{Failure, Random, Success}
 class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplicaSystemSuite {
 	override def numOfReplicas : Int = 4
 
-	test("testTransactionOnSingleObject") { F =>
+	test("testTransactionOnSingleMasterObject") { F =>
 		F(0).replicate("c", C(
 				F(0).replicate("a1", A(100), Strong),
-				F(0).replicate("a2", A(200), Strong)),
+				F(1).replicate("a2", A(200), Strong)),
 			Strong)
 
 		concurrent (F) { i =>
@@ -34,6 +34,8 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 			}
 		}
 	}
+
+
 
 
 	test("testTransactionOnDoubleObjects") { F =>

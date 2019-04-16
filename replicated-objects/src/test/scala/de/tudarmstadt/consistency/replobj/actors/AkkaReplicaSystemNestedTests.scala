@@ -13,7 +13,7 @@ import org.scalatest.fixture
 class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSystemSuite {
 	override def numOfReplicas : Int = 2
 
-	test("testStrongWithStrongNested") { F =>
+	test("testStrongMasterWithStrongNested") { F =>
 		val replica0 = F(0)
 
 		val refA1 = replica0.replicate("a1", A(100), Strong)
@@ -25,8 +25,27 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
+			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
+			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
+		}
+
+		println("done.")
+	}
+
+	test("testStrongFollowerWithStrongNested") { F =>
+		val replica0 = F(0)
+
+		val refA1 = replica0.replicate("a1", A(100), Strong)
+		val refA2 = replica0.replicate("a2", A(200), Strong)
+		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
+
+		val result = F(1).ref[B]("b", Strong).invoke[Int]("incAll")
+
+		assertResult (104) { result }
+
+		F.replicas.foreach {replica =>
+			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
+			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
 		}
 
 		println("done.")

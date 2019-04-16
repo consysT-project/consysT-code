@@ -70,12 +70,12 @@ object WeakAkkaReplicaSystem {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
-						replicaSystem.Tx.get.setCurrentTransaction(op.tx)
+						replicaSystem.setCurrentTransaction(op.tx)
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
-						replicaSystem.Tx.get.clear()
+						replicaSystem.clearTransaction()
 					})
 
 					WeakSynchronized(getObject)

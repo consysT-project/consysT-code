@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import de.tudarmstadt.consistency.replobj.ConsistencyLevel
+import de.tudarmstadt.consistency.replobj.{ConsistencyLevel, ReplicatedObject}
 import de.tudarmstadt.consistency.replobj.actors.Transaction.NestedTransaction
 
 import scala.collection.mutable
@@ -20,6 +20,12 @@ trait Transaction extends Serializable {
 	def isToplevel : Boolean = getParent.isEmpty
 
 	def getParent : Option[Transaction]
+
+	def addLock(rob : String) : Unit
+
+	def removeLock(rob : String) : Unit
+
+	def locks : Iterable[String]
 
 	def start(consistencyLevel : ConsistencyLevel) : Transaction = {
 		new NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
@@ -52,7 +58,21 @@ object Transaction {
 		override def contextPath : ContextPath = ContextPath(txid)
 		override def getParent : Option[Transaction] = None
 
-		override def toString : String = s"tx::$consistencyLevel|$txid"
+
+		private val lockList : mutable.Buffer[String] = mutable.Buffer.empty
+
+		override def addLock(rob : String) : Unit = {
+			lockList += rob
+		}
+
+		override def removeLock(rob : String) : Unit = {
+			lockList -= rob
+		}
+
+		override def locks : Iterable[String] = lockList
+
+
+		override def toString : String = s"tx[locked=$lockList]::$consistencyLevel|$txid"
 	}
 
 	@SerialVersionUID(-1542145564L)
@@ -64,7 +84,20 @@ object Transaction {
 		override def contextPath : ContextPath = parent.contextPath.withSeq(consistencyLevel, seqId)
 		override def getParent : Option[Transaction] = Some(parent)
 
+		override def addLock(rob : String) : Unit = {
+			parent.addLock(rob)
+		}
+
+		override def removeLock(rob : String) : Unit = {
+			parent.removeLock(rob)
+		}
+
+		override def locks : Iterable[String] = parent.locks
+
+
 		override def toString : String = parent.toString + s"::/$consistencyLevel|$seqId"
+
+
 	}
 
 

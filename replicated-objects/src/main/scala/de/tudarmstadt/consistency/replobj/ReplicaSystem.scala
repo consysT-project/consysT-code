@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
 	*/
 trait ReplicaSystem[Addr] {
 
-	final type Ref[T <: AnyRef] = de.tudarmstadt.consistency.replobj.Ref[Addr, T]
+	type Ref[T <: AnyRef] <: de.tudarmstadt.consistency.replobj.Ref[Addr, T]
 
 	/**
 		* Creates a new distributed object in this store and returns a reference to that object.
