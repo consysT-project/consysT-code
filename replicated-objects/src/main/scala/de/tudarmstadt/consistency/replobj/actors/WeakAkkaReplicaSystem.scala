@@ -70,12 +70,15 @@ object WeakAkkaReplicaSystem {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
+						val before : List[String] = op.tx.locks.toList
 						replicaSystem.setCurrentTransaction(op.tx)
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 						}
+						assert(replicaSystem.getCurrentTransaction.locks.toList == before)
 						replicaSystem.clearTransaction()
+
 					})
 
 					WeakSynchronized(getObject)
@@ -95,8 +98,7 @@ object WeakAkkaReplicaSystem {
 		) extends WeakReplicatedObject[Addr, T] {
 			setObject(init)
 
-
-			val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
+			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
 				unsynchronized += InvokeOp(tx, methodName, args)

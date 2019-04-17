@@ -42,6 +42,7 @@ package object actors {
 				 |     port = $port
 				 |   }
 				 | }
+				 | loglevel = WARNING
 				 |}
 				 |
 				 |request-dispatcher {
@@ -51,7 +52,7 @@ package object actors {
 			""".stripMargin)
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
-		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+//		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 		new AkkaReplicaSystemImpl(system)
 	}
 
