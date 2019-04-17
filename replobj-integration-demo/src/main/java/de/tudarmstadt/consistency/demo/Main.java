@@ -22,9 +22,46 @@ import static de.tudarmstadt.consistency.demo.Replicas.replicaSystem2;
  */
 public class Main {
 
+	public static void main(String... args) throws Exception {
+		example1Sugar();
+	}
+
+	public static void example1Sugar() throws Exception {
+		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), JConsistencyLevel.STRONG);
+		JRef<@Weak ObjA> ref1Weak = replicaSystem1.replicate("ow", new ObjA(), JConsistencyLevel.WEAK);
+
+		JRef<@Strong ObjA> ref2Strong = replicaSystem2.ref("os", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
+		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevel.WEAK);
 
 
-	public static void example1() throws InterruptedException {
+		ref1Strong.remote().f = 34;
+		ref1Weak.remote().f = 42;
+		ref1Strong.remote().f = 42;
+
+		ref1Strong.remote().inc();
+		ref1Strong.remote().incBy(4 + 21);
+		ref1Strong.remote().incBy(4 + (21 * 13) );
+
+
+		System.out.println("ref1Strong.f = "  + ref1Strong.remote().f);
+		System.out.println("ref2Strong.f = "  + ref2Strong.remote().f);
+
+		System.out.println("ref1Weak.f = "  + ref1Weak.remote().f);
+		System.out.println("ref2Weak.f = "  + ref2Weak.remote().f);
+
+		ref2Weak.syncAll();
+
+		System.out.println("ref1Weak.f = "  + ref1Weak.remote().f);
+		System.out.println("ref2Weak.f = "  + ref2Weak.remote().f);
+
+		ref1Strong.setField("f", ref1Weak.remote().f);
+
+		replicaSystem1.close();
+		replicaSystem2.close();
+	}
+
+
+	public static void example1() throws Exception {
 
 		JRef<@Strong ObjA> ref1Strong = replicaSystem1.replicate("os", new ObjA(), JConsistencyLevel.STRONG);
 		JRef<@Strong ObjA> ref2Strong = replicaSystem2.ref("os", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
@@ -33,18 +70,12 @@ public class Main {
 		JRef<@Weak ObjA> ref2Weak = replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevel.WEAK);
 
 
-		Thread.sleep(3000);
-
 		ref1Strong.setField("f", 34);
 		ref1Weak.setField("f", 42);
-
-		int i = ref1Strong.getField("f"); //.getField("f");
-
 		ref1Strong.setField("f", 42);
 
 		ref1Strong.invoke("inc");
 		ref1Strong.invoke("incBy", 4 + 21);
-
 		ref1Strong.invoke("incBy", 4 + (21 * 13) );
 
 
@@ -54,12 +85,15 @@ public class Main {
 		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
 		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
 
-		ref2Weak.sync();
+		ref2Weak.syncAll();
 
 		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
 		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
 
 		ref1Strong.setField("f", ref1Weak.getField("f"));
+
+		replicaSystem1.close();
+		replicaSystem2.close();
 	}
 
 
@@ -71,8 +105,6 @@ public class Main {
 
 		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
 		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
-
-		Thread.sleep(2000);
 
 		b1.invoke("incAll");
 		b2.invoke("incAll");
@@ -95,7 +127,7 @@ public class Main {
 		);
 
 
-		b2.sync();
+		b2.syncAll();
 
 		System.out.println("#2");
 
@@ -126,8 +158,6 @@ public class Main {
 		JRef<@Strong ObjA> a2 = replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
 		JRef<@Weak ObjB> b2 = replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
 
-		Thread.sleep(2000);
-
 
 		ExecutorService exec = Executors.newFixedThreadPool(4);
 		Future<Void> fut1 = exec.submit(() -> b1.invoke("incAll"));
@@ -152,7 +182,7 @@ public class Main {
 		);
 
 
-		b2.sync();
+		b2.syncAll();
 
 		System.out.println("#2");
 
@@ -170,11 +200,10 @@ public class Main {
 						"b2.g = " + results2[3]
 		);
 
+		exec.shutdown();
 		replicaSystem1.close();
 		replicaSystem2.close();
 	}
 
-	public static void main(String... args) throws Exception {
-		example2Parallel();
-	}
+
 }

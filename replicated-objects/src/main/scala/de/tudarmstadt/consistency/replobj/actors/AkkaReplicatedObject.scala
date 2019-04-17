@@ -97,7 +97,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 					syncObject(rob.state, alreadySynced + rob)
 
 				case ref : RefImpl[_, _] if ref.replicaSystem == replicaSystem =>
-					val rob = ref.lookupObject
+					val rob = ref.deref
 					syncObject(rob, alreadySynced + ref)
 
 				case _ =>

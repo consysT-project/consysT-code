@@ -290,7 +290,7 @@ object AkkaReplicaSystem {
 
 	private[actors] class RefImpl[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
 
-		override implicit def lookupObject : ReplicatedObject[T] = replicaSystem match {
+		override implicit def deref : ReplicatedObject[T] = replicaSystem match {
 			case null => sys.error(s"replica system has not been initialized properly. $toString")
 
 			case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.Replica.get(addr) match {

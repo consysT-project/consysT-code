@@ -23,27 +23,27 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 
 	@Override
 	public <R> R getField(String fieldName) {
-		return ref.lookupObject().getField(fieldName);
+		return ref.deref().getField(fieldName);
 	}
 
 	@Override
 	public <R> void setField(String fieldName, R value) {
-		ref.lookupObject().setField(fieldName, value);
+		ref.deref().setField(fieldName, value);
 	}
 
 	@Override
 	public <R> R invoke(String methodName, Object... args) {
-		return ref.lookupObject().invoke(methodName, args);
+		return ref.deref().invoke(methodName, args);
 	}
 
 	@Override
 	public void sync() {
-		ref.lookupObject().sync();
+		ref.deref().sync();
 	}
 
 	@Override
 	public void syncAll() {
-		ref.lookupObject().syncAll();
+		ref.deref().syncAll();
 	}
 
 	@Override
