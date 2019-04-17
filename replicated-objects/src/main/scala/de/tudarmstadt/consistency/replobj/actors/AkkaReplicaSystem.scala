@@ -31,7 +31,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 	protected def freshAddr() : Addr
 
-
 	/*The actor that is used to communicate with this replica.*/
 	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
 

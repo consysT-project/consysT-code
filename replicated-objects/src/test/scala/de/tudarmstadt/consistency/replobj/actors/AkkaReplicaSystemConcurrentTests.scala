@@ -1,15 +1,11 @@
 package de.tudarmstadt.consistency.replobj.actors
 
-import java.util.concurrent.{Executors, TimeUnit}
-
 import de.tudarmstadt.consistency.replobj.ConsistencyLevel.{Strong, Weak}
 import de.tudarmstadt.consistency.replobj.Ref
-import de.tudarmstadt.consistency.replobj.actors.Data.{A, B, C}
+import de.tudarmstadt.consistency.replobj.actors.Data.{A, C}
 import org.scalatest.fixture
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
-import scala.util.{Failure, Random, Success}
+import scala.util.Random
 
 /**
 	* Created on 10.04.19.
@@ -19,10 +15,10 @@ import scala.util.{Failure, Random, Success}
 class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplicaSystemSuite {
 	override def numOfReplicas : Int = 4
 
-	test("testTransactionOnSingleMasterObject") { F =>
+	test("testStrongTransactionOnSingleObject") { F =>
 		F(0).replicate("c", C(
-				F(0).replicate("a1", A(100), Strong),
-				F(1).replicate("a2", A(200), Strong)),
+				F(0).replicate("a1", A(0), Strong),
+				F(1).replicate("a2", A(0), Strong)),
 			Strong)
 
 		concurrent (F) { i =>
@@ -36,10 +32,10 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 	}
 
 
-	test("testTransactionOnDoubleObjects") { F =>
+	test("testStrongTransactionOnDoubleObjects") { F =>
 
-		val refA1 = F(0).replicate("a1", A(100), Strong)
-		val refA2 = F(0).replicate("a2", A(200), Strong)
+		val refA1 = F(0).replicate("a1", A(0), Strong)
+		val refA2 = F(0).replicate("a2", A(0), Strong)
 
 		F(0).replicate("c1", C(refA1, refA2),	Strong)
 		F(0).replicate("c2", C(refA1, refA2), Strong)
@@ -52,7 +48,93 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 				assert(i1 == i2)
 			}
 		}
+	}
 
+
+	test("testWeakTransactionOnSingleObject") { F =>
+		F(0).replicate("c", C(
+			F(0).replicate("a1", A(0), Weak),
+			F(1).replicate("a2", A(0), Weak)),
+			Weak)
+
+		concurrent (F) { i =>
+			val refC = F(i).ref[C]("c", Weak)
+			for (j <- 1 to 100) {
+				val a1 = refC.getField[Ref[String, A]]("a1")
+				val a2 = refC.getField[Ref[String, A]]("a2")
+				a1.invoke[Unit]("inc")
+				a2.invoke[Unit]("inc")
+			}
+		}
+
+		//Sync all the changes
+		concurrent (F) { i =>
+			val refC = F(i).ref[C]("c", Weak)
+			refC.syncAll()
+		}
+		concurrent (F) { i => //We have to sync twice to have synced all the updates from all sources.
+			val refC = F(i).ref[C]("c", Weak)
+			refC.syncAll()
+		}
+
+		concurrent (F) { i =>
+			val refC = F(i).ref[C]("c", Weak)
+			val (f1, f2) = refC.invoke[(Int, Int)]("get")
+
+			assert(f1 == f2)
+			assert(f1 == numOfReplicas * 100)
+			assert(f2 == numOfReplicas * 100)
+		}
+	}
+
+
+	test("testWeakTransactionOnDoubleObjects") { F =>
+
+		val refA1 = F(0).replicate("a1", A(0), Weak)
+		val refA2 = F(0).replicate("a2", A(0), Weak)
+
+		F(0).replicate("c1", C(refA1, refA2),	Weak)
+		F(0).replicate("c2", C(refA1, refA2), Weak)
+
+		concurrent(F) { i =>
+			val refC = if (Random.nextBoolean()) F(i).ref[C]("c1", Weak) else F(i).ref[C]("c2", Weak)
+
+			val a1 = refC.getField[Ref[String, A]]("a1")
+			val a2 = refC.getField[Ref[String, A]]("a2")
+
+			for (j <- 1 to 100) {
+				a1.invoke[Unit]("inc")
+				a2.invoke[Unit]("inc")
+			}
+		}
+
+		concurrent (F) { i =>
+			val refC1 = F(i).ref[C]("c1", Weak)
+			val refC2 = F(i).ref[C]("c2", Weak)
+			refC1.syncAll()
+			refC2.syncAll()
+		}
+		concurrent (F) { i => //We have to sync twice to have synced all the updates from all sources.
+			val refC1 = F(i).ref[C]("c1", Weak)
+			val refC2 = F(i).ref[C]("c2", Weak)
+			refC1.syncAll()
+			refC2.syncAll()
+		}
+
+		concurrent (F) { i =>
+			val refC1 = F(i).ref[C]("c1", Weak)
+			val refC2 = F(i).ref[C]("c2", Weak)
+			val (f1, f2) = refC1.invoke[(Int, Int)]("get")
+			assert(f1 == f2)
+			assert(f1 == numOfReplicas * 100)
+			assert(f2 == numOfReplicas * 100)
+
+			val (g1, g2) = refC2.invoke[(Int, Int)]("get")
+			assert(g1 == g2)
+			assert(g1 == numOfReplicas * 100)
+			assert(g2 == numOfReplicas * 100)
+
+		}
 	}
 
 

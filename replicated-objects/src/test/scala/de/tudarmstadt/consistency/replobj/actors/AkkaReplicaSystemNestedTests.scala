@@ -28,8 +28,6 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
 			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
 		}
-
-		println("done.")
 	}
 
 	test("testStrongFollowerWithStrongNested") { F =>
@@ -47,8 +45,6 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
 			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
 		}
-
-		println("done.")
 	}
 
 
@@ -130,8 +126,6 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 
 		F(1).ref[B]("b", Strong).syncAll()
 
-		println("test")
-
 		F.replicas.foreach {replica =>
 			replica.ref("a1", Weak).sync()
 			replica.ref("a2", Weak).sync()
@@ -164,8 +158,6 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		}
 
 		F(1).ref[B]("b", Weak).syncAll()
-
-		println("test")
 
 		F.replicas.zipWithIndex.foreach {replicaWithIndex =>
 			val (replica, index) = replicaWithIndex
