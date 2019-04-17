@@ -5,15 +5,13 @@ package de.tudarmstadt.consistency.replobj
 	*
 	* @author Mirko Köhler
 	*/
-trait TransactionalReplicaSystem[Addr, Tx] extends ReplicaSystem[Addr] {
+trait TransactionalReplicaSystem[Addr] extends ReplicaSystem[Addr] {
+
+	type Tx
 
 	def hasCurrentTransaction : Boolean
 
 	def getCurrentTransaction : Tx
-
-//	def isNested : Boolean
-//
-//	def isToplevel : Boolean = !isNested
 
 	def newTransaction(consistencyLevel : ConsistencyLevel) : Unit
 

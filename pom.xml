@@ -16,6 +16,7 @@
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
         <module>integration-tests</module>
+        <module>preproc-maven-plugin</module>
     </modules>
 
     <properties>

@@ -12,7 +12,7 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 	override implicit def deref : ReplicatedObject[T] = replicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")
 
-		case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.Replica.get(addr) match {
+		case akkaReplicaSystem: AkkaReplicaSystem[Addr] => akkaReplicaSystem.replica.get(addr) match {
 			case None => //retry
 				sys.error(s"the replicated object '$addr' with consistency level $consistencyLevel is not available on this host.")
 
