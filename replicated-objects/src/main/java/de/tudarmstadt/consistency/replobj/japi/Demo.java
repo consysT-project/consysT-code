@@ -31,8 +31,6 @@ public class Demo {
 		JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, JConsistencyLevel.WEAK);
 
 
-		Thread.sleep(3000);
-
 		ref1Strong.setField("f", 34);
 		ref1Weak.setField("f", 42);
 
