@@ -9,7 +9,9 @@ import scala.util.DynamicVariable
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaTransactionalReplicaSystem[Addr] extends TransactionalReplicaSystem[Addr, Transaction] {
+trait AkkaTransactionalReplicaSystem[Addr] extends TransactionalReplicaSystem[Addr] {
+
+	override type Tx = Transaction
 
 	private val threadContext : DynamicVariable[TransactionContext] = new DynamicVariable(null)
 
@@ -29,7 +31,7 @@ trait AkkaTransactionalReplicaSystem[Addr] extends TransactionalReplicaSystem[Ad
 
 	override def hasCurrentTransaction : Boolean = context.hasCurrentTransaction
 
-	override def getCurrentTransaction : Transaction = context.getCurrentTransaction
+	override def getCurrentTransaction : Tx = context.getCurrentTransaction
 
 	override def newTransaction(consistencyLevel : ConsistencyLevel) : Unit =
 		context.newTransaction(consistencyLevel)
@@ -37,6 +39,6 @@ trait AkkaTransactionalReplicaSystem[Addr] extends TransactionalReplicaSystem[Ad
 	override def commitTransaction() : Unit =
 		context.commitTransaction()
 
-	override def setCurrentTransaction(tx : Transaction) : Unit =
+	override def setCurrentTransaction(tx : Tx) : Unit =
 		context.setCurrentTransaction(tx)
 }

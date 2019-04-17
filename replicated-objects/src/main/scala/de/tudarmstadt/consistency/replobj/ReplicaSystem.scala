@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.replobj
 
+import scala.language.higherKinds
 import scala.reflect.runtime.universe._
 
 

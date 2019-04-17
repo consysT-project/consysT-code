@@ -24,10 +24,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 	override type Ref[T <: AnyRef] <: AkkaRef[Addr, T]
 
-  def actorSystem : ActorSystem
-
-	protected def freshAddr() : Addr
-
 	/*The actor that is used to communicate with this replica.*/
 	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
 
@@ -35,33 +31,37 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 
-	protected[actors] object Replica {
+	protected[actors] object replica {
 		/*The replicated objects stored by this replica*/
 		private final val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = mutable.HashMap.empty
-
 
 		def get(addr : Addr) : Option[AkkaReplicatedObject[Addr, _]] = {
 			localObjects.get(addr)
 		}
-
 		def contains(addr : Addr) : Boolean = {
 			localObjects.contains(addr)
 		}
-
 		def put(obj : AkkaReplicatedObject[Addr, _]) : Option[AkkaReplicatedObject[Addr, _]] = {
 			localObjects.put(obj.addr, obj)
 		}
 	}
 
 
-	override def acquireLock(addr : Addr, tx : Transaction) : Unit = Replica.get(addr) match {
+	def actorSystem : ActorSystem
+
+	protected def freshAddr() : Addr
+
+	protected def newRef[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
+
+
+	override def acquireLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
 		case Some(rob :  LockableReplicatedObject[_]) =>
 			rob.lock(tx.txid)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
-	override def releaseLock(addr : Addr, tx : Transaction) : Unit = Replica.get(addr) match {
+	override def releaseLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
 		case Some(rob :  LockableReplicatedObject[_]) =>
 			rob.unlock(tx.txid)
@@ -71,14 +71,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 
 	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
-		require(!Replica.contains(addr))
+		require(!replica.contains(addr))
 
 		import akka.pattern.ask
 
 		/*create the replicated object*/
 		val replicatedObject = createMasterReplica[T](l, addr, obj)
 		/*put the object in the local replica store*/
-		Replica.put(replicatedObject)
+		replica.put(replicatedObject)
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = Timeout(30L, SECONDS)
@@ -87,7 +87,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
 
 		/*create a ref to that object*/
-		createRef[T](addr, l)
+		newRef[T](addr, l)
 	}
 
 
@@ -96,7 +96,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
-		createRef[T](addr, l)
+		newRef[T](addr, l)
 	}
 
 
@@ -205,7 +205,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		initializeObject(obj, Set.empty)
 	}
 
-	protected def createRef[T <: AnyRef](addr : Addr, consistencyLevel : ConsistencyLevel) : Ref[T]
 
 	private class ReplicaActor extends Actor {
 
@@ -213,12 +212,12 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 			case CreateObjectReplica(addr : Addr, obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
-				require(!Replica.contains(addr), s"address $addr is already defined")
+				require(!replica.contains(addr), s"address $addr is already defined")
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
 					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
 				)
-				Replica.put(ref)
+				replica.put(ref)
 				sender() ! ()
 
 			case AcquireHandler =>
@@ -234,7 +233,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 					clearTransaction()
 					()
 
-				case HandleRequest(addr : Addr, request) =>	Replica.get(addr) match {
+				case HandleRequest(addr : Addr, request) =>	replica.get(addr) match {
 					case None => sys.error(s"object $addr not found")
 					case Some(obj) =>	sender() ! obj.handleRequest(request)
 				}

@@ -94,8 +94,6 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 
-		node.getVariable
-
 		super.visitAssignment(node, p)
 	}
 
