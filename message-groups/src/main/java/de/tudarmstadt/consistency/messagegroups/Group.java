@@ -23,10 +23,6 @@ public class Group implements Serializable {
 	}
 
 	//Join group
-	void addNewUser(User user) {
-		//addUser(replicaSystems[0].replicate(user, JConsistencyLevel.WEAK));
-	}
-
 	void addUser(JRef<User> user) {
 		for (int i = 0; i < users.length; i++) {
 			if (users[i] == null) {

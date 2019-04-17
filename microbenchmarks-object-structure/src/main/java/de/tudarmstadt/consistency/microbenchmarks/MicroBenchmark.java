@@ -154,7 +154,7 @@ public class MicroBenchmark {
     }
 
     public void updateValue(int value, JRef<BenchmarkObject> ref) {
-        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JRefImpl<BenchmarkObject>) ref).getRef().lookupObject()).getObject();
+        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JRefImpl<BenchmarkObject>) ref).getRef().deref()).getObject();
         if (object instanceof BenchmarkObject0)
             ref.setField("value", value);
         else if (object instanceof BenchmarkObject1)

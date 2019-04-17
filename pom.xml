@@ -18,7 +18,6 @@
         <module>replicated-objects</module>
         <module>replicated-objects-preproc</module>
         <module>replobj-integration-demo</module>
-        <module>msggrp-benchmark</module>
     </modules>
 
     <properties>

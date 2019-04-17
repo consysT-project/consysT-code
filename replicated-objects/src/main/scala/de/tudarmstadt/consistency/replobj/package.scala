@@ -16,5 +16,5 @@ package object replobj {
 
 
 	implicit def refToRob[Addr, T <: AnyRef](ref : Ref[Addr, T]) : ReplicatedObject[T] =
-		ref.lookupObject
+		ref.deref
 }

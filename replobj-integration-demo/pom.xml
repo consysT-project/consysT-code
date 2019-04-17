@@ -24,6 +24,7 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
+                    <!-- Reenable this to have inforamtion-flow analysis
                     <annotationProcessorPaths>
                         <path>
                             <groupId>de.tu-darmstadt.consistency-types</groupId>
@@ -32,9 +33,9 @@
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
-                        <!-- Add all the checkers you want to enable here -->
-                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors>
+                         Add all the checkers you want to enable here
+                         <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors> -->
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
