@@ -23,7 +23,7 @@ import static de.tudarmstadt.consistency.demo.Replicas.replicaSystem2;
 public class Main {
 
 	public static void main(String... args) throws Exception {
-		example1Sugar();
+		example1();
 	}
 
 	public static void example1Sugar() throws Exception {
