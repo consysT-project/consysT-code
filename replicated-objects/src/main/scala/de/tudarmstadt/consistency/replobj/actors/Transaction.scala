@@ -15,8 +15,6 @@ trait Transaction extends Serializable {
 	def consistencyLevel : ConsistencyLevel
 	def txid : Long
 
-	def contextPath : ContextPath
-
 	def isToplevel : Boolean = getParent.isEmpty
 
 	def getParent : Option[Transaction]
@@ -55,7 +53,6 @@ object Transaction {
 	case class ToplevelTransaction(override val txid : Long, override val consistencyLevel : ConsistencyLevel)
 		extends Transaction {
 
-		override def contextPath : ContextPath = ContextPath(txid)
 		override def getParent : Option[Transaction] = None
 
 
@@ -81,7 +78,6 @@ object Transaction {
 
 		override def txid : Long = parent.txid
 
-		override def contextPath : ContextPath = parent.contextPath.withSeq(consistencyLevel, seqId)
 		override def getParent : Option[Transaction] = Some(parent)
 
 		override def addLock(rob : String) : Unit = {

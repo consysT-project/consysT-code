@@ -22,6 +22,11 @@ package object actors {
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
 
+
+		override type Ref[T <: AnyRef] = AkkaRef[String, T]
+
+		override protected def createRef[T <: AnyRef](addr : String, consistencyLevel : ConsistencyLevel) : Ref[T] =
+			new AkkaRef(addr, consistencyLevel, this)
 	}
 
 	def createReplicaSystem(actorSystem : ActorSystem) : AkkaReplicaSystem[String] =

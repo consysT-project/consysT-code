@@ -36,7 +36,6 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 	private def transaction[R](f : Transaction => R) : R = {
-
 		//Checks whether there is an active transaction
 		replicaSystem.newTransaction(consistencyLevel)
 
@@ -96,7 +95,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 					rob.sync()
 					syncObject(rob.state, alreadySynced + rob)
 
-				case ref : RefImpl[_, _] if ref.replicaSystem == replicaSystem =>
+				case ref : AkkaRef[_, _] if ref.replicaSystem == replicaSystem =>
 					val rob = ref.deref
 					syncObject(rob, alreadySynced + ref)
 

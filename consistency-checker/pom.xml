@@ -11,7 +11,7 @@
     
     <parent>
     	<groupId>de.tu-darmstadt.consistency-types</groupId>
-		<artifactId>consistency-types-parent</artifactId>
+		<artifactId>consistency-types</artifactId>
 		<version>1.0.0</version>
     </parent>
 

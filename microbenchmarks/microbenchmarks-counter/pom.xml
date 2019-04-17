@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>consistency-types-parent</artifactId>
+        <artifactId>microbenchmarks</artifactId>
         <groupId>de.tu-darmstadt.consistency-types</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>message-groups</artifactId>
+    <artifactId>microbenchmarks-counter</artifactId>
 
 
     <build>
@@ -24,17 +24,6 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>de.tu-darmstadt.consistency-types</groupId>
-                            <artifactId>consistency-checker</artifactId>
-                            <version>1.0.0</version>
-                        </path>
-                    </annotationProcessorPaths>
-<!--                    <annotationProcessors> -->
-                        <!-- Add all the checkers you want to enable here -->
-<!--                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor> -->
-<!--                    </annotationProcessors> -->
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
