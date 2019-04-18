@@ -43,3 +43,8 @@ buildNumber.properties
 hs_err_pid*
 
 
+### Custom
+# Generated sources from preprocessor
+gen/
+
+

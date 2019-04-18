@@ -40,7 +40,7 @@
                     </annotationProcessorPaths>
                     <annotationProcessors>
                         <!-- Add all the checkers you want to enable here -->
-                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor>
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>

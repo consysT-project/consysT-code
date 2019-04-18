@@ -14,9 +14,8 @@
         <module>consistency-checker/consistency-checker-test</module>
         <module>microbenchmarks</module>
         <module>replicated-objects</module>
-        <module>replicated-objects-preproc</module>
         <module>integration-tests</module>
-        <module>preproc-maven-plugin</module>
+        <module>consys-maven-plugin</module>
     </modules>
 
     <properties>
@@ -32,7 +31,6 @@
 
         <checkerframeworkVersion>2.5.2</checkerframeworkVersion>
         <cassandraDriverVersion>3.6.0</cassandraDriverVersion>
-
     </properties>
 
 
