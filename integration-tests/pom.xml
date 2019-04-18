@@ -17,10 +17,24 @@
 
             <plugin>
                 <groupId>de.tu-darmstadt.consistency-types</groupId>
-                <artifactId>preproc-maven-plugin</artifactId>
+                <artifactId>consys-maven-plugin</artifactId>
                 <version>1.0.0</version>
+                <!-- Running the plugin as part of a maven goal -->
+                <executions>
+                    <execution>
+                        <id>gen-src</id>
+                        <goals>
+                            <goal>preprocess-sources</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>gen-test</id>
+                        <goals>
+                            <goal>preprocess-tests</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
-
 
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
