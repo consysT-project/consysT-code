@@ -23,7 +23,7 @@ public class PreprocessSourcesMojo extends AbstractMojo {
 	@Parameter(property = "preprocess-sources.sourceDir", defaultValue = "${project.build.sourceDirectory}")
 	private File sourceDir;
 
-	@Parameter(property = "preprocess-sources.targetDir", defaultValue = "${project.basedir}/gen/main/java")
+	@Parameter(property = "preprocess-sources.targetDir", defaultValue = "${project.build.directory}/generated-sources/main/java")
 	private File targetDir;
 
 

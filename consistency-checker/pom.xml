@@ -10,8 +10,8 @@
     <packaging>jar</packaging>
     
     <parent>
-    	<groupId>de.tu-darmstadt.consistency-types</groupId>
-		<artifactId>consistency-types</artifactId>
+    	<groupId>de.tuda.stg</groupId>
+		<artifactId>consys</artifactId>
 		<version>1.0.0</version>
     </parent>
 

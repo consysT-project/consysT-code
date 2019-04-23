@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>demos</artifactId>
-        <groupId>de.tu-darmstadt.consistency-types</groupId>
+        <groupId>de.tuda.stg</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -26,7 +26,7 @@
                     </compilerArguments>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>de.tu-darmstadt.consistency-types</groupId>
+                            <groupId>de.tuda.stg</groupId>
                             <artifactId>consistency-checker</artifactId>
                             <version>1.0.0</version>
                         </path>
@@ -84,12 +84,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>replicated-objects</artifactId>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-core</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
         </dependency>
