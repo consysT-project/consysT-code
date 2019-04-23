@@ -24,7 +24,7 @@ public class Demo {
         int numReplicas = replicaSystems.length;
 
          System.out.println("Initializing benchmarks...");
-        MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(replicaSystems, 10000);
+        MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(replicaSystems, 10);
 
         //Run benchmarks
         System.out.println("Run benchmarks...");
