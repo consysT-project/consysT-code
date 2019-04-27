@@ -1,5 +1,6 @@
 package de.tudarmstadt.consistency.shoppingcart;
 
+import com.sun.deploy.panel.JreDialog;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
@@ -21,25 +22,27 @@ import java.io.Serializable;
  */
 public class Cart implements Serializable {
 
-    public final String[] cart = new String[100];
+    //public final String[] cart = new String[100];
 
-    public String lastadded;
+    public final JRef<@Weak Item>[] cart = new JRef[100];
 
-    public boolean add(String name) {
+    public JRef<@Weak Item> lastadded;
+
+    public boolean add(JRef<@Weak Item> item) {
         for (int i = 0; i < cart.length; i++) {
             if (cart[i] == null) {
-                cart[i] = name;
-                lastadded = name;
+                cart[i] = item;
+                lastadded = item;
                 return true;
             }
         }
         return false;
     }
 
-    public boolean removeOne(String name) {
+    public boolean removeOne(JRef<@Weak Item> item) {
         int x = -1;
         for (int i = 0; i < cart.length; i++) {
-            if (cart[i].equals(name)) {
+            if (cart[i].equals(item)) {
                 cart[x] = null;
                 return true;
             }
@@ -47,10 +50,10 @@ public class Cart implements Serializable {
         return false;
     }
 
-    public boolean removeAll(String name) {
+    public boolean removeAll(JRef<@Weak Item> item) {
         boolean ret = false;
         for (int i = 0; i < cart.length; i++) {
-            if (cart[i] != null && cart[i].equals(name)) {
+            if (cart[i] != null && cart[i].equals(item)) {
                 cart[i] = null;
                 ret = true;
             }
@@ -61,15 +64,18 @@ public class Cart implements Serializable {
     @Strong
     public int checkout() {
         int ret = 0;
-        for (String product : cart) {
+        System.out.println("Checked out the following items:");
+        for (JRef<@Weak Item> product : cart) {
             if (product != null) {
-                System.out.println("Checked out " + product);
-                ret = ret + 1;
+                //product.syncAll(); //Check if this is the right function at the right time
+                System.out.println(product.getField("name") + ",");
+                ret = ret + (int) product.getField("price");
             }
         }
         for (int i = 0; i < cart.length; i++) {
             cart[i] = null;
         }
+        System.out.print("------ \n Total: " + ret + "\n");
         return ret;
     }
 

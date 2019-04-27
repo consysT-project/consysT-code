@@ -1,13 +1,14 @@
 package de.tudarmstadt.consistency.shoppingcart;
 
 import de.tudarmstadt.consistency.checker.qual.Strong;
+import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
 
 public class ShoppingSite implements Serializable {
 
-    public String lastadded;
+    public JRef<@Weak Item> lastadded;
 
     public JRef<@Strong Cart> cart;
 
@@ -15,12 +16,12 @@ public class ShoppingSite implements Serializable {
         this.cart = cart;
     }
 
-    public void addToCart(String item) {
+    public void addToCart(JRef<@Weak Item> item) {
         lastadded = item;
         cart.invoke("add", item);
     }
 
-    public void removeFromCart(String item) {
+    public void removeFromCart(JRef<@Weak Item> item) {
         cart.invoke("removeAll", item);
     }
 
