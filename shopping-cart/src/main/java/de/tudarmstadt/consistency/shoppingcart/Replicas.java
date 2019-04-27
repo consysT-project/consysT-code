@@ -4,17 +4,18 @@ import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
 
 public class Replicas {
 
-    public static final JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-    public static final JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
-
-    public static final JReplicaSystem replicaSystem3 = JReplicaSystem.fromActorSystem(2554);
-    public static final JReplicaSystem replicaSystem4 = JReplicaSystem.fromActorSystem(2555);
+    public static final JReplicaSystem[] replicaSystems = new JReplicaSystem[4];
 
     static {
-        replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-        replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+        for (int i = 0; i < replicaSystems.length; i++) {
+            replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
+        }
 
-        replicaSystem3.addReplicaSystem("127.0.0.1", 2554);
-        replicaSystem4.addReplicaSystem("127.0.0.1", 2555);
+        for (int i = 0; i < replicaSystems.length; i++) {
+            for (int j = 0; j < replicaSystems.length; j++) {
+                if (i != j)
+                    replicaSystems[i].addReplicaSystem("127.0.0.1", 2552 + j);
+            }
+        }
     }
 }
