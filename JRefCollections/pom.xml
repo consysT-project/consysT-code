@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>shopping-cart</artifactId>
+    <artifactId>JRefCollections</artifactId>
 
 
     <build>
@@ -52,11 +52,6 @@
         <dependency>
             <groupId>de.tu-darmstadt.consistency-types</groupId>
             <artifactId>replicated-objects</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>JRefCollections</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
