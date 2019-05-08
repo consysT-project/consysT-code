@@ -5,7 +5,7 @@
     <groupId>de.tu-darmstadt.consistency-types</groupId>
     <artifactId>consistency-types-parent</artifactId>
     <version>1.0.0</version>
-    
+
     <packaging>pom</packaging>
 
     <modules>
