@@ -109,7 +109,7 @@ public class Demo implements Serializable {
         System.out.println("Strong List Ref index 0:" + strongListRef.invoke("get",0));
         System.out.println("Strong List Ref index 1:" + strongListRef.invoke("get",1));
         System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
-        strongListRef.sync();
+        //strongListRef.sync();
         System.out.println("Strong List Ref index 0:" + strongListRef.invoke("get",0));
         System.out.println("Strong List Ref index 1:" + strongListRef.invoke("get",1));
         System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
