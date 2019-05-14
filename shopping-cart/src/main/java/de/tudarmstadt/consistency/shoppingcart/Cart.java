@@ -1,6 +1,5 @@
 package de.tudarmstadt.consistency.shoppingcart;
 
-import com.sun.deploy.panel.JreDialog;
 import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
