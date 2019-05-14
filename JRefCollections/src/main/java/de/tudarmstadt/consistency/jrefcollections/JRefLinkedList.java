@@ -1,26 +1,22 @@
 package de.tudarmstadt.consistency.jrefcollections;
 
-import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.replobj.japi.JRef;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
 
-public class JRefLinkedListStrong implements Serializable {
-    public StrongNode head;
+public class JRefLinkedList implements Serializable{
+    public Node head;
 
-    public StrongNode current;
+    public Node current;
 
-    public StrongNode tail;
+    public Node tail;
 
-    public JRefLinkedListStrong(){
+    public JRefLinkedList(){
         current = head; tail = head;
     }
 
-    public <T> JRefLinkedListStrong(JRef<@Strong T> item){
-        head = new StrongNode<T>(null, null, item);
+    public <T> JRefLinkedList(JRef<T> item){
+        head = new Node<T>(null, null, item);
         current = head; tail = head;
     }
 
@@ -28,34 +24,34 @@ public class JRefLinkedListStrong implements Serializable {
         head = null;tail = head; current = head;
     }
 
-    public <T> boolean add(JRef<@Strong T> item){
+    public <T> boolean append(JRef<T> item){
         if(tail == null){
-            StrongNode newNode = new StrongNode<T>(null, null, item);
+            Node newNode = new Node<T>(null, null, item);
             head = newNode;tail = head;current = head;
         }else{
-            StrongNode newNode = new StrongNode<T>(tail, null, item);
+            Node newNode = new Node<T>(tail, null, item);
             tail.next = newNode; tail = newNode;
         }
         return true;
     }
-/*
-    public <T> void add(int index, JRef<@Strong T> item) throws IndexOutOfBoundsException{
+
+    public <T> void add(int index, JRef<T> item) throws IndexOutOfBoundsException{
         if(size() == index){
-            add(item);
+            append(item);
         }else if(findIndexFront(index)){
             if(current == null){
-                add(item);
+                append(item);
             }else{
-                StrongNode newNode = new StrongNode<T>(current.prev, current, item);
+                Node newNode = new Node<T>(current.prev, current, item);
                 current.prev.next = newNode;
                 current.prev = newNode; current = head;
             }
         }else throw new IndexOutOfBoundsException("List index out of bounds");
     }
-*/
-    public <T> JRef<@Strong T> get(int index) throws Exception{
+
+    public <T> JRef<T> get(int index) throws Exception{
         if(findIndexFront(index)){
-            JRef<@Strong T> ret = current.content;
+            JRef<T> ret = current.content;
             current = head;
             return ret;
         }else throw new IndexOutOfBoundsException("List index out of bounds");
@@ -95,7 +91,7 @@ public class JRefLinkedListStrong implements Serializable {
     }
 
     //Tries to set current to the node containing o starting from head
-    private <T> boolean findObjectFront(JRef<@Strong T> o){
+    private <T> boolean findObjectFront(JRef<T> o){
         current = head;
         if(current == null)
             return false;
@@ -107,17 +103,17 @@ public class JRefLinkedListStrong implements Serializable {
         current = head;
         return false;
     }
+
 }
 
+class Node<T> implements Serializable {
+    public Node<T> next;
 
-class StrongNode <T> implements Serializable{
-    public StrongNode prev;
+    public Node<T> prev;
 
-    public StrongNode next;
+    public JRef<T> content;
 
-    public JRef<@Strong T> content;
-
-    StrongNode(StrongNode prev,StrongNode next, JRef<@Strong T> content){
+    Node(Node<T> prev, Node<T> next, JRef<T> content){
         this.prev = prev;
         this.next = next;
         this.content = content;

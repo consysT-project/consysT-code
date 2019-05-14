@@ -6,7 +6,7 @@ import de.tudarmstadt.consistency.replobj.japi.JRef;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class JRefLinkedListWeak<E> implements Serializable {
+public class JRefLinkedListWeak implements Serializable {
     public WeakNode head;
 
     public WeakNode current;
