@@ -1,6 +1,6 @@
 package de.tudarmstadt.consistency.multinode.schema
 
-import de.tudarmstadt.consistency.replobj._
+import de.tudarmstadt.consistency.objects._
 
 /**
 	* Created on 18.02.19.

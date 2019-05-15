@@ -1,5 +1,5 @@
-import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
 
 class LocalUsageTest {
 
