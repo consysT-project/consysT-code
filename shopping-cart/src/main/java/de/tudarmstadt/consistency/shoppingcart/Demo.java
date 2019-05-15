@@ -5,11 +5,9 @@ import de.tudarmstadt.consistency.checker.qual.Strong;
 import de.tudarmstadt.consistency.checker.qual.Weak;
 import de.tudarmstadt.consistency.jrefcollections.JRefDistList;
 import de.tudarmstadt.consistency.jrefcollections.JRefLinkedList;
-import de.tudarmstadt.consistency.jrefcollections.JRefLinkedListStrong;
 import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
 import de.tudarmstadt.consistency.replobj.japi.JRef;
 import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
-import de.tudarmstadt.consistency.jrefcollections.JRefLinkedListWeak;
 
 import java.io.Serializable;
 
@@ -61,74 +59,14 @@ public class Demo implements Serializable {
         }
     }
 
-    public static void exampleWeakList() throws Exception {
-        JRef<@Weak JRefLinkedListWeak> weakList = replicaSystems[0].replicate("list1", new JRefLinkedListWeak(), JConsistencyLevel.WEAK);
-        JRef<@Weak JRefLinkedListWeak> weakListRef = replicaSystems[1].ref("list1", JRefLinkedListWeak.class, JConsistencyLevel.WEAK);
-
-        JRef<@Weak Item> item1 = replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item2 = replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item3 = replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item4 = replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
-
-
-        weakList.invoke("add", item1);
-        weakList.invoke("add", item2);
-
-        weakListRef.invoke("add", item3);
-        weakListRef.invoke("add", item4);
-
-        System.out.println("Weak List index 0:" + weakList.invoke("get",0));
-        System.out.println("Weak List Ref index 0:" + weakListRef.invoke("get",0));
-        System.out.println("Weak List Ref index 1:" + weakListRef.invoke("get",1));
-        System.out.println("Weak List Ref count:" + weakListRef.invoke("size"));
-        weakListRef.sync();
-        System.out.println("Weak List Ref index 0:" + weakListRef.invoke("get",0));
-        System.out.println("Weak List Ref index 1:" + weakListRef.invoke("get",1));
-        System.out.println("Weak List Ref count:" + weakListRef.invoke("size"));
-
-        for (JReplicaSystem rep : replicaSystems) {
-            rep.close();
-        }
-    }
-
-    public static void exampleStrongList() throws Exception {
-        JRef<@Strong JRefLinkedListStrong> strongList = replicaSystems[0].replicate("list1", new JRefLinkedListStrong(), JConsistencyLevel.STRONG);
-        JRef<@Strong JRefLinkedListStrong> strongListRef = replicaSystems[1].ref("list1", JRefLinkedListStrong.class, JConsistencyLevel.STRONG);
-
-        JRef<@Strong Item> item1 = replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.STRONG);
-        JRef<@Strong Item> item2 = replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.STRONG);
-        JRef<@Strong Item> item3 = replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.STRONG);
-        JRef<@Strong Item> item4 = replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.STRONG);
-
-
-        strongList.invoke("add", item1);
-        strongList.invoke("add", item2);
-
-        strongListRef.invoke("add", item3);
-        strongListRef.invoke("add", item4);
-
-        System.out.println("Strong List index 0:" + strongList.invoke("get",0));
-        System.out.println("Strong List Ref index 0:" + strongListRef.invoke("get",0));
-        System.out.println("Strong List Ref index 1:" + strongListRef.invoke("get",1));
-        System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
-        //strongListRef.sync();
-        System.out.println("Strong List Ref index 0:" + strongListRef.invoke("get",0));
-        System.out.println("Strong List Ref index 1:" + strongListRef.invoke("get",1));
-        System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
-
-        for (JReplicaSystem rep : replicaSystems) {
-            rep.close();
-        }
-    }
-
     public static void exampleList() throws Exception {
         JRef<@Strong JRefLinkedList> strongList = replicaSystems[0].replicate("list1", new JRefLinkedList(), JConsistencyLevel.STRONG);
         JRef<@Strong JRefLinkedList> strongListRef = replicaSystems[1].ref("list1", JRefLinkedList.class, JConsistencyLevel.STRONG);
 
         JRef<@Strong Item> item1 = replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.STRONG);
         JRef<@Strong Item> item2 = replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.STRONG);
-        JRef<@Strong Item> item3 = replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.STRONG);
-        JRef<@Strong Item> item4 = replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.STRONG);
+        JRef<@Weak Item> item3 = replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item4 = replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
 
 
         strongList.invoke("append", item1);
@@ -146,15 +84,10 @@ public class Demo implements Serializable {
         System.out.println("Strong List Ref index 1:" + strongListRef.invoke("get",1));
         System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
 
-        for (JReplicaSystem rep : replicaSystems) {
-            rep.close();
-        }
-    }
-
-    public static void example2() throws Exception {
-        JRef<@Strong JRefLinkedList> replicated = replicaSystems[0].replicate("killme", new JRefLinkedList(), JConsistencyLevel.STRONG);
-
-        replicated.invoke("add");
+        strongList.invoke("insert",4,item1);
+        System.out.println("Strong List Ref index 3:" + strongListRef.invoke("get",3));
+        System.out.println("Strong List Ref index 4:" + strongListRef.invoke("get",4));
+        System.out.println("Strong List Ref count:" + strongListRef.invoke("size"));
 
         for (JReplicaSystem rep : replicaSystems) {
             rep.close();

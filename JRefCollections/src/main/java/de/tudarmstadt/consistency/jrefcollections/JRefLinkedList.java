@@ -35,7 +35,7 @@ public class JRefLinkedList implements Serializable{
         return true;
     }
 
-    public <T> void add(int index, JRef<T> item) throws IndexOutOfBoundsException{
+    public <T> void insert(int index, JRef<T> item) throws IndexOutOfBoundsException{
         if(size() == index){
             append(item);
         }else if(findIndexFront(index)){
