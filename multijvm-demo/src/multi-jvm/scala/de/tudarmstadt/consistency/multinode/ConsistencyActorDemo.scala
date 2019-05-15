@@ -3,9 +3,9 @@ package de.tudarmstadt.consistency.multinode
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import de.tudarmstadt.consistency.multinode.schema.{A, B}
-import de.tudarmstadt.consistency.replobj.ConsistencyLevel.{Strong, Weak}
-import de.tudarmstadt.consistency.replobj.actors.AkkaReplicaSystem
-import de.tudarmstadt.consistency.replobj.{Ref, actors}
+import de.tudarmstadt.consistency.objects.ConsistencyLevel.{Strong, Weak}
+import de.tudarmstadt.consistency.objects.actors.AkkaReplicaSystem
+import de.tudarmstadt.consistency.objects.{Ref, actors}
 
 /**
 	* Created on 08.02.19.
