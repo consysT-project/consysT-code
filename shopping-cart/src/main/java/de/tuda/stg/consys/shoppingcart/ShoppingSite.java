@@ -1,8 +1,8 @@
-package de.tudarmstadt.consistency.shoppingcart;
+package de.tuda.stg.consys.shoppingcart;
 
-import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.japi.JRef;
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
 

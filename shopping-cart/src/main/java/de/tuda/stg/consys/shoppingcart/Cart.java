@@ -1,16 +1,8 @@
-package de.tudarmstadt.consistency.shoppingcart;
+package de.tuda.stg.consys.shoppingcart;
 
-import de.tudarmstadt.consistency.checker.qual.Strong;
-import de.tudarmstadt.consistency.checker.qual.Weak;
-import de.tudarmstadt.consistency.replobj.japi.JConsistencyLevel;
-import de.tudarmstadt.consistency.replobj.japi.JRef;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
 
