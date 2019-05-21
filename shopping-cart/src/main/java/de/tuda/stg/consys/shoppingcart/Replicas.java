@@ -1,6 +1,7 @@
-package de.tudarmstadt.consistency.shoppingcart;
+package de.tuda.stg.consys.shoppingcart;
 
-import de.tudarmstadt.consistency.replobj.japi.JReplicaSystem;
+
+import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 public class Replicas {
 

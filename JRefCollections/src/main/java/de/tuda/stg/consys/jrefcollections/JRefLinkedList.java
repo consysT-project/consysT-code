@@ -1,6 +1,7 @@
-package de.tudarmstadt.consistency.jrefcollections;
+package de.tuda.stg.consys.jrefcollections;
 
-import de.tudarmstadt.consistency.replobj.japi.JRef;
+
+import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
 
@@ -73,6 +74,10 @@ public class JRefLinkedList implements Serializable{
             current = current.next;
             return sizeRec(cnt + 1);
         }
+    }
+
+    public <T> boolean contains(JRef<T> item){
+        return findObjectFront(item);
     }
 
 

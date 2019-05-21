@@ -1,4 +1,4 @@
-package de.tudarmstadt.consistency.shoppingcart;
+package de.tuda.stg.consys.shoppingcart;
 
 import java.io.Serializable;
 
