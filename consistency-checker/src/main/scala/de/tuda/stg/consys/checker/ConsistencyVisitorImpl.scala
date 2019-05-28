@@ -88,6 +88,13 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 	}
 
 
+	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
+		node.getIdentifier
+
+		super.visitMemberSelect(node, p)
+
+	}
+
 	/*
 		Check that implicit contexts are correct.
 	 */
