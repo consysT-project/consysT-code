@@ -34,9 +34,6 @@ public class Demo {
     }
 
 
-
-
-
     static class MessageGroupsBenchmark {
 
         private final List<JRef<@Strong Group>> groups = new ArrayList<>(40000);

@@ -28,9 +28,9 @@ trait ReplicatedObject[T <: AnyRef] {
 	//Optional print method for debugging purposes
 	def print() : Unit = throw new UnsupportedOperationException("print is not supported")
 
-	/*this syntax can only be used with the preprocessor. The preprocessor rewrites calls to .remote.*/
-	final def remote : T =
-		throw new UnsupportedOperationException("remote can not be called. use a preprocessor to replace all calls to remote.")
+	/*this syntax can only be used with the preprocessor. The preprocessor rewrites calls to .ref.*/
+	final def ref : T =
+		throw new UnsupportedOperationException("ref can not be called. use a preprocessor to replace all calls to ref.")
 
 	/*syntactic sugar*/
 	final def apply[R](fieldName : String) : R =

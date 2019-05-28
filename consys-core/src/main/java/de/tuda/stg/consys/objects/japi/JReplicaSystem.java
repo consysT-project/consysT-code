@@ -13,11 +13,11 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
  */
 public interface JReplicaSystem {
 
-	<T> JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel);
 
-	<T> JRef<T> replicate(@Local T obj, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> replicate(@Local T obj, ConsistencyLevel consistencyLevel);
 
-	<T> JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
 
 	void addReplicaSystem(String hostname, int port);
 
