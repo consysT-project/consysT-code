@@ -22,10 +22,13 @@ public class RemoteObject {
 
 	void m() {
 		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(42), JConsistencyLevel.WEAK);
+		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
 
 		// :: error: (assignment.type.incompatible)
 		x = y;
+
+		// :: error: (assignment.type.incompatible)
+		x.ref().f = y.ref().f;
 	}
 
 }
