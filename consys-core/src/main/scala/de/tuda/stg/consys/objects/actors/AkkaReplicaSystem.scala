@@ -97,7 +97,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		replicate[T](freshAddr(), obj, l)
 	}
 
-	override final def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
+	override final def lookup[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
 		newRef[T](addr, l)
 	}
 

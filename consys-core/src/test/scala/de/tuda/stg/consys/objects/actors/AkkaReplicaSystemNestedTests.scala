@@ -27,8 +27,8 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
+			assertResult(104) { F(0).lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { F(1).lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -39,13 +39,13 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		val refA2 = replica0.replicate("a2", A(200), Strong)
 		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
 
-		val result = F(1).ref[B]("b", Strong).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll")
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { F(0).ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { F(1).ref[A]("a2", Strong).getField("i") }
+			assertResult(104) { F(0).lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { F(1).lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -58,21 +58,21 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Strong)),
 			Weak)
 
-		val result = F(0).ref("b", Weak).invoke[Int]("incAll")
+		val result = F(0).lookup("b", Weak).invoke[Int]("incAll")
 
 		assertResult (104) { result }
 
 		F.replicas.foreach { replica =>
-			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 
-		F(0).ref("b", Weak).syncAll() //Synchronize the method invocation
+		F(0).lookup("b", Weak).syncAll() //Synchronize the method invocation
 
 		F.replicas.foreach { replica =>
-			replica.ref[B]("b", Weak).sync()
-			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
+			replica.lookup[B]("b", Weak).sync()
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -85,21 +85,21 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Strong)),
 			Weak)
 
-		val result = F(1).ref("b", Weak).invoke[Int]("incAll")
+		val result = F(1).lookup("b", Weak).invoke[Int]("incAll")
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 
-		F(1).ref("b", Weak).sync()
+		F(1).lookup("b", Weak).sync()
 
 		F.replicas.foreach {replica =>
-			replica.ref[B]("b", Weak).sync()
-			assertResult(104) { replica.ref[A]("a1", Strong).getField("i") }
-			assertResult(202) { replica.ref[A]("a2", Strong).getField("i") }
+			replica.lookup[B]("b", Weak).sync()
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -112,27 +112,27 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Weak)),
 			Strong)
 
-		val result = F(1).ref[B]("b", Strong).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll")
 
 		assertResult (104) { result }
 
 		F.replicas.foreach { replica =>
 			if (replica == F(1)) {
-				assertResult(104) { replica.ref("a1", Weak).getField("i") }
-				assertResult(202) { replica.ref("a2", Weak).getField("i") }
+				assertResult(104) { replica.lookup("a1", Weak).getField("i") }
+				assertResult(202) { replica.lookup("a2", Weak).getField("i") }
 			} else {
-				assertResult(100) { replica.ref("a1", Weak).getField("i") }
-				assertResult(200) { replica.ref("a2", Weak).getField("i") }
+				assertResult(100) { replica.lookup("a1", Weak).getField("i") }
+				assertResult(200) { replica.lookup("a2", Weak).getField("i") }
 			}
 		}
 
-		F(1).ref[B]("b", Strong).syncAll()
+		F(1).lookup[B]("b", Strong).syncAll()
 
 		F.replicas.foreach {replica =>
-			replica.ref("a1", Weak).sync()
-			replica.ref("a2", Weak).sync()
-			assertResult(104) { replica.ref("a1", Weak).getField("i") }
-			assertResult(202) { replica.ref("a2", Weak).getField("i") }
+			replica.lookup("a1", Weak).sync()
+			replica.lookup("a2", Weak).sync()
+			assertResult(104) { replica.lookup("a1", Weak).getField("i") }
+			assertResult(202) { replica.lookup("a2", Weak).getField("i") }
 		}
 	}
 
@@ -145,28 +145,28 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Weak)),
 			Weak)
 
-		val result = F(1).ref[B]("b", Weak).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Weak).invoke[Int]("incAll")
 
 		assertResult (104) { result }
 
 		F.replicas.foreach { replica =>
 			if (replica == F(1)) {
-				assertResult(104) { replica.ref("a1", Weak).getField("i") }
-				assertResult(202) { replica.ref("a2", Weak).getField("i") }
+				assertResult(104) { replica.lookup("a1", Weak).getField("i") }
+				assertResult(202) { replica.lookup("a2", Weak).getField("i") }
 			} else {
-				assertResult(100) { replica.ref("a1", Weak).getField("i") }
-				assertResult(200) { replica.ref("a2", Weak).getField("i") }
+				assertResult(100) { replica.lookup("a1", Weak).getField("i") }
+				assertResult(200) { replica.lookup("a2", Weak).getField("i") }
 			}
 		}
 
-		F(1).ref[B]("b", Weak).syncAll()
+		F(1).lookup[B]("b", Weak).syncAll()
 
 		F.replicas.zipWithIndex.foreach {replicaWithIndex =>
 			val (replica, index) = replicaWithIndex
-			replica.ref("a1", Weak).sync()
-			replica.ref("a2", Weak).sync()
-			assertResult(104, "index: " + index) { replica.ref("a1", Weak).getField("i") }
-			assertResult(202, "index: " + index) { replica.ref("a2", Weak).getField("i") }
+			replica.lookup("a1", Weak).sync()
+			replica.lookup("a2", Weak).sync()
+			assertResult(104, "index: " + index) { replica.lookup("a1", Weak).getField("i") }
+			assertResult(202, "index: " + index) { replica.lookup("a2", Weak).getField("i") }
 		}
 	}
 

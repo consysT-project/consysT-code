@@ -24,7 +24,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 			Strong)
 
 		concurrent (F) { i =>
-			val refC = F(i).ref[C]("c", Strong)
+			val refC = F(i).lookup[C]("c", Strong)
 			for (j <- 1 to 100) {
 				refC.invoke[Unit]("change", Random.nextInt())
 				val (i1, i2) = refC.invoke[(Int, Int)]("get")
@@ -43,7 +43,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 		F(0).replicate("c2", C(refA1, refA2), Strong)
 
 		concurrent(F) { i =>
-			val refC = if (Random.nextBoolean()) F(i).ref[C]("c1", Strong) else F(i).ref[C]("c2", Strong)
+			val refC = if (Random.nextBoolean()) F(i).lookup[C]("c1", Strong) else F(i).lookup[C]("c2", Strong)
 			for (j <- 1 to 100) {
 				refC.invoke[Unit]("change", Random.nextInt())
 				val (i1, i2) = refC.invoke[(Int, Int)]("get")
@@ -60,7 +60,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 			Weak)
 
 		concurrent (F) { i =>
-			val refC = F(i).ref[C]("c", Weak)
+			val refC = F(i).lookup[C]("c", Weak)
 			for (j <- 1 to 100) {
 				val a1 = refC.getField[Ref[String, A]]("a1")
 				val a2 = refC.getField[Ref[String, A]]("a2")
@@ -71,16 +71,16 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 
 		//Sync all the changes
 		concurrent (F) { i =>
-			val refC = F(i).ref[C]("c", Weak)
+			val refC = F(i).lookup[C]("c", Weak)
 			refC.syncAll()
 		}
 		concurrent (F) { i => //We have to sync twice to have synced all the updates from all sources.
-			val refC = F(i).ref[C]("c", Weak)
+			val refC = F(i).lookup[C]("c", Weak)
 			refC.syncAll()
 		}
 
 		concurrent (F) { i =>
-			val refC = F(i).ref[C]("c", Weak)
+			val refC = F(i).lookup[C]("c", Weak)
 			val (f1, f2) = refC.invoke[(Int, Int)]("get")
 
 			assert(f1 == f2)
@@ -99,7 +99,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 		F(0).replicate("c2", C(refA1, refA2), Weak)
 
 		concurrent(F) { i =>
-			val refC = if (Random.nextBoolean()) F(i).ref[C]("c1", Weak) else F(i).ref[C]("c2", Weak)
+			val refC = if (Random.nextBoolean()) F(i).lookup[C]("c1", Weak) else F(i).lookup[C]("c2", Weak)
 
 			val a1 = refC.getField[Ref[String, A]]("a1")
 			val a2 = refC.getField[Ref[String, A]]("a2")
@@ -111,21 +111,21 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 		}
 
 		concurrent (F) { i =>
-			val refC1 = F(i).ref[C]("c1", Weak)
-			val refC2 = F(i).ref[C]("c2", Weak)
+			val refC1 = F(i).lookup[C]("c1", Weak)
+			val refC2 = F(i).lookup[C]("c2", Weak)
 			refC1.syncAll()
 			refC2.syncAll()
 		}
 		concurrent (F) { i => //We have to sync twice to have synced all the updates from all sources.
-			val refC1 = F(i).ref[C]("c1", Weak)
-			val refC2 = F(i).ref[C]("c2", Weak)
+			val refC1 = F(i).lookup[C]("c1", Weak)
+			val refC2 = F(i).lookup[C]("c2", Weak)
 			refC1.syncAll()
 			refC2.syncAll()
 		}
 
 		concurrent (F) { i =>
-			val refC1 = F(i).ref[C]("c1", Weak)
-			val refC2 = F(i).ref[C]("c2", Weak)
+			val refC1 = F(i).lookup[C]("c1", Weak)
+			val refC2 = F(i).lookup[C]("c2", Weak)
 			val (f1, f2) = refC1.invoke[(Int, Int)]("get")
 			assert(f1 == f2)
 			assert(f1 == numOfReplicas * 100)

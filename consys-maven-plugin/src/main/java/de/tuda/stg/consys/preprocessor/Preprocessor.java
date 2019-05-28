@@ -14,9 +14,9 @@ import java.util.stream.Stream;
  * @author Mirko Köhler
  */
 public class Preprocessor {
-	private static final Pattern invokeRegex = Pattern.compile("(?<inv>(\\w+)\\.remote\\(\\)\\.(\\w+)\\((.*)\\))");
-	private	static final Pattern setRegex = Pattern.compile("(?<fldset>(\\w+)\\.remote\\(\\)\\.(\\w+)\\s*=\\s*([^\n;]*))");
-	private static final Pattern getRegex = Pattern.compile("(?<fldget>(\\w+)\\.remote\\(\\)\\.(\\w+))");
+	private static final Pattern invokeRegex = Pattern.compile("(?<inv>(\\w+)\\.ref\\(\\)\\.(\\w+)\\((.*)\\))");
+	private	static final Pattern setRegex = Pattern.compile("(?<fldset>(\\w+)\\.ref\\(\\)\\.(\\w+)\\s*=\\s*([^\n;]*))");
+	private static final Pattern getRegex = Pattern.compile("(?<fldget>(\\w+)\\.ref\\(\\)\\.(\\w+))");
 
 
 	public static String preprocess(String s0) {

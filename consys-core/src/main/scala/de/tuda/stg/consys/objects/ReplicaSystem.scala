@@ -24,7 +24,7 @@ trait ReplicaSystem[Addr] {
 
 	def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T]
 
-	def ref[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
+	def lookup[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
 
 
 	/* Java interface for replicate */
@@ -37,7 +37,7 @@ trait ReplicaSystem[Addr] {
 	}
 	/* Java interface for ref */
 	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
-		ref(addr, l)(Utils.typeTagFromCls(objCls))
+		lookup(addr, l)(Utils.typeTagFromCls(objCls))
 	}
 
 	def close() : Unit

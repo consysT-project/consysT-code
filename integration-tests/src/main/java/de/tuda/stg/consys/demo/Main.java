@@ -32,27 +32,27 @@ public class Main {
 		JRef<@Weak ObjA> ref2Weak = Replicas.replicaSystem2.ref("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevel.WEAK);
 
 
-		ref1Strong.remote().f = 34;
-		ref1Weak.remote().f = 42;
-		ref1Strong.remote().f = 42;
+		ref1Strong.ref().f = 34;
+		ref1Weak.ref().f = 42;
+		ref1Strong.ref().f = 42;
 
-		ref1Strong.remote().inc();
-		ref1Strong.remote().incBy(4 + 21);
-		ref1Strong.remote().incBy(4 + (21 * 13) );
+		ref1Strong.ref().inc();
+		ref1Strong.ref().incBy(4 + 21);
+		ref1Strong.ref().incBy(4 + (21 * 13) );
 
 
-		System.out.println("ref1Strong.f = "  + ref1Strong.remote().f);
-		System.out.println("ref2Strong.f = "  + ref2Strong.remote().f);
+		System.out.println("ref1Strong.f = "  + ref1Strong.ref().f);
+		System.out.println("ref2Strong.f = "  + ref2Strong.ref().f);
 
-		System.out.println("ref1Weak.f = "  + ref1Weak.remote().f);
-		System.out.println("ref2Weak.f = "  + ref2Weak.remote().f);
+		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);
+		System.out.println("ref2Weak.f = "  + ref2Weak.ref().f);
 
 		ref2Weak.syncAll();
 
-		System.out.println("ref1Weak.f = "  + ref1Weak.remote().f);
-		System.out.println("ref2Weak.f = "  + ref2Weak.remote().f);
+		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);
+		System.out.println("ref2Weak.f = "  + ref2Weak.ref().f);
 
-		ref1Strong.setField("f", ref1Weak.remote().f);
+		ref1Strong.setField("f", ref1Weak.ref().f);
 
 		Replicas.replicaSystem1.close();
 		Replicas.replicaSystem2.close();
@@ -104,15 +104,15 @@ public class Main {
 		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
 		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
 
-		b1.remote().incAll();
-		b2.remote().incAll();
+		b1.ref().incAll();
+		b2.ref().incAll();
 
 		System.out.println("#1");
 		System.out.println(
-			"a1.f = " + a1.remote().f + ", " +
-			"a2.f = " + a2.remote().f + ", " +
-			"b1.g = " + b1.remote().g + ", " +
-			"b2.g = " + b2.remote().g
+			"a1.f = " + a1.ref().f + ", " +
+			"a2.f = " + a2.ref().f + ", " +
+			"b1.g = " + b1.ref().g + ", " +
+			"b2.g = " + b2.ref().g
 		);
 
 
@@ -120,10 +120,10 @@ public class Main {
 
 		System.out.println("#2");
 		System.out.println(
-			"a1.f = " + a1.remote().f + ", " +
-			"a2.f = " + a2.remote().f + ", " +
-			"b1.g = " + b1.remote().g + ", " +
-			"b2.g = " + b2.remote().g
+			"a1.f = " + a1.ref().f + ", " +
+			"a2.f = " + a2.ref().f + ", " +
+			"b1.g = " + b1.ref().g + ", " +
+			"b2.g = " + b2.ref().g
 		);
 
 		Replicas.replicaSystem1.close();
@@ -142,10 +142,10 @@ public class Main {
 
 		ExecutorService exec = Executors.newFixedThreadPool(4);
 		Future<?> fut1 = exec.submit(
-			() -> b1.remote().incAll()
+			() -> b1.ref().incAll()
 		);
 		Future<?> fut2 = exec.submit(
-			() -> b2.remote().incAll()
+			() -> b2.ref().incAll()
 		);
 
 		exec.shutdown();
@@ -154,10 +154,10 @@ public class Main {
 
 		System.out.println("#1");
 		System.out.println(
-			"a1.f = " + a1.remote().f + ", " +
-				"a2.f = " + a2.remote().f + ", " +
-				"b1.g = " + b1.remote().g + ", " +
-				"b2.g = " + b2.remote().g
+			"a1.f = " + a1.ref().f + ", " +
+				"a2.f = " + a2.ref().f + ", " +
+				"b1.g = " + b1.ref().g + ", " +
+				"b2.g = " + b2.ref().g
 		);
 
 
@@ -166,10 +166,10 @@ public class Main {
 
 		System.out.println("#2");
 		System.out.println(
-			"a1.f = " + a1.remote().f + ", " +
-				"a2.f = " + a2.remote().f + ", " +
-				"b1.g = " + b1.remote().g + ", " +
-				"b2.g = " + b2.remote().g
+			"a1.f = " + a1.ref().f + ", " +
+				"a2.f = " + a2.ref().f + ", " +
+				"b1.g = " + b1.ref().g + ", " +
+				"b2.g = " + b2.ref().g
 		);
 
 
