@@ -21,7 +21,7 @@ object Demo extends App {
 	Thread.sleep(1000)
 
 	val ref1  = replica1.replicate("a", A(3), Weak)
-	val ref2 = replica2.ref[A]("a", Weak)
+	val ref2 = replica2.lookup[A]("a", Weak)
 
 	Thread.sleep(1000)
 

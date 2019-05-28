@@ -25,7 +25,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 		def apply(index : Int) : AkkaReplicaSystem[String] = replicas(index)
 
 		def refs[T <: AnyRef : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Array[Ref[String, T]] =
-			replicas.map(replica => replica.ref[T]("a", consistencyLevel))
+			replicas.map(replica => replica.lookup[T]("a", consistencyLevel))
 
 	}
 
