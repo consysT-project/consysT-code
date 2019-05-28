@@ -13,5 +13,5 @@ trait Ref[Addr, T <: AnyRef] extends Serializable {
 	def deref : ReplicatedObject[T]
 
 	/* shortcut for Java implementation */
-	final def remote : T = deref.remote
+	final def ref : T = deref.ref
 }

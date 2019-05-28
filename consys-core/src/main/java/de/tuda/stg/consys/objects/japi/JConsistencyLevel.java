@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.objects.japi;
 
+import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 
@@ -10,8 +11,8 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
  */
 public class JConsistencyLevel {
 
-	public static final ConsistencyLevel STRONG = ConsistencyLevel.Strong$.MODULE$;
-	public static final ConsistencyLevel WEAK = ConsistencyLevel.Weak$.MODULE$;
+	public static final @Local ConsistencyLevel STRONG = ConsistencyLevel.Strong$.MODULE$;
+	public static final @Local ConsistencyLevel WEAK = ConsistencyLevel.Weak$.MODULE$;
 
 
 }

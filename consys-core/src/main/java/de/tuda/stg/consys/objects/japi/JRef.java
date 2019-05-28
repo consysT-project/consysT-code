@@ -17,5 +17,5 @@ public interface JRef<T> {
 
 	void syncAll();
 
-	T remote();
+	T ref();
 }

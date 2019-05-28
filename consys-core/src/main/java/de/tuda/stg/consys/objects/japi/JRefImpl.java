@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.objects.japi;
 
 import de.tuda.stg.consys.objects.Ref;
-import de.tuda.stg.consys.objects.Ref;
 
 import java.io.Serializable;
 
@@ -48,8 +47,8 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
-	public T remote() {
-		return ref.remote(); //Throws an exception
+	public T ref() {
+		return ref.ref(); //Throws an exception
 	}
 
 	@Override
