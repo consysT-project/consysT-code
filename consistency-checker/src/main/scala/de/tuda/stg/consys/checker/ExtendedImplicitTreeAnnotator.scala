@@ -1,8 +1,13 @@
 package de.tuda.stg.consys.checker
 
+import java.util.Collections
+
 import com.sun.source.tree.{ExpressionTree, LiteralTree, MemberSelectTree, MethodInvocationTree, NewClassTree, Tree}
+import com.sun.tools.javac.tree.JCTree.JCFieldAccess
+import de.tuda.stg.consys.utils.Log
 import org.checkerframework.checker.signature.qual.Identifier
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
+import org.checkerframework.com.google.common.collect.Sets
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 
@@ -41,10 +46,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 		if (node.getIdentifier.contentEquals("class")) {
 			//Change type to: @Local Class...
 			annotatedTypeMirror.clearAnnotations()
-
-			val locAnn = localAnnotation
-			println(s"local annotation = $locAnn")
-			annotatedTypeMirror.addAnnotation(locAnn)
+			annotatedTypeMirror.addAnnotation(localAnnotation)
 
 			//Change type to: Class<@Local ...>
 //			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
@@ -56,6 +58,27 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 //					null
 //				}
 //			}, null)
+		} else if (node.isInstanceOf[JCFieldAccess]) {
+//			Log.info(classOf[ExtendedImplicitTreeAnnotator],
+//				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
+
+			//Checks whether the type is from an executable (i.e. method, constructor, or initializer).
+			//In these cases, the annotations can not be changed.
+			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
+//				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
+			} else {
+				val before = Sets.newCopyOnWriteArraySet(annotatedTypeMirror.getAnnotations)
+				annotatedTypeMirror.clearAnnotations()
+
+				val annotationsOfReceiver = tf.getAnnotatedType(node.getExpression).getAnnotations
+				annotationsOfReceiver.forEach(ann => {
+					annotatedTypeMirror.addAnnotation(ann)
+				})
+
+//				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
+			}
+
+
 		}
 
 		super.visitMemberSelect(node, annotatedTypeMirror)
@@ -69,10 +92,10 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 			atypeFactory.getAnnotatedType(receiver) match {
 				case adt : AnnotatedDeclaredType
 					//Method is member of JReplicaSystem
-					if adt.getUnderlyingType.asElement().getSimpleName.toString == "JReplicaSystem" =>
+					if adt.getUnderlyingType.asElement().getSimpleName.contentEquals("JReplicaSystem") =>
 
 					//Method name is replicate
-					if (memberSelectTree.getIdentifier.toString == "replicate") {
+					if (memberSelectTree.getIdentifier.contentEquals("replicate")) {
 
 
 //						//Method has 2 or 3 arguments
