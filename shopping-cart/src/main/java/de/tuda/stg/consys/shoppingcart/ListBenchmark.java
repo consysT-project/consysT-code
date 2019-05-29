@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.shoppingcart;
 
+import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefLinkedList;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
@@ -19,7 +21,7 @@ public class ListBenchmark implements Serializable {
         /*
         * To test:
         * Java Linked List as baseline,
-        * JRefLinkedList
+        * JRefLinkedList (Weak and Strong)
         * JRefDistList with Strong nodes
         * JRefDistList with Weak nodes
         *
@@ -35,7 +37,7 @@ public class ListBenchmark implements Serializable {
         JRef<@Weak Item> item5 = Replicas.replicaSystems[0].replicate("item5", new Item("item5", 15), JConsistencyLevel.WEAK);
         pool[0] = item1; pool[1] = item2;pool[2] = item3;pool[3] = item4;pool[4] = item5;
 
-        int size = 200000;
+        int size = 100;
 
         System.out.println("Generating Random Order");
         int[] poolOrder = getRandomOrder(size);
@@ -45,10 +47,71 @@ public class ListBenchmark implements Serializable {
 
         System.out.println("Average Access for Linked List:" + BenchmarkLinkedList(poolOrder, accessOrder, size));
 
+        System.out.println("Average Access for Weak JRef Linked List:" + BenchmarkJRefLinkedListWeak(poolOrder, accessOrder, size));
+
+        System.out.println("Average Access for Strong JRef Linked List:" + BenchmarkJRefLinkedListStrong(poolOrder, accessOrder, size));
+
+        //System.out.println("Average Access for Weak JRef Linked List:" + BenchmarkJRefLinkedListWeak(poolOrder, accessOrder, size));
+
+
 
         for (JReplicaSystem rep : Replicas.replicaSystems) {
             rep.close();
         }
+    }
+
+    private static double BenchmarkJRefLinkedListStrong(int[] poolOrder, int[] access, int size){
+        double average = 0;
+        BigInteger sum = new BigInteger("0");
+
+        System.out.println("Generating JRef Linked List...");
+
+        JRef<@Strong JRefLinkedList> jrefListStrong = Replicas.replicaSystems[0].replicate("jreflistStrong", new JRefLinkedList(), JConsistencyLevel.STRONG);
+        for(int i=0;i < size ;i++){
+            jrefListStrong.invoke("append", pool[poolOrder[i]]);
+        }
+
+        System.out.println("Starting Benchmark...");
+
+        //Start benchmark
+        for(int i=0;i < access.length ;i++){
+            long start = System.nanoTime();
+            jrefListStrong.invoke("get", access[i]);
+            long end = System.nanoTime();
+            sum = sum.add(BigInteger.valueOf((end-start)));
+        }
+        average = (sum.divide(BigInteger.valueOf(access.length))).longValue();
+
+        //Somehow close jrefList again
+
+        return average;
+    }
+
+    private static double BenchmarkJRefLinkedListWeak(int[] poolOrder, int[] access, int size){
+        double average = 0;
+        BigInteger sum = new BigInteger("0");
+
+        System.out.println("Generating JRef Linked List...");
+
+        JRef<@Weak JRefLinkedList> jrefListWeak = Replicas.replicaSystems[0].replicate("jreflistWeak", new JRefLinkedList(), JConsistencyLevel.WEAK);
+        for(int i=0;i < size ;i++){
+            jrefListWeak.invoke("append", pool[poolOrder[i]]);
+        }
+
+        System.out.println("Starting Benchmark...");
+
+        //Start benchmark
+        for(int i=0;i < access.length ;i++){
+            long start = System.nanoTime();
+            jrefListWeak.invoke("get", access[i]);
+            long end = System.nanoTime();
+            sum = sum.add(BigInteger.valueOf((end-start)));
+        }
+        average = (sum.divide(BigInteger.valueOf(access.length))).longValue();
+
+        //Somehow close jrefList again
+
+        return average;
     }
 
     private static double BenchmarkLinkedList(int[] poolOrder, int[] access, int size){

@@ -138,7 +138,7 @@ public class Demo implements Serializable {
     }
 
     private static void DistListExample1() throws Exception{
-        JRef<@Strong JRefDistList> strongDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(), JConsistencyLevel.STRONG);
+        JRef<@Strong JRefDistList> strongDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
         JRef<@Strong JRefDistList> strongDistListRef = Replicas.replicaSystems[1].ref("list1", JRefDistList.class, JConsistencyLevel.STRONG);
 
         JRef<@Strong Item> item1 = Replicas.replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.STRONG);
@@ -164,7 +164,7 @@ public class Demo implements Serializable {
     }
 
     private static void DistListExample2() throws Exception{
-        JRef<@Weak JRefDistList> weakDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(), JConsistencyLevel.WEAK);
+        JRef<@Weak JRefDistList> weakDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
         JRef<@Weak JRefDistList> weakDistListRef = Replicas.replicaSystems[1].ref("list1", JRefDistList.class, JConsistencyLevel.WEAK);
 
         JRef<@Strong Item> item1 = Replicas.replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.STRONG);
@@ -172,21 +172,18 @@ public class Demo implements Serializable {
         JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item4 = Replicas.replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
 
-        JRef<@Weak DistNode> node1 = Replicas.replicaSystems[0].replicate("node1", new DistNode(item1), JConsistencyLevel.WEAK);
-        JRef<@Weak DistNode> node2 = Replicas.replicaSystems[1].replicate("node2", new DistNode(item1), JConsistencyLevel.WEAK);
-        JRef<@Weak DistNode> node3 = Replicas.replicaSystems[0].replicate("node3", new DistNode(item2), JConsistencyLevel.WEAK);
-        JRef<@Weak DistNode> node4 = Replicas.replicaSystems[1].replicate("node4", new DistNode(item3), JConsistencyLevel.WEAK);
 
-        weakDistList.invoke("append", node1);
-        weakDistList.invoke("append", node2);
-        weakDistList.invoke("append", node3);
-        weakDistList.invoke("append", node4);
+        weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
+        weakDistList.invoke("append", item2, Replicas.replicaSystems[0]);
+        weakDistList.invoke("append", item3, Replicas.replicaSystems[0]);
+        weakDistList.invoke("append", item4, Replicas.replicaSystems[0]);
 
         System.out.println(weakDistList.invoke("size").toString());
         System.out.println(weakDistListRef.invoke("size").toString());
         System.out.println(weakDistList.invoke("get",2).toString());
         System.out.println(weakDistList.invoke("getSeq",2).toString());
-        weakDistListRef.sync();
+        weakDistListRef.syncAll();
+        System.out.println("After Sync");
         System.out.println(weakDistListRef.invoke("size").toString());
         System.out.println(weakDistListRef.invoke("get",3).toString());
 

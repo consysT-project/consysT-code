@@ -1,7 +1,14 @@
 package de.tuda.stg.consys.jrefcollections;
 
 
+import de.tuda.stg.consys.checker.qual.Inconsistent;
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.ConsistencyLevel;
+import de.tuda.stg.consys.objects.ReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 import java.io.Serializable;
 
@@ -13,8 +20,10 @@ public class JRefDistList implements Serializable {
 
     public JRef tail;
 
-    public <T> JRefDistList() {
-        current = head;
+    public ConsistencyLevel level;
+
+    public <T> JRefDistList(ConsistencyLevel level) {
+        current = head; this.level = level;
         tail = head;
     }
 
@@ -36,7 +45,9 @@ public class JRefDistList implements Serializable {
         }
     }
 
-    public <T> boolean append(JRef<T> node) {
+    public <T> boolean append(JRef<T> item, JReplicaSystem sys) {
+        JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
+
         if (tail == null) {
             head = node;
             tail = head;
@@ -49,12 +60,14 @@ public class JRefDistList implements Serializable {
         return true;
     }
 
-    public <T> void insert(int index, JRef<T> node) throws IndexOutOfBoundsException{
+    public <T> void insert(int index, JRef<T> item, JReplicaSystem sys) throws IndexOutOfBoundsException{
+        JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
+
         if(size() == index){
-            append(node);
+            append(item, sys);
         }else if(findIndexFront(index)){
             if(current == null){
-                append(node);
+                append(item, sys);
             }else{
                 node.invoke("setPrev",current.getField("prev"));
                 node.invoke("setNext",current);
@@ -82,7 +95,7 @@ public class JRefDistList implements Serializable {
     }
 
     private  <T> JRef<T> recGet(int index) throws Exception {
-        //current.sync(); //To enable Syncinc here comment out the requirement in the sync function of AkkaReplicatedObject.scala (l. 78)
+        //current.sync(); //To enable Syncing here comment out the requirement in the sync function of AkkaReplicatedObject.scala (l. 78)
         if(index == 0){
             JRef<T> ret = (JRef) current.getField("content");
             current = head;
