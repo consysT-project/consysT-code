@@ -1,4 +1,3 @@
-import de.tuda.stg.consys.checker.Inferred;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -10,7 +9,7 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
  *
  * @author Mirko Köhler
  */
-public class RemoteObject {
+public class RemoteObjectWithImplicitFlow {
 
 	JReplicaSystem replicaSystem;
 
@@ -25,10 +24,10 @@ public class RemoteObject {
 		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
 		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
 
-		// :: error: (assignment.type.incompatible)
-		x = y;
-
-		// :: error: (assignment.type.incompatible)
-		x.ref().f = y.ref().f;
+		if (y.ref().f == 31) {
+			// :: error: (assignment.type.implicitflow) :: error: (invocation.receiver.implicitflow)
+			x.ref().f = 40;
+		}
 	}
+
 }

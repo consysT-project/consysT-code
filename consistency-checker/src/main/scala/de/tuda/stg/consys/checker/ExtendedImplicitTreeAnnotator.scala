@@ -59,13 +59,13 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 //				}
 //			}, null)
 		} else if (node.isInstanceOf[JCFieldAccess]) {
-//			Log.info(classOf[ExtendedImplicitTreeAnnotator],
-//				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
+			Log.info(classOf[ExtendedImplicitTreeAnnotator],
+				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
 
 			//Checks whether the type is from an executable (i.e. method, constructor, or initializer).
 			//In these cases, the annotations can not be changed.
 			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
-//				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
+				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
 			} else {
 				val before = Sets.newCopyOnWriteArraySet(annotatedTypeMirror.getAnnotations)
 				annotatedTypeMirror.clearAnnotations()
@@ -75,7 +75,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 					annotatedTypeMirror.addAnnotation(ann)
 				})
 
-//				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
+				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
 			}
 
 
