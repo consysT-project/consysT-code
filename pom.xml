@@ -16,6 +16,7 @@
         <module>consys-core</module>
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
+        <module>simple-language</module>
     </modules>
 
     <properties>

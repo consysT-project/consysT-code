@@ -28,15 +28,15 @@ trait ReplicaSystem[Addr] {
 
 
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
+	def replicate[T <: AnyRef](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		replicate(addr, obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for replicate */
-	def replicate[T <: AnyRef, L](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
+	def replicate[T <: AnyRef](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		replicate(obj, l)(Utils.typeTagFromCls(objCls))
 	}
 	/* Java interface for ref */
-	def ref[T <: AnyRef, L](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
+	def ref[T <: AnyRef](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
 		lookup(addr, l)(Utils.typeTagFromCls(objCls))
 	}
 
