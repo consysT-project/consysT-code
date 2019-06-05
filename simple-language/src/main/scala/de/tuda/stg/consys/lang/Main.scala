@@ -20,16 +20,21 @@ object Main extends App {
 
 	val env : TypeEnv = Map(
 		'obj1 -> Type('Box, Strong),
-		'x -> Type('Num, Weak)
+		'x -> Type('Num, Strong)
 	)
 
 	val expr1 =
-		New(Type('Box, Strong), 'obj1, Seq(New(Type('Zero, Weak), 'x, Seq())))
+		New(Type('Box, Strong), 'obj1, Seq(New(Type('Zero, Strong), 'x, Seq())))
+
+	val expr2 =
+		Let('l, FldGet(Ref(Type('Box, Strong), 'obj1), 'val),
+			FldSet(Ref(Type('Box, Strong), 'obj1), 'val, New(Type('Succ, Strong), 'x, Seq(Id('l))))
+		)
 
 
 
 
-	val program = Program(ct, env, Seq(expr1))
+	val program = Program(ct, env, Seq(expr1, expr2))
 
 	assert(progType(program))
 

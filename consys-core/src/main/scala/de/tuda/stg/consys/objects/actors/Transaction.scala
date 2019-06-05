@@ -30,7 +30,6 @@ trait Transaction extends Serializable {
 		new NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
 	}
 
-	//TODO: Where to put this?
 	@transient private var sequence : mutable.Map[ConsistencyLevel, Int] = null
 
 	private def incAndGetSeqFor(level : ConsistencyLevel): Int = {
