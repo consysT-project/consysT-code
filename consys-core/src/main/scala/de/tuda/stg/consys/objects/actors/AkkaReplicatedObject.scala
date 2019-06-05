@@ -37,7 +37,6 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 	private def transaction[R](f : Transaction => R) : R = {
-		//Checks whether there is an active transaction
 		replicaSystem.newTransaction(consistencyLevel)
 
 		val currentTransaction = replicaSystem.getCurrentTransaction
@@ -142,19 +141,19 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
+	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
 		ReflectiveAccess.doInvoke[R](methodName, args)
 	}
 
-	def internalGetField[R](tx: Transaction, fldName : String) : R = {
+	protected def internalGetField[R](tx: Transaction, fldName : String) : R = {
 		ReflectiveAccess.doGetField(fldName)
 	}
 
-	def internalSetField(tx: Transaction, fldName : String, newVal : Any) : Unit = {
+	protected def internalSetField(tx: Transaction, fldName : String, newVal : Any) : Unit = {
 		ReflectiveAccess.doSetField(fldName, newVal)
 	}
 
-	final def internalApplyOp[R](op : Operation[R]) : R = op match {
+	protected final def internalApplyOp[R](op : Operation[R]) : R = op match {
 		case GetFieldOp(tx, fldName) =>
 			internalGetField(tx, fldName)
 
@@ -166,7 +165,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	def internalSync() : Unit = {
+	protected def internalSync() : Unit = {
 		throw new UnsupportedOperationException("synchronize not supported on this object")
 	}
 
