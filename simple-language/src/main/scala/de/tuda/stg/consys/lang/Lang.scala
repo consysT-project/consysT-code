@@ -172,7 +172,9 @@ trait Lang {
 			typ
 
 		case New(typ@Type(cls, l), addr, args) =>
-			val Type(envCls, envL) = env(addr)
+			//val Type(envCls, envL) = env(addr)
+			//TODO: Change in type system: Do no lookup local types in type environment
+			val Type(envCls, envL) = if (l == Local) typ else env(addr)
 
 			require(ClassLattice.smallerEq(ct, cls, envCls), s"[New] new class $cls is not a sub type of store class $envCls")
 			require(envL == l, s"[New] new level $l is not equal to the store level $envL")
@@ -183,8 +185,9 @@ trait Lang {
 
 			args.zip(fields).foreach(t => {
 				val (arg, TypeFieldDef(typ, _)) = t
-				require(TypeLattice.smallerEq(ct, exprType(ct, env, lenv, arg), typ),
-					s"[New] argument type $")
+				val parType = exprType(ct, env, lenv, arg)
+				require(TypeLattice.smallerEq(ct, parType, typ),
+					s"[New] argument type $parType does not match type of parameter $typ")
 			})
 
 			typ
@@ -200,7 +203,8 @@ trait Lang {
 			val expectedType@Type(fldCls, fldL) = Auxiliary.typeOfField(ct, ct(recvCls), recvL, fld)
 
 			val valueType = exprType(ct, env, lenv, value)
-			require(TypeLattice.smallerEq(ct, valueType, expectedType))
+			require(TypeLattice.smallerEq(ct, valueType, expectedType),
+				s"[New] type of value $valueType does not match expected type of field $expectedType")
 
 			valueType
 
