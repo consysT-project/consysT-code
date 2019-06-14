@@ -31,16 +31,16 @@
                             <version>1.0.0</version>
                         </path>
                     </annotationProcessorPaths>
-<!--                    <annotationProcessors> -->
-                        <!-- Add all the checkers you want to enable here -->
-<!--                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor> -->
-<!--                    </annotationProcessors> -->
+                    <annotationProcessors>
+<!--                         Add all the checkers you want to enable here-->
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
-                        <!-- <arg>-Awarns</arg> -->
+                         <arg>-Awarns</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

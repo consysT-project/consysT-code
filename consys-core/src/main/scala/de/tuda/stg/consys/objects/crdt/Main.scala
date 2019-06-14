@@ -6,6 +6,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.objects.crdt.OpBasedCRDT.{RegisterAtReplica, RegisterReplica}
+import de.tuda.stg.consys.objects.crdt.StateBasedCRDT.PropagateChanges
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
@@ -111,19 +112,27 @@ object Main extends App {
 		crdt2 ! Add(7)
 		crdt1 ! Add(8)
 
+		crdt1 ! PropagateChanges
+		crdt2 ! PropagateChanges
+
 		Thread.sleep(1000)
 
 		implicit val timeOut = Timeout(Duration(10, TimeUnit.SECONDS))
 		implicit val executionContext = ExecutionContext.global
 
-		(crdt1 ? Contains(5)).foreach(println)
-		(crdt2 ? Contains(5)).foreach(println)
 
-		(crdt1 ? Contains(9)).foreach(println)
-		(crdt2 ? Contains(9)).foreach(println)
 
-		(crdt1 ? Get).foreach(println)
-		(crdt2 ? Get).foreach(println)
+
+		def pr(name : String)(value : Any) : Unit = println(s"$name: $value")
+
+		(crdt1 ? Contains(5)).foreach(pr("crdt1_5"))
+		(crdt2 ? Contains(5)).foreach(pr("crdt2_5"))
+
+		(crdt1 ? Contains(9)).foreach(pr("crdt1_9"))
+		(crdt2 ? Contains(9)).foreach(pr("crdt2_9"))
+
+		(crdt1 ? Get).foreach(pr("crdt1_get"))
+		(crdt2 ? Get).foreach(pr("crdt2_get"))
 	}
 
 

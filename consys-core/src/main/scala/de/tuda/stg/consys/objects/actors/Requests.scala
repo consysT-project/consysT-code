@@ -30,9 +30,8 @@ object Requests {
 
 
 
-	trait RequestHandler[Addr] {
+	trait RequestHandler[Addr] extends AutoCloseable {
 		def request(addr : Addr, req : Request, receiveTimeout : FiniteDuration = 30 seconds) : Any
-		def close() : Unit
 	}
 
 	case object InitHandler

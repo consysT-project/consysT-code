@@ -1,7 +1,9 @@
 package de.tuda.stg.consys.objects.crdt
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import de.tuda.stg.consys.objects.crdt.CRDT.{Operation, ReplicaId}
+
+import scala.collection.mutable
 
 /**
 	* Created on 05.06.19.
@@ -13,7 +15,11 @@ trait CRDT[T] extends Actor {
 	val replicaId : ReplicaId = hashCode()
 
 	def handleOperation(op : Operation) : Option[Any]
+
+
 }
+
+
 
 object CRDT {
 	type ReplicaId = Int
