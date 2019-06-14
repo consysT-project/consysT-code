@@ -120,7 +120,8 @@ object WeakAkkaReplicaSystem {
 			override def internalSync() : Unit = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val WeakSynchronized(newObj : T) = handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
+				val WeakSynchronized(newObj : T) =
+					handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
 				handler.close()
 
 				setObject(newObj)
@@ -132,7 +133,7 @@ object WeakAkkaReplicaSystem {
 	}
 
 	sealed trait WeakReq extends Request
-	case class SynchronizeWithWeakMaster(seq : Seq[Operation[_]]) extends WeakReq with ReturnRequest
+	case class SynchronizeWithWeakMaster(seq : scala.collection.Seq[Operation[_]]) extends WeakReq with ReturnRequest
 
 	case class WeakSynchronized[T <: AnyRef](obj : T)
 
