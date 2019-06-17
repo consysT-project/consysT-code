@@ -3,7 +3,6 @@ package de.tuda.stg.consys.shoppingcart;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.DistNode;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
 import de.tuda.stg.consys.jrefcollections.JRefLinkedList;
@@ -16,7 +15,7 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        DistListExample2();
+        DistListExample3();
 
     }
 
@@ -146,15 +145,10 @@ public class Demo implements Serializable {
         JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item4 = Replicas.replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
 
-        JRef<@Strong DistNode> node1 = Replicas.replicaSystems[0].replicate("node1", new DistNode(item1), JConsistencyLevel.STRONG);
-        JRef<@Strong DistNode> node2 = Replicas.replicaSystems[0].replicate("node2", new DistNode(item1), JConsistencyLevel.STRONG);
-        JRef<@Weak DistNode> node3 = Replicas.replicaSystems[0].replicate("node3", new DistNode(item2), JConsistencyLevel.WEAK);
-        JRef<@Strong DistNode> node4 = Replicas.replicaSystems[0].replicate("node4", new DistNode(item3), JConsistencyLevel.STRONG);
-
-        strongDistList.invoke("append", node1);
-        strongDistList.invoke("append", node2);
-        strongDistList.invoke("append", node3);
-        strongDistList.invoke("append", node4);
+        strongDistList.invoke("append", item1, Replicas.replicaSystems[0]);
+        strongDistList.invoke("append", item2, Replicas.replicaSystems[0]);
+        strongDistList.invoke("append", item3, Replicas.replicaSystems[0]);
+        strongDistList.invoke("append", item4, Replicas.replicaSystems[0]);
 
         System.out.println(strongDistList.invoke("size").toString());
 
@@ -180,12 +174,35 @@ public class Demo implements Serializable {
 
         System.out.println(weakDistList.invoke("size").toString());
         System.out.println(weakDistListRef.invoke("size").toString());
-        System.out.println(weakDistList.invoke("get",2).toString());
-        System.out.println(weakDistList.invoke("getSeq",2).toString());
+        System.out.println(weakDistList.invoke("getIndex",2).toString());
+        System.out.println(weakDistList.invoke("getIndex",2).toString());
         weakDistListRef.syncAll();
         System.out.println("After Sync");
         System.out.println(weakDistListRef.invoke("size").toString());
-        System.out.println(weakDistListRef.invoke("get",3).toString());
+        System.out.println(weakDistListRef.invoke("getIndex",3).toString());
+
+        for (JReplicaSystem rep : Replicas.replicaSystems) {
+            rep.close();
+        }
+    }
+
+    private static void DistListExample3() throws Exception{
+        JRef<@Weak JRefDistList> weakDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        JRef<@Weak JRefDistList> weakDistListRef = Replicas.replicaSystems[1].ref("list1", JRefDistList.class, JConsistencyLevel.WEAK);
+
+        JRef<@Strong Item> item1 = Replicas.replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.STRONG);
+        JRef<@Strong Item> item2 = Replicas.replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.STRONG);
+        JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item4 = Replicas.replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
+
+
+        weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
+
+        System.out.println(weakDistList.invoke("size").toString());
+        System.out.println(weakDistList.invoke("removeIndex", 0).toString());
+        System.out.println(weakDistList.invoke("size").toString());
+        System.out.println(weakDistList.invoke("insert",0,item1,Replicas.replicaSystems[0]).toString());
+        System.out.println(weakDistList.invoke("size").toString());
 
         for (JReplicaSystem rep : Replicas.replicaSystems) {
             rep.close();
