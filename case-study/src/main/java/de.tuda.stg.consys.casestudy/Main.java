@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.casestudy;
 
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import org.checkerframework.org.apache.commons.lang3.NotImplementedException;
 
 import java.io.Serializable;
 
@@ -8,7 +9,12 @@ public class Main implements Serializable {
 
     public static void main(String... args) throws Exception {
 
+        throw new NotImplementedException("not implemented");
     }
+
+    //TODO: Throughput, latenz, gesamtlaufzeit einer methode unter load; Verschiedene Syncstrategien.
+
+    //TODO: AWS Account
 
     JReplicaSystem[] replicaSystems;
 
