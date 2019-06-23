@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.tuda.stg</groupId>
     <artifactId>consys</artifactId>
     <version>1.0.0</version>
-    
+
     <packaging>pom</packaging>
 
     <modules>
         <module>demos</module>
         <module>consistency-checker</module>
         <module>consistency-checker/consistency-checker-test</module>
+        <module>shopping-cart</module>
+        <module>JRefCollections</module>
         <module>microbenchmarks</module>
         <module>consys-core</module>
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
         <module>simple-language</module>
+        <module>listbenches</module>
+        <module>listbenches/list-benches-distributed</module>
+        <module>case-study</module>
     </modules>
 
     <properties>
