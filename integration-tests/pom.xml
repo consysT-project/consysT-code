@@ -3,8 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>consistency-types</artifactId>
-        <groupId>de.tu-darmstadt.consistency-types</groupId>
+        <artifactId>consys</artifactId>
+        <groupId>de.tuda.stg</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -14,9 +14,8 @@
 
     <build>
         <plugins>
-
             <plugin>
-                <groupId>de.tu-darmstadt.consistency-types</groupId>
+                <groupId>de.tuda.stg</groupId>
                 <artifactId>consys-maven-plugin</artifactId>
                 <version>1.0.0</version>
                 <!-- Running the plugin as part of a maven goal -->
@@ -49,7 +48,7 @@
                     <!-- Reenable this to have inforamtion-flow analysis
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>de.tu-darmstadt.consistency-types</groupId>
+                            <groupId>de.tuda.stg</groupId>
                             <artifactId>consistency-checker</artifactId>
                             <version>1.0.0</version>
                         </path>
@@ -72,12 +71,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>replicated-objects</artifactId>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-core</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
         </dependency>

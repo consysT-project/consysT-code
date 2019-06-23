@@ -5,7 +5,7 @@
 
     <parent>
         <artifactId>microbenchmarks</artifactId>
-        <groupId>de.tu-darmstadt.consistency-types</groupId>
+        <groupId>de.tuda.stg</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -74,12 +74,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>replicated-objects</artifactId>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-core</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
         </dependency>

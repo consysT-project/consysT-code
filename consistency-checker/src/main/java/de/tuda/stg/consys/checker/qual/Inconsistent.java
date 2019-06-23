@@ -11,8 +11,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @SubtypeOf({})
-@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
+@Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 @DefaultQualifierInHierarchy
-@DefaultFor({TypeUseLocation.LOCAL_VARIABLE})
+@DefaultFor({TypeUseLocation.LOCAL_VARIABLE, TypeUseLocation.FIELD})
 public @interface Inconsistent {}

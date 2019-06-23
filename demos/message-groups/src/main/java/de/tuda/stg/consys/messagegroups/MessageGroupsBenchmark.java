@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mirko Köhler
  */
+//Note: Currently not working. Use Demo.java instead.
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class MessageGroupsBenchmark {
@@ -79,8 +80,6 @@ public class MessageGroupsBenchmark {
 						name("inbox", grpIndex,replIndex), new Inbox(), JConsistencyLevel.WEAK);
 					JRef<User> user = replicaSystems[replIndex].replicate(
 						name("user", grpIndex, replIndex), new User(inbox, name("alice", grpIndex, replIndex)), JConsistencyLevel.WEAK);
-
-					Thread.sleep(2);
 
 					group.invoke("addUser", user);
 				}

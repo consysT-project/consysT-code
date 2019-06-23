@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>demos</artifactId>
-        <groupId>de.tu-darmstadt.consistency-types</groupId>
+        <groupId>de.tuda.stg</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -26,21 +26,21 @@
                     </compilerArguments>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>de.tu-darmstadt.consistency-types</groupId>
+                            <groupId>de.tuda.stg</groupId>
                             <artifactId>consistency-checker</artifactId>
                             <version>1.0.0</version>
                         </path>
                     </annotationProcessorPaths>
-<!--                    <annotationProcessors> -->
-                        <!-- Add all the checkers you want to enable here -->
-<!--                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor> -->
-<!--                    </annotationProcessors> -->
+                    <annotationProcessors>
+<!--                         Add all the checkers you want to enable here-->
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
-                        <!-- <arg>-Awarns</arg> -->
+                         <arg>-Awarns</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -84,12 +84,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
-            <artifactId>replicated-objects</artifactId>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-core</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
         </dependency>

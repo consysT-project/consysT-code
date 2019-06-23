@@ -4,8 +4,8 @@ Current:
 
 - better integration of transactions
 
-- enable preprocessing
-
+- enable preprocessing (Done). Use javac plugin for preprocessor?
+- compiler (extension) for .remote
 
 
 Future:
@@ -18,8 +18,6 @@ Future:
 
 - investigate recursive methods
 
-- compiler (extension) for .remote
-
 - "standalone" transactions, i.e. transactions outside of methods
 
 - partial replicas, i.e. replicas that do not have all objects.
@@ -27,6 +25,9 @@ Future:
 - dynamic changes of consistency (?): If an object is used in a
 defined way, then it's consistency guarantees are lowered. For example,
 there can be methods that are using weaker consistency by default.
+
+
+
 
 
 
