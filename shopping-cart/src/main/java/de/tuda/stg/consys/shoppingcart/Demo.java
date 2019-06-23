@@ -15,8 +15,8 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        DistListExample3();
-
+        //DistListExample3();
+        example1();
     }
 
     public static void example1() throws Exception {
