@@ -19,6 +19,9 @@
         <module>consys-core</module>
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
+        <module>listbenches</module>
+        <module>listbenches/list-benches-distributed</module>
+        <module>case-study</module>
     </modules>
 
     <properties>

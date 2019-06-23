@@ -14,8 +14,6 @@ public class User {
 
     private String password;
 
-    private boolean isLoggedIn;
-
     private LinkedList<JReplicaSystem> loggedInFrom;
 
     public String description;
@@ -26,7 +24,7 @@ public class User {
 
     User(String userID, String password, JReplicaSystem system){
         this.userID = userID; this.password = password;
-        isLoggedIn = false; loggedInFrom = new LinkedList<JReplicaSystem>();
+        loggedInFrom = new LinkedList<JReplicaSystem>();
         balance = 0;
         this.cart = system.replicate(new Cart(system), JConsistencyLevel.STRONG);
     }
@@ -36,7 +34,6 @@ public class User {
             //Security is not the purpose of this case study, therefore I check passwords and userIDs like this.
             //This is not the way to check passwords in any real Program.
             if(userID.equals(this.userID) && password.equals(this.password)){
-                isLoggedIn = true;
                 loggedInFrom.add(system);
                 return true;
             }

@@ -22,6 +22,8 @@ public class JRefDistList implements Serializable {
 
     public ConsistencyLevel level;
 
+    //TODO: Add unsynced and synced functions, rerun benchmarks
+
     public <T> JRefDistList(ConsistencyLevel level) {
         current = head; this.level = level;
         tail = head;

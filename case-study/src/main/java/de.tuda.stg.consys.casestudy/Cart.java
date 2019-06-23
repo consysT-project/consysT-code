@@ -18,31 +18,45 @@ public class Cart implements Serializable {
         cartContent = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
     }
 
+    //TODO: figure out how to solve the problem that we want to search by item, but items are wrapped in cartElement
+    //       wrapper
+
     public boolean add(JRef<@Strong Product> item, int count, JReplicaSystem system) throws Error{
-        JRef<@Strong cartElement> newCartElem;
-        return cartContent.invoke("append", new cartElement(item, count), system);
+        JRef<@Weak cartElement> newCartElem = system.replicate(new cartElement(item, count), JConsistencyLevel.WEAK);
+        return cartContent.invoke("append", newCartElem, system);
     }
 
     public boolean remove(JRef<@Strong Product> item){
-        return (cartContent.invoke("removeItem", item) == null);
+        return (cartContent.invoke("removeItem", item) != null);
     }
 
     public boolean increase(int count, JRef<@Strong Product> item) throws Error{
-        if(!(count < 0))
+        if(count < 0)
             throw new IllegalArgumentException("Count must be at least 0");
         else{
-            JRef<@Strong cartElement> el = (JRef) cartContent.invoke("getItem", item);
+            JRef<@Strong cartElement> element = (JRef) cartContent.invoke("getItem", item);
+            element.setField("count",((int) element.getField("count")  + count));
+            return true;
         }
-
-        throw new NotImplementedException("not implemented");
     }
 
-    public boolean deacrease(int count){
-        if(!(count < 0))
+    public boolean decrease(int count, JRef<@Strong Product> item){
+        if(count < 0)
             throw new IllegalArgumentException("Count must be at least 0");
+        else{
+            JRef<@Strong cartElement> element = (JRef) cartContent.invoke("getItem", item);
+            int currCount = (int) element.getField("count");
+            currCount = currCount - count;
+            if(!(currCount > 0)){
+                // if the object count is 0, simply remove the object from the cart
+                return remove(item);
 
+            }else{
+                element.setField("count",currCount);
+                return true;
+            }
 
-        throw new NotImplementedException("not implemented");
+        }
     }
 
     public class cartElement{
