@@ -8,8 +8,8 @@
     <version>1.0.0</version>
     
     <parent>
-    	<groupId>de.tu-darmstadt.consistency-types</groupId>
-		<artifactId>consistency-types-parent</artifactId>
+    	<groupId>de.tuda.stg</groupId>
+		<artifactId>consys</artifactId>
 		<version>1.0.0</version>
         <relativePath>/../..</relativePath>
     </parent>
@@ -31,24 +31,7 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>de.tu-darmstadt.consistency-types</groupId>
-                            <artifactId>consistency-checker</artifactId>
-                            <version>1.0.0</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <annotationProcessors>
-                        <!-- Add all the checkers you want to enable here -->
-                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors>
-                    <compilerArgs>
-                        <arg>-AprintErrorStack</arg>
-                        <!-- location of the annotated JDK, which comes from a Maven dependency -->
-                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
-                        <!-- Uncomment the following line to turn type-checking warnings into errors. -->
-                        <!-- <arg>-Awarns</arg> -->
-                    </compilerArgs>
+
                 </configuration>
             </plugin>
 
@@ -78,14 +61,19 @@
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>testlib</artifactId>
-            <version>${checkerframeworkVersion}</version>
+            <!-- This version differs from the Checker Framework version. -->
+            <version>2.5.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>de.tu-darmstadt.consistency-types</groupId>
+            <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
-            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-core</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
     

@@ -34,9 +34,6 @@ public class Demo {
     }
 
 
-
-
-
     static class MessageGroupsBenchmark {
 
         private final List<JRef<@Strong Group>> groups = new ArrayList<>(40000);
@@ -59,7 +56,6 @@ public class Demo {
                     JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevel.WEAK);
                     JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevel.WEAK);
 
-                    Thread.sleep(2);
                     group.invoke("addUser", user);
                     System.out.println("Added user$" + i + "$"+ j);
                 }
