@@ -22,6 +22,10 @@ public class JRefDistList implements Serializable {
 
     public ConsistencyLevel level;
 
+    //Represents the Size the list thinks it is, used as an approximation to determine if
+    // it should be traversed from front to back or back to front
+    private int GuessedSize;
+
     //TODO: Add unsynced and synced functions, rerun benchmarks
 
     public <T> JRefDistList(ConsistencyLevel level) {
@@ -29,29 +33,34 @@ public class JRefDistList implements Serializable {
         tail = head;
     }
 
-    public int size(){
+    public int size(boolean sync){
+        if(sync)
+            reSyncHead();
         if(head == null){
             System.out.println("List is Empty");
             return 0;
         }else{
             current = head;
-            return sizeRec(1);
+            return sizeRec(1, sync);
         }
     }
 
-    private int sizeRec(int cnt){
+    private int sizeRec(int cnt, boolean sync){
+        if(sync)
+            current.sync();
         System.out.println("Element: " + current.toString());
         if(current.getField("next") == null){
+            GuessedSize = cnt;
             return cnt;
         }else{
             current = (JRef) current.getField("next");
-            return sizeRec(cnt + 1);
+            return sizeRec(cnt + 1, sync);
         }
     }
 
-    public <T> JRef<T> removeIndex(int index){
+    public <T> JRef<T> removeIndex(int index, boolean sync){
         current = head;
-        if(findIndexFront(index)){
+        if(findIndexFront(index, sync)){
             JRef<T> ret = (JRef) current.getField("content");
             JRef prev = ((JRef) current.getField("prev"));
             JRef next = ((JRef) current.getField("next"));
@@ -66,15 +75,16 @@ public class JRefDistList implements Serializable {
                 prev.setField("next", next);
                 next.setField("prev", prev);
             }
+            GuessedSize--;
             return ret;
         }else{
             return null;
         }
     }
 
-    public <T> JRef<T> removeItem(JRef<T> item) {
+    public <T> JRef<T> removeItem(JRef<T> item, boolean sync) {
         current = head;
-        if(findItemFront(item)){
+        if(findItemFront(item, sync)){
             JRef<T> ret = (JRef) current.getField("content");
             JRef prev = ((JRef) current.getField("prev"));
             JRef next = ((JRef) current.getField("next"));
@@ -89,6 +99,7 @@ public class JRefDistList implements Serializable {
                 prev.setField("next", next);
                 next.setField("prev", prev);
             }
+            GuessedSize--;
             return ret;
         }else{
             return null;
@@ -108,15 +119,14 @@ public class JRefDistList implements Serializable {
             node.invoke("setPrev", tail);
             tail = node;
         }
+        GuessedSize++;
         return true;
     }
 
-    public <T> void insert(int index, JRef<T> item, JReplicaSystem sys) throws IndexOutOfBoundsException{
+    public <T> void insert(int index, JRef<T> item, JReplicaSystem sys, boolean sync) throws IndexOutOfBoundsException{
         JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
 
-        if(size() == index){
-            append(item, sys);
-        }else if(findIndexFront(index)){
+        if(findIndexFront(index, sync)){
             if(current.getField("prev") == null){
                 head = node; node.invoke("setNext",current);
                 current.invoke("setPrev",node);
@@ -133,8 +143,8 @@ public class JRefDistList implements Serializable {
     }
 
 
-    public <T> JRef<T> getItem(JRef<T> item) throws Exception{
-        if(!findItemFront(item)){
+    public <T> JRef<T> getItem(JRef<T> item, boolean sync) throws Exception{
+        if(!findItemFront(item, sync)){
             return null;
         }else{
             JRef<T> ret = (JRef) current.getField("content");
@@ -143,29 +153,32 @@ public class JRefDistList implements Serializable {
         }
     }
 
-    private <T> boolean findItemFront(JRef<T> item){
+    private <T> boolean findItemFront(JRef<T> item, boolean sync){
         current = head;
-        return recFindItemFront(item);
+        if(sync)
+            reSyncHead();
+        return recFindItemFront(item, sync);
     }
 
-    private <T> boolean recFindItemFront(JRef<T> item){
+    private <T> boolean recFindItemFront(JRef<T> item, boolean sync){
         if(current == null){
             return false;
         }else{
-            current.sync();
+            if(sync)
+                current.sync();
             if(current.getField("content").equals(item)){
                 return true;
             }else{
                 current =(JRef) current.getField("next");
-                return recFindItemFront(item);
+                return recFindItemFront(item, sync);
             }
         }
     }
 
 
-    public <T> JRef<T> getIndex(int index) throws Exception {
+    public <T> JRef<T> getIndex(int index, boolean sync) throws Exception {
 
-        if(!findIndexFront(index)){
+        if(!findIndexFront(index, sync)){
             return null;
         }else{
             JRef<T> ret = (JRef) current.getField("content");
@@ -174,23 +187,68 @@ public class JRefDistList implements Serializable {
         }
     }
 
-    private boolean findIndexFront(int index){
+    private boolean findIndexFront(int index, boolean sync){
         current = head;
-        return recFindIndexFront(index);
+        if(sync)
+            reSyncHead();
+        return recFindIndexFront(index, sync);
     }
 
-    private boolean recFindIndexFront(int index){
+    private boolean recFindIndexFront(int index, boolean sync){
         if(current == null){
             return false;
         }else{
-            current.sync();
+            if(sync)
+                current.sync();
             if(index == 0){
                 return true;
             }else{
                 current =(JRef) current.getField("next");
-                return recFindIndexFront(index - 1);
+                return recFindIndexFront(index - 1, sync);
             }
         }
+    }
+
+    /*
+     * Syncing Function that checks if the head has been changed in a remote system.
+     * Syncs the head until the new head is found.
+     * Only works if the list knows there exists an element in the list, if not the JRefDistList object needs
+     * to be synced.
+     */
+    private boolean reSyncHead(){
+        if(head != null){
+            head.sync();
+            if(head.getField("prev") != null){
+                while(head.getField("prev") != null){
+                    head = (JRef) head.getField("prev");
+                    head.sync();
+                }
+                System.out.println("Yes");
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /*
+     * Syncing Function that checks if the tail has been changed in a remote system.
+     * Syncs the tail until the new tail is found.
+     * Only works if the list knows there exists an element in the list, if not the JRefDistList object needs
+     * to be synced.
+     */
+    private boolean reSyncTail(){
+        if(tail != null){
+            tail.sync();
+            if(tail.getField("next") != null){
+                while(tail.getField("next") != null){
+                    tail = (JRef) tail.getField("next");
+                    tail.sync();
+                }
+                return true;
+            }
+        }
+        return false;
     }
 }
 

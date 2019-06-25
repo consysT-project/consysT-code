@@ -15,8 +15,8 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        //DistListExample3();
-        example1();
+        DistListExample4();
+
     }
 
     public static void example1() throws Exception {
@@ -199,10 +199,52 @@ public class Demo implements Serializable {
         weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
 
         System.out.println(weakDistList.invoke("size").toString());
-        System.out.println(weakDistList.invoke("removeIndex", 0).toString());
+        System.out.println(weakDistList.invoke("removeIndex", 0, true).toString());
         System.out.println(weakDistList.invoke("size").toString());
-        System.out.println(weakDistList.invoke("insert",0,item1,Replicas.replicaSystems[0]).toString());
+        System.out.println(weakDistList.invoke("insert",0,item1,Replicas.replicaSystems[0], true).toString());
         System.out.println(weakDistList.invoke("size").toString());
+
+        for (JReplicaSystem rep : Replicas.replicaSystems) {
+            rep.close();
+        }
+    }
+
+    private static void DistListExample4() throws Exception{
+        JRef<@Weak JRefDistList> weakDistList = Replicas.replicaSystems[0].replicate("list1", new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        JRef<@Weak JRefDistList> weakDistListRef = Replicas.replicaSystems[1].ref("list1", JRefDistList.class, JConsistencyLevel.WEAK);
+
+        JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item4 = Replicas.replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
+
+
+        weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
+        weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
+
+
+        weakDistListRef.sync();
+        System.out.println(weakDistList.invoke("size",true).toString());
+        System.out.println(weakDistListRef.invoke("size",true).toString());
+
+
+        weakDistListRef.invoke("append", item2, Replicas.replicaSystems[0]);
+
+
+        System.out.println("--------------");
+
+        weakDistList.invoke("insert",0,item2,Replicas.replicaSystems[0], false);
+
+        System.out.println("--------------");
+
+        //Why does weakDistList not sync properly?
+        System.out.println(weakDistList.invoke("size",true).toString());
+        System.out.println(weakDistListRef.invoke("size",true).toString());
+
+        System.out.println("--------------");
+
+        //Why does this crash?
+        System.out.println(weakDistList.invoke("size",true).toString());
 
         for (JReplicaSystem rep : Replicas.replicaSystems) {
             rep.close();
