@@ -22,6 +22,7 @@ public class JRefDistList implements Serializable {
 
     public ConsistencyLevel level;
 
+
     //Represents the Size the list thinks it is, used as an approximation to determine if
     // it should be traversed from front to back or back to front
     private int GuessedSize;
@@ -166,7 +167,7 @@ public class JRefDistList implements Serializable {
         }else{
             if(sync)
                 current.sync();
-            if(current.getField("content").equals(item)){
+            if(refEquals((JRef) current.getField("content"),item)){
                 return true;
             }else{
                 current =(JRef) current.getField("next");
@@ -249,6 +250,13 @@ public class JRefDistList implements Serializable {
             }
         }
         return false;
+    }
+
+    /*
+     * A janky method to check if two refs refer to the same item.
+     */
+    private boolean refEquals(JRef ref1, JRef ref2){
+        return (ref1.toString().equals(ref2.toString()));
     }
 }
 

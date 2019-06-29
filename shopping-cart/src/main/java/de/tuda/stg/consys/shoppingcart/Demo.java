@@ -218,6 +218,12 @@ public class Demo implements Serializable {
         JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item4 = Replicas.replicaSystems[0].replicate("item4", new Item("item3", 20), JConsistencyLevel.WEAK);
 
+        JRef<@Weak Item> item1_copy  = Replicas.replicaSystems[1].ref("item1", Item.class, JConsistencyLevel.WEAK);
+
+        //How to compare if two JRefs reference the same thing?
+        System.out.println(item1.toString().equals(item1_copy.toString()));
+        System.out.println(item1.hashCode()==item1_copy.hashCode());
+        System.out.println(item1.equals(item1_copy));
 
         weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
         weakDistList.invoke("append", item1, Replicas.replicaSystems[0]);
