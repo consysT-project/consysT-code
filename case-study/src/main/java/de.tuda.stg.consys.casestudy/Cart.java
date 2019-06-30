@@ -7,7 +7,9 @@ import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
+import javax.jws.soap.SOAPBinding;
 import java.io.Serializable;
+import java.util.LinkedList;
 
 public class Cart implements Serializable {
 
@@ -33,9 +35,6 @@ public class Cart implements Serializable {
         return true;
     }
 
-    /*
-     * Return an Item.
-     */
     public boolean remove(JRef<@Strong Product> item){
         return (cartContent.invoke("removeItem", item, true) != null);
     }
@@ -67,15 +66,42 @@ public class Cart implements Serializable {
         }
     }
 
-    public double checkout(){
-        double cost = 0;
+    public boolean checkout(JRef<@Strong User> user, JReplicaSystem system){
+        //Sync cart to ensure it was not cleared
+        cartContent.sync();
         int len = cartContent.invoke("size", true);
+
+        double cost = 0;
+        LinkedList<JRef<@Strong Product>> products = new LinkedList<JRef<@Strong Product>>();
+
         for(int i = 0; i < len; i++){
             JRef<@Strong cartElement> curr = cartContent.invoke("getIndex", i, true);
-            cost += ((int) curr.getField("count") *
-                    (double)((JRef) curr.getField("item")).invoke("getCost"));
+            int count = (int) curr.getField("count");
+            JRef<@Strong Product> item = (JRef) curr.getField("item");
+            cost += (count * (double)item.invoke("getCost"));
+            while (count > 0){
+                products.add(item);
+                count--;
+            }
         }
-        return cost;
+
+        if(user.invoke("buy", cost, products, system)){
+            clearCart();
+            System.out.println("Successfully bought:");
+            for (JRef<@Strong Product> item: products) {
+                System.out.println(item.invoke("getName")
+                        + " for: " + item.invoke("getCost"));
+            }
+            System.out.println("Total: " + cost);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean clearCart(){
+        if(cartContent.invoke("clear"))
+            cartContent.sync();
+        return true;
     }
 
     public class cartElement{

@@ -11,6 +11,8 @@ import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 import java.io.Serializable;
+import java.util.LinkedList;
+import java.util.function.Predicate;
 
 public class JRefDistList implements Serializable {
 
@@ -257,6 +259,57 @@ public class JRefDistList implements Serializable {
      */
     private boolean refEquals(JRef ref1, JRef ref2){
         return (ref1.toString().equals(ref2.toString()));
+    }
+
+    /*
+     * Type safety is not guaranteed if the list contains elements of different types.
+     * Use with caution.
+     */
+    public <T> LinkedList getNonReplicatedSublist(Predicate<T> function, boolean sync){
+        LinkedList<T> retList = new LinkedList<T>();
+        if(sync)
+            reSyncHead();
+        current = head;
+        while(current != null){
+            T currContent = (T) current.getField("content");
+            if(function.test(currContent)){
+                retList.add(currContent);
+            }
+        }
+        return retList;
+    }
+
+    public <T> LinkedList getAsNonReplicatedLinkedList(boolean sync){
+        LinkedList<T> retList = new LinkedList<T>();
+        if(sync)
+            reSyncHead();
+        current = head;
+        while(current != null){
+            retList.add((T) current.getField("content"));
+        }
+        return retList;
+    }
+
+    /*
+     * Searchers the list using a predicate
+     */
+    public <T> T search(Predicate<T> function, boolean sync){
+        if(sync)
+            reSyncHead();
+        current = head;
+        while(current != null){
+            T currContent = (T) current.getField("content");
+            if(function.test(currContent)){
+                return currContent;
+            }
+        }
+        return null;
+    }
+
+    public boolean clear(){
+        head = null; tail = null;
+        current = head;
+        return true;
     }
 }
 
