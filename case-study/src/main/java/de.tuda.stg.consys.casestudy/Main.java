@@ -1,15 +1,18 @@
 package de.tuda.stg.consys.casestudy;
 
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import org.checkerframework.org.apache.commons.lang3.NotImplementedException;
 
 import java.io.Serializable;
+import java.util.LinkedList;
 
 public class Main implements Serializable {
 
     public static void main(String... args) throws Exception {
 
-        throw new NotImplementedException("not implemented");
     }
 
     //TODO: Throughput, latenz, gesamtlaufzeit einer methode unter load; Verschiedene Syncstrategien.
@@ -17,6 +20,10 @@ public class Main implements Serializable {
     //TODO: AWS Account
 
     JReplicaSystem[] replicaSystems;
+
+    JRef<@Strong Database> database;
+
+    LinkedList<JRef<@Weak ShoppingSite>> sites;
 
     private void setUpReplicaSystems(int systemCount){
         replicaSystems = new JReplicaSystem[systemCount];
@@ -33,5 +40,21 @@ public class Main implements Serializable {
         }
     }
 
+    private boolean setUpDatabase(int repSysNum){
+        if(repSysNum < 0 || repSysNum >= replicaSystems.length){
+            return false;
+        }else {
+            database = replicaSystems[repSysNum].replicate("database",
+                    new Database(replicaSystems[repSysNum]), JConsistencyLevel.STRONG);
+            return true;
+        }
+    }
 
+    private boolean setUpSites(){
+        sites = new LinkedList<JRef<@Weak ShoppingSite>>();
+        for (JReplicaSystem sys: replicaSystems) {
+            sites.add(sys.replicate(new ShoppingSite(database), JConsistencyLevel.WEAK));
+        }
+        return true;
+    }
 }

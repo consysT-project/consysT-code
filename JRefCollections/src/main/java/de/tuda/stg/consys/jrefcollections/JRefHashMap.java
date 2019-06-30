@@ -62,9 +62,49 @@ public class JRefHashMap implements Serializable {
         return null;
     }
 
-    public <T> JRef get(String key) {
+    public boolean containsKey(String key) {
+        if(getValue(key) == null)
+            return false;
+        else
+            return true;
+    }
+
+    public boolean containsValue(JRef value){
+        if(getKey(value) == null)
+            return false;
+        else
+            return true;
+    }
+
+    public String getKey(JRef value){
+        int currPos = 0;
+        int checkedPairs = 0;
+
+        if(filled == 0)
+            return null;
+
+        while (currPos < map.length && checkedPairs < filled){
+            KeyJRefPair currPair = map[currPos];
+            if(currPair != null){
+                if(refEquals(currPair.ref, value))
+                    return currPair.key;
+                else {
+                    checkedPairs ++;
+                }
+            }
+            currPos++;
+        }
+
+        return null;
+    }
+
+    public <T> JRef getValue(String key) {
         int index = hash(key) % map.length;
         int currPos = index;
+
+        if(filled == 0)
+            return null;
+
         do {
             KeyJRefPair currPair = map[currPos];
             if (currPair != null) {
@@ -77,6 +117,8 @@ public class JRefHashMap implements Serializable {
 
         return null;
     }
+
+
 
     private void checkLoad() {
         loadFactor = (filled / map.length);
@@ -118,5 +160,12 @@ public class JRefHashMap implements Serializable {
             ret += (x + 1) * Character.getNumericValue(chars[x]);
         }
         return (ret % 2069);
+    }
+
+    /*
+     * A janky method to check if two refs refer to the same item.
+     */
+    private boolean refEquals(JRef ref1, JRef ref2){
+        return (ref1.toString().equals(ref2.toString()));
     }
 }

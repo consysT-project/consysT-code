@@ -10,17 +10,19 @@ import java.util.LinkedList;
 
 public class User {
 
-    public String userID;
+    private String userID;
 
     private String password;
 
     private LinkedList<JReplicaSystem> loggedInFrom;
 
-    public String description;
+    private String description;
 
     private double balance;
 
-    private JRef<@Strong Cart> cart;
+    private JRef<@Weak Cart> cart;
+
+    private LinkedList<JRef<@Strong Product>> buyHistory;
 
     User(String userID, String password, JReplicaSystem system){
         this.userID = userID; this.password = password;
@@ -57,5 +59,48 @@ public class User {
         return false;
     }
 
+    public JRef<@Strong Cart> FetchCart(JReplicaSystem system){
+        if(loggedInFrom.contains(system)){
+            return cart;
+        }
+        else return null;
+    }
 
+    public boolean verifyLogin(JReplicaSystem system){
+        if(loggedInFrom.contains(system)){
+            return true;
+        }
+        return false;
+    }
+
+    public String getName(){
+        return userID;
+    }
+
+    public String getDescription(){
+        return description;
+    }
+
+    public boolean buy(double cost, LinkedList<JRef<@Strong Product>> products, JReplicaSystem system){
+        if(loggedInFrom.contains(system)){
+            if(cost <= balance){
+                buyHistory.addAll(products);
+                balance -= cost;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public double addBalance(double balance, JReplicaSystem system){
+        if(loggedInFrom.contains(system)){
+            if(balance > 0){
+                this.balance = balance;
+                return this.balance;
+            }
+            return Double.NaN;
+        }
+        else
+            return Double.NaN;
+    }
 }
