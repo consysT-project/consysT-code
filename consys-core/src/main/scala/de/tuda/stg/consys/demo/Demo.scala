@@ -11,6 +11,10 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem
 	*/
 object Demo extends App {
 
+	case class A(var i : Int) {
+		def inc() : Unit = i = i + 1
+	}
+
 
 	val replica1 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3773)
 	val replica2 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3774)
@@ -34,10 +38,14 @@ object Demo extends App {
 
 	println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}")
 
+	ref1 <= "inc"
+
+	ref2.sync()
+
+	println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}")
 
 	replica1.close()
 	replica2.close()
 
 }
 
-case class A(i : Int)
