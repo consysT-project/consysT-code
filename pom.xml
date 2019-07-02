@@ -17,6 +17,7 @@
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
         <module>simple-language</module>
+        <module>consys-japi</module>
     </modules>
 
     <properties>
@@ -30,26 +31,40 @@
         <scalaVersion>2.12.8</scalaVersion>
         <akkaVersion>2.5.21</akkaVersion>
 
-        <checkerframeworkVersion>2.8.1</checkerframeworkVersion>
+        <checkerframeworkVersion>2.8.2</checkerframeworkVersion>
         <cassandraDriverVersion>3.6.0</cassandraDriverVersion>
     </properties>
 
 
     <build>
-        <plugins>
-            <plugin>
-                <!-- This plugin will set properties values using dependency information -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <!-- This plugin will set properties values using dependency information -->
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>properties</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
+                    <configuration>
+                        <source>${javaVersion}</source>
+                        <target>${javaVersion}</target>
+                    </configuration>
+                </plugin>
+
+            </plugins>
+
+        </pluginManagement>
     </build>
 
 

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.objects.japi;
+package objects.japi;
 
 import de.tuda.stg.consys.objects.Ref;
 
@@ -49,6 +49,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	@Override
 	public T ref() {
 		return ref.ref(); //Throws an exception
+	}
+
+	@Override
+	public String addr() {
+		return ref.addr();
 	}
 
 	@Override

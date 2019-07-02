@@ -270,8 +270,10 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 			implicitContexts.pop
 		}
 
-		private def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror =
+		private def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror = {
 			atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
+		}
+
 
 		private def getStrongestNonLocalAnnotationIn(typ : AnnotatedTypeMirror, annotation : AnnotationMirror) : AnnotationMirror = typ match {
 			case declaredType : AnnotatedTypeMirror.AnnotatedDeclaredType =>

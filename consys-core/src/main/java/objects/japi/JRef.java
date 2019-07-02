@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.objects.japi;
+package objects.japi;
 
 /**
  * Created on 01.03.19.
@@ -18,4 +18,6 @@ public interface JRef<T> {
 	void syncAll();
 
 	T ref();
+
+	String addr();
 }
