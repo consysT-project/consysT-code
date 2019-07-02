@@ -1,8 +1,6 @@
-package de.tuda.stg.consys.objects.japi;
+package objects.japi;
 
 import akka.actor.ActorSystem;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.Ref;
 import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.Ref;

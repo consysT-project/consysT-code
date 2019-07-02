@@ -1,7 +1,6 @@
-package de.tuda.stg.consys.objects.japi;
+package objects.japi;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 
 /**

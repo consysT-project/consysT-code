@@ -36,8 +36,8 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
                     <source>${javaVersion}</source>
                     <target>${javaVersion}</target>
@@ -45,7 +45,7 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <!-- Reenable this to have inforamtion-flow analysis
+                    <!-- Reenable this to have inforamtion-flow analysis-->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>de.tuda.stg</groupId>
@@ -55,8 +55,8 @@
                     </annotationProcessorPaths>
                     <annotationProcessors>
                          Add all the checkers you want to enable here
-                         <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors> -->
+                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
@@ -72,7 +72,7 @@
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>consys-core</artifactId>
+            <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
