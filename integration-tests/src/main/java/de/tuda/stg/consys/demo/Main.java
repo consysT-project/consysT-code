@@ -47,6 +47,8 @@ public class Main {
 		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);
 		System.out.println("ref2Weak.f = "  + ref2Weak.ref().f);
 
+		ref2Strong.ref().f = ref2Weak.ref().f;
+
 		ref2Weak.syncAll();
 
 		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);

@@ -23,7 +23,7 @@ public class PreprocessTestsMojo extends AbstractMojo {
 	@Parameter(property = "preprocess-tests.sourceDir", defaultValue = "${project.build.testSourceDirectory}")
 	private File sourceDir;
 
-	@Parameter(property = "preprocess-tests.targetDir", defaultValue = "${project.build.directory}/generated-sources/test/java")
+	@Parameter(property = "preprocess-tests.targetDir", defaultValue = "${project.build.directory}/gen/test/java")
 	private File targetDir;
 
 

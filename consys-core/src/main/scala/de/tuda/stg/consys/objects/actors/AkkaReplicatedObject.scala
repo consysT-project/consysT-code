@@ -180,18 +180,32 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		//TODO: Define this as field and keep in sync with obj
 		private var objMirror : InstanceMirror = _
 
+
+
+
+		private final val rtMirror = runtimeMirror(AkkaReplicatedObject.this.getClass.getClassLoader)
+
 		private[AkkaReplicatedObject] def updateObj() : Unit = {
-			objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(state)
+			objMirror = rtMirror.reflect(state)
 		}
 
 		def doInvoke[R](methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
-			val tpe = typeOf[T]
 			val mthdTerm = TermName(methodName)
 
-			val methodSymbol = tpe.member(mthdTerm).asMethod
-			val methodMirror = objMirror.reflectMethod(methodSymbol)
-			val result = methodMirror.apply(args : _*)
-			result.asInstanceOf[R]
+			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asMethod.alternatives.find { s =>
+				s.asMethod.paramLists.flatMap(
+					paramList => paramList.map(param => param.typeSignature.typeSymbol.asClass)
+				) == List(args.toList.map(arg => arg.getClass))
+			}
+
+			mbMethodSym match {
+				case Some(methodSymbol: MethodSymbol) =>
+					val methodMirror = objMirror.reflectMethod(methodSymbol)
+					val result = methodMirror.apply(args : _*)
+					result.asInstanceOf[R]
+				case _ =>
+					throw new NoSuchMethodException(s"method <$methodName> with arguments $args was not found in $objMirror.")
+			}
 		}
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
