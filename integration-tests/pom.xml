@@ -17,22 +17,6 @@
             <plugin>
                 <groupId>de.tuda.stg</groupId>
                 <artifactId>consys-maven-plugin</artifactId>
-                <version>1.0.0</version>
-                <!-- Running the plugin as part of a maven goal -->
-                <executions>
-                    <execution>
-                        <id>gen-src</id>
-                        <goals>
-                            <goal>preprocess-sources</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>gen-test</id>
-                        <goals>
-                            <goal>preprocess-tests</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
@@ -54,7 +38,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
-                         Add all the checkers you want to enable here
+                         <!-- Add all the checkers you want to enable here -->
                          <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
                     <compilerArgs>

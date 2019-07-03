@@ -1,4 +1,4 @@
-package objects.japi;
+package de.tuda.stg.consys.objects.japi;
 
 import java.io.Serializable;
 
