@@ -1,4 +1,4 @@
-package objects;
+package de.tuda.stg.consys.objects;
 
 import akka.actor.ActorSystem;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;

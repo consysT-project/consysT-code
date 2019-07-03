@@ -211,7 +211,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
-			case CreateObjectReplica(addr : Addr, obj, consistencyLevel, masterRef) =>
+			case CreateObjectReplica(addr : Addr@unchecked, obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
 				require(!replica.contains(addr), s"address $addr is already defined")
@@ -235,7 +235,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 					clearTransaction()
 					()
 
-				case HandleRequest(addr : Addr, request) =>	replica.get(addr) match {
+				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
 					case None => sys.error(s"object $addr not found")
 					case Some(obj) =>	sender() ! obj.handleRequest(request)
 				}
