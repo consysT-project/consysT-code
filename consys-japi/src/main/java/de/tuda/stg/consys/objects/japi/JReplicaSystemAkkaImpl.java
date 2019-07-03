@@ -1,4 +1,4 @@
-package objects.japi;
+package de.tuda.stg.consys.objects.japi;
 
 import akka.actor.ActorSystem;
 import de.tuda.stg.consys.checker.qual.Local;

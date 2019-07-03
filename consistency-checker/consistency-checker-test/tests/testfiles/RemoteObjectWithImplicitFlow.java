@@ -25,7 +25,8 @@ public class RemoteObjectWithImplicitFlow {
 		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
 
 		if (y.ref().f == 31) {
-			// :: error: (assignment.type.implicitflow) :: error: (invocation.receiver.implicitflow)
+			//TODO: Does this error need to be here? error: (invocation.receiver.implicitflow)
+			// :: error: (assignment.type.implicitflow)
 			x.ref().f = 40;
 		}
 	}
