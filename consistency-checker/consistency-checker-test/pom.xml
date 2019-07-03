@@ -72,7 +72,7 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>consys-core</artifactId>
+            <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
         </dependency>
     </dependencies>

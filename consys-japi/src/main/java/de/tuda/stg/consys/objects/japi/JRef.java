@@ -1,4 +1,4 @@
-package objects.japi;
+package de.tuda.stg.consys.objects.japi;
 
 /**
  * Created on 01.03.19.

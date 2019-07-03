@@ -89,7 +89,7 @@ object StrongAkkaReplicaSystem {
 					cache(op, result)
 					()
 
-				case MergeReq(newObj : T, op, result) =>
+				case MergeReq(newObj : T@unchecked, op, result) =>
 					setObject(newObj)
 					cache(op, result)
 					()
@@ -163,7 +163,7 @@ object StrongAkkaReplicaSystem {
 			}
 
 			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
-				val LockRes(masterObj : T) = handler.request(addr, LockReq(txid))
+				val LockRes(masterObj : T@unchecked) = handler.request(addr, LockReq(txid))
 				setObject(masterObj)
 			}
 
