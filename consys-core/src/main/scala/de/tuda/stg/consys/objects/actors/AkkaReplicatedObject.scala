@@ -6,6 +6,7 @@ import de.tuda.stg.consys.objects.ReplicatedObject
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
 import de.tuda.stg.consys.objects.{Ref, ReplicatedObject, typeToClassTag}
+import jdk.internal.dynalink.support.TypeUtilities
 
 import scala.language.postfixOps
 import scala.reflect.ClassTag
@@ -61,7 +62,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { tx =>
+	override final def invoke[R](methodName : String, args : Seq[Seq[Any]]) : R = transaction[R] { tx =>
 		internalInvoke[R](tx, methodName, args)
 	}
 
@@ -141,7 +142,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
+
+	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke[R](methodName, args)
 	}
 
@@ -189,19 +191,41 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 			objMirror = rtMirror.reflect(state)
 		}
 
-		def doInvoke[R](methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
+		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			val mthdTerm = TermName(methodName)
 
-			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asMethod.alternatives.find { s =>
-				s.asMethod.paramLists.flatMap(
-					paramList => paramList.map(param => param.typeSignature.typeSymbol.asClass)
-				) == List(args.toList.map(arg => arg.getClass))
+			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
+
+			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
+				val flattenedParams : Seq[Seq[Class[_]]] =
+					s.asMethod.paramLists.map(paramList => paramList.map(param => {
+						val classSymbol = param.typeSignature.typeSymbol.asClass
+						rtMirror.runtimeClass(classSymbol)
+					} ))
+
+				//Check whether parameters can be assigned the given arguments
+				flattenedParams.length == argClasses.length && flattenedParams.zip(argClasses).forall(t1 => {
+					val (paramList, argList) = t1
+					paramList.length == argList.length && paramList.zip(argList).forall(t2 => {
+						val (param, arg) = t2
+
+						val result = if (param.isPrimitive) {
+							//Treat boxed types correctly: primitive types are converted to boxed types and then checked.
+							TypeUtilities.getWrapperType(param).isAssignableFrom(arg)
+						} else {
+							param.isAssignableFrom(arg)
+						}
+
+						result
+					})
+				})
+//				flattenedParams == argClasses
 			}
 
 			mbMethodSym match {
 				case Some(methodSymbol: MethodSymbol) =>
 					val methodMirror = objMirror.reflectMethod(methodSymbol)
-					val result = methodMirror.apply(args : _*)
+					val result = methodMirror.apply(args.flatten : _*)
 					result.asInstanceOf[R]
 				case _ =>
 					throw new NoSuchMethodException(s"method <$methodName> with arguments $args was not found in $objMirror.")

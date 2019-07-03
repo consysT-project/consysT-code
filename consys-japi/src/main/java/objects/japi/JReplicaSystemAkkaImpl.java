@@ -47,7 +47,7 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
 	@Override
 	public <T> JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
-		Ref<String, T> ref = replicaSystem.ref(addr, objCls, consistencyLevel);
+		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
 		return new JRefImpl<>(ref);
 	}
 

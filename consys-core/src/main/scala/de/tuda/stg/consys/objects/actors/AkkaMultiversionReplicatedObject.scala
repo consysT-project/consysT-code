@@ -26,7 +26,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 		}
 	}
 
-	override def internalInvoke[R](tx : Transaction, methodName : String, args : Seq[Any]) : R =  opCache.get(tx) match {
+	override def internalInvoke[R](tx : Transaction, methodName : String, args : Seq[Seq[Any]]) : R =  opCache.get(tx) match {
 		case None =>
 			val res = super.internalInvoke[R](tx, methodName, args)
 			cache(InvokeOp(tx, methodName, args), res)

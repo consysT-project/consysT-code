@@ -26,7 +26,7 @@ object Requests {
 	}
 	case class GetFieldOp[+R](tx : Transaction, fldName : String) extends Operation[R]
 	case class SetFieldOp(tx : Transaction, fldName : String, newVal : Any) extends Operation[Unit]
-	case class InvokeOp[+R](tx : Transaction, mthdName : String, args : Seq[Any]) extends Operation[R]
+	case class InvokeOp[+R](tx : Transaction, mthdName : String, args : Seq[Seq[Any]]) extends Operation[R]
 
 
 

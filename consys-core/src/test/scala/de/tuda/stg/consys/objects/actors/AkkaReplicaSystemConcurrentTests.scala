@@ -26,7 +26,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 		concurrent (F) { i =>
 			val refC = F(i).lookup[C]("c", Strong)
 			for (j <- 1 to 100) {
-				refC.invoke[Unit]("change", Random.nextInt())
+				refC <=[Unit]("change", Random.nextInt())
 				val (i1, i2) = refC.invoke[(Int, Int)]("get")
 				assert(i1 == i2)
 			}
@@ -45,7 +45,7 @@ class AkkaReplicaSystemConcurrentTests extends fixture.FunSuite with AkkaReplica
 		concurrent(F) { i =>
 			val refC = if (Random.nextBoolean()) F(i).lookup[C]("c1", Strong) else F(i).lookup[C]("c2", Strong)
 			for (j <- 1 to 100) {
-				refC.invoke[Unit]("change", Random.nextInt())
+				refC <=[Unit]("change", Random.nextInt())
 				val (i1, i2) = refC.invoke[(Int, Int)]("get")
 				assert(i1 == i2)
 			}

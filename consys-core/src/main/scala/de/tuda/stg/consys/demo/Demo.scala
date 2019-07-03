@@ -13,6 +13,7 @@ object Demo extends App {
 
 	case class A(var i : Int) {
 		def inc() : Unit = i = i + 1
+		def inc(a : Int) : Unit = i = i + a
 	}
 
 
@@ -38,7 +39,7 @@ object Demo extends App {
 
 	println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}")
 
-	ref1 <= "inc"
+	ref1 <= ("inc", 3)
 
 	ref2.sync()
 
