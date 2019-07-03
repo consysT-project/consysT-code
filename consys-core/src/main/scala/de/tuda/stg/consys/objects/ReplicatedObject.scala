@@ -14,12 +14,16 @@ trait ReplicatedObject[T <: AnyRef] {
 
 	def setField[R](fieldName : String, value : R) : Unit
 
-	def invoke[R](methodName : String, args : Any*) : R
+	//args is Seq[Seq[...]], because they can appear in multiple argument lists
+	def invoke[R](methodName : String, args : Seq[Seq[Any]]) : R
+
+	def invoke[R](methodName : String) : R =
+		//invokes a method with no parameter list. Use Seq(Seq()) for methods with an empty parameter list!
+		invoke(methodName, Seq())
 
 	/* for Java binding */
-	def invoke[R](methodName : String, args : Array[Any]) : R = {
-		invoke[R](methodName, args.toSeq : _*)
-	}
+	def invoke[R](methodName : String, args : Array[Any]) : R =
+		invoke[R](methodName, Seq(args.toSeq))
 
 	def sync() : Unit
 
@@ -40,5 +44,5 @@ trait ReplicatedObject[T <: AnyRef] {
 		setField(fieldName, value)
 
 	final def <=[R](methodName : String, args : Any*) : R =
-		invoke[R](methodName, args : _*)
+		invoke[R](methodName, Seq(args))
 }
