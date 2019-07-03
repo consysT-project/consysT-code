@@ -51,7 +51,7 @@ object WeakAkkaReplicaSystem {
 		with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				super.internalInvoke(tx, methodName, args)
 			}
 
@@ -102,7 +102,7 @@ object WeakAkkaReplicaSystem {
 
 			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
-			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				unsynchronized += InvokeOp(tx, methodName, args)
 				super.internalInvoke(tx, methodName, args)
 			}
