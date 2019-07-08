@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.lang
+package de.tuda.stg.consys.simplelang
 
 /**
 	* Created on 29.05.19.
