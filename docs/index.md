@@ -21,3 +21,4 @@ Ref<@High String> string1 = replicate("Hello World!");
 Ref<@High String> string1 = replicate("Hello World!");
 Ref<@Low String> string2 = string1; //type error!
 ```
+
