@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.lang
+package de.tuda.stg.consys.simplelang
 
 import scala.collection.mutable
 
