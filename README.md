@@ -1,13 +1,15 @@
+Find our webpage at https://allprojects.github.io/consistency-types-impl/.
+
 # Consistency Types
 
-In replicated datastores, users have to decide between available and consistent data. 
-Consistency ensures that the data is the same across all replicas, whereas availability 
+In replicated datastores, users have to decide between available and consistent data.
+Consistency ensures that the data is the same across all replicas, whereas availability
 ensures that the user will get an answer from the datastore even in the presence of
 network partitions. Having consistency and availability simultaneously is not possible
 as described by the famous CAP theorem: available data only provides weak consistency guarantees, and
 consistent data provides low availability.
 
-However, applications often need available data to provide performance and consistency guarantees 
+However, applications often need available data to provide performance and consistency guarantees
 for critical program parts, e.g., payment. When mixing available and consistent data, developers
 have to reason about which consistency guarantees are still satisfied.  
 
@@ -20,24 +22,24 @@ The checking is done using an information flow analysis.
 
 (OUTDATED) The project is divided into the following modules:
 
-* **consistency-checker**: Implements the type annotations and the information flow analysis using the 
+* **consistency-checker**: Implements the type annotations and the information flow analysis using the
 Checker framework.
     * **consistency-checker-test**: Unit tests for checking information flow with the
      consistency checker. (Has its own maven module, because
-    it needs to be compiled using the consistency checker as annotation processor). 
+    it needs to be compiled using the consistency checker as annotation processor).
 * **consistency-store**: Implements distributed data store bindings (e.g. for Cassandra)     
     for types with consistency annotations.
     * **consistency-store-test**: Unit tests for checking information flow in the
-    store API usage. 
+    store API usage.
 * **store-integration-demo**: Examples how the type annotations are used in combination with
-a replicated datastore. 
+a replicated datastore.
 
 
 ## Installation of the project
 
 The following instructions have been tested for *Linux Mint 19*.
- 
- The project is built using Apache Maven. 
+
+ The project is built using Apache Maven.
 
 1. Install [Maven](https://maven.apache.org)
 2. Open a terminal in the main folder consistency-types-impl
@@ -45,12 +47,12 @@ The following instructions have been tested for *Linux Mint 19*.
 4. Install the consys-maven-plugin. `cd consys-maven-plugin && mvn install`.
 4. Build the complete project. Run `mvn install` in the project directory.
 
-    
+
 ### IntelliJ
 
 In IntelliJ, you have to add the annotation processor manually.
 
-1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`. 
+1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`.
 IntelliJ may be able to retrieve the correct checker by default. If it can, you are already finished.
 
 2. Add the compiled jar of the consistency-checker project
