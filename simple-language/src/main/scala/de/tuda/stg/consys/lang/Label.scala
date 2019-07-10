@@ -8,8 +8,31 @@ package de.tuda.stg.consys.lang
 sealed trait Label
 
 object Label {
-	case object THIS extends Label
-	case object Weak extends Label
-	case object Strong extends Label
-	case object LOCAL extends Label
+	sealed trait AbstractLabel extends Label
+	case object THIS extends AbstractLabel
+
+	sealed trait ConcreteLabel extends Label
+
+	sealed trait ConsistencyLabel extends ConcreteLabel {
+		def joinWith(other : ConsistencyLabel) : ConsistencyLabel
+
+		def isSmallerEq(other : ConsistencyLabel) : Boolean =
+			this.joinWith(other) == other
+	}
+	case object Weak extends ConsistencyLabel {
+		override def joinWith(other : ConsistencyLabel) : ConsistencyLabel = other match {
+			case Weak => Weak
+			case Strong => Weak
+		}
+	}
+	case object Strong extends ConsistencyLabel {
+		override def joinWith(other : ConsistencyLabel) : ConsistencyLabel = other match {
+			case Weak => Weak
+			case Strong => Strong
+		}
+	}
+
+	case object LOCAL extends ConcreteLabel
+
+
 }
