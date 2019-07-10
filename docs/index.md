@@ -1,20 +1,23 @@
-# ConSysT
+# What is ConSysT?
 
-Large scale distributed systems require to embrace the trade off
-between consistency and availability, accepting lower levels of consistency
-to guarantee higher availability.
+**ConSysT** is a language and middleware that enables you to write *distributed code* that allows you to mix data that is replicated across the network using *different consistency models*.
 
-Existing programming languages are, however, agnostic to this compromise,
-resulting in consistency guarantees that are the same for the whole application
-and are implicitly adopted from the middleware or hardcoded in configuration files.
+**ConSysT** is available as a tool and library for Java.
 
-**ConSysT** integrates availability in the design of an object-oriented language,
-allowing developers to specify different consistency and isolation constraints
-in the same application at the granularity of single objects.
+# Why use ConSysT?
 
-
-```
-This is a code example.
+* Distribute your data across multiple devices.
+```java
+Ref<String> string1 = replicate("Hello World!");
 ```
 
-Pretty good.
+* Define the propagation of updates to other devices as availability annotations.
+```java
+Ref<@High String> string1 = replicate("Hello World!");
+```
+
+* Safe mixing of different availability levels built into the type system.
+```java
+Ref<@High String> string1 = replicate("Hello World!");
+Ref<@Low String> string2 = string1; //type error!
+```
