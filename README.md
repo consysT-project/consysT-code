@@ -18,7 +18,6 @@ the types are implemented as type annotations.
 The checking is done using an information flow analysis.
 
 
-
 ## Installation of the project
 
 The following instructions have been tested for *Linux Mint 19*.
