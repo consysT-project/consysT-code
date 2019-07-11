@@ -15,10 +15,12 @@ object TypeFactoryUtils {
 	/*
 		Annotation definitions
 	 */
-	@inline def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations, "de.tuda.stg.consys.checker.qual.Local")
+	def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror = {
+		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations,"de.tuda.stg.consys.checker.qual.Local")
+	}
 
-	@inline def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
+
+	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
 
