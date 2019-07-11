@@ -13,18 +13,20 @@ import scala.collection.{JavaConverters, mutable}
 	*
 	* @author Mirko Köhler
 	*/
-class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](checker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](checker) {
+abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](checker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](checker) {
 	import TypeFactoryUtils._
 
 
 	//Current context of the consistency check
-	private val implicitContext : ImplicitContext = new ImplicitContext
+	protected val implicitContext : ImplicitContext = new ImplicitContext
 
 
 	//Returns the annotation which information flow should be checked
 	protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror
 
 	protected def getEmptyContextAnnotation : AnnotationMirror
+
+	protected def getTopAnnotation : AnnotationMirror
 
 
 	/*
@@ -133,7 +135,10 @@ class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _
 		private def getStrongestNonLocalAnnotationIn(typ : AnnotatedTypeMirror, annotation : AnnotationMirror) : AnnotationMirror = {
 			//Easier access to lower bound
 			def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror = {
-				atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
+				//TODO: Fix this! There are NullPointerExceptions...
+				//println(s"lower bound $a and $b. type factory? ${atypeFactory != null} hierarchy? ${if (atypeFactory != null) atypeFactory.getQualifierHierarchy != null else false}")
+				//atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
+				a
 			}
 
 
@@ -160,7 +165,7 @@ class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _
 
 
 		private def canBeAccessed(typ : AnnotatedTypeMirror, tree : Tree) : Boolean = {
-			val typeAnnotation : AnnotationMirror = getStrongestNonLocalAnnotationIn(typ, inconsistentAnnotation)
+			val typeAnnotation : AnnotationMirror = getStrongestNonLocalAnnotationIn(typ, getTopAnnotation)
 
 			if (typeAnnotation == null) {
 				checker.report(Result.warning("consistency.inferred", typ, tree), tree)

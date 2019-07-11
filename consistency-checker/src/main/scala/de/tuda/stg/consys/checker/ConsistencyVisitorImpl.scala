@@ -16,11 +16,8 @@ import scala.collection.{JavaConverters, mutable}
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[ConsistencyAnnotatedTypeFactory](checker){
+class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](checker){
 	import TypeFactoryUtils._
-
-	implicit val implicitTypeFactory : ConsistencyAnnotatedTypeFactory = atypeFactory
-
 
 
 
@@ -100,7 +97,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 						val setArg = node.getArguments.get(1)
 						val setArgT = atypeFactory.getAnnotatedType(setArg)
 
-						if (!setArgT.getAnnotations.contains(localAnnotation)) {
+						if (!setArgT.getAnnotations.contains(localAnnotation(atypeFactory))) {
 							println("WARNING: Non-local value replicated")
 						}
 
@@ -162,14 +159,14 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends BaseTypeVisitor[
 
 
 
-	private def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = { //can only include consistency annotations
+	override protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = { //can only include consistency annotations
 		val annotations : util.Set[AnnotationMirror] = typ.getAnnotations
 		if (annotations.size == 1) return annotations.iterator.next
 		else if (annotations.isEmpty) return null
 		throw new AssertionError("inferred an unexpected number of annotations. Expected 1 annotation, but got: " + annotations)
 	}
 
+	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation(atypeFactory)
 
-
-
+	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation(atypeFactory)
 }
