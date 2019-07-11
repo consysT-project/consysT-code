@@ -19,11 +19,11 @@ trait LabelChecker {
 		case Assignment(x, e) =>
 
 
-			(pc, env(x), checkExpression(env, e)) match {
-				case (LOCAL, _) =>
-				case (_, LOCAL) =>
-				case (c1 : ConsistencyLabel, c2 : ConsistencyLabel) => c1 isSmallerEq
-			}
+//			(pc, env(x), checkExpression(env, e)) match {
+//				case (LOCAL, _) =>
+//				case (_, LOCAL) =>
+//				case (c1 : ConsistencyLabel, c2 : ConsistencyLabel) => c1 isSmallerEq
+//			}
 	}
 
 	def checkExpression(env : Env, e : Expression) : ConcreteLabel = e match {
