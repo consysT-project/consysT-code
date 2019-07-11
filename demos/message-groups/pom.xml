@@ -14,12 +14,10 @@
 
     <build>
         <plugins>
+
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
-                    <source>${javaVersion}</source>
-                    <target>${javaVersion}</target>
                     <compilerArguments>
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
@@ -32,7 +30,6 @@
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
-<!--                         Add all the checkers you want to enable here-->
                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
                     <compilerArgs>
@@ -40,10 +37,11 @@
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
-                         <arg>-Awarns</arg>
+                        <arg>-Awarns</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -103,6 +101,12 @@
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>1.21</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

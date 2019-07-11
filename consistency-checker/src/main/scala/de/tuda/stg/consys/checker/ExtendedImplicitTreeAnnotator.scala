@@ -4,7 +4,6 @@ import java.util.Collections
 
 import com.sun.source.tree.{ExpressionTree, LiteralTree, MemberSelectTree, MethodInvocationTree, NewClassTree, Tree}
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
-import de.tuda.stg.consys.utils.Log
 import org.checkerframework.checker.signature.qual.Identifier
 import org.checkerframework.com.google.common.collect.Sets
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
@@ -59,13 +58,13 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 //				}
 //			}, null)
 		} else if (node.isInstanceOf[JCFieldAccess]) {
-			Log.info(classOf[ExtendedImplicitTreeAnnotator],
+			println(classOf[ExtendedImplicitTreeAnnotator],
 				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
 
 			//Checks whether the type is from an executable (i.e. method, constructor, or initializer).
 			//In these cases, the annotations can not be changed.
 			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
-				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
+				println(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
 			} else {
 				val before = Sets.newCopyOnWriteArraySet(annotatedTypeMirror.getAnnotations)
 				annotatedTypeMirror.clearAnnotations()
@@ -75,7 +74,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 					annotatedTypeMirror.addAnnotation(ann)
 				})
 
-				Log.info(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
+				println(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
 			}
 
 
