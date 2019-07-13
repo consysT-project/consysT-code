@@ -31,6 +31,8 @@ public class JRefDistList implements Serializable {
 
     //TODO: Add unsynced and synced functions, rerun benchmarks
 
+    //TODO: Add option to search for exact Replicas or References
+
     public <T> JRefDistList(ConsistencyLevel level) {
         current = head; this.level = level;
         tail = head;
