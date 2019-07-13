@@ -19,6 +19,9 @@ public class Main implements Serializable {
 
     //TODO: AWS Account
 
+    //TODO: Design and implement Benchmark locally
+    //TODO: Ideen von anderen papers klauen
+
     JReplicaSystem[] replicaSystems;
 
     JRef<@Strong Database> database;
