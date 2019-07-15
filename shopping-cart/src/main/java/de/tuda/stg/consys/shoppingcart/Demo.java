@@ -15,7 +15,7 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        DistListExample4();
+        minimalError();
 
     }
 
@@ -253,6 +253,44 @@ public class Demo implements Serializable {
 
         //Why does this crash?
         System.out.println(weakDistList.invoke("size",true).toString());
+
+        for (JReplicaSystem rep : Replicas.replicaSystems) {
+            rep.close();
+        }
+    }
+
+    private static void minimalError() throws Exception {
+        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
+        JRef<@Weak ErrorClass> baseClassRef = Replicas.replicaSystems[1].ref("errorClass", ErrorClass.class, JConsistencyLevel.WEAK);
+
+
+        baseClass.invoke("add", Replicas.replicaSystems[0]);
+        baseClassRef.sync();
+
+
+        JRef<@Weak ErrorSubClass> node = Replicas.replicaSystems[1].replicate(new ErrorSubClass(), JConsistencyLevel.WEAK);
+
+        //It makes no difference if the element is added in the class itself or here.
+        //baseClassRef.invoke("add", Replicas.replicaSystems[1]);
+        baseClassRef.invoke("addGivenNode", node);
+
+        //if the replicated object is synced, it does not detect the change on the reference
+        baseClass.syncAll();
+
+        //if the reference is synced, it causes an serialisation error error
+        //baseClassRef.syncAll();
+
+        //This crashes the programm when element replicated on replicaSystems[1] is being attempted to use.
+        //This occurs only when the objects on the reference where synced individually
+
+        //This does not cause a crash
+        baseClass.invoke("printAndSync");
+        System.out.println("---------------");
+        //This prints all objects from the view of the reference correctly
+        baseClassRef.invoke("printAndSync");
+        System.out.println("---------------");
+        //This finds the added object but crashes when trying to use it.
+        baseClass.invoke("printAndSync");
 
         for (JReplicaSystem rep : Replicas.replicaSystems) {
             rep.close();
