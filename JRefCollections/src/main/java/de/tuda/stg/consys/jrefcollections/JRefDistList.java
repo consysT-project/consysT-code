@@ -24,14 +24,15 @@ public class JRefDistList implements Serializable {
 
     public ConsistencyLevel level;
 
+    //A variable to indicate if searching by jref should be done based on
+    // exact reference or on the replica, default is false
+    public boolean SearchByExactReplica = false;
 
     //Represents the Size the list thinks it is, used as an approximation to determine if
     // it should be traversed from front to back or back to front
     private int GuessedSize;
 
     //TODO: Add unsynced and synced functions, rerun benchmarks
-
-    //TODO: Add option to search for exact Replicas or References
 
     public <T> JRefDistList(ConsistencyLevel level) {
         current = head; this.level = level;
@@ -257,10 +258,14 @@ public class JRefDistList implements Serializable {
     }
 
     /*
-     * A janky method to check if two refs refer to the same item.
+     * The comparison method used by the list when searching by element. Depends on the set comparison method.
      */
     private boolean refEquals(JRef ref1, JRef ref2){
-        return (ref1.toString().equals(ref2.toString()));
+        if(SearchByExactReplica){
+            return ref1.equals(ref2);
+        }else{
+            return (ref1.toString().equals(ref2.toString()));
+        }
     }
 
     /*
