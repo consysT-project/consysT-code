@@ -16,9 +16,9 @@ public class ShoppingSite implements Serializable {
 
     JRef<@Strong Database> Database;
 
-    LinkedList<JRef<@Strong Product>> FoundProducts;
+    public LinkedList<JRef<@Strong Product>> FoundProducts;
 
-    ShoppingSite(JRef<@Strong Database> db) {
+    public ShoppingSite(JRef<@Strong Database> db) {
         Database = db;
     }
 
@@ -51,26 +51,30 @@ public class ShoppingSite implements Serializable {
         return  true;
     }
 
-    public boolean Logout(){
+    public boolean Logout(JReplicaSystem system){
         if(currentlyLoggedIn == null){
             System.out.println("Cannot Log out, you are already logged out.");
             return false;
         }
 
-        currentlyLoggedIn.invoke("Logout");
+        currentlyLoggedIn.invoke("Logout", system);
         currentlyLoggedIn = null;
         CartOfLoggedIn = null;
         return true;
     }
 
-    public void Search(String SearchTerm){
+    public LinkedList<JRef<Product>> Search(String SearchTerm){
         FoundProducts = Database.invoke("SearchProducts", SearchTerm);
 
         System.out.println("Found Products:");
         for (int i = 0; i < FoundProducts.size(); i++){
             System.out.println((i + 1) + ") " + FoundProducts.get(i).invoke("getName"));
         }
+
+        return FoundProducts;
     }
+
+
 
     public boolean FromFoundAddToCart(int number, int count, JReplicaSystem system){
         int index = number - 1;
