@@ -15,13 +15,6 @@ public class Main implements Serializable {
 
     }
 
-    //TODO: Throughput, latenz, gesamtlaufzeit einer methode unter load; Verschiedene Syncstrategien.
-
-    //TODO: AWS Account
-
-    //TODO: Design and implement Benchmark locally
-    //TODO: Ideen von anderen papers klauen
-
     JReplicaSystem[] replicaSystems;
 
     JRef<@Strong Database> database;

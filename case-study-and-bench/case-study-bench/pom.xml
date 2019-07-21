@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>consys</artifactId>
+        <artifactId>case-study-and-bench</artifactId>
         <groupId>de.tuda.stg</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>case-study</artifactId>
+    <artifactId>case-study-bench</artifactId>
 
 
     <build>
@@ -107,6 +107,12 @@
             <groupId>de.tuda.stg</groupId>
             <artifactId>jrefcollections</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>case-study</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

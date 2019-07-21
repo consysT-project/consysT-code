@@ -7,7 +7,7 @@ import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.LinkedList;
 import java.util.function.Predicate;
 
@@ -17,7 +17,7 @@ public class Database implements Serializable {
 
     private JRef<@Strong JRefDistList> RegisteredProducts;
 
-    Database(JReplicaSystem system){
+    public Database(JReplicaSystem system){
         RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevel.STRONG);
         RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
 
@@ -88,3 +88,5 @@ public class Database implements Serializable {
         }
     }
 }
+
+
