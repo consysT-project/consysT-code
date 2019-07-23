@@ -11,6 +11,6 @@ case class CDef(name : ClassName, parentName : ClassName, fields : Seq[FDef], me
 
 object CDef {
 	case class FDef(typ : Type, name : FieldName)
-	case class MDef(returnTyp : Type, methodName : MethodName, parameters : Seq[PDef], body : Computation)
+	case class MDef(returnTyp : Type, methodName : MethodName, parameters : Seq[PDef], body : Computation, ret : Expression)
 	case class PDef(typ : Type, name : VarName)
 }

@@ -39,7 +39,6 @@ object WeakAkkaReplicaSystem {
 		override final def consistencyLevel : ConsistencyLevel = Weak
 	}
 
-
 	object WeakReplicatedObject {
 
 		class WeakMasterReplicatedObject[Addr, T <: AnyRef](

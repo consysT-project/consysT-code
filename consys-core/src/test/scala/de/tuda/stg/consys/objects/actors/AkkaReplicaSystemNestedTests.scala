@@ -22,13 +22,13 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		val refA2 = replica0.replicate("a2", A(200), Strong)
 		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
 
-		val result = refB.invoke[Int]("incAll")
+		val result = refB.invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { F(0).lookup[A]("a1", Strong).getField("i") }
-			assertResult(202) { F(1).lookup[A]("a2", Strong).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -39,13 +39,13 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		val refA2 = replica0.replicate("a2", A(200), Strong)
 		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
 
-		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { F(0).lookup[A]("a1", Strong).getField("i") }
-			assertResult(202) { F(1).lookup[A]("a2", Strong).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -58,7 +58,7 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Strong)),
 			Weak)
 
-		val result = F(0).lookup("b", Weak).invoke[Int]("incAll")
+		val result = F(0).lookup("b", Weak).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
@@ -85,7 +85,7 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Strong)),
 			Weak)
 
-		val result = F(1).lookup("b", Weak).invoke[Int]("incAll")
+		val result = F(1).lookup("b", Weak).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
@@ -112,7 +112,7 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Weak)),
 			Strong)
 
-		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
@@ -145,7 +145,7 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 			replica0.replicate("a2", A(200), Weak)),
 			Weak)
 
-		val result = F(1).lookup[B]("b", Weak).invoke[Int]("incAll")
+		val result = F(1).lookup[B]("b", Weak).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 

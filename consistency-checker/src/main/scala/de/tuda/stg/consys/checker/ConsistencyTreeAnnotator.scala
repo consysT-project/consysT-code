@@ -15,12 +15,13 @@ import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTyp
 	*
 	* @author Mirko Köhler
 	*/
-class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(tf) {
+class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(tf) {
 	import TypeFactoryUtils._
 
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
 
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
+
 
 
 
@@ -58,13 +59,13 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 //				}
 //			}, null)
 		} else if (node.isInstanceOf[JCFieldAccess]) {
-			println(classOf[ExtendedImplicitTreeAnnotator],
-				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
+//			println(classOf[ConsistencyTreeAnnotator],
+//				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")
 
 			//Checks whether the type is from an executable (i.e. method, constructor, or initializer).
 			//In these cases, the annotations can not be changed.
 			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
-				println(classOf[ExtendedImplicitTreeAnnotator],s"skipped")
+//				println(classOf[ConsistencyTreeAnnotator],s"skipped")
 			} else {
 				val before = Sets.newCopyOnWriteArraySet(annotatedTypeMirror.getAnnotations)
 				annotatedTypeMirror.clearAnnotations()
@@ -74,7 +75,7 @@ class ExtendedImplicitTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnot
 					annotatedTypeMirror.addAnnotation(ann)
 				})
 
-				println(classOf[ExtendedImplicitTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
+//				println(classOf[ConsistencyTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
 			}
 
 
