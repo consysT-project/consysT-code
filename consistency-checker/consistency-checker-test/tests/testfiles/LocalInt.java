@@ -5,7 +5,7 @@
  */
 public class LocalInt {
 
-	void m(int a) {
+	void testExpected(int a) {
 		int i = 32;
 		int j = 31;
 

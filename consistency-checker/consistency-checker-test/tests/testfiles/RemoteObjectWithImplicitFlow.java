@@ -20,7 +20,7 @@ public class RemoteObjectWithImplicitFlow {
 	}
 
 
-	void m() {
+	void testErrors() {
 		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
 		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
 

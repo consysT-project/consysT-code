@@ -11,5 +11,6 @@ package object lang {
 	type FieldName = Symbol
 	type MethodName = Symbol
 	type VarName = Symbol
+	type Addr = Int
 
 }

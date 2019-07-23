@@ -58,10 +58,6 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
 
 
-		if (methodInvocationIsReplicate(node)) {
-			println("FOUND SET FIELD")
-		}
-
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
 
@@ -83,67 +79,67 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 		super.visitMethodInvocation(node, p)
 	}
 
-	private def methodInvocationIsReplicate(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
-		case memberSelectTree : MemberSelectTree =>
-			val expr : ExpressionTree = memberSelectTree.getExpression
-			val recvType = atypeFactory.getAnnotatedType(expr)
-
+//	private def methodInvocationIsReplicate(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
+//		case memberSelectTree : MemberSelectTree =>
+//			val expr : ExpressionTree = memberSelectTree.getExpression
+//			val recvType = atypeFactory.getAnnotatedType(expr)
+//
+////			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
+//
+//			recvType match {
+//				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JReplicaSystem" =>
+//					if (memberSelectTree.getIdentifier.toString == "replicate") {
+//
+//						val setArg = node.getArguments.get(1)
+//						val setArgT = atypeFactory.getAnnotatedType(setArg)
+//
+//						if (!setArgT.getAnnotations.contains(localAnnotation(atypeFactory))) {
+//							println("WARNING: Non-local value replicated")
+//						}
+//
+//						val targs = node.getTypeArguments
+//
+//
+//
+//						println(s"args = ${node.getArguments}, targs = $targs")
+//					}
+//				case _ =>
+//			}
+//
+//			false
+//
+//		case _ =>
+//			false
+//	}
+//
+//	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
+//		case memberSelectTree : MemberSelectTree =>
+//			val expr : ExpressionTree = memberSelectTree.getExpression
+//			val recvType = atypeFactory.getAnnotatedType(expr)
+//
 //			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
-
-			recvType match {
-				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JReplicaSystem" =>
-					if (memberSelectTree.getIdentifier.toString == "replicate") {
-
-						val setArg = node.getArguments.get(1)
-						val setArgT = atypeFactory.getAnnotatedType(setArg)
-
-						if (!setArgT.getAnnotations.contains(localAnnotation(atypeFactory))) {
-							println("WARNING: Non-local value replicated")
-						}
-
-						val targs = node.getTypeArguments
-
-
-
-						println(s"args = ${node.getArguments}, targs = $targs")
-					}
-				case _ =>
-			}
-
-			false
-
-		case _ =>
-			false
-	}
-
-	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
-		case memberSelectTree : MemberSelectTree =>
-			val expr : ExpressionTree = memberSelectTree.getExpression
-			val recvType = atypeFactory.getAnnotatedType(expr)
-
-			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
-			println(recvType.asInstanceOf[AnnotatedDeclaredType].getUnderlyingType.asElement().getSimpleName.toString == "JRef")
-			println(memberSelectTree.getIdentifier.toString == "setField")
-
-			recvType match {
-				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JRef" =>
-					if (memberSelectTree.getIdentifier.toString == "setField") {
-						val setArg = node.getArguments.get(1)
-
-						val setArgT = atypeFactory.getAnnotatedType(setArg)
-
-						val annos = setArgT.getAnnotations
-
-						println(s"args = ${node.getArguments}, argT = $annos")
-					}
-				case _ =>
-			}
-
-			false
-
-		case _ =>
-			false
-	}
+//			println(recvType.asInstanceOf[AnnotatedDeclaredType].getUnderlyingType.asElement().getSimpleName.toString == "JRef")
+//			println(memberSelectTree.getIdentifier.toString == "setField")
+//
+//			recvType match {
+//				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JRef" =>
+//					if (memberSelectTree.getIdentifier.toString == "setField") {
+//						val setArg = node.getArguments.get(1)
+//
+//						val setArgT = atypeFactory.getAnnotatedType(setArg)
+//
+//						val annos = setArgT.getAnnotations
+//
+//						println(s"args = ${node.getArguments}, argT = $annos")
+//					}
+//				case _ =>
+//			}
+//
+//			false
+//
+//		case _ =>
+//			false
+//	}
 
 	private def checkMethodInvocationReceiver(receiverType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (!implicitContext.allowsAsReceiver(receiverType, tree))

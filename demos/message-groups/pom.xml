@@ -17,29 +17,19 @@
 
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <compilerArguments>
-                        <Xmaxerrs>10000</Xmaxerrs>
-                        <Xmaxwarns>10000</Xmaxwarns>
-                    </compilerArguments>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>de.tuda.stg</groupId>
-                            <artifactId>consistency-checker</artifactId>
-                            <version>1.0.0</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <annotationProcessors>
-                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors>
-                    <compilerArgs>
-                        <arg>-AprintErrorStack</arg>
-                        <!-- location of the annotated JDK, which comes from a Maven dependency -->
-                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
-                        <!-- Uncomment the following line to turn type-checking warnings into errors. -->
-                        <arg>-Awarns</arg>
-                    </compilerArgs>
-                </configuration>
+<!--                <configuration>-->
+<!--                    <compilerArguments>-->
+<!--                        <Xmaxerrs>10000</Xmaxerrs>-->
+<!--                        <Xmaxwarns>10000</Xmaxwarns>-->
+<!--                    </compilerArguments>-->
+<!--                    <compilerArgs>-->
+<!--                        <arg>-AprintErrorStack</arg>-->
+<!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
+<!--&lt;!&ndash;                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>&ndash;&gt;-->
+<!--                        &lt;!&ndash; Uncomment the following line to turn type-checking warnings into errors. &ndash;&gt;-->
+<!--                        &lt;!&ndash; <arg>-Awarns</arg> &ndash;&gt;-->
+<!--                    </compilerArgs>-->
+<!--                </configuration>-->
             </plugin>
 
             <plugin>
@@ -48,6 +38,7 @@
                 <version>2.2</version>
                 <executions>
                     <execution>
+                        <id>add-meta-inf</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -73,6 +64,35 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>add-akka-conf</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>allinone</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>akka.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
