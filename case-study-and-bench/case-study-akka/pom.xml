@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>case-study-bench</artifactId>
+    <artifactId>case-study-akka</artifactId>
 
 
     <build>
@@ -24,6 +24,17 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!--                    <annotationProcessors> -->
+                    <!-- Add all the checkers you want to enable here -->
+                    <!--                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor> -->
+                    <!--                    </annotationProcessors> -->
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
@@ -73,44 +84,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>consys-core</artifactId>
-            <version>1.0.0</version>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_2.12</artifactId>
+            <version>2.5.23</version>
         </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>consistency-checker</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-core</artifactId>
-            <version>1.21</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-generator-annprocess</artifactId>
-            <version>1.21</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>jrefcollections</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>case-study</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-bom -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-bom</artifactId>
-            <version>1.11.596</version>
-            <type>pom</type>
-        </dependency>
-
     </dependencies>
 
 

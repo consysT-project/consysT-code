@@ -20,10 +20,20 @@ public class Database implements Serializable {
     public Database(JReplicaSystem system){
         RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevel.STRONG);
         RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
-
     }
 
+    /*
+     * Function to be called when directly invoking the database
+     */
     public boolean AddUser(String Username, String Password, JReplicaSystem system){
+        JRef<@Strong User> newUser = system.replicate(new User(Username, Password, system), JConsistencyLevel.STRONG);
+        return RegisterUser(Username, Password, newUser);
+    }
+
+    /*
+     * Function to be called during indirect invocation (i.e. through the shopping site)
+     */
+    public boolean RegisterUser(String Username, String Password, JRef<@Strong User> newUser){
         if(Username.length() < 3){
             System.out.println("A Username must be at least 3 characters long");
             if(Password.length() < 5){
@@ -31,20 +41,24 @@ public class Database implements Serializable {
             }
             return false;
         }
+        if(!((boolean) newUser.invoke("verifyCredentials", Username, Password))){
+            System.out.println("Something went wrong!");
+            return false;
+        }
 
         JRef<@Strong User> currUser = RegisteredUsers.invoke("getValue", Username);
         if(currUser == null){
-            JRef<@Strong User> newUser = system.replicate(new User(Username, Password, system), JConsistencyLevel.STRONG);
             RegisteredUsers.invoke("put", Username, newUser);
             return true;
         }else
             return false;
     }
 
-    public JRef<@Strong User> GetUser(String Username, String Password, JReplicaSystem system){
+    public JRef<@Strong User> GetUser(String Username, String Password, String systemInfo){
         JRef<@Strong User> currUser = RegisteredUsers.invoke("getValue", Username);
         if(currUser != null) {
-            if(currUser.invoke("Login", Username, Password, system)){
+            boolean loggedIn = currUser.invoke("Login", Username, Password, systemInfo);
+            if(loggedIn){
                 return currUser;
             }
             System.out.println("Could not log in.");
@@ -59,19 +73,49 @@ public class Database implements Serializable {
         LinkedList<JRef<@Strong Product>> retList;
         String lowerQuery = query.toLowerCase();
 
-        Predicate<JRef<@Strong Product>> tester = productJRef -> {
+        Predicate<JRef<@Strong Product>> tester = (Predicate<JRef<@Strong Product>> & Serializable) productJRef -> {
             String currName = productJRef.invoke("getName");
             if(currName.toLowerCase().contains(lowerQuery))
                 return true;
             return false;
         };
-
         retList = RegisteredProducts.invoke("getNonReplicatedSublist", tester,false);
         return retList;
     }
 
+    /*
+     * Function to add several products at once without checking for duplicate products
+     * add initial list of products as semicolon seperated Name and price
+     */
+    public boolean AddInitialProducts(String[] prods, JReplicaSystem system){
+        if(prods.length < 1)
+            return false;
+
+        for (String prod: prods) {
+            String[] split = new String[0];
+            double price = 0; boolean skip = false;
+            try{
+                split = prod.split(";");
+                price = Double.parseDouble(split[1]);
+            }
+            catch (Exception e){
+                System.out.println("Invalid Product, Skipping.");
+                skip = true;
+            }
+            if(!skip){
+                JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price, system), JConsistencyLevel.STRONG);
+                RegisteredProducts.invoke("append", newProduct, system);
+            }
+        }
+        return true;
+    }
+
+    /*
+     * Add Singular Product to Database
+     * Checks for types & if the product is already in the database
+     */
     public boolean AddProduct(String name, double price, JReplicaSystem system){
-        Predicate<JRef<@Strong Product>> tester = productJRef -> {
+        Predicate<JRef<@Strong Product>> tester = (Predicate<JRef<@Strong Product>> & Serializable) productJRef -> {
             String currName = productJRef.invoke("getName");
             if(currName.toLowerCase().equals(name))
                 return true;

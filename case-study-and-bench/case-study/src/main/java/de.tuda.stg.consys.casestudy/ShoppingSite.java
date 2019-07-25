@@ -1,9 +1,13 @@
 package de.tuda.stg.consys.casestudy;
 
+import com.sun.tools.javac.util.ArrayUtils;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.DistNode;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import org.checkerframework.com.google.common.collect.ObjectArrays;
 
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -28,10 +32,10 @@ public class ShoppingSite implements Serializable {
                     currentlyLoggedIn.invoke("getName") +"''");
             return false;
         }
-
-        if(Database.invoke("AddUser", UserName, Password, system))
+        JRef<@Strong User> newUser = system.replicate(new User(UserName, Password, system), JConsistencyLevel.STRONG);
+        if(Database.invoke("RegisterUser", UserName, Password, newUser)){
             return Login(UserName, Password, system);
-
+        }
         return false;
     }
 
@@ -41,13 +45,14 @@ public class ShoppingSite implements Serializable {
                     currentlyLoggedIn.invoke("getName") +"''");
             return false;
         }
+        JRef<@Strong User> user = Database.invoke("GetUser", UserName, Password, system.toString());
 
-        JRef<@Strong User> user = Database.invoke("GetUser", UserName, Password, system);
         if(user == null){
             return false;
         }
+
         currentlyLoggedIn = user;
-        CartOfLoggedIn = currentlyLoggedIn.invoke("FetchCart", system);
+        CartOfLoggedIn = currentlyLoggedIn.invoke("FetchCart", system.toString());
         return  true;
     }
 
@@ -57,20 +62,21 @@ public class ShoppingSite implements Serializable {
             return false;
         }
 
-        currentlyLoggedIn.invoke("Logout", system);
+        currentlyLoggedIn.invoke("Logout", system.toString());
         currentlyLoggedIn = null;
         CartOfLoggedIn = null;
         return true;
     }
 
-    public LinkedList<JRef<Product>> Search(String SearchTerm){
+    public LinkedList<JRef<Product>> Search(String SearchTerm, boolean printResults){
         FoundProducts = Database.invoke("SearchProducts", SearchTerm);
 
-        System.out.println("Found Products:");
-        for (int i = 0; i < FoundProducts.size(); i++){
-            System.out.println((i + 1) + ") " + FoundProducts.get(i).invoke("getName"));
+        if(printResults) {
+            System.out.println("Found Products:");
+            for (int i = 0; i < FoundProducts.size(); i++) {
+                System.out.println((i + 1) + ") " + FoundProducts.get(i).invoke("getName"));
+            }
         }
-
         return FoundProducts;
     }
 
@@ -82,51 +88,63 @@ public class ShoppingSite implements Serializable {
             System.out.println("Please select a valid product");
             return false;
         }
-
-        if(CartOfLoggedIn != null)
-            return CartOfLoggedIn.invoke("add", FoundProducts.get(index), count, system);
+        if(CartOfLoggedIn != null){
+            for(int x = 0;x < count;x++){
+                JRef<@Weak DistNode> newNode = system.replicate(new DistNode(FoundProducts.get(index)), JConsistencyLevel.WEAK);
+                CartOfLoggedIn.invoke("addNode", newNode);
+            }
+            //CartOfLoggedIn.invoke("add", FoundProducts.get(index), count, system);
+            return true;
+        }
         System.out.println("You are not logged in.");
         return false;
     }
 
-    public boolean FromFoundDisplayInfo(int number, boolean getComments){
+    public String FromFoundDisplayInfo(int number, boolean getComments, boolean printInfo){
         int index = number - 1;
+        String ret;
         if(index < 0 || index >= FoundProducts.size()) {
-            System.out.println("Please select a valid product");
-            return false;
+            ret = "Please select a valid product";
         }
-        JRef<@Strong Product> currProd = FoundProducts.get(index);
+        else{
+            JRef<@Strong Product> currProd = FoundProducts.get(index);
 
-        System.out.println("Name: " + currProd.invoke("getName"));
-        System.out.println("Price: " + currProd.invoke("getCost"));
 
-        if(getComments){
-            System.out.println("Comments: ");
-            currProd.invoke("printComments");
+            ret = currProd.invoke("getName");
+            ret += currProd.invoke("getCost");
+
+            if(getComments){
+                String comments = currProd.invoke("getComments");
+                ret += comments;
+            }
         }
-        return true;
+        if(printInfo)
+            System.out.println(ret);
+
+        return ret;
     }
 
-    public boolean Checkout(JReplicaSystem system){
+    public boolean Checkout(JReplicaSystem system, boolean PrintReceipt){
         if(currentlyLoggedIn == null){
             System.out.println("Please log in first");
             return false;
         }
-        if(currentlyLoggedIn.invoke("verifyLogin", system)){
-            return CartOfLoggedIn.invoke("checkout");
+        if(currentlyLoggedIn.invoke("verifyLogin", system.toString())){
+            return CartOfLoggedIn.invoke("checkout", currentlyLoggedIn ,PrintReceipt, system.toString());
         }
         System.out.println("Please log in first");
         return false;
     }
 
-    public boolean AddBalance(double value, JReplicaSystem system){
+    public double AddBalance(double value, JReplicaSystem system, boolean PrintBalance){
         if(currentlyLoggedIn != null){
-            double newBalance = currentlyLoggedIn.invoke("addBalance", value, system);
+            double newBalance = currentlyLoggedIn.invoke("addBalance", value, system.toString());
             if(newBalance != Double.NaN){
-                System.out.println("Money added successfully, new balance: " + newBalance);
-                return true;
+                if(PrintBalance)
+                    System.out.println("Money added successfully, new balance: " + newBalance);
+                return newBalance;
             }
         }
-        return false;
+        return Double.NaN;
     }
 }

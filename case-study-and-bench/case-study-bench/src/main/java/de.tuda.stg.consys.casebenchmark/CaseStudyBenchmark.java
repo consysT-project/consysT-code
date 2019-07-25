@@ -52,7 +52,8 @@ public class CaseStudyBenchmark {
          *  - Changing User Options (such as adding balance)
          * */
 
-        @Param({"login", "register", "search", "addCart", "checkOut", "ViewProd", "AddBalance"})
+        //@Param({"login", "register", "search", "addCart", "checkOut", "ViewProd", "AddBalance"})
+        @Param({"checkOut"})
         String endpoint;
 
         JReplicaSystem[] replicaSystems;
@@ -62,8 +63,6 @@ public class CaseStudyBenchmark {
         LinkedList<JRef<@Weak ShoppingSite>> sites;
 
         Random r = new Random();
-
-        Blackhole bh = new Blackhole("");
 
         /**
          * INFO FOR ENDPOINTS:
@@ -117,10 +116,13 @@ public class CaseStudyBenchmark {
             One site for each replicasystem
          */
         private boolean setUpSites(){
+            System.out.println("Started Setting up Sites");
             sites = new LinkedList<JRef<@Weak ShoppingSite>>();
             for (JReplicaSystem sys: replicaSystems) {
-                sites.add(sys.replicate(new ShoppingSite(database), JConsistencyLevel.WEAK));
+                JRef<@Weak ShoppingSite> newSite = sys.replicate(new ShoppingSite(database), JConsistencyLevel.WEAK);
+                sites.add(newSite);
             }
+            System.out.println("Finished Setting up Sites");
             return true;
         }
 
@@ -129,22 +131,18 @@ public class CaseStudyBenchmark {
                 //Read products from pregenerated product file
                 String[] products = ContentHandler.readFile("productsForBenchmark.txt");
                 //If file is missing generate it
-                if(products.length < 0){
+                if(products.length <= 0){
                     products = ContentHandler.generateProducts(500);
                     ContentHandler.writeFile("productsForBenchmark.txt", products);
                 }
-
                 //Add products to database
-                for (String prod: products) {
-                    String[] split = prod.split(";");
-                    database.invoke("AddProduct", split[0], split[1], replicaSystems[0]);
-                }
-
+                database.invoke("AddInitialProducts", products, replicaSystems[0]);
+                System.out.println("Added Products");
 
                 //Read users from pregenerated product file
                 String[] users = ContentHandler.readFile("usersForBenchmark.txt");
                 //If file is missing generate it
-                if(users.length < 0){
+                if(users.length <= 0){
                     users = ContentHandler.generateUsers(500);
                     ContentHandler.writeFile("usersForBenchmark.txt", users);
                 }
@@ -157,6 +155,7 @@ public class CaseStudyBenchmark {
                     String[] split = user.split(";");
                     database.invoke("AddUser", split[0], split[1], replicaSystems[0]);
                 }
+                System.out.println("Added Users");
                 return true;
             }
             else
@@ -187,40 +186,69 @@ public class CaseStudyBenchmark {
                     currUserName = split[0]; currPassword = split[1];
                     break;
                 case "register":
-                    newUserName = "NewUserName" + registeredUsers;
-                    newPassword = "Pass" + registeredUsers + r.nextInt();
-                    registeredUsers++;
                     break;
                 case "search":
                     currentSearchTerm = ContentHandler.searchableWords[r.nextInt(ContentHandler.searchableWords.length)];
                     break;
                 case "addCart":
                     String search = ContentHandler.searchableWords[r.nextInt(ContentHandler.searchableWords.length)];
-                    sites.get(1).invoke("Search", search);
+                    sites.get(1).invoke("Search", search, false);
                     addToCartIndex =
                             ((LinkedList<JRef<@Strong Product>>) sites.get(1).getField("FoundProducts"))
                                     .size()/2 + 1;
                     break;
                 case "checkOut":
-                    String[] split1 = loginUsers[r.nextInt(loginUsers.length)].split(";");
-                    currUserName = split1[0]; currPassword = split1[1];
+                    String[] split3 = loginUsers[r.nextInt(loginUsers.length)].split(";");
+                    currUserName = split3[0]; currPassword = split3[1];
                     sites.get(1).invoke("Login", currUserName,
                             currPassword,replicaSystems[1]);
                     String search1 = ContentHandler.searchableWords[r.nextInt(ContentHandler.searchableWords.length)];
-                    sites.get(1).invoke("Search", search1);
-                    int midway = ((LinkedList<JRef<@Strong Product>>) sites.get(1).getField("FoundProducts"))
-                            .size()/2 + 1;
-                    for (int x = 1; x < midway;x++) {
-                        sites.get(1).invoke("FromFoundAddToCart",
-                                x, 5, replicaSystems[1]);
-                    }
+                    sites.get(1).invoke("Search", search1, false);
                     break;
                 case "ViewProd":
                     String search2 = ContentHandler.searchableWords[r.nextInt(ContentHandler.searchableWords.length)];
-                    sites.get(1).invoke("Search", search2);
+                    sites.get(1).invoke("Search", search2, false);
                     displayInfoIndex =
                             ((LinkedList<JRef<@Strong Product>>) sites.get(1).getField("FoundProducts"))
                                     .size()/2 + 1;
+                    break;
+                case "AddBalance":
+
+                    break;
+            }
+
+            Thread.sleep(1000);
+        }
+
+        @Setup(Level.Invocation)
+        public void preInvocation(){
+            switch (endpoint){
+                case "login":
+                    break;
+                case "register":
+                    newUserName = "NewUserName" + registeredUsers;
+                    newPassword = "Pass" + registeredUsers + r.nextInt();
+                    registeredUsers++;
+                    break;
+                case "search":
+
+                    break;
+                case "addCart":
+                    //Log in before adding things to the cart
+                    String[] split1 = loginUsers[r.nextInt(loginUsers.length)].split(";");
+                    sites.get(1).invoke("Login", split1[0],
+                            split1[1],replicaSystems[1]);
+                    break;
+                case "checkOut":
+
+                    int midway = ((LinkedList<JRef<@Strong Product>>) sites.get(1).getField("FoundProducts"))
+                            .size()/2 + 1;
+                    System.out.println(midway);
+                    sites.get(1).invoke("FromFoundAddToCart",
+                                midway, 5, replicaSystems[1]);
+                    break;
+                case "ViewProd":
+
                     break;
                 case "AddBalance":
                     String[] split2 = loginUsers[r.nextInt(loginUsers.length)].split(";");
@@ -229,8 +257,6 @@ public class CaseStudyBenchmark {
                             currPassword,replicaSystems[1]);
                     break;
             }
-
-            Thread.sleep(1000);
         }
 
         @TearDown(Level.Invocation)
@@ -241,15 +267,17 @@ public class CaseStudyBenchmark {
                     sites.get(1).invoke("Logout", replicaSystems[1]);
                     break;
                 case "register":
+                    //Log out after each new registration
+                    sites.get(1).invoke("Logout", replicaSystems[1]);
                     break;
                 case "search":
                     break;
                 case "addCart":
-
+                    //Log out after having added things to the cart
+                    sites.get(1).invoke("Logout", replicaSystems[1]);
                     break;
                 case "checkOut":
-                    //Log out after checking out a cart
-                    sites.get(1).invoke("Logout", replicaSystems[1]);
+
                     break;
                 case "ViewProd":
 
@@ -263,6 +291,9 @@ public class CaseStudyBenchmark {
 
         @TearDown(Level.Iteration)
         public void systemTeardown() throws Exception {
+            if(endpoint.equals("checkOut"))
+                sites.get(1).invoke("Logout", replicaSystems[1]);
+
             for (JReplicaSystem system: replicaSystems) {
                 system.close();
             }
@@ -270,40 +301,42 @@ public class CaseStudyBenchmark {
     }
 
     @Benchmark
-    public void benchmarkRequest(BenchmarkSetup setup) {
+    public void benchmarkRequest(BenchmarkSetup setup, Blackhole bh) {
         switch (setup.endpoint){
             case "login":
                 //Login
-                setup.bh.consume(setup.sites.get(1).invoke("Login", setup.currUserName,
-                        setup.currPassword,setup.replicaSystems[1]));
+                bh.consume(setup.sites.get(1).invoke("Login", setup.currUserName,
+                                    setup.currPassword,setup.replicaSystems[1]));
                 break;
             case "register":
                 //Register new User from previously generated new unique user and password.
-                setup.bh.consume(setup.sites.get(1).invoke("Register", setup.newUserName,
+                bh.consume(setup.sites.get(1).invoke("RegisterNewUser", setup.newUserName,
                         setup.newPassword, setup.replicaSystems[1]));
                 break;
             case "search":
                 //Search the products for a random search term, should return ~1/26 of all products
-                setup.bh.consume(setup.sites.get(1).invoke("Search", setup.currentSearchTerm));
+                bh.consume(setup.sites.get(1).invoke("Search", setup.currentSearchTerm, false));
                 break;
             case "addCart":
                 //add a previously searched item
-                setup.bh.consume(setup.sites.get(1).invoke("FromFoundAddToCart",
+                //TODO: FIX THIS
+                bh.consume(setup.sites.get(1).invoke("FromFoundAddToCart",
                         setup.addToCartIndex, 5, setup.replicaSystems[1]));
                 break;
             case "checkOut":
+                //TODO: FIX THIS
                 //checkout a previously filled shopping cart
-                setup.bh.consume(setup.sites.get(1).invoke("Checkout", setup.replicaSystems[1]));
+                bh.consume(setup.sites.get(1).invoke("Checkout", setup.replicaSystems[1], false));
                 break;
             case "ViewProd":
                 //View a previously searched item
-                setup.bh.consume(setup.sites.get(1).invoke("FromFoundDisplayInfo",
-                        setup.displayInfoIndex, true));
+                bh.consume(setup.sites.get(1).invoke("FromFoundDisplayInfo",
+                        setup.displayInfoIndex, true, false));
                 break;
             case "AddBalance":
                 //Add balance for a certain user
-                setup.bh.consume(setup.sites.get(1).invoke("AddBalance", 50,
-                        setup.replicaSystems[1]));
+                bh.consume(setup.sites.get(1).invoke("AddBalance", 50,
+                        setup.replicaSystems[1], false));
                 break;
         }
     }

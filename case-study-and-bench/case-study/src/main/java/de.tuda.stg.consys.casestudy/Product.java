@@ -30,13 +30,16 @@ public class Product implements Serializable {
         return name;
     }
 
-    public void printComments(){
+    public String getComments(){
         LinkedList<JRef<@Weak Comment>> localComments =
                 comments.invoke("getAsNonReplicatedLinkedList", true);
-        for (JRef<@Weak Comment> com : localComments) {
-            System.out.println("----------------------------------------------");
-            System.out.println(com.invoke("getAuthor") + " says: ");
-            System.out.println((String) com.invoke("getContent"));
+        String ret = "";
+        for (int x = 0; x < localComments.size(); x++){
+            JRef<@Weak Comment> com = localComments.get(x);
+            ret += "----------------------------------------------" + System.getProperty("line.separator");
+            ret += com.invoke("getAuthor") + " says: " + System.getProperty("line.separator");
+            ret += com.invoke("getContent") + System.getProperty("line.separator");
         }
+        return ret;
     }
 }
