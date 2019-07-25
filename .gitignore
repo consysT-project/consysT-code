@@ -47,4 +47,5 @@ hs_err_pid*
 # Generated sources from preprocessor
 gen/
 
-
+productForBenchmark.txt
+usersForBenchmark.txt

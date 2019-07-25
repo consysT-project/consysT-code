@@ -15,6 +15,7 @@
 
     <modules>
         <module>case-study</module>
+        <module>case-study-akka</module>
         <module>case-study-bench</module>
     </modules>
 </project>

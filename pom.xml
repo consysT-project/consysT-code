@@ -20,11 +20,7 @@
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
         <module>simple-language</module>
-        <module>listbenches</module>
-        <module>listbenches/list-benches-distributed</module>
         <module>case-study-and-bench</module>
-        <module>case-study-and-bench/case-study</module>
-        <module>case-study-and-bench/case-study-bench</module>
     </modules>
 
     <properties>

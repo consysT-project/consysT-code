@@ -13,7 +13,7 @@ public class JRefHashMap implements Serializable {
     private double loadFactor;
     private int filled;
 
-    class KeyJRefPair {
+    class KeyJRefPair implements Serializable {
         public KeyJRefPair(String key, JRef ref) {
             this.key = key;
             this.ref = ref;

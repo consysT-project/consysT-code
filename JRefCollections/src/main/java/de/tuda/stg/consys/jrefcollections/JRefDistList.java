@@ -43,7 +43,6 @@ public class JRefDistList implements Serializable {
         if(sync)
             reSyncHead();
         if(head == null){
-            System.out.println("List is Empty");
             return 0;
         }else{
             current = head;
@@ -112,6 +111,19 @@ public class JRefDistList implements Serializable {
         }
     }
 
+    public <T> boolean appendNode(JRef<T> node){
+        if (tail == null) {
+            head = node;
+            tail = head;
+            current = head;
+        } else {
+            tail.invoke("setNext", node);
+            node.invoke("setPrev", tail);
+            tail = node;
+        }
+        GuessedSize++;
+        return true;
+    }
 
     public <T> boolean append(JRef<T> item, JReplicaSystem sys) {
         JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
@@ -270,7 +282,8 @@ public class JRefDistList implements Serializable {
 
     /*
      * Type safety is not guaranteed if the list contains elements of different types.
-     * Use with caution.
+     * Use with caution. Please ensure that function is serializable by casting
+     * (Predicate<T> & Serializable)
      */
     public <T> LinkedList getNonReplicatedSublist(Predicate<T> function, boolean sync){
         LinkedList<T> retList = new LinkedList<T>();
@@ -282,6 +295,8 @@ public class JRefDistList implements Serializable {
             if(function.test(currContent)){
                 retList.add(currContent);
             }
+
+            current = (JRef) current.getField("next");
         }
         return retList;
     }
@@ -293,12 +308,14 @@ public class JRefDistList implements Serializable {
         current = head;
         while(current != null){
             retList.add((T) current.getField("content"));
+            current = (JRef) current.getField("next");
         }
         return retList;
     }
 
     /*
-     * Searchers the list using a predicate
+     * Searchers the list using a predicate, please ensure that function is serializable by casting
+     * (Predicate<T> & Serializable)
      */
     public <T> T search(Predicate<T> function, boolean sync){
         if(sync)
@@ -309,6 +326,8 @@ public class JRefDistList implements Serializable {
             if(function.test(currContent)){
                 return currContent;
             }
+
+            current = (JRef) current.getField("next");
         }
         return null;
     }
@@ -317,26 +336,6 @@ public class JRefDistList implements Serializable {
         head = null; tail = null;
         current = head;
         return true;
-    }
-}
-
-class DistNode<T> implements Serializable {
-    public JRef<T> prev;
-
-    public JRef<T> next;
-
-    public JRef<T> content;
-
-    public DistNode(JRef<T> content) {
-        this.content = content;
-    }
-
-    public void setPrev(JRef prev) {
-        this.prev = prev;
-    }
-
-    public void setNext(JRef next) {
-        this.next = next;
     }
 }
 
