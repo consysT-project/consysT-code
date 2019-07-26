@@ -1,5 +1,3 @@
-Find our webpage at https://allprojects.github.io/consistency-types-impl/.
-
 # Consistency Types
 
 In replicated datastores, users have to decide between available and consistent data.

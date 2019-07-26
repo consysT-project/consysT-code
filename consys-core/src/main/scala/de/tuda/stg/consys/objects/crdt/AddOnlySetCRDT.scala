@@ -20,10 +20,10 @@ object AddOnlySetCRDT {
 			state = state.union(otherState)
 
 		override def handleOperation(op : CRDT.Operation) : Option[Any] = op match {
-			case Add(e : T) =>
+			case Add(e : T@unchecked) =>
 				state = state + e
 				None
-			case Contains(e : T) =>
+			case Contains(e : T@unchecked) =>
 				Some(state.contains(e))
 			case Get =>
 				Some(state)
