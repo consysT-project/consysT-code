@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.objects.japi;
 
-import java.io.Serializable;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 
 /**
  * Created on 01.03.19.
@@ -10,41 +10,63 @@ import java.io.Serializable;
 public class Demo {
 
 
-	static class SomeObj implements Serializable {
+	static class SomeObj implements JReplicated {
+		/* This field is needed for JReplicated */ public transient AkkaReplicaSystem<String> replicaSystem = null;
+
 		public int f = 0;
+
+		public void showSystem() {
+			System.out.println("system = " + getSystem());
+		}
+
 	}
 
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws Exception {
 
 		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
 		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
 
-		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+		System.out.println("system1 = " + replicaSystem1);
+		System.out.println("system2 = " + replicaSystem2);
 
 
-		JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevel.STRONG);
-		JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, JConsistencyLevel.STRONG);
+		try {
 
-		JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevel.WEAK);
-		JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, JConsistencyLevel.WEAK);
+			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
+			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
 
 
-		ref1Strong.setField("f", 34);
-		ref1Weak.setField("f", 42);
+			JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevel.STRONG);
+			JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, JConsistencyLevel.STRONG);
+
+			JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevel.WEAK);
+			JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, JConsistencyLevel.WEAK);
+
+
+			ref1Strong.setField("f", 34);
+			ref1Weak.setField("f", 42);
 
 //		int i = ref1Strong.getField("f");
 
-		System.out.println("ref1Strong.f = "  + ref1Strong.getField("f"));
-		System.out.println("ref2Strong.f = "  + ref2Strong.getField("f"));
+			System.out.println("ref1Strong.f = " + ref1Strong.getField("f"));
+			System.out.println("ref2Strong.f = " + ref2Strong.getField("f"));
 
-		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
-		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
+			System.out.println("ref1Weak.f = " + ref1Weak.getField("f"));
+			System.out.println("ref2Weak.f = " + ref2Weak.getField("f"));
 
-		ref2Weak.sync();
+			ref2Weak.sync();
 
-		System.out.println("ref1Weak.f = "  + ref1Weak.getField("f"));
-		System.out.println("ref2Weak.f = "  + ref2Weak.getField("f"));
+			System.out.println("ref1Weak.f = " + ref1Weak.getField("f"));
+			System.out.println("ref2Weak.f = " + ref2Weak.getField("f"));
+
+
+			ref1Strong.invoke("showSystem");
+			ref2Strong.invoke("showSystem");
+
+		} finally {
+			replicaSystem1.close();
+			replicaSystem2.close();
+		}
 	}
 }

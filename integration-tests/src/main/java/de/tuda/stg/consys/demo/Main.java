@@ -47,7 +47,8 @@ public class Main {
 		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);
 		System.out.println("ref2Weak.f = "  + ref2Weak.ref().f);
 
-		ref2Strong.ref().f = ref2Weak.ref().f;
+		// This (expectedly) gives a type error!
+		// ref2Strong.ref().f = ref2Weak.ref().f;
 
 		ref2Weak.syncAll();
 
@@ -104,7 +105,7 @@ public class Main {
 		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevel.WEAK);
 
 		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.ref("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
-		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.ref("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
+		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.ref("b", (Class<@Strong ObjB>) ObjB.class, JConsistencyLevel.WEAK);
 
 		b1.ref().incAll();
 		b2.ref().incAll();

@@ -2,10 +2,9 @@ package de.tuda.stg.consys.objects.actors
 
 import java.lang.reflect.{Field, Modifier}
 
-import de.tuda.stg.consys.objects.ReplicatedObject
+import de.tuda.stg.consys.objects.{Ref, Replicated, ReplicatedObject, typeToClassTag}
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
-import de.tuda.stg.consys.objects.{Ref, ReplicatedObject, typeToClassTag}
 import jdk.internal.dynalink.support.TypeUtilities
 
 import scala.language.postfixOps
@@ -30,11 +29,13 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 	protected def setObject(newObj : T) : Unit = {
 		state = newObj
-		replicaSystem.initializeRefFieldsFor(state)
+		replicaSystem.initializeRefFields(state)
 		ReflectiveAccess.updateObj()
+
+		intitializeReplicated()
 	}
 
-	protected def getObject : T = state
+	protected [actors] def getObject : T = state
 
 
 	private def transaction[R](f : Transaction => R) : R = {
@@ -174,6 +175,28 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 	override def toString : String =
 		s"AkkaReplicatedObject[$consistencyLevel]($state)"
+
+
+	//Initializes states that implement Replicated
+	private def intitializeReplicated() : Unit = {
+
+		getObject match {
+			case obj : Replicated =>
+				//Use reflection to set the field replicaSystem in this class.
+
+				try {
+					val field = obj.getClass.getField("replicaSystem")
+					field.setAccessible(true)
+					field.set(obj, replicaSystem)
+				} catch {
+					case e : NoSuchFieldException =>
+						throw new Exception(s"object of class ${obj.getClass} does not contain field <replicaSystem>. Object:\n$obj", e);
+				}
+			case _ =>
+		}
+
+
+	}
 
 
 	private final object ReflectiveAccess {

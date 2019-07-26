@@ -154,7 +154,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
-	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
+	/**
+		* Recursively initializes all fields of an object that store a Ref.
+		* Initializing means, setting the replica system of the ref.
+		*
+		* @param obj
+		*/
+	private[actors] def initializeRefFields(obj : Any) : Unit = {
 
 		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
 			//If the object is null, there is nothing to initialize
@@ -166,6 +172,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 			any match {
 				//If the object is a RefImpl
 				case refImpl : AkkaRef[Addr, _] =>
+
 					refImpl.replicaSystem = this
 
 				//The object is a ref, but is not supported by the replica system

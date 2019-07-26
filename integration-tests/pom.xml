@@ -14,10 +14,11 @@
 
     <build>
         <plugins>
+            <!-- TODO: We have to disable the preprocessing when we want the type checker to work. How can we change that?
             <plugin>
                 <groupId>de.tuda.stg</groupId>
                 <artifactId>consys-maven-plugin</artifactId>
-            </plugin>
+            </plugin> -->
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
