@@ -28,8 +28,9 @@ trait OperationalSemantics {
 
 	case class Configuration(env : LocEnv, rep : Replica) {
 		def store(addr : Addr, expr : Expression) : Configuration = {
-			require(isValue(expr))
-			copy(rep = rep + (addr -> expr))
+//			require(isValue(expr))
+//			copy(rep = rep + (addr -> expr))
+			???
 		}
 
 		def assign(x : VarName, expr : Expression) : Configuration = {
@@ -71,7 +72,7 @@ trait OperationalSemantics {
 			(cconf, Sequence(cc, c2))
 
 
-		case Ifte()
+//		case Ifte()
 	}
 
 
@@ -97,7 +98,7 @@ trait OperationalSemantics {
 		case InstanceOf(expr, className) =>
 			InstanceOf(eStep(conf, expr), className)
 
-		case HasLabel(addr, label) =>
+//		case HasLabel(addr, label) =>
 	}
 
 

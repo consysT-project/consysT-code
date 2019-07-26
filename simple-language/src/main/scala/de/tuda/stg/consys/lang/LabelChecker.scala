@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.lang
 
-import de.tuda.stg.consys.lang.Computation.{Assignment, Skip}
+import de.tuda.stg.consys.lang.Computation.Skip
 import de.tuda.stg.consys.lang.Label.{ConcreteLabel, ConsistencyLabel, LOCAL}
 
 /**
@@ -16,7 +16,7 @@ trait LabelChecker {
 
 	def checkComputation(env : Env, pc : ConcreteLabel, c : Computation) : Unit = c match {
 		case Skip =>
-		case Assignment(x, e) =>
+//		case Assignment(x, e) =>
 
 
 //			(pc, env(x), checkExpression(env, e)) match {

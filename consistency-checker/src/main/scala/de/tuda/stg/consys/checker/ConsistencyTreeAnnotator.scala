@@ -8,6 +8,7 @@ import org.checkerframework.checker.signature.qual.Identifier
 import org.checkerframework.com.google.common.collect.Sets
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
+import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 
 /**
@@ -21,8 +22,6 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
 
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
-
-
 
 
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
@@ -49,15 +48,15 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 			annotatedTypeMirror.addAnnotation(localAnnotation)
 
 			//Change type to: Class<@Local ...>
-//			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
-//				override def visitDeclared(typ : AnnotatedTypeMirror.AnnotatedDeclaredType, p : Void) : Void = {
-//					require(typ.getUnderlyingType.asElement().getSimpleName.toString == "Class")
-//					val typeArg = typ.getTypeArguments.get(0)
-//					typeArg.clearAnnotations()
-//					typeArg.addAnnotation(localAnnotation)
-//					null
-//				}
-//			}, null)
+			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
+				override def visitDeclared(typ : AnnotatedTypeMirror.AnnotatedDeclaredType, p : Void) : Void = {
+					require(typ.getUnderlyingType.asElement().getSimpleName.toString == "Class")
+					val typeArg = typ.getTypeArguments.get(0)
+					typeArg.clearAnnotations()
+					typeArg.addAnnotation(localAnnotation)
+					null
+				}
+			}, null)
 		} else if (node.isInstanceOf[JCFieldAccess]) {
 //			println(classOf[ConsistencyTreeAnnotator],
 //				s"fieldAccess $node with ${annotatedTypeMirror.getAnnotations} where receiver with ${tf.getAnnotatedType(node.getExpression)}")

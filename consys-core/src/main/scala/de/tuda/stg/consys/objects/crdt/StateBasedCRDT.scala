@@ -35,7 +35,7 @@ abstract class StateBasedCRDT[T] extends RepCRDT[T] {
 		case PropagateChanges =>
 			otherReplicas.values.foreach(rep => rep ! StateChanged(replicaId, state))
 
-		case StateChanged(id, otherState : T) =>
+		case StateChanged(id, otherState : T@unchecked) =>
 			merge(otherState)
 
 

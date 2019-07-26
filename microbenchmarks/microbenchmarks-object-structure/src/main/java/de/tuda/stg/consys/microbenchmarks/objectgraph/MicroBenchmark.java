@@ -1,9 +1,8 @@
-package de.tuda.stg.consys.microbenchmarks;
+package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
 import akka.actor.Terminated;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
-import de.tuda.stg.consys.objects.japi.*;
 import de.tuda.stg.consys.objects.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
@@ -141,11 +140,8 @@ public class MicroBenchmark {
 
         @TearDown(Level.Iteration)
         public void teardown() throws Exception {
-            Future<Terminated> terminated1 = ((JReplicaSystemAkkaImpl) replicaSystem1).replicaSystem.actorSystem().terminate();
-            Future<Terminated> terminated2 = ((JReplicaSystemAkkaImpl) replicaSystem2).replicaSystem.actorSystem().terminate();
-
-            Await.ready(terminated1, Duration.apply(30, TimeUnit.SECONDS));
-            Await.ready(terminated2, Duration.apply(30, TimeUnit.SECONDS));
+            replicaSystem1.close();
+            replicaSystem2.close();
         }
     }
 
@@ -159,31 +155,31 @@ public class MicroBenchmark {
         if (object instanceof BenchmarkObject0)
             ref.setField("value", value);
         else if (object instanceof BenchmarkObject1)
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref0"));
+            updateValue(value, ref.getField("ref0"));
         else if (object instanceof BenchmarkObject2) {
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref0"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref1"));
+            updateValue(value, ref.getField("ref0"));
+            updateValue(value, ref.getField("ref1"));
         }
         else if (object instanceof BenchmarkObject3) {
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref0"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref1"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref2"));
+            updateValue(value, ref.getField("ref0"));
+            updateValue(value, ref.getField("ref1"));
+            updateValue(value, ref.getField("ref2"));
         }
         else if (object instanceof BenchmarkObject4) {
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref0"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref1"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref2"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref3"));
+            updateValue(value, ref.getField("ref0"));
+            updateValue(value, ref.getField("ref1"));
+            updateValue(value, ref.getField("ref2"));
+            updateValue(value, ref.getField("ref3"));
         }
         else if (object instanceof BenchmarkObject8) {
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref0"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref1"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref2"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref3"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref4"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref5"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref6"));
-            updateValue(value, ref.<JRef<BenchmarkObject>>getField("ref7"));
+            updateValue(value, ref.getField("ref0"));
+            updateValue(value, ref.getField("ref1"));
+            updateValue(value, ref.getField("ref2"));
+            updateValue(value, ref.getField("ref3"));
+            updateValue(value, ref.getField("ref4"));
+            updateValue(value, ref.getField("ref5"));
+            updateValue(value, ref.getField("ref6"));
+            updateValue(value, ref.getField("ref7"));
         }
         else
             throw new IllegalArgumentException("Unexpected benchamrk object " + object.getClass().getName());

@@ -8,25 +8,28 @@ import de.tuda.stg.consys.objects.ReplicaSystems;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 
 /**
- * Created on 01.03.19.
+ * Java wrapper around {@link AkkaReplicaSystem}.
  *
  * @author Mirko Köhler
  */
-public class JReplicaSystemAkkaImpl implements JReplicaSystem {
+class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
 	public final AkkaReplicaSystem<String> replicaSystem;
 
+	public JReplicaSystemAkkaImpl(AkkaReplicaSystem<String> replicaSystem) {
+		this.replicaSystem = replicaSystem;
+	}
 
 	public JReplicaSystemAkkaImpl(ActorSystem actorSystem) {
-		replicaSystem = ReplicaSystems.fromActorSystem(actorSystem);
+		this(ReplicaSystems.fromActorSystem(actorSystem));
 	}
 
 	public JReplicaSystemAkkaImpl(String hostname, int port) {
-		replicaSystem = ReplicaSystems.fromActorSystem(hostname, port);
+		this(ReplicaSystems.fromActorSystem(hostname, port));
 	}
 
 	public JReplicaSystemAkkaImpl(int port) {
-		replicaSystem = ReplicaSystems.fromActorSystem(port);
+		this(ReplicaSystems.fromActorSystem(port));
 	}
 
 	@Override
@@ -60,5 +63,21 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	@Override
 	public void close() throws Exception {
 		replicaSystem.close();
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return other instanceof JReplicaSystemAkkaImpl
+			&& ((JReplicaSystemAkkaImpl) other).replicaSystem == replicaSystem;
+	}
+
+	@Override
+	public int hashCode() {
+		return replicaSystem.hashCode();
+	}
+
+	@Override
+	public String toString() {
+		return "Wrapped(" + replicaSystem + ")";
 	}
 }
