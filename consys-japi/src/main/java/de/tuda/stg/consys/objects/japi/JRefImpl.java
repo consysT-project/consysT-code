@@ -9,6 +9,7 @@ import java.io.Serializable;
  *
  * @author Mirko Köhler
  */
+//TODO: Make this package private.
 public class JRefImpl<T> implements JRef<T>, Serializable {
 
 	private final Ref<String, T> ref;

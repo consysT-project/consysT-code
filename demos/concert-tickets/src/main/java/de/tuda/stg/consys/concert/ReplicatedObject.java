@@ -5,9 +5,10 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
 import de.tuda.stg.consys.objects.actors.Requests;
 import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JRefImpl;
 import scala.collection.mutable.Buffer;
 
+
+//The code is commented out because of accessibility issues.
 public class ReplicatedObject<T> {
     final AkkaReplicatedObject<String, T> internal;
     final AkkaReplicaSystem<String> system;
@@ -71,6 +72,7 @@ public class ReplicatedObject<T> {
     }
 
     public static <T> ReplicatedObject<T> from(JRef<T> ref) {
-        return new ReplicatedObject<T>((AkkaReplicatedObject<String, T>) ((JRefImpl<T>) ref).getRef().deref());
+//        return new ReplicatedObject<T>((AkkaReplicatedObject<String, T>) ((JRefImpl<T>) ref).getRef().deref());
+        return null;
     }
 }

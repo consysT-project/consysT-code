@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.microbenchmarks;
+package de.tuda.stg.consys.microbenchmarks.counter;
 
 import java.io.Serializable;
 

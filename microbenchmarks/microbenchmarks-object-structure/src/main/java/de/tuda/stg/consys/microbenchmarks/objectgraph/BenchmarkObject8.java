@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.microbenchmarks;
+package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
 import de.tuda.stg.consys.objects.japi.JRef;
 
