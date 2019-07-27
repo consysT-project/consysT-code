@@ -21,14 +21,36 @@ public class RemoteObject {
 	}
 
 
-	void m() {
-		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+	void testExpected() {
+		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
+		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+
+		JRef<@Strong A> x2 = replicaSystem.<@Strong A>replicate(new A(2), JConsistencyLevel.STRONG);
+		JRef<@Weak A> y2 = replicaSystem.<@Weak A>replicate(new A(1), JConsistencyLevel.WEAK);
+
+		//Assign the same consistency levels
+		x1.ref().f = x2.ref().f;
+		y1.ref().f = y2.ref().f;
+
+		//Assign accross consistency levels
+		y1.ref().f = x1.ref().f;
+
+		//Assign references
+		x1 = x2;
+		y2 = y1;
+		y1 = x1; //TODO: This seems to be quite "unwanted". A ref should always have the correct declared type.
+
+	}
+
+	void testErrors() {
+		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
+		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+
 
 		// :: error: (assignment.type.incompatible)
-		x = y;
+		x1 = y1;
 
 		// :: error: (assignment.type.incompatible)
-		x.ref().f = y.ref().f;
+		x1.ref().f = y1.ref().f;
 	}
 }

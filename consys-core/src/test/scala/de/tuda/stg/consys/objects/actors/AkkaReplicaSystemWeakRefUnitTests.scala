@@ -83,19 +83,19 @@ class AkkaReplicaSystemWeakRefUnitTests extends fixture.FunSuite with AkkaReplic
 	}
 
 	test("testWeakIncByMaster") { F =>
-		testWeak(F, 0)(45, ())(ref => ref.invoke[Unit]("incBy", 42))
+		testWeak(F, 0)(45, ())(ref => ref <=[Unit]("incBy", 42))
 	}
 
 	test("testWeakIncByFollower") { F =>
-		testWeak(F, 1)(45, ())(ref => ref.invoke[Unit]("incBy", 42))
+		testWeak(F, 1)(45, ())(ref => ref <=[Unit]("incBy", 42))
 	}
 
 	test("testWeakIncByAndGetMaster") { F =>
-		testWeak(F, 0)(125, 125)(ref => ref.invoke[Int]("incByAndGet", 122))
+		testWeak(F, 0)(125, 125)(ref => ref <=[Int]("incByAndGet", 122))
 	}
 
 	test("testWeakIncByAndGetFollower") { F =>
-		testWeak(F, 1)(125, 125)(ref => ref.invoke[Int]("incByAndGet", 122))
+		testWeak(F, 1)(125, 125)(ref => ref <=[Int]("incByAndGet", 122))
 	}
 
 }

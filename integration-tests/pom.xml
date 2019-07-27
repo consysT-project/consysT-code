@@ -14,38 +14,21 @@
 
     <build>
         <plugins>
+            <!-- TODO: We have to disable the preprocessing when we want the type checker to work. How can we change that?
             <plugin>
                 <groupId>de.tuda.stg</groupId>
                 <artifactId>consys-maven-plugin</artifactId>
-                <version>1.0.0</version>
-                <!-- Running the plugin as part of a maven goal -->
-                <executions>
-                    <execution>
-                        <id>gen-src</id>
-                        <goals>
-                            <goal>preprocess-sources</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>gen-test</id>
-                        <goals>
-                            <goal>preprocess-tests</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            </plugin> -->
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
-                    <source>${javaVersion}</source>
-                    <target>${javaVersion}</target>
                     <compilerArguments>
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <!-- Reenable this to have inforamtion-flow analysis
+                    <!-- Reenable this to have inforamtion-flow analysis-->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>de.tuda.stg</groupId>
@@ -54,9 +37,9 @@
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
-                         Add all the checkers you want to enable here
-                         <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors> -->
+                         <!-- Add all the checkers you want to enable here -->
+                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
@@ -72,7 +55,7 @@
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>consys-core</artifactId>
+            <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>

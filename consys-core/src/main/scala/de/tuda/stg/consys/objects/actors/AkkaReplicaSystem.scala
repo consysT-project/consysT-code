@@ -154,7 +154,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
-	private[actors] def initializeRefFieldsFor(obj : Any) : Unit = {
+	/**
+		* Recursively initializes all fields of an object that store a Ref.
+		* Initializing means, setting the replica system of the ref.
+		*
+		* @param obj
+		*/
+	private[actors] def initializeRefFields(obj : Any) : Unit = {
 
 		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
 			//If the object is null, there is nothing to initialize
@@ -166,6 +172,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 			any match {
 				//If the object is a RefImpl
 				case refImpl : AkkaRef[Addr, _] =>
+
 					refImpl.replicaSystem = this
 
 				//The object is a ref, but is not supported by the replica system
@@ -211,7 +218,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
-			case CreateObjectReplica(addr : Addr, obj, consistencyLevel, masterRef) =>
+			case CreateObjectReplica(addr : Addr@unchecked, obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
 				require(!replica.contains(addr), s"address $addr is already defined")
@@ -235,7 +242,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 					clearTransaction()
 					()
 
-				case HandleRequest(addr : Addr, request) =>	replica.get(addr) match {
+				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
 					case None => sys.error(s"object $addr not found")
 					case Some(obj) =>	sender() ! obj.handleRequest(request)
 				}

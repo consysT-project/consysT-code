@@ -22,6 +22,7 @@
         <module>simple-language</module>
         <module>listbenches</module>
         <module>case-study-and-bench</module>
+        <module>consys-japi</module>
     </modules>
 
     <properties>
@@ -33,29 +34,115 @@
 
         <javaVersion>1.8</javaVersion>
         <scalaVersion>2.12.8</scalaVersion>
-        <akkaVersion>2.5.21</akkaVersion>
+        <akkaVersion>2.5.23</akkaVersion>
 
-        <checkerframeworkVersion>2.8.1</checkerframeworkVersion>
-        <cassandraDriverVersion>3.6.0</cassandraDriverVersion>
+        <checkerframeworkVersion>2.8.2</checkerframeworkVersion>
     </properties>
 
 
     <build>
-        <plugins>
-            <plugin>
-                <!-- This plugin will set properties values using dependency information -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <!-- This plugin will set properties values using dependency information -->
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>properties</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
+                    <configuration>
+                        <source>${javaVersion}</source>
+                        <target>${javaVersion}</target>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <version>4.1.0</version>
+                    <executions>
+                        <execution>
+                            <id>scala-compile-first</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>add-source</goal>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>scala-test-compile</id>
+                            <phase>process-test-resources</phase>
+                            <goals>
+                                <goal>testCompile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>de.tuda.stg</groupId>
+                    <artifactId>consys-maven-plugin</artifactId>
+                    <version>1.0.0</version>
+                    <!-- Running the plugin as part of a maven goal -->
+                    <executions>
+                        <execution>
+                            <id>gen-src</id>
+                            <goals>
+                                <goal>preprocess-sources</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>gen-test</id>
+                            <goals>
+                                <goal>preprocess-tests</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-compiler</artifactId>
+                <version>${scalaVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scalaVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
+                <version>${scalaVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalactic</groupId>
+                <artifactId>scalactic_2.12</artifactId>
+                <version>3.0.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_2.12</artifactId>
+                <version>3.0.5</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 
 </project>

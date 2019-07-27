@@ -2,10 +2,10 @@ package de.tuda.stg.consys.objects.actors
 
 import java.lang.reflect.{Field, Modifier}
 
-import de.tuda.stg.consys.objects.ReplicatedObject
+import de.tuda.stg.consys.objects.{Ref, Replicated, ReplicatedObject, typeToClassTag}
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
-import de.tuda.stg.consys.objects.{Ref, ReplicatedObject, typeToClassTag}
+import jdk.internal.dynalink.support.TypeUtilities
 
 import scala.language.postfixOps
 import scala.reflect.ClassTag
@@ -29,11 +29,13 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 	protected def setObject(newObj : T) : Unit = {
 		state = newObj
-		replicaSystem.initializeRefFieldsFor(state)
+		replicaSystem.initializeRefFields(state)
 		ReflectiveAccess.updateObj()
+
+		intitializeReplicated()
 	}
 
-	protected def getObject : T = state
+	protected [actors] def getObject : T = state
 
 
 	private def transaction[R](f : Transaction => R) : R = {
@@ -61,7 +63,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	override final def invoke[R](methodName : String, args : Any*) : R = transaction[R] { tx =>
+	override final def invoke[R](methodName : String, args : Seq[Seq[Any]]) : R = transaction[R] { tx =>
 		internalInvoke[R](tx, methodName, args)
 	}
 
@@ -141,7 +143,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
-	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
+
+	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke[R](methodName, args)
 	}
 
@@ -174,24 +177,82 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 		s"AkkaReplicatedObject[$consistencyLevel]($state)"
 
 
+	//Initializes states that implement Replicated
+	private def intitializeReplicated() : Unit = {
+
+		getObject match {
+			case obj : Replicated =>
+				//Use reflection to set the field replicaSystem in this class.
+
+				try {
+					val field = obj.getClass.getField("replicaSystem")
+					field.setAccessible(true)
+					field.set(obj, replicaSystem)
+				} catch {
+					case e : NoSuchFieldException =>
+						throw new Exception(s"object of class ${obj.getClass} does not contain field <replicaSystem>. Object:\n$obj", e);
+				}
+			case _ =>
+		}
+
+
+	}
+
+
 	private final object ReflectiveAccess {
 
 		private implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
 		//TODO: Define this as field and keep in sync with obj
 		private var objMirror : InstanceMirror = _
 
+
+
+
+		private final val rtMirror = runtimeMirror(AkkaReplicatedObject.this.getClass.getClassLoader)
+
 		private[AkkaReplicatedObject] def updateObj() : Unit = {
-			objMirror = runtimeMirror(ct.runtimeClass.getClassLoader).reflect(state)
+			objMirror = rtMirror.reflect(state)
 		}
 
-		def doInvoke[R](methodName : String, args : Seq[Any]) : R = ReflectiveAccess.synchronized {
-			val tpe = typeOf[T]
+		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			val mthdTerm = TermName(methodName)
 
-			val methodSymbol = tpe.member(mthdTerm).asMethod
-			val methodMirror = objMirror.reflectMethod(methodSymbol)
-			val result = methodMirror.apply(args : _*)
-			result.asInstanceOf[R]
+			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
+
+			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
+				val flattenedParams : Seq[Seq[Class[_]]] =
+					s.asMethod.paramLists.map(paramList => paramList.map(param => {
+						val classSymbol = param.typeSignature.typeSymbol.asClass
+						rtMirror.runtimeClass(classSymbol)
+					} ))
+
+				//Check whether parameters can be assigned the given arguments
+				flattenedParams.length == argClasses.length && flattenedParams.zip(argClasses).forall(t1 => {
+					val (paramList, argList) = t1
+					paramList.length == argList.length && paramList.zip(argList).forall(t2 => {
+						val (param, arg) = t2
+
+						val result = if (param.isPrimitive) {
+							//Treat boxed types correctly: primitive types are converted to boxed types and then checked.
+							TypeUtilities.getWrapperType(param).isAssignableFrom(arg)
+						} else {
+							param.isAssignableFrom(arg)
+						}
+
+						result
+					})
+				})
+//				flattenedParams == argClasses
+			}
+
+			mbMethodSym match {
+				case Some(methodSymbol: MethodSymbol) =>
+					val methodMirror = objMirror.reflectMethod(methodSymbol)
+					val result = methodMirror.apply(args.flatten : _*)
+					result.asInstanceOf[R]
+				case _ =>
+					throw new NoSuchMethodException(s"method <$methodName> with arguments $args was not found in $objMirror.")
+			}
 		}
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
