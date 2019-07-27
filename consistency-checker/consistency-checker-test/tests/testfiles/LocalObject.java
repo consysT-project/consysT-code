@@ -11,7 +11,7 @@ public class LocalObject {
 	}
 
 
-	void n(A a) {
+	void testExpected(A a) {
 		A b = new A(32);
 
 		b.f = a.f;

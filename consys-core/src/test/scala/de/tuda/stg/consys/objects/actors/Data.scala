@@ -36,9 +36,9 @@ object Data {
 
 	case class B(a1 : Ref[String, A], a2 : Ref[String, A]) {
 		def incAll() : Int = {
-			a1.invoke("incByAndGet", 1)
-			a2.invoke("incByAndGet", 2)
-			a1.invoke("incByAndGet", 3)
+			a1 <=("incByAndGet", 1)
+			a2 <=("incByAndGet", 2)
+			a1 <=("incByAndGet", 3)
 		}
 	}
 

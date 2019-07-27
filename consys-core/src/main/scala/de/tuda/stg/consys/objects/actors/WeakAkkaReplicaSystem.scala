@@ -39,7 +39,6 @@ object WeakAkkaReplicaSystem {
 		override final def consistencyLevel : ConsistencyLevel = Weak
 	}
 
-
 	object WeakReplicatedObject {
 
 		class WeakMasterReplicatedObject[Addr, T <: AnyRef](
@@ -51,7 +50,7 @@ object WeakAkkaReplicaSystem {
 		with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				super.internalInvoke(tx, methodName, args)
 			}
 
@@ -77,6 +76,7 @@ object WeakAkkaReplicaSystem {
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
+							case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
 						}
 						assert(replicaSystem.getCurrentTransaction.locks.toList == before)
 						replicaSystem.clearTransaction()
@@ -102,7 +102,7 @@ object WeakAkkaReplicaSystem {
 
 			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
 
-			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				unsynchronized += InvokeOp(tx, methodName, args)
 				super.internalInvoke(tx, methodName, args)
 			}
@@ -120,7 +120,7 @@ object WeakAkkaReplicaSystem {
 			override def internalSync() : Unit = {
 				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
 
-				val WeakSynchronized(newObj : T) =
+				val WeakSynchronized(newObj : T@unchecked) =
 					handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
 				handler.close()
 

@@ -2,6 +2,9 @@ package de.tuda.stg.consys.checker;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.DefaultTypeHierarchy;
+import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
@@ -10,33 +13,35 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 
-    public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
+	public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
         	Set useFlow to false if the flow analysis should be used.
          */
-        super(checker, true);
-        this.postInit();
-    }
+		super(checker, true);
+		this.postInit();
+	}
 
 
-    @Override
-    protected TreeAnnotator createTreeAnnotator() {
-        TreeAnnotator others = super.createTreeAnnotator();
-        return new ListTreeAnnotator(others, new ExtendedImplicitTreeAnnotator(this));
-    }
+	@Override
+	protected TreeAnnotator createTreeAnnotator() {
+		TreeAnnotator others = super.createTreeAnnotator();
+		return new ListTreeAnnotator(others, new ConsistencyTreeAnnotator(this));
+	}
 
-    @Override
-    protected TypeAnnotator createTypeAnnotator() {
-        TypeAnnotator others = super.createTypeAnnotator();
-        return new ListTypeAnnotator(others, new ExtendedImplicitTypeAnnotator());
-    }
+	@Override
+	protected TypeAnnotator createTypeAnnotator() {
+		TypeAnnotator others = super.createTypeAnnotator();
+		return new ListTypeAnnotator(others, new ConsistencyTypeAnnotator(this));
+	}
 
+	@Override
+	protected TypeHierarchy createTypeHierarchy() {
 
-    private class ExtendedImplicitTypeAnnotator extends TypeAnnotator {
-        public ExtendedImplicitTypeAnnotator() {
-            super(ConsistencyAnnotatedTypeFactory.this);
-        }
-    }
+		DefaultTypeHierarchy hierarchy = new DefaultTypeHierarchy(
+			checker, getQualifierHierarchy(), checker.getBooleanOption("ignoreRawTypeArguments", true), checker.hasOption("invariantArrays"));
+
+		return new ConsistencyTypeHierarchy(hierarchy, this);
+	}
 
 
 //    @Override

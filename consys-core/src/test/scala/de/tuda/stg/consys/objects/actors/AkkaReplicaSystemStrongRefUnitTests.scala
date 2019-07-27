@@ -47,38 +47,38 @@ class AkkaReplicaSystemStrongRefUnitTests extends fixture.FunSuite with AkkaRepl
 
 	test("testStrongIncMaster") { F =>
 		testStrong(F)(4, ()) {
-			refs => refs(0).invoke[Unit]("inc")
+			refs => refs(0).invoke[Unit]("inc", Seq(Seq()))
 		}
 	}
 
 	test("testStrongIncFollower") { F =>
 		testStrong(F)(4, ()) {
-			refs => refs(1).invoke[Unit]("inc")
+			refs => refs(1).invoke[Unit]("inc", Seq(Seq()))
 		}
 	}
 
 	test("testStrongIncAndGetMaster") { F =>
-		testStrong(F)(4, 4)(refs => refs(0).invoke[Int]("incAndGet"))
+		testStrong(F)(4, 4)(refs => refs(0).invoke[Int]("incAndGet", Seq(Seq())))
 	}
 
 	test("testStrongIncAndGetFollower") { F =>
-		testStrong(F)(4, 4)(refs => refs(1).invoke[Int]("incAndGet"))
+		testStrong(F)(4, 4)(refs => refs(1).invoke[Int]("incAndGet", Seq(Seq())))
 	}
 
 	test("testStrongIncByMaster") { F =>
-		testStrong(F)(45, ())(refs => refs(0).invoke[Unit]("incBy", 42))
+		testStrong(F)(45, ())(refs => refs(0) <=[Unit]("incBy", 42))
 	}
 
 	test("testStrongIncByFollower") { F =>
-		testStrong(F)(45, ())(refs => refs(1).invoke[Unit]("incBy", 42))
+		testStrong(F)(45, ())(refs => refs(1) <=[Unit]("incBy", 42))
 	}
 
 	test("testStrongIncByAndGetMaster") { F =>
-		testStrong(F)(125, 125)(refs => refs(0).invoke[Int]("incByAndGet", 122))
+		testStrong(F)(125, 125)(refs => refs(0) <=[Int]("incByAndGet", 122))
 	}
 
 	test("testStrongIncByAndGetFollower") { F =>
-		testStrong(F)(125, 125)(refs => refs(1).invoke[Int]("incByAndGet", 122))
+		testStrong(F)(125, 125)(refs => refs(1) <=[Int]("incByAndGet", 122))
 	}
 
 

@@ -23,15 +23,11 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
-                    <source>${javaVersion}</source>
-                    <target>${javaVersion}</target>
                     <compilerArguments>
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-
                 </configuration>
             </plugin>
 
@@ -72,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>consys-core</artifactId>
+            <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
         </dependency>
     </dependencies>

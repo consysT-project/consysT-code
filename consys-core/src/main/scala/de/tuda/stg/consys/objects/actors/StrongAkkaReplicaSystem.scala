@@ -62,7 +62,7 @@ object StrongAkkaReplicaSystem {
 				txMutex.unlockTxid(txid)
 			}
 
-			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val res = super.internalInvoke[R](tx, methodName, args)
 				res
 			}
@@ -89,7 +89,7 @@ object StrongAkkaReplicaSystem {
 					cache(op, result)
 					()
 
-				case MergeReq(newObj : T, op, result) =>
+				case MergeReq(newObj : T@unchecked, op, result) =>
 					setObject(newObj)
 					cache(op, result)
 					()
@@ -131,7 +131,7 @@ object StrongAkkaReplicaSystem {
 			//Handles communication with the master
 			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
 
-			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Any]) : R = {
+			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val res = super.internalInvoke[R](tx, methodName, args)
 				handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
 
@@ -163,7 +163,7 @@ object StrongAkkaReplicaSystem {
 			}
 
 			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
-				val LockRes(masterObj : T) = handler.request(addr, LockReq(txid))
+				val LockRes(masterObj : T@unchecked) = handler.request(addr, LockReq(txid))
 				setObject(masterObj)
 			}
 
