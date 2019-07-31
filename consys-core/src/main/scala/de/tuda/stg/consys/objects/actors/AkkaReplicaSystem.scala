@@ -59,14 +59,15 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	override def acquireLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
 		case Some(rob :  LockableReplicatedObject[_]) =>
-			rob.lock(tx.txid)
+			rob.lock(tx.id)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
 	override def releaseLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
 		case Some(rob :  LockableReplicatedObject[_]) =>
-			rob.unlock(tx.txid)
+			println(s"unlock $tx for object $addr on $this")
+			rob.unlock(tx.id)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
@@ -117,6 +118,12 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	/*writes a message to the standard out*/
 	protected[actors] def log : LoggingAdapter = actorSystem.log
 
+	/**
+	 * @return Set of ReplicaActor
+	 */
+	def getOtherReplicas : Set[ActorRef] = {
+		otherReplicas.toSet
+	}
 
 	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {
 		otherReplicas.add(replicaActorRef)
@@ -148,11 +155,19 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
-	def acquireHandlerFrom(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
+	def handlerFor(replicaRef : ActorRef, receiveTimeout : FiniteDuration = 30 seconds) : RequestHandler[Addr] = {
 		import akka.pattern.ask
 		val response = replicaRef.ask(AcquireHandler)(Timeout(receiveTimeout))
 		val result = Await.result(response, receiveTimeout)
 		result.asInstanceOf[RequestHandler[Addr]]
+	}
+
+	def foreachOtherReplica(f : RequestHandler[Addr] => Unit, receiveTimeout : FiniteDuration = 30 seconds) : Unit = {
+		for (replica <- otherReplicas) {
+			val handler = handlerFor(replica)
+			f(handler)
+			handler.close()
+		}
 	}
 
 
@@ -246,7 +261,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
 					case None => sys.error(s"object $addr not found")
-					case Some(obj) =>	sender() ! obj.handleRequest(request)
+					case Some(obj) =>
+						if (request.returns)
+							sender() ! obj.handleRequest(request)
+						else
+							obj.handleRequest(request)
 				}
 
 				case CloseHandler =>

@@ -19,7 +19,10 @@ package object actors {
 	private class AkkaReplicaSystemImpl(override val actorSystem: ActorSystem)
 		extends AkkaReplicaSystem[String]
 		with StrongAkkaReplicaSystem[String]
-		with WeakAkkaReplicaSystem[String] {
+		with WeakAkkaReplicaSystem[String]
+		with HighAkkaReplicaSystem[String]
+		with LowAkkaReplicaSystem[String]
+	{
 
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)

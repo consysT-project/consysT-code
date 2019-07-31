@@ -58,6 +58,8 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	protected def transactionFinished(tx : Transaction) : Unit = {
 		//Unlock all objects that are locked by this transaction
 		if (tx.isToplevel) {
+			//Use the top version with unlock (instead of unlockAll) in releaseLock
+			//tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
 			tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
 		}
 	}
@@ -138,6 +140,14 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 	}
 
 
+	/**
+	 * Handles a request possibly from another replica system.
+	 * This method can be called concurrently.
+	 *
+	 * @param request The request to be handled
+	 *
+	 * @return The return value of the request.
+	 */
 	def handleRequest(request : Request) : Any = {
 		throw new IllegalArgumentException(s"can not handle request $request")
 	}
@@ -169,7 +179,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
 
 
 	protected def internalSync() : Unit = {
-		throw new UnsupportedOperationException("synchronize not supported on this object")
+		//throw new UnsupportedOperationException("synchronize not supported on this object")
 	}
 
 
