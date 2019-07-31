@@ -125,15 +125,17 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
 		import scala.concurrent.duration._
 
+		println(s"adding replica $replicaActorPath")
+
 		val selection = actorSystem.actorSelection(replicaActorPath)
-		val actorRef = Await.result(selection.resolveOne(5 seconds), 5 seconds)
+		val actorRef = Await.result(selection.resolveOne(20 seconds), 20 seconds)
 
 		addOtherReplica(actorRef)
 	}
 
 	def addOtherReplica(hostname : String, port : Int) : Unit = {
 		val sysname = DEFAULT_ACTORSYSTEM_NAME
-		val address = Address("akka.tcp", sysname, hostname, port)
+		val address = Address("akka", sysname, hostname, port)
 		addOtherReplica(address)
 	}
 

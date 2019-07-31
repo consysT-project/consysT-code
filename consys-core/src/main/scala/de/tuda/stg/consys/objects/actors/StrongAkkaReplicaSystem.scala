@@ -63,6 +63,7 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
+				tx.isToplevel
 				val res = super.internalInvoke[R](tx, methodName, args)
 				res
 			}
