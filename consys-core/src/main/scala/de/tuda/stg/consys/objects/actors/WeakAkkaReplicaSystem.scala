@@ -118,7 +118,7 @@ object WeakAkkaReplicaSystem {
 
 
 			override def internalSync() : Unit = {
-				val handler = replicaSystem.acquireHandlerFrom(masterReplica)
+				val handler = replicaSystem.handlerFor(masterReplica)
 
 				val WeakSynchronized(newObj : T@unchecked) =
 					handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
