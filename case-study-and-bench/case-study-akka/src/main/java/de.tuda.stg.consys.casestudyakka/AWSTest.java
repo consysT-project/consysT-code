@@ -32,7 +32,7 @@ public class AWSTest implements Serializable {
         }
         catch(FileNotFoundException ex) {
             System.out.println(
-                    "Unable to open file '" +
+                    "Unable to open file'" +
                             path + "'");
             System.exit(0);
         }
@@ -53,11 +53,22 @@ public class AWSTest implements Serializable {
         thisSystem = JReplicaSystem.fromActorSystem(thisHostName, thisPort);
         ///thisSystem = JReplicaSystem.fromActorSystem(thisPort);
         System.out.println("Created Replica System from " + thisHost);
-        for (String otherHost: fileCont) {
-            String otherHostName = otherHost.split(";")[0];
-            int otherPort = Integer.parseInt(otherHost.split(";")[1]);
-            thisSystem.addReplicaSystem(otherHostName, otherPort);
-            System.out.println("Added Replica System from " + otherHost);
+        boolean unsucessfull = true;
+        while(unsucessfull){
+            try{
+                for (String otherHost: fileCont) {
+                    String otherHostName = otherHost.split(";")[0];
+                    int otherPort = Integer.parseInt(otherHost.split(";")[1]);
+
+                    thisSystem.addReplicaSystem(otherHostName, otherPort);
+                    System.out.println("Added Replica System from " + otherHost);
+                }
+
+                unsucessfull = false;
+            }
+            catch(Exception e){
+                System.out.println("No luck so far buddy");
+            }
         }
 
         //Try to set the value
@@ -69,7 +80,8 @@ public class AWSTest implements Serializable {
         //Do the user input thing
         while(true){
             String input = reader.readLine();
-            switch (input){
+            String[] inputSplit = input.split(":");
+            switch (inputSplit[0]){
                 case "exit":
                     System.out.println("Shutting down");
                     System.exit(0);
@@ -77,7 +89,7 @@ public class AWSTest implements Serializable {
                     System.out.println((String) value.getField("content"));
                     break;
                 case "write":
-                    value.setField("content", thisHost);
+                    value.setField("content", inputSplit[1]);
                     System.out.println("Field has been set");
                     break;
                 default:

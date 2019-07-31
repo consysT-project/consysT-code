@@ -41,7 +41,8 @@ public class Main implements Serializable {
             return false;
         }else {
             database = replicaSystems[repSysNum].replicate("database",
-                    new Database(replicaSystems[repSysNum]), JConsistencyLevel.STRONG);
+                    new Database(), JConsistencyLevel.STRONG);
+            database.invoke("init");
             return true;
         }
     }

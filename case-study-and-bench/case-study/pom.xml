@@ -108,6 +108,12 @@
             <artifactId>jrefcollections</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 

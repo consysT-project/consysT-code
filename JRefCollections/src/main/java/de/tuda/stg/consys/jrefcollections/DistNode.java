@@ -1,10 +1,11 @@
 package de.tuda.stg.consys.jrefcollections;
 
+
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
 
-public class DistNode<T> implements Serializable {
+class DistNode<T> implements Serializable {
     public JRef<T> prev;
 
     public JRef<T> next;

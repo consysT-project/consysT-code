@@ -104,6 +104,12 @@
             <version>1.21</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 
