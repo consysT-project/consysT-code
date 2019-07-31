@@ -1,2 +1,2 @@
-ec2-18-195-241-80.eu-central-1.compute.amazonaws.com;2552
-ec2-54-93-214-77.eu-central-1.compute.amazonaws.com;2553
+ec2-54-93-178-181.eu-central-1.compute.amazonaws.com;2552
+ec2-54-93-42-97.eu-central-1.compute.amazonaws.com;2553

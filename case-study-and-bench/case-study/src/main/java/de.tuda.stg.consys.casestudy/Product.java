@@ -2,24 +2,43 @@ package de.tuda.stg.consys.casestudy;
 
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
-public class Product implements Serializable {
+public class Product implements Serializable, JReplicated {
+
+    /* This field is needed for JReplicated */
+    public transient AkkaReplicaSystem<String> replicaSystem = null;
+
     private double cost;
 
     private String name;
 
     public JRef<@Weak JRefDistList> comments;
 
-    Product(String ProductName, double cost, JReplicaSystem system){
+    Product(String ProductName, double cost) {
         this.name = ProductName;
         this.cost = cost;
+    }
+
+    public boolean init(){
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
+
         comments = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        return true;
     }
 
     public double getCost(){

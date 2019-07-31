@@ -11,10 +11,10 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
+import sun.awt.image.ImageWatched;
 
 import java.io.*;
-import java.util.LinkedList;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -53,7 +53,7 @@ public class CaseStudyBenchmark {
          * */
 
         //@Param({"login", "register", "search", "addCart", "checkOut", "ViewProd", "AddBalance"})
-        @Param({"checkOut"})
+        @Param({"login", "register", "search", "addCart", "checkOut", "ViewProd", "AddBalance"})
         String endpoint;
 
         JReplicaSystem[] replicaSystems;
@@ -106,8 +106,8 @@ public class CaseStudyBenchmark {
                 return false;
             }else {
                 database = replicaSystems[repSysNum].replicate("database",
-                        new Database(replicaSystems[repSysNum]), JConsistencyLevel.STRONG);
-                return true;
+                        new Database(), JConsistencyLevel.STRONG);
+                return database.invoke("init");
             }
         }
 
@@ -128,6 +128,7 @@ public class CaseStudyBenchmark {
 
         private boolean fillDatabase(){
             if(database != null){
+
                 //Read products from pregenerated product file
                 String[] products = ContentHandler.readFile("productsForBenchmark.txt");
                 //If file is missing generate it
@@ -135,8 +136,9 @@ public class CaseStudyBenchmark {
                     products = ContentHandler.generateProducts(500);
                     ContentHandler.writeFile("productsForBenchmark.txt", products);
                 }
+
                 //Add products to database
-                database.invoke("AddInitialProducts", products, replicaSystems[0]);
+                database.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(products)));
                 System.out.println("Added Products");
 
                 //Read users from pregenerated product file
@@ -153,7 +155,7 @@ public class CaseStudyBenchmark {
                 //Add users to database
                 for (String user: users){
                     String[] split = user.split(";");
-                    database.invoke("AddUser", split[0], split[1], replicaSystems[0]);
+                    database.invoke("AddUser", split[0], split[1]);
                 }
                 System.out.println("Added Users");
                 return true;
@@ -201,7 +203,7 @@ public class CaseStudyBenchmark {
                     String[] split3 = loginUsers[r.nextInt(loginUsers.length)].split(";");
                     currUserName = split3[0]; currPassword = split3[1];
                     sites.get(1).invoke("Login", currUserName,
-                            currPassword,replicaSystems[1]);
+                            currPassword);
                     String search1 = ContentHandler.searchableWords[r.nextInt(ContentHandler.searchableWords.length)];
                     sites.get(1).invoke("Search", search1, false);
                     break;
@@ -237,15 +239,13 @@ public class CaseStudyBenchmark {
                     //Log in before adding things to the cart
                     String[] split1 = loginUsers[r.nextInt(loginUsers.length)].split(";");
                     sites.get(1).invoke("Login", split1[0],
-                            split1[1],replicaSystems[1]);
+                            split1[1]);
                     break;
                 case "checkOut":
-
                     int midway = ((LinkedList<JRef<@Strong Product>>) sites.get(1).getField("FoundProducts"))
                             .size()/2 + 1;
-                    System.out.println(midway);
-                    sites.get(1).invoke("FromFoundAddToCart",
-                                midway, 5, replicaSystems[1]);
+                    sites.get(1).invoke("AddBalance", 5000.0, false);
+                    sites.get(1).invoke("FromFoundAddToCart", midway, 5);
                     break;
                 case "ViewProd":
 
@@ -254,7 +254,7 @@ public class CaseStudyBenchmark {
                     String[] split2 = loginUsers[r.nextInt(loginUsers.length)].split(";");
                     currUserName = split2[0]; currPassword = split2[1];
                     sites.get(1).invoke("Login", currUserName,
-                            currPassword,replicaSystems[1]);
+                            currPassword);
                     break;
             }
         }
@@ -264,17 +264,17 @@ public class CaseStudyBenchmark {
             switch (endpoint){
                 case "login":
                     //Log out after each login
-                    sites.get(1).invoke("Logout", replicaSystems[1]);
+                    sites.get(1).invoke("Logout");
                     break;
                 case "register":
                     //Log out after each new registration
-                    sites.get(1).invoke("Logout", replicaSystems[1]);
+                    sites.get(1).invoke("Logout");
                     break;
                 case "search":
                     break;
                 case "addCart":
                     //Log out after having added things to the cart
-                    sites.get(1).invoke("Logout", replicaSystems[1]);
+                    sites.get(1).invoke("Logout");
                     break;
                 case "checkOut":
 
@@ -284,7 +284,7 @@ public class CaseStudyBenchmark {
                     break;
                 case "AddBalance":
                     //Log out after adding balance
-                    sites.get(1).invoke("Logout", replicaSystems[1]);
+                    sites.get(1).invoke("Logout");
                     break;
             }
         }
@@ -292,7 +292,7 @@ public class CaseStudyBenchmark {
         @TearDown(Level.Iteration)
         public void systemTeardown() throws Exception {
             if(endpoint.equals("checkOut"))
-                sites.get(1).invoke("Logout", replicaSystems[1]);
+                sites.get(1).invoke("Logout");
 
             for (JReplicaSystem system: replicaSystems) {
                 system.close();
@@ -306,12 +306,12 @@ public class CaseStudyBenchmark {
             case "login":
                 //Login
                 bh.consume(setup.sites.get(1).invoke("Login", setup.currUserName,
-                                    setup.currPassword,setup.replicaSystems[1]));
+                                    setup.currPassword));
                 break;
             case "register":
                 //Register new User from previously generated new unique user and password.
                 bh.consume(setup.sites.get(1).invoke("RegisterNewUser", setup.newUserName,
-                        setup.newPassword, setup.replicaSystems[1]));
+                        setup.newPassword));
                 break;
             case "search":
                 //Search the products for a random search term, should return ~1/26 of all products
@@ -321,12 +321,11 @@ public class CaseStudyBenchmark {
                 //add a previously searched item
                 //TODO: FIX THIS
                 bh.consume(setup.sites.get(1).invoke("FromFoundAddToCart",
-                        setup.addToCartIndex, 5, setup.replicaSystems[1]));
+                        setup.addToCartIndex, 5));
                 break;
             case "checkOut":
-                //TODO: FIX THIS
                 //checkout a previously filled shopping cart
-                bh.consume(setup.sites.get(1).invoke("Checkout", setup.replicaSystems[1], false));
+                bh.consume(setup.sites.get(1).invoke("Checkout",  false));
                 break;
             case "ViewProd":
                 //View a previously searched item
@@ -335,8 +334,7 @@ public class CaseStudyBenchmark {
                 break;
             case "AddBalance":
                 //Add balance for a certain user
-                bh.consume(setup.sites.get(1).invoke("AddBalance", 50,
-                        setup.replicaSystems[1], false));
+                bh.consume(setup.sites.get(1).invoke("AddBalance", 50.0, false));
                 break;
         }
     }

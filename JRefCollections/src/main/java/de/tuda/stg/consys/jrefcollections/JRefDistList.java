@@ -2,19 +2,21 @@ package de.tuda.stg.consys.jrefcollections;
 
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.ReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.function.Predicate;
 
-public class JRefDistList implements Serializable {
+public class JRefDistList implements Serializable, JReplicated {
+
+    /* This field is needed for JReplicated */
+    public transient AkkaReplicaSystem<String> replicaSystem = null;
 
     public JRef head;
 
@@ -53,7 +55,6 @@ public class JRefDistList implements Serializable {
     private int sizeRec(int cnt, boolean sync){
         if(sync)
             current.sync();
-        System.out.println("Element: " + current.toString());
         if(current.getField("next") == null){
             GuessedSize = cnt;
             return cnt;
@@ -125,8 +126,16 @@ public class JRefDistList implements Serializable {
         return true;
     }
 
-    public <T> boolean append(JRef<T> item, JReplicaSystem sys) {
-        JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
+    public <T> boolean append(JRef<T> item) {
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
+
+        JRef<@Inconsistent DistNode> node = system.replicate(new DistNode(item), level);
+
 
         if (tail == null) {
             head = node;
@@ -141,8 +150,15 @@ public class JRefDistList implements Serializable {
         return true;
     }
 
-    public <T> void insert(int index, JRef<T> item, JReplicaSystem sys, boolean sync) throws IndexOutOfBoundsException{
-        JRef<@Inconsistent DistNode> node = sys.replicate(new DistNode(item), level);
+    public <T> boolean insert(int index, JRef<T> item, boolean sync){
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
+
+        JRef<@Inconsistent DistNode> node = system.replicate(new DistNode(item), level);
 
         if(findIndexFront(index, sync)){
             if(current.getField("prev") == null){
@@ -157,7 +173,9 @@ public class JRefDistList implements Serializable {
                 current.invoke("setPrev", node);
             }
             current = head;
-        }else throw new IndexOutOfBoundsException("List index out of bounds");
+            return true;
+        }
+        return false;
     }
 
 

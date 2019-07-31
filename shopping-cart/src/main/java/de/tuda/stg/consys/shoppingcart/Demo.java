@@ -3,9 +3,11 @@ package de.tuda.stg.consys.shoppingcart;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+/*
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
 import de.tuda.stg.consys.jrefcollections.JRefLinkedList;
+ */
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
@@ -15,10 +17,10 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        minimalError();
+        anotherError2();
 
     }
-
+/*
     public static void example1() throws Exception {
 
 
@@ -259,6 +261,7 @@ public class Demo implements Serializable {
         }
     }
 
+ */
     private static void minimalError() throws Exception {
         JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
         JRef<@Weak ErrorClass> baseClassRef = Replicas.replicaSystems[1].ref("errorClass", ErrorClass.class, JConsistencyLevel.WEAK);
@@ -291,6 +294,34 @@ public class Demo implements Serializable {
         System.out.println("---------------");
         //This finds the added object but crashes when trying to use it.
         baseClass.invoke("printAndSync");
+
+        for (JReplicaSystem rep : Replicas.replicaSystems) {
+            rep.close();
+        }
+    }
+
+    private static void anotherError() throws Exception {
+        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
+
+        System.out.println("This will be printed");
+        baseClass.invoke("createInternal");
+        System.out.println("This wont be printed");
+
+        for (JReplicaSystem rep : Replicas.replicaSystems) {
+            rep.close();
+        }
+    }
+
+    private static void anotherError2() throws Exception{
+        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
+
+        Object[] arr = new Object[10];
+
+        String[] strArr = {"Alpha", "Beta", "Gamma"};
+
+        baseClass.invoke("takeArray", arr);
+
+        //baseClass.invoke("takeStrArray", strArr);
 
         for (JReplicaSystem rep : Replicas.replicaSystems) {
             rep.close();

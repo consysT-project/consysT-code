@@ -47,5 +47,11 @@ hs_err_pid*
 # Generated sources from preprocessor
 gen/
 
-productForBenchmark.txt
+productsForBenchmark.txt
 usersForBenchmark.txt
+
+*.project
+*.classpath
+*.factorypath
+*.settings/
+case-study-and-bench/case-study-akka/*.txt

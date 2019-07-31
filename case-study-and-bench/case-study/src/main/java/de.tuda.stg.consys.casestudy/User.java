@@ -2,14 +2,21 @@ package de.tuda.stg.consys.casestudy;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
-public class User implements Serializable {
+public class User implements Serializable , JReplicated {
+
+    /* This field is needed for JReplicated */
+    public transient AkkaReplicaSystem<String> replicaSystem = null;
 
     private String userID;
 
@@ -25,12 +32,23 @@ public class User implements Serializable {
 
     private LinkedList<JRef<@Strong Product>> buyHistory;
 
-    User(String userID, String password, JReplicaSystem system){
+    User(String userID, String password){
         this.userID = userID; this.password = password;
         loggedInFrom = new LinkedList<String>();
         balance = 0;
         buyHistory = new LinkedList<JRef<@Strong Product>>();
+    }
+
+    public boolean init(){
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
+
         this.cart = system.replicate(new Cart(system), JConsistencyLevel.STRONG);
+        return true;
     }
 
     public boolean Login(String userID, String password, String systemInfo){
