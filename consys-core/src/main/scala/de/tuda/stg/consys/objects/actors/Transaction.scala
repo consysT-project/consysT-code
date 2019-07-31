@@ -11,7 +11,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait Transaction extends Serializable {
+private[actors] trait Transaction extends Serializable {
 
 	def consistencyLevel : ConsistencyLevel
 	def txid : Long
