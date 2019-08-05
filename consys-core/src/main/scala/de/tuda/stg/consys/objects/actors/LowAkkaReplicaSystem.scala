@@ -1,0 +1,234 @@
+package de.tuda.stg.consys.objects.actors
+
+import akka.actor.ActorRef
+import de.tuda.stg.consys.objects.ConsistencyLevel
+import de.tuda.stg.consys.objects.ConsistencyLevel.{High, Low}
+import de.tuda.stg.consys.objects.actors.HighAkkaReplicaSystem.HighReplicatedObject
+import de.tuda.stg.consys.objects.actors.LowAkkaReplicaSystem.{LowReplicatedObject, NotLockedException}
+import de.tuda.stg.consys.objects.actors.Requests.{GetFieldOp, InvokeOp, NonReturnRequest, Operation, Request, ReturnRequest, SetFieldOp}
+
+import scala.collection.mutable
+import scala.language.postfixOps
+import scala.reflect.runtime.universe._
+import scala.util.{DynamicVariable, Random}
+
+
+/**
+	*
+	* @author Mirko Köhler
+	*/
+/* FIXME: This implementation is not working completely yet, as concurrent execution leads to deadlocks. */
+trait LowAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+
+
+	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+		case Low => new LowReplicatedObject[Addr, T](obj, addr, this)
+		case _ =>	super.createMasterReplica[T](l, addr, obj)
+	}
+
+	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+		case Low => new LowReplicatedObject[Addr, T](obj, addr, this)
+		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
+	}
+}
+
+
+object LowAkkaReplicaSystem {
+
+	private case class LockRequest(txid : Long) extends Request with ReturnRequest
+	private case class UnlockRequest(txid : Long) extends Request with ReturnRequest
+	private case class RequestOperation(op : Operation[_]) extends Request with ReturnRequest
+	private case class RequestSync(tx : Transaction) extends Request with ReturnRequest
+
+	private case object NotLockedException extends RuntimeException
+
+
+	private [LowAkkaReplicaSystem] class LowReplicatedObject[Addr, T <: AnyRef] (
+    init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
+  )(
+    protected implicit val ttt : TypeTag[T]
+  ) extends AkkaReplicatedObject[Addr, T]	with Lockable[T] {
+		setObject(init)
+
+		override final def consistencyLevel : ConsistencyLevel = Low
+
+		private final val isRequest : DynamicVariable[Boolean] = new DynamicVariable(false)
+
+		//Acquires a lock of all replicas of this object
+		private def lockReplicas(tx : Transaction): Unit = {
+
+			//Flag to indicate whether the lock on this object has suceeded
+			var selfLocked = false
+			//Buffer of replica refs that have been locked
+			val lockedReplicas = mutable.Buffer.empty[ActorRef]
+
+			//Set of all other replicas
+			val otherReplicas = replicaSystem.getOtherReplicas
+
+			while (true) {
+				try {
+					Predef.print(s"try lock = $addr, ${tx.id}... ")
+					if (tryLock(tx.id))
+						selfLocked = true
+					else
+						throw NotLockedException
+					println("locked")
+
+					for (replica <- otherReplicas) {
+						Predef.print(s"try lock on remote = $addr, ${tx.id}...")
+						val handler = replicaSystem.handlerFor(replica)
+						val wasLocked = handler.request(addr, LockRequest(tx.id)).asInstanceOf[Boolean]
+						handler.close()
+
+						if (wasLocked)
+							lockedReplicas += replica
+						else
+							throw NotLockedException
+
+						println(s"locked")
+					}
+
+					tx.addLock(addr.asInstanceOf[String])
+					return
+
+				} catch {
+					case NotLockedException =>
+						println("!!! Could not grab locks. Retry... !!!")
+						if (selfLocked) unlock(tx.id)
+						for (replica <- lockedReplicas) {
+							val handler = replicaSystem.handlerFor(replica)
+							handler.request(addr, UnlockRequest(tx.id)).asInstanceOf[Boolean]
+							handler.close()
+						}
+						selfLocked = false
+						lockedReplicas.clear()
+
+						Thread.sleep(Random.nextInt(1000))
+				}
+			}
+		}
+
+
+
+
+		override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
+			if (tx.isToplevel && !isRequest.value) {
+				val invokeOp = InvokeOp(tx, methodName, args)
+				println("starting top level invoke...")
+				replicaSystem.foreachOtherReplica(handler => {
+					handler.request(addr, RequestOperation(invokeOp))
+				})
+			}
+
+			assert(unsafeCompareTxid(tx.id))
+
+			super.internalInvoke(tx, methodName, args)
+		}
+
+
+
+		override def internalGetField[R](tx : Transaction, fldName : String) : R = {
+			if (tx.isToplevel && !isRequest.value) {
+				println("starting top level get...")
+				//Get operations also have to be send to other replicas to ensure correct unlocking.
+				replicaSystem.foreachOtherReplica(handler => {
+					handler.request(addr, RequestOperation(GetFieldOp(tx, fldName)))
+				})
+			}
+
+			assert(unsafeCompareTxid(tx.id))
+
+			super.internalGetField(tx, fldName)
+		}
+
+		override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
+			if (tx.isToplevel && !isRequest.value) {
+				println("starting top level set...")
+				replicaSystem.foreachOtherReplica(handler => {
+					handler.request(addr, RequestOperation(SetFieldOp(tx, fldName, newVal)))
+				})
+			}
+
+			assert(unsafeCompareTxid(tx.id))
+
+			super.internalSetField(tx, fldName, newVal)
+		}
+
+		override def internalSync() : Unit = {
+			//Sync is always the only member of a transaction. We have to unlock all locks that have been
+			//acquired when the sync method was started.
+			replicaSystem.foreachOtherReplica(handler => {
+				handler.request(addr, RequestSync(replicaSystem.getCurrentTransaction))
+			})
+
+			assert(unsafeCompareTxid(replicaSystem.getCurrentTransaction.id))
+
+			super.internalSync()
+		}
+
+		override def handleRequest(request : Request) : Any = request match {
+			case LockRequest(txid) =>
+				tryLock(txid) //Returns a boolean that states whether the lock has been acquired.
+
+			case UnlockRequest(txid) =>
+				unlock(txid)
+
+			case RequestOperation(op) =>
+				replicaSystem.setCurrentTransaction(op.tx)
+				isRequest.withValue(true) {
+					op match {
+						case InvokeOp(tx, mthdName, args) =>
+							println("executing requested invoke...")
+							assert(tx.isToplevel)
+							transactionStarted(tx)
+							internalInvoke[Any](tx, mthdName, args)
+							transactionFinished(tx) //Unlock all objects
+						case SetFieldOp(tx, fldName, newVal) =>
+							println(s"executing requested set...")
+							assert(tx.isToplevel)
+							internalSetField(tx, fldName, newVal)
+							transactionFinished(tx) //Unlock all objects
+						case GetFieldOp(tx, _) =>
+							println(s"executing requested get...")
+							assert(tx.isToplevel)
+							//We do not need to execute the get, but only finish the transaction
+							//internalSetField(tx, fldName, newVal)
+							transactionFinished(tx) //Unlock all objects
+					}
+
+					replicaSystem.clearTransaction()
+				}
+
+			case RequestSync(txid) =>
+				replicaSystem.setCurrentTransaction(txid)
+				transactionFinished(txid) //Unlock all objects
+				replicaSystem.clearTransaction()
+
+
+			case _ =>
+				super.handleRequest(request)
+		}
+
+		override protected def transactionStarted(tx : Transaction) : Unit = {
+			if (tx.isToplevel && !isRequest.value) {
+				lockReplicas(tx)
+			} else {
+				lock(tx.id)
+				tx.addLock(addr.asInstanceOf[String])
+			}
+			super.transactionStarted(tx)
+		}
+
+		override protected def transactionFinished(tx : Transaction) : Unit = {
+			super.transactionFinished(tx)
+		}
+
+		override def toString : String = s"@Low($addr, $getObject)"
+	}
+
+
+}
+
+
+
+

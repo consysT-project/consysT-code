@@ -23,4 +23,9 @@ object ConsistencyLevel {
 	@SerialVersionUID(639388L)
 	case object Local extends ConsistencyLevel
 
+	/* Experimental */
+	case object High extends ConsistencyLevel
+	case object Low extends ConsistencyLevel
+
+
 }

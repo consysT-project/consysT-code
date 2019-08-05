@@ -18,6 +18,8 @@ public interface JReplicaSystem {
 
 	<T> @Local JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
 
+	void delete(String addr);
+
 	void addReplicaSystem(String hostname, int port);
 
 	void close() throws Exception;

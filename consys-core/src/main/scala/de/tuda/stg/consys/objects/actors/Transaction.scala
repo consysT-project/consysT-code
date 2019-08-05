@@ -11,10 +11,12 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait Transaction extends Serializable {
+private[actors] trait Transaction extends Serializable {
+
+	val timestamp : Long = System.currentTimeMillis()
 
 	def consistencyLevel : ConsistencyLevel
-	def txid : Long
+	def id : Long
 
 	def isToplevel : Boolean = getParent.isEmpty
 
@@ -50,7 +52,7 @@ trait Transaction extends Serializable {
 object Transaction {
 
 	@SerialVersionUID(-9453185352L)
-	case class ToplevelTransaction(override val txid : Long, override val consistencyLevel : ConsistencyLevel)
+	case class ToplevelTransaction(override val id : Long, override val consistencyLevel : ConsistencyLevel)
 		extends Transaction {
 
 		override def getParent : Option[Transaction] = None
@@ -69,14 +71,14 @@ object Transaction {
 		override def locks : Iterable[String] = lockList
 
 
-		override def toString : String = s"tx[locked=$lockList]::$consistencyLevel|$txid"
+		override def toString : String = s"tx[locked=${lockList.mkString(",")}]::$consistencyLevel|$id"
 	}
 
 	@SerialVersionUID(-1542145564L)
 	case class NestedTransaction(parent : Transaction, seqId : Int, override val consistencyLevel : ConsistencyLevel)
 		extends Transaction {
 
-		override def txid : Long = parent.txid
+		override def id : Long = parent.id
 
 		override def getParent : Option[Transaction] = Some(parent)
 
