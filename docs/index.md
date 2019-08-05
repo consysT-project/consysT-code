@@ -1,10 +1,16 @@
 # What is ConSysT?
 
-**ConSysT** is a language and middleware that enables you to write *distributed code* that allows you to mix data that is replicated across the network using *different consistency models*.
+**ConSysT** is a language and middleware to write *distributed software*. 
 
-**ConSysT** is available as a tool and library for Java.
+In ConSysT, one can define datatypes replicated across the network with *different consistency models*.
 
-# Why use ConSysT?
+Consistency levels are expressed in the type system. 
+
+The type system checks that mixing different levels in the same application cannot go wrong.
+
+**ConSysT** is available as a Java extension based on the Checker framework.
+
+# Why ConSysT?
 
 * Distribute your data across multiple devices.
 ```java
