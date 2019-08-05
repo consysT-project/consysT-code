@@ -16,13 +16,11 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[T] {
+trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] {
 
 	protected val replicaSystem : AkkaReplicaSystem[Addr]
 
 	protected implicit def ttt : TypeTag[T]
-
-	val addr : Addr
 
 	private var state : T = _
 

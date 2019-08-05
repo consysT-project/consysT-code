@@ -46,6 +46,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		def put(obj : AkkaReplicatedObject[Addr, _]) : Option[AkkaReplicatedObject[Addr, _]] = {
 			localObjects.put(obj.addr, obj)
 		}
+
+		def remove(addr : Addr) : Unit = {
+			localObjects.remove(addr)
+		}
 	}
 
 
@@ -58,15 +62,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 	override def acquireLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
-		case Some(rob :  LockableReplicatedObject[_]) =>
+		case Some(rob :  Lockable[_]) =>
 			rob.lock(tx.id)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
 	override def releaseLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
-		case Some(rob :  LockableReplicatedObject[_]) =>
-			println(s"unlock $tx for object $addr on $this")
+		case Some(rob :  Lockable[_]) =>
 			rob.unlock(tx.id)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
@@ -77,7 +80,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		require(!replica.contains(addr))
 
 		import akka.pattern.ask
-
 		/*create the replicated object*/
 		val replicatedObject = createMasterReplica[T](l, addr, obj)
 		/*put the object in the local replica store*/
@@ -86,12 +88,28 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = Timeout(30L, SECONDS)
 		val futures = otherReplicas.map(actorRef =>	actorRef ? CreateObjectReplica(addr, obj, l, replicaActor))
-
 		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
 
 		/*create a ref to that object*/
 		newRef[T](addr, l)
 	}
+
+	override final def delete(addr : Addr) : Unit = {
+		require(replica.contains(addr))
+
+		import akka.pattern.ask
+		/*create the replicated object*/
+		/*put the object in the local replica store*/
+		replica.remove(addr)
+
+		/*notify other replicas for the new object.*/
+		implicit val timeout : Timeout = Timeout(30L, SECONDS)
+		val futures = otherReplicas.map(actorRef =>	actorRef ? RemoveObjectReplica(addr))
+		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
+	}
+
+
+
 
 
 	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
@@ -246,6 +264,11 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				replica.put(ref)
 				sender() ! ()
 
+			case RemoveObjectReplica(addr : Addr@unchecked) =>
+				require(replica.contains(addr))
+				replica.remove(addr)
+				sender() ! ()
+
 			case AcquireHandler =>
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
 				val handler = new RequestHandlerImpl(requestActor)
@@ -284,6 +307,9 @@ object AkkaReplicaSystem {
 	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
 		require(obj.isInstanceOf[java.io.Serializable], s"expected serializable, but was $obj of class ${obj.getClass}")
 	}
+
+	case class RemoveObjectReplica[Addr](addr : Addr) extends ReplicaActorMessage
+
 	case object AcquireHandler extends ReplicaActorMessage
 
 }

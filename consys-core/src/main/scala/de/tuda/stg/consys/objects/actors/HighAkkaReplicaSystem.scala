@@ -48,10 +48,12 @@ object HighAkkaReplicaSystem {
 
 		override final def consistencyLevel : ConsistencyLevel = High
 
-		private var version = Long.MinValue
+		private var timestamp = Long.MinValue
 
 		override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-			super.internalInvoke(tx, methodName, args)
+			val result = super.internalInvoke[R](tx, methodName, args)
+			timestamp = tx.timestamp
+			result
 		}
 
 		override def internalGetField[R](tx : Transaction, fldName : String) : R = {
@@ -60,28 +62,29 @@ object HighAkkaReplicaSystem {
 
 		override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
 			super.internalSetField(tx, fldName, newVal)
+			timestamp = tx.timestamp
 		}
 
 		override def internalSync() : Unit = {
 			replicaSystem.foreachOtherReplica(handler => {
-				val result = handler.request(addr, SyncRequest(getObject, version))
+				val result = handler.request(addr, SyncRequest(getObject, timestamp))
 				result match {
 					case None =>
 					case Some((newObj : T@unchecked, newVersion : Long)) =>
 						setObject(newObj.asInstanceOf[T])
-						version = newVersion
+						timestamp = newVersion
 				}
 			})
 		}
 
 		override def handleRequest(request : Request) : Any = request match {
 			case SyncRequest(syncObj, syncVersion) =>
-				if (version < syncVersion) {
+				if (timestamp < syncVersion) {
 					setObject(syncObj.asInstanceOf[T])
-					version = syncVersion
+					timestamp = syncVersion
 					None
 				} else {
-					Some((getObject, version))
+					Some((getObject, timestamp))
 				}
 
 			case _ =>
@@ -93,10 +96,6 @@ object HighAkkaReplicaSystem {
 		}
 
 		override protected def transactionFinished(tx : Transaction) : Unit = {
-			if (tx.isToplevel) {
-				version = System.currentTimeMillis()
-			}
-
 			super.transactionFinished(tx)
 		}
 

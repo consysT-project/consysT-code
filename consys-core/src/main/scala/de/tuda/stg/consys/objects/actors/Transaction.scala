@@ -13,6 +13,8 @@ import scala.collection.mutable
 	*/
 private[actors] trait Transaction extends Serializable {
 
+	val timestamp : Long = System.currentTimeMillis()
+
 	def consistencyLevel : ConsistencyLevel
 	def id : Long
 
