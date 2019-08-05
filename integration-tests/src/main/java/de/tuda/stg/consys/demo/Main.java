@@ -5,9 +5,15 @@ import de.tuda.stg.consys.demo.schema.ObjA;
 import de.tuda.stg.consys.demo.schema.ObjB;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.objects.ReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import org.checkerframework.com.google.common.collect.Lists;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -20,8 +26,49 @@ import java.util.concurrent.TimeUnit;
  */
 public class Main {
 
+	private static class ReplicaParams {
+		public final String addr;
+		public final int port;
+
+		private ReplicaParams(String addr, int port) {
+			this.addr = addr;
+			this.port = port;
+		}
+	}
+
+	private static List<ReplicaParams> createParams(List<String> stringArgs) {
+		List<ReplicaParams> result = Lists.newLinkedList();
+
+		Iterator<String> it = stringArgs.iterator();
+		while(it.hasNext()) {
+			String addr = it.next();
+			int port = Integer.parseInt(it.next());
+
+			result.add(new ReplicaParams(addr, port));
+		}
+		return result;
+	}
+
 	public static void main(String... args) throws Exception {
-		example1();
+		List<ReplicaParams> argList = createParams(Arrays.asList(args));
+		distributedExample(argList.get(0), argList.subList(1, argList.size()));
+	}
+
+
+	public static void distributedExample(ReplicaParams thisReplica, Iterable<ReplicaParams> otherReplicas) throws InterruptedException {
+		JReplicaSystem sys = JReplicaSystem.fromActorSystem(thisReplica.addr, thisReplica.port);
+
+		Thread.sleep(5000);
+
+		for (ReplicaParams otherRepplica : otherReplicas) {
+			sys.addReplicaSystem(otherRepplica.addr, otherRepplica.port);
+		}
+
+		Thread.sleep(5000);
+
+		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevel.STRONG);
+		System.out.println("Invoke: " + a.invoke("inc"));
+		System.out.println("Value: " + a.getField("f"));
 	}
 
 	public static void example1() throws Exception {

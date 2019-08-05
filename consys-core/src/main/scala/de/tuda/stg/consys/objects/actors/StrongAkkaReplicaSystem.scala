@@ -37,10 +37,9 @@ object StrongAkkaReplicaSystem {
 
 	trait StrongReplicatedObject[Addr, T <: AnyRef]
 		extends AkkaReplicatedObject[Addr, T]
-		with LockableReplicatedObject[T] {
+		with Lockable[T] {
 		override final def consistencyLevel : ConsistencyLevel = Strong
 	}
-
 
 	object StrongReplicatedObject {
 
@@ -52,19 +51,11 @@ object StrongAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-			private val txMutex = new TxMutex()
 
-			private[actors] def lock(txid : Long) : Unit = {
-				txMutex.lockTxid(txid)
-			}
-
-			private[actors] def unlock(txid : Long) : Unit = {
-				txMutex.unlockTxid(txid)
-			}
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-				val res = super.internalInvoke[R](tx, methodName, args)
-				res
+				val result = super.internalInvoke[R](tx, methodName, args)
+				result
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
@@ -105,7 +96,7 @@ object StrongAkkaReplicaSystem {
 				if (opCache.contains(tx)) {
 					//transaction is cached. No locking required.
 				} else {
-					lock(tx.txid)
+					lock(tx.id)
 					tx.addLock(addr.asInstanceOf[String])
 				}
 				super.transactionStarted(tx)
@@ -155,11 +146,11 @@ object StrongAkkaReplicaSystem {
 
 
 			override private[actors] def lock(txid : Long) : Unit = {
-				lockWithHandler(txid, replicaSystem.acquireHandlerFrom(masterReplica))
+				lockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
 			override private[actors] def unlock(txid : Long) : Unit = {
-				unlockWithHandler(txid, replicaSystem.acquireHandlerFrom(masterReplica))
+				unlockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
 			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
@@ -177,12 +168,12 @@ object StrongAkkaReplicaSystem {
 			override protected def transactionStarted(tx : Transaction) : Unit = {
 				assert(handler.value == null)
 
-				handler.value = replicaSystem.acquireHandlerFrom(masterReplica)
+				handler.value = replicaSystem.handlerFor(masterReplica)
 
 				if (opCache.contains(tx)) {
 					//transaction is cached. No locking required.
 				} else {
-					lockWithHandler(tx.txid, handler.value)
+					lockWithHandler(tx.id, handler.value)
 					tx.addLock(addr.asInstanceOf[String])
 				}
 
