@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
-    <artifactId>case-study-akka</artifactId>
+    <artifactId>case-study-aws-test</artifactId>
 
 
     <build>
@@ -24,7 +24,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>de.tuda.stg.consys.casestudyakka.AWSTest</mainClass>
+                            <mainClass>de.tuda.stg.consys.casestudyawstest.AWSTest</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -113,19 +113,16 @@
             <groupId>de.tuda.stg</groupId>
             <artifactId>consys-core</artifactId>
             <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
             <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 
