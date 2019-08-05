@@ -37,7 +37,7 @@ object StrongAkkaReplicaSystem {
 
 	trait StrongReplicatedObject[Addr, T <: AnyRef]
 		extends AkkaReplicatedObject[Addr, T]
-		with LockableReplicatedObject[T] {
+		with Lockable[T] {
 		override final def consistencyLevel : ConsistencyLevel = Strong
 	}
 

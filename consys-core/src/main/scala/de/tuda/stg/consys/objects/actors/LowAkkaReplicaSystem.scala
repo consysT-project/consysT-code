@@ -14,11 +14,10 @@ import scala.util.{DynamicVariable, Random}
 
 
 /**
-	* Created on 27.02.19.
 	*
 	* @author Mirko Köhler
 	*/
-
+/* FIXME: This implementation is not working completely yet, as concurrent execution leads to deadlocks. */
 trait LowAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 
@@ -48,7 +47,7 @@ object LowAkkaReplicaSystem {
     init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
   )(
     protected implicit val ttt : TypeTag[T]
-  ) extends AkkaReplicatedObject[Addr, T]	with LockableReplicatedObject[T] {
+  ) extends AkkaReplicatedObject[Addr, T]	with Lockable[T] {
 		setObject(init)
 
 		override final def consistencyLevel : ConsistencyLevel = Low
@@ -109,6 +108,9 @@ object LowAkkaReplicaSystem {
 			}
 		}
 
+
+
+
 		override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 			if (tx.isToplevel && !isRequest.value) {
 				val invokeOp = InvokeOp(tx, methodName, args)
@@ -122,6 +124,8 @@ object LowAkkaReplicaSystem {
 
 			super.internalInvoke(tx, methodName, args)
 		}
+
+
 
 		override def internalGetField[R](tx : Transaction, fldName : String) : R = {
 			if (tx.isToplevel && !isRequest.value) {
@@ -176,6 +180,7 @@ object LowAkkaReplicaSystem {
 						case InvokeOp(tx, mthdName, args) =>
 							println("executing requested invoke...")
 							assert(tx.isToplevel)
+							transactionStarted(tx)
 							internalInvoke[Any](tx, mthdName, args)
 							transactionFinished(tx) //Unlock all objects
 						case SetFieldOp(tx, fldName, newVal) =>
@@ -205,7 +210,12 @@ object LowAkkaReplicaSystem {
 		}
 
 		override protected def transactionStarted(tx : Transaction) : Unit = {
-			lockReplicas(tx)
+			if (tx.isToplevel && !isRequest.value) {
+				lockReplicas(tx)
+			} else {
+				lock(tx.id)
+				tx.addLock(addr.asInstanceOf[String])
+			}
 			super.transactionStarted(tx)
 		}
 

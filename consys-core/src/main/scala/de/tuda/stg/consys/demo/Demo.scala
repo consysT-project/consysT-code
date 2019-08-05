@@ -11,8 +11,9 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem
 	*/
 object Demo extends App {
 
+
 	case class A(var i : Int) {
-		def inc() : Unit = i = i + 1
+		@deprecated def inc() : Unit = i = i + 1
 		def inc(a : Int) : Unit = i = i + a
 	}
 
@@ -25,11 +26,14 @@ object Demo extends App {
 
 		Thread.sleep(1000)
 
-		val ref1 = replica1.replicate("a", A(3), Low)
-		val ref2 = replica2.lookup[A]("a", Low)
+		val ref1 = replica1.replicate("a", A(3), High)
+		val ref2 = replica2.lookup[A]("a", High)
 
 		Thread.sleep(1000)
 
+		replica2.delete("a")
+
+		replica1.replicate("a", A(4234), High)
 
 		ref2("i") = 55
 

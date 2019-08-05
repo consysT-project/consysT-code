@@ -119,16 +119,14 @@ class AkkaReplicaSystemNestedHighLowTests extends fixture.FunSuite with AkkaRepl
 				assertResult(104) { replica.lookup("a1", High).getField("i") }
 				assertResult(202) { replica.lookup("a2", High).getField("i") }
 			} else {
-				assertResult(100) { replica.lookup("a1", High).getField("i") }
-				assertResult(200) { replica.lookup("a2", High).getField("i") }
+				assertResult(104) { replica.lookup("a1", High).getField("i") }
+				assertResult(202) { replica.lookup("a2", High).getField("i") }
 			}
 		}
 
 		F(1).lookup[B]("b", Low).syncAll()
 
 		F.replicas.foreach {replica =>
-			replica.lookup("a1", High).sync()
-			replica.lookup("a2", High).sync()
 			assertResult(104) { replica.lookup("a1", High).getField("i") }
 			assertResult(202) { replica.lookup("a2", High).getField("i") }
 		}

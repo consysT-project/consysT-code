@@ -6,7 +6,9 @@ package de.tuda.stg.consys.objects
 	* @author Mirko Köhler
 	*/
 
-trait ReplicatedObject[T <: AnyRef] {
+trait ReplicatedObject[Addr, T <: AnyRef] {
+
+	def addr : Addr
 
 	def consistencyLevel : ConsistencyLevel
 
@@ -14,15 +16,18 @@ trait ReplicatedObject[T <: AnyRef] {
 
 	def setField[R](fieldName : String, value : R) : Unit
 
+//	def invokeWithLocks[R](methodName : String, args : Seq[Seq[Any]], usesObjects : Iterable[Addr]) : R
+
 	//args is Seq[Seq[...]], because they can appear in multiple argument lists
 	def invoke[R](methodName : String, args : Seq[Seq[Any]]) : R
+//		invokeWithLocks(methodName, args, Iterable.empty)
 
-	def invoke[R](methodName : String) : R =
+	final def invoke[R](methodName : String) : R =
 		//invokes a method with no parameter list. Use Seq(Seq()) for methods with an empty parameter list!
 		invoke(methodName, Seq())
 
 	/* for Java binding */
-	def invoke[R](methodName : String, args : Array[Any]) : R =
+	final def invoke[R](methodName : String, args : Array[Any]) : R =
 		invoke[R](methodName, Seq(args.toSeq))
 
 	def sync() : Unit

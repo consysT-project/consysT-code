@@ -9,7 +9,7 @@ import de.tuda.stg.consys.objects.Utils.TxMutex
 	*
 	* @author Mirko Köhler
 	*/
-trait LockableReplicatedObject[T <: AnyRef] extends ReplicatedObject[T] {
+trait Lockable[T <: AnyRef] {
 
 	private val txMutex = new TxMutex()
 
