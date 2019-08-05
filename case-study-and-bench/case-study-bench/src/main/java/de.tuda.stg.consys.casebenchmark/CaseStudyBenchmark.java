@@ -18,12 +18,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
-//TODO: Throughput, latenz, gesamtlaufzeit einer methode unter load; Verschiedene Syncstrategien.
-
-//TODO: Design and implement Benchmark locally
-//TODO: Ideen von anderen papers klauen
-
-
+/**
+ * THIS IS THE LOCAL VERSION OF THE BENCHMARK
+ */
 @Warmup(iterations = 1)
 @Measurement(iterations = 1)
 @BenchmarkMode(Mode.SampleTime)
@@ -81,7 +78,7 @@ public class CaseStudyBenchmark {
 
 
         /*
-            Function for setting up replica systems, //TODO: replace with code that works with AWS 11111111111111111later
+            Function for setting up replica systems,
          */
         private void setUpReplicaSystems(int systemCount){
             replicaSystems = new JReplicaSystem[systemCount];
@@ -429,5 +426,4 @@ public class CaseStudyBenchmark {
             return retArray;
         }
     }
-
 }

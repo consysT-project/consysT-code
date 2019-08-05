@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.casestudyakka;
+package de.tuda.stg.consys.casestudyawstest;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -53,26 +53,35 @@ public class AWSTest implements Serializable {
         thisSystem = JReplicaSystem.fromActorSystem(thisHostName, thisPort);
         ///thisSystem = JReplicaSystem.fromActorSystem(thisPort);
         System.out.println("Created Replica System from " + thisHost);
-        boolean unsucessfull = true;
-        while(unsucessfull){
-            try{
-                for (String otherHost: fileCont) {
-                    String otherHostName = otherHost.split(";")[0];
-                    int otherPort = Integer.parseInt(otherHost.split(";")[1]);
+        int addedcount = 0;
 
-                    thisSystem.addReplicaSystem(otherHostName, otherPort);
-                    System.out.println("Added Replica System from " + otherHost);
+        while(addedcount < replicaCount -1){
+            for (int i = 0; i < fileCont.size(); i++) {
+                String otherHost = fileCont.get(i);
+                String[] hostSplit = otherHost.split(";");
+                String otherHostName = hostSplit[0];
+                int otherPort = Integer.parseInt(hostSplit [1]);
+                if(hostSplit.length < 3){
+                    try{
+                        thisSystem.addReplicaSystem(otherHostName, otherPort);
+                        System.out.println("Added Replica System from " + otherHost);
+                        fileCont.set(i, otherHost + ";done");
+                        addedcount++;
+                    }
+                    catch(Exception e){
+                        System.out.println("Could not add Replica System");
+                    }
                 }
+            }
 
-                unsucessfull = false;
-            }
-            catch(Exception e){
-                System.out.println("No luck so far buddy");
-            }
+            Thread.sleep(1000);
         }
+        System.out.println("ADDED ALL REPLICAS: " + addedcount + "/" + (replicaCount-1));
 
         //Try to set the value
         setValue();
+
+
 
         BufferedReader reader =
                 new BufferedReader(new InputStreamReader(System.in));
@@ -107,11 +116,13 @@ public class AWSTest implements Serializable {
 
     private static void setValue(){
         try{
-            value = thisSystem.replicate("valueString", new Container("from " + thisHost), JConsistencyLevel.STRONG);
-
-        }catch (Exception e){
+                value = thisSystem.replicate("valueString", new Container("from " + thisHost), JConsistencyLevel.STRONG);
+                System.out.println("Successfully set value");
+            }catch (java.lang.IllegalArgumentException e){
+                System.out.println("Value has already been set by another replica");
             value = thisSystem.ref("valueString", Container.class, JConsistencyLevel.STRONG);
-        }
+            }
+
     }
 
     static class Container implements Serializable{
