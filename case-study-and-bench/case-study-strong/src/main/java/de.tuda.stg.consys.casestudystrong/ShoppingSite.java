@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.casestudystrong;
 
 import com.sun.tools.javac.util.ArrayUtils;
+import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
@@ -14,7 +15,7 @@ import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Optional;
 
-public class ShoppingSite implements Serializable, JReplicated {
+public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;

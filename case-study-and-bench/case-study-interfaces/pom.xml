@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>case-study-bench-dist</artifactId>
+    <artifactId>case-study-interfaces</artifactId>
 
 
     <build>
@@ -24,6 +24,17 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!--                    <annotationProcessors> -->
+                    <!-- Add all the checkers you want to enable here -->
+                    <!--                        <annotationProcessor>de.tudarmstadt.consistency.checker.ConsistencyChecker</annotationProcessor> -->
+                    <!--                    </annotationProcessors> -->
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
@@ -99,31 +110,10 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>case-study</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-bom -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-bom</artifactId>
-            <version>1.11.596</version>
-            <type>pom</type>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
             <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>case-study-strong</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-
     </dependencies>
 
 

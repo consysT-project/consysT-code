@@ -58,20 +58,15 @@ public class DistCaseBenchmark {
         @Param({"login", "register", "search", "addCart", "checkOut", "ViewProd", "AddBalance"})
         String endpoint;
 
-        //JReplicaSystem[] replicaSystems;
-
         JRef<@Strong Database> database;
 
-        LinkedList<JRef<@Weak ShoppingSite>> sites;
-
         Random r = new Random();
-
 
         static JReplicaSystem thisSystem;
 
         JRef<@Weak ShoppingSite> thisSite;
 
-        static JRef<@Strong benchmarkCommunication> comChannel;
+        static JRef<@Strong BenchmarkCommunication> comChannel;
         //This replicas turn to run the benchmark
         static int thisRunInfo;
         //This replicas turn to setup the benchmark
@@ -217,87 +212,23 @@ public class DistCaseBenchmark {
             System.out.println("VERIFYING SUCCESSFUL INITIALIZATION");
 
             try{
-                comChannel = thisSystem.replicate("valueString", new benchmarkCommunication(totalSystemCount), JConsistencyLevel.STRONG);
+                comChannel = thisSystem.replicate("comChannel", new BenchmarkCommunication(totalSystemCount), JConsistencyLevel.STRONG);
                 System.out.println("Successfully established communication channel");
             }catch (Exception e){
                 System.out.println("Communication Channel has already been established");
-                comChannel = thisSystem.ref("valueString", benchmarkCommunication.class, JConsistencyLevel.STRONG);
+                comChannel = thisSystem.ref("comChannel", BenchmarkCommunication.class, JConsistencyLevel.STRONG);
             }
-
-            comChannel.invoke("setReady", thisRunInfo);
+            comChannel.setField("benchmarkInstanceLocation", thisHost);
+            comChannel.setField("benchmarkInstanceOnline", true);
             while(!(boolean) comChannel.invoke("confirmReady")){
+                comChannel.setField("msg", "Hello this is the benchmark");
+                comChannel.invoke("setReady", thisRunInfo);
                 System.out.println("Not all systems ready yet, waiting for them to connect...");
                 Thread.sleep(2000);
             }
 
         }
 
-
-        /*
-            Function for setting up replica systems,
-
-        private void setUpReplicaSystems(int systemCount){
-            replicaSystems = new JReplicaSystem[systemCount];
-
-            for (int i = 0; i < systemCount; i++) {
-                replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
-            }
-
-            for (int i = 0; i < systemCount; i++) {
-                for (int j = 0; j < systemCount; j++) {
-                    if (i != j)
-                        replicaSystems[i].addReplicaSystem("127.0.0.1", 2552 + j);
-                }
-            }
-        }
-        */
-
-        /*
-            Function for setting up the database
-         */
-        private boolean setUpDatabase(){
-            database = thisSystem.replicate("database",
-                    new Database(), JConsistencyLevel.STRONG);
-            return database.invoke("init");
-        }
-
-        private boolean fillDatabase(){
-            if(database != null){
-
-                //Read products from pregenerated product file
-                String[] products = ContentHandler.readFile("productsForBenchmark.txt");
-                //If file is missing generate it
-                if(products.length <= 0){
-                    products = ContentHandler.generateProducts(500);
-                    ContentHandler.writeFile("productsForBenchmark.txt", products);
-                }
-
-                //Add products to database
-                database.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(products)));
-                System.out.println("Added Products");
-
-                //Read users from pregenerated product file
-                String[] users = ContentHandler.readFile("usersForBenchmark.txt");
-                //If file is missing generate it
-                if(users.length <= 0){
-                    users = ContentHandler.generateUsers(500);
-                    ContentHandler.writeFile("usersForBenchmark.txt", users);
-                }
-                //Add random users to the login users
-                for(int i = 0; i < loginUsers.length;i++){
-                    loginUsers[i] = users[r.nextInt(users.length)];
-                }
-                //Add users to database
-                for (String user: users){
-                    String[] split = user.split(";");
-                    database.invoke("AddUser", split[0], split[1]);
-                }
-                System.out.println("Added Users");
-                return true;
-            }
-            else
-                return false;
-        }
 
         /**
          * Function for the running benchmark instance to request the setup instance to setup the database and sites.
@@ -310,72 +241,15 @@ public class DistCaseBenchmark {
             database = thisSystem.ref("database", Database.class, JConsistencyLevel.STRONG);
             thisSite = thisSystem.replicate(new ShoppingSite(database), JConsistencyLevel.WEAK);
             comChannel.setField("setupInstanceReady", false);
-        }
-
-        @Setup(Level.Trial)
-        public void connectReplicas() throws Exception {
-            //Connect all replicas
-            readHostFile();
-
-            if((int) comChannel.getField("benchmarkTurn") == thisRunInfo){
-                    //&& (boolean) comChannel.getField("finishedRunning")
-                //Its this replicas turn to run
-            }
-            else {
-                while ((int) comChannel.getField("benchmarkTurn") != thisRunInfo){
-                    //its not this replicas turn to run
-
-                    //its this replicas turn to setup the database
-                    while ((int) comChannel.getField("benchmarkTurn") == thisSetupInfo){
-                        if(comChannel.getField("requestInstanceSetup")){
-                            //Setup Database on this replica system
-                            setUpDatabase();
-                            fillDatabase();
-                        }
-
-                        Thread.sleep(2000);
-                    }
-
-                    //Add code for instance that changes values here
-
-                    Thread.sleep(2000);
-                }
-
-            }
-
-        }
-
-        @TearDown(Level.Trial)
-        public void disconnectReplicas() throws Exception{
-            //Increment the benchmark turn value
-            comChannel.setField("benchmarkTurn", (int) comChannel.getField("benchmarkTurn") + 1 );
-
-            while(!(boolean) comChannel.invoke("allDone")){
-                //its this replicas turn to setup the database
-                while ((int) comChannel.getField("benchmarkTurn") == thisSetupInfo){
-                    if(comChannel.getField("requestInstanceSetup")){
-                        //Setup Database on this replica system
-                        setUpDatabase();
-                        fillDatabase();
-                    }
-
-                    Thread.sleep(2000);
-                }
-
-
-                //Add code for instance that changes values here
-
-                Thread.sleep(2000);
-            }
-
-            thisSystem.close();
+            loginUsers = comChannel.getField("loginUsers");
         }
 
         @Setup(Level.Iteration)
         public void systemSetup() throws Exception {
-            /*
-                If testing without load, only 2 replica systems, for test with load add a third
-             */
+
+            //Connect the benchmark system to the other systems
+            readHostFile();
+
             //Request Setup from the replica system responsible for setup
             requestSetup();
 
@@ -491,12 +365,9 @@ public class DistCaseBenchmark {
             if(endpoint.equals("checkOut"))
                 thisSite.invoke("Logout");
 
-            //TODO: Replace with code that removes the database reference
-            /*
-            for (JReplicaSystem system: replicaSystems) {
-                system.close();
-            }
-             */
+            comChannel.setField("requestDBteardown", true);
+            comChannel.setField("benchmarkInstanceOnline", false);
+            thisSystem.close();
         }
     }
 
@@ -536,175 +407,6 @@ public class DistCaseBenchmark {
                 //Add balance for a certain user
                 bh.consume(setup.thisSite.invoke("AddBalance", 50.0, false));
                 break;
-        }
-    }
-
-    /**
-     * A class for importing, exporting and generating content needed to fill the case study for the benchmark.
-     */
-    static class ContentHandler{
-
-
-        public static String[] searchableWords = {"Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf",
-                "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo",
-                "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "Xray", "Yankee", "Zulu"};
-
-        static public String[] readFile(String filename){
-            String currLine = null;
-            LinkedList<String> retList = new LinkedList<String>();
-
-            try {
-                FileReader fileReader =
-                        new FileReader(filename);
-
-                BufferedReader bufferedReader =
-                        new BufferedReader(fileReader);
-
-                while((currLine = bufferedReader.readLine()) != null) {
-                    retList.add(currLine);
-                }
-
-                bufferedReader.close();
-            }
-            catch(FileNotFoundException ex) {
-                System.out.println(
-                        "Unable to open file '" +
-                                filename + "'");
-            }
-            catch(IOException ex) {
-                System.out.println(
-                        "Error reading file '"
-                                + filename + "'");
-            }
-
-            return retList.toArray(new String[retList.size()]);
-        }
-
-        static public boolean writeFile(String filename, String[] content){
-            try {
-                FileWriter fileWriter =
-                        new FileWriter(filename);
-
-                BufferedWriter bufferedWriter =
-                        new BufferedWriter(fileWriter);
-
-                for (String currLine: content) {
-                    bufferedWriter.write(currLine);
-                    bufferedWriter.newLine();
-                }
-                bufferedWriter.close();
-                return true;
-            }
-            catch(IOException ex) {
-                System.out.println(
-                        "Error writing to file '"
-                                + filename + "'");
-                return false;
-            }
-        }
-
-        static public String[] generateProducts(int count){
-            Random r = new Random();
-            String[] retArray = new String[count];
-            for (int i = 0; i < count; i++){
-                double price =  ((100 + r.nextInt(99900))/100);
-                //Add one random searchable word to the products
-                retArray[i] = new String("ProductName" + i + searchableWords[r.nextInt(searchableWords.length)] +
-                        ";" + price);
-            }
-            return retArray;
-        }
-
-        static public String[] generateUsers(int count){
-            Random r = new Random();
-            String[] retArray = new String[count];
-            for (int i = 0; i < count; i++){
-                String pass = "";
-                for(int j = 0; j < 6; j++){
-                    pass += (char) (r.nextInt(26) + 'a');
-                }
-                pass += r.nextInt(1000);
-                retArray[i] = new String("User" + i + ";" + pass);
-            }
-            return retArray;
-        }
-    }
-
-    /**
-     * A class for figuring out everything related to connecting replica systems
-     * and figuring out which one is supposed to do what when.
-     */
-    static class RemoteConnector{
-        //TODO: Add method to communicate on startup, to ensure all replica systems where correctly initialized
-        //TODO: change the python script to include new layout of host file
-        //TODO: Figure out how to run benchmark on one instance while it waits on the other, possibly through the same
-        //channel needed for communicating readiness
-
-        static String thisHost;
-
-        static JReplicaSystem thisSystem;
-
-        static JRef<@Strong Container> value;
-
-
-
-
-        private static void setValue(){
-            try{
-                value = thisSystem.replicate("valueString", new Container("from " + thisHost), JConsistencyLevel.STRONG);
-
-            }catch (Exception e){
-                value = thisSystem.ref("valueString", Container.class, JConsistencyLevel.STRONG);
-            }
-        }
-
-        static class Container implements Serializable{
-            public String content;
-
-            public Container(String cont){
-                content = cont;
-            }
-        }
-    }
-
-    static class benchmarkCommunication{
-        //An integer to indicate which replica systems turn it currently is to run the benchmark
-        public int benchmarkTurn;
-        //A boolean indicating if the benchmark finished running, is set on benchmark teardown
-        //public boolean finishedRunning;
-        //An array used for each replica system to indicate if they are finished setting up
-        public boolean[] statusReport;
-        //A boolean indicating if the system responsible for setup finished setup
-        public boolean setupInstanceReady;
-        //A boolean indicating that the system responsible for running is requesting a setup from the setup instance
-        public boolean requestInstanceSetup;
-
-        private int total;
-
-        benchmarkCommunication(int totalCount){
-            statusReport = new boolean[totalCount];
-            //finishedRunning = true;
-            total = totalCount;
-            benchmarkTurn = 1;
-            setupInstanceReady = false;
-            requestInstanceSetup = false;
-        }
-
-        public void setReady(int orderInfo){
-            statusReport[orderInfo - 1] = true;
-        }
-
-        //A function that returns if all replica systems are ready
-        public boolean confirmReady(){
-            for (boolean val:statusReport) {
-                if(!val)
-                    return val;
-            }
-            return true;
-        }
-
-        public boolean allDone(){
-            return (benchmarkTurn > total);
         }
     }
 }

@@ -82,13 +82,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		import akka.pattern.ask
 		/*create the replicated object*/
 		val replicatedObject = createMasterReplica[T](l, addr, obj)
-		/*put the object in the local replica store*/
-		replica.put(replicatedObject)
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = Timeout(30L, SECONDS)
 		val futures = otherReplicas.map(actorRef =>	actorRef ? CreateObjectReplica(addr, obj, l, replicaActor))
 		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
+
+		/*put the object in the local replica store*/
+		replica.put(replicatedObject)
 
 		/*create a ref to that object*/
 		newRef[T](addr, l)

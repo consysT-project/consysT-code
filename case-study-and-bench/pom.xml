@@ -19,5 +19,7 @@
         <module>case-study-bench</module>
         <module>case-study-bench-dist</module>
         <module>case-study-strong</module>
+        <module>case-study-bench-server</module>
+        <module>case-study-interfaces</module>
     </modules>
 </project>

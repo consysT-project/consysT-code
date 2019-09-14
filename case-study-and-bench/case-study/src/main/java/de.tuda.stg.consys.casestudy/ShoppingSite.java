@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.casestudy;
 
-import com.sun.tools.javac.util.ArrayUtils;
+import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
@@ -8,13 +8,12 @@ import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
-import org.checkerframework.com.google.common.collect.ObjectArrays;
 
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Optional;
 
-public class ShoppingSite implements Serializable, JReplicated {
+public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;
