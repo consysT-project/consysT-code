@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.casestudystrong;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -11,7 +10,6 @@ import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public class Product implements Serializable, JReplicated {

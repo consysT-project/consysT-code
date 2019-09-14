@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>case-study-bench-dist</artifactId>
+    <artifactId>case-study-bench-server</artifactId>
 
 
     <build>
@@ -119,7 +119,7 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>case-study-strong</artifactId>
+            <artifactId>case-study-bench-dist</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>

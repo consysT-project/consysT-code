@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.casestudystrong;
 
+import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
@@ -16,7 +17,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public class Database implements Serializable , JReplicated {
+public class Database implements Serializable , JReplicated, IDatabase<@Strong User,@Strong Product> {
 
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;

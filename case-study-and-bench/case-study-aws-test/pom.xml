@@ -24,7 +24,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>de.tuda.stg.consys.casestudyawstest.AWSTest</mainClass>
+                            <mainClass>de.tuda.stg.consys.AWSTest</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
