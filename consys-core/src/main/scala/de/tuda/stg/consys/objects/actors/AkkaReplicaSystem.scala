@@ -74,7 +74,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
-
+//	def barrier(name : String) : Unit = {
+//		import akka.pattern.ask
+//
+//		otherReplicas.map(ref => {
+//			ref ! Barrier
+//		})
+//	}
 
 	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
 		require(!replica.contains(addr))
@@ -107,10 +113,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		val futures = otherReplicas.map(actorRef =>	actorRef ? RemoveObjectReplica(addr))
 		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
 	}
-
-
-
-
 
 	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
 		replicate[T](freshAddr(), obj, l)
@@ -311,6 +313,8 @@ object AkkaReplicaSystem {
 	case class RemoveObjectReplica[Addr](addr : Addr) extends ReplicaActorMessage
 
 	case object AcquireHandler extends ReplicaActorMessage
+
+	case object Barrier extends
 
 }
 
