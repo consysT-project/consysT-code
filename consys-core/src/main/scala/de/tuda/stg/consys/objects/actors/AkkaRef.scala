@@ -26,5 +26,11 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 		}
 	}
 
+
+	override def isAvailable : Boolean =
+		replicaSystem.replica.contains(addr)
+
+
+
 	override def toString : String = s"RefImpl($addr, $consistencyLevel)"
 }
