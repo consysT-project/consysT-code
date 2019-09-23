@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.objects
 
 import akka.actor.{ActorSystem, ExtendedActorSystem}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
 
 import scala.util.Random
 import scala.reflect.runtime.universe._
@@ -19,7 +19,10 @@ package object actors {
 	private class AkkaReplicaSystemImpl(override val actorSystem: ActorSystem)
 		extends AkkaReplicaSystem[String]
 		with StrongAkkaReplicaSystem[String]
-		with WeakAkkaReplicaSystem[String] {
+		with WeakAkkaReplicaSystem[String]
+		with HighAkkaReplicaSystem[String]
+		with LowAkkaReplicaSystem[String]
+	{
 
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
@@ -38,18 +41,15 @@ package object actors {
 		createReplicaSystem("127.0.0.1", port)
 
 	def createReplicaSystem[Addr](hostname : String, port : Int) : AkkaReplicaSystem[String] = {
+		/*
 		val config : Config = ConfigFactory.parseString(
 			s"""
 				 |akka {
-				 | actor.provider = "remote"
-				 | actor.warn-about-java-serializer-usage = false
-				 | remote {
-				 |   netty.tcp {
-				 |     hostname = "$hostname"
-				 |     port = $port
-				 |   }
-				 | }
-				 | loglevel = WARNING
+				 |  actor {
+				 |    provider = remote
+				 |    warn-about-java-serializer-usage = false
+				 |  }
+				 |  loglevel = WARNING
 				 |}
 				 |
 				 |request-dispatcher {
@@ -57,9 +57,16 @@ package object actors {
 				 |  type = PinnedDispatcher
 				 |}
 			""".stripMargin)
+		 */
+
+		val config = ConfigFactory.load()
+  		.withFallback(ConfigFactory.defaultApplication())
+			.withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(hostname))
+			.withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(port))
+      .resolve()
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
-//		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 		new AkkaReplicaSystemImpl(system)
 	}
 

@@ -49,7 +49,7 @@ object Data {
 			a2.setField("i", i)
 		}
 
-		def get() : (Int, Int) = {
+		def get : (Int, Int) = {
 			(a1.getField("i"), a2.getField("i"))
 		}
 	}

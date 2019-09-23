@@ -9,7 +9,7 @@ import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref, ReplicatedObject, Repl
 	*/
 private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
 
-	override implicit def deref : ReplicatedObject[T] = replicaSystem match {
+	override implicit def deref : ReplicatedObject[Addr, T] = replicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")
 
 		case _ => replicaSystem.replica.get(addr) match {
@@ -25,6 +25,12 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 			case x => throw new IllegalArgumentException(s"AkkaRef expects an AkkaReplicatedObject, but got $x")
 		}
 	}
+
+
+	override def isAvailable : Boolean =
+		replicaSystem.replica.contains(addr)
+
+
 
 	override def toString : String = s"RefImpl($addr, $consistencyLevel)"
 }

@@ -19,5 +19,7 @@ public interface JRef<T> {
 
 	T ref();
 
+	boolean isAvailable();
+
 	String addr();
 }

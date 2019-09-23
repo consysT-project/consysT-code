@@ -16,8 +16,8 @@ import scala.language.postfixOps
 object Requests {
 
 	trait Request {	def returns : Boolean }
-	trait ReturnRequest { self : Request =>	override def returns : Boolean = true }
-	trait NonReturnRequest { self : Request => override def returns : Boolean = false}
+	trait ReturnRequest extends Request {	override def returns : Boolean = true }
+	trait NonReturnRequest extends Request { override def returns : Boolean = false}
 
 
 	sealed trait Operation[+R] {
