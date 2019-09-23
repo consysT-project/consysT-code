@@ -9,7 +9,6 @@ import java.io.Serializable;
  *
  * @author Mirko Köhler
  */
-//TODO: Make this package private.
 public class JRefImpl<T> implements JRef<T>, Serializable {
 
 	private final Ref<String, T> ref;
@@ -53,6 +52,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public boolean isAvailable() {
+		return ref.isAvailable();
+	}
+
+	@Override
 	public String addr() {
 		return ref.addr();
 	}
@@ -61,6 +65,4 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	public String toString() {
 		return "JRef(" + ref + ")";
 	}
-
-
 }

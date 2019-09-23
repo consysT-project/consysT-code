@@ -74,12 +74,14 @@ private[objects] object Utils {
 		}*/
 	class TxMutex {
 		//Lock for accessing this objects data structures.
-		private val lock = new ReentrantLock()
+		//Can never be locked for a long time!
+		private val mutexLock = new ReentrantLock()
 
 		private var currentTxid : Option[Long] = None
 		private var currentAccessorCount = 0
 		private val waiters : util.Queue[Thread] = new ConcurrentLinkedQueue[Thread]()
 
+		def unsafeCurrentTxid : Option[Long] = currentTxid
 
 		def compareAndSet(txid : Long) : Boolean = currentTxid match {
 			case Some(x) if x == txid =>
@@ -90,6 +92,14 @@ private[objects] object Utils {
 				true
 		}
 
+		def tryLockTxid(txid : Long) : Boolean = {
+			mutexLock.lock() //Request to access the locks data structures.
+		  val result = compareAndSet(txid)
+			if (result) currentAccessorCount += 1
+			mutexLock.unlock()
+
+			result
+		}
 
 		def lockTxid(txid : Long) : Unit = {
 			val currentThread : Thread = Thread.currentThread()
@@ -97,27 +107,27 @@ private[objects] object Utils {
 			waiters.add(currentThread)
 			var wasInterrupted : Boolean = false
 
-			lock.lock()
+			mutexLock.lock()
 			while (!compareAndSet(txid)) {
-				lock.unlock()
+				mutexLock.unlock()
 				LockSupport.park(this)
 
 				if (Thread.interrupted())
 					wasInterrupted = true
 
-				lock.lock()
+				mutexLock.lock()
 			}
 
 			waiters.remove(currentThread)
 			currentAccessorCount += 1
-			lock.unlock()
+			mutexLock.unlock()
 
 			if (wasInterrupted) currentThread.interrupt()
 		}
 
 
 		def unlockTxid(txid : Long) : Unit = {
-			lock.lock()
+			mutexLock.lock()
 
 			assert(currentAccessorCount >= 1)
 			assert(currentTxid.nonEmpty)
@@ -127,14 +137,14 @@ private[objects] object Utils {
 
 			if (currentAccessorCount == 0) {
 				currentTxid = None
-				LockSupport.unpark(waiters.peek())
+				LockSupport.unpark(waiters.peek()) //if waiters is empty, then peek is null and unpark(null) is a nop
 			}
 
-			lock.unlock()
+			mutexLock.unlock()
 		}
 
 		def unlockAllTxid(txid : Long) : Unit = {
-			lock.lock()
+			mutexLock.lock()
 
 			assert(currentAccessorCount >= 1)
 			assert(currentTxid.nonEmpty)
@@ -145,7 +155,7 @@ private[objects] object Utils {
 
 			LockSupport.unpark(waiters.peek())
 
-			lock.unlock()
+			mutexLock.unlock()
 		}
 	}
 
