@@ -31,7 +31,7 @@ public class BenchingServer {
 
     private static JRef<@Strong ComChannel> comChannel;
 
-    public static void main (String[] args) throws InterruptedException {
+    public static void main (String[] args) throws Exception {
         if(args.length < 5){
             System.out.println("Wrong parameter count");
             System.exit(1);
@@ -64,7 +64,7 @@ public class BenchingServer {
     /*
     Function for connecting the server to the benchmark
      */
-    public static boolean connect() throws InterruptedException {
+    public static boolean connect() throws Exception {
         String[] thisSystemInfoSplit = thisSystemInfo.split(";");
         thisSystem = JReplicaSystem.fromActorSystem(thisSystemInfoSplit[0],Integer.parseInt(thisSystemInfoSplit[1]));
 
@@ -93,7 +93,10 @@ public class BenchingServer {
         }
         System.out.println("ADDED ALL REPLICAS: " + addedcount + "/" + (otherSystemInfo.length));
 
-        comChannel = thisSystem.replicate("comChannel", new ComChannel(), JConsistencyLevel.STRONG);
+        establishCommunication();
+
+        exitBench();
+        System.exit(1);
 
         if(getDatabaseRef() == null){
             System.out.println("Something went wrong with database creation. Exiting!");
@@ -109,6 +112,32 @@ public class BenchingServer {
         }
         System.out.println("Setup Complete, Ready for benchmark.");
         return true;
+    }
+
+    private static boolean establishCommunication() throws InterruptedException {
+        boolean createdComChannel = false;
+        while(!createdComChannel){
+            try{
+                comChannel = thisSystem.replicate("comChannel", new ComChannel(), JConsistencyLevel.STRONG);
+                System.out.println("Created Com Channel");
+                createdComChannel = true;
+            }
+            catch (Exception e){
+                createdComChannel = false;
+            }
+        }
+        comChannel.sync();
+        while((int) comChannel.invoke("serverQueueLength") <= 0){Thread.sleep(500);}
+        if(((String)comChannel.invoke("popFromServerQueue")).equals("found")){
+            System.out.println("Bench found Channel");
+            comChannel.invoke("writeToBenchQueue", "confirmed");
+        }
+        while((int) comChannel.invoke("serverQueueLength") <= 0){Thread.sleep(500);}
+        if(((String)comChannel.invoke("popFromServerQueue")).equals("confirmed")){
+            System.out.println("Confirmed Com Channel");
+            return true;
+        }
+        return false;
     }
 
     private static JRef<? extends IDatabase> getDatabaseRef(){
@@ -135,5 +164,9 @@ public class BenchingServer {
 
     private static String[] getProducts(){
         return ContentHandler.readFile(productsPath);
+    }
+
+    private static void exitBench() throws Exception {
+        thisSystem.close();
     }
 }
