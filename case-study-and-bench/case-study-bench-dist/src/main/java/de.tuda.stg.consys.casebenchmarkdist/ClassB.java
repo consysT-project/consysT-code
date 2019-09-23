@@ -33,6 +33,8 @@ public class ClassB {
         //Try to set the value
         setValue();
 
+        //Trying to sync the ref or invoking something on it causes an error
+        //value.sync();
 
 
         BufferedReader reader =
@@ -64,12 +66,14 @@ public class ClassB {
     }
 
     private static void setValue(){
-        try{
-            value = thisSystem.replicate("valueString", new CommonClass("from B"), JConsistencyLevel.STRONG);
-            System.out.println("Successfully set value");
-        }catch (java.lang.IllegalArgumentException e){
-            System.out.println("Value has already been set by another replica");
-            value = thisSystem.ref("valueString", CommonClass.class, JConsistencyLevel.STRONG);
+        while(true){
+            try{
+                value = thisSystem.ref("valueString", CommonClass.class, JConsistencyLevel.STRONG);
+                System.out.println("Found Replicated Object");
+                return;
+            }catch (java.lang.IllegalArgumentException e){
+                System.out.println("Not yet found");
+            }
         }
 
     }

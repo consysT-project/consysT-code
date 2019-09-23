@@ -63,15 +63,8 @@ public class ClassA implements Serializable{
     }
 
     private static void setValue(){
-        try{
-            value = thisSystem.replicate("valueString", new CommonClass("from A"), JConsistencyLevel.STRONG);
-            System.out.println("Successfully set value");
-        }catch (java.lang.IllegalArgumentException e){
-            e.printStackTrace();
-            System.out.println("Value has already been set by another replica");
-            value = thisSystem.ref("valueString", CommonClass.class, JConsistencyLevel.STRONG);
-        }
-
+        value = thisSystem.replicate("valueString", new CommonClass("from A"), JConsistencyLevel.STRONG);
+        System.out.println("Successfully set value");
     }
 
     static JReplicaSystem thisSystem;
