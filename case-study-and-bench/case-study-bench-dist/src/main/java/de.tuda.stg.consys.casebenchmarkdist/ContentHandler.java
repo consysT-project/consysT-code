@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -33,8 +34,13 @@ public class ContentHandler{
         }
         catch(FileNotFoundException ex) {
             System.out.println(
-                    "Unable to open file '" +
+                    "Unable to open file: '" +
                             filename + "'");
+            System.out.println(
+                    "Current Directory: '" +
+                            Paths.get(".").toAbsolutePath().normalize().toString()
+                    + "'"
+            );
         }
         catch(IOException ex) {
             System.out.println(
