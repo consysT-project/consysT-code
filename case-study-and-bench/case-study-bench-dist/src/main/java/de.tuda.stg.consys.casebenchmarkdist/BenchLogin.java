@@ -47,7 +47,7 @@ public class BenchLogin {
 
     private static JRef<@Strong ComChannel> comChannel;
 
-    public static void main (String[] args) throws InterruptedException {
+    public static void main (String[] args) throws Exception {
         if(args.length < 4){
             System.out.println("Wrong parameter count");
             System.exit(1);
@@ -63,7 +63,7 @@ public class BenchLogin {
     /*
     Function for connecting the benchmark to the server
      */
-    public static boolean connect() throws InterruptedException {
+    public static boolean connect() throws Exception {
         String[] thisSystemInfoSplit = thisSystemInfo.split(";");
         thisSystem = JReplicaSystem.fromActorSystem(thisSystemInfoSplit[0],Integer.parseInt(thisSystemInfoSplit[1]));
 
@@ -92,12 +92,16 @@ public class BenchLogin {
         }
         System.out.println("ADDED ALL REPLICAS: " + addedcount + "/" + (otherSystemInfo.length));
 
+        establishCommunication();
+
+        exitBench();
+        System.exit(1);
+
         if(getDatabaseRef() == null){
             System.out.println("Something went wrong with finding the database. Exiting!");
             System.exit(1);
         }
 
-        comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
 
         String[] allLogins = getRequests();
         ArrayList<Pair<String,String>> templist = new ArrayList<>();
@@ -119,6 +123,31 @@ public class BenchLogin {
 
         System.out.println("Setup Complete, Ready for benchmark.");
         return true;
+    }
+
+    private static boolean establishCommunication() throws InterruptedException {
+        boolean foundComChannel = false;
+        while(!foundComChannel){
+            Thread.sleep(2000);
+            try{
+                comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
+                foundComChannel = true;
+                System.out.println("Found Com Channel");
+                Thread.sleep(2000);
+            }
+            catch (Exception e){
+                foundComChannel = false;
+                System.out.println("Com Channel not yet found");
+            }
+        }
+        comChannel.invoke("writeToServerQueue", "found");
+        while((int) comChannel.invoke("benchQueueLength") <= 0){Thread.sleep(500);}
+        if(((String)comChannel.invoke("popFromBenchQueue")).equals("confirmed")){
+            System.out.println("Confirmed Com Channel");
+            comChannel.invoke("writeToServerQueue", "confirmed");
+            return true;
+        }
+        return false;
     }
 
     private static JRef<? extends IDatabase> getDatabaseRef(){
@@ -223,5 +252,9 @@ public class BenchLogin {
     private static void requestTeardown(){
         //Log out after each login
         thisSite.invoke("Logout");
+    }
+
+    private static void exitBench() throws Exception {
+        thisSystem.close();
     }
 }

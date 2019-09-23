@@ -5,17 +5,39 @@ import java.util.LinkedList;
 
 public class ComChannel implements Serializable {
 
-    LinkedList<String> Queue;
+    //TODO: Stop pop from crashing program when empty.
 
-    public void writeIntoQueue(String content){
-        Queue.add(content);
+    LinkedList<String> ToServerQueue;
+
+    LinkedList<String> ToBenchQueue;
+
+    public ComChannel(){
+        ToServerQueue = new LinkedList<>();
+        ToBenchQueue = new LinkedList<>();
     }
 
-    public String popFromQueue(){
-        return Queue.pop();
+    public void writeToServerQueue(String content){
+        ToServerQueue.add(content);
     }
 
-    public int queueLength(){
-        return Queue.size();
+    public String popFromServerQueue(){
+        return ToServerQueue.pop();
+    }
+
+    public int serverQueueLength(){
+        return ToServerQueue.size();
+    }
+
+
+    public void writeToBenchQueue(String content){
+        ToBenchQueue.add(content);
+    }
+
+    public String popFromBenchQueue(){
+        return ToBenchQueue.pop();
+    }
+
+    public int benchQueueLength(){
+        return ToBenchQueue.size();
     }
 }

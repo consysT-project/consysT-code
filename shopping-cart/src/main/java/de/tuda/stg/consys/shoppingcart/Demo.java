@@ -17,10 +17,10 @@ import java.io.Serializable;
 public class Demo implements Serializable {
 
     public static void main(String... args) throws Exception {
-        anotherError2();
+        example1();
 
     }
-/*
+
     public static void example1() throws Exception {
 
 
@@ -32,8 +32,8 @@ public class Demo implements Serializable {
         JRef<@Weak ShoppingSite> weakSiteRef3 = Replicas.replicaSystems[2].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
         JRef<@Weak ShoppingSite> weakSiteRef4 = Replicas.replicaSystems[3].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
 
-        JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate("item1", new Item("item1", 5), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate("item2", new Item("item2", 10), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate(new Item("item1", 5), JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate(new Item("item2", 10), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item3ref = Replicas.replicaSystems[1].ref("item3", Item.class, JConsistencyLevel.WEAK);
 
@@ -60,7 +60,7 @@ public class Demo implements Serializable {
             rep.close();
         }
     }
-
+/*
     public static void exampleList() throws Exception {
         JRef<@Strong JRefLinkedList> strongList = Replicas.replicaSystems[0].replicate("list1", new JRefLinkedList(), JConsistencyLevel.STRONG);
         JRef<@Strong JRefLinkedList> strongListRef = Replicas.replicaSystems[1].ref("list1", JRefLinkedList.class, JConsistencyLevel.STRONG);
@@ -261,7 +261,7 @@ public class Demo implements Serializable {
         }
     }
 
- */
+
     private static void minimalError() throws Exception {
         JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
         JRef<@Weak ErrorClass> baseClassRef = Replicas.replicaSystems[1].ref("errorClass", ErrorClass.class, JConsistencyLevel.WEAK);
@@ -299,7 +299,7 @@ public class Demo implements Serializable {
             rep.close();
         }
     }
-
+*/
     private static void anotherError() throws Exception {
         JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
 
