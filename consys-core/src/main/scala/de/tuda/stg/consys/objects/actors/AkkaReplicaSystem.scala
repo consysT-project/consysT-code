@@ -314,8 +314,6 @@ object AkkaReplicaSystem {
 
 	case object AcquireHandler extends ReplicaActorMessage
 
-	case object Barrier extends
-
 }
 
 
