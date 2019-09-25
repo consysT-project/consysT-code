@@ -57,6 +57,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public void await() {
+		ref.await();
+	}
+
+	@Override
 	public String addr() {
 		return ref.addr();
 	}
