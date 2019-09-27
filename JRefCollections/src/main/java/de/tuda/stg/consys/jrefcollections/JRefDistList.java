@@ -2,8 +2,10 @@ package de.tuda.stg.consys.jrefcollections;
 
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
+import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -223,6 +225,41 @@ public class JRefDistList implements Serializable, JReplicated {
         }
     }
 
+    public JRef<DistNode> getNodeIndex(int index, boolean sync) throws Exception {
+        if(!findIndexFront(index, sync)){
+            return null;
+        }else{
+            JRef<DistNode> ret = current;
+            current = head;
+            return ret;
+        }
+    }
+
+    public <T> JRef<DistNode> getNodeItem(JRef<T> item, boolean sync) throws Exception{
+        if(!findItemFront(item, sync)){
+            return null;
+        }else{
+            JRef<DistNode> ret = current;
+            current = head;
+            return ret;
+        }
+    }
+
+    public JRef<DistNode> getNodeNext(JRef<DistNode> start, int diff, boolean sync) throws Exception{
+        if(diff <= 0)
+            return start;
+        current = start;
+        if(sync)
+            reSyncHead();
+        if(!recFindIndexFront(diff, sync)){
+            return null;
+        }else{
+            JRef<DistNode> ret = current;
+            current = head;
+            return ret;
+        }
+    }
+
     private boolean findIndexFront(int index, boolean sync){
         current = head;
         if(sync)
@@ -296,6 +333,64 @@ public class JRefDistList implements Serializable, JReplicated {
         }else{
             return (ref1.toString().equals(ref2.toString()));
         }
+    }
+
+    /*
+     * Type safety is not guaranteed if the list contains elements of different types.
+     * Use with caution. Please ensure that function is serializable by casting
+     * (Predicate<T> & Serializable)
+     */
+    public <T> JRef<@Weak JRefDistList> getWeakReplicaSublist(Predicate<T> function, int searchLimit,boolean sync){
+        System.out.println("In getWeakReplicaSublist");
+
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return null;
+
+        System.out.println("Got System");
+
+        JRef<@Weak JRefDistList> retList = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+
+        System.out.println("Created List");
+
+        if(sync)
+            reSyncHead();
+        current = head;
+
+        boolean limit = true;
+        if(searchLimit < 0) limit = false;
+        int checked = 0;
+
+        while(current != null){
+            if(limit && checked >= searchLimit)
+                break;
+        System.out.print("\r Loop: checked ="+ checked);
+            T currContent = (T) current.getField("content");
+            if(function.test(currContent)){
+                retList.invoke("append", currContent);
+            }
+            current = (JRef) current.getField("next");
+
+            checked++;
+        }
+        System.out.println("Out of loop");
+        return retList;
+    }
+
+    public <T> JRef<T> iterate(boolean reset, boolean sync) throws Exception {
+        if(sync) current.sync();
+        JRef<T> ret = null;
+
+        if(current != null) {
+            ret = (JRef) current.getField("content");
+            current = (JRef) current.getField("next");
+        }
+        if(reset) current = head;
+
+        return ret;
     }
 
     /*

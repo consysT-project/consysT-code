@@ -3,6 +3,7 @@ package de.tuda.stg.consys.casebenchmarkdist;
 
 import com.sun.tools.javac.util.Pair;
 import de.tuda.stg.consys.casestudy.Database;
+import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -15,6 +16,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -22,14 +25,14 @@ The benchmark for the endpoint of logging in
  */
 public class BenchLogin {
 
-    public static final int WARMUPCOUNT = 100000;
-    public static final int WARMUPREPETITIONS = 100;
+    public static final int WARMUPCOUNT = 10;
+    public static final int WARMUPREPETITIONS = 10;
 
     public static final int REPETITIONS = 1;
 
     public static final NullOutputStream bh = new NullOutputStream();
 
-    static Pair<String,String>[] logins;
+    static ArrayList<Pair<String,String>> logins;
 
     private static String requestsPath;
 
@@ -47,6 +50,8 @@ public class BenchLogin {
 
     private static JRef<@Strong ComChannel> comChannel;
 
+    private static String outputName = "results.txt";
+
     public static void main (String[] args) throws Exception {
         if(args.length < 4){
             System.out.println("Wrong parameter count");
@@ -54,10 +59,26 @@ public class BenchLogin {
         }
         requestsPath = args[0];
         testVersion = args[1];
-        thisSystemInfo = args[2];
-        otherSystemInfo = Arrays.copyOfRange(args, 3,args.length);
+        int off = 0;
+        if (args[2].equals("-o")) {
+            outputName = args[3];
+            off = 2;
+        }
+        thisSystemInfo = args[2+off];
+        otherSystemInfo = Arrays.copyOfRange(args, 3+off,args.length);
 
         connect();
+        request(0);
+        System.out.println("Logged in");
+        thisSite.invoke("Search","UNIQUE", true);
+        System.out.println("Finished Search");
+        exitBench();
+        System.exit(1);
+
+        warmUpBench();
+        runBenchmark();
+        exitBench();
+        System.exit(1);
     }
 
     /*
@@ -94,32 +115,27 @@ public class BenchLogin {
 
         establishCommunication();
 
-        exitBench();
-        System.exit(1);
-
         if(getDatabaseRef() == null){
             System.out.println("Something went wrong with finding the database. Exiting!");
             System.exit(1);
         }
 
 
-        String[] allLogins = getRequests();
-        ArrayList<Pair<String,String>> templist = new ArrayList<>();
-
         //Adapt the requests to the necessary data structure and add them to the database
+        String[] allLogins = getRequests();
+        logins = new ArrayList<>();
         for (String thisLogin: allLogins) {
             String[] split = thisLogin.split(";");
-            templist.add(new Pair<>(split[0],split[1]));
-            thisDatabase.invoke("AddUser", split[0], split[1]);
+            logins.add(new Pair<>(split[0],split[1]));
         }
-        logins = (Pair<String,String>[]) templist.toArray();
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
             System.exit(1);
         }
 
-        String[] requests = getRequests();
+        waitUntilReceived("setupDone");
+
 
         System.out.println("Setup Complete, Ready for benchmark.");
         return true;
@@ -128,18 +144,19 @@ public class BenchLogin {
     private static boolean establishCommunication() throws InterruptedException {
         boolean foundComChannel = false;
         while(!foundComChannel){
-            Thread.sleep(2000);
             try{
                 comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
                 foundComChannel = true;
                 System.out.println("Found Com Channel");
-                Thread.sleep(2000);
             }
             catch (Exception e){
                 foundComChannel = false;
                 System.out.println("Com Channel not yet found");
             }
         }
+
+        while(!comChannel.isAvailable()){Thread.sleep(500);}
+
         comChannel.invoke("writeToServerQueue", "found");
         while((int) comChannel.invoke("benchQueueLength") <= 0){Thread.sleep(500);}
         if(((String)comChannel.invoke("popFromBenchQueue")).equals("confirmed")){
@@ -150,7 +167,7 @@ public class BenchLogin {
         return false;
     }
 
-    private static JRef<? extends IDatabase> getDatabaseRef(){
+    private static JRef<? extends IDatabase> getDatabaseRef() throws InterruptedException {
         boolean foundDatabase = false;
         while(!foundDatabase){
             switch (testVersion){
@@ -173,10 +190,11 @@ public class BenchLogin {
                     break;
             }
         }
+        while(!thisDatabase.isAvailable()){Thread.sleep(500);}
         return thisDatabase;
     }
 
-    private static JRef<? extends IShoppingSite> getShoppingsiteRef(){
+    private static JRef<? extends IShoppingSite> getShoppingsiteRef() throws InterruptedException {
         switch (testVersion){
             case "mixed":
                 thisSite = thisSystem.replicate(new de.tuda.stg.consys.casestudy.ShoppingSite(
@@ -190,7 +208,7 @@ public class BenchLogin {
                 thisSite = null;
                 break;
         }
-
+        while(!thisSite.isAvailable()){Thread.sleep(500);}
         return thisSite;
     }
 
@@ -199,20 +217,31 @@ public class BenchLogin {
     }
 
     private static void runBenchmark() throws IOException {
-        warmUpBench();
-        PrintWriter writer = new PrintWriter("result.txt", "UTF-8");
-        for (int i = 0;i < logins.length;i++) {
+        System.out.println("Started Benchmark");
+        PrintWriter writer = new PrintWriter(outputName, "UTF-8");
+        for (int i = 0;i < logins.size();i++) {
+            boolean valid = true;
+            boolean retVal = false;
             requestPrep();
-
             long firstTime = System.nanoTime();
-            boolean retVal = request(i);
+            try{
+                retVal = request(i);
+            }catch(Exception e){
+                valid = false;
+            }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
-            writer.println(TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
-            requestTeardown();
+            if(valid){
+                writer.println(TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
+                requestTeardown();
+            } else i--;
+
             bh.write(((retVal) ? 1 : 0));
+
+            updateProgress(Integer.toString(i+1) + " / " + logins.size());
         }
         writer.close();
+        System.out.println("Finished Benchmark");
     }
 
     /*
@@ -220,14 +249,23 @@ public class BenchLogin {
     this should include the benchmarking method, but also teardown methods needed between invocations.
      */
     private static void warmUpBench() throws IOException {
+        System.out.println("Started Warm Up");
         for(int  i = 0; i < WARMUPCOUNT; i++){
             for (int  j = 0; j < WARMUPREPETITIONS; j++){
+                boolean valid = true;
+                boolean retVal = false;
                 requestPrep();
-                boolean retVal = request(0);
-                requestTeardown();
+                try{
+                    retVal = request(i);
+                }catch(Exception e){
+                    valid = false;
+                }
+                if(valid)
+                    requestTeardown();
                 bh.write(((retVal) ? 1 : 0));
             }
         }
+        System.out.println("Finished Warm Up");
     }
 
     /*
@@ -242,8 +280,8 @@ public class BenchLogin {
      */
     private static boolean request(int requestnumber){
         //Log in
-        return thisSite.invoke("Login", logins[requestnumber].fst,
-                logins[requestnumber].snd);
+        return thisSite.invoke("Login", logins.get(requestnumber).fst,
+                logins.get(requestnumber).snd);
     }
 
     /*
@@ -255,6 +293,24 @@ public class BenchLogin {
     }
 
     private static void exitBench() throws Exception {
+        comChannel.invoke("writeToServerQueue", "abort");
         thisSystem.close();
+    }
+
+    private static void waitUntilReceived(String msg) throws InterruptedException {
+        while(true){
+            String ret = comChannel.invoke("popFromBenchQueue");
+            if(ret != null)
+                if(ret.equals(msg))
+                    return;
+            Thread.sleep(500);
+        }
+    }
+
+
+    private static void updateProgress(String msg){
+        String space = new String(new char[50]).replace('\0', ' ');
+        System.out.print("\r"+ space);
+        System.out.print("\r" + msg);
     }
 }

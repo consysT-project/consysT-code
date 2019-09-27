@@ -3,6 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
@@ -10,7 +11,6 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.Optional;
 
 public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
@@ -24,7 +24,8 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     JRef<@Strong Database> Database;
 
-    public LinkedList<JRef<@Strong Product>> FoundProducts;
+    public JRef<@Weak JRefDistList> FoundProducts;
+    //public LinkedList<JRef<@Strong Product>> FoundProducts;
 
     public ShoppingSite(JRef<@Strong Database> db) {
         Database = db;
@@ -95,13 +96,15 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
         return true;
     }
 
-    public LinkedList<JRef<Product>> Search(String SearchTerm, boolean printResults){
+    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults){
         FoundProducts = Database.invoke("SearchProducts", SearchTerm);
 
         if(printResults) {
             System.out.println("Found Products:");
-            for (int i = 0; i < FoundProducts.size(); i++) {
-                System.out.println((i + 1) + ") " + FoundProducts.get(i).invoke("getName"));
+            for (int i = 0; i < (int) FoundProducts.invoke("size", true); i++) {
+                System.out.println((i + 1) + ") " +
+                        ((JRef<@Strong Product>) FoundProducts.invoke("getIndex", i, true))
+                        .invoke("getName"));
             }
         }
         return FoundProducts;
@@ -111,12 +114,12 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     public boolean FromFoundAddToCart(int number, int count){
         int index = number - 1;
-        if(index < 0 || index >= FoundProducts.size()){
+        if(index < 0 || index >= (int) FoundProducts.invoke("size", true)){
             System.out.println("Please select a valid product");
             return false;
         }
         if(CartOfLoggedIn != null){
-            CartOfLoggedIn.invoke("add", FoundProducts.get(index), count);
+            CartOfLoggedIn.invoke("add", FoundProducts.invoke("getIndex", index, true), count);
             return true;
         }
         System.out.println("You are not logged in.");
@@ -126,11 +129,11 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
     public String FromFoundDisplayInfo(int number, boolean getComments, boolean printInfo){
         int index = number - 1;
         String ret;
-        if(index < 0 || index >= FoundProducts.size()) {
+        if(index < 0 || index >= (int) FoundProducts.invoke("size", true)) {
             ret = "Please select a valid product";
         }
         else{
-            JRef<@Strong Product> currProd = FoundProducts.get(index);
+            JRef<@Strong Product> currProd = FoundProducts.invoke("getIndex", index, true);
 
             ret = currProd.invoke("getName");
             ret += currProd.invoke("getCost");
