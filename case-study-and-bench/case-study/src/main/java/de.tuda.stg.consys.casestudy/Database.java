@@ -2,6 +2,7 @@ package de.tuda.stg.consys.casestudy;
 
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
@@ -12,7 +13,6 @@ import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -29,7 +29,8 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
     public Database()throws NoSuchElementException {
     }
 
-    public boolean init(){
+    public boolean init(int initUserCount, int initProductCount){
+
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())
@@ -38,6 +39,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
             return false;
 
         RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevel.STRONG);
+        RegisteredUsers.invoke("init", initUserCount, JConsistencyLevel.STRONG);
         RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
         return true;
     }
@@ -98,9 +100,9 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         }
     }
 
-    public LinkedList<JRef<@Strong Product>> SearchProducts(String query){
-        LinkedList<JRef<@Strong Product>> retList;
+    public JRef<@Weak JRefDistList> SearchProducts(String query){
         String lowerQuery = query.toLowerCase();
+        JRef<@Weak JRefDistList> retList = null;
 
         Predicate<JRef<@Strong Product>> tester = (Predicate<JRef<@Strong Product>> & Serializable) productJRef -> {
             String currName = productJRef.invoke("getName");
@@ -108,7 +110,9 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
                 return true;
             return false;
         };
-        retList = RegisteredProducts.invoke("getNonReplicatedSublist", tester,false);
+        System.out.println("Reached before the getWeakReplicaSublistInvocation");
+        retList = RegisteredProducts.invoke("getWeakReplicaSublist", tester, 1000,true);
+        System.out.println("Reached after the getweakreplicasublist invocation");
         return retList;
     }
 

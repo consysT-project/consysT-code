@@ -1,26 +1,17 @@
 package de.tuda.stg.consys.casestudyinterface;
 
-import com.typesafe.sslconfig.ssl.FakeChainedKeyStore;
-import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
-import de.tuda.stg.consys.jrefcollections.JRefHashMap;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.function.Predicate;
 
 /*
 Interface for the database class of the case study
  */
 public interface IDatabase<T,U> {
 
-    public boolean init();
+    public boolean init(int initUserCount, int initProductCount);
 
 
     /*
@@ -35,7 +26,7 @@ public interface IDatabase<T,U> {
 
     public JRef<T> GetUser(String Username, String Password, String systemInfo);
 
-    public LinkedList<JRef<U>> SearchProducts(String query);
+    public JRef<@Weak JRefDistList> SearchProducts(String query);
 
     /*
      * Function to add several products at once without checking for duplicate products

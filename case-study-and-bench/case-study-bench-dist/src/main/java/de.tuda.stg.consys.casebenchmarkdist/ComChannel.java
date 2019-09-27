@@ -21,7 +21,9 @@ public class ComChannel implements Serializable {
     }
 
     public String popFromServerQueue(){
-        return ToServerQueue.pop();
+        if(ToServerQueue.size()>0)
+            return ToServerQueue.pop();
+        else return null;
     }
 
     public int serverQueueLength(){
@@ -34,7 +36,9 @@ public class ComChannel implements Serializable {
     }
 
     public String popFromBenchQueue(){
-        return ToBenchQueue.pop();
+        if(ToBenchQueue.size()>0)
+            return ToBenchQueue.pop();
+        else return null;
     }
 
     public int benchQueueLength(){

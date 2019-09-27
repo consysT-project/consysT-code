@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.casestudyinterface;
 
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.objects.japi.JRef;
-
-import java.util.LinkedList;
 
 /*
 Interface for the shopping site class of the case study
@@ -15,7 +15,7 @@ public interface IShoppingSite<T> {
 
     public boolean Logout();
 
-    public LinkedList<JRef<T>> Search(String SearchTerm, boolean printResults);
+    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults);
 
     public boolean FromFoundAddToCart(int number, int count);
 

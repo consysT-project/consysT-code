@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
+import de.tuda.stg.consys.casestudy.Product;
+import de.tuda.stg.consys.casestudy.User;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -8,6 +10,7 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 /**
  * The "Server" part of the benchmarks which is responsible for setting up the database and such and to reset things if
@@ -15,7 +18,7 @@ import java.util.Arrays;
  */
 public class BenchingServer {
 
-    private static String loginsPath;
+    private static String usersPath;
 
     private static String productsPath;
 
@@ -36,20 +39,24 @@ public class BenchingServer {
             System.out.println("Wrong parameter count");
             System.exit(1);
         }
-        loginsPath = args[0];
+        usersPath = args[0];
         productsPath = args[1];
         testVersion = args[2];
         thisSystemInfo = args[3];
         otherSystemInfo = Arrays.copyOfRange(args, 4,args.length);
 
         connect();
+        System.out.println("Finished Connection");
         mainLoop();
+        exitBench();
+        System.exit(1);
     }
 
     public static void mainLoop() throws InterruptedException {
+        System.out.println("Entered Main Loop");
         while(true){
-            if((int) comChannel.invoke("queueLength") > 0){
-                switch ((String) comChannel.invoke("popFromQueue")){
+            if((int) comChannel.invoke("serverQueueLength") > 0){
+                switch ((String) comChannel.invoke("popFromServerQueue")){
                     case "abort":
                         return;
                     default:
@@ -95,22 +102,52 @@ public class BenchingServer {
 
         establishCommunication();
 
-        exitBench();
-        System.exit(1);
+        System.out.println("Established Communication");
 
-        if(getDatabaseRef() == null){
+        String[] allUsers = getUsers();
+        String[] allProds = getProducts();
+
+        if(getDatabaseRef(allUsers.length, allProds.length) == null){
             System.out.println("Something went wrong with database creation. Exiting!");
             System.exit(1);
         }
 
-        thisDatabase.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(getProducts())));
+        System.out.println("Created Database");
 
-        String[] allLogins = getLogins();
-        for (String thisLogin: allLogins) {
+        thisDatabase.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(allProds)));
+        /*
+        String[][] splitProds = new String[(int) Math.ceil(allProds.length/1000.0)][1000];
+        int counter = 0;
+        int len = allProds.length;
+        for (int i = 0; i < len - 1000 + 1; i += 1000)
+            splitProds[counter++] = Arrays.copyOfRange(allProds, i, i + 1000);
+        if(len % 1000 != 0)
+            splitProds[counter] = Arrays.copyOfRange(allProds, len - len % 1000, len);
+        System.out.println("Starting to add: " + splitProds.length + " x 1000 products.");
+
+        for (String[] someProds: splitProds) {
+            thisDatabase.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(someProds)));
+        }
+        */
+
+        System.out.println("Added Products");
+
+        for (int i = 0; i < allUsers.length; i++){
+            String[] thisUserSplit = allUsers[i].split(";");
+            thisDatabase.invoke("AddUser", thisUserSplit[0], thisUserSplit[1]);
+            System.out.print("\radded " + i + "/" + allUsers.length + " Users");
+        }
+        /*
+        for (String thisLogin: allUsers) {
             String[] thisLoginSplit = thisLogin.split(";");
+            System.out.print("\r adding users " + System.currentTimeMillis());
             thisDatabase.invoke("AddUser", thisLoginSplit[0], thisLoginSplit[1]);
         }
+         */
+
         System.out.println("Setup Complete, Ready for benchmark.");
+        comChannel.invoke("writeToBenchQueue","setupDone");
+        System.out.println("Wrote setup confirmation to bench");
         return true;
     }
 
@@ -140,15 +177,17 @@ public class BenchingServer {
         return false;
     }
 
-    private static JRef<? extends IDatabase> getDatabaseRef(){
+    private static JRef<? extends IDatabase> getDatabaseRef(int initUserCount, int initProductCount){
         switch (testVersion){
             case "mixed":
                 thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudy.Database(), JConsistencyLevel.STRONG);
-                thisDatabase.invoke("init");
+                while(!thisDatabase.isAvailable()){ }
+                thisDatabase.invoke("init",initUserCount, initProductCount);
                 break;
             case "strong":
                 thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudystrong.Database(), JConsistencyLevel.STRONG);
-                thisDatabase.invoke("init");
+                while(!thisDatabase.isAvailable()){ }
+                thisDatabase.invoke("init",initUserCount, initProductCount);
                 break;
             default:
                 thisDatabase = null;
@@ -158,8 +197,8 @@ public class BenchingServer {
         return thisDatabase;
     }
 
-    private static String[] getLogins(){
-        return ContentHandler.readFile(loginsPath);
+    private static String[] getUsers(){
+        return ContentHandler.readFile(usersPath);
     }
 
     private static String[] getProducts(){
