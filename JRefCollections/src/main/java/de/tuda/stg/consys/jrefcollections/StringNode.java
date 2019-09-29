@@ -1,0 +1,23 @@
+package de.tuda.stg.consys.jrefcollections;
+
+import de.tuda.stg.consys.objects.japi.JRef;
+
+import java.io.Serializable;
+
+public class StringNode implements Serializable {
+
+    public StringNode(JRef<StringNode> prev, JRef<StringNode> next){
+        filled = false;
+
+        this.prev = prev;
+        this.next = next;
+    }
+
+    public boolean filled;
+    public String key;
+    public String cont;
+
+    public JRef<StringNode> prev;
+    public JRef<StringNode> next;
+
+}
