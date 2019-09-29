@@ -3,8 +3,10 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefAddressMap;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
+import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
@@ -22,11 +24,15 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;
 
-    private JRef<@Strong JRefHashMap> RegisteredUsers;
+    private JRef<@Strong JRefAddressMap> RegisteredUsers;
 
     private JRef<@Strong JRefDistList> RegisteredProducts;
 
     public Database()throws NoSuchElementException {
+    }
+
+    public void test(){
+        RegisteredUsers.invoke("touchAll");
     }
 
     public boolean init(int initUserCount, int initProductCount){
@@ -38,7 +44,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevel.STRONG);
+        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefAddressMap(), JConsistencyLevel.STRONG);
         RegisteredUsers.invoke("init", initUserCount, JConsistencyLevel.STRONG);
         RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
         return true;
@@ -77,8 +83,8 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
             return false;
         }
 
-        JRef<@Strong User> currUser = RegisteredUsers.invoke("getValue", Username);
-        if(currUser == null){
+        String currUserAddr = RegisteredUsers.invoke("getValue", Username);
+        if(currUserAddr == null){
             RegisteredUsers.invoke("put", Username, newUser);
             return true;
         }else
@@ -86,7 +92,8 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
     }
 
     public JRef<@Strong User> GetUser(String Username, String Password, String systemInfo){
-        JRef<@Strong User> currUser = RegisteredUsers.invoke("getValue", Username);
+        String addr = RegisteredUsers.invoke("getValue", Username);
+        JRef<@Strong User> currUser = resolveUser(addr, JConsistencyLevel.STRONG);
         if(currUser != null) {
             boolean loggedIn = currUser.invoke("Login", Username, Password, systemInfo);
             if(loggedIn){
@@ -179,6 +186,32 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
             RegisteredProducts.invoke("append", newProduct);
             return true;
         }
+    }
+
+    private JRef<User> resolveUser(String addr, ConsistencyLevel level){
+        if(addr == null)return null;
+
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return null;
+
+        return system.ref(addr, User.class, level);
+    }
+
+    private JRef<Product> resolveProduct(String addr, ConsistencyLevel level){
+        if(addr == null)return null;
+
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return null;
+
+        return system.ref(addr, Product.class, level);
     }
 }
 

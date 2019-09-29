@@ -107,7 +107,7 @@ public class BenchingServer {
         String[] allUsers = getUsers();
         String[] allProds = getProducts();
 
-        if(getDatabaseRef(allUsers.length, allProds.length) == null){
+        if(getDatabaseRef((int)((double) allUsers.length / 0.7),(int)((double) allProds.length / 0.7)) == null){
             System.out.println("Something went wrong with database creation. Exiting!");
             System.exit(1);
         }

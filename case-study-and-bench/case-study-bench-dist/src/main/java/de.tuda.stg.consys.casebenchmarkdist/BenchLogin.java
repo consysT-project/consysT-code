@@ -68,14 +68,16 @@ public class BenchLogin {
         otherSystemInfo = Arrays.copyOfRange(args, 3+off,args.length);
 
         connect();
+
+        /*
         request(0);
         System.out.println("Logged in");
         thisSite.invoke("Search","UNIQUE", true);
         System.out.println("Finished Search");
-        exitBench();
-        System.exit(1);
+        */
 
-        warmUpBench();
+        //warmUpBench();
+        thisDatabase.invoke("test");
         runBenchmark();
         exitBench();
         System.exit(1);
@@ -227,16 +229,20 @@ public class BenchLogin {
             try{
                 retVal = request(i);
             }catch(Exception e){
+                System.out.println("Failed");
                 valid = false;
             }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
             if(valid){
-                writer.println(TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
+                long time = TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime);
+                System.out.println("Success: " + time);
+                writer.println(time);
                 requestTeardown();
             } else i--;
 
-            bh.write(((retVal) ? 1 : 0));
+            updateProgress(((retVal) ? "1" : "0"));
+            //bh.write(((retVal) ? 1 : 0));
 
             updateProgress(Integer.toString(i+1) + " / " + logins.size());
         }
@@ -256,14 +262,16 @@ public class BenchLogin {
                 boolean retVal = false;
                 requestPrep();
                 try{
-                    retVal = request(i);
+                    retVal = request(0);
                 }catch(Exception e){
                     valid = false;
                 }
                 if(valid)
                     requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
+                updateProgress(((retVal) ? "1" : "0"));
+                //bh.write(((retVal) ? 1 : 0));
             }
+            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
         }
         System.out.println("Finished Warm Up");
     }
