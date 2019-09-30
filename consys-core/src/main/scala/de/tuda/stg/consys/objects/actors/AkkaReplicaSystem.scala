@@ -70,13 +70,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 		}
 
-		def putAndWake(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
+		def putNewReplica(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
 			waitersLock.lock()
 			localObjects.put(obj.addr, obj)
 			waiters.get(obj.addr) match {
 				case None =>
 				case Some(threads) =>
 					threads.foreach(thread => LockSupport.unpark(thread))
+					waiters.remove(obj.addr)
 			}
 			waitersLock.unlock()
 		}
@@ -293,7 +294,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
 					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
 				)
-				replica.putAndWake(ref)
+				replica.putNewReplica(ref)
 				sender() ! ()
 
 			case RemoveObjectReplica(addr : Addr@unchecked) =>

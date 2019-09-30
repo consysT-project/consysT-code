@@ -17,7 +17,11 @@
         <module>integration-tests</module>
         <module>consys-maven-plugin</module>
         <module>consys-japi</module>
+        <module>consys-compiler</module>
+        <module>consys-compiler/consys-compiler-test</module>
     </modules>
+
+
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->
