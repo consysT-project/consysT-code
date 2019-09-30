@@ -51,8 +51,6 @@ object StrongAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-
-
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val result = super.internalInvoke[R](tx, methodName, args)
 				result
@@ -69,6 +67,10 @@ object StrongAkkaReplicaSystem {
 
 			override def internalSync() : Unit = {
 
+			}
+
+			override protected def requiresCache(op : Operation[_]) : Boolean = {
+				!op.tx.hasOnlyLevel(Strong)
 			}
 
 			override def handleRequest(request : Request) : Any = request match {
@@ -143,6 +145,10 @@ object StrongAkkaReplicaSystem {
 
 			override def internalSync() : Unit = {	}
 
+
+			override protected def requiresCache(op : Operation[_]) : Boolean = {
+				!op.tx.hasOnlyLevel(Strong)
+			}
 
 
 			override private[actors] def lock(txid : Long) : Unit = {
