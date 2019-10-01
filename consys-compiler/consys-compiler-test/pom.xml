@@ -19,7 +19,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
