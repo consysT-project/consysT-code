@@ -20,6 +20,8 @@ import java.util.Optional;
  */
 public class ConsysJavacPlugin implements Plugin {
 
+	public final static boolean DEBUG = false;
+
 	@Override
 	public String getName() {
 		return "ConsysPlugin";
@@ -28,7 +30,7 @@ public class ConsysJavacPlugin implements Plugin {
 	@Override
 	public void init(JavacTask task, String... args) {
 		Context context = ((BasicJavacTask) task).getContext();
-		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Plugin started: " + getName());
+		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Plugin loaded: " + getName());
 
 		task.addTaskListener(new TaskListener() {
 			@Override
@@ -85,12 +87,10 @@ public class ConsysJavacPlugin implements Plugin {
 								);
 //								newInvoke.type = ((JCTree) methodInv.originalPath.leaf).type;
 
-//								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old invoke: " + methodInv.originalPath.leaf);
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old invoke: " + methodInv.originalPath.getLeaf());
 //								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Path: " + methodInv.originalPath);
-
 								methodInv.originalPath.getModificator().accept(newInvoke);
-
-//								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New invoke: " + newInvoke);
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New invoke: " + newInvoke);
 //
 							} else if (refUsage instanceof CAssign) {
 								CAssign assign = (CAssign) refUsage;
@@ -109,7 +109,10 @@ public class ConsysJavacPlugin implements Plugin {
 											)
 									);
 
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old assign: " + assign.originalPath.getLeaf());
 								assign.originalPath.getModificator().accept(newSetField);
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New assign: " + newSetField);
+
 							} else if (refUsage instanceof CFieldAcc) {
 								CFieldAcc fieldAcc = (CFieldAcc) refUsage;
 
@@ -126,10 +129,13 @@ public class ConsysJavacPlugin implements Plugin {
 										)
 									);
 
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old access: " + fieldAcc.originalPath.getLeaf());
 								fieldAcc.originalPath.getModificator().accept(newGetField);
+								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New access: " + newGetField);
+
 							}
 
-//							Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Unit after change: " + taskEvent.getCompilationUnit());
+							if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Unit after change: " + taskEvent.getCompilationUnit());
 						}
 
 						return result;
@@ -155,7 +161,7 @@ public class ConsysJavacPlugin implements Plugin {
 
 		ExpressionTree expr = ((MemberSelectTree) curr).getExpression();
 		//TODO: Types are not available in PARSE phase, but in ANALYZE phase we have to provide types when creating new expressions
-		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Type of expr: " + ((JCTree.JCExpression) expr).type);
+//		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Type of expr: " + ((JCTree.JCExpression) expr).type);
 
 		//Move to parent leaf
 		path = path.getParentPath();
@@ -183,7 +189,7 @@ public class ConsysJavacPlugin implements Plugin {
 
 			if (methodCurr instanceof MethodInvocationTree && ((MethodInvocationTree) methodCurr).getMethodSelect() == curr) {
 				List<? extends ExpressionTree> args = ((MethodInvocationTree) methodCurr).getArguments();
-				Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found method: " + expr + "." + name + "(" + args + ")");
+//				Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found method: " + expr + "." + name + "(" + args + ")");
 				return Optional.of(new CMethodInv(methodPath, expr, name, args));
 			}
 		}
@@ -204,7 +210,7 @@ public class ConsysJavacPlugin implements Plugin {
 		//Test if the ref belongs to a field access
 		if (curr instanceof MemberSelectTree) {
 			Name name = ((MemberSelectTree) curr).getIdentifier();
-			Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found facc: " + expr + "." + name );
+//			Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found facc: " + expr + "." + name );
 			return Optional.of(new CFieldAcc(path, expr, name));
 		}
 
