@@ -5,14 +5,11 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
-import org.apache.commons.codec.digest.DigestUtils;
 
+import java.io.PrintWriter;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class JRefAddressMap implements Serializable, JReplicated {
     /*
@@ -309,49 +306,26 @@ public class JRefAddressMap implements Serializable, JReplicated {
         }
     }
 
-    public void touchAll(){
+    public void touchAll() throws Exception{
+        PrintWriter writer = new PrintWriter("AddressMapResults" + System.currentTimeMillis() + ".csv", "UTF-8");
+        writer.println("num, res");
+
         current = head;
+        int x = 0;
         while(current != null){
+            long firstTime = System.nanoTime();
             System.out.println((boolean)current.getField("filled") + (String) current.getField("key") + (String)current.getField("cont"));
             current = current.getField("next");
+            long sndTime = System.nanoTime();
+            writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
+            x++;
         }
+        writer.close();
     }
 
     private int hash(String key) {
         //Taken from HashMap implementation of Java standard library
         int h;
-        return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
-        /*
-        ByteBuffer wrapped = ByteBuffer.wrap(DigestUtils.md5(key));
-        return Math.abs(wrapped.getInt());
-        */
-        /*
-        char[] chars;
-        int ret = 0;
-
-        if (key != null)
-            chars = key.toCharArray();
-        else {
-            chars = new char[0];
-            ret = 1;
-        }
-        for (int x = 0; x < chars.length; x++) {
-            ret += (x + 1) * Character.getNumericValue(chars[x]);
-        }
-        for (int x = 0; x < chars.length; x++) {
-            ret *= Character.getNumericValue(chars[x]);
-        }
-
-        //Ensure that the a useful key is returned for maps larger than 10007
-
-        int div = 10007;
-        int mult = nodeCount / div;
-        if(mult<1)
-            return (ret % div);
-        else
-            return (ret % (div * (mult + 1)));
-
-
-         */
+        return Math.abs((key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16));
     }
 }

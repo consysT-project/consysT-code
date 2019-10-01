@@ -4,6 +4,7 @@ import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.jrefcollections.JRefAddressMap;
+import de.tuda.stg.consys.jrefcollections.JRefArrayMap;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
@@ -24,15 +25,19 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;
 
-    private JRef<@Strong JRefAddressMap> RegisteredUsers;
+    private JRef<@Strong JRefArrayMap> RegisteredUsers;
 
     private JRef<@Strong JRefDistList> RegisteredProducts;
 
     public Database()throws NoSuchElementException {
     }
 
-    public void test(){
-        RegisteredUsers.invoke("touchAll");
+    public void test()
+    {
+        for(int i = 0;i <2;i++){
+            RegisteredUsers.invoke("touchAll");
+            System.out.print("Touched all " + (i+1) + " times");
+        }
     }
 
     public boolean init(int initUserCount, int initProductCount){
@@ -44,8 +49,8 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefAddressMap(), JConsistencyLevel.STRONG);
-        RegisteredUsers.invoke("init", initUserCount, JConsistencyLevel.STRONG);
+        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), JConsistencyLevel.STRONG);
+        RegisteredUsers.invoke("init", initUserCount, 100,JConsistencyLevel.STRONG);
         RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
         return true;
     }
