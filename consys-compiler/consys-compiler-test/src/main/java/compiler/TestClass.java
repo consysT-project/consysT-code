@@ -31,9 +31,6 @@ public class TestClass {
 		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
 		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
 
-		System.out.println("system1 = " + replicaSystem1);
-		System.out.println("system2 = " + replicaSystem2);
-
 		try {
 			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
 			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
@@ -45,6 +42,8 @@ public class TestClass {
 			System.out.println(Objects.toString(ref2Strong.ref().i));
 			ref2Strong.ref().i = 777;
 			System.out.println(Objects.toString(ref1Strong.ref().i));
+
+			ref2Strong.ref().i = ref2Strong.ref().i;
 
 		} finally {
 			replicaSystem1.close();

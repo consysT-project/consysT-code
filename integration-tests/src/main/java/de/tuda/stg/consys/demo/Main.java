@@ -50,8 +50,10 @@ public class Main {
 	}
 
 	public static void main(String... args) throws Exception {
-		List<ReplicaParams> argList = createParams(Arrays.asList(args));
-		distributedExample(argList.get(0), argList.subList(1, argList.size()));
+//		List<ReplicaParams> argList = createParams(Arrays.asList(args));
+//		distributedExample(argList.get(0), argList.subList(1, argList.size()));
+		example2Parallel();
+
 	}
 
 
@@ -67,8 +69,8 @@ public class Main {
 		Thread.sleep(5000);
 
 		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevel.STRONG);
-		System.out.println("Invoke: " + a.invoke("inc"));
-		System.out.println("Value: " + a.getField("f"));
+		System.out.println("Invoke: " + a.ref().inc());
+		System.out.println("Value: " + a.ref().f);
 	}
 
 	public static void example1() throws Exception {
@@ -102,7 +104,7 @@ public class Main {
 		System.out.println("ref1Weak.f = "  + ref1Weak.ref().f);
 		System.out.println("ref2Weak.f = "  + ref2Weak.ref().f);
 
-		ref1Strong.setField("f", ref1Weak.ref().f);
+		ref1Strong.ref().f = ref1Weak.ref().f;
 
 		Replicas.replicaSystem1.close();
 		Replicas.replicaSystem2.close();

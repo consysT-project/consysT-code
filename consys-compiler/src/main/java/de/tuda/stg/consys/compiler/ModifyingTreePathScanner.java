@@ -307,8 +307,8 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	}
 
 	public Void visitAssignment(AssignmentTree var1, Modificator var2) {
-		scan(var1.getVariable(), newTree -> ((JCTree.JCAssign) var1).lhs = (JCTree.JCExpression) newTree);
 		scan(var1.getExpression(), newTree -> ((JCTree.JCAssign) var1).rhs = (JCTree.JCExpression) newTree);
+		scan(var1.getVariable(), newTree -> ((JCTree.JCAssign) var1).lhs = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
