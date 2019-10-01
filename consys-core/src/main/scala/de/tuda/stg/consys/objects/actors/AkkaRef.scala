@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.objects.actors
 
-import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref, ReplicatedObject, Replicated}
+import java.util.concurrent.locks.LockSupport
+
+import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref, Replicated, ReplicatedObject}
 
 /**
 	* Created on 17.04.19.
@@ -30,6 +32,10 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 
 	override def isAvailable : Boolean =
 		replicaSystem.replica.contains(addr)
+
+	override def await() : Unit = {
+		replicaSystem.replica.waitFor(addr)
+	}
 
 
 

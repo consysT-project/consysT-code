@@ -21,5 +21,7 @@ public interface JRef<T> {
 
 	boolean isAvailable();
 
+	void await();
+
 	String addr();
 }

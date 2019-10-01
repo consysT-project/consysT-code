@@ -19,12 +19,18 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 	}
 
 	protected def cache[R](op : Operation[R], value : R) : Unit = {
-//		println(s"${Thread.currentThread()}: $this cached $op -> $value")
+
+		if (!requiresCache(op)) {
+			return
+		}
+
 		opCache.put(op.tx, (op, value)) match {
 			case None => //alles supi!
 			case Some(_) => sys.error(s"cannot cache $op. already cached.")
 		}
 	}
+
+	protected def requiresCache(op : Operation[_]) : Boolean = true
 
 	override def internalInvoke[R](tx : Transaction, methodName : String, args : Seq[Seq[Any]]) : R =  opCache.get(tx) match {
 		case None =>
@@ -34,7 +40,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == InvokeOp(tx, methodName, args))
-//			tx.removeLock(addr.asInstanceOf[String])
 			cachedResult.asInstanceOf[R]
 	}
 
@@ -46,7 +51,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == SetFieldOp(tx, fldName, newVal))
-//			tx.removeLock(addr.asInstanceOf[String])
 			assert(cachedResult == ())
 	}
 
@@ -58,7 +62,6 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		case Some((cachedOp, cachedResult)) =>
 			assert(cachedOp == GetFieldOp(tx, fieldName))
-//			tx.removeLock(addr.asInstanceOf[String])
 			cachedResult.asInstanceOf[R]
 	}
 

@@ -47,7 +47,8 @@ object WeakAkkaReplicaSystem {
 	     protected implicit val ttt : TypeTag[T]
 	  )
 		extends WeakReplicatedObject[Addr, T]
-		with AkkaMultiversionReplicatedObject[Addr, T] {
+		with AkkaMultiversionReplicatedObject[Addr, T]
+		{
 			setObject(init)
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
