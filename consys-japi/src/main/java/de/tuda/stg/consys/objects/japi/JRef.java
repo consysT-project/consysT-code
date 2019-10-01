@@ -9,7 +9,7 @@ public interface JRef<T> {
 
 	<R> R getField(String fieldName);
 
-	<R> void setField(String fieldName, R value);
+	<R> R setField(String fieldName, R value);
 
 	<R> R invoke(String methodName, Object... args);
 
