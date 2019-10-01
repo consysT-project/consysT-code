@@ -20,7 +20,7 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
-                        <arg>-Xplugin:MyPlugin</arg>
+                        <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
