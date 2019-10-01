@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.objects.actors
 
+import java.util.concurrent.locks.{LockSupport, ReentrantLock}
+
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, Props, RootActorPath}
 import akka.event.LoggingAdapter
 import akka.util.Timeout
@@ -34,8 +36,13 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 
 	protected[actors] object replica {
+
+
 		/*The replicated objects stored by this replica*/
 		private final val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = mutable.HashMap.empty
+
+		private final val waiters : mutable.MultiMap[Addr, Thread] = new mutable.HashMap[Addr, mutable.Set[Thread]] with mutable.MultiMap[Addr, Thread]
+		private final val waitersLock : ReentrantLock = new ReentrantLock()
 
 		def get(addr : Addr) : Option[AkkaReplicatedObject[Addr, _]] = {
 			localObjects.get(addr)
@@ -49,6 +56,29 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 		def remove(addr : Addr) : Unit = {
 			localObjects.remove(addr)
+		}
+
+		def waitFor(addr : Addr) : Unit = {
+			waitersLock.lock()
+			if (localObjects.contains(addr)) {
+				waitersLock.unlock()
+			} else {
+				waiters.addBinding(addr, Thread.currentThread())
+				waitersLock.unlock()
+				LockSupport.park(Thread.currentThread())
+			}
+
+		}
+
+		def putAndWake(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
+			waitersLock.lock()
+			localObjects.put(obj.addr, obj)
+			waiters.get(obj.addr) match {
+				case None =>
+				case Some(threads) =>
+					threads.foreach(thread => LockSupport.unpark(thread))
+			}
+			waitersLock.unlock()
 		}
 	}
 
@@ -264,7 +294,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
 					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
 				)
-				replica.put(ref)
+				replica.putAndWake(ref)
 				sender() ! ()
 
 			case RemoveObjectReplica(addr : Addr@unchecked) =>
