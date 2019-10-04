@@ -2,14 +2,13 @@ package de.tuda.stg.consys.jrefcollections;
 
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
 
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public class JRefArrayMap implements Serializable, JReplicated {
     /*
@@ -22,9 +21,9 @@ public class JRefArrayMap implements Serializable, JReplicated {
     final double maxLoadFactor = 0.75;
     final double resizeFactor = 1.4;
 
-    private JRef<ArrayNode> head;
-    private JRef<ArrayNode> tail;
-    private JRef<ArrayNode> current;
+    private JRef<KeyValArrayNode> head;
+    private JRef<KeyValArrayNode> tail;
+    private JRef<KeyValArrayNode> current;
 
     ConsistencyLevel level;
 
@@ -52,7 +51,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
         this.arraySize = arraySize;
         this.level = level;
         filled = 0;
-        head = system.replicate(new ArrayNode(null, null, arraySize), level);
+        head = system.replicate(new KeyValArrayNode(null, null, arraySize), level);
         tail = head;
         int nodesToAdd =(int) ((double) initial_size / (double) arraySize);
         for(int i = 0;i<nodesToAdd;i++){
@@ -64,7 +63,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
         return true;
     }
 
-    private boolean addNode(JRef<ArrayNode> previous){
+    private boolean addNode(JRef<KeyValArrayNode> previous){
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())
@@ -72,7 +71,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
         else
             return false;
 
-        JRef<ArrayNode> newNode = system.replicate(new ArrayNode(previous, previous.getField("next"), arraySize), level);
+        JRef<KeyValArrayNode> newNode = system.replicate(new KeyValArrayNode(previous, previous.getField("next"), arraySize), level);
         if(newNode.getField("next") == null){
             tail = newNode;
         }else{
@@ -87,7 +86,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
         current = head;
         int cnt = 0;
         while(current != null){
-            current = current.getField("next");
+            goToNext();
             cnt++;
         }
         return cnt;
@@ -100,7 +99,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
         else{
             int curr = 0;
             while(curr < (int)((double)index/(double)arraySize)){
-                current = current.getField("next");
+                goToNext();
                 curr++;
             }
         }
@@ -134,7 +133,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
                             }else{
                                 //The next position is in the next node
                                 currPos++;
-                                current = current.getField("next");
+                                goToNext();
                                 thisNodeBuckets = current.getField("cont");
                             }
                         }else{
@@ -185,7 +184,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
                 }
                 currPos++;
             }
-            current = current.getField("next");
+            goToNext();
         }
 
         return null;
@@ -196,8 +195,6 @@ public class JRefArrayMap implements Serializable, JReplicated {
 
         if(filled == 0)
             return null;
-
-        System.out.print(" index = " + index);
 
         if(goToNode(index)){
             int currPos = index;
@@ -219,7 +216,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
                             }else{
                                 //The next position is in the next node
                                 currPos++;
-                                current = current.getField("next");
+                                goToNext();
                                 thisNodeBuckets = current.getField("cont");
                             }
                         }else{
@@ -243,7 +240,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
                 if(keyval[0] != null)
                     fill++;
             }
-            current = current.getField("next");
+            goToNext();
             cnt++;
         }
         filled = fill;
@@ -275,13 +272,13 @@ public class JRefArrayMap implements Serializable, JReplicated {
                     }
 
                 }
-                current = current.getField("next");
+                goToNext();
             }
 
             current = head;
             while(current != null){
                 current.invoke("clear");
-                current = current.getField("next");
+                goToNext();
             }
 
             //increase bucket count (i.e. add some buckets to the list)
@@ -326,7 +323,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
                                     }else{
                                         //The next position is in the next node
                                         currPos++;
-                                        current = current.getField("next");
+                                        goToNext();
                                         thisNodeBuckets = current.getField("cont");
                                     }
                                 }else{
@@ -347,37 +344,46 @@ public class JRefArrayMap implements Serializable, JReplicated {
     }
 
     public void touchAll() throws Exception{
-        PrintWriter writer = new PrintWriter("ArrayMapResults" + System.currentTimeMillis() + ".csv", "UTF-8");
-        writer.println("num, res");
+        //PrintWriter writer = new PrintWriter("ArrayMapResults" + System.currentTimeMillis() + ".csv", "UTF-8");
+        //writer.println("num, res");
         current = head;
         int x = 0;
-        long outTime = 0;
+        //long outTime = 0;
         while(current != null){
-            if(outTime == 0)
-                outTime = System.nanoTime();
+            //if(outTime == 0)
+            //    outTime = System.nanoTime();
 
             String[][] thisNodeBuckets = current.getField("cont");
             for (String[] keyval:thisNodeBuckets) {
-                long firstTime = System.nanoTime();
-                if(outTime != 0)
-                    firstTime = outTime;
+                //long firstTime = System.nanoTime();
+                //if(outTime != 0)
+                //    firstTime = outTime;
 
                 System.out.println(keyval[0] + " - " + keyval[1]);
-                long sndTime = System.nanoTime();
-                writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
+                //long sndTime = System.nanoTime();
+                //writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
                 x++;
-                outTime = 0;
+                //outTime = 0;
             }
-            outTime = System.nanoTime();
-            current = current.getField("next");
+            //outTime = System.nanoTime();
+            goToNext();
         }
-        writer.close();
+        //writer.close();
     }
 
     private int hash(String key) {
         //Taken from HashMap implementation of Java standard library
         int h;
         return Math.abs((key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16));
+    }
+
+    private boolean isLow(){
+        return (JConsistencyLevel.WEAK == level);
+    }
+
+    private void goToNext(){
+        if(isLow()) current.sync();
+        current = current.getField("next");
     }
 }
 

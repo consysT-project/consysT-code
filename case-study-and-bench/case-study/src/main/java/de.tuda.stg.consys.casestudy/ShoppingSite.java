@@ -3,6 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefArrayList;
 import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -24,7 +25,7 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     JRef<@Strong Database> Database;
 
-    public JRef<@Weak JRefDistList> FoundProducts;
+    public JRef<@Weak JRefArrayList> FoundProducts;
     //public LinkedList<JRef<@Strong Product>> FoundProducts;
 
     public ShoppingSite(JRef<@Strong Database> db) {
@@ -96,7 +97,7 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
         return true;
     }
 
-    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults){
+    public JRef<@Weak JRefArrayList> Search(String SearchTerm, boolean printResults){
         FoundProducts = Database.invoke("SearchProducts", SearchTerm);
 
         if(printResults) {

@@ -23,16 +23,16 @@ import java.util.concurrent.TimeUnit;
 /*
 The benchmark for the endpoint of logging in
  */
-public class BenchLogin extends BenchHost{
+public abstract class BenchHost {
 
     public static final int WARMUPCOUNT = 10;
     public static final int WARMUPREPETITIONS = 10;
 
     public static final int REPETITIONS = 1;
 
-    public static final NullOutputStream bh = new NullOutputStream();
+    public static int REQUEST_NUM;
 
-    static ArrayList<Pair<String,String>> logins;
+    public static final NullOutputStream bh = new NullOutputStream();
 
     private static String requestsPath;
 
@@ -51,28 +51,6 @@ public class BenchLogin extends BenchHost{
     private static JRef<@Strong ComChannel> comChannel;
 
     private static String outputName = "results.txt";
-
-    public static void main (String[] args) throws Exception {
-        if(args.length < 4){
-            System.out.println("Wrong parameter count");
-            System.exit(1);
-        }
-        requestsPath = args[0];
-        testVersion = args[1];
-        int off = 0;
-        if (args[2].equals("-o")) {
-            outputName = args[3];
-            off = 2;
-        }
-        thisSystemInfo = args[2+off];
-        otherSystemInfo = Arrays.copyOfRange(args, 3+off,args.length);
-
-        connect();
-        warmUpBench();
-        runBenchmark();
-        exitBench();
-        System.exit(1);
-    }
 
     /*
     Function for connecting the benchmark to the server
@@ -115,12 +93,7 @@ public class BenchLogin extends BenchHost{
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        String[] allLogins = getRequests();
-        logins = new ArrayList<>();
-        for (String thisLogin: allLogins) {
-            String[] split = thisLogin.split(";");
-            logins.add(new Pair<>(split[0],split[1]));
-        }
+        prepareRequests();
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
@@ -132,6 +105,12 @@ public class BenchLogin extends BenchHost{
 
         System.out.println("Setup Complete, Ready for benchmark.");
         return true;
+    }
+
+    //Method to be implemented that contains the code that will extract requests
+    //and save them so they can be used by the benchmark
+    static void prepareRequests() throws Exception {
+        throw new Exception("Called Unimplemented Function of superclass");
     }
 
     private static boolean establishCommunication() throws InterruptedException {
@@ -209,10 +188,35 @@ public class BenchLogin extends BenchHost{
         return ContentHandler.readFile(requestsPath);
     }
 
-    private static void runBenchmark() throws IOException {
+    /*
+    Methods to warm up during benchmarking,
+    this should include the benchmarking method, but also teardown methods needed between invocations.
+     */
+    private static void warmUpBench() throws Exception {
+        System.out.println("Started Warm Up");
+        for(int  i = 0; i < WARMUPCOUNT; i++){
+            for (int  j = 0; j < WARMUPREPETITIONS; j++){
+                boolean valid = true;
+                boolean retVal = false;
+                requestPrep();
+                try{
+                    retVal = request(0);
+                }catch(Exception e){
+                    valid = false;
+                }
+                if(valid)
+                    requestTeardown();
+                bh.write(((retVal) ? 1 : 0));
+            }
+            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
+        }
+        System.out.println("Finished Warm Up");
+    }
+
+    private static void runBenchmark() throws Exception {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        for (int i = 0;i < logins.size();i++) {
+        for (int i = 0;i < REQUEST_NUM;i++) {
             boolean valid = true;
             boolean retVal = false;
             requestPrep();
@@ -234,59 +238,35 @@ public class BenchLogin extends BenchHost{
 
             //updateProgress(((retVal) ? "1" : "0"));
             bh.write(((retVal) ? 1 : 0));
-            System.out.print(Integer.toString(i+1) + " / " + logins.size());
+            updateProgress(i+1);
         }
         writer.close();
         System.out.println("Finished Benchmark");
     }
 
-    /*
-    Methods to warm up during benchmarking,
-    this should include the benchmarking method, but also teardown methods needed between invocations.
-     */
-    private static void warmUpBench() throws IOException {
-        System.out.println("Started Warm Up");
-        for(int  i = 0; i < WARMUPCOUNT; i++){
-            for (int  j = 0; j < WARMUPREPETITIONS; j++){
-                boolean valid = true;
-                boolean retVal = false;
-                requestPrep();
-                try{
-                    retVal = request(0);
-                }catch(Exception e){
-                    valid = false;
-                }
-                if(valid)
-                    requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
-            }
-            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
-        }
-        System.out.println("Finished Warm Up");
+    private static void updateProgress(int prog) throws Exception {
+        throw new Exception("Called Unimplemented UpdateProgress of superclass");
     }
 
     /*
     Method executed before every request
     */
-    private static void requestPrep(){
-        //In the case of login, no prep is needed
+    private static void requestPrep() throws Exception {
+        throw new Exception("Called Unimplemented RequestPrep Function of superclass");
     }
 
     /*
     The method that will be measured during benchmarking
      */
-    private static boolean request(int requestnumber){
-        //Log in
-        return thisSite.invoke("Login", logins.get(requestnumber).fst,
-                logins.get(requestnumber).snd);
+    private static boolean request(int requestnumber) throws Exception {
+        throw new Exception("Called Unimplemented Request Function of superclass");
     }
 
     /*
     Method executed after every request
      */
-    private static void requestTeardown(){
-        //Log out after each login
-        thisSite.invoke("Logout");
+    private static void requestTeardown() throws Exception {
+        throw new Exception("Called Unimplemented RequestTeardown Function of superclass");
     }
 
     private static void exitBench() throws Exception {

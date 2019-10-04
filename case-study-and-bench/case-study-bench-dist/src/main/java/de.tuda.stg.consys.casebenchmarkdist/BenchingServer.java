@@ -115,36 +115,14 @@ public class BenchingServer {
         System.out.println("Created Database");
 
         thisDatabase.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(allProds)));
-        /*
-        String[][] splitProds = new String[(int) Math.ceil(allProds.length/1000.0)][1000];
-        int counter = 0;
-        int len = allProds.length;
-        for (int i = 0; i < len - 1000 + 1; i += 1000)
-            splitProds[counter++] = Arrays.copyOfRange(allProds, i, i + 1000);
-        if(len % 1000 != 0)
-            splitProds[counter] = Arrays.copyOfRange(allProds, len - len % 1000, len);
-        System.out.println("Starting to add: " + splitProds.length + " x 1000 products.");
-
-        for (String[] someProds: splitProds) {
-            thisDatabase.invoke("AddInitialProducts", new ArrayList<>(Arrays.asList(someProds)));
-        }
-        */
-
         System.out.println("Added Products");
 
         for (int i = 0; i < allUsers.length; i++){
             String[] thisUserSplit = allUsers[i].split(";");
             thisDatabase.invoke("AddUser", thisUserSplit[0], thisUserSplit[1]);
-            System.out.print("\radded " + i + "/" + allUsers.length + " Users");
+            System.out.print("\radded " + (i+1) + "/" + allUsers.length + " Users");
         }
-        /*
-        for (String thisLogin: allUsers) {
-            String[] thisLoginSplit = thisLogin.split(";");
-            System.out.print("\r adding users " + System.currentTimeMillis());
-            thisDatabase.invoke("AddUser", thisLoginSplit[0], thisLoginSplit[1]);
-        }
-         */
-
+        System.out.println("");
         System.out.println("Setup Complete, Ready for benchmark.");
         comChannel.invoke("writeToBenchQueue","setupDone");
         System.out.println("Wrote setup confirmation to bench");

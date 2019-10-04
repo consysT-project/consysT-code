@@ -189,7 +189,6 @@ public class JRefAddressMap implements Serializable, JReplicated {
             do {
                 if (current.getField("filled")) {
                     if (current.getField("key").equals(key)){
-                        System.out.println("Found on Try number: " + x);
                         return current.getField("cont");
                     }
                     else{
@@ -307,20 +306,20 @@ public class JRefAddressMap implements Serializable, JReplicated {
     }
 
     public void touchAll() throws Exception{
-        PrintWriter writer = new PrintWriter("AddressMapResults" + System.currentTimeMillis() + ".csv", "UTF-8");
-        writer.println("num, res");
+        //PrintWriter writer = new PrintWriter("AddressMapResults" + System.currentTimeMillis() + ".csv", "UTF-8");
+        //writer.println("num, res");
 
         current = head;
         int x = 0;
         while(current != null){
-            long firstTime = System.nanoTime();
+            //long firstTime = System.nanoTime();
             System.out.println((boolean)current.getField("filled") + (String) current.getField("key") + (String)current.getField("cont"));
             current = current.getField("next");
-            long sndTime = System.nanoTime();
-            writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
+            //long sndTime = System.nanoTime();
+            //writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
             x++;
         }
-        writer.close();
+        //writer.close();
     }
 
     private int hash(String key) {
