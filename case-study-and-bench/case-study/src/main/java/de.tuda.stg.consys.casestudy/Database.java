@@ -3,10 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.JRefAddressMap;
-import de.tuda.stg.consys.jrefcollections.JRefArrayMap;
-import de.tuda.stg.consys.jrefcollections.JRefDistList;
-import de.tuda.stg.consys.jrefcollections.JRefHashMap;
+import de.tuda.stg.consys.jrefcollections.*;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
@@ -27,7 +24,12 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
 
     private JRef<@Strong JRefArrayMap> RegisteredUsers;
 
-    private JRef<@Strong JRefDistList> RegisteredProducts;
+    private JRef<@Strong JRefArrayList> RegisteredProducts;
+
+    //private JRef<@Weak JRefArrayMap> ProductSearchMap;
+
+    int MapArraySize = 200;
+    int ListArraySize = 200;
 
     public Database()throws NoSuchElementException {
     }
@@ -50,8 +52,15 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
             return false;
 
         RegisteredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), JConsistencyLevel.STRONG);
-        RegisteredUsers.invoke("init", initUserCount, 100,JConsistencyLevel.STRONG);
-        RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
+        RegisteredUsers.invoke("init", initUserCount,MapArraySize,JConsistencyLevel.STRONG);
+
+        RegisteredProducts = system.replicate("RegisteredObjectList",
+                new JRefArrayList(JConsistencyLevel.STRONG,ListArraySize), JConsistencyLevel.STRONG);
+
+        /*
+        ProductSearchMap = system.replicate("ProductSearchMap", new JRefArrayMap(), JConsistencyLevel.WEAK);
+        ProductSearchMap.invoke("init", initProductCount,MapArraySize, JConsistencyLevel.WEAK);
+         */
         return true;
     }
 
@@ -112,9 +121,11 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         }
     }
 
-    public JRef<@Weak JRefDistList> SearchProducts(String query){
+    public JRef<@Weak JRefArrayList> SearchProducts(String query){
         String lowerQuery = query.toLowerCase();
-        JRef<@Weak JRefDistList> retList = null;
+        //JRef<@Weak JRefArrayList> retList = ProductSearchMap.invoke("getValue", query);
+        //JRef ret = retList.invoke("CreateCondensedWeakCopy");
+
 
         Predicate<JRef<@Strong Product>> tester = (Predicate<JRef<@Strong Product>> & Serializable) productJRef -> {
             String currName = productJRef.invoke("getName");
@@ -122,9 +133,12 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
                 return true;
             return false;
         };
-        System.out.println("Reached before the getWeakReplicaSublistInvocation");
-        retList = RegisteredProducts.invoke("getWeakReplicaSublist", tester, 1000,true);
-        System.out.println("Reached after the getweakreplicasublist invocation");
+
+
+        //TODO: REPLACE WITH BETTER SEARCH FUNCTIONALITY
+        JRef<@Weak JRefArrayList> retList = RegisteredProducts.invoke(
+                "getWeakReplicaSublist", tester, 1000,true);
+
         return retList;
     }
 
@@ -154,12 +168,30 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
                 skip = true;
             }
             if(!skip){
+                /*
+                    The approach of using a Hashmap to store substrings was abandoned, due to RAM limitations.
+                 */
                 JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price), JConsistencyLevel.STRONG);
                 newProduct.invoke("init");
 
+                /*
+                for (String searchTerm: splitName) {
+                    String listAddr = ProductSearchMap.invoke("getValue", searchTerm);
+                    JRef<@Weak JRefArrayList> list;
+                    if(listAddr == null){
+                        list = system.replicate(
+                                new JRefArrayList(JConsistencyLevel.WEAK,ListArraySize), JConsistencyLevel.WEAK);
+                    }else{
+                        list = system.ref(listAddr,JRefArrayList.class, JConsistencyLevel.WEAK);
+                    }
+                    list.invoke("append", newProduct);
+                }
+                 */
                 RegisteredProducts.invoke("append", newProduct);
+                System.out.print("\rAdded Product: " + split[0].substring(0, Math.min(split[0].length(), 20)) + "...");
             }
         }
+        System.out.println("");
         return true;
     }
 
@@ -183,6 +215,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         };
 
         JRef<@Strong Product> retProduct = RegisteredProducts.invoke("search", tester, false);
+
         if(retProduct != null)
             return false;
         else{
