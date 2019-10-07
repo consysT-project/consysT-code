@@ -36,6 +36,9 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 		replicaSystem.replica.waitFor(addr)
 	}
 
+	override def delete() : Unit = {
+		replicaSystem.delete(addr)
+	}
 
 
 	override def toString : String = s"RefImpl($addr, $consistencyLevel)"

@@ -16,6 +16,8 @@ trait Ref[Addr, T <: AnyRef] extends Serializable {
 
 	def await() : Unit
 
+	def delete() : Unit
+
 
 	/* shortcut for Java implementation */
 	final def ref : T = deref.ref
