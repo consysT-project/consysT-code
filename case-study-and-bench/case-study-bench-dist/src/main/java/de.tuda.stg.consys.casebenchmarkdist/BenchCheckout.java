@@ -1,9 +1,5 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-
-import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -12,27 +8,23 @@ import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.util.NullOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
-/*
-The benchmark for the endpoint of logging in
- */
-public abstract class BenchHost {
+public class BenchCheckout{
 
     public static final int WARMUPCOUNT = 10;
-    public static final int WARMUPREPETITIONS = 10;
+    public static final int WARMUPREPETITIONS = 1;
 
     public static final int REPETITIONS = 1;
 
-    public static int REQUEST_NUM;
-
     public static final NullOutputStream bh = new NullOutputStream();
+
+    static String[][] checkoutReqs;
 
     private static String requestsPath;
 
@@ -51,6 +43,28 @@ public abstract class BenchHost {
     private static JRef<@Strong ComChannel> comChannel;
 
     private static String outputName = "results.txt";
+
+    public static void main (String[] args) throws Exception {
+        if(args.length < 4){
+            System.out.println("Wrong parameter count");
+            System.exit(1);
+        }
+        requestsPath = args[0];
+        testVersion = args[1];
+        int off = 0;
+        if (args[2].equals("-o")) {
+            outputName = args[3];
+            off = 2;
+        }
+        thisSystemInfo = args[2+off];
+        otherSystemInfo = Arrays.copyOfRange(args, 3+off,args.length);
+
+        connect();
+        warmUpBench();
+        runBenchmark();
+        exitBench();
+        System.exit(1);
+    }
 
     /*
     Function for connecting the benchmark to the server
@@ -93,7 +107,12 @@ public abstract class BenchHost {
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        prepareRequests();
+        String[] allReqs = getRequests();
+        checkoutReqs = new String[allReqs.length][5];
+        for (int i = 0;i<allReqs.length;i++) {
+            checkoutReqs[i] = allReqs[i].split(";");
+        }
+        // Add cart reqs: username;password;searchword;sizeofreturned;numberofelements
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
@@ -105,12 +124,6 @@ public abstract class BenchHost {
 
         System.out.println("Setup Complete, Ready for benchmark.");
         return true;
-    }
-
-    //Method to be implemented that contains the code that will extract requests
-    //and save them so they can be used by the benchmark
-    static void prepareRequests() throws Exception {
-        throw new Exception("Called Unimplemented Function of superclass");
     }
 
     private static boolean establishCommunication() throws InterruptedException {
@@ -188,44 +201,23 @@ public abstract class BenchHost {
         return ContentHandler.readFile(requestsPath);
     }
 
-    /*
-    Methods to warm up during benchmarking,
-    this should include the benchmarking method, but also teardown methods needed between invocations.
-     */
-    private static void warmUpBench() throws Exception {
-        System.out.println("Started Warm Up");
-        for(int  i = 0; i < WARMUPCOUNT; i++){
-            for (int  j = 0; j < WARMUPREPETITIONS; j++){
-                boolean valid = true;
-                boolean retVal = false;
-                requestPrep();
-                try{
-                    retVal = request(0);
-                }catch(Exception e){
-                    valid = false;
-                }
-                if(valid)
-                    requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
-            }
-            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
-        }
-        System.out.println("Finished Warm Up");
-    }
-
-    private static void runBenchmark() throws Exception {
+    private static void runBenchmark() throws IOException {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        for (int i = 0;i < REQUEST_NUM;i++) {
+        long allTimes = 0;
+        for (int i = 0; i < checkoutReqs.length; i++) {
+            long firstOut = System.nanoTime();
+
             boolean valid = true;
             boolean retVal = false;
-            requestPrep();
+            requestPrep(i);
             long firstTime = System.nanoTime();
             try{
                 retVal = request(i);
             }catch(Exception e){
-                System.out.println("Failed");
-                valid = false;
+                System.out.print("Failed");
+                throw e;
+                //valid = false;
             }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
@@ -235,38 +227,56 @@ public abstract class BenchHost {
                 writer.println(time);
                 requestTeardown();
             } else i--;
-
             //updateProgress(((retVal) ? "1" : "0"));
-            bh.write(((retVal) ? 1 : 0));
-            updateProgress(i+1);
+            eatObject(retVal);
+            System.out.print(Integer.toString(i+1) + " / " + checkoutReqs.length);
+
+            allTimes = (allTimes+ (System.nanoTime() - firstOut));
+            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(checkoutReqs.length-i));
+            System.out.print(" | ETA: " + time + " mins left" );
         }
         writer.close();
         System.out.println("Finished Benchmark");
     }
 
-    private static void updateProgress(int prog) throws Exception {
-        throw new Exception("Called Unimplemented UpdateProgress of superclass");
+    /*
+    Methods to warm up during benchmarking,
+    this should include the benchmarking method, but also teardown methods needed between invocations.
+     */
+    private static void warmUpBench() throws IOException {
+        System.out.println("Warm Up not possible for checkout cart, " +
+                "instead create more requests and trim them after benchmarks");
     }
 
     /*
     Method executed before every request
     */
-    private static void requestPrep() throws Exception {
-        throw new Exception("Called Unimplemented RequestPrep Function of superclass");
+    private static void requestPrep(int requestnumber){
+        thisSite.invoke("Login", checkoutReqs[requestnumber][0],
+                checkoutReqs[requestnumber][1]);
+        thisSite.invoke("Search", checkoutReqs[requestnumber][2], false, 50);
+        int numOfAdditions = Integer.parseInt(checkoutReqs[requestnumber][4]);
+        for(int i = 0; i < numOfAdditions ; i++){
+            thisSite.invoke("FromFoundAddToCart", i+1, 1);
+        }
+        double addBal = 110.00 * (double) numOfAdditions;
+        thisSite.invoke("AddBalance", addBal, false);
     }
 
     /*
     The method that will be measured during benchmarking
      */
-    private static boolean request(int requestnumber) throws Exception {
-        throw new Exception("Called Unimplemented Request Function of superclass");
+    private static boolean request(int requestnumber){
+        //checkout
+        return thisSite.invoke("Checkout", false);
     }
 
     /*
     Method executed after every request
      */
-    private static void requestTeardown() throws Exception {
-        throw new Exception("Called Unimplemented RequestTeardown Function of superclass");
+    private static void requestTeardown(){
+        //LogOut
+        thisSite.invoke("Logout");
     }
 
     private static void exitBench() throws Exception {
@@ -281,6 +291,16 @@ public abstract class BenchHost {
                 if(ret.equals(msg))
                     return;
             Thread.sleep(500);
+        }
+    }
+
+    private static void eatObject(Object obj) throws IOException{
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            byte[] bArr = b.toByteArray();
+            bh.write(bArr);
         }
     }
 }

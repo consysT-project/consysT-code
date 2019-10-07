@@ -308,20 +308,21 @@ public class JRefArrayList implements Serializable, JReplicated {
         boolean cont = true;
         while(current != null && cont){
             T[] currContent = (T[]) current.getField("cont");
-
             for (T contElement:currContent) {
-                if(found >= searchLimit){
-                    cont=false;
-                    break;
-                }
-                if(function.test(contElement)){
-                    retList.invoke("append", contElement);
-                    found++;
+                if(contElement!= null){
+                    if(found >= searchLimit){
+                        cont=false;
+                        break;
+                    }
+                    if(function.test(contElement)){
+                        retList.invoke("append", contElement);
+                        found++;
+                    }
                 }
             }
             current = (JRef) current.getField("next");
-
         }
+        current = head;
         return retList;
     }
 

@@ -100,7 +100,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         }
     }
 
-    public JRef<@Weak JRefDistList> SearchProducts(String query){
+    public JRef<@Weak JRefDistList> SearchProducts(String query, int limit){
         String lowerQuery = query.toLowerCase();
         JRef<@Weak JRefDistList> retList = null;
 

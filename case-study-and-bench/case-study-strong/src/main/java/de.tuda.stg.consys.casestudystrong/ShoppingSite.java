@@ -96,8 +96,8 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
         return true;
     }
 
-    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults){
-        FoundProducts = Database.invoke("SearchProducts", SearchTerm);
+    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults, int limit){
+        FoundProducts = Database.invoke("SearchProducts", SearchTerm, limit);
 
         if(printResults) {
             System.out.println("Found Products:");

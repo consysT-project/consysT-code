@@ -1,9 +1,6 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-
 import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -16,14 +13,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
-/*
-The benchmark for the endpoint of logging in
- */
-public class BenchLogin{
+
+
+public class BenchRegister{
 
     public static final int WARMUPCOUNT = 10;
     public static final int WARMUPREPETITIONS = 10;
@@ -32,7 +26,7 @@ public class BenchLogin{
 
     public static final NullOutputStream bh = new NullOutputStream();
 
-    static ArrayList<Pair<String,String>> logins;
+    static ArrayList<Pair<String,String>> registrations;
 
     private static String requestsPath;
 
@@ -115,11 +109,11 @@ public class BenchLogin{
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        String[] allLogins = getRequests();
-        logins = new ArrayList<>();
-        for (String thisLogin: allLogins) {
-            String[] split = thisLogin.split(";");
-            logins.add(new Pair<>(split[0],split[1]));
+        String[] allRegistrations = getRequests();
+        registrations = new ArrayList<>();
+        for (String thisReg: allRegistrations) {
+            String[] split = thisReg.split(";");
+            registrations.add(new Pair<>(split[0],split[1]));
         }
 
         if(getShoppingsiteRef() == null){
@@ -212,9 +206,9 @@ public class BenchLogin{
     private static void runBenchmark() throws IOException {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        int size = logins.size();
         long allTimes = 0;
-        for (int i = 0;i < size;i++) {
+        int size = registrations.size();
+        for (int i = 0; i < size; i++) {
             long firstOut = System.nanoTime();
 
             boolean valid = true;
@@ -238,7 +232,8 @@ public class BenchLogin{
 
             //updateProgress(((retVal) ? "1" : "0"));
             bh.write(((retVal) ? 1 : 0));
-            System.out.print(Integer.toString(i+1) + " / " + logins.size());
+            System.out.print(Integer.toString(i+1) + " / " + registrations.size());
+
 
             allTimes = (allTimes+ (System.nanoTime() - firstOut));
             long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(size-i));
@@ -253,31 +248,15 @@ public class BenchLogin{
     this should include the benchmarking method, but also teardown methods needed between invocations.
      */
     private static void warmUpBench() throws IOException {
-        System.out.println("Started Warm Up");
-        for(int  i = 0; i < WARMUPCOUNT; i++){
-            for (int  j = 0; j < WARMUPREPETITIONS; j++){
-                boolean valid = true;
-                boolean retVal = false;
-                requestPrep();
-                try{
-                    retVal = request(0);
-                }catch(Exception e){
-                    valid = false;
-                }
-                if(valid)
-                    requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
-            }
-            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
-        }
-        System.out.println("Finished Warm Up");
+        System.out.println("Warm Up not possible for reqistration, " +
+                "instead create more requests and trim them after benchmarks");
     }
 
     /*
     Method executed before every request
     */
     private static void requestPrep(){
-        //In the case of login, no prep is needed
+        //In the case of registration, no prep is needed
     }
 
     /*
@@ -285,8 +264,8 @@ public class BenchLogin{
      */
     private static boolean request(int requestnumber){
         //Log in
-        return thisSite.invoke("Login", logins.get(requestnumber).fst,
-                logins.get(requestnumber).snd);
+        return thisSite.invoke("RegisterNewUser", registrations.get(requestnumber).fst,
+                registrations.get(requestnumber).snd);
     }
 
     /*

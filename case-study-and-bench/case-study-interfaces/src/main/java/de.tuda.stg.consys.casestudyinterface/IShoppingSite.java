@@ -15,7 +15,7 @@ public interface IShoppingSite<T> {
 
     public boolean Logout();
 
-    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults);
+    public JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults, int limit);
 
     public boolean FromFoundAddToCart(int number, int count);
 
