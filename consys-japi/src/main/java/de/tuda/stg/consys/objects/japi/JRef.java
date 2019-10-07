@@ -17,6 +17,8 @@ public interface JRef<T> {
 
 	void syncAll();
 
+	void delete();
+
 	T ref();
 
 	boolean isAvailable();

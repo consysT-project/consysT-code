@@ -48,6 +48,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public void delete() {
+		ref.delete();
+	}
+
+	@Override
 	public T ref() {
 		return ref.ref(); //Throws an exception
 	}
