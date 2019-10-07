@@ -121,7 +121,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         }
     }
 
-    public JRef<@Weak JRefArrayList> SearchProducts(String query){
+    public JRef<@Weak JRefArrayList> SearchProducts(String query, int limit){
         String lowerQuery = query.toLowerCase();
         //JRef<@Weak JRefArrayList> retList = ProductSearchMap.invoke("getValue", query);
         //JRef ret = retList.invoke("CreateCondensedWeakCopy");
@@ -134,10 +134,8 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
             return false;
         };
 
-
-        //TODO: REPLACE WITH BETTER SEARCH FUNCTIONALITY
         JRef<@Weak JRefArrayList> retList = RegisteredProducts.invoke(
-                "getWeakReplicaSublist", tester, 1000,true);
+                "getWeakReplicaSublist", tester, limit,true);
 
         return retList;
     }

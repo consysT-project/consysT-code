@@ -1,9 +1,5 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-
-import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -12,27 +8,23 @@ import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.util.NullOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
-/*
-The benchmark for the endpoint of logging in
- */
-public class BenchLogin{
+public class BenchAddBalance {
 
     public static final int WARMUPCOUNT = 10;
-    public static final int WARMUPREPETITIONS = 10;
+    public static final int WARMUPREPETITIONS = 1;
 
     public static final int REPETITIONS = 1;
 
     public static final NullOutputStream bh = new NullOutputStream();
 
-    static ArrayList<Pair<String,String>> logins;
+    static String[][] addBalanceReqs;
 
     private static String requestsPath;
 
@@ -115,12 +107,12 @@ public class BenchLogin{
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        String[] allLogins = getRequests();
-        logins = new ArrayList<>();
-        for (String thisLogin: allLogins) {
-            String[] split = thisLogin.split(";");
-            logins.add(new Pair<>(split[0],split[1]));
+        String[] allReqs = getRequests();
+        addBalanceReqs = new String[allReqs.length][3];
+        for (int i = 0;i<allReqs.length;i++) {
+            addBalanceReqs[i] = allReqs[i].split(";");
         }
+        // view info reqs: username;password;money
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
@@ -212,20 +204,20 @@ public class BenchLogin{
     private static void runBenchmark() throws IOException {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        int size = logins.size();
         long allTimes = 0;
-        for (int i = 0;i < size;i++) {
+        for (int i = 0; i < addBalanceReqs.length; i++) {
             long firstOut = System.nanoTime();
 
             boolean valid = true;
-            boolean retVal = false;
-            requestPrep();
+            double retVal = 0;
+            requestPrep(i);
             long firstTime = System.nanoTime();
             try{
                 retVal = request(i);
             }catch(Exception e){
-                System.out.println("Failed");
-                valid = false;
+                System.out.print("Failed");
+                throw e;
+                //valid = false;
             }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
@@ -235,13 +227,12 @@ public class BenchLogin{
                 writer.println(time);
                 requestTeardown();
             } else i--;
-
             //updateProgress(((retVal) ? "1" : "0"));
-            bh.write(((retVal) ? 1 : 0));
-            System.out.print(Integer.toString(i+1) + " / " + logins.size());
+            eatObject(retVal);
+            System.out.print(Integer.toString(i+1) + " / " + addBalanceReqs.length);
 
             allTimes = (allTimes+ (System.nanoTime() - firstOut));
-            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(size-i));
+            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(addBalanceReqs.length-i));
             System.out.print(" | ETA: " + time + " mins left" );
         }
         writer.close();
@@ -257,16 +248,17 @@ public class BenchLogin{
         for(int  i = 0; i < WARMUPCOUNT; i++){
             for (int  j = 0; j < WARMUPREPETITIONS; j++){
                 boolean valid = true;
-                boolean retVal = false;
-                requestPrep();
+                double retVal = 0;
+                requestPrep(0);
                 try{
                     retVal = request(0);
                 }catch(Exception e){
+                    System.out.println("Failed");
                     valid = false;
                 }
                 if(valid)
                     requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
+                eatObject(retVal);
             }
             System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
         }
@@ -276,24 +268,23 @@ public class BenchLogin{
     /*
     Method executed before every request
     */
-    private static void requestPrep(){
-        //In the case of login, no prep is needed
+    private static void requestPrep(int requestnumber){
+        thisSite.invoke("Login", addBalanceReqs[requestnumber][0], addBalanceReqs[requestnumber][1]);
     }
 
     /*
     The method that will be measured during benchmarking
      */
-    private static boolean request(int requestnumber){
-        //Log in
-        return thisSite.invoke("Login", logins.get(requestnumber).fst,
-                logins.get(requestnumber).snd);
+    private static double request(int requestnumber){
+        //Add balance
+        double val = Double.parseDouble(addBalanceReqs[requestnumber][2]);
+        return thisSite.invoke("AddBalance", val,false);
     }
 
     /*
     Method executed after every request
      */
     private static void requestTeardown(){
-        //Log out after each login
         thisSite.invoke("Logout");
     }
 
@@ -309,6 +300,16 @@ public class BenchLogin{
                 if(ret.equals(msg))
                     return;
             Thread.sleep(500);
+        }
+    }
+
+    private static void eatObject(Object obj) throws IOException{
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            byte[] bArr = b.toByteArray();
+            bh.write(bArr);
         }
     }
 }

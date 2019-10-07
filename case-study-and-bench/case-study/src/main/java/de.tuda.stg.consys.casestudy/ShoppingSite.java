@@ -97,8 +97,11 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
         return true;
     }
 
-    public JRef<@Weak JRefArrayList> Search(String SearchTerm, boolean printResults){
-        FoundProducts = Database.invoke("SearchProducts", SearchTerm);
+    public JRef<@Weak JRefArrayList> Search(String SearchTerm, boolean printResults, int limit){
+        if(FoundProducts != null){
+            //TODO: GET FUNCTION THAT DELETES REPLICAS (DUE TO LACK OF GARBAGE COLLECTOR)
+        }
+        FoundProducts = Database.invoke("SearchProducts", SearchTerm, limit);
 
         if(printResults) {
             System.out.println("Found Products:");

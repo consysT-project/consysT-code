@@ -1,38 +1,32 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-
-import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefArrayList;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.util.NullOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
-/*
-The benchmark for the endpoint of logging in
- */
-public class BenchLogin{
+public class BenchAddCart {
 
     public static final int WARMUPCOUNT = 10;
-    public static final int WARMUPREPETITIONS = 10;
+    public static final int WARMUPREPETITIONS = 1;
 
     public static final int REPETITIONS = 1;
 
     public static final NullOutputStream bh = new NullOutputStream();
 
-    static ArrayList<Pair<String,String>> logins;
+    static String[][] addCartReqs;
 
     private static String requestsPath;
 
@@ -115,12 +109,12 @@ public class BenchLogin{
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        String[] allLogins = getRequests();
-        logins = new ArrayList<>();
-        for (String thisLogin: allLogins) {
-            String[] split = thisLogin.split(";");
-            logins.add(new Pair<>(split[0],split[1]));
+        String[] allReqs = getRequests();
+        addCartReqs = new String[allReqs.length][5];
+        for (int i = 0;i<allReqs.length;i++) {
+            addCartReqs[i] = allReqs[i].split(";");
         }
+        // Add cart reqs: username;password;searchword;sizeofreturned;numberofelements
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
@@ -212,20 +206,20 @@ public class BenchLogin{
     private static void runBenchmark() throws IOException {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        int size = logins.size();
         long allTimes = 0;
-        for (int i = 0;i < size;i++) {
+        for (int i = 0; i < addCartReqs.length; i++) {
             long firstOut = System.nanoTime();
 
             boolean valid = true;
             boolean retVal = false;
-            requestPrep();
+            requestPrep(i);
             long firstTime = System.nanoTime();
             try{
                 retVal = request(i);
             }catch(Exception e){
-                System.out.println("Failed");
-                valid = false;
+                System.out.print("Failed");
+                throw e;
+                //valid = false;
             }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
@@ -235,13 +229,12 @@ public class BenchLogin{
                 writer.println(time);
                 requestTeardown();
             } else i--;
-
             //updateProgress(((retVal) ? "1" : "0"));
-            bh.write(((retVal) ? 1 : 0));
-            System.out.print(Integer.toString(i+1) + " / " + logins.size());
+            eatObject(retVal);
+            System.out.print(Integer.toString(i+1) + " / " + addCartReqs.length);
 
             allTimes = (allTimes+ (System.nanoTime() - firstOut));
-            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(size-i));
+            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(addCartReqs.length-i));
             System.out.print(" | ETA: " + time + " mins left" );
         }
         writer.close();
@@ -253,47 +246,35 @@ public class BenchLogin{
     this should include the benchmarking method, but also teardown methods needed between invocations.
      */
     private static void warmUpBench() throws IOException {
-        System.out.println("Started Warm Up");
-        for(int  i = 0; i < WARMUPCOUNT; i++){
-            for (int  j = 0; j < WARMUPREPETITIONS; j++){
-                boolean valid = true;
-                boolean retVal = false;
-                requestPrep();
-                try{
-                    retVal = request(0);
-                }catch(Exception e){
-                    valid = false;
-                }
-                if(valid)
-                    requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
-            }
-            System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
-        }
-        System.out.println("Finished Warm Up");
+        System.out.println("Warm Up not possible for add cart, " +
+                "instead create more requests and trim them after benchmarks");
     }
 
     /*
     Method executed before every request
     */
-    private static void requestPrep(){
-        //In the case of login, no prep is needed
+    private static void requestPrep(int requestnumber){
+        thisSite.invoke("Login", addCartReqs[requestnumber][0],
+                addCartReqs[requestnumber][1]);
+        thisSite.invoke("Search", addCartReqs[requestnumber][2], false, 50);
+        for(int i = 0; i < Integer.parseInt(addCartReqs[requestnumber][4]) ; i++){
+            thisSite.invoke("FromFoundAddToCart", i+1, 1);
+        }
     }
 
     /*
     The method that will be measured during benchmarking
      */
     private static boolean request(int requestnumber){
-        //Log in
-        return thisSite.invoke("Login", logins.get(requestnumber).fst,
-                logins.get(requestnumber).snd);
+        //add to cart
+        return thisSite.invoke("FromFoundAddToCart", Integer.parseInt(addCartReqs[requestnumber][4])+1, 1);
     }
 
     /*
     Method executed after every request
      */
     private static void requestTeardown(){
-        //Log out after each login
+        //LogOut
         thisSite.invoke("Logout");
     }
 
@@ -309,6 +290,16 @@ public class BenchLogin{
                 if(ret.equals(msg))
                     return;
             Thread.sleep(500);
+        }
+    }
+
+    private static void eatObject(Object obj) throws IOException{
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            byte[] bArr = b.toByteArray();
+            bh.write(bArr);
         }
     }
 }

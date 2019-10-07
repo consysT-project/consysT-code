@@ -26,7 +26,7 @@ public interface IDatabase<T,U> {
 
     public JRef<T> GetUser(String Username, String Password, String systemInfo);
 
-    public JRef SearchProducts(String query);
+    public JRef SearchProducts(String query, int limit);
 
     /*
      * Function to add several products at once without checking for duplicate products

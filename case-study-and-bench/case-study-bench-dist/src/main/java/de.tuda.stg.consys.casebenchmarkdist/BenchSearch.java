@@ -1,38 +1,34 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-
 import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.jrefcollections.JRefArrayList;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.util.NullOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
-/*
-The benchmark for the endpoint of logging in
- */
-public class BenchLogin{
+public class BenchSearch{
 
     public static final int WARMUPCOUNT = 10;
-    public static final int WARMUPREPETITIONS = 10;
+    public static final int WARMUPREPETITIONS = 1;
 
     public static final int REPETITIONS = 1;
 
     public static final NullOutputStream bh = new NullOutputStream();
 
-    static ArrayList<Pair<String,String>> logins;
+    static String[] searches;
 
     private static String requestsPath;
 
@@ -115,12 +111,7 @@ public class BenchLogin{
 
 
         //Adapt the requests to the necessary data structure and add them to the database
-        String[] allLogins = getRequests();
-        logins = new ArrayList<>();
-        for (String thisLogin: allLogins) {
-            String[] split = thisLogin.split(";");
-            logins.add(new Pair<>(split[0],split[1]));
-        }
+        searches = getRequests();
 
         if(getShoppingsiteRef() == null){
             System.out.println("Something went wrong with creating the site. Exiting!");
@@ -212,20 +203,21 @@ public class BenchLogin{
     private static void runBenchmark() throws IOException {
         System.out.println("Started Benchmark");
         PrintWriter writer = new PrintWriter(outputName, "UTF-8");
-        int size = logins.size();
+
         long allTimes = 0;
-        for (int i = 0;i < size;i++) {
+        for (int i = 0; i < searches.length; i++) {
             long firstOut = System.nanoTime();
 
             boolean valid = true;
-            boolean retVal = false;
+            JRef<@Weak JRefArrayList> retVal = null;
             requestPrep();
             long firstTime = System.nanoTime();
             try{
                 retVal = request(i);
             }catch(Exception e){
-                System.out.println("Failed");
-                valid = false;
+                System.out.print("Failed");
+                throw e;
+                //valid = false;
             }
             //Add code here to write result into blackhole, if nescessary
             long sndTime = System.nanoTime();
@@ -237,11 +229,11 @@ public class BenchLogin{
             } else i--;
 
             //updateProgress(((retVal) ? "1" : "0"));
-            bh.write(((retVal) ? 1 : 0));
-            System.out.print(Integer.toString(i+1) + " / " + logins.size());
+            eatObject(retVal);
+            System.out.print(Integer.toString(i+1) + " / " + searches.length);
 
             allTimes = (allTimes+ (System.nanoTime() - firstOut));
-            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(size-i));
+            long time = TimeUnit.NANOSECONDS.toMinutes((allTimes/(i+1))*(searches.length-i));
             System.out.print(" | ETA: " + time + " mins left" );
         }
         writer.close();
@@ -257,7 +249,7 @@ public class BenchLogin{
         for(int  i = 0; i < WARMUPCOUNT; i++){
             for (int  j = 0; j < WARMUPREPETITIONS; j++){
                 boolean valid = true;
-                boolean retVal = false;
+                JRef<@Weak JRefArrayList> retVal = null;
                 requestPrep();
                 try{
                     retVal = request(0);
@@ -266,7 +258,7 @@ public class BenchLogin{
                 }
                 if(valid)
                     requestTeardown();
-                bh.write(((retVal) ? 1 : 0));
+                eatObject(retVal);
             }
             System.out.print("\rWarming Up: "+(i+1)+"/"+WARMUPCOUNT);
         }
@@ -277,24 +269,22 @@ public class BenchLogin{
     Method executed before every request
     */
     private static void requestPrep(){
-        //In the case of login, no prep is needed
+        //In the case of search, no prep is needed
     }
 
     /*
     The method that will be measured during benchmarking
      */
-    private static boolean request(int requestnumber){
+    private static JRef<@Weak JRefArrayList> request(int requestnumber){
         //Log in
-        return thisSite.invoke("Login", logins.get(requestnumber).fst,
-                logins.get(requestnumber).snd);
+        return thisSite.invoke("Search", searches[requestnumber], false, 1000);
     }
 
     /*
     Method executed after every request
      */
     private static void requestTeardown(){
-        //Log out after each login
-        thisSite.invoke("Logout");
+        //No teardown required for search
     }
 
     private static void exitBench() throws Exception {
@@ -309,6 +299,16 @@ public class BenchLogin{
                 if(ret.equals(msg))
                     return;
             Thread.sleep(500);
+        }
+    }
+
+    private static void eatObject(Object obj) throws IOException{
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            byte[] bArr = b.toByteArray();
+            bh.write(bArr);
         }
     }
 }
