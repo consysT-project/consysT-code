@@ -15,6 +15,10 @@ public class Demo {
 
 		public int f = 0;
 
+		SomeObj(){
+			showSystem();
+		}
+
 		public void showSystem() {
 			System.out.println("system = " + getSystem());
 		}

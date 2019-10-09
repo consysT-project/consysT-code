@@ -11,6 +11,7 @@ import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref, Replicated, Replicated
 	*/
 private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
 
+
 	override implicit def deref : ReplicatedObject[Addr, T] = replicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")
 
