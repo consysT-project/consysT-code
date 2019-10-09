@@ -14,12 +14,6 @@
 
     <build>
         <plugins>
-            <!-- TODO: We have to disable the preprocessing when we want the type checker to work. How can we change that?
-            <plugin>
-                <groupId>de.tuda.stg</groupId>
-                <artifactId>consys-maven-plugin</artifactId>
-            </plugin> -->
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -28,11 +22,17 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <!-- Reenable this to have inforamtion-flow analysis-->
                     <annotationProcessorPaths>
+                        <!-- path to the consys type checker -->
                         <path>
                             <groupId>de.tuda.stg</groupId>
                             <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                        <!-- path to the consys javac plugin -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consys-compiler</artifactId>
                             <version>1.0.0</version>
                         </path>
                     </annotationProcessorPaths>
@@ -46,25 +46,11 @@
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
+                        <!-- Add the consys compiler plugin for preprocessing sources -->
+                        <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
-
-
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>de.tuda.stg.consys.demo.Main</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
 
@@ -77,6 +63,11 @@
         <dependency>
             <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-compiler</artifactId>
             <version>1.0.0</version>
         </dependency>
     </dependencies>

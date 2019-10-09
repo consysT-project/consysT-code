@@ -27,8 +27,9 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
-	public <R> void setField(String fieldName, R value) {
+	public <R> R setField(String fieldName, R value) {
 		ref.deref().setField(fieldName, value);
+		return value;
 	}
 
 	@Override
@@ -44,6 +45,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	@Override
 	public void syncAll() {
 		ref.deref().syncAll();
+	}
+
+	@Override
+	public void delete() {
+		ref.delete();
 	}
 
 	@Override
