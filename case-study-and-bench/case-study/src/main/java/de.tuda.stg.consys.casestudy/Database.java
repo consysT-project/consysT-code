@@ -3,7 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.*;
+import de.tuda.stg.consys.collections.*;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
