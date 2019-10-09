@@ -76,7 +76,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 	}
 
 	override final def sync() : Unit = {
-		require(!replicaSystem.hasCurrentTransaction)
+		//require(!replicaSystem.hasCurrentTransaction)
 
 		transaction {
 			tx => internalSync()
