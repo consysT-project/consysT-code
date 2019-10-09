@@ -25,9 +25,82 @@ The following instructions have been tested for *Linux Mint 19*.
 
 1. Install [Maven](https://maven.apache.org)
 2. Open a terminal in the main folder consistency-types-impl
-3. Run `mvn org.apache.maven.plugins:maven-dependency-plugin:properties`
-4. Install the consys-maven-plugin. `cd consys-maven-plugin && mvn install`.
-4. Build the complete project. Run `mvn install` in the project directory.
+3. Build the complete project. Run `mvn install` in the project directory. Use `-DskipTests` to skip tests.
+
+To use consys in your project just add the Java API as a dependency:
+
+    <dependency>
+        <groupId>de.tuda.stg</groupId>
+        <artifactId>consys-japi</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+ 
+
+
+To enable the type checker and compiler plugin, add the following to your `pom.xml`:
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArguments>
+                        <Xmaxerrs>10000</Xmaxerrs>
+                        <Xmaxwarns>10000</Xmaxwarns>
+                    </compilerArguments>
+                    <annotationProcessorPaths>
+                        <!-- path to the consys type checker -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                        <!-- path to the consys javac plugin -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consys-compiler</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <annotationProcessors>
+                         <!-- Add all the checkers you want to enable here -->
+                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
+                    <compilerArgs>
+                        <arg>-AprintErrorStack</arg>
+                        <!-- location of the annotated JDK, which comes from a Maven dependency -->
+                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
+                        <!-- Uncomment the following line to turn type-checking warnings into errors. -->
+                        <!-- <arg>-Awarns</arg> -->
+                        <!-- Add the consys compiler plugin for preprocessing sources -->
+                        <arg>-Xplugin:ConsysPlugin</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consistency-checker</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-compiler</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+    </dependencies>
+
+The type checker enables secure information flow. The compiler plugin allows to directly use operations on `JRef`
+with `ref()`.
 
     
 ### IntelliJ

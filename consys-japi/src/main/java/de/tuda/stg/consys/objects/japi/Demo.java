@@ -68,6 +68,9 @@ public class Demo {
 			ref1Strong.invoke("showSystem");
 			ref2Strong.invoke("showSystem");
 
+			ref1Strong.delete();
+			ref2Strong.getField("f");
+
 		} finally {
 			replicaSystem1.close();
 			replicaSystem2.close();

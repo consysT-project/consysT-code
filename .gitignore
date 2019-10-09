@@ -47,11 +47,5 @@ hs_err_pid*
 # Generated sources from preprocessor
 gen/
 
-productsForBenchmark.txt
-usersForBenchmark.txt
-
-*.project
-*.classpath
-*.factorypath
-*.settings/
-case-study-and-bench/case-study-akka/*.txt
+# Exclude opt for now
+/opt/
