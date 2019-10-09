@@ -95,7 +95,7 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>jrefcollections</artifactId>
+            <artifactId>collections</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>

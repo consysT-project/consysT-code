@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.casestudyinterface;
 
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.JRefDistList;
+import de.tuda.stg.consys.collections.JRefDistList;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 /*

@@ -15,7 +15,6 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
                     <source>${javaVersion}</source>
                     <target>${javaVersion}</target>
@@ -108,7 +107,7 @@
         </dependency>
         <dependency>
             <groupId>de.tuda.stg</groupId>
-            <artifactId>jrefcollections</artifactId>
+            <artifactId>collections</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>

@@ -1,11 +1,10 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-import com.sun.tools.javac.util.Pair;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.JRefArrayList;
+import de.tuda.stg.consys.collections.JRefArrayList;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
@@ -15,7 +14,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 

@@ -3,8 +3,8 @@ package de.tuda.stg.consys.casestudystrong;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.jrefcollections.JRefDistList;
-import de.tuda.stg.consys.jrefcollections.JRefHashMap;
+import de.tuda.stg.consys.collections.JRefDistList;
+import de.tuda.stg.consys.collections.JRefHashMap;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JRef;
@@ -13,7 +13,6 @@ import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;

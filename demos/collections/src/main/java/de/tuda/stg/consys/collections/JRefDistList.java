@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.jrefcollections;
+package de.tuda.stg.consys.collections;
 
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
