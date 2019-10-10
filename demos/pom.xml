@@ -17,6 +17,7 @@
         <module>concert-tickets</module>
         <module>message-groups</module>
         <module>collections</module>
+        <module>shopping-cart</module>
     </modules>
 
 

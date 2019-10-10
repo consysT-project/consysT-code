@@ -50,7 +50,7 @@ public class BenchLogin{
 
     private static JRef<@Strong ComChannel> comChannel;
 
-    private static String outputName = "results.txt";
+    private static String outputName = "./results.txt";
 
     public static void main (String[] args) throws Exception {
         if(args.length < 4){
