@@ -147,13 +147,12 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 	override final def clear(except : Set[Addr] = Set.empty) : Unit = {
-
 		import akka.pattern.ask
-		replica..remove(addr)
+		replica.clear(except)
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = Timeout(30L, SECONDS)
-		val futures = otherReplicas.map(actorRef =>	actorRef ? RemoveObjectReplica(addr))
+		val futures = otherReplicas.map(actorRef =>	actorRef ? ClearObjectsReplica(except))
 		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
 	}
 
@@ -314,6 +313,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				replica.remove(addr)
 				sender() ! ()
 
+			case ClearObjectsReplica(except) =>
+				replica.clear(except.asInstanceOf[Set[Addr]])
+				sender() ! ()
+
 			case AcquireHandler =>
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
 				val handler = new RequestHandlerImpl(requestActor)
@@ -354,6 +357,8 @@ object AkkaReplicaSystem {
 	}
 
 	case class RemoveObjectReplica[Addr](addr : Addr) extends ReplicaActorMessage
+	case class ClearObjectsReplica[Addr](except : Set[Addr]) extends ReplicaActorMessage
+
 
 	case object AcquireHandler extends ReplicaActorMessage
 

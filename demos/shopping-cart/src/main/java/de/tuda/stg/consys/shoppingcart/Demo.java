@@ -27,15 +27,15 @@ public class Demo implements Serializable {
         JRef<@Strong Cart> strongCart = Replicas.replicaSystems[0].replicate("crt", new Cart(), JConsistencyLevel.STRONG);
 
         JRef<@Weak ShoppingSite> weakSite = Replicas.replicaSystems[0].replicate("site", new ShoppingSite(strongCart), JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef1 = Replicas.replicaSystems[0].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef2 = Replicas.replicaSystems[1].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef3 = Replicas.replicaSystems[2].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef4 = Replicas.replicaSystems[3].ref("site", ShoppingSite.class, JConsistencyLevel.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef1 = Replicas.replicaSystems[0].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef2 = Replicas.replicaSystems[1].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef3 = Replicas.replicaSystems[2].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef4 = Replicas.replicaSystems[3].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
 
         JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate(new Item("item1", 5), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate(new Item("item2", 10), JConsistencyLevel.WEAK);
         JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item3ref = Replicas.replicaSystems[1].ref("item3", Item.class, JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item3ref = Replicas.replicaSystems[1].lookup("item3", Item.class, JConsistencyLevel.WEAK);
 
         //Add items to cart from various sites (totalling 50)
         weakSiteRef1.invoke("addToCart", item1);

@@ -3,7 +3,6 @@ package de.tuda.stg.consys.casebenchmarkdist;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.collections.JRefArrayList;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
@@ -131,7 +130,7 @@ public class BenchViewInfo  {
         boolean foundComChannel = false;
         while(!foundComChannel){
             try{
-                comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
+                comChannel = thisSystem.lookup("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
                 foundComChannel = true;
                 System.out.println("Found Com Channel");
             }
@@ -159,14 +158,14 @@ public class BenchViewInfo  {
             switch (testVersion){
                 case "mixed":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }
                     break;
                 case "strong":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }

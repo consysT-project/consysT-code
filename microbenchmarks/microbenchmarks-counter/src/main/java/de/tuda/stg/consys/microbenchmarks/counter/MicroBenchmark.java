@@ -61,15 +61,15 @@ public class MicroBenchmark {
 			replicaSystem3.replicate("counter3", new Counter(0), consistencyLevel);
 
 			counters = new ArrayList<>();
-			counters.add(replicaSystem1.ref("counter1", Counter.class, consistencyLevel));
-			counters.add(replicaSystem1.ref("counter2", Counter.class, consistencyLevel));
-			counters.add(replicaSystem1.ref("counter3", Counter.class, consistencyLevel));
-			counters.add(replicaSystem2.ref("counter1", Counter.class, consistencyLevel));
-			counters.add(replicaSystem2.ref("counter2", Counter.class, consistencyLevel));
-			counters.add(replicaSystem2.ref("counter3", Counter.class, consistencyLevel));
-			counters.add(replicaSystem3.ref("counter1", Counter.class, consistencyLevel));
-			counters.add(replicaSystem3.ref("counter2", Counter.class, consistencyLevel));
-			counters.add(replicaSystem3.ref("counter3", Counter.class, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter3", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter3", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter3", Counter.class, consistencyLevel));
 
 			index = -1;
 

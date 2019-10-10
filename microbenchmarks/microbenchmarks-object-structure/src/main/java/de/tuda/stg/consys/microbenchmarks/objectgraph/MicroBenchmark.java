@@ -1,14 +1,10 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import akka.actor.Terminated;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
 import de.tuda.stg.consys.objects.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +87,7 @@ public class MicroBenchmark {
 
             replicaSystem1.replicate("root", createStructure(1, level), rootLevel);
 
-            root = replicaSystem2.ref("root", BenchmarkObject.class, rootLevel);
+            root = replicaSystem2.lookup("root", BenchmarkObject.class, rootLevel);
 
             Thread.sleep(1000);
         }

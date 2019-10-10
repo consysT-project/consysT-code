@@ -32,6 +32,8 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 
 	private static <A extends JCTree> List<Modificator> getModificators(List<? extends Tree> originalList, Consumer<com.sun.tools.javac.util.List<A>> setter) {
 		List<Modificator> mods = new LinkedList<>();
+		if (originalList == null) return mods;
+
 		int i = 0;
 		for (Object t : originalList) {
 			final int finalI = i;

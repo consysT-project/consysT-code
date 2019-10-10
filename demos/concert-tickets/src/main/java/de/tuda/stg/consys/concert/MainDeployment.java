@@ -66,7 +66,7 @@ public class MainDeployment {
     private static <T> void measure(JReplicaSystem replicaSystem, String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) throws Exception {
         System.out.println("SETUP: looking up \"" + addr + "\"");
 
-        JRef<T> concert = replicaSystem.ref(addr, objCls, consistencyLevel);
+        JRef<T> concert = replicaSystem.lookup(addr, objCls, consistencyLevel);
 
         int i = 0;
         while (true) {

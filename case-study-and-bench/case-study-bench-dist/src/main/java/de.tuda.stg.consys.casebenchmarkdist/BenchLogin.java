@@ -2,8 +2,6 @@ package de.tuda.stg.consys.casebenchmarkdist;
 
 
 import com.sun.tools.javac.util.Pair;
-import de.tuda.stg.consys.casestudy.Database;
-import de.tuda.stg.consys.casestudy.Product;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -16,8 +14,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -138,7 +134,7 @@ public class BenchLogin{
         boolean foundComChannel = false;
         while(!foundComChannel){
             try{
-                comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
+                comChannel = thisSystem.lookup("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
                 foundComChannel = true;
                 System.out.println("Found Com Channel");
             }
@@ -166,14 +162,14 @@ public class BenchLogin{
             switch (testVersion){
                 case "mixed":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }
                     break;
                 case "strong":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }

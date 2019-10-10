@@ -6,6 +6,11 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.Ref;
 import de.tuda.stg.consys.objects.ReplicaSystems;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+import scala.collection.JavaConverters;
+import scala.concurrent.JavaConversions;
+import scala.concurrent.JavaConversions$;
+
+import java.util.Set;
 
 /**
  * Java wrapper around {@link AkkaReplicaSystem}.
@@ -49,7 +54,7 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	}
 
 	@Override
-	public <T> JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
+	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
 		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
 		return new JRefImpl<>(ref);
 	}
@@ -68,6 +73,16 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	@Override
 	public void close() throws Exception {
 		replicaSystem.close();
+	}
+
+	@Override
+	public int numOfReplicas() {
+		return replicaSystem.getOtherReplicas().size();
+	}
+
+	@Override
+	public void clear(Set<String> except) {
+		replicaSystem.clear(JavaConverters.asScalaSet(except).toSet());
 	}
 
 	@Override

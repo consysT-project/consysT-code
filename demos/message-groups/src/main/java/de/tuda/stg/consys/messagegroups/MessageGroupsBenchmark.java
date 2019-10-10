@@ -125,9 +125,9 @@ public class MessageGroupsBenchmark {
 
 				for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 					for (int replIndex = 0; replIndex < NUM_OF_REPLICAS; replIndex++) {
-						JRef<de.tuda.stg.consys.messagegroups.Group> group = replicaSystem.ref(
+						JRef<de.tuda.stg.consys.messagegroups.Group> group = replicaSystem.lookup(
 							name("group",grpIndex, replIndex), de.tuda.stg.consys.messagegroups.Group.class, JConsistencyLevel.STRONG);
-						JRef<User> user = replicaSystem.ref(
+						JRef<User> user = replicaSystem.lookup(
 							name("user",grpIndex, replIndex), User.class, JConsistencyLevel.WEAK);
 
 						groups.add(group);
