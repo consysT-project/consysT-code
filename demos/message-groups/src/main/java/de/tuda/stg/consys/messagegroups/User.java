@@ -23,16 +23,16 @@ public class User implements Serializable {
 
 	public void send(String msg) {
 //		System.out.println("[Message] " + name + ": " + msg);
-		inbox.invoke("add", msg);
+		inbox.ref().add(msg);
 	}
 
 	public Set<String> getInbox() {
-		return inbox.invoke("getEntries");
+		return inbox.ref().getEntries();
 	}
 
 
 	public void printInbox() {
-		String s = "[Inbox] " + name + ": " + inbox.invoke("toString");
+		String s = "[Inbox] " + name + ": " + inbox.ref().toString();
 		System.out.println(s);
 	}
 }

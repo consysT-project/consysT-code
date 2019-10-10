@@ -67,7 +67,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				waitersLock.unlock()
 				LockSupport.park(Thread.currentThread())
 			}
+		}
 
+		def clear(except : Set[Addr]) : Unit = {
+			localObjects.keysIterator.filter(key => !except.contains(key)).foreach(key => localObjects.remove(key))
 		}
 
 		def putNewReplica(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
@@ -136,9 +139,17 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		require(replica.contains(addr))
 
 		import akka.pattern.ask
-		/*create the replicated object*/
-		/*put the object in the local replica store*/
 		replica.remove(addr)
+
+		implicit val timeout : Timeout = Timeout(30L, SECONDS)
+		val futures = otherReplicas.map(actorRef =>	actorRef ? RemoveObjectReplica(addr))
+		futures.foreach { future => Await.ready(future, Duration(30L, SECONDS)) }
+	}
+
+	override final def clear(except : Set[Addr] = Set.empty) : Unit = {
+
+		import akka.pattern.ask
+		replica..remove(addr)
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = Timeout(30L, SECONDS)

@@ -18,7 +18,7 @@ public class Group implements Serializable {
 	//Message delivery
 	void addPost(String msg) {
 		for (JRef<User> user : users) {
-			if (user != null) user.invoke("send", msg);
+			if (user != null) user.ref().send(msg);
 		}
 	}
 

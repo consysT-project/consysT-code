@@ -13,7 +13,6 @@
         <module>demos</module>
         <module>consistency-checker</module>
         <module>consistency-checker/consistency-checker-test</module>
-        <module>shopping-cart</module>
         <module>microbenchmarks</module>
         <module>consys-core</module>
         <module>integration-tests</module>
