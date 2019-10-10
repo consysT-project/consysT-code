@@ -66,7 +66,7 @@ public class ConsysJavacPlugin implements Plugin {
 								Names names = Names.instance(context);
 
 								JCTree.JCExpression[] args = new JCTree.JCExpression[1 + methodInv.arguments.size()];
-								args[0] = factory.Literal(new String(methodInv.methodName.toString()));
+								args[0] = factory.Literal(methodInv.methodName.toString());
 								for (int i = 1; i < args.length; i++) {
 //									Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "i = " + i + ", length = " + args.length);
 									args[i] = (JCTree.JCExpression) methodInv.arguments.get(i - 1);

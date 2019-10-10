@@ -132,7 +132,7 @@ public class BenchRegister{
         boolean foundComChannel = false;
         while(!foundComChannel){
             try{
-                comChannel = thisSystem.ref("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
+                comChannel = thisSystem.lookup("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
                 foundComChannel = true;
                 System.out.println("Found Com Channel");
             }
@@ -160,14 +160,14 @@ public class BenchRegister{
             switch (testVersion){
                 case "mixed":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }
                     break;
                 case "strong":
                     try{
-                        thisDatabase = thisSystem.ref("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }

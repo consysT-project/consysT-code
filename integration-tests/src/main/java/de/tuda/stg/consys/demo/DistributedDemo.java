@@ -5,9 +5,6 @@ import de.tuda.stg.consys.demo.schema.ObjA;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
-
-import java.io.Serializable;
 
 /**
  * Created on 31.07.19.
@@ -55,7 +52,7 @@ public class DistributedDemo {
 
 			Thread.sleep(10000);
 
-			JRef<@Strong ObjA> counter = sys.ref("counter", ObjA.class, JConsistencyLevel.STRONG);
+			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevel.STRONG);
 			counter.invoke("inc");
 			System.out.println("value = " + counter.getField("f"));
 

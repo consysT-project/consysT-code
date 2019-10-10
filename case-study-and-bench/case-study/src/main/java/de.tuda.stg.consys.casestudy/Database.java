@@ -234,7 +234,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return null;
 
-        return system.ref(addr, User.class, level);
+        return system.lookup(addr, User.class, level);
     }
 
     private JRef<Product> resolveProduct(String addr, ConsistencyLevel level){
@@ -247,7 +247,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return null;
 
-        return system.ref(addr, Product.class, level);
+        return system.lookup(addr, Product.class, level);
     }
 }
 

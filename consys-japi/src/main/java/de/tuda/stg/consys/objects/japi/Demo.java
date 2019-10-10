@@ -42,10 +42,10 @@ public class Demo {
 
 
 			JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevel.STRONG);
-			JRef<SomeObj> ref2Strong = replicaSystem2.ref("os", SomeObj.class, JConsistencyLevel.STRONG);
+			JRef<SomeObj> ref2Strong = replicaSystem2.lookup("os", SomeObj.class, JConsistencyLevel.STRONG);
 
 			JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevel.WEAK);
-			JRef<SomeObj> ref2Weak = replicaSystem2.ref("ow", SomeObj.class, JConsistencyLevel.WEAK);
+			JRef<SomeObj> ref2Weak = replicaSystem2.lookup("ow", SomeObj.class, JConsistencyLevel.WEAK);
 
 
 			ref1Strong.setField("f", 34);

@@ -78,8 +78,8 @@ public class Demo {
 
             for (int i = 0; i <= entriesPerSystem; i++) {
                 for (int j = 0; j < numReplicas; j++) {
-                    JRef<Group> group = replicaSystem.ref("group$" + i + "$" + j, Group.class, JConsistencyLevel.STRONG);
-                    JRef<User> user = replicaSystem.ref("user$" + i + "$" + j, User.class, JConsistencyLevel.WEAK);
+                    JRef<Group> group = replicaSystem.lookup("group$" + i + "$" + j, Group.class, JConsistencyLevel.STRONG);
+                    JRef<User> user = replicaSystem.lookup("user$" + i + "$" + j, User.class, JConsistencyLevel.WEAK);
 
                     groups.add(group);
                     users.add(user);
