@@ -30,6 +30,8 @@ public interface JReplicaSystem {
 
 	void clear(Set<String> except);
 
+	void barrier(String name);
+
 	static JReplicaSystem fromActorSystem(ActorSystem actorSystem) {
 		return new JReplicaSystemAkkaImpl(actorSystem);
 	}

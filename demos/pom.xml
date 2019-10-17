@@ -18,6 +18,7 @@
         <module>message-groups</module>
         <module>collections</module>
         <module>shopping-cart</module>
+        <module>counter</module>
     </modules>
 
 

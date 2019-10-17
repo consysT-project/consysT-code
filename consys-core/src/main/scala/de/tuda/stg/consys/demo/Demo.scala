@@ -17,6 +17,8 @@ object Demo extends App {
 		def inc(a : Int) : Unit = i = i + a
 	}
 
+
+
 	val replica1 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3773)
 	val replica2 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3774)
 
@@ -28,6 +30,7 @@ object Demo extends App {
 
 		val ref1 = replica1.replicate("a", A(3), High)
 		val ref2 = replica2.lookup[A]("a", High)
+
 
 		Thread.sleep(1000)
 
