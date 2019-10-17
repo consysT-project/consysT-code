@@ -1,13 +1,15 @@
 package de.tuda.stg.consys.messagegroups;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import de.tuda.stg.consys.bench.DistBenchmark;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.checkerframework.com.google.common.collect.Sets;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -18,27 +20,30 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class MessageGroupsDistBenchmark extends DistBenchmark {
+public class MsgGrpsBenchmark extends DistBenchmark {
 
 
 	public static void main(String[] args) {
-		DistBenchmark bench = new MessageGroupsDistBenchmark(args[0]);
+		Config config = ConfigFactory.parseFile(new File("./resources/" + args[0]));
+		DistBenchmark bench = new MsgGrpsBenchmark(config);
 		bench.runBenchmark();
 	}
 
+	private static final int NUM_OF_GROUPS = 1000;
+	private static final int NUM_OF_TRANSACTIONS = 1000;
 
-
-	private static final int NUM_OF_GROUPS = 40000;
-	private static final int NUM_OF_TRANSACTIONS = 300;
-
-	private final List<JRef<@Strong Group>> groups = new ArrayList<>(NUM_OF_GROUPS);
-	private final List<JRef<@Weak User>> users = new ArrayList<>(NUM_OF_GROUPS);
+	private final List<JRef<@Strong Group>> groups = new ArrayList<>(NUM_OF_GROUPS * numOfReplicas());
+	private final List<JRef<@Weak User>> users = new ArrayList<>(NUM_OF_GROUPS * numOfReplicas());
 
 	private final Random random = new Random();
 
 
-	public MessageGroupsDistBenchmark(String configName) {
+	public MsgGrpsBenchmark(String configName) {
 		super(configName);
+	}
+
+	public MsgGrpsBenchmark(Config config) {
+		super(config);
 	}
 
 	private static String name(String identifier, int grpIndex, int replIndex) {
@@ -53,7 +58,7 @@ public class MessageGroupsDistBenchmark extends DistBenchmark {
 	@Override
 	public void setup() {
 		System.out.println("Adding users");
-		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS / numOfReplicas(); grpIndex++) {
+		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 
 			JRef<Group> group = replicaSystem.replicate
 				(name("group", grpIndex, processId), new de.tuda.stg.consys.messagegroups.Group(), JConsistencyLevel.STRONG);
@@ -61,6 +66,7 @@ public class MessageGroupsDistBenchmark extends DistBenchmark {
 				name("inbox", grpIndex, processId), new Inbox(), JConsistencyLevel.WEAK);
 			JRef<User> user = replicaSystem.replicate(
 				name("user", grpIndex, processId), new User(inbox, name("alice", grpIndex, processId)), JConsistencyLevel.WEAK);
+
 
 			group.ref().addUser(user);
 
@@ -86,7 +92,9 @@ public class MessageGroupsDistBenchmark extends DistBenchmark {
 	public void iteration() {
 		for (int i = 0; i < NUM_OF_TRANSACTIONS; i++) {
 			randomTransaction();
+			System.out.print(i % 100 == 0 ? i : ".");
 		}
+		System.out.println();
 	}
 
 	@Override

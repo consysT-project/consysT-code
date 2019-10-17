@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.messagegroups;
+package de.tuda.stg.consys.bench;
 
 /**
  * Created on 10.10.19.

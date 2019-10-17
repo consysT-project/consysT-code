@@ -86,6 +86,11 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	}
 
 	@Override
+	public void barrier(String name) {
+		replicaSystem.barrier(name);
+	}
+
+	@Override
 	public boolean equals(Object other) {
 		return other instanceof JReplicaSystemAkkaImpl
 			&& ((JReplicaSystemAkkaImpl) other).replicaSystem == replicaSystem;

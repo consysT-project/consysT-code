@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.messagegroups;
+package de.tuda.stg.consys.bench;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -8,8 +8,13 @@ import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created on 10.10.19.
@@ -48,6 +53,12 @@ abstract public class DistBenchmark {
 			replicaSystem.addReplicaSystem(replica.getHostname(), replica.getPort());
 		}
 
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		if (processId == 0) {
 			//The coordinator creates a new communication channel
 			commChannel = replicaSystem.replicate("$communication", new BenchmarkCommunication(), JConsistencyLevel.STRONG);
@@ -80,34 +91,74 @@ abstract public class DistBenchmark {
 
 	abstract protected void cleanup();
 
-
-
 	private void warmup() {
+		System.out.println("## START WARMUP ##");
+		replicaSystem.barrier("warmup");
+
 		for (int i = 0; i < warmupIterations; i++) {
+			System.out.println("### SETUP ###");
+			replicaSystem.barrier("setup");
 			setup();
+			System.out.println("### ITERATIONS ###");
+			replicaSystem.barrier("iterations");
 			iteration();
+			System.out.println("### CLEANUP ###");
+			replicaSystem.barrier("cleanup");
 			cleanup();
 		}
+
+		System.out.println("## WARMUP DONE ##");
+		replicaSystem.barrier("warmup-done");
 	}
 
 	private void measure() {
-		try (PrintWriter writer = new PrintWriter(Paths.get(outputFileName, "proc" + processId + ".csv").toFile())) {
+		System.out.println("## START MEASUREMENT ##");
+		replicaSystem.barrier("measure");
+
+		SimpleDateFormat sdf = new SimpleDateFormat("YY-MM-dd kk:mm:ss");
+		Path outputDir = Paths.get(outputFileName, sdf.format(new Date()));
+		Path outputFile =  outputDir.resolve("proc" + processId + ".csv");
+		try {
+			Files.createDirectories(outputDir);
+			Files.deleteIfExists(outputFile);
+			Files.createFile(outputFile);
+		} catch (IOException e) {
+			throw new IllegalStateException("cannot instantiate output file", e);
+		}
+
+		try (PrintWriter writer = new PrintWriter(outputFile.toFile())) {
+			writer.println("iteration,ns");
 			for (int i = 0; i < measureIterations; i++) {
+				System.out.println("### SETUP ###");
+				replicaSystem.barrier("setup");
 				setup();
+				System.out.println("### ITERATIONS ###");
+				replicaSystem.barrier("iterations");
 				long start = System.nanoTime();
 				iteration();
 				long duration = System.nanoTime() - start;
 				writer.println("" + i + "," + duration);
+				System.out.println("### CLEANUP ###");
+				replicaSystem.barrier("cleanup");
 				cleanup();
 			}
 		} catch (FileNotFoundException e) {
-			throw new IllegalStateException("cannot instantiate output file");
+			throw new IllegalStateException("file not found: " + outputFile, e);
 		}
+
+		System.out.println("## MEASUREMENT DONE ##");
+		replicaSystem.barrier("measure-done");
 	}
 
 	public void runBenchmark() {
 		warmup();
 		measure();
+
+		try {
+			replicaSystem.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 

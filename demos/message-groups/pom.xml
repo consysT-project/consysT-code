@@ -158,6 +158,11 @@
             <artifactId>consys-compiler</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-bench</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
 

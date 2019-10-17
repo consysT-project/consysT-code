@@ -67,7 +67,7 @@ public class Main {
 		Thread.sleep(5000);
 
 		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevel.STRONG);
-		System.out.println("Invoke: " + a.ref().inc());
+		System.out.println("Invoke: " + a.ref().incBy(631));
 		System.out.println("Value: " + a.ref().f);
 	}
 
