@@ -32,8 +32,8 @@ public class DistributedDemo {
 			Thread.sleep(5000);
 
 			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevel.STRONG);
-			counter.invoke("inc");
-			System.out.println("value = " + counter.getField("f"));
+			counter.ref().inc();
+			System.out.println("value = " + counter.ref().f);
 
 			Thread.sleep(10000);
 		} finally {
@@ -53,8 +53,8 @@ public class DistributedDemo {
 			Thread.sleep(10000);
 
 			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevel.STRONG);
-			counter.invoke("inc");
-			System.out.println("value = " + counter.getField("f"));
+			counter.ref().inc();
+			System.out.println("value = " + counter.ref().f);
 
 			Thread.sleep(5000);
 		} finally {
