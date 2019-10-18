@@ -4,7 +4,7 @@ import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -296,8 +296,8 @@ public class JRefArrayList implements Serializable, JReplicated {
         else
             return null;
 
-        JRef<@Weak JRefArrayList> retList = system.replicate(new JRefArrayList(JConsistencyLevel.WEAK, arraySize),
-                JConsistencyLevel.WEAK);
+        JRef<@Weak JRefArrayList> retList = system.replicate(new JRefArrayList(JConsistencyLevels.WEAK, arraySize),
+                JConsistencyLevels.WEAK);
 
         if(sync)
             reSyncHead();
@@ -404,7 +404,7 @@ public class JRefArrayList implements Serializable, JReplicated {
         else
             return null;
 
-        JRef ret = system.replicate(new JRefArrayList(JConsistencyLevel.WEAK,arraySize), JConsistencyLevel.WEAK);
+        JRef ret = system.replicate(new JRefArrayList(JConsistencyLevels.WEAK,arraySize), JConsistencyLevels.WEAK);
         int cnt = size(true);
         for(int i=0;i<cnt;i++){
             ret.invoke("append", getIndex(i, true));

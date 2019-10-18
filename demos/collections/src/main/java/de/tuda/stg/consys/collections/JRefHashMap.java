@@ -2,7 +2,7 @@ package de.tuda.stg.consys.collections;
 
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -60,7 +60,7 @@ public class JRefHashMap implements Serializable, JReplicated {
         JRef<DistNode> currNode = map.invoke("getNodeIndex", currPos, false);
         do {
             JRef<KeyJRefPair> currPair = currNode.getField("content");
-            if(level.equals(JConsistencyLevel.WEAK))
+            if(level.equals(JConsistencyLevels.WEAK))
                 currPair.sync();
             if (currPair.getField("valid")) {
                 if (currPair.getField("key").equals(key)) {
@@ -115,7 +115,7 @@ public class JRefHashMap implements Serializable, JReplicated {
         JRef<DistNode> currNode = map.invoke("getNodeIndex", currPos, false);
         while (currPos < mapLen && checkedPairs < filled){
             JRef<KeyJRefPair> currPair = currNode.getField("content");
-            if(level.equals(JConsistencyLevel.WEAK))
+            if(level.equals(JConsistencyLevels.WEAK))
                 currPair.sync();
             if(currPair.getField("valid")){
                 if(refEquals(currPair.getField("ref"), value))
@@ -142,7 +142,7 @@ public class JRefHashMap implements Serializable, JReplicated {
         JRef<DistNode> currNode = map.invoke("getNodeIndex", currPos, false);
         do {
             JRef<KeyJRefPair> currPair = currNode.getField("content");
-            if(level.equals(JConsistencyLevel.WEAK))
+            if(level.equals(JConsistencyLevels.WEAK))
                 currPair.sync();
             if (currPair.getField("valid")) {
                 if (currPair.getField("key").equals(key)) {

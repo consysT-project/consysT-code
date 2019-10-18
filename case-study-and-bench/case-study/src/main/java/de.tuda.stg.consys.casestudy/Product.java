@@ -3,7 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.collections.JRefDistList;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -36,7 +36,7 @@ public class Product implements Serializable, JReplicated {
         else
             return false;
 
-        comments = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        comments = system.replicate(new JRefDistList(JConsistencyLevels.WEAK), JConsistencyLevels.WEAK);
         return true;
     }
 

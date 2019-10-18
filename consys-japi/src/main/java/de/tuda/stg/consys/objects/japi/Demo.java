@@ -41,11 +41,11 @@ public class Demo {
 			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
 
 
-			JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevel.STRONG);
-			JRef<SomeObj> ref2Strong = replicaSystem2.lookup("os", SomeObj.class, JConsistencyLevel.STRONG);
+			JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevels.STRONG);
+			JRef<SomeObj> ref2Strong = replicaSystem2.lookup("os", SomeObj.class, JConsistencyLevels.STRONG);
 
-			JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevel.WEAK);
-			JRef<SomeObj> ref2Weak = replicaSystem2.lookup("ow", SomeObj.class, JConsistencyLevel.WEAK);
+			JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevels.WEAK);
+			JRef<SomeObj> ref2Weak = replicaSystem2.lookup("ow", SomeObj.class, JConsistencyLevels.WEAK);
 
 
 			ref1Strong.setField("f", 34);

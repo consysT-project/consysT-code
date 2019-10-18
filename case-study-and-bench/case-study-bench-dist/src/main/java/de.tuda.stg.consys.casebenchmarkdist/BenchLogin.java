@@ -5,7 +5,7 @@ import com.sun.tools.javac.util.Pair;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.openjdk.jmh.util.NullOutputStream;
@@ -134,7 +134,7 @@ public class BenchLogin{
         boolean foundComChannel = false;
         while(!foundComChannel){
             try{
-                comChannel = thisSystem.lookup("comChannel", ComChannel.class, JConsistencyLevel.STRONG);
+                comChannel = thisSystem.lookup("comChannel", ComChannel.class, JConsistencyLevels.STRONG);
                 foundComChannel = true;
                 System.out.println("Found Com Channel");
             }
@@ -162,14 +162,14 @@ public class BenchLogin{
             switch (testVersion){
                 case "mixed":
                     try{
-                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudy.Database.class, JConsistencyLevels.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }
                     break;
                 case "strong":
                     try{
-                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevel.STRONG);
+                        thisDatabase = thisSystem.lookup("database", de.tuda.stg.consys.casestudystrong.Database.class, JConsistencyLevels.STRONG);
                         foundDatabase = true;
                     }
                     catch (Exception e){ }
@@ -187,11 +187,11 @@ public class BenchLogin{
         switch (testVersion){
             case "mixed":
                 thisSite = thisSystem.replicate(new de.tuda.stg.consys.casestudy.ShoppingSite(
-                        (JRef<de.tuda.stg.consys.casestudy.Database>) thisDatabase), JConsistencyLevel.STRONG);
+                        (JRef<de.tuda.stg.consys.casestudy.Database>) thisDatabase), JConsistencyLevels.STRONG);
                 break;
             case "strong":
                 thisSite = thisSystem.replicate( new de.tuda.stg.consys.casestudystrong.ShoppingSite(
-                        (JRef<de.tuda.stg.consys.casestudystrong.Database>) thisDatabase), JConsistencyLevel.STRONG);
+                        (JRef<de.tuda.stg.consys.casestudystrong.Database>) thisDatabase), JConsistencyLevels.STRONG);
                 break;
             default:
                 thisSite = null;

@@ -1,7 +1,7 @@
 import de.tuda.stg.consys.checker.Inferred;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -22,11 +22,11 @@ public class RemoteObject {
 
 
 	void testExpected() {
-		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevels.STRONG);
+		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevels.WEAK);
 
-		JRef<@Strong A> x2 = replicaSystem.<@Strong A>replicate(new A(2), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y2 = replicaSystem.<@Weak A>replicate(new A(1), JConsistencyLevel.WEAK);
+		JRef<@Strong A> x2 = replicaSystem.<@Strong A>replicate(new A(2), JConsistencyLevels.STRONG);
+		JRef<@Weak A> y2 = replicaSystem.<@Weak A>replicate(new A(1), JConsistencyLevels.WEAK);
 
 		//Assign the same consistency levels
 		x1.ref().f = x2.ref().f;
@@ -43,8 +43,8 @@ public class RemoteObject {
 	}
 
 	void testErrors() {
-		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+		JRef<@Strong A> x1 = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevels.STRONG);
+		JRef<@Weak A> y1 = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevels.WEAK);
 
 
 		// :: error: (assignment.type.incompatible)

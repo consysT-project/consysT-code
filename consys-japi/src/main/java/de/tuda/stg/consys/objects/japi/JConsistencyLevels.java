@@ -8,7 +8,7 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
  *
  * @author Mirko Köhler
  */
-public interface JConsistencyLevel {
+public interface JConsistencyLevels {
 
 	@Local ConsistencyLevel STRONG = ConsistencyLevel.Strong$.MODULE$;
 	@Local ConsistencyLevel WEAK = ConsistencyLevel.Weak$.MODULE$;

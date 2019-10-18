@@ -1,16 +1,14 @@
 package de.tuda.stg.consys.casestudystrong;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public class User implements Serializable , JReplicated {
@@ -47,7 +45,7 @@ public class User implements Serializable , JReplicated {
         else
             return false;
 
-        this.cart = system.replicate(new Cart(system), JConsistencyLevel.STRONG);
+        this.cart = system.replicate(new Cart(system), JConsistencyLevels.STRONG);
         return true;
     }
 

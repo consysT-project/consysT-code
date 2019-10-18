@@ -5,7 +5,7 @@ import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -352,7 +352,7 @@ public class JRefDistList implements Serializable, JReplicated {
 
         System.out.println("Got System");
 
-        JRef<@Weak JRefDistList> retList = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        JRef<@Weak JRefDistList> retList = system.replicate(new JRefDistList(JConsistencyLevels.WEAK), JConsistencyLevels.WEAK);
 
         System.out.println("Created List");
 

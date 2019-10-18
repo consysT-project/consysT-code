@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups;
+package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JRef;
@@ -16,14 +16,14 @@ public class Group implements Serializable {
 	public final JRef<@Weak User>[] users = new JRef[100];
 
 	//Message delivery
-	void addPost(String msg) {
+	public void addPost(String msg) {
 		for (JRef<User> user : users) {
 			if (user != null) user.ref().send(msg);
 		}
 	}
 
 	//Join group
-	void addUser(JRef<User> user) {
+	public void addUser(JRef<User> user) {
 		for (int i = 0; i < users.length; i++) {
 			if (users[i] == null) {
 				users[i] = user;
@@ -33,7 +33,7 @@ public class Group implements Serializable {
 		throw new IllegalArgumentException("no space for users");
 	}
 
-	JRef<User> getUser(int index) {
+	public JRef<User> getUser(int index) {
 		JRef<User> user = users[index];
 		Objects.requireNonNull(user, "no user at index "+ index);
 

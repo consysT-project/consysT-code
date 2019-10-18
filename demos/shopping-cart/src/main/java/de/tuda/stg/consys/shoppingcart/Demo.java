@@ -8,7 +8,7 @@ import de.tuda.stg.consys.jrefcollections.JRefDistList;
 import de.tuda.stg.consys.jrefcollections.JRefHashMap;
 import de.tuda.stg.consys.jrefcollections.JRefLinkedList;
  */
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -24,18 +24,18 @@ public class Demo implements Serializable {
     public static void example1() throws Exception {
 
 
-        JRef<@Strong Cart> strongCart = Replicas.replicaSystems[0].replicate("crt", new Cart(), JConsistencyLevel.STRONG);
+        JRef<@Strong Cart> strongCart = Replicas.replicaSystems[0].replicate("crt", new Cart(), JConsistencyLevels.STRONG);
 
-        JRef<@Weak ShoppingSite> weakSite = Replicas.replicaSystems[0].replicate("site", new ShoppingSite(strongCart), JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef1 = Replicas.replicaSystems[0].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef2 = Replicas.replicaSystems[1].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef3 = Replicas.replicaSystems[2].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
-        JRef<@Weak ShoppingSite> weakSiteRef4 = Replicas.replicaSystems[3].lookup("site", ShoppingSite.class, JConsistencyLevel.WEAK);
+        JRef<@Weak ShoppingSite> weakSite = Replicas.replicaSystems[0].replicate("site", new ShoppingSite(strongCart), JConsistencyLevels.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef1 = Replicas.replicaSystems[0].lookup("site", ShoppingSite.class, JConsistencyLevels.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef2 = Replicas.replicaSystems[1].lookup("site", ShoppingSite.class, JConsistencyLevels.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef3 = Replicas.replicaSystems[2].lookup("site", ShoppingSite.class, JConsistencyLevels.WEAK);
+        JRef<@Weak ShoppingSite> weakSiteRef4 = Replicas.replicaSystems[3].lookup("site", ShoppingSite.class, JConsistencyLevels.WEAK);
 
-        JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate(new Item("item1", 5), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate(new Item("item2", 10), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevel.WEAK);
-        JRef<@Weak Item> item3ref = Replicas.replicaSystems[1].lookup("item3", Item.class, JConsistencyLevel.WEAK);
+        JRef<@Weak Item> item1 = Replicas.replicaSystems[0].replicate(new Item("item1", 5), JConsistencyLevels.WEAK);
+        JRef<@Weak Item> item2 = Replicas.replicaSystems[0].replicate(new Item("item2", 10), JConsistencyLevels.WEAK);
+        JRef<@Weak Item> item3 = Replicas.replicaSystems[0].replicate("item3", new Item("item3", 15), JConsistencyLevels.WEAK);
+        JRef<@Weak Item> item3ref = Replicas.replicaSystems[1].lookup("item3", Item.class, JConsistencyLevels.WEAK);
 
         //Add items to cart from various sites (totalling 50)
         weakSiteRef1.invoke("addToCart", item1);
@@ -301,7 +301,7 @@ public class Demo implements Serializable {
     }
 */
     private static void anotherError() throws Exception {
-        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
+        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevels.WEAK);
 
         System.out.println("This will be printed");
         baseClass.invoke("createInternal");
@@ -313,7 +313,7 @@ public class Demo implements Serializable {
     }
 
     private static void anotherError2() throws Exception{
-        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevel.WEAK);
+        JRef<@Weak ErrorClass> baseClass = Replicas.replicaSystems[0].replicate("errorClass", new ErrorClass(), JConsistencyLevels.WEAK);
 
         Object[] arr = new Object[10];
 

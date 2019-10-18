@@ -1,8 +1,7 @@
 package de.tuda.stg.consys.casestudystrong;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -41,7 +40,7 @@ public class Main implements Serializable {
             return false;
         }else {
             database = replicaSystems[repSysNum].replicate("database",
-                    new Database(), JConsistencyLevel.STRONG);
+                    new Database(), JConsistencyLevels.STRONG);
             database.invoke("init");
             return true;
         }
@@ -50,7 +49,7 @@ public class Main implements Serializable {
     private boolean setUpSites(){
         sites = new LinkedList<JRef<@Strong ShoppingSite>>();
         for (JReplicaSystem sys: replicaSystems) {
-            sites.add(sys.replicate(new ShoppingSite(database), JConsistencyLevel.STRONG));
+            sites.add(sys.replicate(new ShoppingSite(database), JConsistencyLevels.STRONG));
         }
         return true;
     }

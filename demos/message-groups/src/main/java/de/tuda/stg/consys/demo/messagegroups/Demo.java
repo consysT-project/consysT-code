@@ -1,8 +1,12 @@
-package de.tuda.stg.consys.messagegroups;
+package de.tuda.stg.consys.demo.messagegroups;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.demo.messagegroups.schema.Group;
+import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
+import de.tuda.stg.consys.demo.messagegroups.schema.Replicas;
+import de.tuda.stg.consys.demo.messagegroups.schema.User;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -52,9 +56,9 @@ public class Demo {
             for (int i = 0; i <= entriesPerSystem; i++) {
 
                 for (int j = 0; j < replicaSystems.length; j++) {
-                    JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$"+ j, new Group(), JConsistencyLevel.STRONG);
-                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevel.WEAK);
-                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevel.WEAK);
+                    JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$"+ j, new Group(), JConsistencyLevels.STRONG);
+                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.WEAK);
+                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevels.WEAK);
 
                     group.invoke("addUser", user);
                     System.out.println("Added user$" + i + "$"+ j);
@@ -78,8 +82,8 @@ public class Demo {
 
             for (int i = 0; i <= entriesPerSystem; i++) {
                 for (int j = 0; j < numReplicas; j++) {
-                    JRef<Group> group = replicaSystem.lookup("group$" + i + "$" + j, Group.class, JConsistencyLevel.STRONG);
-                    JRef<User> user = replicaSystem.lookup("user$" + i + "$" + j, User.class, JConsistencyLevel.WEAK);
+                    JRef<Group> group = replicaSystem.lookup("group$" + i + "$" + j, Group.class, JConsistencyLevels.STRONG);
+                    JRef<User> user = replicaSystem.lookup("user$" + i + "$" + j, User.class, JConsistencyLevels.WEAK);
 
                     groups.add(group);
                     users.add(user);

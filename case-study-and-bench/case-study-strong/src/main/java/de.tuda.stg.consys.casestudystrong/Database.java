@@ -5,7 +5,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.collections.JRefDistList;
 import de.tuda.stg.consys.collections.JRefHashMap;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
@@ -37,9 +37,9 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevel.STRONG);
-        RegisteredUsers.invoke("init", initUserCount, JConsistencyLevel.STRONG);
-        RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevel.STRONG), JConsistencyLevel.STRONG);
+        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefHashMap(), JConsistencyLevels.STRONG);
+        RegisteredUsers.invoke("init", initUserCount, JConsistencyLevels.STRONG);
+        RegisteredProducts = system.replicate("RegisteredObjectList", new JRefDistList(JConsistencyLevels.STRONG), JConsistencyLevels.STRONG);
         return true;
     }
 
@@ -55,7 +55,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        JRef<@Strong User> newUser = system.replicate(new User(Username, Password), JConsistencyLevel.STRONG);
+        JRef<@Strong User> newUser = system.replicate(new User(Username, Password), JConsistencyLevels.STRONG);
         newUser.invoke("init");
         return RegisterUser(Username, Password, newUser);
     }
@@ -140,7 +140,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
                 skip = true;
             }
             if(!skip){
-                JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price), JConsistencyLevel.STRONG);
+                JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price), JConsistencyLevels.STRONG);
                 newProduct.invoke("init");
 
                 RegisteredProducts.invoke("append", newProduct);
@@ -172,7 +172,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         if(retProduct != null)
             return false;
         else{
-            JRef<@Strong Product> newProduct = system.replicate(new Product(name, price), JConsistencyLevel.STRONG);
+            JRef<@Strong Product> newProduct = system.replicate(new Product(name, price), JConsistencyLevels.STRONG);
             newProduct.invoke("init");
             RegisteredProducts.invoke("append", newProduct);
             return true;
