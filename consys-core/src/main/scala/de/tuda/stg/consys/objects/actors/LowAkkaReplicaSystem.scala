@@ -47,7 +47,9 @@ object LowAkkaReplicaSystem {
     init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
   )(
     protected implicit val ttt : TypeTag[T]
-  ) extends AkkaReplicatedObject[Addr, T]	with Lockable[T] {
+  ) extends AkkaReplicatedObject[Addr, T]
+		with AkkaMultiversionReplicatedObject[Addr, T]
+		with Lockable[T] {
 		setObject(init)
 
 		override final def consistencyLevel : ConsistencyLevel = Low
@@ -112,7 +114,7 @@ object LowAkkaReplicaSystem {
 
 
 		override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-			if (tx.isToplevel && !isRequest.value) {
+			if (isDistributed(tx) && !isRequest.value) {
 				val invokeOp = InvokeOp(tx, methodName, args)
 				println("starting top level invoke...")
 				replicaSystem.foreachOtherReplica(handler => {
@@ -126,9 +128,13 @@ object LowAkkaReplicaSystem {
 		}
 
 
+		private def isDistributed(tx : Transaction) : Boolean = {
+			tx.isToplevel || tx.getParent.exists(t => t.consistencyLevel != Low)
+		}
+
 
 		override def internalGetField[R](tx : Transaction, fldName : String) : R = {
-			if (tx.isToplevel && !isRequest.value) {
+			if (isDistributed(tx) && !isRequest.value) {
 				println("starting top level get...")
 				//Get operations also have to be send to other replicas to ensure correct unlocking.
 				replicaSystem.foreachOtherReplica(handler => {
@@ -142,7 +148,7 @@ object LowAkkaReplicaSystem {
 		}
 
 		override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
-			if (tx.isToplevel && !isRequest.value) {
+			if (isDistributed(tx) && !isRequest.value) {
 				println("starting top level set...")
 				replicaSystem.foreachOtherReplica(handler => {
 					handler.request(addr, RequestOperation(SetFieldOp(tx, fldName, newVal)))
@@ -179,20 +185,20 @@ object LowAkkaReplicaSystem {
 					op match {
 						case InvokeOp(tx, mthdName, args) =>
 							println("executing requested invoke...")
-							assert(tx.isToplevel)
+							assert(isDistributed(tx))
 							transactionStarted(tx)
 							internalInvoke[Any](tx, mthdName, args)
 							transactionFinished(tx) //Unlock all objects
 						case SetFieldOp(tx, fldName, newVal) =>
 							println(s"executing requested set...")
-							assert(tx.isToplevel)
+							assert(isDistributed(tx))
 							internalSetField(tx, fldName, newVal)
 							transactionFinished(tx) //Unlock all objects
-						case GetFieldOp(tx, _) =>
+						case GetFieldOp(tx, fldName) =>
 							println(s"executing requested get...")
-							assert(tx.isToplevel)
+							assert(isDistributed(tx))
 							//We do not need to execute the get, but only finish the transaction
-							//internalSetField(tx, fldName, newVal)
+							internalGetField(tx, fldName)
 							transactionFinished(tx) //Unlock all objects
 					}
 
@@ -210,7 +216,7 @@ object LowAkkaReplicaSystem {
 		}
 
 		override protected def transactionStarted(tx : Transaction) : Unit = {
-			if (tx.isToplevel && !isRequest.value) {
+			if (isDistributed(tx) && !isRequest.value) {
 				lockReplicas(tx)
 			} else {
 				lock(tx.id)

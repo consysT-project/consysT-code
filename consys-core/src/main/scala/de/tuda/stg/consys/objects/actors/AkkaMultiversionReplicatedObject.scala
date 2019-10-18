@@ -12,7 +12,11 @@ import scala.collection.mutable
 trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
 
 	//TODO: implement correct garbage collection for multi version cache
-	protected val opCache : mutable.Map[Transaction, (Operation[_], Any)] = mutable.HashMap.empty
+	@transient private var _opCache : mutable.Map[Transaction, (Operation[_], Any)] = null
+	def opCache : mutable.Map[Transaction, (Operation[_], Any)] = {
+		if (_opCache == null) _opCache = mutable.HashMap.empty
+		_opCache
+	}
 
 	protected def clearCache() : Unit = {
 		opCache.clear()

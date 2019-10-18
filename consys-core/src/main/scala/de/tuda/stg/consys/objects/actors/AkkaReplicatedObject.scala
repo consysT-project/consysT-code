@@ -181,6 +181,9 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 	}
 
 
+	protected [actors] def delete() : Unit = { }
+
+
 	override def toString : String =
 		s"AkkaReplicatedObject[$consistencyLevel]($state)"
 

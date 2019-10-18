@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.messagegroups;
+package de.tuda.stg.consys.demo.messagegroups;
 
 import java.io.Serializable;
 import java.util.HashSet;

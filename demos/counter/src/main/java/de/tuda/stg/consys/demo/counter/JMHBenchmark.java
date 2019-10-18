@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Fork(3)
-public class MicroBenchmark {
+public class JMHBenchmark {
 	public static void main(String[] args) throws Exception {
 		Main.main(args);
 	}
