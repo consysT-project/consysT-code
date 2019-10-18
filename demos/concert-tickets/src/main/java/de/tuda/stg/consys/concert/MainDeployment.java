@@ -3,7 +3,7 @@ package de.tuda.stg.consys.concert;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -38,27 +38,27 @@ public class MainDeployment {
         if (args.length > 2)
             switch (args[2]) {
                 case "strong:0": {
-                    JRef<@Strong ConcertHall> concertHall = replicaSystem.replicate(new ConcertHall(5), JConsistencyLevel.STRONG);
-                    JRef<@Weak Band> band = replicaSystem.replicate(new Band("some band"), JConsistencyLevel.WEAK);
-                    JRef<@Strong Counter> soldTickets = replicaSystem.replicate(new Counter(0), JConsistencyLevel.STRONG);
-                    replicaSystem.replicate("concert", new ConcertStrongAuto(new Date(), concertHall, band, soldTickets), JConsistencyLevel.STRONG);
+                    JRef<@Strong ConcertHall> concertHall = replicaSystem.replicate(new ConcertHall(5), JConsistencyLevels.STRONG);
+                    JRef<@Weak Band> band = replicaSystem.replicate(new Band("some band"), JConsistencyLevels.WEAK);
+                    JRef<@Strong Counter> soldTickets = replicaSystem.replicate(new Counter(0), JConsistencyLevels.STRONG);
+                    replicaSystem.replicate("concert", new ConcertStrongAuto(new Date(), concertHall, band, soldTickets), JConsistencyLevels.STRONG);
                 }
                 break;
 
                 case "weak:0": {
-                    JRef<@Weak ConcertHall> concertHall = replicaSystem.replicate(new ConcertHall(5), JConsistencyLevel.WEAK);
-                    JRef<@Weak Band> band = replicaSystem.replicate(new Band("some band"), JConsistencyLevel.WEAK);
-                    JRef<@Weak Counter> soldTickets = replicaSystem.replicate(new Counter(0), JConsistencyLevel.WEAK);
-                    replicaSystem.replicate("concert", new ConcertWeak(new Date(), concertHall, band, soldTickets), JConsistencyLevel.WEAK);
+                    JRef<@Weak ConcertHall> concertHall = replicaSystem.replicate(new ConcertHall(5), JConsistencyLevels.WEAK);
+                    JRef<@Weak Band> band = replicaSystem.replicate(new Band("some band"), JConsistencyLevels.WEAK);
+                    JRef<@Weak Counter> soldTickets = replicaSystem.replicate(new Counter(0), JConsistencyLevels.WEAK);
+                    replicaSystem.replicate("concert", new ConcertWeak(new Date(), concertHall, band, soldTickets), JConsistencyLevels.WEAK);
                 }
                 break;
 
                 case "strong:1":
-                    measure(replicaSystem, "concert", ConcertStrongAuto.class, JConsistencyLevel.STRONG);
+                    measure(replicaSystem, "concert", ConcertStrongAuto.class, JConsistencyLevels.STRONG);
                 break;
 
                 case "weak:1":
-                    measure(replicaSystem, "concert", ConcertWeak.class, JConsistencyLevel.WEAK);
+                    measure(replicaSystem, "concert", ConcertWeak.class, JConsistencyLevels.WEAK);
                 break;
             }
     }

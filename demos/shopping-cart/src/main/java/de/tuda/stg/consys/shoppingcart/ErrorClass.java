@@ -2,7 +2,7 @@ package de.tuda.stg.consys.shoppingcart;
 
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -21,7 +21,7 @@ class ErrorClass implements Serializable, JReplicated {
     private JRef<@Weak ErrorSubClass> last;
 
     public void add(JReplicaSystem sys) {
-        JRef<@Weak ErrorSubClass> node = sys.replicate(new ErrorSubClass(), JConsistencyLevel.WEAK);
+        JRef<@Weak ErrorSubClass> node = sys.replicate(new ErrorSubClass(), JConsistencyLevels.WEAK);
 
         if(first == null) {
             first = node;
@@ -61,7 +61,7 @@ class ErrorClass implements Serializable, JReplicated {
         else
             return false;
 
-        system.replicate(new InternalSubClass(), JConsistencyLevel.STRONG);
+        system.replicate(new InternalSubClass(), JConsistencyLevels.STRONG);
 
         return false;
     }

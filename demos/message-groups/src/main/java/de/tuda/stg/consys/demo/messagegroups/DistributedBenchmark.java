@@ -1,11 +1,14 @@
-package de.tuda.stg.consys.messagegroups;
+package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import de.tuda.stg.consys.bench.DistBenchmark;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.demo.messagegroups.schema.Group;
+import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
+import de.tuda.stg.consys.demo.messagegroups.schema.User;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
@@ -61,11 +64,11 @@ public class DistributedBenchmark extends DistBenchmark {
 		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 
 			JRef<Group> group = replicaSystem.replicate
-				(name("group", grpIndex, processId), new de.tuda.stg.consys.messagegroups.Group(), JConsistencyLevel.STRONG);
+				(name("group", grpIndex, processId), new Group(), JConsistencyLevels.STRONG);
 			JRef<Inbox> inbox =  replicaSystem.replicate(
-				name("inbox", grpIndex, processId), new Inbox(), JConsistencyLevel.WEAK);
+				name("inbox", grpIndex, processId), new Inbox(), JConsistencyLevels.WEAK);
 			JRef<User> user = replicaSystem.replicate(
-				name("user", grpIndex, processId), new User(inbox, name("alice", grpIndex, processId)), JConsistencyLevel.WEAK);
+				name("user", grpIndex, processId), new User(inbox, name("alice", grpIndex, processId)), JConsistencyLevels.WEAK);
 
 
 			group.ref().addUser(user);
@@ -75,10 +78,10 @@ public class DistributedBenchmark extends DistBenchmark {
 
 		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 			for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
-				JRef<de.tuda.stg.consys.messagegroups.Group> group = replicaSystem.lookup(
-					name("group",grpIndex, replIndex), de.tuda.stg.consys.messagegroups.Group.class, JConsistencyLevel.STRONG);
+				JRef<Group> group = replicaSystem.lookup(
+					name("group",grpIndex, replIndex), Group.class, JConsistencyLevels.STRONG);
 				JRef<User> user = replicaSystem.lookup(
-					name("user",grpIndex, replIndex), User.class, JConsistencyLevel.WEAK);
+					name("user",grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
 
 				groups.add(group);
 				users.add(user);
@@ -106,7 +109,7 @@ public class DistributedBenchmark extends DistBenchmark {
 
 	private int transaction1() {
 		int i = random.nextInt(groups.size());
-		JRef<de.tuda.stg.consys.messagegroups.Group> group = groups.get(i);
+		JRef<Group> group = groups.get(i);
 		//   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
 		group.invoke("addPost", "Hello " + i);
 		return 2;

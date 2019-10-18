@@ -1,16 +1,13 @@
 package de.tuda.stg.consys.casebenchmarkdist;
 
-import de.tuda.stg.consys.casestudy.Product;
-import de.tuda.stg.consys.casestudy.User;
 import de.tuda.stg.consys.casestudyinterface.IDatabase;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 /**
  * The "Server" part of the benchmarks which is responsible for setting up the database and such and to reset things if
@@ -133,7 +130,7 @@ public class BenchingServer {
         boolean createdComChannel = false;
         while(!createdComChannel){
             try{
-                comChannel = thisSystem.replicate("comChannel", new ComChannel(), JConsistencyLevel.STRONG);
+                comChannel = thisSystem.replicate("comChannel", new ComChannel(), JConsistencyLevels.STRONG);
                 System.out.println("Created Com Channel");
                 createdComChannel = true;
             }
@@ -158,12 +155,12 @@ public class BenchingServer {
     private static JRef<? extends IDatabase> getDatabaseRef(int initUserCount, int initProductCount){
         switch (testVersion){
             case "mixed":
-                thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudy.Database(), JConsistencyLevel.STRONG);
+                thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudy.Database(), JConsistencyLevels.STRONG);
                 while(!thisDatabase.isAvailable()){ }
                 thisDatabase.invoke("init",initUserCount, initProductCount);
                 break;
             case "strong":
-                thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudystrong.Database(), JConsistencyLevel.STRONG);
+                thisDatabase = thisSystem.replicate("database", new de.tuda.stg.consys.casestudystrong.Database(), JConsistencyLevels.STRONG);
                 while(!thisDatabase.isAvailable()){ }
                 thisDatabase.invoke("init",initUserCount, initProductCount);
                 break;

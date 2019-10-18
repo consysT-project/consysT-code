@@ -6,7 +6,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.collections.*;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -51,11 +51,11 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), JConsistencyLevel.STRONG);
-        RegisteredUsers.invoke("init", initUserCount,MapArraySize,JConsistencyLevel.STRONG);
+        RegisteredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), JConsistencyLevels.STRONG);
+        RegisteredUsers.invoke("init", initUserCount,MapArraySize, JConsistencyLevels.STRONG);
 
         RegisteredProducts = system.replicate("RegisteredObjectList",
-                new JRefArrayList(JConsistencyLevel.STRONG,ListArraySize), JConsistencyLevel.STRONG);
+                new JRefArrayList(JConsistencyLevels.STRONG,ListArraySize), JConsistencyLevels.STRONG);
 
         /*
         ProductSearchMap = system.replicate("ProductSearchMap", new JRefArrayMap(), JConsistencyLevel.WEAK);
@@ -76,7 +76,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         else
             return false;
 
-        JRef<@Strong User> newUser = system.replicate(new User(Username, Password), JConsistencyLevel.STRONG);
+        JRef<@Strong User> newUser = system.replicate(new User(Username, Password), JConsistencyLevels.STRONG);
         newUser.invoke("init");
         return RegisterUser(Username, Password, newUser);
     }
@@ -107,7 +107,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
 
     public JRef<@Strong User> GetUser(String Username, String Password, String systemInfo){
         String addr = RegisteredUsers.invoke("getValue", Username);
-        JRef<@Strong User> currUser = resolveUser(addr, JConsistencyLevel.STRONG);
+        JRef<@Strong User> currUser = resolveUser(addr, JConsistencyLevels.STRONG);
         if(currUser != null) {
             boolean loggedIn = currUser.invoke("Login", Username, Password, systemInfo);
             if(loggedIn){
@@ -169,7 +169,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
                 /*
                     The approach of using a Hashmap to store substrings was abandoned, due to RAM limitations.
                  */
-                JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price), JConsistencyLevel.STRONG);
+                JRef<@Strong Product> newProduct = system.replicate(new Product(split[0], price), JConsistencyLevels.STRONG);
                 newProduct.invoke("init");
 
                 /*
@@ -217,7 +217,7 @@ public class Database implements Serializable , JReplicated, IDatabase<@Strong U
         if(retProduct != null)
             return false;
         else{
-            JRef<@Strong Product> newProduct = system.replicate(new Product(name, price), JConsistencyLevel.STRONG);
+            JRef<@Strong Product> newProduct = system.replicate(new Product(name, price), JConsistencyLevels.STRONG);
             newProduct.invoke("init");
             RegisteredProducts.invoke("append", newProduct);
             return true;

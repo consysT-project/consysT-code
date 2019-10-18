@@ -72,13 +72,13 @@ public class MicroBenchmark {
 
             List<ConsistencyLevel> levels = new ArrayList<>(count);
             for (int i = 0; i < count; i++)
-                levels.add(JConsistencyLevel.WEAK);
+                levels.add(JConsistencyLevels.WEAK);
 
             Random random = new Random(0);
             for (int i = 0, j; i < strongCount; i++) {
                 do j = random.nextInt(count);
-                while (levels.get(j) == JConsistencyLevel.STRONG);
-                levels.set(j, JConsistencyLevel.STRONG);
+                while (levels.get(j) == JConsistencyLevels.STRONG);
+                levels.set(j, JConsistencyLevels.STRONG);
             }
 
             Iterator<ConsistencyLevel> level = levels.iterator();

@@ -5,7 +5,7 @@ import de.tuda.stg.consys.demo.schema.ObjA;
 import de.tuda.stg.consys.demo.schema.ObjB;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import org.checkerframework.com.google.common.collect.Lists;
@@ -66,17 +66,17 @@ public class Main {
 
 		Thread.sleep(5000);
 
-		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevel.STRONG);
+		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevels.STRONG);
 		System.out.println("Invoke: " + a.ref().incBy(631));
 		System.out.println("Value: " + a.ref().f);
 	}
 
 	public static void example1() throws Exception {
-		JRef<@Strong ObjA> ref1Strong = Replicas.replicaSystem1.replicate("os", new ObjA(), JConsistencyLevel.STRONG);
-		JRef<@Weak ObjA> ref1Weak = Replicas.replicaSystem1.replicate("ow", new ObjA(), JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> ref1Strong = Replicas.replicaSystem1.replicate("os", new ObjA(), JConsistencyLevels.STRONG);
+		JRef<@Weak ObjA> ref1Weak = Replicas.replicaSystem1.replicate("ow", new ObjA(), JConsistencyLevels.WEAK);
 
-		JRef<@Strong ObjA> ref2Strong = Replicas.replicaSystem2.lookup("os", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
-		JRef<@Weak ObjA> ref2Weak = Replicas.replicaSystem2.lookup("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> ref2Strong = Replicas.replicaSystem2.lookup("os", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevels.STRONG);
+		JRef<@Weak ObjA> ref2Weak = Replicas.replicaSystem2.lookup("ow", (Class<@Weak ObjA>) ObjA.class, JConsistencyLevels.WEAK);
 
 
 		ref1Strong.ref().f = 34;
@@ -148,11 +148,11 @@ public class Main {
 	public static void example2() throws Exception {
 
 
-		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
-		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevels.STRONG);
+		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevels.WEAK);
 
-		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.lookup("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
-		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.lookup("b", (Class<@Strong ObjB>) ObjB.class, JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.lookup("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevels.STRONG);
+		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.lookup("b", (Class<@Strong ObjB>) ObjB.class, JConsistencyLevels.WEAK);
 
 		b1.ref().incAll();
 		b2.ref().incAll();
@@ -183,11 +183,11 @@ public class Main {
 	public static void example2Parallel() throws Exception {
 
 
-		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevel.STRONG);
-		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevels.STRONG);
+		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevels.WEAK);
 
-		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.lookup("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevel.STRONG);
-		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.lookup("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevel.WEAK);
+		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.lookup("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevels.STRONG);
+		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.lookup("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevels.WEAK);
 
 
 		ExecutorService exec = Executors.newFixedThreadPool(4);

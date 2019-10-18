@@ -4,9 +4,8 @@ import de.tuda.stg.consys.casestudyinterface.IShoppingSite;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.collections.JRefArrayList;
-import de.tuda.stg.consys.collections.JRefDistList;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -45,7 +44,7 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
                     currentlyLoggedIn.invoke("getName") +"''");
             return false;
         }
-        JRef<@Strong User> newUser = system.replicate(new User(UserName, Password), JConsistencyLevel.STRONG);
+        JRef<@Strong User> newUser = system.replicate(new User(UserName, Password), JConsistencyLevels.STRONG);
         newUser.invoke("init");
         if(Database.invoke("RegisterUser", UserName, Password, newUser)){
             return Login(UserName, Password);

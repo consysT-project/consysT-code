@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.demo.schema.ObjA;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -31,7 +31,7 @@ public class DistributedDemo {
 
 			Thread.sleep(5000);
 
-			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevel.STRONG);
+			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevels.STRONG);
 			counter.ref().inc();
 			System.out.println("value = " + counter.ref().f);
 
@@ -52,7 +52,7 @@ public class DistributedDemo {
 
 			Thread.sleep(10000);
 
-			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevel.STRONG);
+			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevels.STRONG);
 			counter.ref().inc();
 			System.out.println("value = " + counter.ref().f);
 

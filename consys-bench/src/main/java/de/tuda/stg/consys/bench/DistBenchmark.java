@@ -3,7 +3,7 @@ package de.tuda.stg.consys.bench;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -61,10 +61,10 @@ abstract public class DistBenchmark {
 
 		if (processId == 0) {
 			//The coordinator creates a new communication channel
-			commChannel = replicaSystem.replicate("$communication", new BenchmarkCommunication(), JConsistencyLevel.STRONG);
+			commChannel = replicaSystem.replicate("$communication", new BenchmarkCommunication(), JConsistencyLevels.STRONG);
 		} else {
 			//The followers wait until the communication channel has been created
-			commChannel = replicaSystem.lookup("$communication", BenchmarkCommunication.class, JConsistencyLevel.STRONG);
+			commChannel = replicaSystem.lookup("$communication", BenchmarkCommunication.class, JConsistencyLevels.STRONG);
 			commChannel.await();
 		}
 	}
@@ -90,6 +90,9 @@ abstract public class DistBenchmark {
 	abstract protected void iteration();
 
 	abstract protected void cleanup();
+
+
+
 
 	private void warmup() {
 		System.out.println("## START WARMUP ##");

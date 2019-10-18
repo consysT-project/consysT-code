@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups;
+package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 

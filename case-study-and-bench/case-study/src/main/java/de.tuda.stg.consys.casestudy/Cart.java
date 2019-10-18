@@ -3,7 +3,7 @@ package de.tuda.stg.consys.casestudy;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.collections.JRefDistList;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -16,7 +16,7 @@ public class Cart implements Serializable{
     private JRef<@Weak JRefDistList> cartContent;
 
     Cart(JReplicaSystem system){
-        cartContent = system.replicate(new JRefDistList(JConsistencyLevel.WEAK), JConsistencyLevel.WEAK);
+        cartContent = system.replicate(new JRefDistList(JConsistencyLevels.WEAK), JConsistencyLevels.WEAK);
     }
 
     /*

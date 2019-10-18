@@ -2,7 +2,7 @@ package de.tuda.stg.consys.collections;
 
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -378,7 +378,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
     }
 
     private boolean isLow(){
-        return (JConsistencyLevel.WEAK == level);
+        return (JConsistencyLevels.WEAK == level);
     }
 
     private void goToNext(){
