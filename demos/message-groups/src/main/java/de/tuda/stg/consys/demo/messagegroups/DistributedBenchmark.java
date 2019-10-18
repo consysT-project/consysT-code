@@ -20,12 +20,12 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class MsgGrpsBenchmark extends DistBenchmark {
+public class DistributedBenchmark extends DistBenchmark {
 
 
 	public static void main(String[] args) {
 		Config config = ConfigFactory.parseFile(new File("./resources/" + args[0]));
-		DistBenchmark bench = new MsgGrpsBenchmark(config);
+		DistBenchmark bench = new DistributedBenchmark(config);
 		bench.runBenchmark();
 	}
 
@@ -38,11 +38,11 @@ public class MsgGrpsBenchmark extends DistBenchmark {
 	private final Random random = new Random();
 
 
-	public MsgGrpsBenchmark(String configName) {
+	public DistributedBenchmark(String configName) {
 		super(configName);
 	}
 
-	public MsgGrpsBenchmark(Config config) {
+	public DistributedBenchmark(Config config) {
 		super(config);
 	}
 

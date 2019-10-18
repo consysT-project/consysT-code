@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 //Note: Currently not working. Use Demo.java instead.
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class MessageGroupsBenchmark {
+public class JMHBenchmark {
 
 
 	/*####################################################*/
@@ -40,6 +40,8 @@ public class MessageGroupsBenchmark {
 		Main.main(args);
 
 	}
+
+
 
 
 	@State(Scope.Thread)

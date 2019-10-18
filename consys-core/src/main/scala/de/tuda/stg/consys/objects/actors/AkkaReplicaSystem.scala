@@ -52,12 +52,17 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		def contains(addr : Addr) : Boolean = {
 			localObjects.contains(addr)
 		}
-		def put(obj : AkkaReplicatedObject[Addr, _]) : Option[AkkaReplicatedObject[Addr, _]] = {
-			localObjects.put(obj.addr, obj)
+		def put(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
+			localObjects.put(obj.addr, obj) match {
+				case Some(oldObj) if obj != oldObj =>
+					oldObj.delete()
+				case _ =>
+			}
 		}
 
-		def remove(addr : Addr) : Unit = {
-			localObjects.remove(addr)
+		def remove(addr : Addr) : Unit = localObjects.remove(addr) match {
+			case None =>
+			case Some(obj) => obj.delete()
 		}
 
 		def waitFor(addr : Addr) : Unit = {
@@ -72,7 +77,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		}
 
 		def clear(except : Set[Addr]) : Unit = {
-			localObjects.keysIterator.filter(key => !except.contains(key)).foreach(key => localObjects.remove(key))
+			localObjects.keysIterator.filter(key => !except.contains(key)).foreach(key => localObjects.remove(key) match {
+				case None =>
+				case Some(obj) => obj.delete()
+			})
 		}
 
 		def putNewReplica(obj : AkkaReplicatedObject[Addr, _]) : Unit = {
