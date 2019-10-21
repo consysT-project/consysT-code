@@ -113,8 +113,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 	override def releaseLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
 		case None => sys.error(s"replicated object $addr not found.")
-		case Some(rob :  Lockable[_]) =>
-			rob.unlock(tx.id)
+		case Some(rob :  Lockable[_]) => rob.unlock(tx.id)
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 

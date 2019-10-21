@@ -72,14 +72,17 @@ object WeakAkkaReplicaSystem {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
-						val before : List[String] = op.tx.locks.toList
+						val before = op.tx.locks.toSet
+
 						replicaSystem.setCurrentTransaction(op.tx)
 						op match {
 							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
 							case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
 						}
-						assert(replicaSystem.getCurrentTransaction.locks.toList == before)
+
+						assert(replicaSystem.getCurrentTransaction.locks.toSet == before)
+
 						replicaSystem.clearTransaction()
 
 					})

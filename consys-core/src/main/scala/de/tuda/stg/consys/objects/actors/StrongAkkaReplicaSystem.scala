@@ -65,9 +65,9 @@ object StrongAkkaReplicaSystem {
 				super.internalSetField(tx, fldName, newVal)
 			}
 
-			override def internalSync() : Unit = {
+			override def internalSync() : Unit = {	}
 
-			}
+			override def sync() : Unit = { }
 
 			override protected def requiresCache(op : Operation[_]) : Boolean = {
 				!op.tx.hasOnlyLevel(Strong)
@@ -144,6 +144,8 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override def internalSync() : Unit = {	}
+
+			override def sync() : Unit = { }
 
 
 			override protected def requiresCache(op : Operation[_]) : Boolean = {
