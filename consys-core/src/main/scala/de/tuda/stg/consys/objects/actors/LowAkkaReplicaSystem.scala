@@ -56,6 +56,59 @@ object LowAkkaReplicaSystem {
 
 		private final val isRequest : DynamicVariable[Boolean] = new DynamicVariable(false)
 
+//		@throws(classOf[TimeoutException])
+//		def applySynchronous[T, R](op : Operation[T, R], input : T, timeout : FiniteDuration = FiniteDuration(30, "s")) : R  = {
+//			//We implement 2-Phase-Commit for synchronous operations
+//			val id = Random.nextLong()
+//
+//			val startTime = System.nanoTime()
+//
+//			while (true) {
+//				//Phase 1: lock all replicas
+//				if (lock.tryLock(id, timeout, op.objects)) { //Acquire local lock...
+//					val readyResults = otherReplicas
+//						.map(replica => replica.tryLock(id, op.objects, timeout))
+//						.map(future => Await.result(future, timeout)) //... then try to acquire the lock of other replicas
+//
+//					if (readyResults.forall(identity)) { //If the lock has been acquired for all replicas...
+//						//Phase 2: apply the Operation.
+//						otherReplicas.foreach(replica => replica.commit(id, op, input))
+//						val result = applyOp(op, input)
+//						lock.unlock(id, op.objects)
+//						return result
+//					} else {
+//						//Rollback Phase 1: Unlock all locks
+//						otherReplicas.foreach(replica => replica.unlock(id, op.objects))
+//						lock.unlock(id, op.objects)
+//					}
+//
+//					Thread.sleep(Random.nextInt(1000))
+//				}
+//
+//				//Timeout: abort trying 2PC
+//				if ((System.nanoTime() - startTime) > timeout.toNanos) {
+//					throw new TimeoutException
+//				}
+//			}
+//
+//			//This line should never be called.
+//			throw new Exception()
+//		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		//Acquires a lock of all replicas of this object
 		private def lockReplicas(tx : Transaction): Unit = {
 

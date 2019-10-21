@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.objects.actors
 
-import de.tuda.stg.consys.objects.ConsistencyLevel.{Low, Strong, Weak}
 import de.tuda.stg.consys.objects.ConsistencyLevel.{Strong, Weak}
 import de.tuda.stg.consys.objects.Ref
 import de.tuda.stg.consys.objects.actors.Data.{A, B}
@@ -17,34 +16,34 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 	test("testStrongMasterWithStrongNested") { F =>
 		val replica0 = F(0)
 
-		val refA1 = replica0.replicate("a1", A(100), Low)
-		val refA2 = replica0.replicate("a2", A(200), Low)
-		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Low)
+		val refA1 = replica0.replicate("a1", A(100), Strong)
+		val refA2 = replica0.replicate("a2", A(200), Strong)
+		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
 
 		val result = refB.invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { replica.lookup[A]("a1", Low).getField("i") }
-			assertResult(202) { replica.lookup[A]("a2", Low).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
 	test("testStrongFollowerWithStrongNested") { F =>
 		val replica0 = F(0)
 
-		val refA1 = replica0.replicate("a1", A(100), Low)
-		val refA2 = replica0.replicate("a2", A(200), Low)
-		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Low)
+		val refA1 = replica0.replicate("a1", A(100), Strong)
+		val refA2 = replica0.replicate("a2", A(200), Strong)
+		val refB : Ref[String, B] = replica0.replicate("b", B(refA1, refA2), Strong)
 
-		val result = F(1).lookup[B]("b", Low).invoke[Int]("incAll", Seq(Seq()))
+		val result = F(1).lookup[B]("b", Strong).invoke[Int]("incAll", Seq(Seq()))
 
 		assertResult (104) { result }
 
 		F.replicas.foreach {replica =>
-			assertResult(104) { replica.lookup[A]("a1", Low).getField("i") }
-			assertResult(202) { replica.lookup[A]("a2", Low).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 
@@ -53,8 +52,8 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		val replica0 = F(0)
 
 		replica0.replicate("b", B(
-			replica0.replicate("a1", A(100), Low),
-			replica0.replicate("a2", A(200), Low)),
+			replica0.replicate("a1", A(100), Strong),
+			replica0.replicate("a2", A(200), Strong)),
 			Weak)
 
 		val result = F(0).lookup("b", Weak).invoke[Int]("incAll", Seq(Seq()))
@@ -62,16 +61,16 @@ class AkkaReplicaSystemNestedTests extends fixture.FunSuite with AkkaReplicaSyst
 		assertResult (104) { result }
 
 		F.replicas.foreach { replica =>
-			assertResult(104) { replica.lookup[A]("a1", Low).getField("i") }
-			assertResult(202) { replica.lookup[A]("a2", Low).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 
 		F(0).lookup("b", Weak).syncAll() //Synchronize the method invocation
 
 		F.replicas.foreach { replica =>
 			replica.lookup[B]("b", Weak).sync()
-			assertResult(104) { replica.lookup[A]("a1", Low).getField("i") }
-			assertResult(202) { replica.lookup[A]("a2", Low).getField("i") }
+			assertResult(104) { replica.lookup[A]("a1", Strong).getField("i") }
+			assertResult(202) { replica.lookup[A]("a2", Strong).getField("i") }
 		}
 	}
 

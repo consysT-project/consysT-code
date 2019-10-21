@@ -146,6 +146,9 @@ private[objects] object Utils {
 		def unlockAllTxid(txid : Long) : Unit = {
 			mutexLock.lock()
 
+//			if (currentAccessorCount == 0 && currentTxid.isEmpty)
+//				return
+
 			assert(currentAccessorCount >= 1)
 			assert(currentTxid.nonEmpty)
 			assert(txid == currentTxid.get)

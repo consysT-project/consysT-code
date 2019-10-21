@@ -75,7 +75,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 		internalSetField(tx, fieldName, value)
 	}
 
-	override final def sync() : Unit = {
+	override def sync() : Unit = {
 		//require(!replicaSystem.hasCurrentTransaction)
 
 		transaction {
