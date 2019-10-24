@@ -375,15 +375,16 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
 					case None => sys.error(s"object $addr not found")
-					case Some(obj) =>
-						if (request.returns)
+					case Some(obj) => request match {
+						case _ : SynchronousRequest[_] | _ : AsynchronousRequest[_] =>
 							sender() ! obj.handleRequest(request)
-						else
+						case _ : NoAnswerRequest =>
 							obj.handleRequest(request)
+					}
 				}
 
 				case CloseHandler =>
-					//Clears all transaction data for the next actor that runs on this thread.
+					clearTransaction()
 					context.stop(self)
 			}
 		}

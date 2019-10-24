@@ -5,7 +5,7 @@ import de.tuda.stg.consys.objects.ConsistencyLevel
 import de.tuda.stg.consys.objects.ConsistencyLevel.{High, Low}
 import de.tuda.stg.consys.objects.actors.HighAkkaReplicaSystem.HighReplicatedObject
 import de.tuda.stg.consys.objects.actors.LowAkkaReplicaSystem.{LowReplicatedObject, NotLockedException}
-import de.tuda.stg.consys.objects.actors.Requests.{GetFieldOp, InvokeOp, NonReturnRequest, Operation, Request, ReturnRequest, SetFieldOp}
+import de.tuda.stg.consys.objects.actors.Requests.{GetFieldOp, InvokeOp, AsynchronousRequest, Operation, Request, SynchronousRequest, SetFieldOp}
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -35,10 +35,10 @@ trait LowAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object LowAkkaReplicaSystem {
 
-	private case class LockRequest(txid : Long) extends Request with ReturnRequest
-	private case class UnlockRequest(txid : Long) extends Request with ReturnRequest
-	private case class RequestOperation(op : Operation[_]) extends Request with ReturnRequest
-	private case class RequestSync(tx : Transaction) extends Request with ReturnRequest
+	private case class LockRequest(txid : Long) extends SynchronousRequest[Boolean]
+	private case class UnlockRequest(txid : Long) extends SynchronousRequest[Unit]
+	private case class RequestOperation(op : Operation[_]) extends SynchronousRequest[Unit]
+	private case class RequestSync(tx : Transaction) extends SynchronousRequest[Unit]
 
 	private case object NotLockedException extends RuntimeException
 
@@ -225,12 +225,12 @@ object LowAkkaReplicaSystem {
 			super.internalSync()
 		}
 
-		override def handleRequest(request : Request) : Any = request match {
+		override def handleRequest[R](request : Request[R]) : R = request match {
 			case LockRequest(txid) =>
-				tryLock(txid) //Returns a boolean that states whether the lock has been acquired.
+				tryLock(txid).asInstanceOf[R] //Returns a boolean that states whether the lock has been acquired.
 
 			case UnlockRequest(txid) =>
-				unlock(txid)
+				unlock(txid).asInstanceOf[R]
 
 			case RequestOperation(op) =>
 				replicaSystem.setCurrentTransaction(op.tx)
@@ -255,13 +255,13 @@ object LowAkkaReplicaSystem {
 							transactionFinished(tx) //Unlock all objects
 					}
 
-					replicaSystem.clearTransaction()
+					replicaSystem.clearTransaction().asInstanceOf[R]
 				}
 
 			case RequestSync(txid) =>
 				replicaSystem.setCurrentTransaction(txid)
 				transactionFinished(txid) //Unlock all objects
-				replicaSystem.clearTransaction()
+				replicaSystem.clearTransaction().asInstanceOf[R]
 
 
 			case _ =>

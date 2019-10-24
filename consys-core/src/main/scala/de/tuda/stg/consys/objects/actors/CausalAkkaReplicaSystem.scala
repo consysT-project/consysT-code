@@ -33,10 +33,11 @@ object CausalAkkaReplicaSystem {
 
   object CausalReplicatedObject {
 
-    class CausalMasterReplicatedObject[Addr, T <: AnyRef](init: T, val addr: Addr, val replicaSystem: AkkaReplicaSystem[Addr]
-                                                         )(
-                                                           protected implicit val ttt: TypeTag[T]
-                                                         )
+    class CausalMasterReplicatedObject[Addr, T <: AnyRef](
+      init: T, val addr: Addr, val replicaSystem: AkkaReplicaSystem[Addr]
+    )(
+      protected implicit val ttt: TypeTag[T]
+    )
       extends CausalReplicatedObject[Addr, T]
         with AkkaMultiversionReplicatedObject[Addr, T] {
       setObject(init)
@@ -70,8 +71,10 @@ object CausalAkkaReplicaSystem {
 
       }
 
-      override def handleRequest(request: Request): Any = request match {
-        case Message(senderVC, op) => checkHappenedBefore(Message(senderVC, op))
+      override def handleRequest[R](request: Request[R]): R = request match {
+        case Message(senderVC, op) =>
+          checkHappenedBefore(Message(senderVC, op))
+          ().asInstanceOf[R]
         case _ => super.handleRequest(request)
       }
 
@@ -111,8 +114,7 @@ object CausalAkkaReplicaSystem {
     }
 
 
-    sealed trait CausalReq extends Request
-    case class Message (senderVC: VectorClock, op: Operation[_]) extends Request with NonReturnRequest
+    case class Message (senderVC: VectorClock, op: Operation[_]) extends NoAnswerRequest
 
   }
 

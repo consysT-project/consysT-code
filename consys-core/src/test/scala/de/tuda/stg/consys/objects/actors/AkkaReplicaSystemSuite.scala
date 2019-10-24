@@ -67,7 +67,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 			}
 
 			for (i <- fixture.replicas.indices) {
-				Await.result(futures(i), Duration(60, TimeUnit.SECONDS))
+				Await.result(futures(i), Duration(180, TimeUnit.SECONDS))
 			}
 		} finally {
 			service.shutdown()

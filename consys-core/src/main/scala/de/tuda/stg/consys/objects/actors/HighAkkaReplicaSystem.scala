@@ -1,14 +1,11 @@
 package de.tuda.stg.consys.objects.actors
 
 import akka.actor.ActorRef
-import akka.cluster.protobuf.msg.ClusterMessages.VectorClock
 import de.tuda.stg.consys.objects.ConsistencyLevel
-import de.tuda.stg.consys.objects.ConsistencyLevel.{High, Weak}
+import de.tuda.stg.consys.objects.ConsistencyLevel.High
 import de.tuda.stg.consys.objects.actors.HighAkkaReplicaSystem.HighReplicatedObject
-import de.tuda.stg.consys.objects.actors.Requests.{GetFieldOp, InvokeOp, Operation, Request, ReturnRequest, SetFieldOp}
-import de.tuda.stg.consys.objects.actors.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
+import de.tuda.stg.consys.objects.actors.Requests.{Request, SynchronousRequest}
 
-import scala.collection.mutable
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
@@ -36,7 +33,7 @@ trait HighAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object HighAkkaReplicaSystem {
 
-	private case class SyncRequest(state : AnyRef, version : Long) extends Request with ReturnRequest
+
 
 
 	private [HighAkkaReplicaSystem] class HighReplicatedObject[Addr, T <: AnyRef] (
@@ -77,14 +74,14 @@ object HighAkkaReplicaSystem {
 			})
 		}
 
-		override def handleRequest(request : Request) : Any = request match {
+		override def handleRequest[R](request : Request[R]) : R = request match {
 			case SyncRequest(syncObj, syncVersion) =>
 				if (timestamp < syncVersion) {
 					setObject(syncObj.asInstanceOf[T])
 					timestamp = syncVersion
-					None
+					None.asInstanceOf[R]
 				} else {
-					Some((getObject, timestamp))
+					Some((getObject, timestamp)).asInstanceOf[R]
 				}
 
 			case _ =>
@@ -100,6 +97,9 @@ object HighAkkaReplicaSystem {
 		}
 
 		override def toString : String = s"@High($addr, $getObject)"
+
+
+		private case class SyncRequest(state : AnyRef, version : Long) extends SynchronousRequest[Option[(T, Long)]]
 	}
 
 
