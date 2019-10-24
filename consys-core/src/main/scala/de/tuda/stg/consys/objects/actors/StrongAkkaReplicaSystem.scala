@@ -73,23 +73,23 @@ object StrongAkkaReplicaSystem {
 				!op.tx.hasOnlyLevel(Strong)
 			}
 
-			override def handleRequest(request : Request) : Any = request match {
+			override def handleRequest[R](request : Request[R]) : R = request match {
 				case LockReq(txid) =>
 					lock(txid)
-					LockRes(getObject)
+					LockRes(getObject).asInstanceOf[R]
 
 				case MergeReq(null, op, result) =>
 					cache(op, result)
-					()
+					().asInstanceOf[R]
 
 				case MergeReq(newObj : T@unchecked, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					()
+					().asInstanceOf[R]
 
 				case UnlockReq(txid) =>
 					unlock(txid)
-					()
+					().asInstanceOf[R]
 
 				case _ => super.handleRequest(request)
 			}
@@ -122,25 +122,36 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 			//Handles communication with the master
-			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
+//			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
 
 			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val res = super.internalInvoke[R](tx, methodName, args)
-				handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
+
+				val handler = replicaSystem.handlerFor(masterReplica)
+				handler.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
+				handler.close()
 
 				res
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
 				val res = super.internalGetField[R](tx, fldName)
-				handler.value.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
+
+				val handler = replicaSystem.handlerFor(masterReplica)
+				handler.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
+				handler.close()
 
 				res
 			}
 
 			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
 				super.internalSetField(tx, fldName, newVal)
-				handler.value.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
+
+				val handler = replicaSystem.handlerFor(masterReplica)
+				handler.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
+				handler.close()
+
+
 			}
 
 			override def internalSync() : Unit = {	}
@@ -154,15 +165,19 @@ object StrongAkkaReplicaSystem {
 
 
 			override private[actors] def lock(txid : Long) : Unit = {
-				lockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
+				lockWithHandler(txid)
 			}
 
 			override private[actors] def unlock(txid : Long) : Unit = {
 				unlockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
-			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
+			private def lockWithHandler(txid : Long) : Unit = {
+
+				val handler = replicaSystem.handlerFor(masterReplica)
 				val LockRes(masterObj : T@unchecked) = handler.request(addr, LockReq(txid))
+				handler.close()
+
 				setObject(masterObj)
 			}
 
@@ -174,14 +189,11 @@ object StrongAkkaReplicaSystem {
 
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
-				assert(handler.value == null)
-
-				handler.value = replicaSystem.handlerFor(masterReplica)
 
 				if (opCache.contains(tx)) {
 					//transaction is cached. No locking required.
 				} else {
-					lockWithHandler(tx.id, handler.value)
+					lockWithHandler(tx.id)
 					tx.addLock(addr.asInstanceOf[String])
 				}
 
@@ -189,9 +201,6 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override protected def transactionFinished(tx : Transaction) : Unit = {
-				handler.value.close()
-				handler.value = null
-
 				super.transactionFinished(tx)
 			}
 
@@ -202,10 +211,10 @@ object StrongAkkaReplicaSystem {
 
 
 
-	sealed trait StrongReq extends Request
-	case class LockReq(txid : Long) extends StrongReq with ReturnRequest
-	case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
-	case class UnlockReq(txid : Long) extends StrongReq with ReturnRequest
+	case class LockReq(txid : Long) extends SynchronousRequest[LockRes]
+	case class LockRes(obj : AnyRef)
+
+	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends SynchronousRequest[Unit]
+	case class UnlockReq(txid : Long) extends SynchronousRequest[Unit]
 
 }

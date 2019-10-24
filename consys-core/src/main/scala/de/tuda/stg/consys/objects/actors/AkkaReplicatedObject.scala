@@ -146,7 +146,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 	 *
 	 * @return The return value of the request.
 	 */
-	def handleRequest(request : Request) : Any = {
+	def handleRequest[R](request : Request[R]) : R = {
 		throw new IllegalArgumentException(s"can not handle request $request")
 	}
 

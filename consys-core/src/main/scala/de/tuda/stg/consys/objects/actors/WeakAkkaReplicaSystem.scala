@@ -39,6 +39,8 @@ object WeakAkkaReplicaSystem {
 		override final def consistencyLevel : ConsistencyLevel = Weak
 	}
 
+
+
 	object WeakReplicatedObject {
 
 		class WeakMasterReplicatedObject[Addr, T <: AnyRef](
@@ -68,7 +70,7 @@ object WeakAkkaReplicaSystem {
 			//	println("WARNING: sync on master")
 			}
 
-			override def handleRequest(request : Request) : Any = request match {
+			override def handleRequest[R](request : Request[R]) : R = request match {
 				case SynchronizeWithWeakMaster(ops) =>
 
 					ops.foreach(op => {
@@ -87,7 +89,7 @@ object WeakAkkaReplicaSystem {
 
 					})
 
-					WeakSynchronized(getObject)
+					WeakSynchronized[T](getObject).asInstanceOf[R]
 
 				case _ =>
 					super.handleRequest(request)
@@ -125,7 +127,7 @@ object WeakAkkaReplicaSystem {
 				val handler = replicaSystem.handlerFor(masterReplica)
 
 				val WeakSynchronized(newObj : T@unchecked) =
-					handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
+					handler.request(addr, SynchronizeWithWeakMaster[T](unsynchronized))
 				handler.close()
 
 				setObject(newObj)
@@ -136,10 +138,12 @@ object WeakAkkaReplicaSystem {
 		}
 	}
 
-	sealed trait WeakReq extends Request
-	case class SynchronizeWithWeakMaster(seq : scala.collection.Seq[Operation[_]]) extends WeakReq with ReturnRequest
 
+
+	case class SynchronizeWithWeakMaster[T <: AnyRef](seq : scala.collection.Seq[Operation[_]]) extends SynchronousRequest[WeakSynchronized[T]]
 	case class WeakSynchronized[T <: AnyRef](obj : T)
+
+
 
 }
 
