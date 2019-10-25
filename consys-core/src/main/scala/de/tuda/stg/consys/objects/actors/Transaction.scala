@@ -31,7 +31,7 @@ private[actors] trait Transaction extends Serializable {
 	def hasOnlyLevel(level : ConsistencyLevel) : Boolean
 
 	def start(consistencyLevel : ConsistencyLevel) : Transaction = {
-		new NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
+		NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
 	}
 
 
