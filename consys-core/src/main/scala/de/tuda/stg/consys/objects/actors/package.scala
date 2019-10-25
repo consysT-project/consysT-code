@@ -20,8 +20,9 @@ package object actors {
 		extends AkkaReplicaSystem[String]
 		with StrongAkkaReplicaSystem[String]
 		with WeakAkkaReplicaSystem[String]
-		with HighAkkaReplicaSystem[String]
-		with LowAkkaReplicaSystem[String]
+//		with HighAkkaReplicaSystem[String]
+//		with LowAkkaReplicaSystem[String]
+		with CassandraAkkaReplicaSystem[String]
 	{
 
 		override protected def freshAddr() : String =

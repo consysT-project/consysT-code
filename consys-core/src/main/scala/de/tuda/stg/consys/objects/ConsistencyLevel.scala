@@ -21,6 +21,7 @@ object ConsistencyLevel {
 	case object High extends ConsistencyLevel
 	case object Low extends ConsistencyLevel
 
+
 	case class Cassandra(replicas : Int) extends ConsistencyLevel
 
 
