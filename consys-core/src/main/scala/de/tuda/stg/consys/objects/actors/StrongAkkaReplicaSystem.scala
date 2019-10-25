@@ -122,36 +122,25 @@ object StrongAkkaReplicaSystem {
 			setObject(init)
 
 			//Handles communication with the master
-//			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
+			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
 
 			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val res = super.internalInvoke[R](tx, methodName, args)
-
-				val handler = replicaSystem.handlerFor(masterReplica)
-				handler.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
-				handler.close()
+				handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
 
 				res
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
 				val res = super.internalGetField[R](tx, fldName)
-
-				val handler = replicaSystem.handlerFor(masterReplica)
-				handler.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
-				handler.close()
+				handler.value.request(addr,  MergeReq(null, GetFieldOp(tx, fldName), res))
 
 				res
 			}
 
 			override def internalSetField(tx : Transaction, fldName : String, newVal : Any) : Unit = {
 				super.internalSetField(tx, fldName, newVal)
-
-				val handler = replicaSystem.handlerFor(masterReplica)
-				handler.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
-				handler.close()
-
-
+				handler.value.request(addr, MergeReq(getObject, SetFieldOp(tx, fldName, newVal), ()))
 			}
 
 			override def internalSync() : Unit = {	}
@@ -165,19 +154,15 @@ object StrongAkkaReplicaSystem {
 
 
 			override private[actors] def lock(txid : Long) : Unit = {
-				lockWithHandler(txid)
+				lockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
 			override private[actors] def unlock(txid : Long) : Unit = {
 				unlockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
-			private def lockWithHandler(txid : Long) : Unit = {
-
-				val handler = replicaSystem.handlerFor(masterReplica)
+			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
 				val LockRes(masterObj : T@unchecked) = handler.request(addr, LockReq(txid))
-				handler.close()
-
 				setObject(masterObj)
 			}
 
@@ -189,11 +174,14 @@ object StrongAkkaReplicaSystem {
 
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
+				assert(handler.value == null)
+
+				handler.value = replicaSystem.handlerFor(masterReplica)
 
 				if (opCache.contains(tx)) {
 					//transaction is cached. No locking required.
 				} else {
-					lockWithHandler(tx.id)
+					lockWithHandler(tx.id, handler.value)
 					tx.addLock(addr.asInstanceOf[String])
 				}
 
@@ -201,6 +189,9 @@ object StrongAkkaReplicaSystem {
 			}
 
 			override protected def transactionFinished(tx : Transaction) : Unit = {
+				handler.value.close()
+				handler.value = null
+
 				super.transactionFinished(tx)
 			}
 
