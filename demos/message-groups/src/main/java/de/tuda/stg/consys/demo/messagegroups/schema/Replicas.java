@@ -1,13 +1,14 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 public class Replicas {
 	public static final JReplicaSystem[] replicaSystems = new JReplicaSystem[4];
 
 	static {
 		for (int i = 0; i < replicaSystems.length; i++) {
-			replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
+			replicaSystems[i] = JReplicaSystems.fromActorSystem(2552 + i);
 		}
 
 		for (int i = 0; i < replicaSystems.length; i++) {

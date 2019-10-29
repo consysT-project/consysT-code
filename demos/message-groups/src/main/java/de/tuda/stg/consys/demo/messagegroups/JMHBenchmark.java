@@ -8,6 +8,7 @@ import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
@@ -64,7 +65,7 @@ public class JMHBenchmark {
 			/* Initialize replicas */
 			System.out.println("Initialize replicas...");
 			for (int i = 0; i < NUM_OF_REPLICAS; i++) {
-				replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
+				replicaSystems[i] = JReplicaSystems.fromActorSystem(2552 + i);
 			}
 
 			for (int i = 0; i < NUM_OF_REPLICAS; i++) {

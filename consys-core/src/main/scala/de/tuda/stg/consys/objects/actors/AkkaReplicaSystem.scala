@@ -1,18 +1,19 @@
 package de.tuda.stg.consys.objects.actors
 
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import akka.event.LoggingAdapter
+import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.objects
-import de.tuda.stg.consys.objects.{ConsistencyLevel, LockServiceReplicaSystem, ReplicaSystem, Utils}
+import de.tuda.stg.consys.objects.{BarrierReplicaSystem, ConsistencyLevel, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicatedObject, Utils}
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
-import de.tuda.stg.consys.objects.{ConsistencyLevel, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicatedObject, Utils}
 
 import scala.collection.mutable
-import scala.concurrent.Await
+import scala.concurrent.{Await, TimeoutException}
 import scala.concurrent.duration._
 import scala.language.{higherKinds, postfixOps}
 import scala.reflect.runtime.universe._
@@ -24,6 +25,7 @@ import scala.reflect.runtime.universe._
 	*/
 trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	with AkkaTransactionalReplicaSystem[Addr]
+	with BarrierReplicaSystem[Addr]
 	with LockServiceReplicaSystem[Addr, Transaction] {
 
 	override type Ref[T <: AnyRef] <: AkkaRef[Addr, T]
@@ -34,7 +36,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	/*Other replicas known to this replica.*/
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
-	private val defaultTimeout = Duration(60, "s")
+	val defaultTimeout : FiniteDuration
 
 
 	protected[actors] object replica {
@@ -166,25 +168,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
-	def barrier(name : String) : Unit = {
-
-		def addressToName(address : Address) : Addr = {
-			(name + "$" + address.host + ":" + address.port).asInstanceOf[Addr]
-		}
-
-		//Create own barrier object to notify others
-		replicate(addressToName(getActorSystemAddress), "", ConsistencyLevel.Strong)
-		//Wait for other barrier objects
-		otherReplicas.foreach(actorRef => {
-			lookup[String](addressToName(actorRef.path.address), ConsistencyLevel.Strong).await()
-		})
-
-		//Locally cleanup all replica objects
-		replica.remove(addressToName(getActorSystemAddress))
-		otherReplicas.foreach(actorRef => {
-			replica.remove(addressToName(actorRef.path.address))
-		})
-	}
 
 
 	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
@@ -208,6 +191,37 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
+
+
+
+
+
+
+	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
+		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]
+
+
+	override def barrier(name : String, timeout : Duration) : Unit = {
+		//Wait for other barrier objects
+		val latch = barriers.getOrElseUpdate(name, new CountDownLatch(otherReplicas.size))
+
+		otherReplicas.foreach(actorRef => actorRef ! EnterBarrier(name))
+
+		val countedDown = latch.await(timeout.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
+		if (!countedDown) throw new TimeoutException(s"barrier $name did timeout.")
+		barriers.remove(name)
+	}
+
+	def barrier(name : String) : Unit = barrier(name, defaultTimeout)
+
+
+
+
+
+
+	def getName : String = getActorSystemAddress.toString
+
+
 	/*writes a message to the standard out*/
 	protected[actors] def log : LoggingAdapter = actorSystem.log
 
@@ -226,9 +240,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 	def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
-		import scala.concurrent.duration._
-
-
 		println(s"other = ${replicaActorPath.address}, this = ${replicaActor.path}, sys = $getActorSystemAddress")
 
 		if (replicaActorPath.address.host == getActorSystemAddress.host
@@ -240,7 +251,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		println(s"adding replica $replicaActorPath")
 
 		val selection = actorSystem.actorSelection(replicaActorPath)
-		val actorRef = Await.result(selection.resolveOne(defaultTimeout), defaultTimeout)
+		val actorRef = Await.result(selection..resolveOne(defaultTimeout), defaultTimeout)
 
 		addOtherReplica(actorRef)
 	}
@@ -364,6 +375,10 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
 				val handler = new RequestHandlerImpl(requestActor)
 				sender() ! handler
+
+			case EnterBarrier(name) =>
+				val latch = barriers.getOrElseUpdate(name, new CountDownLatch(otherReplicas.size))
+				latch.countDown()
 		}
 
 		private class RequestHandlerActor extends Actor {
@@ -402,6 +417,8 @@ object AkkaReplicaSystem {
 
 	case class RemoveObjectReplica[Addr](addr : Addr) extends ReplicaActorMessage
 	case class ClearObjectsReplica[Addr](except : Set[Addr]) extends ReplicaActorMessage
+	case class EnterBarrier(name : String) extends ReplicaActorMessage
+
 
 
 	case object AcquireHandler extends ReplicaActorMessage

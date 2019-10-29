@@ -7,6 +7,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 import org.openjdk.jmh.util.NullOutputStream;
 
 import java.io.IOException;
@@ -73,7 +74,7 @@ public class BenchRegister{
      */
     public static boolean connect() throws Exception {
         String[] thisSystemInfoSplit = thisSystemInfo.split(";");
-        thisSystem = JReplicaSystem.fromActorSystem(thisSystemInfoSplit[0],Integer.parseInt(thisSystemInfoSplit[1]));
+        thisSystem = JReplicaSystems.fromActorSystem(thisSystemInfoSplit[0],Integer.parseInt(thisSystemInfoSplit[1]));
 
         int addedcount = 0;
 

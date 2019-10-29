@@ -8,6 +8,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 import org.checkerframework.com.google.common.collect.Lists;
 
 import java.util.Iterator;
@@ -56,7 +57,7 @@ public class Main {
 
 
 	public static void distributedExample(ReplicaParams thisReplica, Iterable<ReplicaParams> otherReplicas) throws InterruptedException {
-		JReplicaSystem sys = JReplicaSystem.fromActorSystem(thisReplica.addr, thisReplica.port);
+		JReplicaSystem sys = JReplicaSystems.fromActorSystem(thisReplica.addr, thisReplica.port);
 
 		Thread.sleep(5000);
 

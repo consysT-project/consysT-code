@@ -2,6 +2,7 @@ package de.tuda.stg.consys.shoppingcart;
 
 
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 public class Replicas {
 
@@ -9,7 +10,7 @@ public class Replicas {
 
     static {
         for (int i = 0; i < replicaSystems.length; i++) {
-            replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
+            replicaSystems[i] = JReplicaSystems.fromActorSystem(2552 + i);
         }
 
         for (int i = 0; i < replicaSystems.length; i++) {

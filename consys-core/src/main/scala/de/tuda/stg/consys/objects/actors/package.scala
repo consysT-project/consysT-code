@@ -3,6 +3,7 @@ package de.tuda.stg.consys.objects
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
 
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.Random
 import scala.reflect.runtime.universe._
 
@@ -16,7 +17,7 @@ package object actors {
 
 	private[actors] final val DEFAULT_ACTORSYSTEM_NAME : String = "replica-system"
 
-	private class AkkaReplicaSystemImpl(override val actorSystem: ActorSystem)
+	private class AkkaReplicaSystemImpl(override val actorSystem: ActorSystem, override val defaultTimeout : FiniteDuration)
 		extends AkkaReplicaSystem[String]
 		with StrongAkkaReplicaSystem[String]
 		with WeakAkkaReplicaSystem[String]
@@ -35,13 +36,22 @@ package object actors {
 			new AkkaRef(addr, consistencyLevel, this)
 	}
 
+	def createReplicaSystem(actorSystem : ActorSystem, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] =
+		new AkkaReplicaSystemImpl(actorSystem, defaultTimeout)
+
 	def createReplicaSystem(actorSystem : ActorSystem) : AkkaReplicaSystem[String] =
-		new AkkaReplicaSystemImpl(actorSystem)
+		createReplicaSystem(actorSystem, Duration(60, "s"))
+
+	def createReplicaSystem[Addr](port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] =
+		createReplicaSystem("127.0.0.1", port, defaultTimeout)
 
 	def createReplicaSystem[Addr](port : Int) : AkkaReplicaSystem[String] =
-		createReplicaSystem("127.0.0.1", port)
+		createReplicaSystem(port, Duration(60, "s"))
 
-	def createReplicaSystem[Addr](hostname : String, port : Int) : AkkaReplicaSystem[String] = {
+	def createReplicaSystem[Addr](hostname : String, port : Int) : AkkaReplicaSystem[String] =
+		createReplicaSystem(hostname, port, Duration(60, "s"))
+
+	def createReplicaSystem[Addr](hostname : String, port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] = {
 		/*
 		val config : Config = ConfigFactory.parseString(
 			s"""
@@ -68,7 +78,7 @@ package object actors {
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
 		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
-		new AkkaReplicaSystemImpl(system)
+		createReplicaSystem(system, defaultTimeout)
 	}
 
 }

@@ -6,6 +6,7 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 import java.util.Date;
 
@@ -17,7 +18,7 @@ public class MainDeployment {
 
         System.out.println("SETUP: starting local replica system on port " + localname + ":" + (first ? 2552 : 2553));
 
-        JReplicaSystem replicaSystem = JReplicaSystem.fromActorSystem(localname, first ? 2552 : 2553);
+        JReplicaSystem replicaSystem = JReplicaSystems.fromActorSystem(localname, first ? 2552 : 2553);
 
         int i = 0;
         while (true) {

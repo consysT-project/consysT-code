@@ -28,8 +28,8 @@ public class Demo {
 
 	public static void main(String[] args) throws Exception {
 
-		JReplicaSystem replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
+		JReplicaSystem replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
+		JReplicaSystem replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
 
 		System.out.println("system1 = " + replicaSystem1);
 		System.out.println("system2 = " + replicaSystem2);
