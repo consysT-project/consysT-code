@@ -12,6 +12,16 @@
     <artifactId>consys-bench</artifactId>
 
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg</groupId>
@@ -23,6 +33,10 @@
             <artifactId>consys-japi</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
         </dependency>
     </dependencies>
 

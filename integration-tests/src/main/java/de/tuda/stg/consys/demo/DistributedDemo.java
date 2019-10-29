@@ -5,6 +5,7 @@ import de.tuda.stg.consys.demo.schema.ObjA;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 /**
  * Created on 31.07.19.
@@ -22,7 +23,7 @@ public class DistributedDemo {
 	}
 
 	private static void replica0Code() throws Exception {
-		JReplicaSystem sys = JReplicaSystem.fromActorSystem("127.0.0.1", 3344);
+		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3344);
 
 		try {
 			Thread.sleep(5000);
@@ -43,7 +44,7 @@ public class DistributedDemo {
 	}
 
 	private static void replica1Code() throws Exception {
-		JReplicaSystem sys = JReplicaSystem.fromActorSystem("127.0.0.1", 3345);
+		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3345);
 
 		try {
 			Thread.sleep(5000);

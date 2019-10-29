@@ -25,7 +25,7 @@ public class DistributedBenchmark extends DistBenchmark {
 		bench.runBenchmark();
 	}
 
-	private static final int NUM_OF_TRANSACTIONS = 10000;
+	private static final int NUM_OF_TRANSACTIONS = 100;
 
 	public DistributedBenchmark(String configName) {
 		super(configName);
@@ -40,10 +40,10 @@ public class DistributedBenchmark extends DistBenchmark {
 
 	@Override
 	public void setup() {
-		if (processId == 0) {
-			counter = replicaSystem.replicate("counter", new Counter(0), level);
+		if (processId() == 0) {
+			counter = replicaSystem().replicate("counter", new Counter(0), level);
 		} else {
-			counter = replicaSystem.lookup("counter", Counter.class, level);
+			counter = replicaSystem().lookup("counter", Counter.class, level);
 		}
 	}
 
@@ -57,8 +57,8 @@ public class DistributedBenchmark extends DistBenchmark {
 	}
 
 	@Override
-	protected void cleanup() {
-		replicaSystem.clear(Sets.newHashSet());
+	public void cleanup() {
+		replicaSystem().clear(Sets.newHashSet());
 	}
 
 

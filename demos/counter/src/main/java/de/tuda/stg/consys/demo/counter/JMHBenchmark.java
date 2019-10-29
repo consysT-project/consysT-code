@@ -5,6 +5,7 @@ import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
@@ -44,9 +45,9 @@ public class JMHBenchmark {
 
 		@Setup(Level.Iteration)
 		public void systemSetup() throws Exception {
-			replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-			replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
-			replicaSystem3 = JReplicaSystem.fromActorSystem(2554);
+			replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
+			replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
+			replicaSystem3 = JReplicaSystems.fromActorSystem(2554);
 
 			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
 			replicaSystem1.addReplicaSystem("127.0.0.1", 2554);

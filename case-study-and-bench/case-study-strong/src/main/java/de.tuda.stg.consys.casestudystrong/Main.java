@@ -4,6 +4,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -24,7 +25,7 @@ public class Main implements Serializable {
         replicaSystems = new JReplicaSystem[systemCount];
 
         for (int i = 0; i < systemCount; i++) {
-            replicaSystems[i] = JReplicaSystem.fromActorSystem(2552 + i);
+            replicaSystems[i] = JReplicaSystems.fromActorSystem(2552 + i);
         }
 
         for (int i = 0; i < systemCount; i++) {

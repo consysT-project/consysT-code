@@ -55,7 +55,7 @@ public class DistributedBenchmark extends DistBenchmark {
 
 
 	private int numOfReplicas() {
-		return replicaSystem.numOfReplicas();
+		return replicaSystem().numOfReplicas();
 	}
 
 	@Override
@@ -63,12 +63,12 @@ public class DistributedBenchmark extends DistBenchmark {
 		System.out.println("Adding users");
 		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 
-			JRef<Group> group = replicaSystem.replicate
-				(name("group", grpIndex, processId), new Group(), JConsistencyLevels.STRONG);
-			JRef<Inbox> inbox =  replicaSystem.replicate(
-				name("inbox", grpIndex, processId), new Inbox(), JConsistencyLevels.WEAK);
-			JRef<User> user = replicaSystem.replicate(
-				name("user", grpIndex, processId), new User(inbox, name("alice", grpIndex, processId)), JConsistencyLevels.WEAK);
+			JRef<Group> group = replicaSystem().replicate
+				(name("group", grpIndex, processId()), new Group(), JConsistencyLevels.STRONG);
+			JRef<Inbox> inbox =  replicaSystem().replicate(
+				name("inbox", grpIndex, processId()), new Inbox(), JConsistencyLevels.WEAK);
+			JRef<User> user = replicaSystem().replicate(
+				name("user", grpIndex, processId()), new User(inbox, name("alice", grpIndex, processId())), JConsistencyLevels.WEAK);
 
 
 			group.ref().addUser(user);
@@ -78,9 +78,9 @@ public class DistributedBenchmark extends DistBenchmark {
 
 		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 			for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
-				JRef<Group> group = replicaSystem.lookup(
+				JRef<Group> group = replicaSystem().lookup(
 					name("group",grpIndex, replIndex), Group.class, JConsistencyLevels.STRONG);
-				JRef<User> user = replicaSystem.lookup(
+				JRef<User> user = replicaSystem().lookup(
 					name("user",grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
 
 				groups.add(group);
@@ -101,8 +101,8 @@ public class DistributedBenchmark extends DistBenchmark {
 	}
 
 	@Override
-	protected void cleanup() {
-		replicaSystem.clear(Sets.newHashSet());
+	public void cleanup() {
+		replicaSystem().clear(Sets.newHashSet());
 	}
 
 

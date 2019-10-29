@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 
+import java.time.Duration;
 import java.util.Set;
 
 
@@ -20,7 +21,7 @@ public interface JReplicaSystem {
 
 	<T> @Local JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
 
-	void delete(String addr);
+	void remove(String addr);
 
 	void addReplicaSystem(String hostname, int port);
 
@@ -32,16 +33,8 @@ public interface JReplicaSystem {
 
 	void barrier(String name);
 
-	static JReplicaSystem fromActorSystem(ActorSystem actorSystem) {
-		return new JReplicaSystemAkkaImpl(actorSystem);
-	}
+	void barrier(String name, Duration timeout);
 
-	static JReplicaSystem fromActorSystem(String hostname, int port) {
-		return new JReplicaSystemAkkaImpl(hostname, port);
-	}
 
-	static JReplicaSystem fromActorSystem(int port) {
-		return new JReplicaSystemAkkaImpl(port);
-	}
 }
 
