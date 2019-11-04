@@ -54,8 +54,8 @@ public class MicroBenchmark {
 
         @Setup(Level.Iteration)
         public void setup() throws Exception {
-            replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-            replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
+            replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
+            replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
 
             replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
             replicaSystem2.addReplicaSystem("127.0.0.1", 2552);

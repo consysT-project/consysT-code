@@ -26,17 +26,16 @@ public class DistributedDemo {
 		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3344);
 
 		try {
-			Thread.sleep(5000);
-
 			sys.addReplicaSystem("127.0.0.1", 3345);
-
-			Thread.sleep(5000);
+			sys.barrier("init");
 
 			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevels.STRONG);
+			sys.barrier("init2");
+
 			counter.ref().inc();
 			System.out.println("value = " + counter.ref().f);
 
-			Thread.sleep(10000);
+			Thread.sleep(1000);
 		} finally {
 			sys.close();
 		}
@@ -47,17 +46,18 @@ public class DistributedDemo {
 		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3345);
 
 		try {
-			Thread.sleep(5000);
-
 			sys.addReplicaSystem("127.0.0.1", 3344);
+			sys.barrier("init");
+			sys.barrier("init2");
 
-			Thread.sleep(10000);
+
 
 			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevels.STRONG);
+
 			counter.ref().inc();
 			System.out.println("value = " + counter.ref().f);
 
-			Thread.sleep(5000);
+			Thread.sleep(1000);
 		} finally {
 			sys.close();
 		}

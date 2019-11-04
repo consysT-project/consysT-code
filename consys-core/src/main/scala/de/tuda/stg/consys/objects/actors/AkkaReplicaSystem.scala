@@ -251,7 +251,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		println(s"adding replica $replicaActorPath")
 
 		val selection = actorSystem.actorSelection(replicaActorPath)
-		val actorRef = Await.result(selection..resolveOne(defaultTimeout), defaultTimeout)
+		val actorRef = Await.result(selection.resolveOne(defaultTimeout), defaultTimeout)
 
 		addOtherReplica(actorRef)
 	}

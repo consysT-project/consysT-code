@@ -216,9 +216,6 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 		//TODO: Define this as field and keep in sync with obj
 		private var objMirror : InstanceMirror = _
 
-
-
-
 		private final val rtMirror = runtimeMirror(AkkaReplicatedObject.this.getClass.getClassLoader)
 
 		private[AkkaReplicatedObject] def updateObj() : Unit = {
