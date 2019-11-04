@@ -111,7 +111,7 @@ public class DistributedBenchmark extends DistBenchmark {
 		int i = random.nextInt(groups.size());
 		JRef<Group> group = groups.get(i);
 		//   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
-		group.invoke("addPost", "Hello " + i);
+		group.ref().addPost("Hello " + i);
 		return 2;
 	}
 
@@ -121,7 +121,7 @@ public class DistributedBenchmark extends DistBenchmark {
 		// System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
 
 		//No sync
-		Set<String> inbox = user.invoke("getInbox");
+		Set<String> inbox = user.ref().getInbox();
 		return 1;
 	}
 
@@ -130,10 +130,10 @@ public class DistributedBenchmark extends DistBenchmark {
 		JRef<User> user = users.get(i);
 		// System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
-		JRef<Inbox> inbox = user.getField("inbox");
+		JRef<Inbox> inbox = user.ref().inbox;
 		user.sync();
 		inbox.sync();
-		Set<String> inboxVal = user.invoke("getInbox");
+		Set<String> inboxVal = user.ref().getInbox();
 
 		return 0;
 	}
