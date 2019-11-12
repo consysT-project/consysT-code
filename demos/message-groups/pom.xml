@@ -30,12 +30,6 @@
                             <artifactId>consistency-checker</artifactId>
                             <version>1.0.0</version>
                         </path>
-                        <!-- path to the consys javac plugin -->
-                        <path>
-                            <groupId>de.tuda.stg</groupId>
-                            <artifactId>consys-compiler</artifactId>
-                            <version>1.0.0</version>
-                        </path>
                     </annotationProcessorPaths>
 <!--                    <annotationProcessors>-->
 <!--                        &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->

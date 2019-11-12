@@ -12,31 +12,51 @@
     <artifactId>counter</artifactId>
 
 
+
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${javaVersion}</source>
-                    <target>${javaVersion}</target>
                     <compilerArguments>
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
+                    <annotationProcessorPaths>
+                        <!-- path to the consys type checker -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                        <!-- path to the consys javac plugin -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consys-compiler</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <annotationProcessors>
+                        <!-- Add all the checkers you want to enable here -->
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
+                        <!-- Add the consys compiler plugin for preprocessing sources -->
                         <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
+
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -44,32 +64,92 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>benchmarks</finalName>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>allinone</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
                             <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                    <manifestEntries>
+                                        <Main-Class>de.tuda.stg.consys.demo.counter.DistributedBenchmark</Main-Class>
+                                    </manifestEntries>
                                 </transformer>
                             </transformers>
-                            <filters>
-                                <filter>
-                                    <!--
-                                        Shading signed JARs will fail without this.
-                                        http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar
-                                    -->
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
+
     </build>
+
+
+
+<!--    <build>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <artifactId>maven-compiler-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <source>${javaVersion}</source>-->
+<!--                    <target>${javaVersion}</target>-->
+<!--                    <compilerArguments>-->
+<!--                        <Xmaxerrs>10000</Xmaxerrs>-->
+<!--                        <Xmaxwarns>10000</Xmaxwarns>-->
+<!--                    </compilerArguments>-->
+<!--                    <compilerArgs>-->
+<!--                        <arg>-AprintErrorStack</arg>-->
+<!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
+<!--                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>-->
+<!--                        &lt;!&ndash; Uncomment the following line to turn type-checking warnings into errors. &ndash;&gt;-->
+<!--                        &lt;!&ndash; <arg>-Awarns</arg> &ndash;&gt;-->
+<!--                        <arg>-Xplugin:ConsysPlugin</arg>-->
+<!--                    </compilerArgs>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <version>2.2</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <finalName>benchmarks</finalName>-->
+<!--                            <transformers>-->
+<!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
+<!--                                    <mainClass>org.openjdk.jmh.Main</mainClass>-->
+<!--                                </transformer>-->
+<!--                            </transformers>-->
+<!--                            <filters>-->
+<!--                                <filter>-->
+<!--                                    &lt;!&ndash;-->
+<!--                                        Shading signed JARs will fail without this.-->
+<!--                                        http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar-->
+<!--                                    &ndash;&gt;-->
+<!--                                    <artifact>*:*</artifact>-->
+<!--                                    <excludes>-->
+<!--                                        <exclude>META-INF/*.SF</exclude>-->
+<!--                                        <exclude>META-INF/*.DSA</exclude>-->
+<!--                                        <exclude>META-INF/*.RSA</exclude>-->
+<!--                                    </excludes>-->
+<!--                                </filter>-->
+<!--                            </filters>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 
     <dependencies>
         <dependency>
