@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.bench.DistBenchmark;
+import de.tuda.stg.consys.bench.Benchmark;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
@@ -23,12 +23,12 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class DistributedBenchmark extends DistBenchmark {
+public class DistributedBenchmark extends Benchmark {
 
 
 	public static void main(String[] args) {
 		Config config = ConfigFactory.parseFile(new File("./resources/" + args[0]));
-		DistBenchmark bench = new DistributedBenchmark(config);
+		Benchmark bench = new DistributedBenchmark(config);
 		bench.runBenchmark();
 	}
 

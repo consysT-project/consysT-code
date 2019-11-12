@@ -1,28 +1,23 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.bench.DistBenchmark;
+import de.tuda.stg.consys.bench.Benchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
-import java.io.File;
-
 /**
  * Created on 10.10.19.
  *
  * @author Mirko Köhler
  */
-public class DistributedBenchmark extends DistBenchmark {
+public class DistributedBenchmark extends Benchmark {
 
 
 	public static void main(String[] args) {
-		Config config = ConfigFactory.parseFile(new File("./resources/" + args[0]));
-		DistBenchmark bench = new DistributedBenchmark(config);
-		bench.runBenchmark();
+		Benchmark.start(DistributedBenchmark.class, args[0]);
 	}
 
 	private static final int NUM_OF_TRANSACTIONS = 100;
