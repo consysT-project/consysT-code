@@ -17,8 +17,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${javaVersion}</source>
-                    <target>${javaVersion}</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                     <compilerArguments>
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>

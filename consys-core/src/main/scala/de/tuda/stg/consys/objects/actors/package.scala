@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.objects
 
 import akka.actor.{ActorSystem, ExtendedActorSystem}
-import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigResolveOptions, ConfigValue, ConfigValueFactory}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.Random
@@ -71,13 +71,18 @@ package object actors {
 		 */
 
 		val config = ConfigFactory.load()
-  		.withFallback(ConfigFactory.defaultApplication())
+//  		.withFallback(ConfigFactory.defaultApplication())
 			.withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(hostname))
 			.withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(port))
-      .resolve()
+			.resolve()
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
 		system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+
+		println(s"akka.remote.artery.enabled = ${config.getValue("akka.remote.artery.enabled")}")
+		println(s"akka.remote.artery.transport = ${config.getValue("akka.remote.artery.transport")}")
+		println(s"akka.remote.artery.canonical.hostname = ${config.getValue("akka.remote.artery.canonical.hostname")}")
+
 		createReplicaSystem(system, defaultTimeout)
 	}
 

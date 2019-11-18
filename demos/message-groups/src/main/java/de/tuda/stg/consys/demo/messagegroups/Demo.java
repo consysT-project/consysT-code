@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
+import com.typesafe.config.ConfigFactory;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
@@ -20,6 +21,8 @@ public class Demo {
 
 	public static void main(String... args) throws Exception {
         runBenchmark();
+
+
     }
 
     public static void runBenchmark() throws InterruptedException {
