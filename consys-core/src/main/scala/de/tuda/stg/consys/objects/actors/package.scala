@@ -23,7 +23,7 @@ package object actors {
 		with WeakAkkaReplicaSystem[String]
 //		with HighAkkaReplicaSystem[String]
 //		with LowAkkaReplicaSystem[String]
-		with CassandraAkkaReplicaSystem[String]
+//		with CassandraAkkaReplicaSystem[String]
 	{
 
 		override protected def freshAddr() : String =
@@ -77,7 +77,7 @@ package object actors {
       .resolve()
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
-		println(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+		system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 		createReplicaSystem(system, defaultTimeout)
 	}
 
