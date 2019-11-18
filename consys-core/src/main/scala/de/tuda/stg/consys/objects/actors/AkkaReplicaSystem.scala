@@ -264,7 +264,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 				case Some(Failure(exc)) =>
 					if (System.nanoTime() > start + defaultTimeout.toNanos)
-						throw new TimeoutException(s"actor path $replicaActorPath could not have been resolved in the given time ($defaultTimeout)")
+						throw new TimeoutException(s"actor path $replicaActorPath was not resolved in the given time ($defaultTimeout).")
 			}
 
 		}
