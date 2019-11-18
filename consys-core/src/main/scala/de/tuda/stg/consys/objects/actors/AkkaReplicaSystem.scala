@@ -347,7 +347,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 					val anyPackage = anyClass.getPackage
 					//Check that the object has a package declaration and that it is not the Java standard library
-					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment") {
+					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment" || anyPackage.getName.startsWith("java")) {
 						return
 					}
 

@@ -78,11 +78,6 @@ package object actors {
 
 		val system = ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
 		system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
-
-		println(s"akka.remote.artery.enabled = ${config.getValue("akka.remote.artery.enabled")}")
-		println(s"akka.remote.artery.transport = ${config.getValue("akka.remote.artery.transport")}")
-		println(s"akka.remote.artery.canonical.hostname = ${config.getValue("akka.remote.artery.canonical.hostname")}")
-
 		createReplicaSystem(system, defaultTimeout)
 	}
 
