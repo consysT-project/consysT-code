@@ -13,6 +13,7 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 
 public class Demo {
@@ -33,8 +34,15 @@ public class Demo {
         ExecutorService exec = Executors.newFixedThreadPool(numReplicas);
         for (int i = 0; i < numReplicas; i++) {
             final int index = i;
-            exec.submit(() -> benchmarks[index].runFor(180000));
+            exec.submit(() -> {
+                try {
+                    benchmarks[index].runFor(180000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
         }
+//        exec.awaitTermination(600, TimeUnit.SECONDS);
     }
 
 
@@ -60,7 +68,7 @@ public class Demo {
                     JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.WEAK);
                     JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevels.WEAK);
 
-                    group.invoke("addUser", user);
+                    group.ref().addUser(user);
                     System.out.println("Added user$" + i + "$"+ j);
                 }
             }
@@ -97,7 +105,7 @@ public class Demo {
             int i = random.nextInt(groups.size());
             JRef<Group> group = groups.get(i);
          //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
-            group.invoke("addPost", "Hello " + i);
+            group.ref().addPost("Hello " + i);
             return 2;
         }
 
@@ -107,7 +115,7 @@ public class Demo {
            // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
 
             //No sync
-            Set<String> inbox = user.invoke("getInbox");
+            Set<String> inbox = user.ref().getInbox();
             return 1;
         }
 
@@ -116,10 +124,10 @@ public class Demo {
             JRef<User> user = users.get(i);
            // System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
-            JRef<Inbox> inbox = user.getField("inbox");
+            JRef<Inbox> inbox = user.ref().inbox;
             user.sync();
             inbox.sync();
-            Set<String> inboxVal = user.invoke("getInbox");
+            Set<String> inboxVal = user.ref().getInbox();
 
             return 0;
         }
@@ -134,7 +142,7 @@ public class Demo {
             JRef<User> user = users.get(j);
 
           //  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
-            group.invoke("addUser", user);
+            group.ref().addUser(user);
 
             return 3;
         }

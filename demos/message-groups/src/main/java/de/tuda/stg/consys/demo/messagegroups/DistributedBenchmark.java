@@ -27,7 +27,7 @@ public class DistributedBenchmark extends Benchmark {
 
 
 	public static void main(String[] args) {
-		Config config = ConfigFactory.parseFile(new File("./resources/" + args[0]));
+		Config config = ConfigFactory.load(args[0]);
 		Benchmark bench = new DistributedBenchmark(config);
 		bench.runBenchmark();
 	}
@@ -148,7 +148,7 @@ public class DistributedBenchmark extends Benchmark {
 		JRef<User> user = users.get(j);
 
 		//  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
-		group.invoke("addUser", user);
+		group.ref().addUser(user);
 
 		return 3;
 	}

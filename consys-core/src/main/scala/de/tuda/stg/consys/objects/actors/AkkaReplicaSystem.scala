@@ -13,10 +13,11 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
 
 import scala.collection.mutable
-import scala.concurrent.{Await, TimeoutException}
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration._
 import scala.language.{higherKinds, postfixOps}
 import scala.reflect.runtime.universe._
+import scala.util.{Failure, Success}
 
 /**
 	* Created on 13.02.19.
@@ -191,12 +192,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
-
-
-
-
-
-
 	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
 		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]
 
@@ -240,20 +235,42 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 	def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
-		println(s"other = ${replicaActorPath.address}, this = ${replicaActor.path}, sys = $getActorSystemAddress")
 
+		//Skip adding the replica if the path is the path to the current replica
 		if (replicaActorPath.address.host == getActorSystemAddress.host
 			&& replicaActorPath.address.port == getActorSystemAddress.port) {
-			println(s"skipping $replicaActorPath. Path is the current replica.")
 			return
 		}
 
-		println(s"adding replica $replicaActorPath")
 
 		val selection = actorSystem.actorSelection(replicaActorPath)
-		val actorRef = Await.result(selection.resolveOne(defaultTimeout), defaultTimeout)
 
-		addOtherReplica(actorRef)
+		//Search for the other replica until it is found or the timeout is reached
+		val start = System.nanoTime()
+		var loop = true
+		while (loop) {
+			val resolved : Future[ActorRef] = selection.resolveOne(defaultTimeout)
+
+			//Wait for resolved to be ready
+			Await.ready(selection.resolveOne(defaultTimeout), defaultTimeout)
+
+			resolved.value match {
+				case None =>
+					sys.error("Future not ready yet. But we waited for it to be ready. How?")
+
+				case Some(Success(actorRef)) =>
+					loop = false
+					addOtherReplica(actorRef)
+
+				case Some(Failure(exc)) =>
+					if (System.nanoTime() > start + defaultTimeout.toNanos)
+						throw new TimeoutException(s"actor path $replicaActorPath could not have been resolved in the given time ($defaultTimeout)")
+			}
+
+		}
+
+
+
 	}
 
 	def addOtherReplica(hostname : String, port : Int) : Unit = {

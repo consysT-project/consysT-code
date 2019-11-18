@@ -43,22 +43,23 @@ abstract class Benchmark(
 		java.time.Duration.ofSeconds(600)
 	)
 
-		for (replica <- replicas) {
+	println("Adding other replicas...")
+	for (replica <- replicas) {
 		replicaSystem.addReplicaSystem(replica.hostname, replica.port)
 	}
+	println("All replicas found")
 
-	println("Waiting for other replicas...")
-	Thread.sleep(60000)
 
-	final private var commChannel : JRef[BenchmarkCommunication] = _
 
-	if (processId == 0) { //The coordinator creates a new communication channel
-		commChannel = replicaSystem.replicate("$communication", BenchmarkCommunication(), JConsistencyLevels.STRONG)
-	}
-	else { //The followers wait until the communication channel has been created
-		commChannel = replicaSystem.lookup("$communication", classOf[BenchmarkCommunication], JConsistencyLevels.STRONG)
-		commChannel.await()
-	}
+//	final private var commChannel : JRef[BenchmarkCommunication] = _
+//
+//	if (processId == 0) { //The coordinator creates a new communication channel
+//		commChannel = replicaSystem.replicate("$communication", BenchmarkCommunication(), JConsistencyLevels.STRONG)
+//	}
+//	else { //The followers wait until the communication channel has been created
+//		commChannel = replicaSystem.lookup("$communication", classOf[BenchmarkCommunication], JConsistencyLevels.STRONG)
+//		commChannel.await()
+//	}
 
 
 	def this(config : Config) {
