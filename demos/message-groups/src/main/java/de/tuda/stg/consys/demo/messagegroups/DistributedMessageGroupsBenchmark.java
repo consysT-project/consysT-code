@@ -58,8 +58,8 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		System.out.println("Adding users");
 		for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 
-			JRef<Group> group = replicaSystem().replicate
-				(addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+			JRef<Group> group = replicaSystem().replicate(
+				addr("group", grpIndex, processId()), new Group(), getStrongLevel());
 			JRef<Inbox> inbox =  replicaSystem().replicate(
 				addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
 			JRef<User> user = replicaSystem().replicate(
@@ -77,6 +77,10 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 					addr("group",grpIndex, replIndex), Group.class, getStrongLevel());
 				JRef<User> user = replicaSystem().lookup(
 					addr("user",grpIndex, replIndex), User.class, getWeakLevel());
+
+				//Force dereferencing the ref to ensure that the object is already available.
+				group.sync();
+				user.sync();
 
 				groups.add(group);
 				users.add(user);

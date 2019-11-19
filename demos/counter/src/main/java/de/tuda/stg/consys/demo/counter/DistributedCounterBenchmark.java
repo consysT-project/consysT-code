@@ -17,7 +17,7 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 
 
 	public static void main(String[] args) {
-		DistributedBenchmark.start(DistributedCounterBenchmark.class, args[0]);
+		start(DistributedCounterBenchmark.class, args[0]);
 	}
 
 	private final int numOfTransactions;
@@ -36,6 +36,7 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 			counter = replicaSystem().replicate("counter", new Counter(0), getWeakLevel());
 		} else {
 			counter = replicaSystem().lookup("counter", Counter.class, getWeakLevel());
+			counter.sync(); //Force dereference
 		}
 	}
 
