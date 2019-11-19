@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.concert;
+package de.tuda.stg.consys.demo.concert.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
@@ -7,13 +7,13 @@ import de.tuda.stg.consys.objects.japi.JRef;
 import java.io.Serializable;
 import java.util.Date;
 
-public class ConcertStrongAuto implements Serializable {
+public class Concert implements Serializable {
     public Date date;
-    public JRef<@Strong ConcertHall> hall;
-    public JRef<@Weak Band> band;
-    public JRef<@Strong Counter> soldTickets;
+    public JRef<ConcertHall> hall;
+    public JRef<Band> band;
+    public JRef<Counter> soldTickets;
 
-    public @Strong int getSoldTickets () {
+    public int getSoldTickets () {
         return soldTickets.getField("value");
     }
 
@@ -27,7 +27,7 @@ public class ConcertStrongAuto implements Serializable {
         }
     }
 
-    public ConcertStrongAuto(Date date, JRef<@Strong ConcertHall> hall, JRef<@Weak Band> band, JRef<@Strong Counter> soldTickets) {
+    public Concert(Date date, JRef<ConcertHall> hall, JRef<Band> band, JRef<Counter> soldTickets) {
         this.date = date;
         this.hall = hall;
         this.band = band;

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.concert;
+package de.tuda.stg.consys.demo.concert;
 
 import akka.actor.ActorRef;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;

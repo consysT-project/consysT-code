@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.concert;
+package de.tuda.stg.consys.demo.concert;
 
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicaSystems;

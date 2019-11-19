@@ -90,30 +90,27 @@ abstract class DistributedBenchmark(
 
 
 	private def warmup() : Unit = {
-		println("## START WARMUP ##")
 		replicaSystem.barrier("warmup")
-		for (_ <- 0 to warmupIterations) {
-			println("### SETUP ###")
+		println("## START WARMUP ##")
+		for (i <- 0 to warmupIterations) {
 			replicaSystem.barrier("setup")
+			println(s"### SETUP : WARMUP $i ###")
 			setup()
-			Thread.sleep(2000)
-			println("### ITERATIONS ###")
 			replicaSystem.barrier("iterations")
+			println(s"### ITERATIONS : WARMUP $i ###")
 			iteration()
-			Thread.sleep(2000)
-			println("### CLEANUP ###")
 			replicaSystem.barrier("cleanup")
+			println(s"### CLEANUP : WARMUP $i ###")
 			cleanup()
-			Thread.sleep(2000)
 		}
-		println("## WARMUP DONE ##")
 		replicaSystem.barrier("warmup-done")
+		println("## WARMUP DONE ##")
 	}
 
 
 	private def measure() : Unit = {
-		println("## START MEASUREMENT ##")
 		replicaSystem.barrier("measure")
+		println("## START MEASUREMENT ##")
 		val sdf = new SimpleDateFormat("YY-MM-dd kk:mm:ss")
 		val outputDir = Paths.get(outputFileName, sdf.format(new Date))
 		val outputFile = outputDir.resolve("proc" + processId + ".csv")
@@ -131,21 +128,18 @@ abstract class DistributedBenchmark(
 		try {
 			writer.println("iteration,ns")
 			for (i <- 0 to measureIterations) {
-				println("### SETUP ###")
 				replicaSystem.barrier("setup")
+				println(s"### SETUP : MEASURE $i ###")
 				setup()
-				Thread.sleep(2000)
-				println("### ITERATIONS ###")
 				replicaSystem.barrier("iterations")
+				println(s"### ITERATIONS : MEASURE $i ###")
 				val start = System.nanoTime
 				iteration()
 				val duration = System.nanoTime - start
 				writer.println("" + i + "," + duration)
-				Thread.sleep(2000)
-				println("### CLEANUP ###")
 				replicaSystem.barrier("cleanup")
+				println(s"### CLEANUP : MEASURE $i ###")
 				cleanup()
-				Thread.sleep(2000)
 			}
 		} catch {
 			case e : FileNotFoundException =>
@@ -153,9 +147,8 @@ abstract class DistributedBenchmark(
 		} finally {
 			writer.close()
 		}
-
-		println("## MEASUREMENT DONE ##")
 		replicaSystem.barrier("measure-done")
+		println("## MEASUREMENT DONE ##")
 	}
 
 
@@ -168,7 +161,7 @@ abstract class DistributedBenchmark(
 
 object DistributedBenchmark {
 
-	final val BARRIER_TIMEOUT : Duration = Duration(600, "s")
+	final val BARRIER_TIMEOUT : Duration = Duration(1800, "s")
 
 	case class BenchmarkCommunication()
 
