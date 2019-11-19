@@ -33,7 +33,7 @@ object Requests {
 
 
 	trait RequestHandler[Addr] extends AutoCloseable {
-		def request[R](addr : Addr, req : Request[R], receiveTimeout : FiniteDuration = 30 seconds) : R
+		def request[R](addr : Addr, req : Request[R]) : R
 	}
 
 	case object InitHandler
@@ -41,19 +41,19 @@ object Requests {
 	case object CloseHandler
 
 	@SerialVersionUID(42947104L)
-	class RequestHandlerImpl[Addr](private val requestActor : ActorRef) extends RequestHandler[Addr] with Serializable {
+	class RequestHandlerImpl[Addr](private val requestActor : ActorRef, val defaultTimeout : FiniteDuration) extends RequestHandler[Addr] with Serializable {
 		requestActor ! InitHandler
 
-		override def request[R](addr : Addr, req : Request[R], receiveTimeout : FiniteDuration = 30 seconds) : R = req match {
+		override def request[R](addr : Addr, req : Request[R]) : R = req match {
 			case syncReq : SynchronousRequest[_] =>
 				import akka.pattern.ask
-				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(receiveTimeout))
-				val result = Await.result(response, receiveTimeout)
+				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
+				val result = Await.result(response, defaultTimeout)
 				result.asInstanceOf[R]
 
 			case asyncReq : AsynchronousRequest[_] =>
 				import akka.pattern.ask
-				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(receiveTimeout))
+				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
 				response.asInstanceOf[R]
 
 			case noAnsReq : NoAnswerRequest =>

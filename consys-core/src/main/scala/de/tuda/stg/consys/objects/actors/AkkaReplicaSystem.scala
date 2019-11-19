@@ -390,7 +390,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 			case AcquireHandler =>
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
-				val handler = new RequestHandlerImpl(requestActor)
+				val handler = new RequestHandlerImpl(requestActor, defaultTimeout)
 				sender() ! handler
 
 			case EnterBarrier(name) =>
