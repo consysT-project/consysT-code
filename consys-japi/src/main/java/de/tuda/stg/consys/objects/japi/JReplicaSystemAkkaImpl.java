@@ -8,6 +8,7 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import scala.collection.JavaConverters;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -71,6 +72,12 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	public void clear(Set<String> except) {
 		replicaSystem.clear(JavaConverters.asScalaSet(except).toSet());
 	}
+
+	@Override
+	public void clear() {
+		replicaSystem.clear(JavaConverters.<String>asScalaSet(new HashSet<>()).toSet());
+	}
+
 
 	@Override
 	public void barrier(String name) {
