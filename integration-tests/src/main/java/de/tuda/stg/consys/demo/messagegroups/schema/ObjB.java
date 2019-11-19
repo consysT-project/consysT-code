@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.schema;
+package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.objects.japi.JRef;

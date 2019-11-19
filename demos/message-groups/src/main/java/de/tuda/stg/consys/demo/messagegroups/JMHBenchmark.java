@@ -80,8 +80,8 @@ public class JMHBenchmark {
 			for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS / NUM_OF_REPLICAS; grpIndex++) {
 				for (int replIndex = 0; replIndex < NUM_OF_REPLICAS; replIndex++) {
 
-					JRef<de.tuda.stg.consys.demo.messagegroups.schema.Group> group = replicaSystems[replIndex].replicate
-						(name("group", grpIndex, replIndex), new de.tuda.stg.consys.demo.messagegroups.schema.Group(), JConsistencyLevels.STRONG);
+					JRef<Group> group = replicaSystems[replIndex].replicate
+						(name("group", grpIndex, replIndex), new Group(), JConsistencyLevels.STRONG);
 					JRef<Inbox> inbox =  replicaSystems[replIndex].replicate(
 						name("inbox", grpIndex,replIndex), new Inbox(), JConsistencyLevels.WEAK);
 					JRef<User> user = replicaSystems[replIndex].replicate(
@@ -131,8 +131,8 @@ public class JMHBenchmark {
 
 				for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
 					for (int replIndex = 0; replIndex < NUM_OF_REPLICAS; replIndex++) {
-						JRef<de.tuda.stg.consys.demo.messagegroups.schema.Group> group = replicaSystem.lookup(
-							name("group",grpIndex, replIndex), de.tuda.stg.consys.demo.messagegroups.schema.Group.class, JConsistencyLevels.STRONG);
+						JRef<Group> group = replicaSystem.lookup(
+							name("group",grpIndex, replIndex), Group.class, JConsistencyLevels.STRONG);
 						JRef<User> user = replicaSystem.lookup(
 							name("user",grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
 
@@ -144,7 +144,7 @@ public class JMHBenchmark {
 
 			private int transaction1() {
 				int i = random.nextInt(groups.size());
-				JRef<de.tuda.stg.consys.demo.messagegroups.schema.Group> group = groups.get(i);
+				JRef<Group> group = groups.get(i);
 				//   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
 				group.invoke("addPost", "Hello " + i);
 				return 2;

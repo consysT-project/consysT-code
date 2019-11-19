@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.schema;
+package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import java.io.Serializable;
 

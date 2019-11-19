@@ -12,6 +12,6 @@ public interface JConsistencyLevels {
 
 	@Local ConsistencyLevel STRONG = ConsistencyLevel.Strong$.MODULE$;
 	@Local ConsistencyLevel WEAK = ConsistencyLevel.Weak$.MODULE$;
-
+	@Local ConsistencyLevel CAUSAL = ConsistencyLevel.Causal$.MODULE$;
 
 }
