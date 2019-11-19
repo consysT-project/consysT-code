@@ -31,6 +31,8 @@ public interface JReplicaSystem {
 
 	void clear(Set<String> except);
 
+	void clear();
+
 	void barrier(String name);
 
 	void barrier(String name, Duration timeout);
