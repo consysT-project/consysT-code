@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>message-groups</artifactId>
+    <artifactId>demo-bench</artifactId>
 
 
     <build>
@@ -183,12 +183,6 @@
         <dependency>
             <groupId>io.aeron</groupId>
             <artifactId>aeron-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>demo-bench</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
 
     </dependencies>

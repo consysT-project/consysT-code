@@ -1,18 +1,14 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.bench.Benchmark;
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -23,33 +19,32 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class DistributedBenchmark extends Benchmark {
+public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 
 
 	public static void main(String[] args) {
-		Config config = ConfigFactory.load(args[0]);
-		Benchmark bench = new DistributedBenchmark(config);
-		bench.runBenchmark();
+		start(DistributedMessageGroupsBenchmark.class, args[0]);
 	}
 
-	private static final int NUM_OF_GROUPS = 1000;
-	private static final int NUM_OF_TRANSACTIONS = 1000;
+	private final int numOfGroupsPerReplica;
+	private final int numOfTransactions;
 
-	private final List<JRef<@Strong Group>> groups = new ArrayList<>(NUM_OF_GROUPS * numOfReplicas());
-	private final List<JRef<@Weak User>> users = new ArrayList<>(NUM_OF_GROUPS * numOfReplicas());
+	private final List<JRef<Group>> groups;
+	private final List<JRef<User>> users;
 
 	private final Random random = new Random();
 
-
-	public DistributedBenchmark(String configName) {
-		super(configName);
-	}
-
-	public DistributedBenchmark(Config config) {
+	public DistributedMessageGroupsBenchmark(Config config) {
 		super(config);
+
+		numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
+		numOfTransactions = config.getInt("consys.bench.demo.messagegroups.transactions");
+
+		groups = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
+		users = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
 	}
 
-	private static String name(String identifier, int grpIndex, int replIndex) {
+	private static String addr(String identifier, int grpIndex, int replIndex) {
 		return identifier + "$" + grpIndex + "$"+ replIndex;
 	}
 
@@ -61,43 +56,42 @@ public class DistributedBenchmark extends Benchmark {
 	@Override
 	public void setup() {
 		System.out.println("Adding users");
-		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
+		for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 
 			JRef<Group> group = replicaSystem().replicate
-				(name("group", grpIndex, processId()), new Group(), JConsistencyLevels.STRONG);
+				(addr("group", grpIndex, processId()), new Group(), getStrongLevel());
 			JRef<Inbox> inbox =  replicaSystem().replicate(
-				name("inbox", grpIndex, processId()), new Inbox(), JConsistencyLevels.WEAK);
+				addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
 			JRef<User> user = replicaSystem().replicate(
-				name("user", grpIndex, processId()), new User(inbox, name("alice", grpIndex, processId())), JConsistencyLevels.WEAK);
+				addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
 
 
 			group.ref().addUser(user);
 
-			System.out.print(grpIndex % 100 == 0 ? grpIndex : ".");
+			DemoUtils.printProgress(grpIndex);
 		}
 
-		for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
+		for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 			for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
 				JRef<Group> group = replicaSystem().lookup(
-					name("group",grpIndex, replIndex), Group.class, JConsistencyLevels.STRONG);
+					addr("group",grpIndex, replIndex), Group.class, getStrongLevel());
 				JRef<User> user = replicaSystem().lookup(
-					name("user",grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
+					addr("user",grpIndex, replIndex), User.class, getWeakLevel());
 
 				groups.add(group);
 				users.add(user);
 			}
 		}
-
-		System.out.println("done");
+		DemoUtils.printDone();
 	}
 
 	@Override
 	public void iteration() {
-		for (int i = 0; i < NUM_OF_TRANSACTIONS; i++) {
+		for (int i = 0; i < numOfTransactions; i++) {
 			randomTransaction();
-			System.out.print(i % 100 == 0 ? i : ".");
+			DemoUtils.printProgress(i);
 		}
-		System.out.println();
+		DemoUtils.printDone();
 	}
 
 	@Override

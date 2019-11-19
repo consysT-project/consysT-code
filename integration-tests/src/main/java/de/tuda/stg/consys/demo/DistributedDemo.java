@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.demo.schema.ObjA;
+import de.tuda.stg.consys.demo.messagegroups.schema.ObjA;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;

@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
-import com.typesafe.config.ConfigFactory;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
@@ -14,7 +13,6 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 
 public class Demo {

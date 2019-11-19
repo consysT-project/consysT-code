@@ -18,7 +18,7 @@ import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import de.tuda.stg.consys.bench.Benchmark.BenchmarkCommunication
+import de.tuda.stg.consys.bench.DistributedBenchmark.BenchmarkCommunication
 
 import scala.concurrent.duration.Duration
 
@@ -28,7 +28,7 @@ import scala.concurrent.duration.Duration
  *
  * @author Mirko Köhler
  */
-abstract class Benchmark(
+abstract class DistributedBenchmark(
 	val address : Address,
 	val replicas : Array[Address],
 	var processId : Int /* process 0 is the coordinator */ ,
@@ -166,13 +166,13 @@ abstract class Benchmark(
 	}
 }
 
-object Benchmark {
+object DistributedBenchmark {
 
 	final val BARRIER_TIMEOUT : Duration = Duration(600, "s")
 
 	case class BenchmarkCommunication()
 
-	def start(benchmark : Class[_ <: Benchmark], configName : String) : Unit = {
+	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String) : Unit = {
 
 		val constructor = benchmark.getConstructor(classOf[Config])
 		val bench = constructor.newInstance(ConfigFactory.load(configName))

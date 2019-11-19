@@ -50,5 +50,6 @@ public class ReverseAppendingTransformer implements ResourceTransformer {
 			jarOutputStream.write(out.toByteArray());
 			out.close();
 		}
+		inputBuffer.clear();
 	}
 }

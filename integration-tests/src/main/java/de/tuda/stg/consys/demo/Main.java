@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.demo;
 
 
-import de.tuda.stg.consys.demo.schema.ObjA;
-import de.tuda.stg.consys.demo.schema.ObjB;
+import de.tuda.stg.consys.demo.messagegroups.schema.ObjA;
+import de.tuda.stg.consys.demo.messagegroups.schema.ObjB;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JConsistencyLevels;

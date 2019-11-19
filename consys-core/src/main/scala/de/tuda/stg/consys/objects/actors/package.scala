@@ -21,6 +21,7 @@ package object actors {
 		extends AkkaReplicaSystem[String]
 		with StrongAkkaReplicaSystem[String]
 		with WeakAkkaReplicaSystem[String]
+		with CausalAkkaReplicaSystem[String]
 //		with HighAkkaReplicaSystem[String]
 //		with LowAkkaReplicaSystem[String]
 //		with CassandraAkkaReplicaSystem[String]

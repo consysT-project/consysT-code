@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
@@ -13,7 +12,7 @@ import java.util.Objects;
  */
 public class Group implements Serializable {
 
-	public final JRef<@Weak User>[] users = new JRef[100];
+	public final JRef<User>[] users = new JRef[100];
 
 	//Message delivery
 	public void addPost(String msg) {
