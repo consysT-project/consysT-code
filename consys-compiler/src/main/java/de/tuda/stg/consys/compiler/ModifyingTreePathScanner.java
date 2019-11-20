@@ -272,7 +272,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		scan(var1.getIdentifier(), newTree -> ((JCTree.JCNewClass) var1).clazz = (JCTree.JCExpression) newTree);
 		scan(var1.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
 			var1.getTypeArguments(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCMethodInvocation) var1).args = l));
+		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCNewClass) var1).args = l));
 		scan(var1.getClassBody(), newTree -> ((JCTree.JCNewClass) var1).def = (JCTree.JCClassDecl) newTree);
 		return null;
 	}

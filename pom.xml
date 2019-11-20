@@ -16,11 +16,11 @@
         <module>microbenchmarks</module>
         <module>consys-core</module>
         <module>integration-tests</module>
-        <module>case-study-and-bench</module>
         <module>consys-japi</module>
         <module>consys-compiler</module>
         <module>consys-compiler/consys-compiler-test</module>
         <module>consys-bench</module>
+        <module>examples</module>
     </modules>
 
 
