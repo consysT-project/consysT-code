@@ -25,7 +25,7 @@ public interface IShoppingSite<T> {
 
     public boolean Checkout(boolean PrintReceipt);
 
-    public double AddBalance(double value, boolean PrintBalance);
+    public double addBalance(double value, boolean PrintBalance);
 
     public ArrayList<JRef> ClearCart();
 }

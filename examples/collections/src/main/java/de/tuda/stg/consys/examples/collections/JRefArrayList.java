@@ -21,11 +21,11 @@ public class JRefArrayList implements Serializable, JReplicated {
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem<String> replicaSystem = null;
 
-    public JRef head;
+    public JRef<ArrayNode> head;
 
-    public JRef current;
+    public JRef<ArrayNode> current;
 
-    public JRef tail;
+    public JRef<ArrayNode> tail;
 
     public int arraySize;
 
@@ -52,12 +52,12 @@ public class JRefArrayList implements Serializable, JReplicated {
         if(sync){
             current.sync();
         }
-        if(current.getField("next") == null){
-            int x = (int) current.invoke("checkFilled");
+        if(current.ref().next == null){
+            int x = (int) current.ref().checkFilled();
             return cnt + x;
         }else{
-            int x = (int) current.invoke("checkFilled");
-            current = (JRef) current.getField("next");
+            int x = (int) current.ref().checkFilled();
+            current = (JRef) current.ref().next;
             return sizeRec(cnt + x, sync);
         }
     }
@@ -65,7 +65,7 @@ public class JRefArrayList implements Serializable, JReplicated {
     public <T> JRef<T> removeIndex(int index, boolean sync){
         current = head;
         if(findIndexFront(index, sync) >= 0){
-            JRef ret = (JRef) current.invoke("setAt", index, null);
+            JRef ret = (JRef) current.ref().setAt(index, null);
             return ret;
         }else{
             return null;
@@ -166,7 +166,7 @@ public class JRefArrayList implements Serializable, JReplicated {
                     currCont[x] = null;
                 }
                 newNodeCont[found] = item;
-                current.setField("cont", currCont);
+                current.ref().cont = currCont;
                 current.invoke("checkFilled");
                 node.setField("cont", newNodeCont);
                 node.invoke("checkFilled");
@@ -377,8 +377,8 @@ public class JRefArrayList implements Serializable, JReplicated {
         JRef<T> ret = null;
 
         if(current != null) {
-            ret = (JRef) current.getField("content");
-            current = (JRef) current.getField("next");
+            ret = (JRef) current.getField("cont");
+            current = (JRef) current.ref().next;
         }
         if(reset) current = head;
 
@@ -399,9 +399,9 @@ public class JRefArrayList implements Serializable, JReplicated {
             if(sync)
                 current.sync();
 
-            T currContent = (T) current.getField("content");
-            if(function.test(currContent)){
-                retList.add(currContent);
+            JRef[] currContent = current.ref().cont;
+            if(function.test((T) currContent)){
+                retList.add((T) currContent);
             }
 
             current = (JRef) current.getField("next");

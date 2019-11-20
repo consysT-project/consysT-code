@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.eshop.schema;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 /*
 Interface for the database class of the case study
@@ -35,7 +36,7 @@ public interface IDatabase<User, List> {
      * Function to add several products at once without checking for duplicate products
      * add initial list of products as semicolon seperated Name and price
      */
-    public boolean addInitialProducts(ArrayList<String> prods);
+    public boolean addInitialProducts(Collection<String> prods);
 
     /*
      * Add Singular Product to Database

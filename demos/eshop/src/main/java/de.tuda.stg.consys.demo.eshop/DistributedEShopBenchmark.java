@@ -8,7 +8,11 @@ import de.tuda.stg.consys.demo.eshop.schema.ShoppingSite;
 import de.tuda.stg.consys.objects.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+
+import static de.tuda.stg.consys.demo.DemoUtils.printProgress;
 
 /**
  * Created on 10.10.19.
@@ -29,9 +33,9 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 
 	public DistributedEShopBenchmark(Config config) {
 		super(config);
-		numOfTransactions = config.getInt("consys.bench.eshop.transactions");
-		numOfProducts = config.getInt("consys.bench.eshop.products");
-		numOfUsers = config.getInt("consys.bench.eshop.users");
+		numOfTransactions = config.getInt("consys.bench.demo.eshop.transactions");
+		numOfProducts = config.getInt("consys.bench.demo.eshop.products");
+		numOfUsers = config.getInt("consys.bench.demo.eshop.users");
 
 
 		EShopLevels.setWeak(getWeakLevel());
@@ -52,20 +56,25 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	public void setup() {
 		if (processId() == 0) {
 			database = replicaSystem().replicate("db", new Database(100, 100), getWeakLevel());
+			database.ref().init(numOfUsers, numOfProducts);
 			shoppingSite = replicaSystem().replicate("page", new ShoppingSite(database), getWeakLevel());
 
+			List<String> initialProducts = new ArrayList<>(numOfProducts);
 			for (int i = 0; i < numOfProducts; i++){
 				String name = "ProductName" + i + searchableWords[random.nextInt(searchableWords.length)];
 				double price =  (double) (100 + random.nextInt(99900)) / 100;
 				//Add one random searchable word to the products
-				database.ref().addProduct(name,	price);
+				initialProducts.add(name + ";" + price);
 			}
+			database.ref().addInitialProducts(initialProducts);
 
 			for (int i = 0; i < numOfUsers; i++){
 				String name = "User" + i;
 				//Add one random searchable word to the products
 				database.ref().addUser(name, Integer.toString(i));
+				DemoUtils.printProgress(i);
 			}
+			DemoUtils.printDone();
 
 			replicaSystem().barrier("added");
 
@@ -78,8 +87,8 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 
 			replicaSystem().barrier("added");
 
-			database.syncAll();
-			shoppingSite.syncAll();
+			database.sync();
+			shoppingSite.sync();
 		}
 	}
 
@@ -87,7 +96,7 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	public void iteration() {
 		for (int i = 0; i < numOfTransactions; i++) {
 			randomTransaction();
-			DemoUtils.printProgress(i);
+			printProgress(i);
 		}
 		DemoUtils.printDone();
 	}
@@ -119,11 +128,11 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	}
 
 	private void transactionAddBalance() {
-		shoppingSite.ref().AddBalance(random.nextInt(100), false);
+		shoppingSite.ref().addBalance((double) random.nextInt(100), false);
 	}
 
 	private void transactionAddCart() {
-		shoppingSite.ref().FromFoundAddToCart(random.nextInt(3), 1);
+		shoppingSite.ref().FromFoundAddToCart(random.nextInt(3) + 1, 1);
 	}
 
 	private void transactionCheckout() {
@@ -158,7 +167,7 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	}
 
 	private void transactionViewInfo() {
-		shoppingSite.ref().FromFoundDisplayInfo(random.nextInt(3),false,false);
+		shoppingSite.ref().FromFoundDisplayInfo(random.nextInt(3) + 1,false,false);
 	}
 
 

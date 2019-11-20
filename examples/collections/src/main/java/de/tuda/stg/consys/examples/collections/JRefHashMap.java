@@ -59,7 +59,7 @@ public class JRefHashMap implements Serializable, JReplicated {
         int currPos = index;
         JRef<DistNode> currNode = map.invoke("getNodeIndex", currPos, false);
         do {
-            JRef<KeyJRefPair> currPair = currNode.getField("content");
+            JRef<KeyJRefPair> currPair = currNode.ref().content;
             if(level.equals(JConsistencyLevels.WEAK))
                 currPair.sync();
             if (currPair.getField("valid")) {
