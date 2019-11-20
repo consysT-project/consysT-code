@@ -7,13 +7,13 @@ import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.examples.collections.JRefArrayMap;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
 
-import java.io.*;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -49,8 +49,8 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
         else
             return false;
 
-        registeredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), JConsistencyLevels.STRONG);
-        registeredUsers.ref().init(initUserCount, mapArraySize, JConsistencyLevels.STRONG);
+        registeredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), EShopLevels.getStrongLevel());
+        registeredUsers.ref().init(initUserCount, mapArraySize, EShopLevels.getStrongLevel());
 
         registeredProducts = system.replicate("RegisteredObjectList",
                 new JRefArrayList(EShopLevels.getWeakLevel(), listArraySize), EShopLevels.getWeakLevel());
@@ -152,7 +152,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
      * Function to add several products at once without checking for duplicate products
      * add initial list of products as semicolon seperated Name and price
      */
-    public boolean addInitialProducts(ArrayList<String> prods){
+    public boolean addInitialProducts(Collection<String> prods){
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())
@@ -187,6 +187,12 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
         System.out.println("");
         return true;
     }
+
+
+
+
+
+
 
     /*
      * Add Singular Product to Database

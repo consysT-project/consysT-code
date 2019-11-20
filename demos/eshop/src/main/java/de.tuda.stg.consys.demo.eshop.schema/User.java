@@ -2,9 +2,8 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.demo.eshop.schema.Cart;
+import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicated;
@@ -12,7 +11,6 @@ import de.tuda.stg.consys.objects.japi.JReplicated;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public class User implements Serializable , JReplicated {
@@ -49,7 +47,7 @@ public class User implements Serializable , JReplicated {
         else
             return false;
 
-        this.cart = system.replicate(new Cart(system), JConsistencyLevels.STRONG);
+        this.cart = system.replicate(new Cart(system),  EShopLevels.getStrongLevel());
         return true;
     }
 

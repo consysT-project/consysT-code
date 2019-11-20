@@ -114,14 +114,18 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     public boolean FromFoundAddToCart(int number, int count){
         int index = number - 1;
+
+        if (foundProducts == null)
+            return false;
+
         int allowed = (int) foundProducts.ref().size(true);
         if(index < 0 || index >= allowed){
-
             System.out.println("Please select a valid product, Chose " + index + " out of " + allowed);
             return false;
         }
         if(cartOfLoggedIn != null){
-            cartOfLoggedIn.ref().add(foundProducts.ref().getIndex(index, true), count);
+            JRef<Product> product = foundProducts.ref().getIndex(index, true);
+            cartOfLoggedIn.ref().add(product, count);
             return true;
         }
         System.out.println("You are not logged in.");
@@ -130,23 +134,26 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     public String FromFoundDisplayInfo(int number, boolean getComments, boolean printInfo){
         int index = number - 1;
+
+        if (foundProducts == null)
+            return "Please do a search first";
+
+        if(index < 0 || index >= (int) foundProducts.ref().size(true))
+            return "Please select a valid product";
+
         String ret;
-        if(index < 0 || index >= (int) foundProducts.ref().size(true)) {
-            ret = "Please select a valid product";
-        }
-        else{
-            JRef<@Weak Product> currProd = foundProducts.ref().getIndex(index, true);
 
-            ret = currProd.ref().getName();
-            ret += currProd.ref().getCost();
+        JRef<@Weak Product> currProd = foundProducts.ref().getIndex(index, true);
 
-            if(getComments){
-                String comments = currProd.ref().getComments();
-                ret += comments;
-            }
+        ret = currProd.ref().getName();
+        ret += currProd.ref().getCost();
+
+        if(getComments){
+            String comments = currProd.ref().getComments();
+            ret += comments;
         }
-        if(printInfo)
-            System.out.println(ret);
+
+        if(printInfo) System.out.println(ret);
 
         return ret;
     }
@@ -170,7 +177,7 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
         return false;
     }
 
-    public double AddBalance(double value, boolean PrintBalance){
+    public double addBalance(double value, boolean PrintBalance){
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())
