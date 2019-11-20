@@ -20,6 +20,7 @@
         <module>collections</module>
         <module>shopping-cart</module>
         <module>counter</module>
+        <module>twitter-clone</module>
     </modules>
 
 
