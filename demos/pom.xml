@@ -17,10 +17,9 @@
         <module>demo-bench</module>
         <module>concert-tickets</module>
         <module>message-groups</module>
-        <module>collections</module>
-        <module>shopping-cart</module>
         <module>counter</module>
         <module>twitter-clone</module>
+        <module>eshop</module>
     </modules>
 
 
