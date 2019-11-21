@@ -125,7 +125,7 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 			transactionLogin();
 		} else if (roll < 94) {
 			transactionCheckout();
-		} else if (roll < 98) {
+		} else if (roll < 100) {
 			transactionLogout();
 		}
 	}
