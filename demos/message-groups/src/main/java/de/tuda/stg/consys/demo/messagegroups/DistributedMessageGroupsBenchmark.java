@@ -129,8 +129,10 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		// System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
 		JRef<Inbox> inbox = user.ref().inbox;
-		user.sync();
-		inbox.sync();
+		if (random.nextInt(100) < 20) {
+			user.sync();
+			inbox.sync();
+		}
 		Set<String> inboxVal = user.ref().getInbox();
 
 		return 0;
