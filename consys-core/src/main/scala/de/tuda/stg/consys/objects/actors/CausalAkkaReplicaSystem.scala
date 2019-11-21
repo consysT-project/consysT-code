@@ -43,9 +43,10 @@ object CausalAkkaReplicaSystem {
       setObject(init)
       var messageQueue = new mutable.Queue[Message]
       var vc = VectorClock(replicaSystem.toString)
+
       override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]): R = {
         vc = vc.inc
-        val result = super.internalInvoke(tx, methodName, args)
+        val result = super.internalInvoke[R](tx, methodName, args)
         replicaSystem.foreachOtherReplica(handler => {
           handler.request(addr, Message(vc, InvokeOp(tx, methodName, args)))})
         result
@@ -53,9 +54,9 @@ object CausalAkkaReplicaSystem {
 
       override def internalGetField[R](tx: Transaction, fldName: String): R = {
         vc = vc.inc
-        val result = super.internalGetField(tx, fldName)
+        val result = super.internalGetField[R](tx, fldName)
         replicaSystem.foreachOtherReplica(handler => {
-          handler.request(addr, Message(vc, internalGetField(tx, fldName)))})
+          handler.request(addr, Message(vc, GetFieldOp(tx, fldName)))})
         result
       }
 
@@ -64,7 +65,7 @@ object CausalAkkaReplicaSystem {
         super.internalSetField(tx, fldName, newVal)
         replicaSystem.foreachOtherReplica(handler => {
           internalSetField(tx, fldName, newVal)
-          handler.request(addr, Message(vc, internalGetField(tx, fldName)))})
+          handler.request(addr, Message(vc, SetFieldOp(tx, fldName, newVal)))})
       }
 
       override def internalSync(): Unit = {
@@ -93,20 +94,22 @@ object CausalAkkaReplicaSystem {
       }
 
       def checkMessageQueue(): Unit = {
-        breakable {
-          while (messageQueue.nonEmpty) {
-            if (messageQueue.head.senderVC happenedBefore vc) {
-              messageQueue.head.op match {
+
+        var headOpt = messageQueue.dequeueFirst(_ => true)
+        while (headOpt.isDefined) {
+          val head = headOpt.get
+            if (head.senderVC happenedBefore vc) {
+              head.op match {
                 case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
                 case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
                 case GetFieldOp(tx, fldName) => internalGetField(tx, fldName)
               }
-              vc = vc.merge(messageQueue.head.senderVC)
-              messageQueue.dequeue()
+              vc = vc.merge(head.senderVC)
+              headOpt = messageQueue.dequeueFirst(_ => true)
             } else
-              break
+              return;
           }
-        }
+
       }
 
       override def toString: String = s"CausalMaster($addr, $getObject)"

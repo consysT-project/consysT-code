@@ -30,7 +30,7 @@ trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicated
 
 		opCache.put(op.tx, (op, value)) match {
 			case None => //alles supi!
-			case Some(_) => sys.error(s"cannot cache $op. already cached.")
+			case Some(_) => replicaSystem.log.warning(s"$op was already cached.")
 		}
 	}
 
