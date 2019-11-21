@@ -65,11 +65,9 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 			JRef<User> user = replicaSystem().replicate(
 				addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
 
-
-			group.ref().addUser(user);
-
 			DemoUtils.printProgress(grpIndex);
 		}
+		DemoUtils.printDone();
 
 		replicaSystem().barrier("users_added");
 
@@ -84,9 +82,13 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 				group.sync();
 				user.sync();
 
+				if (replIndex == processId())
+				group.ref().addUser(user);
+
 				groups.add(group);
 				users.add(user);
 			}
+			DemoUtils.printProgress(grpIndex);
 		}
 		DemoUtils.printDone();
 	}
