@@ -15,11 +15,17 @@ arg_parser.add_argument('inputs', metavar='Inputs', nargs='+', help='Directories
 
 args = arg_parser.parse_args()
 
+
+transactions = [100,100]
+
 # creates a list of lists with all the paths for a single project
 
 
 data = pd.DataFrame([], columns = ['file', 'mean', 'len', 'std', 'conf_1', 'conf_2'])
-for path in args.inputs :
+for input in args.inputs :
+	splitted_input = input.split(":", 1)
+	path = splitted_input[0]
+	num_of_transactions = int(splitted_input[1])
 	csv_paths = [path + '/' + filepath for filepath in os.listdir(path)]
 	times = []
 	for csv_path in csv_paths:
@@ -29,7 +35,7 @@ for path in args.inputs :
 		for row in csv_read:
 			times.append(int(row[1]))
 
-	times_ms = [time / 1000000 for time in times]
+	times_ms = [(time / 1000000) / num_of_transactions for time in times]
 
 	#Compute interesting data points
 	arr = np.array(times_ms)
@@ -45,7 +51,7 @@ for path in args.inputs :
 	print(f'Total number of entries: {count}')
 	print(f'Mean: {mean}ms')
 	print(f'Standard deviation: {standard_dev}ms')
-	print(f'95% confidence interval: {confidence_interval_1sigma}')
+	print(f'68% confidence interval: {confidence_interval_1sigma}')
 	print(f'95% confidence interval: {confidence_interval_2sigma}')
 
 	# Add data that should be plotted
@@ -55,7 +61,7 @@ for path in args.inputs :
 print("***")
 print(data)
 
-data.to_csv('results.csv')
+data.to_csv('results.csv', sep = ';', index_label = 'index')
 
 fig = px.bar(data, x = 'file', y = 'mean')
 fig.show()
