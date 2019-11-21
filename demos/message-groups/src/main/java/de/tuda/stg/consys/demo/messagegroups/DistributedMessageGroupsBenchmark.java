@@ -78,12 +78,8 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 				JRef<User> user = replicaSystem().lookup(
 					addr("user",grpIndex, replIndex), User.class, getWeakLevel());
 
-				//Force dereferencing the ref to ensure that the object is already available.
-				group.sync();
-				user.sync();
 
-				if (replIndex == processId())
-				group.ref().addUser(user);
+				if (replIndex == processId()) group.ref().addUser(user);
 
 				groups.add(group);
 				users.add(user);
