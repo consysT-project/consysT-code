@@ -58,9 +58,9 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
     private void randomTransaction() {
         int rand = random.nextInt(100);
         if (rand < 58) {
-            transaction3();
-        } else if (rand < 80) {
             transaction2();
+        } else if (rand < 80) {
+            transaction3();
         } else if (rand < 100) {
             transaction1();
         }
