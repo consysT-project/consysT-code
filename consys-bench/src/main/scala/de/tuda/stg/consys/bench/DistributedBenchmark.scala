@@ -137,6 +137,7 @@ abstract class DistributedBenchmark(
 				iteration()
 				val duration = System.nanoTime - start
 				writer.println("" + i + "," + duration)
+				writer.flush()
 				replicaSystem.barrier("cleanup")
 				println(s"### CLEANUP : MEASURE $i ###")
 				cleanup()
