@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo.concert.schema;
 import java.io.Serializable;
 
 public class Counter implements Serializable {
-    public int value;
+    public Integer value;
     public void inc() {
         value++;
     }

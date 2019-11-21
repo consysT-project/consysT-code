@@ -19,7 +19,7 @@ public class BuyTicket implements Serializable {
 	}
 
 	public Ticket buyTicket() {
-		if (hall.ref().maxAudience > soldTickets.ref().value) {
+		if ((int) hall.ref().maxAudience > (int) soldTickets.ref().value) {
 			soldTickets.ref().inc();
 			return new Ticket();
 		} else {
