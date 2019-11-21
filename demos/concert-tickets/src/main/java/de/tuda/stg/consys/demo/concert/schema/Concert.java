@@ -1,36 +1,39 @@
 package de.tuda.stg.consys.demo.concert.schema;
 
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
 import java.util.Date;
 
 public class Concert implements Serializable {
-    public Date date;
-    public JRef<ConcertHall> hall;
-    public JRef<Band> band;
-    public JRef<Counter> soldTickets;
+    private Date date;
+    private final JRef<ConcertHall> hall;
+    private final JRef<Band> band;
+    private final JRef<Counter> soldTickets;
+    private final JRef<BuyTicket> buyer;
 
     public int getSoldTickets () {
-        return soldTickets.getField("value");
+        return soldTickets.ref().value;
+    }
+
+    public String getBandName() {
+        return band.ref().name;
+    }
+
+    public Date getDate() {
+        return date;
     }
 
     public Ticket buyTicket() {
-        if (hall.<Integer>getField("maxAudience") > getSoldTickets()) {
-            soldTickets.invoke("inc");
-            return new Ticket();
-        }
-        else {
-            return null;
-        }
+        return buyer.ref().buyTicket();
     }
 
-    public Concert(Date date, JRef<ConcertHall> hall, JRef<Band> band, JRef<Counter> soldTickets) {
+
+    public Concert(Date date, JRef<ConcertHall> hall, JRef<Band> band, JRef<Counter> soldTickets, JRef<BuyTicket> buyer) {
         this.date = date;
         this.hall = hall;
         this.band = band;
         this.soldTickets = soldTickets;
+        this.buyer = buyer;
     }
 }

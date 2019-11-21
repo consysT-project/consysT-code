@@ -33,7 +33,9 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
             JRef<ConcertHall> concertHall = replicaSystem().replicate(new ConcertHall(5), getStrongLevel());
             JRef<Band> band = replicaSystem().replicate(new Band("some band"), getWeakLevel());
             JRef<Counter> soldTickets = replicaSystem().replicate(new Counter(0), getStrongLevel());
-            concert = replicaSystem().replicate("concert", new Concert(new Date(), concertHall, band, soldTickets), getStrongLevel());
+            JRef<BuyTicket> buyer = replicaSystem().replicate(new BuyTicket(concertHall, soldTickets), getStrongLevel());
+
+            concert = replicaSystem().replicate("concert", new Concert(new Date(), concertHall, band, soldTickets, buyer), getWeakLevel());
         } else {
             concert = replicaSystem().lookup("concert", Concert.class, getStrongLevel());
             concert.syncAll();
@@ -51,6 +53,31 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
             }
             DemoUtils.printDone();
         }
+    }
+
+    private void randomTransaction() {
+        int rand = random.nextInt(100);
+        if (rand < 58) {
+            transaction3();
+        } else if (rand < 80) {
+            transaction2();
+        } else if (rand < 100) {
+            transaction1();
+        }
+    }
+
+    private void transaction1() {
+        concert.ref().buyTicket();
+    }
+
+    private void transaction2() {
+        concert.ref().getBandName();
+        if (random.nextInt(100) < 20) concert.sync();
+    }
+
+    private void transaction3() {
+        concert.ref().getDate();
+        if (random.nextInt(100) < 20) concert.sync();
     }
 
     @Override
