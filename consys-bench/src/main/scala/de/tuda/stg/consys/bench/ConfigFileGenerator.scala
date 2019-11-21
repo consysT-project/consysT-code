@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.bench
 
 import java.io.PrintWriter
-import java.nio.file.{Files, Path, Paths}
-
-import scala.util.Try
+import java.nio.file.{Path, Paths}
 
 /**
  * Created on 29.10.19.
