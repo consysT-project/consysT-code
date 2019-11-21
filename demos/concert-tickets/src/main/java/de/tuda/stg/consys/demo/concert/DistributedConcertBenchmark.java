@@ -7,6 +7,7 @@ import de.tuda.stg.consys.demo.concert.schema.*;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.util.Date;
+import java.util.Random;
 
 public class DistributedConcertBenchmark extends DemoBenchmark {
 
@@ -24,6 +25,7 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
         numOfTransactions = config.getInt("consys.bench.demo.concert.transactions");
     }
 
+    private final Random random = new Random();
 
     @Override
     public void setup() {
@@ -44,7 +46,7 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
         if (processId() != 0) {
             for (int i = 0; i < numOfTransactions; i++) {
                 concert.ref().buyTicket();
-                concert.syncAll();
+                if (random.nextInt(100) < 20) concert.syncAll();
                 DemoUtils.printProgress(i);
             }
             DemoUtils.printDone();

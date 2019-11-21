@@ -8,6 +8,8 @@ import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.objects.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
+import java.util.Random;
+
 /**
  * Created on 10.10.19.
  *
@@ -29,6 +31,7 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 	}
 
 	private JRef<Counter> counter;
+	private final Random random = new Random();
 
 	@Override
 	public void setup() {
@@ -45,7 +48,7 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 		if (processId() != 0) {
 			for (int i = 0; i < numOfTransactions; i++) {
 				counter.ref().inc();
-				counter.sync();
+				if (random.nextInt(100) < 20) counter.sync();
 				DemoUtils.printProgress(i);
 			}
 			DemoUtils.printDone();
