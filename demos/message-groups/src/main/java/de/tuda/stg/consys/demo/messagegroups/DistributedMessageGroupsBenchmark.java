@@ -71,6 +71,8 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 			DemoUtils.printProgress(grpIndex);
 		}
 
+		replicaSystem().barrier("users_added");
+
 		for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 			for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
 				JRef<Group> group = replicaSystem().lookup(
