@@ -25,7 +25,7 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 
 	public DistributedCounterBenchmark(Config config) {
 		super(config);
-		numOfTransactions = config.getInt("consys.bench.counter.transactions");
+		numOfTransactions = config.getInt("consys.bench.demo.counter.transactions");
 	}
 
 	private JRef<Counter> counter;
@@ -33,21 +33,23 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 	@Override
 	public void setup() {
 		if (processId() == 0) {
-			counter = replicaSystem().replicate("counter", new Counter(0), getWeakLevel());
+			counter = replicaSystem().replicate("counter", new Counter(0), getCausalLevel());
 		} else {
-			counter = replicaSystem().lookup("counter", Counter.class, getWeakLevel());
+			counter = replicaSystem().lookup("counter", Counter.class, getCausalLevel());
 			counter.sync(); //Force dereference
 		}
 	}
 
 	@Override
 	public void iteration() {
-		for (int i = 0; i < numOfTransactions; i++) {
-			counter.ref().inc();
-			counter.sync();
-			DemoUtils.printProgress(i);
+		if (processId() != 0) {
+			for (int i = 0; i < numOfTransactions; i++) {
+				counter.ref().inc();
+				counter.sync();
+				DemoUtils.printProgress(i);
+			}
+			DemoUtils.printDone();
 		}
-		DemoUtils.printDone();
 	}
 
 	@Override

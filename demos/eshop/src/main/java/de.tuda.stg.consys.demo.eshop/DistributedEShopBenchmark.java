@@ -94,11 +94,13 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 
 	@Override
 	public void iteration() {
-		for (int i = 0; i < numOfTransactions; i++) {
-			randomTransaction();
-			printProgress(i);
+		if (processId() != 0) {
+			for (int i = 0; i < numOfTransactions; i++) {
+				randomTransaction();
+				printProgress(i);
+			}
+			DemoUtils.printDone();
 		}
-		DemoUtils.printDone();
 	}
 
 	@Override
@@ -110,19 +112,20 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	private void randomTransaction() {
 		int roll = random.nextInt(100);
 
-		if (roll < 25) {
+		//Zipf distribution
+		if (roll < 38) {
 			transactionSearch();
-		} else if (roll < 35) {
+		} else if (roll < 57) {
 			transactionViewInfo();
-		} else if (roll < 50) {
+		} else if (roll < 70) {
 			transactionAddCart();
-		} else if (roll < 62) {
+		} else if (roll < 80) {
 			transactionAddBalance();
-		} else if (roll < 72) {
-			transactionCheckout();
 		} else if (roll < 88) {
 			transactionLogin();
-		} else if (roll < 96) {
+		} else if (roll < 94) {
+			transactionCheckout();
+		} else if (roll < 98) {
 			transactionLogout();
 		}
 	}

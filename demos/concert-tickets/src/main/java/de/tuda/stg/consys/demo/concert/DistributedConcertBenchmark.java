@@ -41,13 +41,14 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
 
     @Override
     public void iteration() {
-        for (int i = 0; i < numOfTransactions; i++) {
-            concert.ref().buyTicket();
-            concert.syncAll();
-            DemoUtils.printProgress(i);
+        if (processId() != 0) {
+            for (int i = 0; i < numOfTransactions; i++) {
+                concert.ref().buyTicket();
+                concert.syncAll();
+                DemoUtils.printProgress(i);
+            }
+            DemoUtils.printDone();
         }
-        DemoUtils.printDone();
-
     }
 
     @Override

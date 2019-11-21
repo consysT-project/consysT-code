@@ -39,8 +39,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 
 	val defaultTimeout : FiniteDuration
 
-
-	protected[actors] object replica {
+		protected[actors] object replica {
 
 
 		/*The replicated objects stored by this replica*/
@@ -158,14 +157,14 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 		futures.foreach { future => Await.ready(future, defaultTimeout) }
 	}
 
-	override final def clear(except : Set[Addr] = Set.empty) : Unit = {
+	override def clear(except : Set[Addr] = Set.empty) : Unit = {
 		import akka.pattern.ask
 		replica.clear(except)
 
 		/*notify other replicas for the new object.*/
-		implicit val timeout : Timeout = defaultTimeout
-		val futures = otherReplicas.map(actorRef =>	actorRef ? ClearObjectsReplica(except))
-		futures.foreach { future => Await.ready(future, defaultTimeout) }
+//		implicit val timeout : Timeout = defaultTimeout
+//		val futures = otherReplicas.map(actorRef =>	actorRef ? ClearObjectsReplica(except))
+//		futures.foreach { future => Await.ready(future, defaultTimeout) }
 	}
 
 
@@ -190,7 +189,6 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	override def close() : Unit = {
 		Await.ready(actorSystem.terminate(), defaultTimeout)
 	}
-
 
 	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
 		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]

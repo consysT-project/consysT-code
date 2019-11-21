@@ -111,7 +111,7 @@ abstract class DistributedBenchmark(
 	private def measure() : Unit = {
 		replicaSystem.barrier("measure")
 		println("## START MEASUREMENT ##")
-		val sdf = new SimpleDateFormat("YY-MM-dd kk:mm:ss")
+		val sdf = new SimpleDateFormat("YY-MM-dd_kk-mm-ss")
 		val outputDir = Paths.get(outputFileName, sdf.format(new Date))
 		val outputFile = outputDir.resolve("proc" + processId + ".csv")
 
