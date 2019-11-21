@@ -37,7 +37,7 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
 
             concert = replicaSystem().replicate("concert", new Concert(new Date(), concertHall, band, soldTickets, buyer), getWeakLevel());
         } else {
-            concert = replicaSystem().lookup("concert", Concert.class, getStrongLevel());
+            concert = replicaSystem().lookup("concert", Concert.class, getWeakLevel());
             concert.syncAll();
         }
 
