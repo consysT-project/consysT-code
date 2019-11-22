@@ -3,6 +3,9 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 /**

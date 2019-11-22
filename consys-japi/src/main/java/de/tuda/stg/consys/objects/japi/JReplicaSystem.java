@@ -37,6 +37,8 @@ public interface JReplicaSystem {
 
 	void barrier(String name, Duration timeout);
 
+	int numberOfObjects();
+
 
 }
 
