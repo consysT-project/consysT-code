@@ -3,6 +3,9 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 import de.tuda.stg.consys.objects.japi.JRef;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -16,7 +19,9 @@ public class Group implements Serializable {
 
 	//Message delivery
 	public void addPost(String msg) {
-		for (JRef<User> user : users) {
+		List<Integer> l = null;
+
+		for (JRef<User> user : (Iterable) () -> l.iterator()) {
 			if (user != null) user.ref().send(msg);
 		}
 	}

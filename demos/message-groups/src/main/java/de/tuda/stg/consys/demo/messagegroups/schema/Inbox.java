@@ -20,4 +20,9 @@ public class Inbox implements Serializable {
 	void add(String msg) {
 		entries.add(msg);
 	}
+
+	@Override
+	public String toString() {
+		return "Inbox:" + entries.toString();
+	}
 }
