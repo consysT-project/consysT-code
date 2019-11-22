@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.objects.japi;
 
 import de.tuda.stg.consys.objects.Ref;
+import de.tuda.stg.consys.objects.actors.AkkaRef;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 
 import java.io.Serializable;
 
@@ -70,6 +72,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	@Override
 	public String addr() {
 		return ref.addr();
+	}
+
+	@Override
+	public void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem) {
+		((AkkaRef<String, T>) ref).setReplicaSystem(replicaSystem);
 	}
 
 	@Override

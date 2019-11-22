@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.objects.japi;
 
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+
 /**
  * Created on 01.03.19.
  *
@@ -26,4 +28,6 @@ public interface JRef<T> {
 	void await();
 
 	String addr();
+
+	void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem);
 }

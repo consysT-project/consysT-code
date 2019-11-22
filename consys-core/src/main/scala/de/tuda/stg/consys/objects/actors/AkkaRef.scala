@@ -13,6 +13,10 @@ import scala.concurrent.TimeoutException
 	*/
 private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
 
+	/* Only use this for emergencies */
+	def setReplicaSystem(replicaSystem  : AkkaReplicaSystem[Addr]) : Unit = {
+		this.replicaSystem = replicaSystem
+	}
 
 	override implicit def deref : ReplicatedObject[Addr, T] = replicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")

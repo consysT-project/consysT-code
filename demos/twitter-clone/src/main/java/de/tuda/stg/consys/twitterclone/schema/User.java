@@ -1,11 +1,17 @@
 package de.tuda.stg.consys.twitterclone.schema;
 
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.objects.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.*;
 
-public class User implements Serializable {
+public class User implements JReplicated {
+
+    /* Needed for JReplicated */
+    public transient AkkaReplicaSystem<String> replicaSystem = null;
+
 
     private UUID id = UUID.randomUUID();
     private String username = id.hashCode() + "";
@@ -69,7 +75,10 @@ public class User implements Serializable {
     public void addToTimeline(JRef<Tweet> tweet) {
         timeline.add(tweet);
         for(JRef<User> user: followers) {
-            user.ref().addToTimeline(tweet);
+            getSystem().ifPresent(system -> {
+                user.setReplicaSystem(replicaSystem);
+                user.ref().addToTimeline(tweet);
+            });
         }
     }
 
