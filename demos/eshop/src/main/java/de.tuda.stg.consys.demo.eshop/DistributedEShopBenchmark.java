@@ -131,24 +131,29 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	}
 
 	private void transactionAddBalance() {
-		shoppingSite.ref().addBalance((double) random.nextInt(100), false);
+        System.out.println("--transactionAddBalance--");
+	    shoppingSite.ref().addBalance((double) random.nextInt(100), false);
 	}
 
 	private void transactionAddCart() {
-		shoppingSite.ref().FromFoundAddToCart(random.nextInt(3) + 1, 1);
+        System.out.println("--transactionAddCart--");
+	    shoppingSite.ref().FromFoundAddToCart(random.nextInt(3) + 1, 1);
 	}
 
 	private void transactionCheckout() {
-		shoppingSite.ref().Checkout(false);
+        System.out.println("--transactionCheckout--");
+	    shoppingSite.ref().Checkout(false);
 	}
 
 	private void transactionLogin() {
+        System.out.println("--transactionLogin--");
 		int userIndex = random.nextInt(numOfUsers);
 		shoppingSite.ref().login("User" + userIndex, Integer.toString(userIndex));
 	}
 
 	private void transactionLogout() {
-		shoppingSite.ref().Logout();
+        System.out.println("--transactionLogout--");
+	    shoppingSite.ref().Logout();
 	}
 
 	private void transactionRegisterUser() {

@@ -40,7 +40,7 @@ abstract class DistributedBenchmark(
 	final protected var replicaSystem : JReplicaSystem = JReplicaSystems.fromActorSystem(
 		address.hostname,
 		address.port,
-		java.time.Duration.ofSeconds(1800)
+		java.time.Duration.ofSeconds(30000)
 	)
 
 	println("Adding other replicas...")
