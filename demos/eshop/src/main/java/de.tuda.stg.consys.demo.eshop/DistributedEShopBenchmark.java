@@ -78,6 +78,8 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 
 			replicaSystem().barrier("added");
 
+			System.out.println("number of objects = " + replicaSystem().numberOfObjects());
+
 		} else {
 			database = replicaSystem().lookup("db", Database.class, getWeakLevel());
 			shoppingSite = replicaSystem().lookup("page", ShoppingSite.class, getWeakLevel());
@@ -86,6 +88,8 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 			shoppingSite.sync();
 
 			replicaSystem().barrier("added");
+
+			System.out.println("number of objects = " + replicaSystem().numberOfObjects());
 
 			database.sync();
 			shoppingSite.sync();
@@ -105,6 +109,8 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 
 	@Override
 	public void cleanup() {
+		System.out.println("number of objects = " + replicaSystem().numberOfObjects());
+
 		replicaSystem().clear(Sets.newHashSet());
 	}
 

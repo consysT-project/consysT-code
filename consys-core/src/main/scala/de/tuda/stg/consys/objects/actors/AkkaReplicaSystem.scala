@@ -62,6 +62,9 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 			}
 		}
 
+		def size : Int = localObjects.valuesIterator.foldLeft(0)((i, obj) => if (obj.consistencyLevel == ConsistencyLevel.Strong) i + 1 else i)
+
+
 		def remove(addr : Addr) : Unit = localObjects.remove(addr) match {
 			case None =>
 			case Some(obj) => obj.delete()
@@ -168,6 +171,7 @@ trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
 	}
 
 
+	def numberOfObjects: Int = replica.size
 
 
 	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
