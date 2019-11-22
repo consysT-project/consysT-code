@@ -124,7 +124,6 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
     }
 
 
-
     private int transaction1() {
         JRef<User> follower = randomUser();
         JRef<User> following = randomUser();
@@ -132,8 +131,11 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         follower.ref().addFollower(following);
         following.ref().addFollowing(follower);
 
-        follower.sync();
-        following.sync();
+        if (random.nextInt(100) < 20) {
+            follower.sync();
+            following.sync();
+        }
+
 
         return 0;
     }
@@ -145,8 +147,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         follower.ref().removeFollower(following);
         following.ref().removeFollowing(follower);
 
-        follower.sync();
-        following.sync();
+        if (random.nextInt(100) < 20) {
+            follower.sync();
+            following.sync();
+        }
 
         return 1;
     }
@@ -158,8 +162,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         tweet.ref().retweet();
         user.ref().addRetweet(tweet);
 
-        tweet.sync();
-        user.sync();
+        if (random.nextInt(100) < 20) {
+            tweet.sync();
+            user.sync();
+        }
 
         return 2;
     }
@@ -169,7 +175,7 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
         List<JRef<Tweet>> timeline = user.ref().getTimeline();
 
-        user.sync();
+        if (random.nextInt(100) < 20) user.sync();
 
         return 3;
     }
