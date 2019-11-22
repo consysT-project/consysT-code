@@ -90,6 +90,11 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	}
 
 	@Override
+	public int numberOfObjects() {
+		return replicaSystem.numberOfObjects();
+	}
+
+	@Override
 	public boolean equals(Object other) {
 		return other instanceof JReplicaSystemAkkaImpl
 			&& ((JReplicaSystemAkkaImpl) other).replicaSystem == replicaSystem;
