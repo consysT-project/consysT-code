@@ -36,9 +36,9 @@ public class DistributedCounterBenchmark extends DemoBenchmark {
 	@Override
 	public void setup() {
 		if (processId() == 0) {
-			counter = replicaSystem().replicate("counter", new Counter(0), getCausalLevel());
+			counter = replicaSystem().replicate("counter", new Counter(0), getWeakLevel());
 		} else {
-			counter = replicaSystem().lookup("counter", Counter.class, getCausalLevel());
+			counter = replicaSystem().lookup("counter", Counter.class, getWeakLevel());
 			counter.sync(); //Force dereference
 		}
 	}
