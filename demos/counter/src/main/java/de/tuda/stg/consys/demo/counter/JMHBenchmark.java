@@ -24,7 +24,7 @@ public class JMHBenchmark {
 
 	@State(Scope.Benchmark)
 	public static class BenchmarkSetup {
-		@Param({"weak", "strong"})
+		@Param({"weak", "local/strong"})
 		String level;
 
 		JReplicaSystem replicaSystem1;
