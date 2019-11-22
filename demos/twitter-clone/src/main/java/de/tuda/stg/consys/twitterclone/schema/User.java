@@ -51,6 +51,8 @@ public class User implements JReplicated {
         return followings;
     }
 
+    public List<JRef<Tweet>> getTimeline() { return timeline; }
+
     public void addFollower(JRef<User> follower) {
         followers.add(follower);
     }

@@ -84,11 +84,11 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 
             JRef<@Weak User> user = replicaSystem().replicate
-                    (addr("user", grpIndex, processId()), new User(generateRandomName()), JConsistencyLevels.WEAK);
+                    (addr("user", grpIndex, processId()), new User(generateRandomName()), getWeakLevel());
             JRef<@Strong Counter> retweetCount =  replicaSystem().replicate(
-                    addr("retweetCount", grpIndex, processId()), new Counter(0), JConsistencyLevels.STRONG);
+                    addr("retweetCount", grpIndex, processId()), new Counter(0), getStrongLevel());
             JRef<@Weak Tweet> tweet = replicaSystem().replicate(
-                    addr("tweet", grpIndex, processId()), new Tweet(user, generateRandomText(3), retweetCount), JConsistencyLevels.WEAK);
+                    addr("tweet", grpIndex, processId()), new Tweet(user, generateRandomText(3), retweetCount), getWeakLevel());
 
             user.ref().addToTimeline(tweet);
 
@@ -98,9 +98,9 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
                 JRef<@Weak User> user = replicaSystem().lookup(
-                        addr("user", grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
+                        addr("user", grpIndex, replIndex), User.class, getWeakLevel());
                 JRef<@Weak Tweet> tweet = replicaSystem().lookup(
-                        addr("tweet", grpIndex, replIndex), Tweet.class, JConsistencyLevels.WEAK);
+                        addr("tweet", grpIndex, replIndex), Tweet.class, getWeakLevel());
 
                 users.add(user);
                 tweets.add(tweet);
@@ -132,6 +132,9 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         follower.ref().addFollower(following);
         following.ref().addFollowing(follower);
 
+        follower.sync();
+        following.sync();
+
         return 0;
     }
 
@@ -141,6 +144,9 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
         follower.ref().removeFollower(following);
         following.ref().removeFollowing(follower);
+
+        follower.sync();
+        following.sync();
 
         return 1;
     }
@@ -152,7 +158,20 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         tweet.ref().retweet();
         user.ref().addRetweet(tweet);
 
+        tweet.sync();
+        user.sync();
+
         return 2;
+    }
+
+    private int transaction4() {
+        JRef<User> user = randomUser();
+
+        List<JRef<Tweet>> timeline = user.ref().getTimeline();
+
+        user.sync();
+
+        return 3;
     }
 
 
@@ -168,7 +187,7 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
             //Retweet
             return transaction3();
         } else if (rand < 100) {
-            return 3;//transaction3();
+            return transaction4();
         }
 
         throw new IllegalStateException("cannot be here");
