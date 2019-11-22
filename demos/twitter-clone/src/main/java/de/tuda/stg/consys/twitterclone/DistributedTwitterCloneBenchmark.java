@@ -136,7 +136,6 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
             following.sync();
         }
 
-
         return 0;
     }
 
