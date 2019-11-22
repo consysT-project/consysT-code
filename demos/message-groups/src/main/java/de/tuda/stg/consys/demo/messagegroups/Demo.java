@@ -28,7 +28,7 @@ public class Demo {
         int numReplicas = Replicas.replicaSystems.length;
 
          System.out.println("Initializing benchmarks...");
-        MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(Replicas.replicaSystems, 10000);
+        MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(Replicas.replicaSystems, 1);
 
         //Run benchmarks
         System.out.println("Run benchmarks...");
@@ -66,8 +66,8 @@ public class Demo {
 
                 for (int j = 0; j < replicaSystems.length; j++) {
                     JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$"+ j, new Group(), JConsistencyLevels.STRONG);
-                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.WEAK);
-                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevels.WEAK);
+                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.CAUSAL);
+                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevels.CAUSAL);
 
                     group.ref().addUser(user);
                     System.out.println("Added user$" + i + "$"+ j);
@@ -92,7 +92,7 @@ public class Demo {
             for (int i = 0; i <= entriesPerSystem; i++) {
                 for (int j = 0; j < numReplicas; j++) {
                     JRef<Group> group = replicaSystem.lookup("group$" + i + "$" + j, Group.class, JConsistencyLevels.STRONG);
-                    JRef<User> user = replicaSystem.lookup("user$" + i + "$" + j, User.class, JConsistencyLevels.WEAK);
+                    JRef<User> user = replicaSystem.lookup("user$" + i + "$" + j, User.class, JConsistencyLevels.CAUSAL);
 
                     groups.add(group);
                     users.add(user);
@@ -182,6 +182,9 @@ public class Demo {
                 int i = randomTransaction();
                 count[i]++;
             }
+
+
+            users.forEach(user -> user.ref().printInbox());
 
             System.out.println("Ending run at " + new Date());
 
