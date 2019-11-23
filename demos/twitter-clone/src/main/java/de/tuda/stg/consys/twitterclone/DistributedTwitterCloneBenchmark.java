@@ -181,6 +181,7 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
 
     private int randomTransaction() {
+
         int rand = random.nextInt(100);
         if (rand < 12) /*12*/ {
             //Follow
