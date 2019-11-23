@@ -44,7 +44,7 @@ public class ContentionMessageGroupsBenchmark extends DemoBenchmark {
 		users = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
 
 		setStepsPerIteration(numOfTransactions);
-		setWaitPerIteration(1);
+		setWaitPerIteration(1000);
 	}
 
 	private static String addr(String identifier, int grpIndex, int replIndex) {
