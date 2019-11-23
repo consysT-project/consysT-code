@@ -34,6 +34,8 @@ abstract class DistributedBenchmark(
 	var processId : Int /* process 0 is the coordinator */ ,
 	val warmupIterations : Int,
 	val measureIterations : Int,
+	var stepsPerIteration : Int,
+	var waitBetweenOperations : Int,
 	val outputFileName : String
 ) {
 	//Important: create the followers before creating the coordinator
@@ -48,6 +50,7 @@ abstract class DistributedBenchmark(
 		replicaSystem.addReplicaSystem(replica.hostname, replica.port)
 	}
 	println("All replicas found")
+
 
 
 
@@ -69,6 +72,8 @@ abstract class DistributedBenchmark(
 			config.getInt("consys.bench.processId"),
 			config.getInt("consys.bench.warmupIterations"),
 			config.getInt("consys.bench.measureIterations"),
+			1,
+			0,
 			config.getString("consys.bench.outputFile")
 		)
 	}
@@ -87,6 +92,18 @@ abstract class DistributedBenchmark(
 	protected def cleanup() : Unit
 
 
+	protected def setStepsPerIteration(steps : Int) : Unit = {
+		stepsPerIteration = steps;
+	}
+
+	protected def setWaitPerIteration(ms : Int) : Unit = {
+		waitBetweenOperations = ms;
+	}
+
+	private def busyWait(ms : Int) : Unit = {
+		val start = System.currentTimeMillis
+		while (System.currentTimeMillis < start + ms) {}
+	}
 
 
 	private def warmup() : Unit = {
@@ -98,7 +115,7 @@ abstract class DistributedBenchmark(
 			setup()
 			replicaSystem.barrier("iterations")
 			println(s"### ITERATIONS : WARMUP $i ###")
-			iteration()
+			for (i <- 1 to stepsPerIteration) iteration()
 			replicaSystem.barrier("cleanup")
 			println(s"### CLEANUP : WARMUP $i ###")
 			cleanup()
@@ -133,10 +150,13 @@ abstract class DistributedBenchmark(
 				setup()
 				replicaSystem.barrier("iterations")
 				println(s"### ITERATIONS : MEASURE $i ###")
-				val start = System.nanoTime
-				iteration()
-				val duration = System.nanoTime - start
-				writer.println("" + i + "," + duration)
+				for (i <- 1 to stepsPerIteration) {
+					if (waitBetweenOperations != 0) busyWait(waitBetweenOperations)
+					val start = System.nanoTime
+					iteration()
+					val duration = System.nanoTime - start
+					writer.println("" + i + "," + duration)
+				}
 				writer.flush()
 				replicaSystem.barrier("cleanup")
 				println(s"### CLEANUP : MEASURE $i ###")
