@@ -61,7 +61,7 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 			JRef<Group> group = replicaSystem().replicate(
 				addr("group", grpIndex, processId()), new Group(), getStrongLevel());
 			JRef<Inbox> inbox =  replicaSystem().replicate(
-				addr("inbox", grpIndex, processId()), new Inbox(), getCausalLevel());
+				addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
 			JRef<User> user = replicaSystem().replicate(
 				addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
 
