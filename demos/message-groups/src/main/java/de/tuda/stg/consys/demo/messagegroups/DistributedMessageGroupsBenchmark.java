@@ -89,14 +89,18 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		DemoUtils.printDone();
 	}
 
-	@Override
-	public void iteration() {
-		for (int i = 0; i < numOfTransactions; i++) {
-			randomTransaction();
-			DemoUtils.printProgress(i);
-		}
-		DemoUtils.printDone();
-	}
+    @Override
+    public void iteration() {
+        for (int i = 0; i < numOfTransactions; i++) {
+            long start = System.currentTimeMillis();
+            long interval = 1;
+            if (processId() != 1) while(System.currentTimeMillis() < start + interval);
+            randomTransaction();
+            DemoUtils.printProgress(i);
+        }
+        DemoUtils.printDone();
+    }
+
 
 	@Override
 	public void cleanup() {
