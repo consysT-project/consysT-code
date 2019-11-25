@@ -13,13 +13,14 @@ public class Demo {
 	static class SomeObj implements JReplicated {
 		public int f = 0;
 
-		SomeObj(){
+		SomeObj() {
 			showSystem();
 		}
 
 		public void showSystem() {
 			System.out.println("system = " + getSystem());
 		}
+	}
 
 
 	public static void main(String[] args) throws Exception {
