@@ -22,7 +22,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
 
     //This is a pointless comment
     /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
     private JRef<@Strong JRefArrayMap> registeredUsers;
 

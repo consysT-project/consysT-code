@@ -17,7 +17,7 @@ import java.util.Optional;
 public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
     /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
     private JRef<@Strong User> currentlyLoggedIn;
 

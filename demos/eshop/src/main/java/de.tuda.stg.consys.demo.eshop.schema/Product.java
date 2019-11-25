@@ -16,7 +16,7 @@ import java.util.Optional;
 public class Product implements Serializable, JReplicated {
 
     /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
     private JRef<@Strong Double> cost;
 

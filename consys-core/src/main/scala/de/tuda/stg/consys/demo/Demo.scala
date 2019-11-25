@@ -17,11 +17,9 @@ object Demo extends App {
 		def inc(a : Int) : Unit = i = i + a
 	}
 
-
-
-	val replica1 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3773)
-	val replica2 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3774)
-	val replica3 : AkkaReplicaSystem[String] = actors.createReplicaSystem[String](3775)
+	val replica1 = actors.createReplicaSystem(3773)
+	val replica2 = actors.createReplicaSystem(3774)
+	val replica3 = actors.createReplicaSystem(3775)
 
 
 	try {

@@ -29,5 +29,5 @@ public interface JRef<T> {
 
 	String addr();
 
-	void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem);
+	void setReplicaSystem(AkkaReplicaSystem replicaSystem);
 }

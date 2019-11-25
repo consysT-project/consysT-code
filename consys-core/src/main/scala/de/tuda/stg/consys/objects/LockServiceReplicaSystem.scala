@@ -5,8 +5,9 @@ package de.tuda.stg.consys.objects
 	*
 	* @author Mirko Köhler
 	*/
-trait LockServiceReplicaSystem[Addr, Tx] extends ReplicaSystem[Addr] {
+trait LockServiceReplicaSystem extends ReplicaSystem {
 
+	type Tx
 
 	def acquireLock(addr : Addr, tx : Tx) : Unit
 		/*Override this for performance enhancements*/

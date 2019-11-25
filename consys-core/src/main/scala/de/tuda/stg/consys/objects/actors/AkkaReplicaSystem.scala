@@ -8,7 +8,7 @@ import akka.event.LoggingAdapter
 import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.objects
-import de.tuda.stg.consys.objects.{BarrierReplicaSystem, ConsistencyLevel, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicatedObject, Utils}
+import de.tuda.stg.consys.objects.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicatedObject, Utils}
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
 
@@ -24,11 +24,13 @@ import scala.util.{Failure, Success}
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicaSystem[Addr] extends ReplicaSystem[Addr]
-	with AkkaTransactionalReplicaSystem[Addr]
-	with BarrierReplicaSystem[Addr]
-	with LockServiceReplicaSystem[Addr, Transaction] {
+trait AkkaReplicaSystem extends ReplicaSystem
+	with DeletableReplicaSystem
+	with AkkaTransactionalReplicaSystem
+	with BarrierReplicaSystem
+	with LockServiceReplicaSystem {
 
+	override type Tx = Transaction
 	override type Ref[T <: AnyRef] <: AkkaRef[Addr, T]
 
 	/*The actor that is used to communicate with this replica.*/

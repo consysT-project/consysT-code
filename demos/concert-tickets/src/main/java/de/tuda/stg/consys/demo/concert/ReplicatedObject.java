@@ -11,7 +11,7 @@ import scala.collection.mutable.Buffer;
 //The code is commented out because of accessibility issues.
 public class ReplicatedObject<T> {
     final AkkaReplicatedObject<String, T> internal;
-    final AkkaReplicaSystem<String> system;
+    final AkkaReplicaSystem system;
     final Buffer<Requests.Operation<?>> localOperations;
     final String address;
     final ActorRef master;

@@ -18,7 +18,7 @@ import scala.util.{DynamicVariable, Random}
 	* @author Mirko Köhler
 	*/
 /* FIXME: This implementation is not working completely yet, as concurrent execution leads to deadlocks. */
-trait LowAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait LowAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
 	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
@@ -43,12 +43,12 @@ object LowAkkaReplicaSystem {
 	private case object NotLockedException extends RuntimeException
 
 
-	private [LowAkkaReplicaSystem] class LowReplicatedObject[Addr, T <: AnyRef] (
-    init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
+	private [LowAkkaReplicaSystem] class LowReplicatedObject[Loc, T <: AnyRef] (
+    init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
   )(
     protected implicit val ttt : TypeTag[T]
-  ) extends AkkaReplicatedObject[Addr, T]
-		with AkkaMultiversionReplicatedObject[Addr, T]
+  ) extends AkkaReplicatedObject[Loc, T]
+		with AkkaMultiversionReplicatedObject[Loc, T]
 		with Lockable[T] {
 		setObject(init)
 

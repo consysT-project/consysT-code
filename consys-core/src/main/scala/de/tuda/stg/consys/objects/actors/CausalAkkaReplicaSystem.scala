@@ -11,7 +11,7 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.util.control.Breaks.{break, breakable}
 
-trait CausalAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait CausalAkkaReplicaSystem extends AkkaReplicaSystem {
 
   override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
     case Causal => new CausalMasterReplicatedObject[Addr, T](obj, addr, this)
@@ -27,19 +27,19 @@ trait CausalAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object CausalAkkaReplicaSystem {
 
-  trait CausalReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
+  trait CausalReplicatedObject[Loc, T <: AnyRef] extends AkkaReplicatedObject[Loc, T] {
     override final def consistencyLevel: ConsistencyLevel = Causal
   }
 
   object CausalReplicatedObject {
 
-    class CausalMasterReplicatedObject[Addr, T <: AnyRef](
-      init: T, val addr: Addr, val replicaSystem: AkkaReplicaSystem[Addr]
+    class CausalMasterReplicatedObject[Loc, T <: AnyRef](
+      init: T, val addr: Loc, val replicaSystem: AkkaReplicaSystem {type Addr = Loc}
     )(
       protected implicit val ttt: TypeTag[T]
     )
-      extends CausalReplicatedObject[Addr, T]
-        with AkkaMultiversionReplicatedObject[Addr, T] {
+      extends CausalReplicatedObject[Loc, T]
+        with AkkaMultiversionReplicatedObject[Loc, T] {
       setObject(init)
       var messageQueue = new mutable.Queue[Message]
       var vc = VectorClock(replicaSystem.toString)

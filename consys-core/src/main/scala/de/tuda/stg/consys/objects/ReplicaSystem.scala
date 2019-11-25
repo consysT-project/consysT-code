@@ -9,8 +9,17 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait ReplicaSystem[Addr] {
+trait ReplicaSystem {
 
+	/**
+	 * Type of addresses for unique specifying replicated objects.
+	 */
+	type Addr
+
+	/**
+	 * Type of references to replicated objects.
+	 * @tparam T The type that is referenced.
+	 */
 	type Ref[T <: AnyRef] <: de.tuda.stg.consys.objects.Ref[Addr, T]
 
 	/**

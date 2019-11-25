@@ -10,7 +10,7 @@ import java.util.*;
 public class User implements JReplicated {
 
     /* Needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
 
     private UUID id = UUID.randomUUID();
