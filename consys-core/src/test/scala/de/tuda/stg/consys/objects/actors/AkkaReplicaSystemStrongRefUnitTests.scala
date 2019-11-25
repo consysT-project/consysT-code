@@ -15,7 +15,7 @@ import org.scalatest.fixture
 class AkkaReplicaSystemStrongRefUnitTests extends fixture.FunSuite with AkkaReplicaSystemSuite {
 	override def numOfReplicas : Int = 4 //Needs to be at least 2
 
-	override def populate(replica : AkkaReplicaSystem  {type Addr = String}, index : Int) : Unit = index match {
+	override def populate(replica : System, index : Int) : Unit = index match {
 		case 0 =>	replica.replicate("a", A(3), Strong)
 		case _ =>
 	}

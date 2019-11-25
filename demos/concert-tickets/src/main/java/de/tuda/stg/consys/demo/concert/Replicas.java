@@ -4,11 +4,12 @@ import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 public class Replicas {
-	public static final JReplicaSystem replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
-	public static final JReplicaSystem replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
+	public static final JReplicaSystem replicaSystem1 ;
+	public static final JReplicaSystem replicaSystem2;
 
 	static {
-		replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-		replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+		JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(2);
+		replicaSystem1 = systems[0];
+		replicaSystem2 = systems[1];
 	}
 }

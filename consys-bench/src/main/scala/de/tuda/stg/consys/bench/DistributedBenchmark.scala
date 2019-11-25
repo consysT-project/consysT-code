@@ -19,7 +19,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import de.tuda.stg.consys.bench.DistributedBenchmark.BenchmarkCommunication
+import de.tuda.stg.consys.objects.Address
 
+import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 
 
@@ -40,15 +42,11 @@ abstract class DistributedBenchmark(
 ) {
 	//Important: create the followers before creating the coordinator
 	final protected var replicaSystem : JReplicaSystem = JReplicaSystems.fromActorSystem(
-		address.hostname,
-		address.port,
+		address,
+		JavaConverters.asJavaIterable(replicas),
 		java.time.Duration.ofSeconds(30000)
 	)
 
-	println("Adding other replicas...")
-	for (replica <- replicas) {
-		replicaSystem.addReplicaSystem(replica.hostname, replica.port)
-	}
 	println("All replicas found")
 
 
@@ -67,8 +65,8 @@ abstract class DistributedBenchmark(
 
 	def this(config : Config) {
 		this(
-			Address.create(config.getString("consys.bench.hostname")),
-			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.create(str)).toArray(i => new Array[Address](i)),
+			Address.parse(config.getString("consys.bench.hostname")),
+			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.parse(str)).toArray(i => new Array[Address](i)),
 			config.getInt("consys.bench.processId"),
 			config.getInt("consys.bench.warmupIterations"),
 			config.getInt("consys.bench.measureIterations"),

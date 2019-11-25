@@ -23,8 +23,6 @@ public interface JReplicaSystem {
 
 	void remove(String addr);
 
-	void addReplicaSystem(String hostname, int port);
-
 	void close() throws Exception;
 
 	int numOfReplicas();

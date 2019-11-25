@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.objects
 
+import java.util.Objects
+
 import scala.language.higherKinds
 import scala.reflect.runtime.universe._
 
@@ -22,6 +24,8 @@ trait ReplicaSystem {
 	 */
 	type Ref[T <: AnyRef] <: de.tuda.stg.consys.objects.Ref[Addr, T]
 
+	def name : String
+
 	/**
 		* Creates a new distributed object in this store and returns a reference to that object.
 		* The object can be referenced by other nodes using a path generated from the specified address.
@@ -35,25 +39,17 @@ trait ReplicaSystem {
 
 	def lookup[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
 
-	def delete(addr : Addr) : Unit
-
-	def clear(except : Set[Addr] = Set.empty) : Unit
-
-
-	/* Java interface for replicate */
-	final def replicate[T <: AnyRef](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
-		replicate(addr, obj, l)(Utils.typeTagFromCls(objCls))
-	}
-	/* Java interface for replicate */
-	final def replicate[T <: AnyRef](obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
-		replicate(obj, l)(Utils.typeTagFromCls(objCls))
-	}
-	/* Java interface for ref */
-	final def lookup[T <: AnyRef](addr : Addr, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {
-		lookup(addr, l)(Utils.typeTagFromCls(objCls))
-	}
-
 	def close() : Unit
+
+	final def println(any : Any) : Unit = {
+		println(s"[$name] ${Objects.toString(any)}")
+	}
+
+	protected def println(msg : String) : Unit = {
+		println(msg)
+	}
+
+
 
 
 }

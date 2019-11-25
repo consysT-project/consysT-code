@@ -27,25 +27,17 @@ public class Demo {
 
 
 	public static void main(String[] args) throws Exception {
+		JReplicaSystem[] replicas = JReplicaSystems.fromActorSystemForTesting(2);
 
-		JReplicaSystem replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
-
-		System.out.println("system1 = " + replicaSystem1);
-		System.out.println("system2 = " + replicaSystem2);
-
+		System.out.println("system1 = " + replicas[0]);
+		System.out.println("system2 = " + replicas[1]);
 
 		try {
+			JRef<SomeObj> ref1Strong = replicas[0].replicate("os", new SomeObj(), JConsistencyLevels.STRONG);
+			JRef<SomeObj> ref2Strong = replicas[1].lookup("os", SomeObj.class, JConsistencyLevels.STRONG);
 
-			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
-
-
-			JRef<SomeObj> ref1Strong = replicaSystem1.replicate("os", new SomeObj(), JConsistencyLevels.STRONG);
-			JRef<SomeObj> ref2Strong = replicaSystem2.lookup("os", SomeObj.class, JConsistencyLevels.STRONG);
-
-			JRef<SomeObj> ref1Weak = replicaSystem1.replicate("ow", new SomeObj(), JConsistencyLevels.WEAK);
-			JRef<SomeObj> ref2Weak = replicaSystem2.lookup("ow", SomeObj.class, JConsistencyLevels.WEAK);
+			JRef<SomeObj> ref1Weak = replicas[0].replicate("ow", new SomeObj(), JConsistencyLevels.WEAK);
+			JRef<SomeObj> ref2Weak = replicas[1].lookup("ow", SomeObj.class, JConsistencyLevels.WEAK);
 
 
 			ref1Strong.setField("f", 34);
@@ -72,8 +64,8 @@ public class Demo {
 			ref2Strong.getField("f");
 
 		} finally {
-			replicaSystem1.close();
-			replicaSystem2.close();
+			replicas[1].close();
+			replicas[2].close();
 		}
 	}
 }

@@ -52,11 +52,6 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		replicaSystem.delete(addr);
 	}
 
-	@Override
-	public void addReplicaSystem(String hostname, int port) {
-		replicaSystem.addOtherReplica(hostname, port);
-	}
-
 
 	@Override
 	public void close() throws Exception {
