@@ -2,13 +2,13 @@ package de.tuda.stg.consys.objects.actors
 
 import java.util.concurrent.{Executors, TimeUnit}
 
-import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref}
+import com.typesafe.config.{Config, ConfigFactory}
+import de.tuda.stg.consys.objects.{Address, ConsistencyLevel, Ref, actors}
 import de.tuda.stg.consys.objects.ConsistencyLevel.Strong
 import de.tuda.stg.consys.objects.actors.Data.A
-import de.tuda.stg.consys.objects.{ConsistencyLevel, Ref, actors}
 import org.scalatest.{Outcome, fixture}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
 
@@ -21,29 +21,25 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 
 	override type FixtureParam = F
 
-	case class F(replicas : Array[AkkaReplicaSystem {type Addr = String}]) {
-		def apply(index : Int) : AkkaReplicaSystem {type Addr = String} = replicas(index)
+	type System = AkkaReplicaSystem {type Addr = String}
 
-		def refs[T <: AnyRef : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Array[Ref[String, T]] =
+	case class F(replicas : Seq[System]) {
+		def apply(index : Int) : System = replicas(index)
+
+		def refs[T <: AnyRef : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Seq[Ref[String, T]] =
 			replicas.map(replica => replica.lookup[T]("a", consistencyLevel))
 
 	}
 
 	def numOfReplicas : Int
 
-	def populate(replica : AkkaReplicaSystem {type Addr = String}, index : Int) : Unit = { }
+	def populate(replica : System, index : Int) : Unit = { }
 
 	override def withFixture(testCode : OneArgTest) : Outcome = {
-		val replicaSystems : Array[AkkaReplicaSystem {type Addr = String}] = new Array(numOfReplicas)
+		var replicaSystems : Seq[System] = null
 
 		try {
-			for (i <- replicaSystems.indices) {
-				replicaSystems(i) = actors.createReplicaSystem(2552 + i)
-			}
-
-			for (i <- replicaSystems.indices; j <- replicaSystems.indices) {
-				if (i != j) replicaSystems(i).addOtherReplica("127.0.0.1", 2552 + j)
-			}
+			replicaSystems = AkkaReplicaSystemFactory.createForTesting(numOfReplicas)
 
 			for (i <- replicaSystems.indices) {
 				populate(replicaSystems(i), i)
@@ -51,7 +47,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 
 			testCode(F(replicaSystems))
 		} finally {
-			replicaSystems.foreach { replica => if (replica != null) replica.close() }
+			if (replicaSystems != null) replicaSystems.foreach { replica => if (replica != null) replica.close() }
 		}
 	}
 

@@ -8,7 +8,7 @@ import akka.event.LoggingAdapter
 import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.objects
-import de.tuda.stg.consys.objects.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicatedObject, Utils}
+import de.tuda.stg.consys.objects.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, Ref, ReplicaSystem, ReplicaSystemJavaBinding, ReplicatedObject, Utils}
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem._
 import de.tuda.stg.consys.objects.actors.Requests._
 
@@ -28,7 +28,9 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	with DeletableReplicaSystem
 	with AkkaTransactionalReplicaSystem
 	with BarrierReplicaSystem
-	with LockServiceReplicaSystem {
+	with LockServiceReplicaSystem
+	with ReplicaSystemJavaBinding
+{
 
 	override type Tx = Transaction
 	override type Ref[T <: AnyRef] <: AkkaRef[Addr, T]
@@ -102,6 +104,8 @@ trait AkkaReplicaSystem extends ReplicaSystem
 			waitersLock.unlock()
 		}
 	}
+
+	def name : String = actorSystem.name
 
 
 	def actorSystem : ActorSystem
@@ -185,6 +189,10 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 
+	override def println(msg : String) : Unit = {
+		actorSystem.log.info(msg)
+	}
+
 	protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
@@ -238,7 +246,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		otherReplicas.add(replicaActorRef)
 	}
 
-	def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
+	private[actors] def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
 
 		//Skip adding the replica if the path is the path to the current replica
 		if (replicaActorPath.address.host == getActorSystemAddress.host
@@ -277,13 +285,13 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	}
 
-	def addOtherReplica(hostname : String, port : Int) : Unit = {
+	private[actors] def addOtherReplica(hostname : String, port : Int) : Unit = {
 		val sysname = DEFAULT_ACTORSYSTEM_NAME
 		val address = Address("akka", sysname, hostname, port)
 		addOtherReplica(address)
 	}
 
-	def addOtherReplica(address : Address) : Unit = {
+	private[actors] def addOtherReplica(address : Address) : Unit = {
 		/*
 		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
 		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
@@ -292,14 +300,14 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 
-	def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
+	private[actors] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
 		import akka.pattern.ask
 		val response = replicaRef.ask(AcquireHandler)(defaultTimeout)
 		val result = Await.result(response, defaultTimeout)
 		result.asInstanceOf[RequestHandler[Addr]]
 	}
 
-	def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
+	private[actors] def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
 		for (replica <- otherReplicas) {
 			val handler = handlerFor(replica)
 			f(handler)

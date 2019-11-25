@@ -1,8 +1,13 @@
 package de.tuda.stg.consys.demo
 
+import java.util.concurrent.Executors
+
+import akka.dispatch.ExecutionContexts
 import de.tuda.stg.consys.objects.ConsistencyLevel.{Cassandra, High, Low, Strong, Weak}
 import de.tuda.stg.consys.objects.actors
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem
+import de.tuda.stg.consys.objects.actors.{AkkaReplicaSystem, AkkaReplicaSystemFactory}
+
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 /**
 	* Created on 27.02.19.
@@ -11,56 +16,50 @@ import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem
 	*/
 object Demo extends App {
 
-
 	case class A(var i : Int) {
 		@deprecated def inc() : Unit = i = i + 1
 		def inc(a : Int) : Unit = i = i + a
 	}
 
-	val replica1 = actors.createReplicaSystem(3773)
-	val replica2 = actors.createReplicaSystem(3774)
-	val replica3 = actors.createReplicaSystem(3775)
+	implicit val executionContext : ExecutionContext = ExecutionContexts.fromExecutorService(Executors.newFixedThreadPool(12))
 
 
-	try {
-		replica1.addOtherReplica("127.0.0.1", 3774)
-		replica1.addOtherReplica("127.0.0.1", 3775)
+	AkkaReplicaSystemFactory.spawn("test/consys0.conf") { system =>
+		import system.println
 
-		replica2.addOtherReplica("127.0.0.1", 3773)
-		replica2.addOtherReplica("127.0.0.1", 3775)
-
-		replica3.addOtherReplica("127.0.0.1", 3773)
-		replica3.addOtherReplica("127.0.0.1", 3774)
-
-		Thread.sleep(1000)
-
-		val ref1 = replica1.replicate("a", A(3), Cassandra(2))
-		val ref2 = replica2.lookup[A]("a", Cassandra(2))
-		val ref3 = replica3.lookup[A]("a", Cassandra(2))
-
-
-		ref2("i") = 55
-
-		println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}, ref3.i = ${ref3("i")}")
-
-//		ref2.sync()
-
-		println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}, ref3.i = ${ref3("i")}")
-
-//		ref1 <= ("inc", 3)
-//
-//		ref2.sync()
-
-		println(s"ref1.i = ${ref1("i")}, ref2.i = ${ref2("i")}, ref3.i = ${ref3("i")}")
-
-		Thread.sleep(1000)
-	} finally {
-
-
-		replica1.close()
-		replica2.close()
+		val ref = system.replicate("a", A(3), Strong)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(500)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(500)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(5000)
 	}
 
+
+	AkkaReplicaSystemFactory.spawn("test/consys1.conf") { system =>
+		import system.println
+
+		val ref = system.lookup[A]("a", Strong)
+		println(s"ref.i = ${ref("i")}")
+		ref("i") = 55
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(500)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(5000)
+	}
+
+	AkkaReplicaSystemFactory.spawn("test/consys2.conf") { system =>
+		import system.println
+
+		val ref = system.lookup[A]("a", Strong)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(500)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(500)
+		println(s"ref.i = ${ref("i")}")
+		Thread.sleep(5000)
+	}
 
 }
 
