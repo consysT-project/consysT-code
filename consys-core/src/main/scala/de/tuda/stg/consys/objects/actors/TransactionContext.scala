@@ -40,7 +40,9 @@ class TransactionContext {
 		if (hasCurrentTransaction) {
 			currentTransaction = currentTransaction.start(consistencyLevel)
 		} else {
-			currentTransaction = new ToplevelTransaction(Random.nextLong, consistencyLevel)
+
+
+			currentTransaction = ToplevelTransaction(Random.nextLong, consistencyLevel)
 		}
 	}
 

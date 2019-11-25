@@ -1,6 +1,6 @@
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -20,9 +20,9 @@ public class RemoteObjectWithImplicitFlow {
 	}
 
 
-	void m() {
-		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+	void testErrors() {
+		JRef<@Strong A> x = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevels.STRONG);
+		JRef<@Weak A> y = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevels.WEAK);
 
 		if (y.ref().f == 31) {
 			//TODO: Does this error need to be here? error: (invocation.receiver.implicitflow)

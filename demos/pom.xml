@@ -14,8 +14,12 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>demo-bench</module>
         <module>concert-tickets</module>
         <module>message-groups</module>
+        <module>counter</module>
+        <module>twitter-clone</module>
+        <module>eshop</module>
     </modules>
 
 

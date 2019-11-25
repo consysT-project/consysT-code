@@ -30,12 +30,12 @@
       <dependency>
 		  <groupId>org.checkerframework</groupId>
 		  <artifactId>checker-qual</artifactId>
-		  <version>${checkerframeworkVersion}</version>
+		  <version>${checkerframework.version}</version>
 		</dependency>
 		<dependency>
 		  <groupId>org.checkerframework</groupId>
 		  <artifactId>checker</artifactId>
-		  <version>${checkerframeworkVersion}</version>
+		  <version>${checkerframework.version}</version>
 		</dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>

@@ -1,0 +1,98 @@
+package de.tuda.stg.consys.demo.counter;
+
+import de.tuda.stg.consys.demo.counter.schema.Counter;
+import de.tuda.stg.consys.objects.ConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
+import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
+import org.openjdk.jmh.Main;
+import org.openjdk.jmh.annotations.*;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+@Warmup(iterations = 4)
+@Measurement(iterations = 4)
+@BenchmarkMode(Mode.SampleTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Fork(3)
+public class JMHBenchmark {
+	public static void main(String[] args) throws Exception {
+		Main.main(args);
+	}
+
+	@State(Scope.Benchmark)
+	public static class BenchmarkSetup {
+		@Param({"weak", "local/strong"})
+		String level;
+
+		JReplicaSystem replicaSystem1;
+		JReplicaSystem replicaSystem2;
+		JReplicaSystem replicaSystem3;
+
+		List<JRef<Counter>> counters;
+
+		public List<JRef<Counter>> getCounters() {
+			return counters;
+		}
+
+		int index;
+
+		public int getIndex() {
+			return index;
+		}
+
+		@Setup(Level.Iteration)
+		public void systemSetup() throws Exception {
+			replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
+			replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
+			replicaSystem3 = JReplicaSystems.fromActorSystem(2554);
+
+			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
+			replicaSystem1.addReplicaSystem("127.0.0.1", 2554);
+			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+			replicaSystem2.addReplicaSystem("127.0.0.1", 2554);
+			replicaSystem3.addReplicaSystem("127.0.0.1", 2552);
+			replicaSystem3.addReplicaSystem("127.0.0.1", 2553);
+
+			ConsistencyLevel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
+
+			replicaSystem1.replicate("counter1", new Counter(0), consistencyLevel);
+			replicaSystem2.replicate("counter2", new Counter(0), consistencyLevel);
+			replicaSystem3.replicate("counter3", new Counter(0), consistencyLevel);
+
+			counters = new ArrayList<>();
+			counters.add(replicaSystem1.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter3", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter3", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter1", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter2", Counter.class, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter3", Counter.class, consistencyLevel));
+
+			index = -1;
+
+			Thread.sleep(1000);
+		}
+
+		@TearDown(Level.Iteration)
+		public void systemTeardown() throws Exception {
+			replicaSystem1.close();
+			replicaSystem2.close();
+			replicaSystem3.close();
+		}
+
+		@Setup(Level.Invocation)
+		public void indexSetup() throws Exception {
+			index = (index + 1) % counters.size();
+		}
+	}
+
+	@Benchmark
+	public void benchmark(BenchmarkSetup setup) {
+		setup.getCounters().get(setup.getIndex()).invoke("inc");
+	}
+}

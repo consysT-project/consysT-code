@@ -15,11 +15,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>de.tuda.stg</groupId>
-                <artifactId>consys-maven-plugin</artifactId>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
@@ -27,11 +22,17 @@
                         <Xmaxerrs>10000</Xmaxerrs>
                         <Xmaxwarns>10000</Xmaxwarns>
                     </compilerArguments>
-                    <!-- Reenable this to have inforamtion-flow analysis-->
                     <annotationProcessorPaths>
+                        <!-- path to the consys type checker -->
                         <path>
                             <groupId>de.tuda.stg</groupId>
                             <artifactId>consistency-checker</artifactId>
+                            <version>1.0.0</version>
+                        </path>
+                        <!-- path to the consys javac plugin -->
+                        <path>
+                            <groupId>de.tuda.stg</groupId>
+                            <artifactId>consys-compiler</artifactId>
                             <version>1.0.0</version>
                         </path>
                     </annotationProcessorPaths>
@@ -45,23 +46,45 @@
                         <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
+                        <!-- Add the consys compiler plugin for preprocessing sources -->
+                        <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
 
 
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>de.tuda.stg.consys.demo.Main</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>allinone</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>de.tuda.stg.consys.demo.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
@@ -77,6 +100,24 @@
             <groupId>de.tuda.stg</groupId>
             <artifactId>consistency-checker</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg</groupId>
+            <artifactId>consys-compiler</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-remote_2.12</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.aeron</groupId>
+            <artifactId>aeron-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.aeron</groupId>
+            <artifactId>aeron-client</artifactId>
         </dependency>
     </dependencies>
 

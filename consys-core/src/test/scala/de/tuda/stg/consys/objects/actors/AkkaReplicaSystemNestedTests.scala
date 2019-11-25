@@ -2,8 +2,6 @@ package de.tuda.stg.consys.objects.actors
 
 import de.tuda.stg.consys.objects.ConsistencyLevel.{Strong, Weak}
 import de.tuda.stg.consys.objects.Ref
-import de.tuda.stg.consys.objects.ConsistencyLevel.{Strong, Weak}
-import de.tuda.stg.consys.objects.Ref
 import de.tuda.stg.consys.objects.actors.Data.{A, B}
 import org.scalatest.fixture
 

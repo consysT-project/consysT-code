@@ -1,14 +1,10 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import akka.actor.Terminated;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
 import de.tuda.stg.consys.objects.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -58,8 +54,8 @@ public class MicroBenchmark {
 
         @Setup(Level.Iteration)
         public void setup() throws Exception {
-            replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
-            replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
+            replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
+            replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
 
             replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
             replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
@@ -76,13 +72,13 @@ public class MicroBenchmark {
 
             List<ConsistencyLevel> levels = new ArrayList<>(count);
             for (int i = 0; i < count; i++)
-                levels.add(JConsistencyLevel.WEAK);
+                levels.add(JConsistencyLevels.WEAK);
 
             Random random = new Random(0);
             for (int i = 0, j; i < strongCount; i++) {
                 do j = random.nextInt(count);
-                while (levels.get(j) == JConsistencyLevel.STRONG);
-                levels.set(j, JConsistencyLevel.STRONG);
+                while (levels.get(j) == JConsistencyLevels.STRONG);
+                levels.set(j, JConsistencyLevels.STRONG);
             }
 
             Iterator<ConsistencyLevel> level = levels.iterator();
@@ -91,7 +87,7 @@ public class MicroBenchmark {
 
             replicaSystem1.replicate("root", createStructure(1, level), rootLevel);
 
-            root = replicaSystem2.ref("root", BenchmarkObject.class, rootLevel);
+            root = replicaSystem2.lookup("root", BenchmarkObject.class, rootLevel);
 
             Thread.sleep(1000);
         }

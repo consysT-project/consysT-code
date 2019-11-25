@@ -28,9 +28,13 @@ private[actors] trait Transaction extends Serializable {
 
 	def locks : Iterable[String]
 
+	def hasOnlyLevel(level : ConsistencyLevel) : Boolean
+
 	def start(consistencyLevel : ConsistencyLevel) : Transaction = {
-		new NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
+		NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
 	}
+
+
 
 	@transient private var sequence : mutable.Map[ConsistencyLevel, Int] = null
 
@@ -72,6 +76,9 @@ object Transaction {
 
 
 		override def toString : String = s"tx[locked=${lockList.mkString(",")}]::$consistencyLevel|$id"
+
+		override def hasOnlyLevel(level : ConsistencyLevel) : Boolean =
+			consistencyLevel == level
 	}
 
 	@SerialVersionUID(-1542145564L)
@@ -94,6 +101,9 @@ object Transaction {
 
 
 		override def toString : String = parent.toString + s"::/$consistencyLevel|$seqId"
+
+		override def hasOnlyLevel(level : ConsistencyLevel) : Boolean =
+			consistencyLevel == level && parent.hasOnlyLevel(level)
 
 
 	}
