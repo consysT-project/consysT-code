@@ -3,7 +3,7 @@ package de.tuda.stg.consys.objects.actors
 import akka.actor.ActorRef
 import akka.util.Timeout
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -15,9 +15,11 @@ import scala.language.postfixOps
 	*/
 object Requests {
 
-	trait Request {	def returns : Boolean }
-	trait ReturnRequest extends Request {	override def returns : Boolean = true }
-	trait NonReturnRequest extends Request { override def returns : Boolean = false}
+	sealed trait Request[T]
+	trait SynchronousRequest[T] extends Request[T]
+	trait AsynchronousRequest[T] extends Request[Future[T]]
+	trait NoAnswerRequest extends Request[Unit]
+
 
 
 	sealed trait Operation[+R] {
@@ -31,27 +33,34 @@ object Requests {
 
 
 	trait RequestHandler[Addr] extends AutoCloseable {
-		def request(addr : Addr, req : Request, receiveTimeout : FiniteDuration = 30 seconds) : Any
+		def request[R](addr : Addr, req : Request[R]) : R
 	}
 
 	case object InitHandler
-	case class HandleRequest[Addr](addr : Addr, request : Request)
+	case class HandleRequest[Addr](addr : Addr, request : Request[_])
 	case object CloseHandler
 
 	@SerialVersionUID(42947104L)
-	class RequestHandlerImpl[Addr](private val requestActor : ActorRef) extends RequestHandler[Addr] with Serializable {
+	class RequestHandlerImpl[Addr](private val requestActor : ActorRef, val defaultTimeout : FiniteDuration) extends RequestHandler[Addr] with Serializable {
 		requestActor ! InitHandler
 
-		override def request(addr : Addr, req : Request, receiveTimeout : FiniteDuration = 30 seconds) : Any = {
-			if (req.returns) {
+		override def request[R](addr : Addr, req : Request[R]) : R = req match {
+			case syncReq : SynchronousRequest[_] =>
 				import akka.pattern.ask
-				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(receiveTimeout))
-				val result = Await.result(response, receiveTimeout)
-				result
-			} else {
+				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
+				val result = Await.result(response, defaultTimeout)
+				result.asInstanceOf[R]
+
+			case asyncReq : AsynchronousRequest[_] =>
+				import akka.pattern.ask
+				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
+				response.asInstanceOf[R]
+
+			case noAnsReq : NoAnswerRequest =>
 				requestActor ! HandleRequest(addr, req)
-			}
+				().asInstanceOf[R]
 		}
+
 
 		override def close() : Unit = {
 			requestActor ! CloseHandler

@@ -1,6 +1,6 @@
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
 
@@ -30,10 +30,10 @@ public class NestedRemoteObject {
 
 
 	void testExpected() {
-		JRef<@Strong A> aStrong = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevel.STRONG);
-		JRef<@Weak A> aWeak = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevel.WEAK);
+		JRef<@Strong A> aStrong = replicaSystem.<@Strong A>replicate(new A(42), JConsistencyLevels.STRONG);
+		JRef<@Weak A> aWeak = replicaSystem.<@Weak A>replicate(new A(34), JConsistencyLevels.WEAK);
 
-		JRef<@Strong B> bStrong = replicaSystem.replicate(new B(aWeak), JConsistencyLevel.STRONG);
+		JRef<@Strong B> bStrong = replicaSystem.replicate(new B(aWeak), JConsistencyLevels.STRONG);
 
 
 		bStrong.ref().setA(aStrong);

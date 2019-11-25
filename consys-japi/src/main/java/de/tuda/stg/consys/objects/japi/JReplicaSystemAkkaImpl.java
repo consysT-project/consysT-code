@@ -4,8 +4,12 @@ import akka.actor.ActorSystem;
 import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.objects.ConsistencyLevel;
 import de.tuda.stg.consys.objects.Ref;
-import de.tuda.stg.consys.objects.ReplicaSystems;
 import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+import scala.collection.JavaConverters;
+
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Java wrapper around {@link AkkaReplicaSystem}.
@@ -20,17 +24,6 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		this.replicaSystem = replicaSystem;
 	}
 
-	public JReplicaSystemAkkaImpl(ActorSystem actorSystem) {
-		this(ReplicaSystems.fromActorSystem(actorSystem));
-	}
-
-	public JReplicaSystemAkkaImpl(String hostname, int port) {
-		this(ReplicaSystems.fromActorSystem(hostname, port));
-	}
-
-	public JReplicaSystemAkkaImpl(int port) {
-		this(ReplicaSystems.fromActorSystem(port));
-	}
 
 	@Override
 	public <T> JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel) {
@@ -49,13 +42,13 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	}
 
 	@Override
-	public <T> JRef<T> ref(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
+	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
 		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
 		return new JRefImpl<>(ref);
 	}
 
 	@Override
-	public void delete(String addr) {
+	public void remove(String addr) {
 		replicaSystem.delete(addr);
 	}
 
@@ -68,6 +61,37 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	@Override
 	public void close() throws Exception {
 		replicaSystem.close();
+	}
+
+	@Override
+	public int numOfReplicas() {
+		return replicaSystem.getOtherReplicas().size();
+	}
+
+	@Override
+	public void clear(Set<String> except) {
+		replicaSystem.clear(JavaConverters.asScalaSet(except).toSet());
+	}
+
+	@Override
+	public void clear() {
+		replicaSystem.clear(JavaConverters.<String>asScalaSet(new HashSet<>()).toSet());
+	}
+
+
+	@Override
+	public void barrier(String name) {
+		replicaSystem.barrier(name);
+	}
+
+	@Override
+	public void barrier(String name, Duration timeout) {
+		replicaSystem.barrier(name, scala.concurrent.duration.Duration.fromNanos(timeout.toNanos()));
+	}
+
+	@Override
+	public int numberOfObjects() {
+		return replicaSystem.numberOfObjects();
 	}
 
 	@Override

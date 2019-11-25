@@ -51,8 +51,6 @@ object StrongAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Addr, T] {
 			setObject(init)
 
-
-
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val result = super.internalInvoke[R](tx, methodName, args)
 				result
@@ -67,27 +65,31 @@ object StrongAkkaReplicaSystem {
 				super.internalSetField(tx, fldName, newVal)
 			}
 
-			override def internalSync() : Unit = {
+			override def internalSync() : Unit = {	}
 
+			override def sync() : Unit = { }
+
+			override protected def requiresCache(op : Operation[_]) : Boolean = {
+				!op.tx.hasOnlyLevel(Strong)
 			}
 
-			override def handleRequest(request : Request) : Any = request match {
+			override def handleRequest[R](request : Request[R]) : R = request match {
 				case LockReq(txid) =>
 					lock(txid)
-					LockRes(getObject)
+					LockRes(getObject).asInstanceOf[R]
 
 				case MergeReq(null, op, result) =>
 					cache(op, result)
-					()
+					().asInstanceOf[R]
 
 				case MergeReq(newObj : T@unchecked, op, result) =>
 					setObject(newObj)
 					cache(op, result)
-					()
+					().asInstanceOf[R]
 
 				case UnlockReq(txid) =>
 					unlock(txid)
-					()
+					().asInstanceOf[R]
 
 				case _ => super.handleRequest(request)
 			}
@@ -143,6 +145,12 @@ object StrongAkkaReplicaSystem {
 
 			override def internalSync() : Unit = {	}
 
+			override def sync() : Unit = { }
+
+
+			override protected def requiresCache(op : Operation[_]) : Boolean = {
+				!op.tx.hasOnlyLevel(Strong)
+			}
 
 
 			override private[actors] def lock(txid : Long) : Unit = {
@@ -194,10 +202,10 @@ object StrongAkkaReplicaSystem {
 
 
 
-	sealed trait StrongReq extends Request
-	case class LockReq(txid : Long) extends StrongReq with ReturnRequest
-	case class LockRes(obj : AnyRef) extends StrongReq with ReturnRequest
-	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends StrongReq with ReturnRequest
-	case class UnlockReq(txid : Long) extends StrongReq with ReturnRequest
+	case class LockReq(txid : Long) extends SynchronousRequest[LockRes]
+	case class LockRes(obj : AnyRef)
+
+	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends SynchronousRequest[Unit]
+	case class UnlockReq(txid : Long) extends SynchronousRequest[Unit]
 
 }

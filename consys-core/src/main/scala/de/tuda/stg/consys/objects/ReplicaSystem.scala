@@ -28,6 +28,8 @@ trait ReplicaSystem[Addr] {
 
 	def delete(addr : Addr) : Unit
 
+	def clear(except : Set[Addr] = Set.empty) : Unit
+
 
 	/* Java interface for replicate */
 	final def replicate[T <: AnyRef](addr : Addr, obj : T, objCls : Class[T], l : ConsistencyLevel) : Ref[T] = {

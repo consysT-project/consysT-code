@@ -1,13 +1,11 @@
 package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.demo.schema.ObjA;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevel;
+import de.tuda.stg.consys.demo.messagegroups.schema.ObjA;
+import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 import de.tuda.stg.consys.objects.japi.JRef;
 import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
-
-import java.io.Serializable;
+import de.tuda.stg.consys.objects.japi.JReplicaSystems;
 
 /**
  * Created on 31.07.19.
@@ -25,20 +23,17 @@ public class DistributedDemo {
 	}
 
 	private static void replica0Code() throws Exception {
-		JReplicaSystem sys = JReplicaSystem.fromActorSystem("127.0.0.1", 3344);
+		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3344);
 
 		try {
-			Thread.sleep(5000);
-
 			sys.addReplicaSystem("127.0.0.1", 3345);
 
-			Thread.sleep(5000);
+			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevels.STRONG);
 
-			JRef<@Strong ObjA> counter = sys.replicate("counter", new ObjA(), JConsistencyLevel.STRONG);
-			counter.invoke("inc");
-			System.out.println("value = " + counter.getField("f"));
+			counter.ref().inc();
+			System.out.println("value = " + counter.ref().f);
 
-			Thread.sleep(10000);
+			Thread.sleep(1000);
 		} finally {
 			sys.close();
 		}
@@ -46,20 +41,17 @@ public class DistributedDemo {
 	}
 
 	private static void replica1Code() throws Exception {
-		JReplicaSystem sys = JReplicaSystem.fromActorSystem("127.0.0.1", 3345);
+		JReplicaSystem sys = JReplicaSystems.fromActorSystem("127.0.0.1", 3345);
 
 		try {
-			Thread.sleep(5000);
-
 			sys.addReplicaSystem("127.0.0.1", 3344);
 
-			Thread.sleep(10000);
+			JRef<@Strong ObjA> counter = sys.lookup("counter", ObjA.class, JConsistencyLevels.STRONG);
 
-			JRef<@Strong ObjA> counter = sys.ref("counter", ObjA.class, JConsistencyLevel.STRONG);
-			counter.invoke("inc");
-			System.out.println("value = " + counter.getField("f"));
+			counter.ref().inc();
+			System.out.println("value = " + counter.ref().f);
 
-			Thread.sleep(5000);
+			Thread.sleep(1000);
 		} finally {
 			sys.close();
 		}

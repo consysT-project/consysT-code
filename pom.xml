@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.tuda.stg</groupId>
     <artifactId>consys</artifactId>
     <version>1.0.0</version>
-    
+
     <packaging>pom</packaging>
 
     <modules>
@@ -15,9 +16,14 @@
         <module>microbenchmarks</module>
         <module>consys-core</module>
         <module>integration-tests</module>
-        <module>consys-maven-plugin</module>
         <module>consys-japi</module>
+        <module>consys-compiler</module>
+        <module>consys-compiler/consys-compiler-test</module>
+        <module>consys-bench</module>
+        <module>examples</module>
     </modules>
+
+
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->
@@ -26,11 +32,15 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <javaVersion>1.8</javaVersion>
-        <scalaVersion>2.12.8</scalaVersion>
-        <akkaVersion>2.5.23</akkaVersion>
+        <java.version>1.8</java.version>
+        <scala.version>2.12.8</scala.version>
+        <akka.version>2.6.0</akka.version>
 
-        <checkerframeworkVersion>2.8.2</checkerframeworkVersion>
+        <aeron.version>1.22.1</aeron.version>
+
+        <checkerframework.version>2.8.2</checkerframework.version>
+
+        <plugins.shade.version>3.2.1</plugins.shade.version>
     </properties>
 
 
@@ -55,15 +65,15 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
                     <configuration>
-                        <source>${javaVersion}</source>
-                        <target>${javaVersion}</target>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
                     </configuration>
                 </plugin>
 
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.1.0</version>
+                    <version>4.2.4</version>
                     <executions>
                         <execution>
                             <id>scala-compile-first</id>
@@ -84,25 +94,11 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>de.tuda.stg</groupId>
-                    <artifactId>consys-maven-plugin</artifactId>
-                    <version>1.0.0</version>
-                    <!-- Running the plugin as part of a maven goal -->
-                    <executions>
-                        <execution>
-                            <id>gen-src</id>
-                            <goals>
-                                <goal>preprocess-sources</goal>
-                            </goals>
-                        </execution>
-                        <execution>
-                            <id>gen-test</id>
-                            <goals>
-                                <goal>preprocess-tests</goal>
-                            </goals>
-                        </execution>
-                    </executions>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${plugins.shade.version}</version>
                 </plugin>
+
             </plugins>
         </pluginManagement>
     </build>
@@ -112,17 +108,17 @@
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-compiler</artifactId>
-                <version>${scalaVersion}</version>
+                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
-                <version>${scalaVersion}</version>
+                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-reflect</artifactId>
-                <version>${scalaVersion}</version>
+                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.scalactic</groupId>
@@ -134,6 +130,22 @@
                 <artifactId>scalatest_2.12</artifactId>
                 <version>3.0.5</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-remote_2.12</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.aeron</groupId>
+                <artifactId>aeron-driver</artifactId>
+                <version>${aeron.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.aeron</groupId>
+                <artifactId>aeron-client</artifactId>
+                <version>${aeron.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.objects.japi;
 
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
+
 /**
  * Created on 01.03.19.
  *
@@ -9,7 +11,7 @@ public interface JRef<T> {
 
 	<R> R getField(String fieldName);
 
-	<R> void setField(String fieldName, R value);
+	<R> R setField(String fieldName, R value);
 
 	<R> R invoke(String methodName, Object... args);
 
@@ -17,9 +19,15 @@ public interface JRef<T> {
 
 	void syncAll();
 
+	void delete();
+
 	T ref();
 
 	boolean isAvailable();
 
+	void await();
+
 	String addr();
+
+	void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem);
 }

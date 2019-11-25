@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.objects.japi;
 
 import de.tuda.stg.consys.objects.Ref;
+import de.tuda.stg.consys.objects.actors.AkkaRef;
+import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
 
 import java.io.Serializable;
 
@@ -27,8 +29,9 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
-	public <R> void setField(String fieldName, R value) {
+	public <R> R setField(String fieldName, R value) {
 		ref.deref().setField(fieldName, value);
+		return value;
 	}
 
 	@Override
@@ -47,6 +50,11 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public void delete() {
+		ref.delete();
+	}
+
+	@Override
 	public T ref() {
 		return ref.ref(); //Throws an exception
 	}
@@ -57,8 +65,18 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
+	public void await() {
+		ref.await();
+	}
+
+	@Override
 	public String addr() {
 		return ref.addr();
+	}
+
+	@Override
+	public void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem) {
+		((AkkaRef<String, T>) ref).setReplicaSystem(replicaSystem);
 	}
 
 	@Override
