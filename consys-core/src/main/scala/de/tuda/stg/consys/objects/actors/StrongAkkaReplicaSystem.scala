@@ -20,7 +20,7 @@ import scala.util.DynamicVariable
 	* @author Mirko Köhler
 	*/
 
-trait StrongAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait StrongAkkaReplicaSystem extends AkkaReplicaSystem {
 
 	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
 		case Strong => new StrongMasterReplicatedObject[Addr, T](obj, addr, this)
@@ -43,12 +43,12 @@ object StrongAkkaReplicaSystem {
 
 	object StrongReplicatedObject {
 
-		class StrongMasterReplicatedObject[Addr, T <: AnyRef](
-			init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
+		class StrongMasterReplicatedObject[Loc, T <: AnyRef](
+			init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
-		) extends StrongReplicatedObject[Addr, T]
-			with AkkaMultiversionReplicatedObject[Addr, T] {
+		) extends StrongReplicatedObject[Loc, T]
+			with AkkaMultiversionReplicatedObject[Loc, T] {
 			setObject(init)
 
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
@@ -112,17 +112,17 @@ object StrongAkkaReplicaSystem {
 		}
 
 
-		class StrongFollowerReplicatedObject[Addr, T <: AnyRef](
-			init : T, val addr : Addr, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem[Addr]
+		class StrongFollowerReplicatedObject[Loc, T <: AnyRef](
+			init : T, val addr : Loc, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
-		) extends StrongReplicatedObject[Addr, T]
+		) extends StrongReplicatedObject[Loc, T]
 			//TODO: Multiversion on follower? How to GC this?
-			with AkkaMultiversionReplicatedObject[Addr, T] {
+			with AkkaMultiversionReplicatedObject[Loc, T] {
 			setObject(init)
 
 			//Handles communication with the master
-			private var handler : DynamicVariable[RequestHandler[Addr]] = new DynamicVariable(null)
+			private var handler : DynamicVariable[RequestHandler[Loc]] = new DynamicVariable(null)
 
 			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
 				val res = super.internalInvoke[R](tx, methodName, args)
@@ -161,12 +161,12 @@ object StrongAkkaReplicaSystem {
 				unlockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
-			private def lockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
+			private def lockWithHandler(txid : Long, handler : RequestHandler[Loc]) : Unit = {
 				val LockRes(masterObj : T@unchecked) = handler.request(addr, LockReq(txid))
 				setObject(masterObj)
 			}
 
-			private def unlockWithHandler(txid : Long, handler : RequestHandler[Addr]) : Unit = {
+			private def unlockWithHandler(txid : Long, handler : RequestHandler[Loc]) : Unit = {
 				handler.request(addr, UnlockReq(txid))
 			}
 

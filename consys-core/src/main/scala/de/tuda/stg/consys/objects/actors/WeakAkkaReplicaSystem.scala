@@ -19,7 +19,7 @@ import scala.reflect.runtime.universe._
 	* @author Mirko Köhler
 	*/
 
-trait WeakAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait WeakAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
 	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
@@ -35,7 +35,7 @@ trait WeakAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object WeakAkkaReplicaSystem {
 
-	trait WeakReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
+	trait WeakReplicatedObject[Loc, T <: AnyRef] extends AkkaReplicatedObject[Loc, T] {
 		override final def consistencyLevel : ConsistencyLevel = Weak
 	}
 
@@ -43,13 +43,13 @@ object WeakAkkaReplicaSystem {
 
 	object WeakReplicatedObject {
 
-		class WeakMasterReplicatedObject[Addr, T <: AnyRef](
-	     init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
+		class WeakMasterReplicatedObject[Loc, T <: AnyRef](
+	     init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 	  )(
 	     protected implicit val ttt : TypeTag[T]
 	  )
-		extends WeakReplicatedObject[Addr, T]
-		with AkkaMultiversionReplicatedObject[Addr, T]
+		extends WeakReplicatedObject[Loc, T]
+		with AkkaMultiversionReplicatedObject[Loc, T]
 		{
 			setObject(init)
 
@@ -99,11 +99,11 @@ object WeakAkkaReplicaSystem {
 
 		}
 
-		class WeakFollowerReplicatedObject[Addr, T <: AnyRef](
-			init : T, val addr : Addr, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem[Addr]
+		class WeakFollowerReplicatedObject[Loc, T <: AnyRef](
+			init : T, val addr : Loc, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
-		) extends WeakReplicatedObject[Addr, T] {
+		) extends WeakReplicatedObject[Loc, T] {
 			setObject(init)
 
 			private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty

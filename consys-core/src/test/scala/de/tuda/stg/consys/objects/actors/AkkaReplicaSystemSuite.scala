@@ -21,8 +21,8 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 
 	override type FixtureParam = F
 
-	case class F(replicas : Array[AkkaReplicaSystem[String]]) {
-		def apply(index : Int) : AkkaReplicaSystem[String] = replicas(index)
+	case class F(replicas : Array[AkkaReplicaSystem {type Addr = String}]) {
+		def apply(index : Int) : AkkaReplicaSystem {type Addr = String} = replicas(index)
 
 		def refs[T <: AnyRef : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Array[Ref[String, T]] =
 			replicas.map(replica => replica.lookup[T]("a", consistencyLevel))
@@ -31,10 +31,10 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 
 	def numOfReplicas : Int
 
-	def populate(replica : AkkaReplicaSystem[String], index : Int) : Unit = { }
+	def populate(replica : AkkaReplicaSystem {type Addr = String}, index : Int) : Unit = { }
 
 	override def withFixture(testCode : OneArgTest) : Outcome = {
-		val replicaSystems : Array[AkkaReplicaSystem[String]] = new Array(numOfReplicas)
+		val replicaSystems : Array[AkkaReplicaSystem {type Addr = String}] = new Array(numOfReplicas)
 
 		try {
 			for (i <- replicaSystems.indices) {

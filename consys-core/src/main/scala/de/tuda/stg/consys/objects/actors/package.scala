@@ -18,14 +18,16 @@ package object actors {
 	private[actors] final val DEFAULT_ACTORSYSTEM_NAME : String = "replica-system"
 
 	private class AkkaReplicaSystemImpl(override val actorSystem: ActorSystem, override val defaultTimeout : FiniteDuration)
-		extends AkkaReplicaSystem[String]
-		with StrongAkkaReplicaSystem[String]
-		with WeakAkkaReplicaSystem[String]
-		with CausalAkkaReplicaSystem[String]
+		extends AkkaReplicaSystem
+		with StrongAkkaReplicaSystem
+		with WeakAkkaReplicaSystem
+		with CausalAkkaReplicaSystem
 //		with HighAkkaReplicaSystem[String]
 //		with LowAkkaReplicaSystem[String]
 //		with CassandraAkkaReplicaSystem[String]
 	{
+
+		type Addr = String
 
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
@@ -37,22 +39,22 @@ package object actors {
 			new AkkaRef(addr, consistencyLevel, this)
 	}
 
-	def createReplicaSystem(actorSystem : ActorSystem, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] =
+	def createReplicaSystem(actorSystem : ActorSystem, defaultTimeout : FiniteDuration) : AkkaReplicaSystem {type Addr = String} =
 		new AkkaReplicaSystemImpl(actorSystem, defaultTimeout)
 
-	def createReplicaSystem(actorSystem : ActorSystem) : AkkaReplicaSystem[String] =
+	def createReplicaSystem(actorSystem : ActorSystem) : AkkaReplicaSystem {type Addr = String} =
 		createReplicaSystem(actorSystem, Duration(60, "s"))
 
-	def createReplicaSystem[Addr](port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] =
+	def createReplicaSystem(port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem {type Addr = String} =
 		createReplicaSystem("127.0.0.1", port, defaultTimeout)
 
-	def createReplicaSystem[Addr](port : Int) : AkkaReplicaSystem[String] =
+	def createReplicaSystem(port : Int) : AkkaReplicaSystem {type Addr = String} =
 		createReplicaSystem(port, Duration(60, "s"))
 
-	def createReplicaSystem[Addr](hostname : String, port : Int) : AkkaReplicaSystem[String] =
+	def createReplicaSystem(hostname : String, port : Int) : AkkaReplicaSystem {type Addr = String} =
 		createReplicaSystem(hostname, port, Duration(60, "s"))
 
-	def createReplicaSystem[Addr](hostname : String, port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem[String] = {
+	def createReplicaSystem(hostname : String, port : Int, defaultTimeout : FiniteDuration) : AkkaReplicaSystem {type Addr = String} = {
 		/*
 		val config : Config = ConfigFactory.parseString(
 			s"""

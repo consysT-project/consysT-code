@@ -11,14 +11,18 @@ import scala.concurrent.TimeoutException
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistencyLevel : ConsistencyLevel, @transient private[actors] var replicaSystem : AkkaReplicaSystem[Addr]) extends Ref[Addr, T] {
+private[actors] class AkkaRef[Loc, T <: AnyRef](
+	val addr : Loc,
+	val consistencyLevel : ConsistencyLevel,
+	@transient private[actors] var replicaSystem : AkkaReplicaSystem { type Addr = Loc }
+) extends Ref[Loc, T] {
 
 	/* Only use this for emergencies */
-	def setReplicaSystem(replicaSystem  : AkkaReplicaSystem[Addr]) : Unit = {
+	def setReplicaSystem(replicaSystem  : AkkaReplicaSystem { type Addr = Loc } ) : Unit = {
 		this.replicaSystem = replicaSystem
 	}
 
-	override implicit def deref : ReplicatedObject[Addr, T] = replicaSystem match {
+	override implicit def deref : ReplicatedObject[Loc, T] = replicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")
 
 		case _ =>
@@ -33,7 +37,7 @@ private[actors] class AkkaRef[Addr, T <: AnyRef](val addr : Addr, val consistenc
 
 						Thread.sleep(200)
 
-					case Some(rob : AkkaReplicatedObject[Addr, T]) =>
+					case Some(rob : AkkaReplicatedObject[Loc, T]) =>
 						//Check that consistency level of reference matches the referenced object
 						assert(rob.consistencyLevel == consistencyLevel, s"non-matching consistency levels. ref was $consistencyLevel and object was ${rob.consistencyLevel}")
 						return rob

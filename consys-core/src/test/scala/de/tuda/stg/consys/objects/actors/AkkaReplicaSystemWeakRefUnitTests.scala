@@ -17,7 +17,7 @@ class AkkaReplicaSystemWeakRefUnitTests extends fixture.FunSuite with AkkaReplic
 
 	private val initialField : Int = 3
 
-	override def populate(replica : AkkaReplicaSystem[String], index : Int) : Unit = index match {
+	override def populate(replica : AkkaReplicaSystem {type Addr = String}, index : Int) : Unit = index match {
 		case 0 =>	replica.replicate("a", A(initialField), Weak)
 		case _ =>
 	}

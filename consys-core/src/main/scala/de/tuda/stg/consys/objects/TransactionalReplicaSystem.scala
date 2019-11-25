@@ -5,7 +5,7 @@ package de.tuda.stg.consys.objects
 	*
 	* @author Mirko Köhler
 	*/
-trait TransactionalReplicaSystem[Addr] extends ReplicaSystem[Addr] {
+trait TransactionalReplicaSystem extends ReplicaSystem {
 
 	type Tx
 

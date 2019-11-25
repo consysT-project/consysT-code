@@ -11,7 +11,7 @@ public class Demo {
 
 
 	static class SomeObj implements JReplicated {
-		/* This field is needed for JReplicated */ public transient AkkaReplicaSystem<String> replicaSystem = null;
+		/* This field is needed for JReplicated */ public transient AkkaReplicaSystem replicaSystem = null;
 
 		public int f = 0;
 

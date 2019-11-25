@@ -10,7 +10,7 @@ import scala.util.DynamicVariable
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaTransactionalReplicaSystem[Addr] extends TransactionalReplicaSystem[Addr] {
+trait AkkaTransactionalReplicaSystem extends TransactionalReplicaSystem {
 
 	override type Tx = Transaction
 

@@ -16,7 +16,7 @@ import scala.reflect.runtime.universe._
 	* @author Mirko Köhler
 	*/
 
-trait HighAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait HighAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
 	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
@@ -36,11 +36,11 @@ object HighAkkaReplicaSystem {
 
 
 
-	private [HighAkkaReplicaSystem] class HighReplicatedObject[Addr, T <: AnyRef] (
-    init : T, val addr : Addr, val replicaSystem : AkkaReplicaSystem[Addr]
+	private [HighAkkaReplicaSystem] class HighReplicatedObject[Loc, T <: AnyRef] (
+    init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
   )(
     protected implicit val ttt : TypeTag[T]
-  ) extends AkkaReplicatedObject[Addr, T] {
+  ) extends AkkaReplicatedObject[Loc, T] {
 		setObject(init)
 
 		override final def consistencyLevel : ConsistencyLevel = High

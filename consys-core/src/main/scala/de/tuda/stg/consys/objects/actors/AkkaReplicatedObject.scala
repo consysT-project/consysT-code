@@ -16,9 +16,9 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] {
+trait AkkaReplicatedObject[Loc, T <: AnyRef] extends ReplicatedObject[Loc, T] {
 
-	protected val replicaSystem : AkkaReplicaSystem[Addr]
+	protected val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 
 	protected implicit def ttt : TypeTag[T]
 
@@ -58,7 +58,7 @@ trait AkkaReplicatedObject[Addr, T <: AnyRef] extends ReplicatedObject[Addr, T] 
 		if (tx.isToplevel) {
 			//Use the top version with unlock (instead of unlockAll) in releaseLock
 			//tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
-			tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Addr], tx))
+			tx.locks.foreach(addr => replicaSystem.releaseLock(addr.asInstanceOf[Loc], tx))
 		}
 	}
 

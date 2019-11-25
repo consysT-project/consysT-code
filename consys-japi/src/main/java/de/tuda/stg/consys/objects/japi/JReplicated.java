@@ -24,7 +24,7 @@ public interface JReplicated extends Replicated, Serializable {
 			field = this.getClass().getField("replicaSystem");
 			field.setAccessible(true);
 
-			AkkaReplicaSystem<String> replicaSystem = (AkkaReplicaSystem<String>) field.get(this);
+			AkkaReplicaSystem replicaSystem = (AkkaReplicaSystem) field.get(this);
 
 			if (replicaSystem != null)
 				return Optional.of(new JReplicaSystemAkkaImpl(replicaSystem));

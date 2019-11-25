@@ -75,7 +75,7 @@ public class JRefImpl<T> implements JRef<T>, Serializable {
 	}
 
 	@Override
-	public void setReplicaSystem(AkkaReplicaSystem<String> replicaSystem) {
+	public void setReplicaSystem(AkkaReplicaSystem replicaSystem) {
 		((AkkaRef<String, T>) ref).setReplicaSystem(replicaSystem);
 	}
 

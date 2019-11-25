@@ -7,7 +7,7 @@ import scala.concurrent.duration.Duration
 	*
 	* @author Mirko Köhler
 	*/
-trait BarrierReplicaSystem[Addr] extends ReplicaSystem[Addr] {
+trait BarrierReplicaSystem extends ReplicaSystem {
 
 	def barrier(name : String, timeout : Duration) : Unit
 

@@ -20,7 +20,7 @@ import scala.util.{Failure, Success}
 	* @author Mirko Köhler
 	*/
 
-trait CassandraAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
+trait CassandraAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
 	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
@@ -37,14 +37,14 @@ trait CassandraAkkaReplicaSystem[Addr] extends AkkaReplicaSystem[Addr] {
 
 object CassandraAkkaReplicaSystem {
 
-	class CassandraReplicatedObject[Addr, T <: AnyRef](
+	class CassandraReplicatedObject[Loc, T <: AnyRef](
 		init : T,
-		val addr : Addr,
-		val replicaSystem : AkkaReplicaSystem[Addr],
+		val addr : Loc,
+		val replicaSystem : AkkaReplicaSystem {type Addr = Loc},
 		override val consistencyLevel : ConsistencyLevel
 	)(
 		protected implicit val ttt : TypeTag[T]
-	) extends AkkaReplicatedObject[Addr, T] {
+	) extends AkkaReplicatedObject[Loc, T] {
 		setObject(init)
 
 		private val objectTimestamp : Long = System.currentTimeMillis()

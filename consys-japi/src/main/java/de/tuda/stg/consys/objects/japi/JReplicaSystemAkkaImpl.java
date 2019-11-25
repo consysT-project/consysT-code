@@ -18,9 +18,9 @@ import java.util.Set;
  */
 class JReplicaSystemAkkaImpl implements JReplicaSystem {
 
-	public final AkkaReplicaSystem<String> replicaSystem;
+	public final AkkaReplicaSystem replicaSystem;
 
-	public JReplicaSystemAkkaImpl(AkkaReplicaSystem<String> replicaSystem) {
+	public JReplicaSystemAkkaImpl(AkkaReplicaSystem replicaSystem) {
 		this.replicaSystem = replicaSystem;
 	}
 
