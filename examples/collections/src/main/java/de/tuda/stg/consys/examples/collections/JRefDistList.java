@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 public class JRefDistList implements Serializable, JReplicated {
 
     /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
     public JRef head;
 

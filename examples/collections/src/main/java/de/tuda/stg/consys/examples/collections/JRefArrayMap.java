@@ -16,7 +16,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
      */
 
     /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem<String> replicaSystem = null;
+    public transient AkkaReplicaSystem replicaSystem = null;
 
     private static final double maxLoadFactor = 0.75;
     private static final double resizeFactor = 1.4;

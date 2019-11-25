@@ -64,16 +64,7 @@ public class JMHBenchmark {
 
 			/* Initialize replicas */
 			System.out.println("Initialize replicas...");
-			for (int i = 0; i < NUM_OF_REPLICAS; i++) {
-				replicaSystems[i] = JReplicaSystems.fromActorSystem(2552 + i);
-			}
-
-			for (int i = 0; i < NUM_OF_REPLICAS; i++) {
-				for (int j = 0; j < NUM_OF_REPLICAS; j++) {
-					if (i != j)
-						replicaSystems[i].addReplicaSystem("127.0.0.1", 2552 + j);
-				}
-			}
+			JReplicaSystems.fromActorSystemForTesting(NUM_OF_REPLICAS);
 
 			/* Add users */
 			System.out.println("Adding users");
