@@ -28,13 +28,12 @@ public class TestClass {
 
 	public static void main(String[] args) throws Exception {
 
-		JReplicaSystem replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
-		JReplicaSystem replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
+		JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(2);
+
+		JReplicaSystem replicaSystem1 = systems[0];
+		JReplicaSystem replicaSystem2 = systems[1];
 
 		try {
-			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
-
 			JRef<Box> ref1Strong = replicaSystem1.replicate("os", new Box(42), JConsistencyLevels.STRONG);
 			JRef<Box> ref2Strong = replicaSystem2.lookup("os", Box.class, JConsistencyLevels.STRONG);
 

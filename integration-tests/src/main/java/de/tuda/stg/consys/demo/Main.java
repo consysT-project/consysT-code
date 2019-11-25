@@ -49,28 +49,12 @@ public class Main {
 	}
 
 	public static void main(String... args) throws Exception {
-//		List<ReplicaParams> argList = createParams(Arrays.asList(args));
-//		distributedExample(argList.get(0), argList.subList(1, argList.size()));
 		example2Parallel();
 
 	}
 
 
-	public static void distributedExample(ReplicaParams thisReplica, Iterable<ReplicaParams> otherReplicas) throws InterruptedException {
-		JReplicaSystem sys = JReplicaSystems.fromActorSystem(thisReplica.addr, thisReplica.port);
 
-		Thread.sleep(5000);
-
-		for (ReplicaParams otherRepplica : otherReplicas) {
-			sys.addReplicaSystem(otherRepplica.addr, otherRepplica.port);
-		}
-
-		Thread.sleep(5000);
-
-		JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevels.STRONG);
-		System.out.println("Invoke: " + a.ref().incBy(631));
-		System.out.println("Value: " + a.ref().f);
-	}
 
 	public static void example1() throws Exception {
 		JRef<@Strong ObjA> ref1Strong = Replicas.replicaSystem1.replicate("os", new ObjA(), JConsistencyLevels.STRONG);
