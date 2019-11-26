@@ -19,12 +19,12 @@ import scala.util.DynamicVariable
 
 trait StrongAkkaReplicaSystem extends AkkaReplicaSystem {
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
 		case Strong => new StrongMasterReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
 		case Strong => new StrongFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
 		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
@@ -32,7 +32,7 @@ trait StrongAkkaReplicaSystem extends AkkaReplicaSystem {
 
 object StrongAkkaReplicaSystem {
 
-	trait StrongReplicatedObject[Addr, T <: AnyRef]
+	trait StrongReplicatedObject[Addr, T]
 		extends AkkaReplicatedObject[Addr, T]
 		with Lockable[T] {
 		override final def consistencyLevel : ConsistencyLevel = Strong
@@ -40,7 +40,7 @@ object StrongAkkaReplicaSystem {
 
 	object StrongReplicatedObject {
 
-		class StrongMasterReplicatedObject[Loc, T <: AnyRef](
+		class StrongMasterReplicatedObject[Loc, T](
 			init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
@@ -109,7 +109,7 @@ object StrongAkkaReplicaSystem {
 		}
 
 
-		class StrongFollowerReplicatedObject[Loc, T <: AnyRef](
+		class StrongFollowerReplicatedObject[Loc, T](
 			init : T, val addr : Loc, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
@@ -200,9 +200,9 @@ object StrongAkkaReplicaSystem {
 
 
 	case class LockReq(txid : Long) extends SynchronousRequest[LockRes]
-	case class LockRes(obj : AnyRef)
+	case class LockRes(obj : Any)
 
-	case class MergeReq(obj : AnyRef, op : Operation[Any], result : Any) extends SynchronousRequest[Unit]
+	case class MergeReq(obj : Any, op : Operation[Any], result : Any) extends SynchronousRequest[Unit]
 	case class UnlockReq(txid : Long) extends SynchronousRequest[Unit]
 
 }

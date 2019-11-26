@@ -20,12 +20,12 @@ import scala.reflect.runtime.universe._
 trait WeakAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
 		case Weak => new WeakMasterReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
 		case Weak => new WeakFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
 		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
@@ -33,7 +33,7 @@ trait WeakAkkaReplicaSystem extends AkkaReplicaSystem {
 
 object WeakAkkaReplicaSystem {
 
-	trait WeakReplicatedObject[Loc, T <: AnyRef] extends AkkaReplicatedObject[Loc, T] {
+	trait WeakReplicatedObject[Loc, T] extends AkkaReplicatedObject[Loc, T] {
 		override final def consistencyLevel : ConsistencyLevel = Weak
 	}
 
@@ -41,7 +41,7 @@ object WeakAkkaReplicaSystem {
 
 	object WeakReplicatedObject {
 
-		class WeakMasterReplicatedObject[Loc, T <: AnyRef](
+		class WeakMasterReplicatedObject[Loc, T](
 	     init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 	  )(
 	     protected implicit val ttt : TypeTag[T]
@@ -87,7 +87,7 @@ object WeakAkkaReplicaSystem {
 
 					})
 
-					WeakSynchronized[T](getObject).asInstanceOf[R]
+					WeakSynchronized(getObject).asInstanceOf[R]
 
 				case _ =>
 					super.handleRequest(request)
@@ -97,7 +97,7 @@ object WeakAkkaReplicaSystem {
 
 		}
 
-		class WeakFollowerReplicatedObject[Loc, T <: AnyRef](
+		class WeakFollowerReplicatedObject[Loc, T](
 			init : T, val addr : Loc, val masterReplica : ActorRef, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 		)(
 			protected implicit val ttt : TypeTag[T]
@@ -125,7 +125,7 @@ object WeakAkkaReplicaSystem {
 				val handler = replicaSystem.handlerFor(masterReplica)
 
 				val WeakSynchronized(newObj : T@unchecked) =
-					handler.request(addr, SynchronizeWithWeakMaster[T](unsynchronized))
+					handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
 				handler.close()
 
 				setObject(newObj)
@@ -138,8 +138,8 @@ object WeakAkkaReplicaSystem {
 
 
 
-	case class SynchronizeWithWeakMaster[T <: AnyRef](seq : scala.collection.Seq[Operation[_]]) extends SynchronousRequest[WeakSynchronized[T]]
-	case class WeakSynchronized[T <: AnyRef](obj : T)
+	case class SynchronizeWithWeakMaster(seq : scala.collection.Seq[Operation[_]]) extends SynchronousRequest[WeakSynchronized]
+	case class WeakSynchronized(obj : Any)
 
 
 

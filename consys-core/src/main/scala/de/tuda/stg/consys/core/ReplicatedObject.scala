@@ -6,7 +6,7 @@ package de.tuda.stg.consys.core
 	* @author Mirko Köhler
 	*/
 
-trait ReplicatedObject[Addr, T <: AnyRef] {
+trait ReplicatedObject[Addr, T] {
 
 	def addr : Addr
 

@@ -9,7 +9,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaMultiversionReplicatedObject[Addr, T <: AnyRef] extends AkkaReplicatedObject[Addr, T] {
+trait AkkaMultiversionReplicatedObject[Addr, T] extends AkkaReplicatedObject[Addr, T] {
 
 	//TODO: implement correct garbage collection for multi version cache
 	@transient private var _opCache : mutable.Map[Transaction, (Operation[_], Any)] = null

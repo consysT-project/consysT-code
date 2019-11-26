@@ -11,7 +11,7 @@ import scala.concurrent.TimeoutException
 	*
 	* @author Mirko Köhler
 	*/
-private[akka] class AkkaRef[Loc, T <: AnyRef](
+private[akka] class AkkaRef[Loc, T](
 	val addr : Loc,
 	val consistencyLevel : ConsistencyLevel,
 	@transient private[akka] var replicaSystem : AkkaReplicaSystem { type Addr = Loc }

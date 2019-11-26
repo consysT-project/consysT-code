@@ -15,7 +15,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicatedObject[Loc, T <: AnyRef] extends ReplicatedObject[Loc, T] {
+trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 
 	protected val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 

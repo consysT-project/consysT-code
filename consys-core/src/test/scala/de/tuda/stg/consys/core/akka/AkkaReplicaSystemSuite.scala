@@ -23,8 +23,10 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 	case class F(replicas : Seq[System]) {
 		def apply(index : Int) : System = replicas(index)
 
-		def refs[T <: AnyRef : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Seq[Ref[String, T]] =
-			replicas.map(replica => replica.lookup[T]("a", consistencyLevel))
+		def refs[A <: System#Obj : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Seq[Ref[String, A]] = {
+			val x = replicas.map(replica => replica.lookup[A](name, consistencyLevel))
+			x
+		}
 
 	}
 

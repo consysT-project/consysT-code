@@ -15,6 +15,11 @@ import scala.reflect.runtime.universe._
 trait ReplicaSystem {
 
 	/**
+	 * Type for objects that can be stored in the store.
+	 */
+	type Obj
+
+	/**
 	 * Type of addresses for unique specifying replicated objects.
 	 */
 	type Addr
@@ -23,8 +28,14 @@ trait ReplicaSystem {
 	 * Type of references to replicated objects.
 	 * @tparam T The type that is referenced.
 	 */
-	type Ref[T <: AnyRef] <: core.Ref[Addr, T]
+	type Ref[T <: Obj] <: core.Ref[Addr, T]
 
+
+	/**
+	 * The name of the replica system.
+	 *
+	 * @return Non-null name of the replica system.
+	 */
 	def name : String
 
 	/**
@@ -34,11 +45,11 @@ trait ReplicaSystem {
 		* @param obj The object to distribute
 		* @return A reference to the created object
 		*/
-	def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T]
+	def replicate[T <: Obj : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T]
 
-	def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T]
+	def replicate[T <: Obj : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T]
 
-	def lookup[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
+	def lookup[T <: Obj : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
 
 	def close() : Unit
 

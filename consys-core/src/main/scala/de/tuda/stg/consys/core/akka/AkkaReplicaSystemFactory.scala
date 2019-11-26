@@ -31,9 +31,9 @@ object AkkaReplicaSystemFactory extends ReplicaSystemFactory {
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
 
 
-		override type Ref[T <: AnyRef] = AkkaRef[String, T]
+		override type Ref[T <: Obj] = AkkaRef[String, T]
 
-		override protected def newRef[T <: AnyRef : TypeTag](addr : String, consistencyLevel : ConsistencyLevel) : Ref[T] =
+		override protected def newRef[T <: Obj : TypeTag](addr : String, consistencyLevel : ConsistencyLevel) : Ref[T] =
 			new AkkaRef(addr, consistencyLevel, this)
 	}
 
