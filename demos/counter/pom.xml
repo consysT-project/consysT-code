@@ -5,7 +5,7 @@
     <parent>
         <artifactId>demos</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
-        <version>${consys.version}</version>
+        <version>2.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,12 +29,12 @@
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>${consys.version}</version>
+                            <version>1.1.0</version>
                         </path>
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>${consys.version}</version>
+                            <version>1.1.0</version>
                         </path>
                     </annotationProcessorPaths>
                     <!--                    <annotationProcessors>-->
@@ -123,7 +123,7 @@
                     <dependency>
                         <groupId>de.tuda.stg.consys</groupId>
                         <artifactId>consys-core</artifactId>
-                        <version>${consys.version}</version>
+                        <version>2.0.0</version>
                     </dependency>
                 </dependencies>
 
@@ -139,12 +139,12 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-core</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -160,24 +160,24 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-compiler</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-bench</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>demo-bench</artifactId>
-            <version>${consys.version}</version>
+            <version>2.0.0</version>
             <scope>compile</scope>
         </dependency>
 

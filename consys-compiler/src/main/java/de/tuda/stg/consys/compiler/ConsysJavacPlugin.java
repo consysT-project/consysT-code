@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.compiler;
 
+
 import com.sun.source.tree.*;
 import com.sun.source.util.*;
 import com.sun.tools.javac.api.BasicJavacTask;
@@ -12,6 +13,7 @@ import com.sun.tools.javac.util.Names;
 import javax.lang.model.element.Name;
 import java.util.List;
 import java.util.Optional;
+
 
 /**
  * Created on 30.09.19.

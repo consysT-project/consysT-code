@@ -17,8 +17,6 @@ import java.lang.annotation.Target;
 @SubtypeOf({Strong.class})
 @Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
-@ImplicitFor(
-        literals = {LiteralKind.ALL}
-)
+@QualifierForLiterals
 @DefaultFor({TypeUseLocation.LOWER_BOUND})
 public @interface Local {}

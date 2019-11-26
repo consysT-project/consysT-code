@@ -90,8 +90,8 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 
 
 	public Void visitCompilationUnit(CompilationUnitTree var1, Modificator var2) {
-		scan(var1.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> ((JCTree.JCCompilationUnit) var1).packageAnnotations = l));
-		scan(var1.getPackageName(), newTree -> ((JCTree.JCCompilationUnit) var1).pid = (JCTree.JCExpression) newTree);
+		scan(var1.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify package annotations"); }));
+		scan(var1.getPackageName(), newTree -> { throw new UnsupportedOperationException("can not modify package name"); });
 		scan(var1.getImports(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify imports"); }));
 		scan(var1.getTypeDecls(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
 			var1.getTypeDecls(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
