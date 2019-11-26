@@ -5,21 +5,14 @@ package de.tuda.stg.consys.bench
  *
  * @author Mirko Köhler
  */
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-import de.tuda.stg.consys.checker.qual.Strong
-import de.tuda.stg.consys.objects.japi.{JConsistencyLevels, JRef, JReplicaSystem, JReplicaSystems}
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.PrintWriter
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.io.{FileNotFoundException, IOException, PrintWriter}
+import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import de.tuda.stg.consys.bench.DistributedBenchmark.BenchmarkCommunication
-import de.tuda.stg.consys.objects.Address
+import com.typesafe.config.{Config, ConfigFactory}
+import de.tuda.stg.consys.core.Address
+import de.tuda.stg.consys.japi.{JReplicaSystem, JReplicaSystems}
 
 import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration

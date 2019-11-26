@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>consys-type-checker-test</artifactId>
+    <version>${consys.version}</version>
+    
+    <parent>
+    	<groupId>de.tuda.stg.consys</groupId>
+		<artifactId>consys</artifactId>
+		<version>${consys.version}</version>
+        <relativePath>/../..</relativePath>
+    </parent>
+
+    <properties>
+        <!-- Skip tests by default. This can be reenabled once the tests have been fixed. -->
+        <skipTests>false</skipTests>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArguments>
+                        <Xmaxerrs>10000</Xmaxerrs>
+                        <Xmaxwarns>10000</Xmaxwarns>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.12.4</version>
+                <configuration>
+                    <skipTests>${skipTests}</skipTests>
+                    <enableAssertions>true</enableAssertions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>${checkerframework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker</artifactId>
+            <version>${checkerframework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>testlib</artifactId>
+            <!-- This version differs from the Checker Framework version. -->
+            <version>2.5.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
+            <version>${consys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>${consys.version}</version>
+        </dependency>
+    </dependencies>
+    
+</project>

@@ -2,14 +2,14 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.examples.collections.JRefArrayMap;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -184,7 +184,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
                 System.out.print("\rAdded Product: " + split[0].substring(0, Math.min(split[0].length(), 20)) + "...");
             }
         }
-        System.out.println("");
+        System.out.println();
         return true;
     }
 

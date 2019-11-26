@@ -1,9 +1,9 @@
 package compiler;
 
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.Objects;

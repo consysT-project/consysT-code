@@ -1,15 +1,16 @@
 package de.tuda.stg.consys.demo.counter;
 
+import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Warmup(iterations = 4)

@@ -3,7 +3,7 @@ package de.tuda.stg.consys.bench
 import java.io.PrintWriter
 import java.nio.file.{Path, Paths}
 
-import de.tuda.stg.consys.objects.Address
+import de.tuda.stg.consys.core.Address
 
 /**
  * Created on 29.10.19.

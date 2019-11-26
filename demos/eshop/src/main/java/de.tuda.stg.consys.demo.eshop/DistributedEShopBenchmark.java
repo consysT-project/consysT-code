@@ -5,7 +5,7 @@ import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.eshop.schema.Database;
 import de.tuda.stg.consys.demo.eshop.schema.ShoppingSite;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
 import java.util.ArrayList;

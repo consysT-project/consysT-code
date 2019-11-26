@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.Optional;
@@ -90,17 +90,11 @@ public class JRefHashMap implements Serializable, JReplicated {
     }
 
     public boolean containsKey(String key) {
-        if(getValue(key) == null)
-            return false;
-        else
-            return true;
+		return getValue(key) != null;
     }
 
     public boolean containsValue(JRef value){
-        if(getKey(value) == null)
-            return false;
-        else
-            return true;
+		return getKey(value) != null;
     }
 
     public String getKey(JRef value){

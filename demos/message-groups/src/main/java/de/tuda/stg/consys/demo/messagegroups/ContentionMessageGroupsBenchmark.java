@@ -6,7 +6,7 @@ import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
 import java.util.ArrayList;

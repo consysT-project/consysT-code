@@ -3,11 +3,10 @@ package de.tuda.stg.consys.demo
 import java.util.concurrent.Executors
 
 import akka.dispatch.ExecutionContexts
-import de.tuda.stg.consys.objects.ConsistencyLevel.{Cassandra, High, Low, Strong, Weak}
-import de.tuda.stg.consys.objects.actors
-import de.tuda.stg.consys.objects.actors.{AkkaReplicaSystem, AkkaReplicaSystemFactory}
+import de.tuda.stg.consys.core.ConsistencyLevel.Strong
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystemFactory
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 
 /**
 	* Created on 27.02.19.

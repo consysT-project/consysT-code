@@ -30,9 +30,9 @@ The following instructions have been tested for *Linux Mint 19*.
 To use consys in your project just add the Java API as a dependency:
 
     <dependency>
-        <groupId>de.tuda.stg</groupId>
+        <groupId>de.tuda.stg.consys</groupId>
         <artifactId>consys-japi</artifactId>
-        <version>1.0.0</version>
+        <version>${consys.version}</version>
     </dependency>
  
 
@@ -52,15 +52,15 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
                     <annotationProcessorPaths>
                         <!-- path to the consys type checker -->
                         <path>
-                            <groupId>de.tuda.stg</groupId>
-                            <artifactId>consistency-checker</artifactId>
-                            <version>1.0.0</version>
+                            <groupId>de.tuda.stg.consys</groupId>
+                            <artifactId>consys-type-checker</artifactId>
+                            <version>${consys.version}</version>
                         </path>
                         <!-- path to the consys javac plugin -->
                         <path>
-                            <groupId>de.tuda.stg</groupId>
+                            <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>1.0.0</version>
+                            <version>${consys.version}</version>
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
@@ -83,19 +83,19 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
 
     <dependencies>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
+            <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>1.0.0</version>
+            <version>${consys.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>consistency-checker</artifactId>
-            <version>1.0.0</version>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
+            <version>${consys.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
+            <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-compiler</artifactId>
-            <version>1.0.0</version>
+            <version>${consys.version}</version>
         </dependency>
     </dependencies>
 
@@ -110,7 +110,7 @@ In IntelliJ, you have to add the annotation processor manually.
 1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`. 
 IntelliJ may be able to retrieve the correct checker by default. If it can, you are already finished.
 
-2. Add the compiled jar of the consistency-checker project
+2. Add the compiled jar of the consys-type-checker project
 
 3. Add the checker.jar from the CheckerFramework
 
@@ -129,9 +129,9 @@ For further examples, refer to the testcases.
 
 ## Project overview
 
-* **consistency-checker**: Implements the type annotations and the information flow analysis using the 
+* **consys-type-checker**: Implements the type annotations and the information flow analysis using the 
 Checker framework.
-    * **consistency-checker-test**: Unit tests for checking information flow with the
+    * **consys-type-checker-test**: Unit tests for checking information flow with the
      consistency checker. (Has its own maven module, because
     it needs to be compiled using the consistency checker as annotation processor). 
 * 
