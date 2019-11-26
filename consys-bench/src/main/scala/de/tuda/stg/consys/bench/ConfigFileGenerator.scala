@@ -3,6 +3,8 @@ package de.tuda.stg.consys.bench
 import java.io.PrintWriter
 import java.nio.file.{Path, Paths}
 
+import de.tuda.stg.consys.core.Address
+
 /**
  * Created on 29.10.19.
  *
@@ -61,7 +63,7 @@ object ConfigFileGenerator {
 		val outputFile = Paths.get(args(1))
 		val warmupIterations = args(2).toInt
 		val measureIterations = args(3).toInt
-		val hosts = args.drop(4).map(addrString => Address.create(addrString))
+		val hosts = args.drop(4).map(addrString => Address.parse(addrString))
 
 
 		new ConfigFileGenerator(hosts, warmupIterations, measureIterations, outputFile)

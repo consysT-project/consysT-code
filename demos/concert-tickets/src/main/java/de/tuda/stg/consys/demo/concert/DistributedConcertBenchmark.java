@@ -4,7 +4,7 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.concert.schema.*;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 
 import java.util.Date;
 import java.util.Random;

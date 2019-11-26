@@ -2,8 +2,8 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
 
 /**
  * Created on 19.11.19.
@@ -13,7 +13,7 @@ import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
 public abstract class DemoBenchmark extends DistributedBenchmark {
 
 	private enum BenchmarkType {
-		MIXED, STRONG;
+		MIXED, STRONG
 	}
 
 

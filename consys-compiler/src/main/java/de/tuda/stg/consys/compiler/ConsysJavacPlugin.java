@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.compiler;
 
+
 import com.sun.source.tree.*;
 import com.sun.source.util.*;
 import com.sun.tools.javac.api.BasicJavacTask;
@@ -12,6 +13,7 @@ import com.sun.tools.javac.util.Names;
 import javax.lang.model.element.Name;
 import java.util.List;
 import java.util.Optional;
+
 
 /**
  * Created on 30.09.19.
@@ -104,7 +106,7 @@ public class ConsysJavacPlugin implements Plugin {
 									.Apply(null,
 										newSelect,
 										com.sun.tools.javac.util.List.of(
-											factory.Literal(new String(assign.fieldName.toString())),
+											factory.Literal(assign.fieldName.toString()),
 											(JCTree.JCExpression) assign.newValue
 											)
 									);
@@ -125,7 +127,7 @@ public class ConsysJavacPlugin implements Plugin {
 									.Apply(null,
 										newSelect,
 										com.sun.tools.javac.util.List.of(
-											factory.Literal(new String(fieldAcc.fieldName.toString()))
+											factory.Literal(fieldAcc.fieldName.toString())
 										)
 									);
 
@@ -219,7 +221,7 @@ public class ConsysJavacPlugin implements Plugin {
 	}
 
 
-	private static interface CRefUsage {
+	private interface CRefUsage {
 		ModifyingTreePath getOriginalPath();
 	}
 

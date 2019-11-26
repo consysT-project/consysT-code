@@ -1,12 +1,15 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
-import de.tuda.stg.consys.objects.japi.*;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.akka.AkkaReplicatedObject;
+import de.tuda.stg.consys.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Warmup(iterations = 4)
@@ -54,11 +57,12 @@ public class MicroBenchmark {
 
         @Setup(Level.Iteration)
         public void setup() throws Exception {
-            replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
-            replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
+            JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(2);
 
-            replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-            replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
+            replicaSystem1 = systems[0];
+            replicaSystem2 = systems[1];
+
+
 
             int count =  0;
 

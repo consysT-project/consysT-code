@@ -6,9 +6,9 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.Replicas;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;

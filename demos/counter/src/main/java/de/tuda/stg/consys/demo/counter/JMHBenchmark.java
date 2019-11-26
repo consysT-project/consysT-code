@@ -1,15 +1,16 @@
 package de.tuda.stg.consys.demo.counter;
 
+import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Warmup(iterations = 4)
@@ -45,16 +46,12 @@ public class JMHBenchmark {
 
 		@Setup(Level.Iteration)
 		public void systemSetup() throws Exception {
-			replicaSystem1 = JReplicaSystems.fromActorSystem(2552);
-			replicaSystem2 = JReplicaSystems.fromActorSystem(2553);
-			replicaSystem3 = JReplicaSystems.fromActorSystem(2554);
 
-			replicaSystem1.addReplicaSystem("127.0.0.1", 2553);
-			replicaSystem1.addReplicaSystem("127.0.0.1", 2554);
-			replicaSystem2.addReplicaSystem("127.0.0.1", 2552);
-			replicaSystem2.addReplicaSystem("127.0.0.1", 2554);
-			replicaSystem3.addReplicaSystem("127.0.0.1", 2552);
-			replicaSystem3.addReplicaSystem("127.0.0.1", 2553);
+			JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(3);
+
+			replicaSystem1 = systems[0];
+			replicaSystem2 = systems[1];
+			replicaSystem3 = systems[2];
 
 			ConsistencyLevel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
 

@@ -1,11 +1,10 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.DistributedBenchmark;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
 import java.util.Random;
