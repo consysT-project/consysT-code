@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>demos</artifactId>
-        <groupId>de.tuda.stg</groupId>
-        <version>1.0.0</version>
+        <groupId>de.tuda.stg.consys</groupId>
+        <version>${consys.version}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -26,14 +26,14 @@
                     <annotationProcessorPaths>
                         <!-- path to the consys type checker -->
                         <path>
-                            <groupId>de.tuda.stg</groupId>
-                            <artifactId>consistency-checker</artifactId>
-                            <version>1.0.0</version>
+                            <groupId>de.tuda.stg.consys</groupId>
+                            <artifactId>consys-type-checker</artifactId>
+                            <version>${consys.version}</version>
                         </path>
                         <path>
-                            <groupId>de.tuda.stg</groupId>
+                            <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>1.0.0</version>
+                            <version>${consys.version}</version>
                         </path>
                     </annotationProcessorPaths>
                     <!--                    <annotationProcessors>-->
@@ -120,9 +120,9 @@
 
                 <dependencies>
                     <dependency>
-                        <groupId>de.tuda.stg</groupId>
+                        <groupId>de.tuda.stg.consys</groupId>
                         <artifactId>consys-core</artifactId>
-                        <version>1.0.0</version>
+                        <version>${consys.version}</version>
                     </dependency>
                 </dependencies>
 
@@ -132,19 +132,19 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
+            <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>1.0.0</version>
+            <version>${consys.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
-            <artifactId>consistency-checker</artifactId>
-            <version>1.0.0</version>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
+            <version>${consys.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.tuda.stg</groupId>
+            <groupId>de.tuda.stg.consys</groupId>
             <artifactId>demo-bench</artifactId>
-            <version>1.0.0</version>
+            <version>${consys.version}</version>
             <scope>compile</scope>
         </dependency>
 

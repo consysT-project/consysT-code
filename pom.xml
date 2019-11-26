@@ -3,16 +3,16 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.tuda.stg</groupId>
+    <groupId>de.tuda.stg.consys</groupId>
     <artifactId>consys</artifactId>
-    <version>1.0.0</version>
+    <version>${consys.version}</version>
 
     <packaging>pom</packaging>
 
     <modules>
         <module>demos</module>
-        <module>consistency-checker</module>
-        <module>consistency-checker/consistency-checker-test</module>
+        <module>consys-type-checker</module>
+        <module>consys-type-checker/consys-type-checker-test</module>
         <module>microbenchmarks</module>
         <module>consys-core</module>
         <module>integration-tests</module>
@@ -21,16 +21,19 @@
         <module>consys-compiler/consys-compiler-test</module>
         <module>consys-bench</module>
         <module>examples</module>
+        <module>experimental</module>
     </modules>
 
 
 
     <properties>
         <!-- This property will be set by the Maven Dependency plugin -->
-        <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
+        <!-- <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>-->
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <consys.version>1.1.0</consys.version>
 
         <java.version>1.8</java.version>
         <scala.version>2.12.8</scala.version>

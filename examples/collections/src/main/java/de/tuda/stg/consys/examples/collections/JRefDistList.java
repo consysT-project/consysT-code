@@ -3,12 +3,12 @@ package de.tuda.stg.consys.examples.collections;
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JConsistencyLevels;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.ArrayList;

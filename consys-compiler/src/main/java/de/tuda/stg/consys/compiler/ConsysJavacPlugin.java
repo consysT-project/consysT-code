@@ -104,7 +104,7 @@ public class ConsysJavacPlugin implements Plugin {
 									.Apply(null,
 										newSelect,
 										com.sun.tools.javac.util.List.of(
-											factory.Literal(new String(assign.fieldName.toString())),
+											factory.Literal(assign.fieldName.toString()),
 											(JCTree.JCExpression) assign.newValue
 											)
 									);
@@ -125,7 +125,7 @@ public class ConsysJavacPlugin implements Plugin {
 									.Apply(null,
 										newSelect,
 										com.sun.tools.javac.util.List.of(
-											factory.Literal(new String(fieldAcc.fieldName.toString()))
+											factory.Literal(fieldAcc.fieldName.toString())
 										)
 									);
 
@@ -219,7 +219,7 @@ public class ConsysJavacPlugin implements Plugin {
 	}
 
 
-	private static interface CRefUsage {
+	private interface CRefUsage {
 		ModifyingTreePath getOriginalPath();
 	}
 

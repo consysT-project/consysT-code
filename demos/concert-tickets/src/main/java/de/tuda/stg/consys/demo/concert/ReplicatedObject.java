@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.demo.concert;
 
 import akka.actor.ActorRef;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
-import de.tuda.stg.consys.objects.actors.Requests;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.actors.AkkaReplicatedObject;
+import de.tuda.stg.consys.core.actors.Requests;
+import de.tuda.stg.consys.japi.JRef;
 import scala.collection.mutable.Buffer;
 
 

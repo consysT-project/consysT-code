@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
-import de.tuda.stg.consys.objects.japi.JReplicated;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.Optional;
@@ -138,17 +138,11 @@ public class JRefAddressMap implements Serializable, JReplicated {
     }
 
     public boolean containsKey(String key) {
-        if(getValue(key) == null)
-            return false;
-        else
-            return true;
+		return getValue(key) != null;
     }
 
     public boolean containsValue(JRef value){
-        if(getKey(value) == null)
-            return false;
-        else
-            return true;
+		return getKey(value) != null;
     }
 
     public String getKey(JRef value){
@@ -311,8 +305,8 @@ public class JRefAddressMap implements Serializable, JReplicated {
         int x = 0;
         while(current != null){
             //long firstTime = System.nanoTime();
-            System.out.println((boolean)current.getField("filled") + (String) current.getField("key") + (String)current.getField("cont"));
-            current = current.getField("next");
+//            System.out.println(current.ref().filled + current.ref().key + current.ref().cont);
+            current = current.ref().next;
             //long sndTime = System.nanoTime();
             //writer.println(x + "," + TimeUnit.NANOSECONDS.toMillis(sndTime - firstTime));
             x++;

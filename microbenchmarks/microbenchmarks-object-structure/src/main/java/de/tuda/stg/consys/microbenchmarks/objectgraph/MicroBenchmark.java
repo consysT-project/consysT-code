@@ -1,12 +1,15 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import de.tuda.stg.consys.objects.ConsistencyLevel;
-import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
-import de.tuda.stg.consys.objects.japi.*;
+import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.actors.AkkaReplicatedObject;
+import de.tuda.stg.consys.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Warmup(iterations = 4)
