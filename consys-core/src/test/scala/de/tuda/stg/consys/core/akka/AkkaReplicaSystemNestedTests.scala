@@ -1,8 +1,8 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.ConsistencyLevel.{Strong, Weak}
 import de.tuda.stg.consys.core.Ref
-import de.tuda.stg.consys.core.actors.Data.{A, B}
+import de.tuda.stg.consys.core.akka.Data.{A, B}
 import org.scalatest.fixture
 
 /**

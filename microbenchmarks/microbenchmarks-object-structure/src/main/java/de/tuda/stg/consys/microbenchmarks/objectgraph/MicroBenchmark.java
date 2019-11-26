@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
 import de.tuda.stg.consys.core.ConsistencyLevel;
-import de.tuda.stg.consys.core.actors.AkkaReplicatedObject;
+import de.tuda.stg.consys.core.akka.AkkaReplicatedObject;
 import de.tuda.stg.consys.japi.*;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;

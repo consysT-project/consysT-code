@@ -1,7 +1,7 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.actors.Transaction.NestedTransaction
+import de.tuda.stg.consys.core.akka.Transaction.NestedTransaction
 
 import scala.collection.mutable
 
@@ -10,7 +10,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-private[actors] trait Transaction extends Serializable {
+private[akka] trait Transaction extends Serializable {
 
 	val timestamp : Long = System.currentTimeMillis()
 

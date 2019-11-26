@@ -4,7 +4,7 @@ import java.util.concurrent.Executors
 
 import akka.dispatch.ExecutionContexts
 import de.tuda.stg.consys.core.ConsistencyLevel.Strong
-import de.tuda.stg.consys.core.actors.AkkaReplicaSystemFactory
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory
 
 import scala.concurrent.ExecutionContext
 

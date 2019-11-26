@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
@@ -9,10 +9,10 @@ import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.core
 import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
-import de.tuda.stg.consys.core.actors.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest}
+import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest}
 import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
-import de.tuda.stg.consys.core.actors.AkkaReplicaSystem._
-import de.tuda.stg.consys.core.actors.Requests._
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
+import de.tuda.stg.consys.core.akka.Requests._
 
 import scala.collection.mutable
 import scala.concurrent.{Await, Future, TimeoutException}
@@ -45,7 +45,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	val defaultTimeout : FiniteDuration
 
-		protected[actors] object replica {
+		protected[akka] object replica {
 
 
 		/*The replicated objects stored by this replica*/
@@ -232,9 +232,9 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 
 	/*writes a message to the standard out*/
-	protected[actors] def log : LoggingAdapter = actorSystem.log
+	protected[akka] def log : LoggingAdapter = actorSystem.log
 
-	private[actors] def getActorSystemAddress : Address =
+	private[akka] def getActorSystemAddress : Address =
 		actorSystem.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress
 
 	/**
@@ -248,7 +248,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		otherReplicas.add(replicaActorRef)
 	}
 
-	private[actors] def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
+	private[akka] def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
 
 		//Skip adding the replica if the path is the path to the current replica
 		if (replicaActorPath.address.host == getActorSystemAddress.host
@@ -287,13 +287,13 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	}
 
-	private[actors] def addOtherReplica(hostname : String, port : Int) : Unit = {
+	private[akka] def addOtherReplica(hostname : String, port : Int) : Unit = {
 		val sysname = DEFAULT_ACTORSYSTEM_NAME
 		val address = Address("akka", sysname, hostname, port)
 		addOtherReplica(address)
 	}
 
-	private[actors] def addOtherReplica(address : Address) : Unit = {
+	private[akka] def addOtherReplica(address : Address) : Unit = {
 		/*
 		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
 		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
@@ -302,14 +302,14 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 
-	private[actors] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
+	private[akka] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
 		import akka.pattern.ask
 		val response = replicaRef.ask(AcquireHandler)(defaultTimeout)
 		val result = Await.result(response, defaultTimeout)
 		result.asInstanceOf[RequestHandler[Addr]]
 	}
 
-	private[actors] def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
+	private[akka] def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
 		for (replica <- otherReplicas) {
 			val handler = handlerFor(replica)
 			f(handler)
@@ -324,7 +324,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		*
 		* @param obj
 		*/
-	private[actors] def initializeRefFields(obj : Any) : Unit = {
+	private[akka] def initializeRefFields(obj : Any) : Unit = {
 
 		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
 			//If the object is null, there is nothing to initialize

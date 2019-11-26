@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.Utils.TxMutex
 
@@ -17,15 +17,15 @@ trait Lockable[T <: AnyRef] {
 	 *
 	 * @param txid The transaction that wants to acquire the lock.
 	 */
-	private[actors] def lock(txid : Long) : Unit = {
+	private[akka] def lock(txid : Long) : Unit = {
 		txMutex.lockTxid(txid)
 	}
 
-	private[actors] def unlock(txid : Long) : Unit = {
+	private[akka] def unlock(txid : Long) : Unit = {
 		txMutex.unlockTxid(txid)
 	}
 
-	private[actors] def unlockAll(txid : Long) : Unit = {
+	private[akka] def unlockAll(txid : Long) : Unit = {
 		txMutex.unlockAllTxid(txid)
 	}
 
@@ -35,11 +35,11 @@ trait Lockable[T <: AnyRef] {
 	 *
 	 * @param txid The transaction that wants to acquire the lock.
 	 */
-	private[actors] def tryLock(txid : Long) : Boolean = {
+	private[akka] def tryLock(txid : Long) : Boolean = {
 		txMutex.tryLockTxid(txid)
 	}
 
-	private[actors] def unsafeCompareTxid(txid : Long) : Boolean = {
+	private[akka] def unsafeCompareTxid(txid : Long) : Boolean = {
 		val currentTxid = txMutex.unsafeCurrentTxid
 		currentTxid.isDefined && currentTxid.get == txid
 	}

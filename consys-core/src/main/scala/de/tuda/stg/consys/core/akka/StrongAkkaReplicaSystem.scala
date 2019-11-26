@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.Strong
-import de.tuda.stg.consys.core.actors.Requests.{GetFieldOp, InvokeOp, Operation, Request, RequestHandler, SetFieldOp, SynchronousRequest}
-import de.tuda.stg.consys.core.actors.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
+import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, RequestHandler, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.akka.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
@@ -150,11 +150,11 @@ object StrongAkkaReplicaSystem {
 			}
 
 
-			override private[actors] def lock(txid : Long) : Unit = {
+			override private[akka] def lock(txid : Long) : Unit = {
 				lockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 
-			override private[actors] def unlock(txid : Long) : Unit = {
+			override private[akka] def unlock(txid : Long) : Unit = {
 				unlockWithHandler(txid, replicaSystem.handlerFor(masterReplica))
 			}
 

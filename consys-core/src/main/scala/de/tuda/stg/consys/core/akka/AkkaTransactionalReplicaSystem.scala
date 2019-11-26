@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.{ConsistencyLevel, TransactionalReplicaSystem}
 

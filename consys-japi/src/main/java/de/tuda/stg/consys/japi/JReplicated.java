@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.core.Replicated;
-import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
