@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.Causal
-import de.tuda.stg.consys.core.actors.CausalAkkaReplicaSystem.CausalReplicatedObject.CausalMasterReplicatedObject
-import de.tuda.stg.consys.core.actors.Requests.{GetFieldOp, InvokeOp, NoAnswerRequest, Operation, Request, SetFieldOp}
+import de.tuda.stg.consys.core.akka.CausalAkkaReplicaSystem.CausalReplicatedObject.CausalMasterReplicatedObject
+import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, NoAnswerRequest, Operation, Request, SetFieldOp}
 
 import scala.collection.mutable
 import scala.language.postfixOps

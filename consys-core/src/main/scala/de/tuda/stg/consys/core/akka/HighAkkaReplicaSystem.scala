@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.High
-import de.tuda.stg.consys.core.actors.HighAkkaReplicaSystem.HighReplicatedObject
-import de.tuda.stg.consys.core.actors.Requests.{Request, SynchronousRequest}
+import de.tuda.stg.consys.core.akka.HighAkkaReplicaSystem.HighReplicatedObject
+import de.tuda.stg.consys.core.akka.Requests.{Request, SynchronousRequest}
 
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._

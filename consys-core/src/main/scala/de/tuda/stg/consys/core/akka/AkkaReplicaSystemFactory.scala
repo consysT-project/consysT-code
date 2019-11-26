@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}

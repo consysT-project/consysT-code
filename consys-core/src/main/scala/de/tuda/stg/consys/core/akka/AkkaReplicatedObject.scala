@@ -1,8 +1,8 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import java.lang.reflect.Modifier
 
-import de.tuda.stg.consys.core.actors.Requests._
+import de.tuda.stg.consys.core.akka.Requests._
 import de.tuda.stg.consys.core.{Replicated, ReplicatedObject, typeToClassTag}
 import jdk.dynalink.linker.support.TypeUtilities
 
@@ -32,7 +32,7 @@ trait AkkaReplicatedObject[Loc, T <: AnyRef] extends ReplicatedObject[Loc, T] {
 		intitializeReplicated()
 	}
 
-	protected [actors] def getObject : T = state
+	protected [akka] def getObject : T = state
 
 
 	private def transaction[R](f : Transaction => R) : R = {
@@ -180,7 +180,7 @@ trait AkkaReplicatedObject[Loc, T <: AnyRef] extends ReplicatedObject[Loc, T] {
 	}
 
 
-	protected [actors] def delete() : Unit = { }
+	protected [akka] def delete() : Unit = { }
 
 
 	override def toString : String =

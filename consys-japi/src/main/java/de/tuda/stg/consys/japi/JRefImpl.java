@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.core.Ref;
-import de.tuda.stg.consys.core.actors.AkkaRef;
-import de.tuda.stg.consys.core.actors.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.akka.AkkaRef;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 
 import java.io.Serializable;
 

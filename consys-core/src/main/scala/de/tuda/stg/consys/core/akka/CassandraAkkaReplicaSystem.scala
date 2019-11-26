@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch}
 
@@ -6,7 +6,7 @@ import akka.actor.ActorRef
 import akka.dispatch.ExecutionContexts
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.Cassandra
-import de.tuda.stg.consys.core.actors.Requests.{AsynchronousRequest, Operation, Request}
+import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, Operation, Request}
 
 import scala.collection.{JavaConverters, mutable}
 import scala.language.postfixOps

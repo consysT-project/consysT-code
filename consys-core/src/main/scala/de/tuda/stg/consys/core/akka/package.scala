@@ -5,7 +5,7 @@ package de.tuda.stg.consys.core
  *
  * @author Mirko Köhler
  */
-package object actors {
+package object akka {
 
 	final val DEFAULT_ACTORSYSTEM_NAME : String = "replica-system"
 

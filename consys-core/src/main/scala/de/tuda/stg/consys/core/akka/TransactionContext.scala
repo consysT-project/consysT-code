@@ -1,7 +1,7 @@
-package de.tuda.stg.consys.core.actors
+package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.actors.Transaction.ToplevelTransaction
+import de.tuda.stg.consys.core.akka.Transaction.ToplevelTransaction
 
 import scala.util.Random
 
