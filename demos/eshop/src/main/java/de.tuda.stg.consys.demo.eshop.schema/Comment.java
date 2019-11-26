@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.demo.eshop.schema;
 
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.objects.japi.JRef;
-import de.tuda.stg.consys.objects.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JRef;
 
 import java.io.Serializable;
 

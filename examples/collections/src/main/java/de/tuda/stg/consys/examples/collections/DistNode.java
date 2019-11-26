@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.examples.collections;
 
 
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 
 import java.io.Serializable;
 

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.eshop;
 
-import de.tuda.stg.consys.objects.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLevel;
 
 /**
  * Created on 19.11.19.

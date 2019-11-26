@@ -5,21 +5,16 @@ package de.tuda.stg.consys.bench
  *
  * @author Mirko Köhler
  */
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-import de.tuda.stg.consys.checker.qual.Strong
-import de.tuda.stg.consys.objects.japi.{JConsistencyLevels, JRef, JReplicaSystem, JReplicaSystems}
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.PrintWriter
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.io.{FileNotFoundException, IOException, PrintWriter}
+import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import de.tuda.stg.consys.bench.DistributedBenchmark.BenchmarkCommunication
+import com.typesafe.config.{Config, ConfigFactory}
+import de.tuda.stg.consys.core.Address
+import de.tuda.stg.consys.japi.{JReplicaSystem, JReplicaSystems}
 
+import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 
 
@@ -40,15 +35,11 @@ abstract class DistributedBenchmark(
 ) {
 	//Important: create the followers before creating the coordinator
 	final protected var replicaSystem : JReplicaSystem = JReplicaSystems.fromActorSystem(
-		address.hostname,
-		address.port,
+		address,
+		JavaConverters.asJavaIterable(replicas),
 		java.time.Duration.ofSeconds(30000)
 	)
 
-	println("Adding other replicas...")
-	for (replica <- replicas) {
-		replicaSystem.addReplicaSystem(replica.hostname, replica.port)
-	}
 	println("All replicas found")
 
 
@@ -67,8 +58,8 @@ abstract class DistributedBenchmark(
 
 	def this(config : Config) {
 		this(
-			Address.create(config.getString("consys.bench.hostname")),
-			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.create(str)).toArray(i => new Array[Address](i)),
+			Address.parse(config.getString("consys.bench.hostname")),
+			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.parse(str)).toArray(i => new Array[Address](i)),
 			config.getInt("consys.bench.processId"),
 			config.getInt("consys.bench.warmupIterations"),
 			config.getInt("consys.bench.measureIterations"),

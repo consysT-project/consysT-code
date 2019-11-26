@@ -1,17 +1,17 @@
 package de.tuda.stg.consys.demo.concert;
 
 import akka.actor.ActorRef;
-import de.tuda.stg.consys.objects.actors.AkkaReplicaSystem;
-import de.tuda.stg.consys.objects.actors.AkkaReplicatedObject;
-import de.tuda.stg.consys.objects.actors.Requests;
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.akka.AkkaReplicatedObject;
+import de.tuda.stg.consys.core.akka.Requests;
+import de.tuda.stg.consys.japi.JRef;
 import scala.collection.mutable.Buffer;
 
 
 //The code is commented out because of accessibility issues.
 public class ReplicatedObject<T> {
     final AkkaReplicatedObject<String, T> internal;
-    final AkkaReplicaSystem<String> system;
+    final AkkaReplicaSystem system;
     final Buffer<Requests.Operation<?>> localOperations;
     final String address;
     final ActorRef master;

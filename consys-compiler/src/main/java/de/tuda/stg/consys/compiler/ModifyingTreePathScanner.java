@@ -4,7 +4,6 @@ import com.sun.source.tree.*;
 import com.sun.source.util.TreeScanner;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.Context;
-import com.sun.tools.javac.util.Log;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -19,7 +18,7 @@ import java.util.function.Consumer;
 class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanner.Modificator> {
 
 	@FunctionalInterface
-	public static interface Modificator extends Consumer<JCTree> { }
+	public interface Modificator extends Consumer<JCTree> { }
 
 
 	/* Use this method to change a single index in a com.sun.tools.javac.util.List */
@@ -37,7 +36,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		int i = 0;
 		for (Object t : originalList) {
 			final int finalI = i;
-			mods.add(newTree -> setter.accept(setIndex(originalList, finalI, (A) newTree)));
+			mods.add(newTree -> setter.accept((com.sun.tools.javac.util.List<A>) setIndex(originalList, finalI, newTree)));
 			i++;
 		}
 		return mods;
@@ -91,8 +90,8 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 
 
 	public Void visitCompilationUnit(CompilationUnitTree var1, Modificator var2) {
-		scan(var1.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> ((JCTree.JCCompilationUnit) var1).packageAnnotations = l));
-		scan(var1.getPackageName(), newTree -> ((JCTree.JCCompilationUnit) var1).pid = (JCTree.JCExpression) newTree);
+		scan(var1.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify package annotations"); }));
+		scan(var1.getPackageName(), newTree -> { throw new UnsupportedOperationException("can not modify package name"); });
 		scan(var1.getImports(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify imports"); }));
 		scan(var1.getTypeDecls(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
 			var1.getTypeDecls(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
@@ -180,7 +179,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	}
 
 	public Void visitLabeledStatement(LabeledStatementTree var1, Modificator var2) {
-		return this.scan((Tree) var1.getStatement(), var2);
+		return this.scan(var1.getStatement(), var2);
 	}
 
 	public Void visitSwitch(SwitchTree var1, Modificator var2) {
@@ -202,7 +201,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	}
 
 	public Void visitTry(TryTree var1, Modificator var2) {
-		scan(var1.getResources(), ModifyingTreePathScanner.<JCTree>getModificators(var1.getResources(), l -> ((JCTree.JCTry) var1).resources = l));
+		scan(var1.getResources(), ModifyingTreePathScanner.getModificators(var1.getResources(), l -> ((JCTree.JCTry) var1).resources = l));
 		scan(var1.getBlock(), newTree -> ((JCTree.JCTry) var1).body = (JCTree.JCBlock) newTree);
 		scan(var1.getCatches(), ModifyingTreePathScanner.<JCTree.JCCatch>getModificators(var1.getCatches(), l -> ((JCTree.JCTry) var1).catchers = l));
 		scan(var1.getFinallyBlock(), newTree -> ((JCTree.JCTry) var1).finalizer = (JCTree.JCBlock) newTree);
@@ -299,7 +298,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 
 	public Void visitLambdaExpression(LambdaExpressionTree var1, Modificator var2) {
 		scan(var1.getParameters(), ModifyingTreePathScanner.<JCTree.JCVariableDecl>getModificators(var1.getParameters(), l -> ((JCTree.JCLambda) var1).params = l));
-		scan(var1.getBody(), newTree -> ((JCTree.JCLambda) var1).body = (JCTree.JCExpression) newTree);
+		scan(var1.getBody(), newTree -> ((JCTree.JCLambda) var1).body = newTree);
 		return null;
 	}
 
@@ -410,7 +409,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	}
 
 	public Void visitAnnotation(AnnotationTree var1, Modificator var2) {
-		scan(var1.getAnnotationType(), newTree -> ((JCTree.JCAnnotation) var1).annotationType = (JCTree) newTree);
+		scan(var1.getAnnotationType(), newTree -> ((JCTree.JCAnnotation) var1).annotationType = newTree);
 		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCAnnotation) var1).args = l));
 		return null;
 	}

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import de.tuda.stg.consys.objects.japi.JRef;
+import de.tuda.stg.consys.japi.JRef;
 
 public class BenchmarkObject4 implements BenchmarkObject {
     public JRef<BenchmarkObject> ref0;
