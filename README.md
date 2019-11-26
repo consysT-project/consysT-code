@@ -32,7 +32,7 @@ To use consys in your project just add the Java API as a dependency:
     <dependency>
         <groupId>de.tuda.stg.consys</groupId>
         <artifactId>consys-japi</artifactId>
-        <version>${consys.version}</version>
+        <version>1.1.0</version>
     </dependency>
  
 
@@ -54,13 +54,13 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>${consys.version}</version>
+                            <version>1.1.0</version>
                         </path>
                         <!-- path to the consys javac plugin -->
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>${consys.version}</version>
+                            <version>1.1.0</version>
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
@@ -85,17 +85,17 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>${consys.version}</version>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>${consys.version}</version>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-compiler</artifactId>
-            <version>${consys.version}</version>
+            <version>1.1.0</version>
         </dependency>
     </dependencies>
 

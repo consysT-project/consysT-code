@@ -4,7 +4,7 @@ import java.lang.reflect.Modifier
 
 import de.tuda.stg.consys.core.actors.Requests._
 import de.tuda.stg.consys.core.{Replicated, ReplicatedObject, typeToClassTag}
-import jdk.internal.dynalink.support.TypeUtilities
+import jdk.dynalink.linker.support.TypeUtilities
 
 import scala.language.postfixOps
 import scala.reflect.ClassTag
