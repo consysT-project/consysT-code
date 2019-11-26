@@ -7,7 +7,7 @@ import de.tuda.stg.consys.core.Utils.TxMutex
 	*
 	* @author Mirko Köhler
 	*/
-trait Lockable[T <: AnyRef] {
+trait Lockable[T] {
 
 	private val txMutex = new TxMutex()
 

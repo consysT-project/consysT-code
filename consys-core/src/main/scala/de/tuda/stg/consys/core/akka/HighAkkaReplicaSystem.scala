@@ -19,12 +19,12 @@ import scala.reflect.runtime.universe._
 trait HighAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
 		case High => new HighReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
 		case High => new HighReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
@@ -36,7 +36,7 @@ object HighAkkaReplicaSystem {
 
 
 
-	private [HighAkkaReplicaSystem] class HighReplicatedObject[Loc, T <: AnyRef] (
+	private [HighAkkaReplicaSystem] class HighReplicatedObject[Loc, T] (
     init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
   )(
     protected implicit val ttt : TypeTag[T]
@@ -99,7 +99,7 @@ object HighAkkaReplicaSystem {
 		override def toString : String = s"@High($addr, $getObject)"
 
 
-		private case class SyncRequest(state : AnyRef, version : Long) extends SynchronousRequest[Option[(T, Long)]]
+		private case class SyncRequest(state : Any, version : Long) extends SynchronousRequest[Option[(T, Long)]]
 	}
 
 

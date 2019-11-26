@@ -20,12 +20,12 @@ import scala.util.{DynamicVariable, Random}
 trait LowAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
-	override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
 		case Low => new LowReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
-	override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+	override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
 		case Low => new LowReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
@@ -42,7 +42,7 @@ object LowAkkaReplicaSystem {
 	private case object NotLockedException extends RuntimeException
 
 
-	private [LowAkkaReplicaSystem] class LowReplicatedObject[Loc, T <: AnyRef] (
+	private [LowAkkaReplicaSystem] class LowReplicatedObject[Loc, T] (
     init : T, val addr : Loc, val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
   )(
     protected implicit val ttt : TypeTag[T]

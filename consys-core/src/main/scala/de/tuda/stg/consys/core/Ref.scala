@@ -5,7 +5,7 @@ package de.tuda.stg.consys.core
 	*
 	* @author Mirko Köhler
 	*/
-trait Ref[Addr, T <: AnyRef] extends Serializable {
+trait Ref[Addr, T] extends Serializable {
 
 	val addr : Addr
 	val consistencyLevel : ConsistencyLevel

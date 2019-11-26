@@ -34,8 +34,11 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	with ReplicaSystemJavaBinding
 {
 
+	override type Obj = AnyRef with Serializable
+
 	override type Tx = Transaction
-	override type Ref[T <: AnyRef] <: AkkaRef[Addr, T]
+
+	override type Ref[T <: Obj] <: AkkaRef[Addr, T]
 
 	/*The actor that is used to communicate with this replica.*/
 	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
@@ -114,7 +117,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	protected def freshAddr() : Addr
 
-	protected def newRef[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
+	protected def newRef[T <: Obj : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T]
 
 
 	override def acquireLock(addr : Addr, tx : Transaction) : Unit = replica.get(addr) match {
@@ -138,7 +141,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 //		})
 //	}
 
-	override final def replicate[T <: AnyRef : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
+	override final def replicate[T <: Obj : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
 		require(!replica.contains(addr))
 
 		import akka.pattern.ask
@@ -182,11 +185,11 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	def numberOfObjects: Int = replica.size
 
 
-	override final def replicate[T <: AnyRef : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
+	override final def replicate[T <: Obj : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = {
 		replicate[T](freshAddr(), obj, l)
 	}
 
-	override final def lookup[T <: AnyRef : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
+	override final def lookup[T <: Obj : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = {
 		newRef[T](addr, l)
 	}
 
@@ -195,10 +198,10 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		actorSystem.log.info(msg)
 	}
 
-	protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] =
+	protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
-	protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] =
+	protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] =
 		sys.error("unknown consistency")
 
 
@@ -382,13 +385,13 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
-			case CreateObjectReplica(addr : Addr@unchecked, obj, consistencyLevel, masterRef) =>
+			case CreateObjectReplica(addr : Addr@unchecked, obj : Obj@unchecked, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
 				require(!replica.contains(addr), s"address $addr is already defined")
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
-					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[AnyRef]])
+					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])
 				)
 				replica.putNewReplica(ref)
 				sender() ! ()
@@ -442,7 +445,7 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 	sealed trait ReplicaActorMessage
-	case class CreateObjectReplica[Addr, T <: AnyRef, L](addr : Addr, obj : T, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
+	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
 		require(obj.isInstanceOf[java.io.Serializable], s"expected serializable, but was $obj of class ${obj.getClass}")
 	}
 

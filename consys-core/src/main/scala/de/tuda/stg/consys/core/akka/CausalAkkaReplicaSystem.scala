@@ -12,12 +12,12 @@ import scala.reflect.runtime.universe._
 
 trait CausalAkkaReplicaSystem extends AkkaReplicaSystem {
 
-  override protected def createMasterReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
+  override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
     case Causal => new CausalMasterReplicatedObject[Addr, T](obj, addr, this)
     case _ =>	super.createMasterReplica[T](l, addr, obj)
   }
 
-  override protected def createFollowerReplica[T <: AnyRef : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
+  override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
     case Causal => new CausalMasterReplicatedObject[Addr, T](obj, addr, this)
     case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
   }
@@ -26,13 +26,13 @@ trait CausalAkkaReplicaSystem extends AkkaReplicaSystem {
 
 object CausalAkkaReplicaSystem {
 
-  trait CausalReplicatedObject[Loc, T <: AnyRef] extends AkkaReplicatedObject[Loc, T] {
+  trait CausalReplicatedObject[Loc, T] extends AkkaReplicatedObject[Loc, T] {
     override final def consistencyLevel: ConsistencyLevel = Causal
   }
 
   object CausalReplicatedObject {
 
-    class CausalMasterReplicatedObject[Loc, T <: AnyRef](
+    class CausalMasterReplicatedObject[Loc, T](
       init: T, val addr: Loc, val replicaSystem: AkkaReplicaSystem {type Addr = Loc}
     )(
       protected implicit val ttt: TypeTag[T]
