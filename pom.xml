@@ -39,7 +39,7 @@
         <akka.version>2.6.0</akka.version>
         <aeron.version>1.22.1</aeron.version>
 
-        <cassandra.version>4.3.0</cassandra.version>
+        <cassandra-driver.version>4.3.0</cassandra-driver.version>
 
         <checkerframework.version>3.0.0</checkerframework.version>
 
@@ -82,7 +82,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.2.4</version>
+                    <version>4.3.0</version>
                     <executions>
                         <execution>
                             <id>scala-compile-first</id>

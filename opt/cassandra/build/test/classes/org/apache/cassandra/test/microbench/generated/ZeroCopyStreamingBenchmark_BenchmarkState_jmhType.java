@@ -1,0 +1,4 @@
+package org.apache.cassandra.test.microbench.generated;
+public class ZeroCopyStreamingBenchmark_BenchmarkState_jmhType extends ZeroCopyStreamingBenchmark_BenchmarkState_jmhType_B3 {
+}
+
