@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.experimental.lang
 
+import de.tuda.stg.consys.experimental.lang.ObjectStore.MapStore
+
 /**
  * Created on 28.11.19.
  *
@@ -13,4 +15,13 @@ object LangBinding extends Syntax with LocalSemantics
 	type FieldId = String
 	type MethodId = String
 	type Location = Int
+
+	override type ObjectStore = MapStore[Location, Obj]
+
+	override protected def createReduction : LangBinding.Reduction =
+		new Reduction with IntReduction with OOReduction {
+			override protected val objStore : ObjectStore.MapStore[Int, LangBinding.Obj] = new MapStore[Location, Obj]
+		}
+
+	override protected def thisVar : Symbol = 'this
 }

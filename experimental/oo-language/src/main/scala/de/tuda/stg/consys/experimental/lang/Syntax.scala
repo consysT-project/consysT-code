@@ -31,7 +31,7 @@ trait Syntax {
 		override def prettyString : String = s"RETURN $expr"
 	}
 	case class Bind(expr : Expression, cc : Continuation) extends Statement {
-		override def prettyString : String = s"BIND ${cc.x} := $expr IN ${cc.next}"
+		override def prettyString : String = s"BIND ${cc.x} := $expr IN\n${cc.next}"
 	}
 
 	/* Continuations */

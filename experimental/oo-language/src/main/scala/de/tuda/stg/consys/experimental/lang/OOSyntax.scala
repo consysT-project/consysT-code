@@ -19,7 +19,6 @@ trait OOSyntax extends Syntax {
 //	case class New(fields : Map[FieldId, Expression], methods : Map[MethodId, MethodDef]) extends Expression
 //	case class FieldGet(fld : FieldId) extends Expression
 
-
 	/* Statements */
 	case class New(loc : Location, fields : Map[FieldId, Expression], methods : Map[MethodId, MethodDef], cc : Continuation) extends Statement {
 		override def prettyString : String = s"DO ${cc.x} := NEW($loc, $fields, $methods) IN\n${cc.next}"
@@ -33,6 +32,7 @@ trait OOSyntax extends Syntax {
 	case class Invoke(objExpr : Expression, method : MethodId, param : Expression, cc : Continuation) extends Statement {
 		override def prettyString : String = s"DO ${cc.x} := $objExpr.$method($param) IN\n${cc.next}"
 	}
+
 
 
 

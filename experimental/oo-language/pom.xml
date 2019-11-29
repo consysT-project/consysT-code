@@ -43,6 +43,25 @@
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.12</artifactId>
         </dependency>
+
+        <!-- Dependencies for the cassandra version -->
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-core</artifactId>
+            <version>${cassandra-driver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-query-builder</artifactId>
+            <version>${cassandra-driver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-mapper-runtime</artifactId>
+            <version>${cassandra-driver.version}</version>
+        </dependency>
     </dependencies>
+
+
 
 </project>

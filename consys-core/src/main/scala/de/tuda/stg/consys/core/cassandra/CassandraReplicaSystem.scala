@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.cassandra
 
-import java.io.{ByteArrayOutputStream, NotSerializableException, ObjectOutputStream, Serializable}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream, Serializable}
 import java.nio.ByteBuffer
 
 import com.datastax.oss.driver.api.core.CqlSession
@@ -51,6 +51,9 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 	def cqlSession : CqlSession
 
 
+	protected def freshAddr : Addr
+
+
 	/* Initialize tables, if not available... */
 	cqlSession.execute(
 		"""create keyspace if not exists consys
@@ -63,8 +66,6 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 			|) with comment = 'stores objects as blobs'
 			|""".stripMargin
 	)
-
-
 
 
 	/**
@@ -87,9 +88,11 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 		CassandraRef[Addr, T](addr, l, this)
 	}
 
-	override def replicate[T <: Obj : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] = ???
+	override def replicate[T <: Obj : TypeTag](obj : T, l : ConsistencyLevel) : Ref[T] =
+		replicate(freshAddr, obj, l)
 
-	override def lookup[T <: Obj : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] = ???
+	override def lookup[T <: Obj : TypeTag](addr : Addr, l : ConsistencyLevel) : Ref[T] =
+		CassandraRef[Addr, T](addr, l, this)
 
 	override def close() : Unit = {
 		cqlSession.close()
@@ -98,7 +101,7 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 
 
 	/* Helper methods */
-	private def serializeObject(obj : Any with Serializable) : ByteBuffer = {
+	private def serializeObject[T <: Serializable](obj : T) : ByteBuffer = {
 		require(obj != null)
 
 		val bytesOut = new ByteArrayOutputStream()
@@ -113,5 +116,23 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 		}
 		throw new NotSerializableException(obj.getClass.getName)
 	}
+
+	/* Helper methods */
+	private def deserializeObject[T <: Serializable](buffer : ByteBuffer) : T = {
+		require(buffer != null)
+
+		val bytesIn = new ByteArrayInputStream(buffer.array())
+		val ois = new ObjectInputStream(bytesIn)
+
+		try {
+			return ois.readObject().asInstanceOf[T]
+		} finally {
+			bytesIn.close()
+			ois.close()
+		}
+		throw new NotSerializableException()
+	}
+
+
 
 }
