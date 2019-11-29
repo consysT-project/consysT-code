@@ -1,0 +1,4 @@
+package org.apache.cassandra.test.microbench.generated;
+public class FastThreadLocalBench_FastThreadLocalBenchState_jmhType extends FastThreadLocalBench_FastThreadLocalBenchState_jmhType_B3 {
+}
+

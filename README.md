@@ -33,7 +33,7 @@ To use consys in your project just add the Java API as a dependency:
     <dependency>
         <groupId>de.tuda.stg.consys</groupId>
         <artifactId>consys-japi</artifactId>
-        <version>1.1.0</version>
+        <version>2.0.0</version>
     </dependency>
  
 
@@ -55,13 +55,13 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>1.1.0</version>
+                            <version>2.0.0</version>
                         </path>
                         <!-- path to the consys javac plugin -->
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>1.1.0</version>
+                            <version>2.0.0</version>
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
@@ -86,22 +86,32 @@ To enable the type checker and compiler plugin, add the following to your `pom.x
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>1.1.0</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>1.1.0</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-compiler</artifactId>
-            <version>1.1.0</version>
+            <version>2.0.0</version>
         </dependency>
     </dependencies>
 
 The type checker enables secure information flow. The compiler plugin allows to directly use operations on `JRef`
 with `ref()`.
+
+
+### Cassandra
+
+You need Cassandra 4.0+ to run with Java 11.
+
+If using ccm then use `ccm setdir` to set the correct Cassandra install directory. 
+The cassandra version is found in opt/cassandra.
+
+
 
 
 ### IntelliJ

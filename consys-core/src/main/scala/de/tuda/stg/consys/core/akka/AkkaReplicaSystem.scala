@@ -48,8 +48,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	val defaultTimeout : FiniteDuration
 
-		protected[akka] object replica {
-
+	protected[akka] object replica {
 
 		/*The replicated objects stored by this replica*/
 		private final val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = mutable.HashMap.empty
