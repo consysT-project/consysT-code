@@ -25,7 +25,8 @@ object CassandraReplicaSystemFactory extends ReplicaSystemFactory {
 		override val defaultTimeout : FiniteDuration
 	) extends CassandraReplicaSystem {
 		override type Obj = LangBinding.Obj
-	}
+		override protected def freshAddr : String = ""
+	2}
 
 	def create() : System = new CassandraReplicaSystemImpl(CqlSession.builder.build, Duration(60, "s"))
 
