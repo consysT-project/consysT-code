@@ -30,7 +30,7 @@ object CassandraStoreDemo extends App {
 		val count = obj1.invoke[Int]("inc", Seq(Seq()))
 		println(count)
 
-		val obj2 = ctx.lookup[ClsA]("obj1", Weak)
+		val obj2 = ctx.lookup[ClsA]("obj1", Strong)
 		val count2 = obj2.invoke[Int]("inc", Seq(Seq()))
 
 		Some(count2)

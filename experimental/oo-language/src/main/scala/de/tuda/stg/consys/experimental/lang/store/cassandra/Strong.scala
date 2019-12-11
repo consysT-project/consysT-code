@@ -11,26 +11,26 @@ import scala.reflect.runtime.universe._
  *
  * @author Mirko Köhler
  */
-case object Weak extends ConsistencyLevel {
+case object Strong extends ConsistencyLevel {
 	override type StoreType = CassandraStore
-	override def toModel(store : StoreType) : ConsistencyModel {type StoreType = Weak.this.StoreType} = new Model(store)
+	override def toModel(store : StoreType) : ConsistencyModel {type StoreType = Strong.this.StoreType} = new Model(store)
 
 	private class Model(override val store : CassandraStore) extends ConsistencyModel {
 		override type StoreType = CassandraStore
 		import store._
 
-		override def toLevel : ConsistencyLevel = Weak
+		override def toLevel : ConsistencyLevel = Strong
 
 		override def createRef[T <: ObjType : TypeTag](addr :Addr, obj : T) : RefType[T] = {
-			val cassObj = new WeakObject(addr, obj)
+			val cassObj = new StrongObject(addr, obj)
 			CassandraHandler(cassObj)
 		}
 
 		override def lookupRef[T <: ObjType : TypeTag](addr :Addr) : RefType[T] = {
-			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
+			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ALL)
 			createRef(addr, raw)
 		}
 	}
 
-	private class WeakObject[T <: Serializable : TypeTag](addr : String, state : T) extends CassandraObject[T](addr, state)
+	private class StrongObject[T <: Serializable : TypeTag](addr : String, state : T) extends CassandraObject[T](addr, state)
 }

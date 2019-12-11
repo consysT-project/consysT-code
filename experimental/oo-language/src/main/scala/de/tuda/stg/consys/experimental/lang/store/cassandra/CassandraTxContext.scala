@@ -2,7 +2,7 @@ package de.tuda.stg.consys.experimental.lang.store.cassandra
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
 import de.tuda.stg.consys.experimental.lang.store.cassandra.CassandraTxContext.CassandraTxContextBinding
-import de.tuda.stg.consys.experimental.lang.store.{CachedTxContext, ConsistencyLevel, Handler, TxContext}
+import de.tuda.stg.consys.experimental.lang.store.{CachedTxContext, CommitableTxContext, Handler, TxContext}
 
 import scala.reflect.runtime.universe.TypeTag
 import scala.collection.mutable
@@ -12,7 +12,10 @@ import scala.collection.mutable
  *
  * @author Mirko Köhler
  */
-case class CassandraTxContext(store : CassandraStore) extends TxContext with CassandraTxContextBinding with CachedTxContext {
+case class CassandraTxContext(store : CassandraStore) extends TxContext
+	with CommitableTxContext
+	with CassandraTxContextBinding
+	with CachedTxContext {
 	protected type CachedType[_] = CassandraObject[_]
 
 	import store._
@@ -27,7 +30,8 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext with Cas
 			super.lookup[T](addr, level)
 	}
 
-	private[cassandra] def commit() : Unit = {
+	def commit() : Unit = {
+		//TODO: How does this depend on the consistency models of the written objects?
 		store.CassandraBinding.writeObjects(cache.values.map(obj => (obj.getAddr, obj.getState)), CLevel.ONE)
 	}
 
@@ -45,14 +49,11 @@ object CassandraTxContext {
 
 		import store._
 		override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
-			val cassObj = new WeakCassandraObject(addr, obj)
-			CassandraHandler(cassObj)
+			level.toModel(store).createRef(addr, obj)
 		}
 
-		override def lookup[T <: ObjType : TypeTag](addr : Addr, level : ConsistencyLevel) : RefType[T] = {
-			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
-			val obj = new WeakCassandraObject(addr, raw)
-			CassandraHandler(obj)
+		override def lookup[T <: ObjType : TypeTag](addr : Addr, level :  ConsistencyLevel) : RefType[T] = {
+			level.toModel(store).lookupRef(addr)
 		}
 	}
 }
