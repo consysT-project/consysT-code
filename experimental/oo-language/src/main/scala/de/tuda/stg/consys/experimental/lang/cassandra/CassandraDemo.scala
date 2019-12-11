@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.cassandra
+package de.tuda.stg.consys.experimental.lang.cassandra
 
 import com.datastax.oss.driver.api.core.CqlSession
 import de.tuda.stg.consys.core.ConsistencyLevel

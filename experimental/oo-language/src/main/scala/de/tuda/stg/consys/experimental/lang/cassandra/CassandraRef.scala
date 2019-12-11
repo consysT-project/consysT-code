@@ -1,8 +1,8 @@
-package de.tuda.stg.consys.core.cassandra
+package de.tuda.stg.consys.experimental.lang.cassandra
 
 import de.tuda.stg.consys.core.{ConsistencyLevel, Ref, ReplicatedObject}
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem
-import de.tuda.stg.consys.experimental.lang.LangBinding
+import de.tuda.stg.consys.experimental.lang.{LangBinding, store}
 
 /**
  * Created on 28.11.19.
