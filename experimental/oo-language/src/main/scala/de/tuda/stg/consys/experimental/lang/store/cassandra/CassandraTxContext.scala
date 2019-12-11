@@ -16,15 +16,13 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 	with CommitableTxContext
 	with CassandraTxContextBinding
 	with CachedTxContext {
+
 	protected type CachedType[_] = CassandraObject[_]
-
 	import store._
-
 
 	override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
 		super.replicate[T](addr, obj, level)
 	}
-
 
 	override def lookup[T <: ObjType : TypeTag](addr : Addr, level : ConsistencyLevel) : RefType[T] = {
 			super.lookup[T](addr, level)
