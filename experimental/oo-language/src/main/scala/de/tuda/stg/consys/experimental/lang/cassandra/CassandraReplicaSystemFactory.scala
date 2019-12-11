@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.cassandra
+package de.tuda.stg.consys.experimental.lang.cassandra
 
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.datastax.oss.driver.api.core.CqlSession

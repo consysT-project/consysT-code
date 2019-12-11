@@ -1,15 +1,16 @@
-package de.tuda.stg.consys.core.cassandra
+package de.tuda.stg.consys.experimental.lang.cassandra
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream, Serializable}
 import java.nio.ByteBuffer
 
 import com.datastax.oss.driver.api.core.CqlSession
-import de.tuda.stg.consys.core
 import de.tuda.stg.consys.core.{ConsistencyLevel, ReplicaSystem}
 import de.tuda.stg.consys.experimental.lang.LangBinding
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.runtime.universe._
+
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 
 /**
  * Created on 28.11.19.
@@ -48,7 +49,7 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 	 * The cql session that is used for this replica system.
 	 * @return
 	 */
-	def cqlSession : CqlSession
+	private[cassandra] def cqlSession : CqlSession
 
 
 	protected def freshAddr : Addr
@@ -77,7 +78,7 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 	 * @return A reference to the created object
 	 */
 	override def replicate[T <: Obj : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
-		import com.datastax.oss.driver.api.querybuilder.QueryBuilder._
+		import QueryBuilder._
 
 		val query = insertInto("consys_blobs")
   			.value("addr", literal(addr))
@@ -101,6 +102,7 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 
 
 	/* Helper methods */
+
 	private def serializeObject[T <: Serializable](obj : T) : ByteBuffer = {
 		require(obj != null)
 
@@ -117,7 +119,6 @@ trait CassandraReplicaSystem extends ReplicaSystem {
 		throw new NotSerializableException(obj.getClass.getName)
 	}
 
-	/* Helper methods */
 	private def deserializeObject[T <: Serializable](buffer : ByteBuffer) : T = {
 		require(buffer != null)
 

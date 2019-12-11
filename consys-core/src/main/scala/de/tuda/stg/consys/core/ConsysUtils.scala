@@ -4,8 +4,8 @@ import java.util
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
+import scala.reflect.ClassTag
 import scala.reflect.api.{TypeCreator, Universe}
-
 import scala.reflect.runtime.universe._
 
 /**
@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 	*
 	* @author Mirko Köhler
 	*/
-private[core] object Utils {
+private[consys] object ConsysUtils {
 
 	def typeTagFromCls[T](cls : Class[T]) : TypeTag[T] = {
 		/*TODO: Is there a better way to obtain TypeTags in Java code? These type tags here are not serializable.*/
@@ -32,6 +32,9 @@ private[core] object Utils {
 			else
 				tpe.asInstanceOf[U#Type]
 	}
+
+	def typeToClassTag[T: TypeTag]: ClassTag[T] =
+		ClassTag[T]( typeTag[T].mirror.runtimeClass( typeTag[T].tpe ) )
 
 
 

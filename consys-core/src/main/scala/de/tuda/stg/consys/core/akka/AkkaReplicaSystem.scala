@@ -8,9 +8,9 @@ import akka.event.LoggingAdapter
 import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.core
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
+import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, ConsysUtils}
 import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest}
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
+import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, ConsysUtils}
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
 import de.tuda.stg.consys.core.akka.Requests._
 
@@ -390,7 +390,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 				require(!replica.contains(addr), s"address $addr is already defined")
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
-					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])
+					ConsysUtils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])
 				)
 				replica.putNewReplica(ref)
 				sender() ! ()
