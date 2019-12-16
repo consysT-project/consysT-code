@@ -111,16 +111,7 @@ local.properties
 
 .sts4-cache/
 
-
-
-### Custom
-# Generated sources from preprocessor
-gen/
-
-# Exclude opt for now
-/opt/
-
-
+### Mac Stuff ###
 # General
 .DS_Store
 .AppleDouble
@@ -147,6 +138,26 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+
+
+
+### Custom
+# Generated sources from preprocessor
+gen/
+
+# Exclude opt. Include them manually if needed.
+/opt/
+
+# Cassandra specific
+opt/cassandra/data/
+
+
+
+
+
+
+
 
 
 
