@@ -1,0 +1,3 @@
+org/apache/zookeeper/recipes/lock/WriteLockTest.class
+org/apache/zookeeper/recipes/lock/ZNodeNameTest.class
+org/apache/zookeeper/recipes/lock/WriteLockTest$LockCallback.class
