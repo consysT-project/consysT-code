@@ -1,0 +1,6 @@
+org/apache/zookeeper/recipes/leader/LeaderElectionAware.class
+org/apache/zookeeper/recipes/leader/LeaderOffer$IdComparator.class
+org/apache/zookeeper/recipes/leader/LeaderElectionSupport$EventType.class
+org/apache/zookeeper/recipes/leader/LeaderElectionSupport$State.class
+org/apache/zookeeper/recipes/leader/LeaderElectionSupport.class
+org/apache/zookeeper/recipes/leader/LeaderOffer.class
