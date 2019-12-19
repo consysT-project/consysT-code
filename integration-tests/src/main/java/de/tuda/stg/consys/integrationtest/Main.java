@@ -166,6 +166,7 @@ public class Main {
 	public static void example2Parallel() throws Exception {
 
 
+
 		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevels.STRONG);
 		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevels.WEAK);
 

@@ -25,7 +25,9 @@ object StoreBinding {
 		val timeout : Duration =
 			Duration.fromNanos(config.getDuration("consys.timeout").toNanos)
 
-		val cqlSession = CqlSession.builder().
+//		val cqlSession = CqlSession.builder().
+
+		null
 	}
 
 }

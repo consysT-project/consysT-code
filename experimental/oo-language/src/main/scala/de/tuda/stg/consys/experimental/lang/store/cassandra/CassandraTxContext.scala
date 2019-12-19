@@ -37,7 +37,8 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 		ref.getObject
 
 	override protected def cachedToRef[T <: ObjType : TypeTag](cached : CachedType[T]) : RefType[T] =
-		CassandraHandler[T](cached.asInstanceOf[CassandraObject[T with Serializable]])
+		???
+//		CassandraHandler[T](cached.asInstanceOf[CassandraObject[T with Serializable]])
 }
 
 object CassandraTxContext {

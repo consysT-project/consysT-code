@@ -34,7 +34,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	with ReplicaSystemJavaBinding
 {
 
-	override type Obj = AnyRef with Serializable
+	override type Obj = AnyRef with java.io.Serializable
 
 	override type Tx = Transaction
 
@@ -132,13 +132,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
-//	def barrier(name : String) : Unit = {
-//		import akka.pattern.ask
-//
-//		otherReplicas.map(ref => {
-//			ref ! Barrier
-//		})
-//	}
 
 	override final def replicate[T <: Obj : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
 		require(!replica.contains(addr))
@@ -152,7 +145,9 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = defaultTimeout
-		val futures = otherReplicas.map(actorRef =>	actorRef ? CreateObjectReplica(addr, obj, l, replicaActor))
+		val futures = otherReplicas.map { actorRef =>
+			actorRef ? CreateObjectReplica(addr, obj, l, replicaActor)
+		}
 		futures.foreach { future => Await.ready(future, defaultTimeout) }
 
 		/*create a ref to that object*/
@@ -224,10 +219,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 	def barrier(name : String) : Unit = barrier(name, defaultTimeout)
-
-
-
-
 
 
 	def getName : String = getActorSystemAddress.toString
@@ -384,10 +375,11 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
-			case CreateObjectReplica(addr : Addr@unchecked, obj : Obj@unchecked, consistencyLevel, masterRef) =>
+			case CreateObjectReplica(addr : Addr@unchecked, obj : Obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
 				require(!replica.contains(addr), s"address $addr is already defined")
+
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
 					ConsysUtils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])

@@ -22,7 +22,7 @@ case object Strong extends ConsistencyLevel {
 		override def toLevel : ConsistencyLevel = Strong
 
 		override def createRef[T <: ObjType : TypeTag](addr :Addr, obj : T) : RefType[T] = {
-			val cassObj = new StrongObject(addr, obj)
+			val cassObj = new StrongObject(addr, obj.asInstanceOf[Serializable])
 			CassandraHandler(cassObj)
 		}
 

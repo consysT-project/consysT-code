@@ -22,7 +22,7 @@ case object Weak extends ConsistencyLevel {
 		override def toLevel : ConsistencyLevel = Weak
 
 		override def createRef[T <: ObjType : TypeTag](addr :Addr, obj : T) : RefType[T] = {
-			val cassObj = new WeakObject(addr, obj)
+			val cassObj = new WeakObject(addr, obj.asInstanceOf[Serializable])
 			CassandraHandler(cassObj)
 		}
 
