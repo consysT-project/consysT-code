@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.experimental.lang
 
-import de.tuda.stg.consys.experimental.lang.ObjectStore.{CassandraStore, MapStore}
+import de.tuda.stg.consys.experimental.lang.ObjectStore.CassandraStore
 
 import scala.language.implicitConversions
 

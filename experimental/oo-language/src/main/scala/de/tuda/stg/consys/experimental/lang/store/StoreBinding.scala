@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.experimental.lang.store
 
-import com.datastax.oss.driver.api.core.CqlSession
 import com.typesafe.config.Config
 import de.tuda.stg.consys.core.Address
 import de.tuda.stg.consys.experimental.lang.store.cassandra.CassandraStore

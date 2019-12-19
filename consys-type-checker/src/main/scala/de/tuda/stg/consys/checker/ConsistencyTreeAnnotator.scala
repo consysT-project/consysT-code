@@ -1,10 +1,7 @@
 package de.tuda.stg.consys.checker
 
-import java.util.Collections
-
-import com.sun.source.tree.{ExpressionTree, LiteralTree, MemberSelectTree, MethodInvocationTree, NewClassTree, Tree}
+import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
-import org.checkerframework.checker.signature.qual.Identifier
 import org.checkerframework.com.google.common.collect.Sets
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator

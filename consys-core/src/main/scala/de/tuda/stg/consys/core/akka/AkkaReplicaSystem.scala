@@ -5,18 +5,15 @@ import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import akka.event.LoggingAdapter
-import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.core
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, ConsysUtils}
-import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest}
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, ConsysUtils}
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
-import de.tuda.stg.consys.core.akka.Requests._
+import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest, _}
+import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
 
 import scala.collection.mutable
-import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.language.{higherKinds, postfixOps}
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success}
@@ -166,7 +163,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 	override def clear(except : Set[Addr] = Set.empty) : Unit = {
-		import akka.pattern.ask
 		replica.clear(except)
 
 		/*notify other replicas for the new object.*/

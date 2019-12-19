@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import javax.annotation.processing.ProcessingEnvironment
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.framework.`type`.visitor.AnnotatedTypeVisitor
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils
 

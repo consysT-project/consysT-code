@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{DoWhileLoopTree, EnhancedForLoopTree, ExpressionTree, ForLoopTree, IfTree, SwitchTree, Tree, WhileLoopTree}
+import com.sun.source.tree._
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
@@ -14,7 +14,6 @@ import scala.collection.{JavaConverters, mutable}
 	* @author Mirko Köhler
 	*/
 abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](checker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](checker) {
-	import TypeFactoryUtils._
 
 
 	//Current context of the consistency check

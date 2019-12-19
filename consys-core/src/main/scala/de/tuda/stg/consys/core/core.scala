@@ -1,9 +1,5 @@
 package de.tuda.stg.consys
 
-import scala.reflect.ClassTag
-
-import scala.reflect.runtime.universe._
-
 
 /**
  * Created on 26.11.19.

@@ -1,9 +1,5 @@
 package de.tuda.stg.consys.core
 
-import java.lang.reflect.Modifier
-
-import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, SetFieldOp}
-import de.tuda.stg.consys.core.akka.{AkkaRef, AkkaReplicaSystem, AkkaReplicatedObject, Transaction}
 import jdk.dynalink.linker.support.TypeUtilities
 
 import scala.reflect.ClassTag

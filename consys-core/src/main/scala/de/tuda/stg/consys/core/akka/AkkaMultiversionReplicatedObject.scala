@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import Requests.{GetFieldOp, InvokeOp, Operation, SetFieldOp}
+import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, Operation, SetFieldOp}
 
 import scala.collection.mutable
 

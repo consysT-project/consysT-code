@@ -1,14 +1,10 @@
 package de.tuda.stg.consys.experimental.lang.cassandra
 
-import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.datastax.oss.driver.api.core.CqlSession
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import de.tuda.stg.consys.core.{Address, ConsistencyLevel, ReplicaSystemFactory}
+import de.tuda.stg.consys.core.{Address, ReplicaSystemFactory}
 import de.tuda.stg.consys.experimental.lang.LangBinding
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.reflect.runtime.universe._
-import scala.util.Random
 
 
 /**

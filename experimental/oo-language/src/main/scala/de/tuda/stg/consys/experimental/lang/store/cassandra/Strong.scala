@@ -1,9 +1,8 @@
 package de.tuda.stg.consys.experimental.lang.store.cassandra
 
-import de.tuda.stg.consys.experimental.lang.store.{ConsistencyLevel, ConsistencyModel}
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
+import de.tuda.stg.consys.experimental.lang.store.{ConsistencyLevel, ConsistencyModel}
 
-import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
 
 /**

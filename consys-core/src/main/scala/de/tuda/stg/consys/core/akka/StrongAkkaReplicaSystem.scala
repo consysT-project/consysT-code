@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.akka
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.Strong
-import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, RequestHandler, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.akka.Requests._
 import de.tuda.stg.consys.core.akka.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
 import scala.language.postfixOps

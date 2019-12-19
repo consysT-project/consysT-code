@@ -1,16 +1,15 @@
 package de.tuda.stg.consys.experimental.lang.cassandra
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream, Serializable}
+import java.io._
 import java.nio.ByteBuffer
 
 import com.datastax.oss.driver.api.core.CqlSession
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.{ConsistencyLevel, ReplicaSystem}
 import de.tuda.stg.consys.experimental.lang.LangBinding
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.runtime.universe._
-
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 
 /**
  * Created on 28.11.19.

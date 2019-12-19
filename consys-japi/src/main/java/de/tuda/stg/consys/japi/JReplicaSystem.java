@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.checker.qual.Local;
+import de.tuda.stg.consys.core.ConsistencyLevel;
 
 import java.time.Duration;
 import java.util.Set;

@@ -1,4 +1,3 @@
-import de.tuda.stg.consys.checker.Inferred;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.JConsistencyLevels;

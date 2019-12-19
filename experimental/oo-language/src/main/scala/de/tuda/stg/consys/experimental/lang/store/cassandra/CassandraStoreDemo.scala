@@ -1,10 +1,5 @@
 package de.tuda.stg.consys.experimental.lang.store.cassandra
 
-import java.net.InetSocketAddress
-
-import com.datastax.oss.driver.api.core.CqlSession
-import de.tuda.stg.consys.demo.Demo.A
-
 /**
  * Created on 10.12.19.
  *

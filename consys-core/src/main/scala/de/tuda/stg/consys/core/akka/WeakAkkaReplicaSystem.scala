@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.akka
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLevel
 import de.tuda.stg.consys.core.ConsistencyLevel.Weak
-import de.tuda.stg.consys.core.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.akka.Requests._
 import de.tuda.stg.consys.core.akka.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
 import scala.collection.mutable
