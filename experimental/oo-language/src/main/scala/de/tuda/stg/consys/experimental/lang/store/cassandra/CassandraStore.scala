@@ -1,17 +1,14 @@
 package de.tuda.stg.consys.experimental.lang.store.cassandra
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
+import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
-import de.tuda.stg.consys.experimental.lang.store.{Handler, Store, TxContext}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
-import com.datastax.oss.driver.api.querybuilder.schema.{CreateKeyspace, CreateKeyspaceStart}
-import com.datastax.oss.protocol.internal.request.query.QueryOptions
-import de.tuda.stg.consys.experimental.lang.store.cassandra.CassandraStore.AddrNotAvailableException
+import de.tuda.stg.consys.experimental.lang.store.Store
 
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -31,12 +28,12 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 		.build()
 	)
 
-	override type Addr = String
-	override type ObjType = Any with Serializable
+	override final type Addr = String
+	override final type ObjType = Any with Serializable
 
-	override type Context = CassandraTxContext
+	override final type Context = CassandraTxContext
 
-	override type RefType[_ <: ObjType] = CassandraHandler[_ <: ObjType]
+	override final type RefType[_ <: ObjType] = CassandraHandler[_ <: ObjType]
 
 
 	override def transaction[T](code : Context => Option[T]) : Option[T] = {

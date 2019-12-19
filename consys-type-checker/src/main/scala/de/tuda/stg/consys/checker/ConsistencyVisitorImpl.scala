@@ -105,7 +105,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 
 
 
-						println(s"args = ${node.getArguments}, targs = $targs")
+//						println(s"args = ${node.getArguments}, targs = $targs")
 					}
 				case _ =>
 			}

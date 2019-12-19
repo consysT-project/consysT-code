@@ -3,12 +3,9 @@ package de.tuda.stg.consys.core.akka
 import java.lang.reflect.Modifier
 
 import de.tuda.stg.consys.core.akka.Requests._
-import de.tuda.stg.consys.core.{ReflectiveReplicatedObject, Replicated, ReplicatedObject, typeToClassTag}
-import jdk.dynalink.linker.support.TypeUtilities
+import de.tuda.stg.consys.core.{ReflectiveReplicatedObject, Replicated}
 
 import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 /**
 	* Created on 18.02.19.
