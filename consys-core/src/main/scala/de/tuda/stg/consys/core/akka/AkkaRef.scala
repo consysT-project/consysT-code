@@ -3,7 +3,6 @@ package de.tuda.stg.consys.core.akka
 
 import de.tuda.stg.consys.core.{ConsistencyLevel, Ref, ReplicatedObject}
 
-
 import scala.concurrent.TimeoutException
 
 /**

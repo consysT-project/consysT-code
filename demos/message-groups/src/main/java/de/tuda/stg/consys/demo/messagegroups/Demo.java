@@ -19,12 +19,9 @@ public class Demo {
 
 	public static void main(String... args) throws Exception {
         runBenchmark();
-
-
-    }
+	}
 
     public static void runBenchmark() throws InterruptedException {
-
         int numReplicas = Replicas.replicaSystems.length;
 
          System.out.println("Initializing benchmarks...");

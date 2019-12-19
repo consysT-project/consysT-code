@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.experimental.lang.store.cassandra
 
 import de.tuda.stg.consys.experimental.lang.store.Handler
+
 import scala.reflect.runtime.universe.TypeTag
 
 /**

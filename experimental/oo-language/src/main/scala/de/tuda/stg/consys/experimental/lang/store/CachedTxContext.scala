@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.experimental.lang.store
 
 import scala.collection.mutable
-
 import scala.reflect.runtime.universe.TypeTag
 
 /**

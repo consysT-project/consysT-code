@@ -1,6 +1,9 @@
 package de.tuda.stg.consys.checker.qual;
 
-import org.checkerframework.framework.qual.*;
+import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.QualifierForLiterals;
+import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.TypeUseLocation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

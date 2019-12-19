@@ -2,10 +2,9 @@ package de.tuda.stg.consys.experimental.lang.store.cassandra
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
 import de.tuda.stg.consys.experimental.lang.store.cassandra.CassandraTxContext.CassandraTxContextBinding
-import de.tuda.stg.consys.experimental.lang.store.{CachedTxContext, CommitableTxContext, Handler, TxContext}
+import de.tuda.stg.consys.experimental.lang.store.{CachedTxContext, CommitableTxContext, TxContext}
 
 import scala.reflect.runtime.universe.TypeTag
-import scala.collection.mutable
 
 /**
  * Created on 10.12.19.

@@ -1,15 +1,11 @@
 package de.tuda.stg.consys.experimental.lang
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream, Serializable}
+import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.util.concurrent.ConcurrentMap
 
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
-
-import scala.collection.convert.Wrappers.ConcurrentMapWrapper
-import scala.collection.mutable
 
 /**
  * Created on 29.11.19.

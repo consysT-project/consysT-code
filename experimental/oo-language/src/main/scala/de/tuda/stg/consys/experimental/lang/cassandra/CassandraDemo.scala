@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.experimental.lang.cassandra
 
-import com.datastax.oss.driver.api.core.CqlSession
 import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.experimental.lang.OObject
 
 /**
  * Created on 28.11.19.
