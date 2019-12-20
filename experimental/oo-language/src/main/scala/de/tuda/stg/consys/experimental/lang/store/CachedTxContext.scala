@@ -20,7 +20,7 @@ trait CachedTxContext extends TxContext {
 	protected def cachedToRef[T <: ObjType : TypeTag](cached : CachedType[T]) : RefType[T]
 
 	override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
-		val res = super.replicate(addr, obj, level)
+		val res = super.replicate[T](addr, obj, level)
 		cache(addr) = refToCached(res)
 		res
 	}

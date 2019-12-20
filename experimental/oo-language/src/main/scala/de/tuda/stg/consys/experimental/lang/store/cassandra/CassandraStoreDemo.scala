@@ -11,7 +11,7 @@ object CassandraStoreDemo extends App {
 
 
 	val count = store.transaction { ctx =>
-		val obj1 = ctx.replicate("obj1", new ClsA, Weak)
+		val obj1 = ctx.replicate[ClsA]("obj1", new ClsA, Weak)
 		val count = obj1.invoke[Int]("inc", Seq(Seq()))
 		println(count)
 		Some(count)
