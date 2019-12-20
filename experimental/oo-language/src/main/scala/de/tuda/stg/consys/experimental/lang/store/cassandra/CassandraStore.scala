@@ -29,11 +29,11 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 	)
 
 	override final type Addr = String
-	override final type ObjType = Any with Serializable
+	override final type ObjType = Any with java.io.Serializable
 
 	override final type Context = CassandraTxContext
 
-	override final type RefType[_ <: ObjType] = CassandraHandler[_ <: ObjType]
+	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
 
 	override def transaction[T](code : Context => Option[T]) : Option[T] = {

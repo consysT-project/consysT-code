@@ -9,7 +9,7 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-case class CassandraHandler[T <: Serializable : TypeTag](obj : CassandraObject[T]) extends Handler[T] {
+case class CassandraHandler[T <: java.io.Serializable : TypeTag](obj : CassandraObject[T]) extends Handler[T] {
 
 	override def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		obj.invoke(methodId, args)

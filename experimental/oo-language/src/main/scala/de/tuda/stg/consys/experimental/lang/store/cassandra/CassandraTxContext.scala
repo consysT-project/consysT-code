@@ -16,7 +16,7 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 	with CassandraTxContextBinding
 	with CachedTxContext {
 
-	protected type CachedType[_] = CassandraObject[_]
+	protected final type CachedType[T <: java.io.Serializable] = CassandraObject[T]
 	import store._
 
 	override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
@@ -36,8 +36,7 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 		ref.getObject
 
 	override protected def cachedToRef[T <: ObjType : TypeTag](cached : CachedType[T]) : RefType[T] =
-		???
-//		CassandraHandler[T](cached.asInstanceOf[CassandraObject[T with Serializable]])
+		CassandraHandler[T](cached)
 }
 
 object CassandraTxContext {
@@ -47,11 +46,11 @@ object CassandraTxContext {
 
 		import store._
 		override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
-			level.toModel(store).createRef(addr, obj)
+			level.toModel(store).createRef[T](addr, obj)
 		}
 
 		override def lookup[T <: ObjType : TypeTag](addr : Addr, level :  ConsistencyLevel) : RefType[T] = {
-			level.toModel(store).lookupRef(addr)
+			level.toModel(store).lookupRef[T](addr)
 		}
 	}
 }
