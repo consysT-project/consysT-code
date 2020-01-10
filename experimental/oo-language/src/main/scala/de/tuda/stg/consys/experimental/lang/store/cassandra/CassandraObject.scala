@@ -22,6 +22,8 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 
 	private[cassandra] def getState : T = state
 
+	def commit() : (String, T)
+
 	private final object ReflectiveAccess {
 
 		private implicit val ct : ClassTag[T]  = ConsysUtils.typeToClassTag[T] //used as implicit argument

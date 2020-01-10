@@ -17,14 +17,12 @@ object StoreBinding {
 	def create(config : Config) : CassandraStore = {
 		val host : Address =
 			Address.parse(config.getString("consys.address"))
-		val others : Seq[Address] =
-			JavaConverters.asScalaBuffer(config.getStringList("consys.others"))
-				.map(Address.parse)
-				.filter(address => address != host)
+
+		val zkPort = config.getInt("consys.zookeeper.port")
+		val cassandraPort = config.getInt("consys.cassandra.port")
+
 		val timeout : Duration =
 			Duration.fromNanos(config.getDuration("consys.timeout").toNanos)
-
-//		val cqlSession = CqlSession.builder().
 
 		null
 	}

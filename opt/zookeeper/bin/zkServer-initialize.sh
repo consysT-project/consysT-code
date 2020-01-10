@@ -62,6 +62,9 @@ if [ $? != 0 ] ; then
 fi
 
 initialize() {
+
+  echo "$ZOOCFG"
+
     if [ ! -e "$ZOOCFG" ]; then
         echo "Unable to find config file at $ZOOCFG"
         exit 1

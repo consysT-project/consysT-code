@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.experimental.lang.store
 
 import scala.collection.mutable
+import scala.language.higherKinds
 import scala.reflect.runtime.universe.TypeTag
 
 /**
@@ -9,24 +10,23 @@ import scala.reflect.runtime.universe.TypeTag
  * @author Mirko Köhler
  */
 trait CachedTxContext extends TxContext {
-	import store._
 
-	protected type CachedType[_ <: ObjType]
+	protected type CachedType[_ <: StoreType#ObjType]
 
-	protected val cache : mutable.Map[Addr, CachedType[_]] = mutable.HashMap.empty
+	protected val cache : mutable.Map[StoreType#Addr, CachedType[_]] = mutable.HashMap.empty
 
-	protected def refToCached[T <: ObjType : TypeTag](ref : RefType[T]) : CachedType[T]
+	protected def refToCached[T <: StoreType#ObjType : TypeTag](ref : StoreType#RefType[T]) : CachedType[T]
 
-	protected def cachedToRef[T <: ObjType : TypeTag](cached : CachedType[T]) : RefType[T]
+	protected def cachedToRef[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RefType[T]
 
-	override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
+	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
 		val res = super.replicate[T](addr, obj, level)
 		cache(addr) = refToCached(res)
 		res
 	}
 
 
-	override def lookup[T <: ObjType : TypeTag](addr : Addr, level : ConsistencyLevel) : RefType[T] = cache.get(addr) match {
+	override def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] = cache.get(addr) match {
 		case Some(cachedObject : CachedType[T@unchecked]@unchecked) =>
 			cachedToRef[T](cachedObject)
 		case None =>

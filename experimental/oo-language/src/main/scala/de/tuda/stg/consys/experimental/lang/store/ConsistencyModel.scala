@@ -9,10 +9,8 @@ import scala.reflect.runtime.universe._
  */
 trait ConsistencyModel {
 	type StoreType <: Store
-	val store : StoreType
 
-	import store._
 	def toLevel : ConsistencyLevel
-	def createRef[T <: ObjType : TypeTag](addr : Addr, obj : T) : RefType[T]
-	def lookupRef[T <: ObjType : TypeTag](addr : Addr) : RefType[T]
+	def createRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T) : StoreType#RefType[T]
+	def lookupRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr) : StoreType#RefType[T]
 }

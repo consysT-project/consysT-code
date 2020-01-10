@@ -3,11 +3,13 @@ package de.tuda.stg.consys.experimental.lang.store.cassandra
 import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
 
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
+import de.tuda.stg.consys.core.Address
 import de.tuda.stg.consys.experimental.lang.store.Store
 
 import scala.concurrent.TimeoutException
@@ -20,13 +22,13 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(60, "s")) extends Store {
-
-	def this(host : String, port : Int) = this(CqlSession.builder()
-		.addContactPoint(InetSocketAddress.createUnresolved(host, port))
-    .withLocalDatacenter("datacenter1")
-		.build()
-	)
+trait CassandraStore extends Store
+	with ZookeeperStoreExt {
+//	def this(host : String, port : Int) = this(CqlSession.builder()
+//		.addContactPoint(InetSocketAddress.createUnresolved(host, port))
+//    .withLocalDatacenter("datacenter1")
+//		.build()
+//	)
 
 	override final type Addr = String
 	override final type ObjType = Any with java.io.Serializable
@@ -35,6 +37,11 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 
 	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
+	protected val session : CqlSession
+	protected def timeout : FiniteDuration
+
+	//This flag states whether the creation should initialize tables etc.
+	protected def initializing : Boolean
 
 	override def transaction[T](code : Context => Option[T]) : Option[T] = {
 		val tx = CassandraTxContext(this)
@@ -46,9 +53,12 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 		}
 	}
 
-	def close(): Unit = {
+	override def close(): Unit = {
+		super.close()
 		session.close()
 	}
+
+	override def name : String = s"node@${session.getContext.getSessionName}"
 
 
 	object CassandraBinding {
@@ -56,22 +66,30 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 		private val objectTableName : String = "objects"
 
 		/* Initialize tables, if not available... */
-		session.execute(
-			s"""CREATE keyspace IF NOT EXISTS $keyspaceName
-				 |with replication = {'class': 'Simpl, new ClsAeStrategy', 'replication_factor' : 3}""".stripMargin)
-		session.execute(s"use $keyspaceName")
-		session.execute(
-			s"""CREATE TABLE IF NOT EXISTS $objectTableName (
-				 |addr text primary key,
-				 |state blob
-				 |) with comment = 'stores objects as blobs'
-				 |""".stripMargin
-		)
+		if (initializing) initialize()
+		session.execute(s"USE $keyspaceName")
+
+
+		private def initialize(): Unit = {
+			session.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+			session.execute(
+				s"""CREATE KEYSPACE $keyspaceName
+					 |with replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
+					.stripMargin
+			)
+			session.execute(
+				s"""CREATE TABLE IF NOT EXISTS $keyspaceName.$objectTableName (
+					 |addr text primary key,
+					 |state blob
+					 |) with comment = 'stores objects as blobs'"""
+					.stripMargin
+			)
+		}
 
 		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CLevel) : Unit = {
 			import QueryBuilder._
 
-			val query = insertInto(objectTableName)
+			val query = insertInto(s"$objectTableName")
 				.value("addr", literal(addr))
 				.value("state", literal(CassandraStore.serializeObject(obj)))
 				.build()
@@ -86,7 +104,7 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 			val batch = BatchStatement.builder(BatchType.LOGGED)
 
 			for (obj <- objs) {
-				val query = insertInto(objectTableName)
+				val query = insertInto(s"$objectTableName")
 					.value("addr", literal(obj._1))
 					.value("state", literal(CassandraStore.serializeObject(obj._2.asInstanceOf[Serializable])))
 					.build()
@@ -103,7 +121,8 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 		private[cassandra] def readObject[T <: Serializable : TypeTag](addr : String, clevel : CLevel) : T = {
 			import QueryBuilder._
 
-			val query = selectFrom(objectTableName).all()
+			val query = selectFrom(s"$objectTableName")
+				.all()
 				.whereColumn("addr").isEqualTo(literal(addr))
 				.build()
 				.setConsistencyLevel(clevel)
@@ -133,6 +152,18 @@ class CassandraStore(session : CqlSession, timeout : FiniteDuration = Duration(6
 object CassandraStore {
 
 	case class AddrNotAvailableException(addr : String) extends Exception(s"address <$addr> not available")
+
+	def fromAddress(host : String, cassandraPort : Int, zookeeperPort : Int, withTimeout : FiniteDuration = Duration(10, "s"), withInitialize : Boolean = false) : CassandraStore = {
+		new CassandraStore {
+			override protected val session : CqlSession = CqlSession.builder()
+					.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
+			    .withLocalDatacenter("datacenter1")
+					.build()
+			override protected def timeout : FiniteDuration = withTimeout
+			override def zookeeperServer : Address = Address(host, zookeeperPort)
+			override protected def initializing : Boolean = withInitialize
+		}
+	}
 
 
 	/* Helper methods */
