@@ -44,7 +44,7 @@
             <artifactId>scalatest_2.12</artifactId>
         </dependency>
 
-        <!-- Dependencies for the cassandra version -->
+        <!-- Dependencies for cassandra -->
         <dependency>
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-core</artifactId>
@@ -61,6 +61,29 @@
             <version>${cassandra-driver.version}</version>
         </dependency>
 
+        <!-- Dependencies for Zookeeper -->
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>${zookeeper.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper-recipes-lock</artifactId>
+            <version>${zookeeper.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>apache-curator</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+
+        <!-- In project dependencies -->
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-core</artifactId>

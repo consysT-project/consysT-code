@@ -12,8 +12,8 @@ import scala.reflect.runtime.universe.TypeTag
  * @author Mirko Köhler
  */
 case class CassandraTxContext(store : CassandraStore) extends TxContext
-	with CommitableTxContext
 	with CassandraTxContextBinding
+	with CommitableTxContext
 	with CachedTxContext {
 
 	protected final type CachedType[T <: java.io.Serializable] = CassandraObject[T]
@@ -28,8 +28,7 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 	}
 
 	def commit() : Unit = {
-		//TODO: How does this depend on the consistency models of the written objects?
-		store.CassandraBinding.writeObjects(cache.values.map(obj => (obj.getAddr, obj.getState)), CLevel.ONE)
+		store.CassandraBinding.writeObjects(cache.values.map(obj => obj.commit()), CLevel.ONE)
 	}
 
 	override protected def refToCached[T <: ObjType : TypeTag](ref : RefType[T]) : CachedType[T] =
@@ -43,14 +42,5 @@ object CassandraTxContext {
 
 	trait CassandraTxContextBinding extends TxContext {
 		type StoreType = CassandraStore
-
-		import store._
-		override def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] = {
-			level.toModel(store).createRef[T](addr, obj)
-		}
-
-		override def lookup[T <: ObjType : TypeTag](addr : Addr, level :  ConsistencyLevel) : RefType[T] = {
-			level.toModel(store).lookupRef[T](addr)
-		}
 	}
 }

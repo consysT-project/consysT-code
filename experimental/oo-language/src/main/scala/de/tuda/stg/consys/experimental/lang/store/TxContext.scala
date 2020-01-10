@@ -13,12 +13,12 @@ trait TxContext {
 	type ConsistencyLevel =  de.tuda.stg.consys.experimental.lang.store.ConsistencyLevel {type StoreType = TxContext.this.StoreType}
 
 	val store : StoreType
-	import store._
 
-	def replicate[T <: ObjType : TypeTag](addr : Addr, obj : T, level : ConsistencyLevel) : RefType[T] =
-		throw new UnsupportedOperationException("this context does not support replicating new objects")
 
-	def lookup[T <: ObjType : TypeTag](addr : Addr, level : ConsistencyLevel) : RefType[T] =
-		throw new UnsupportedOperationException("this context does not support looking up existing objects")
+	def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
+		level.toModel(store).createRef[T](addr, obj)
+
+	def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
+		level.toModel(store).lookupRef[T](addr)
 
 }

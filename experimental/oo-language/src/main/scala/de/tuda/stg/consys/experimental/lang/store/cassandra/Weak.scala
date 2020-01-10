@@ -14,22 +14,27 @@ case object Weak extends ConsistencyLevel {
 	override type StoreType = CassandraStore
 	override def toModel(store : StoreType) : ConsistencyModel {type StoreType = Weak.this.StoreType} = new Model(store)
 
-	private class Model(override val store : CassandraStore) extends ConsistencyModel {
+	private class Model(val store : CassandraStore) extends ConsistencyModel {
 		override type StoreType = CassandraStore
-		import store._
 
 		override def toLevel : ConsistencyLevel = Weak
 
-		override def createRef[T <: ObjType : TypeTag](addr :Addr, obj : T) : RefType[T] = {
-			val cassObj = new WeakObject(addr, obj)
+		override def createRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T) : StoreType#RefType[T] = {
+			val cassObj = new WeakCassandraObject(addr, obj)
 			CassandraHandler(cassObj)
 		}
 
-		override def lookupRef[T <: ObjType : TypeTag](addr :Addr) : RefType[T] = {
+		override def lookupRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr) : StoreType#RefType[T] = {
 			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
 			createRef(addr, raw)
 		}
 	}
 
-	private class WeakObject[T <: java.io.Serializable : TypeTag](addr : String, state : T) extends CassandraObject[T](addr, state)
+
+	private class WeakCassandraObject[T <: java.io.Serializable : TypeTag](addr : String, state : T) extends CassandraObject[T](addr, state) {
+		override def commit() : (String, T) = {
+			//Weak objects don't need special treatment when committing objects
+			(addr, state)
+		}
+	}
 }
