@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.ConsysUtils
 import jdk.dynalink.linker.support.TypeUtilities

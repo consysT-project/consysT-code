@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
 import de.tuda.stg.consys.experimental.lang.store.{ConsistencyLevel, ConsistencyModel}
