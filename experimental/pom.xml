@@ -15,6 +15,7 @@
 
     <modules>
         <module>oo-language</module>
+        <module>curator-demo</module>
     </modules>
 
 

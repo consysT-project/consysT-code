@@ -22,7 +22,9 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 
 	private[cassandra] def getState : T = state
 
-	def commit() : (String, T)
+	//This method is called for every object that was part of a transaction.
+	//It has to be used to write changes back to Cassandra and to release all locks.
+	def commit() : Unit
 
 	private final object ReflectiveAccess {
 

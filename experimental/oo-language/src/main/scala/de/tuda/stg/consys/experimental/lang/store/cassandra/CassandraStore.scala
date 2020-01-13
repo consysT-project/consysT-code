@@ -10,7 +10,9 @@ import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.Address
-import de.tuda.stg.consys.experimental.lang.store.Store
+import de.tuda.stg.consys.experimental.lang.store.{DistributedStore, Store}
+import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.curator.retry.ExponentialBackoffRetry
 
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -22,8 +24,9 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-trait CassandraStore extends Store
-	with ZookeeperStoreExt {
+trait CassandraStore extends DistributedStore
+	with ZookeeperStoreExt
+	with LockingStoreExt {
 //	def this(host : String, port : Int) = this(CqlSession.builder()
 //		.addContactPoint(InetSocketAddress.createUnresolved(host, port))
 //    .withLocalDatacenter("datacenter1")
@@ -37,8 +40,7 @@ trait CassandraStore extends Store
 
 	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
-	protected val session : CqlSession
-	protected def timeout : FiniteDuration
+	protected val cassandraSession : CqlSession
 
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
@@ -55,10 +57,10 @@ trait CassandraStore extends Store
 
 	override def close(): Unit = {
 		super.close()
-		session.close()
+		cassandraSession.close()
 	}
 
-	override def name : String = s"node@${session.getContext.getSessionName}"
+	override def name : String = s"node@${cassandraSession.getContext.getSessionName}"
 
 
 	object CassandraBinding {
@@ -67,17 +69,17 @@ trait CassandraStore extends Store
 
 		/* Initialize tables, if not available... */
 		if (initializing) initialize()
-		session.execute(s"USE $keyspaceName")
+		cassandraSession.execute(s"USE $keyspaceName")
 
 
 		private def initialize(): Unit = {
-			session.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
-			session.execute(
+			cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+			cassandraSession.execute(
 				s"""CREATE KEYSPACE $keyspaceName
 					 |with replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
 					.stripMargin
 			)
-			session.execute(
+			cassandraSession.execute(
 				s"""CREATE TABLE IF NOT EXISTS $keyspaceName.$objectTableName (
 					 |addr text primary key,
 					 |state blob
@@ -96,7 +98,7 @@ trait CassandraStore extends Store
 				.setConsistencyLevel(clevel)
 
 			//TODO: Add failure handling
-			session.execute(query)
+			cassandraSession.execute(query)
 		}
 
 		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CLevel) : Unit = {
@@ -114,7 +116,7 @@ trait CassandraStore extends Store
 			}
 
 			//TODO: Add failure handling
-			session.execute(batch.build().setConsistencyLevel(clevel))
+			cassandraSession.execute(batch.build().setConsistencyLevel(clevel))
 		}
 
 
@@ -130,7 +132,7 @@ trait CassandraStore extends Store
 			//TODO: Add failure handling
 			val startTime = System.nanoTime()
 			while (System.nanoTime() < startTime + timeout.toNanos) {
-				val response = session.execute(query)
+				val response = cassandraSession.execute(query)
 
 				response.one() match {
 					case null =>  //the address has not been found. retry.
@@ -154,15 +156,25 @@ object CassandraStore {
 	case class AddrNotAvailableException(addr : String) extends Exception(s"address <$addr> not available")
 
 	def fromAddress(host : String, cassandraPort : Int, zookeeperPort : Int, withTimeout : FiniteDuration = Duration(10, "s"), withInitialize : Boolean = false) : CassandraStore = {
-		new CassandraStore {
-			override protected val session : CqlSession = CqlSession.builder()
+
+		class CassandraStoreImpl(
+			                        override val cassandraSession : CqlSession,
+			                        override val curator : CuratorFramework,
+			                        override val timeout : FiniteDuration,
+			                        override val initializing : Boolean
+    ) extends CassandraStore
+
+
+		new CassandraStoreImpl(
+			cassandraSession = CqlSession.builder()
 					.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
 			    .withLocalDatacenter("datacenter1")
-					.build()
-			override protected def timeout : FiniteDuration = withTimeout
-			override def zookeeperServer : Address = Address(host, zookeeperPort)
-			override protected def initializing : Boolean = withInitialize
-		}
+					.build(),
+			curator = CuratorFrameworkFactory
+				.newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3)),
+			timeout = withTimeout,
+			initializing = withInitialize
+		)
 	}
 
 

@@ -28,7 +28,7 @@ case class CassandraTxContext(store : CassandraStore) extends TxContext
 	}
 
 	def commit() : Unit = {
-		store.CassandraBinding.writeObjects(cache.values.map(obj => obj.commit()), CLevel.ONE)
+		cache.values.foreach(obj => obj.commit())
 	}
 
 	override protected def refToCached[T <: ObjType : TypeTag](ref : RefType[T]) : CachedType[T] =
