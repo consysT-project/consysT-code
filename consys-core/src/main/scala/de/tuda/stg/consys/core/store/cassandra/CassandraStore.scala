@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra
 
 import java.io._
 import java.net.InetSocketAddress
@@ -10,6 +10,7 @@ import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.Address
+import de.tuda.stg.consys.core.store.DistributedStore
 import de.tuda.stg.consys.experimental.lang.store.{DistributedStore, Store}
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry

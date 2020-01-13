@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store
+package de.tuda.stg.consys.core.store
 
 import scala.language.higherKinds
 

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra
 
 import java.util.concurrent.Executors
 

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.experimental.lang.store
+package de.tuda.stg.consys.core.store
 
 /**
  * Created on 11.12.19.

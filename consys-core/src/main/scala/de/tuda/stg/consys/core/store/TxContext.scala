@@ -1,5 +1,6 @@
-package de.tuda.stg.consys.experimental.lang.store
+package de.tuda.stg.consys.core.store
 
+import de.tuda.stg.consys.core.store
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -10,7 +11,7 @@ import scala.reflect.runtime.universe.TypeTag
  */
 trait TxContext {
 	type StoreType <: Store
-	type ConsistencyLevel =  de.tuda.stg.consys.experimental.lang.store.ConsistencyLevel {type StoreType = TxContext.this.StoreType}
+	type ConsistencyLevel =  store.ConsistencyLevel {type StoreType = TxContext.this.StoreType}
 
 	val store : StoreType
 

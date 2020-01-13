@@ -1,8 +1,8 @@
-package de.tuda.stg.consys.experimental.lang.store
+package de.tuda.stg.consys.core.store
 
 import com.typesafe.config.Config
 import de.tuda.stg.consys.core.Address
-import de.tuda.stg.consys.experimental.lang.store.cassandra.CassandraStore
+import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 
 import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
