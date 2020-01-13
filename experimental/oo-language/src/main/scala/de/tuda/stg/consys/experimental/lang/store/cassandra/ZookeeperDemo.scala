@@ -1,14 +1,9 @@
 package de.tuda.stg.consys.experimental.lang.store.cassandra
 
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.concurrent.CountDownLatch
 
-import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry.ExponentialBackoffRetry
-import org.apache.zookeeper.Watcher.Event.KeeperState
-import org.apache.zookeeper.recipes.lock.{LockListener, WriteLock}
-import org.apache.zookeeper.{CreateMode, KeeperException, WatchedEvent, Watcher, ZooDefs, ZooKeeper}
-import org.apache.curator.framework.recipes.locks.InterProcessMutex
-
 
 import scala.concurrent.duration.Duration
 
@@ -28,19 +23,6 @@ object ZookeeperDemo {
 
 
 	def main(args : Array[String]) : Unit = {
-
-
-
-		val retryPolicy = new ExponentialBackoffRetry(1000, 3)
-		val client = CuratorFrameworkFactory.newClient("127.0.0.1:2181", retryPolicy)
-		client.start()
-		println("started")
-		println(client.getState)
-		println("connected")
-		client.create().forPath("/consys/mylocks")
-		println("created")
-
-
 
 		val latch1 = new CountDownLatch(1)
 		val latch2 = new CountDownLatch(1)
