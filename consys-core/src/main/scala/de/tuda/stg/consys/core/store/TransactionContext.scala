@@ -9,17 +9,17 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-trait TxContext {
+trait TransactionContext {
 	type StoreType <: Store
-	type ConsistencyLevel =  store.ConsistencyLevel {type StoreType = TxContext.this.StoreType}
+	type ConsistencyLevel =  StoreConsistencyLevel {type StoreType = TransactionContext.this.StoreType}
 
 	val store : StoreType
 
-
 	def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
-		level.toModel(store).createRef[T](addr, obj)
+		throw new UnsupportedOperationException("this transaction context does not support replication.")
 
 	def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
-		level.toModel(store).lookupRef[T](addr)
+		throw new UnsupportedOperationException("this transaction context does not support lookups.")
+
 
 }

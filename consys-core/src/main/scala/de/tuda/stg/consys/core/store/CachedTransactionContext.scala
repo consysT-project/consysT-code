@@ -9,7 +9,7 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-trait CachedTxContext extends TxContext {
+trait CachedTransactionContext extends TransactionContext {
 
 	protected type CachedType[_ <: StoreType#ObjType]
 

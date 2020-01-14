@@ -5,6 +5,6 @@ package de.tuda.stg.consys.core.store
  *
  * @author Mirko Köhler
  */
-trait CommitableTxContext extends TxContext {
+trait CommitableTransactionContext extends TransactionContext {
 	def commit() : Unit
 }

@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.ConsysUtils
+import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
 import jdk.dynalink.linker.support.TypeUtilities
 
 import scala.reflect.ClassTag
@@ -12,20 +13,23 @@ import scala.reflect.runtime.universe._
  *
  * @author Mirko Köhler
  */
-private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : TypeTag](addr : String, state : T) {
+private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : TypeTag] extends StoredObject[CassandraStore, T] {
+
+	def addr : CassandraStore#Addr
+	def state : T
+	def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore}
 
 	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke(methodId, args)
 	}
 
-	def getAddr : String = addr
-
-	private[cassandra] def getState : T = state
-
 	//This method is called for every object that was part of a transaction.
 	//It has to be used to write changes back to Cassandra and to release all locks.
 	def commit() : Unit
 
+	/**
+	 * This private object encapsulates the reflective access to the stored state.
+	 */
 	private final object ReflectiveAccess {
 
 		private implicit val ct : ClassTag[T]  = ConsysUtils.typeToClassTag[T] //used as implicit argument

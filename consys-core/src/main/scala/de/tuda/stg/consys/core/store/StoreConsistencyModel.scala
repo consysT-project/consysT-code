@@ -1,0 +1,16 @@
+package de.tuda.stg.consys.core.store
+
+import scala.reflect.runtime.universe._
+
+/**
+ * Created on 10.12.19.
+ *
+ * @author Mirko Köhler
+ */
+trait StoreConsistencyModel {
+	type StoreType <: Store
+
+	def toLevel : StoreConsistencyLevel
+	def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T) : StoreType#RawType[T]
+	def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr) : StoreType#RawType[T]
+}

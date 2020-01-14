@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ZOODIR="../../opt/zookeeper"
+ZOODIR="../opt/zookeeper"
 
 cd $ZOODIR || exit
 

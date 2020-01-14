@@ -11,7 +11,6 @@ import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.Address
 import de.tuda.stg.consys.core.store.DistributedStore
-import de.tuda.stg.consys.experimental.lang.store.{DistributedStore, Store}
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
@@ -28,17 +27,13 @@ import scala.reflect.runtime.universe.TypeTag
 trait CassandraStore extends DistributedStore
 	with ZookeeperStoreExt
 	with LockingStoreExt {
-//	def this(host : String, port : Int) = this(CqlSession.builder()
-//		.addContactPoint(InetSocketAddress.createUnresolved(host, port))
-//    .withLocalDatacenter("datacenter1")
-//		.build()
-//	)
 
 	override final type Addr = String
 	override final type ObjType = Any with java.io.Serializable
 
-	override final type Context = CassandraTxContext
+	override final type TxContext = CassandraTransactionContext
 
+	override final type RawType[T <: ObjType] = CassandraObject[T]
 	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
 	protected val cassandraSession : CqlSession
@@ -46,15 +41,18 @@ trait CassandraStore extends DistributedStore
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
 
-	override def transaction[T](code : Context => Option[T]) : Option[T] = {
-		val tx = CassandraTxContext(this)
-		code(tx) match {
-			case None => None
-			case res@Some(_) =>
-				tx.commit()
-				res
+	override def transaction[T](code : TxContext => Option[T]) : Option[T] = {
+		val tx = CassandraTransactionContext(this)
+		CassandraStores.currentTransaction.withValue(tx) {
+			code(tx) match {
+				case None => None
+				case res@Some(_) =>
+					tx.commit()
+					res
+			}
 		}
 	}
+
 
 	override def close(): Unit = {
 		super.close()
@@ -63,8 +61,14 @@ trait CassandraStore extends DistributedStore
 
 	override def name : String = s"node@${cassandraSession.getContext.getSessionName}"
 
+	override def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
+		new CassandraHandler[T](obj.addr, obj, obj.consistencyLevel)
 
-	object CassandraBinding {
+
+	/**
+	 * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
+	 */
+	private[cassandra] final object CassandraBinding {
 		private val keyspaceName : String = "consys_experimental"
 		private val objectTableName : String = "objects"
 
@@ -159,10 +163,10 @@ object CassandraStore {
 	def fromAddress(host : String, cassandraPort : Int, zookeeperPort : Int, withTimeout : FiniteDuration = Duration(10, "s"), withInitialize : Boolean = false) : CassandraStore = {
 
 		class CassandraStoreImpl(
-			                        override val cassandraSession : CqlSession,
-			                        override val curator : CuratorFramework,
-			                        override val timeout : FiniteDuration,
-			                        override val initializing : Boolean
+			override val cassandraSession : CqlSession,
+			override val curator : CuratorFramework,
+			override val timeout : FiniteDuration,
+			override val initializing : Boolean
     ) extends CassandraStore
 
 
