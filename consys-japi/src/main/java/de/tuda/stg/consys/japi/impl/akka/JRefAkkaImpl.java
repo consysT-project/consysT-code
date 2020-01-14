@@ -1,8 +1,9 @@
-package de.tuda.stg.consys.japi;
+package de.tuda.stg.consys.japi.impl.akka;
 
 import de.tuda.stg.consys.core.Ref;
 import de.tuda.stg.consys.core.akka.AkkaRef;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.JRef;
 
 import java.io.Serializable;
 
@@ -11,11 +12,11 @@ import java.io.Serializable;
  *
  * @author Mirko Köhler
  */
-public class JRefImpl<T> implements JRef<T>, Serializable {
+public class JRefAkkaImpl<T> implements JRef<T>, Serializable {
 
 	private final Ref<String, T> ref;
 
-	JRefImpl(Ref<String, T> ref) {
+	JRefAkkaImpl(Ref<String, T> ref) {
 		this.ref = ref;
 	}
 

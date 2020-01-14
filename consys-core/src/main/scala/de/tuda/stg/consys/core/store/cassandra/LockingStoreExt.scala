@@ -2,8 +2,8 @@ package de.tuda.stg.consys.core.store.cassandra
 
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
-import de.tuda.stg.consys.experimental.lang.store.{DistributedStore, Store}
-import de.tuda.stg.consys.experimental.lang.store.cassandra.LockingStoreExt.ZookeeperLock
+import de.tuda.stg.consys.core.store.DistributedStore
+import de.tuda.stg.consys.core.store.cassandra.LockingStoreExt.ZookeeperLock
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
 
@@ -15,6 +15,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex
 trait LockingStoreExt { self : DistributedStore with ZookeeperStoreExt =>
 
 	//Create path for locks
+	curator.create().orSetData().forPath("/consys")
 	curator.create().orSetData().forPath("/consys/locks")
 
 	def lockFor(addr : Addr) : ZookeeperLock = new ZookeeperLock {

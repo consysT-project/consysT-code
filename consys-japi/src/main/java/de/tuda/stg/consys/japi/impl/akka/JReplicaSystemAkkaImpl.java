@@ -1,9 +1,10 @@
-package de.tuda.stg.consys.japi;
+package de.tuda.stg.consys.japi.impl.akka;
 
 import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.core.Ref;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.*;
 import scala.collection.JavaConverters;
 
 import java.time.Duration;
@@ -15,7 +16,9 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-class JReplicaSystemAkkaImpl implements JReplicaSystem {
+public class JReplicaSystemAkkaImpl implements JReplicaSystem,
+	JReplicaSystemWithRemove,
+	JReplicaSystemWithBarrier {
 
 	public final AkkaReplicaSystem replicaSystem;
 
@@ -29,7 +32,7 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(addr, obj, objCls, consistencyLevel);
 
-		return new JRefImpl<>(ref);
+		return new JRefAkkaImpl<>(ref);
 	}
 
 	@Override
@@ -37,13 +40,13 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(obj, objCls, consistencyLevel);
 
-		return new JRefImpl<>(ref);
+		return new JRefAkkaImpl<>(ref);
 	}
 
 	@Override
 	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
 		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
-		return new JRefImpl<>(ref);
+		return new JRefAkkaImpl<>(ref);
 	}
 
 	@Override
@@ -86,6 +89,11 @@ class JReplicaSystemAkkaImpl implements JReplicaSystem {
 	@Override
 	public int numberOfObjects() {
 		return replicaSystem.numberOfObjects();
+	}
+
+	@Override
+	public long timeoutInMillis() {
+		return replicaSystem.defaultTimeout().toMillis();
 	}
 
 	@Override

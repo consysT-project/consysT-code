@@ -2,6 +2,8 @@ package de.tuda.stg.consys.core.store.cassandra
 
 import java.util.concurrent.Executors
 
+import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 import scala.util.{Failure, Success}
@@ -17,11 +19,24 @@ object CassandraStoreDemo extends App {
 	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, withTimeout = Duration(60, "s"), withInitialize = false)
 	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, withTimeout = Duration(60, "s"), withInitialize = false)
 
+	val level = Weak
 
 	store1.transaction { ctx =>
-		ctx.replicate[MyInt]("myint", new MyInt, Strong)
+		import ctx._
+		val int1 = replicate[MyInt]("myint1", new MyInt, level)
+		val int2 = replicate[MyInt]("myint2", new MyInt, level)
+		replicate[MyInts]("myints", new MyInts(int1, int2), level)
+
 		Some(())
 	}
+
+//	store2.transaction { ctx =>
+//		import ctx._
+//		val ints = lookup[MyInts]("myints", Strong)
+//		ints.invoke("double", Seq(Seq()))
+//
+//		Some (())
+//	}
 
 	implicit val exec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
@@ -39,23 +54,33 @@ object CassandraStoreDemo extends App {
 	}
 
 
-	private def doTx(store : CassandraStore) : Unit = store.transaction { ctx =>
-		val obj1 = ctx.lookup[MyInt]("myint", Strong)
+	private def doTx(str : CassandraStore) : Unit = str.transaction { ctx =>
+		import ctx._
+		val obj1 = lookup[MyInt]("myint1", level)
 		obj1.invoke("double", Seq(Seq()))
 		obj1.invoke("inc", Seq(Seq()))
 		obj1.invoke("inc", Seq(Seq()))
 		obj1.invoke("half", Seq(Seq()))
-		println(store.name + ": " + obj1.invoke("get", Seq()))
+		println(str.name + ": " + obj1.invoke("get", Seq()))
 		Some (())
 	}
 
-	Thread.sleep(100000)
 
+	Thread.sleep(100000)
 
 	store1.close()
 	store2.close()
 	store3.close()
 
+	class MyInts(
+		val i : CassandraHandler[MyInt],
+		val j : CassandraHandler[MyInt]
+  ) extends Serializable {
+		def double() : Unit = {
+			i.resolve().invoke("double", Seq(Seq()))
+			j.resolve().invoke("double", Seq(Seq()))
+		}
+	}
 
 
 	class MyInt extends Serializable {

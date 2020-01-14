@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.store.DistributedStore
-import de.tuda.stg.consys.experimental.lang.store.{DistributedStore, Store}
 import org.apache.curator.framework.CuratorFramework
 
 /**
