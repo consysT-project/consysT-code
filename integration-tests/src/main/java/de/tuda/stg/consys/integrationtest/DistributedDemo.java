@@ -6,7 +6,7 @@ import de.tuda.stg.consys.integrationtest.schema.ObjA;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.util.Arrays;
 

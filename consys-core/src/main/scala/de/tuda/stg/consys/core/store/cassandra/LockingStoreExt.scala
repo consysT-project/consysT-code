@@ -18,7 +18,7 @@ trait LockingStoreExt { self : DistributedStore with ZookeeperStoreExt =>
 	curator.create().orSetData().forPath("/consys")
 	curator.create().orSetData().forPath("/consys/locks")
 
-	def lockFor(addr : Addr) : ZookeeperLock = new ZookeeperLock {
+	def retrieveLockFor(addr : Addr) : ZookeeperLock = new ZookeeperLock {
 		val lock = new InterProcessMutex(curator, s"/consys/locks/$addr")
 
 		override def acquire() : Unit = {

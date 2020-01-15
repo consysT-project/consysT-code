@@ -42,7 +42,6 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			val mthdTerm = TermName(methodName)
 			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
-			val members = typeOf[T].members
 			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
 				val flattenedParams : Seq[Seq[Class[_]]] =
 					s.asMethod.paramLists.map(paramList => paramList.map(param => {
