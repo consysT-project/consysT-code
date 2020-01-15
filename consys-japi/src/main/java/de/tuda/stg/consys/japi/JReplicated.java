@@ -2,7 +2,7 @@ package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.core.Replicated;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.japi.impl.akka.JReplicaSystemAkkaImpl;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -28,7 +28,7 @@ public interface JReplicated extends Replicated, Serializable {
 			AkkaReplicaSystem replicaSystem = (AkkaReplicaSystem) field.get(this);
 
 			if (replicaSystem != null)
-				return Optional.of(new JReplicaSystemAkkaImpl(replicaSystem));
+				return Optional.of(new JAkkaReplicaSystem(replicaSystem));
 
 
 		} catch (NoSuchFieldException e) {

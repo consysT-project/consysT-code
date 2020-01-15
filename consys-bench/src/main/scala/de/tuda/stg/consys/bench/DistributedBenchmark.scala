@@ -12,7 +12,9 @@ import java.util.Date
 
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.core.Address
-import de.tuda.stg.consys.japi.{JReplicaSystem, JReplicaSystems}
+import de.tuda.stg.consys.japi.impl.JReplicaSystems
+import de.tuda.stg.consys.japi.JReplicaSystem
+import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem
 
 import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
@@ -34,7 +36,7 @@ abstract class DistributedBenchmark(
 	val outputFileName : String
 ) {
 	//Important: create the followers before creating the coordinator
-	final protected var replicaSystem : JReplicaSystem = JReplicaSystems.fromActorSystem(
+	final protected var replicaSystem : JAkkaReplicaSystem = JReplicaSystems.fromActorSystem(
 		address,
 		JavaConverters.asJavaIterable(replicas),
 		java.time.Duration.ofSeconds(30000)
