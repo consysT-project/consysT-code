@@ -16,13 +16,13 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class JReplicaSystemAkkaImpl implements JReplicaSystem,
+public class JAkkaReplicaSystem implements JReplicaSystem,
 	JReplicaSystemWithRemove,
 	JReplicaSystemWithBarrier {
 
 	public final AkkaReplicaSystem replicaSystem;
 
-	public JReplicaSystemAkkaImpl(AkkaReplicaSystem replicaSystem) {
+	public JAkkaReplicaSystem(AkkaReplicaSystem replicaSystem) {
 		this.replicaSystem = replicaSystem;
 	}
 
@@ -98,8 +98,8 @@ public class JReplicaSystemAkkaImpl implements JReplicaSystem,
 
 	@Override
 	public boolean equals(Object other) {
-		return other instanceof JReplicaSystemAkkaImpl
-			&& ((JReplicaSystemAkkaImpl) other).replicaSystem == replicaSystem;
+		return other instanceof JAkkaReplicaSystem
+			&& ((JAkkaReplicaSystem) other).replicaSystem == replicaSystem;
 	}
 
 	@Override

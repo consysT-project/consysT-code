@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.integrationtest;
 
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 /**
  * Created on 14.03.19.

@@ -17,7 +17,7 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 
 	def addr : CassandraStore#Addr
 	def state : T
-	def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore}
+	def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore }
 
 	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke(methodId, args)
