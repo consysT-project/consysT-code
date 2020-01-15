@@ -14,7 +14,8 @@
      <packaging>pom</packaging>
 
     <modules>
-          <module>collections</module>
+        <module>collections</module>
+        <module>auctions</module>
     </modules>
 
 </project>
