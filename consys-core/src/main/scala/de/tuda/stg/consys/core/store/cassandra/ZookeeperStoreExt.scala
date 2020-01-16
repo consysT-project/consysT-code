@@ -13,7 +13,7 @@ trait ZookeeperStoreExt { self : DistributedStore =>
 	val curator : CuratorFramework
 	curator.start()
 
-		override def close() : Unit = {
+	override def close() : Unit = {
 		curator.close()
 	}
 

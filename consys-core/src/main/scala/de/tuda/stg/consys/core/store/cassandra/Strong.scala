@@ -21,28 +21,24 @@ case object Strong extends StoreConsistencyLevel {
 
 		override def toLevel : StoreConsistencyLevel = Strong
 
-		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T) : StoreType#RawType[T] = {
-			val lock = store.retrieveLockFor(addr)
-			lock.acquire()
-
-			new StrongCassandraObject(addr, obj, store, lock)
+		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+			txContext.acquireLock(addr)
+			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 
-		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr) : StoreType#RawType[T] = {
-			val lock = store.retrieveLockFor(addr)
-			lock.acquire()
-
-			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ALL)
-			new StrongCassandraObject(addr, raw, store, lock)
+		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+			txContext.acquireLock(addr)
+			val obj = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
+			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 	}
 
-	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, lock : ZookeeperLock) extends CassandraObject[T] {
+	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Strong
 
 		override def commit() : Unit = {
 			store.CassandraBinding.writeObject(addr, state, CLevel.ALL)
-			lock.release()
+			txContext.releaseLock(addr)
 		}
 	}
 

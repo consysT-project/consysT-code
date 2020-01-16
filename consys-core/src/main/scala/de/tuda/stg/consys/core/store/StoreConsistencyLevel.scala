@@ -5,7 +5,7 @@ package de.tuda.stg.consys.core.store
  *
  * @author Mirko Köhler
  */
-trait StoreConsistencyLevel {
+trait StoreConsistencyLevel extends Serializable {
 
 	type StoreType <: Store
 

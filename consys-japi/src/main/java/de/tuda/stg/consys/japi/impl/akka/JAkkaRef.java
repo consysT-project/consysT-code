@@ -12,11 +12,11 @@ import java.io.Serializable;
  *
  * @author Mirko Köhler
  */
-public class JRefAkkaImpl<T> implements JRef<T>, Serializable {
+public class JAkkaRef<T> implements JRef<T>, Serializable {
 
 	private final Ref<String, T> ref;
 
-	JRefAkkaImpl(Ref<String, T> ref) {
+	JAkkaRef(Ref<String, T> ref) {
 		this.ref = ref;
 	}
 
