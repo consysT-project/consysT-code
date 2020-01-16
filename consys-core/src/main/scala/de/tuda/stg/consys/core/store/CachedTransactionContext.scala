@@ -19,19 +19,23 @@ trait CachedTransactionContext extends TransactionContext {
 
 	protected def cachedToRef[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RefType[T]
 
-	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
-		val res = super.replicate[T](addr, obj, level)
-		cache(addr) = refToCached(res)
-		res
+	protected def cacheRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, ref : StoreType#RefType[T]) : Unit = {
+		cache(addr) = refToCached(ref)
 	}
 
+
+	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
+		val res = super.replicate[T](addr, obj, level)
+		cacheRef(addr, res)
+		res
+	}
 
 	override def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] = cache.get(addr) match {
 		case Some(cachedObject : CachedType[T@unchecked]@unchecked) =>
 			cachedToRef[T](cachedObject)
 		case None =>
 			val res = super.lookup[T](addr, level)
-			cache(addr) = refToCached(res)
+			cacheRef(addr, res)
 			res
 	}
 

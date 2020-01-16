@@ -19,12 +19,12 @@ case object Weak extends StoreConsistencyLevel {
 
 		override def toLevel : StoreConsistencyLevel = Weak
 
-		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T) : StoreType#RawType[T] = {
+		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			val cassObj = new WeakCassandraObject(addr, obj, store)
 			cassObj
 		}
 
-		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr) : StoreType#RawType[T] = {
+		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
 			new WeakCassandraObject(addr, raw, store)
 		}

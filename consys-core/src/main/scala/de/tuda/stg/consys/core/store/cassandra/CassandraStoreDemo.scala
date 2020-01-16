@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
 import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
 
@@ -19,8 +19,9 @@ object CassandraStoreDemo extends App {
 	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, withTimeout = Duration(60, "s"), withInitialize = false)
 	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, withTimeout = Duration(60, "s"), withInitialize = false)
 
-	val level = Weak
+	val level = Strong
 
+	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._
 		val int1 = replicate[MyInt]("myint1", new MyInt, level)
@@ -30,6 +31,7 @@ object CassandraStoreDemo extends App {
 		Some(())
 	}
 
+//	println("transaction 2")
 //	store2.transaction { ctx =>
 //		import ctx._
 //		val ints = lookup[MyInts]("myints", Strong)
@@ -38,8 +40,9 @@ object CassandraStoreDemo extends App {
 //		Some (())
 //	}
 
-	implicit val exec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
+	println("transaction 3")
 	Future {
 		for (i <- 1 to 10) doTx(store2)
 	} onComplete {
@@ -50,7 +53,7 @@ object CassandraStoreDemo extends App {
 		for (i <- 1 to 10) doTx(store3)
 	} onComplete {
 		case Failure(exception) => exception.printStackTrace()
-		case Success(value) => println(store3.name + "woop woop")
+		case Success(value) => println(store3.name + " woop woop")
 	}
 
 

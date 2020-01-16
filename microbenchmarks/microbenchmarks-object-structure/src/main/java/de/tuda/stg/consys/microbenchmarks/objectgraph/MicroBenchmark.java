@@ -6,7 +6,7 @@ import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.impl.JReplicaSystems;
-import de.tuda.stg.consys.japi.impl.akka.JRefAkkaImpl;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaRef;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
@@ -155,7 +155,7 @@ public class MicroBenchmark {
     }
 
     public void updateValue(int value, JRef<BenchmarkObject> ref) {
-        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JRefAkkaImpl<BenchmarkObject>) ref).getRef().deref()).getObject();
+        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JAkkaRef<BenchmarkObject>) ref).getRef().deref()).getObject();
         if (object instanceof BenchmarkObject0)
             ref.setField("value", value);
         else if (object instanceof BenchmarkObject1)

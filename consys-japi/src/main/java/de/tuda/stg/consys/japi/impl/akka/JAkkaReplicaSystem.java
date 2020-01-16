@@ -32,7 +32,7 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(addr, obj, objCls, consistencyLevel);
 
-		return new JRefAkkaImpl<>(ref);
+		return new JAkkaRef<>(ref);
 	}
 
 	@Override
@@ -40,13 +40,13 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(obj, objCls, consistencyLevel);
 
-		return new JRefAkkaImpl<>(ref);
+		return new JAkkaRef<>(ref);
 	}
 
 	@Override
 	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
 		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
-		return new JRefAkkaImpl<>(ref);
+		return new JAkkaRef<>(ref);
 	}
 
 	@Override
