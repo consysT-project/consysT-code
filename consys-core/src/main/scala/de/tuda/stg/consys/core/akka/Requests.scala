@@ -41,29 +41,29 @@ object Requests {
 	case object CloseHandler
 
 	@SerialVersionUID(42947104L)
-	class RequestHandlerImpl[Addr](private val requestActor : ActorRef, val defaultTimeout : FiniteDuration) extends RequestHandler[Addr] with Serializable {
-		requestActor ! InitHandler
+	class RequestHandlerImpl[Addr](private val sendToActor : ActorRef, private val sendFromActor : ActorRef, val defaultTimeout : FiniteDuration) extends RequestHandler[Addr] with Serializable {
+		sendToActor ! InitHandler
 
 		override def request[R](addr : Addr, req : Request[R]) : R = req match {
 			case syncReq : SynchronousRequest[_] =>
 				import akka.pattern.ask
-				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
+				val response = sendToActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
 				val result = Await.result(response, defaultTimeout)
 				result.asInstanceOf[R]
 
 			case asyncReq : AsynchronousRequest[_] =>
 				import akka.pattern.ask
-				val response = requestActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
+				val response = sendToActor.ask(HandleRequest(addr, req))(Timeout(defaultTimeout))
 				response.asInstanceOf[R]
 
 			case noAnsReq : NoAnswerRequest =>
-				requestActor ! HandleRequest(addr, req)
+				sendToActor ! HandleRequest(addr, req)
 				().asInstanceOf[R]
 		}
 
 
 		override def close() : Unit = {
-			requestActor ! CloseHandler
+			sendToActor ! CloseHandler
 		}
 	}
 

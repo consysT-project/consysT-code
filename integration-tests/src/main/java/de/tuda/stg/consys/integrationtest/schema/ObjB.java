@@ -27,8 +27,7 @@ public class ObjB implements Serializable {
 
 	public void incAll() {
 		incG();
-		a.invoke("inc");
-		a.invoke("inc");
+		a.ref().inc();
 	}
 
 	@Override

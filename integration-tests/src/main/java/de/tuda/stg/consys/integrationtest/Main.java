@@ -7,13 +7,13 @@ import de.tuda.stg.consys.integrationtest.schema.ObjA;
 import de.tuda.stg.consys.integrationtest.schema.ObjB;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
 import org.checkerframework.com.google.common.collect.Lists;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -166,45 +166,26 @@ public class Main {
 	public static void example2Parallel() throws Exception {
 
 
-		JRef<@Strong ObjA> a1 = Replicas.replicaSystem1.replicate("a", new ObjA(), JConsistencyLevels.STRONG);
-		JRef<@Weak ObjB> b1 = Replicas.replicaSystem1.replicate("b", new ObjB(a1), JConsistencyLevels.WEAK);
-
-		JRef<@Strong ObjA> a2 = Replicas.replicaSystem2.lookup("a", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevels.STRONG);
-		JRef<@Weak ObjB> b2 = Replicas.replicaSystem2.lookup("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevels.WEAK);
 
 
 		ExecutorService exec = Executors.newFixedThreadPool(4);
-		Future<?> fut1 = exec.submit(
-			() -> b1.ref().incAll()
-		);
-		Future<?> fut2 = exec.submit(
-			() -> b2.ref().incAll()
-		);
+		exec.submit(() -> {
+			JReplicaSystem sys = Replicas.replicaSystem1;
+			JRef<@Strong ObjA> a = sys.replicate(new ObjA(), JConsistencyLevels.STRONG);
+			JRef<@Weak ObjB> b = sys.replicate("b", new ObjB(a), JConsistencyLevels.WEAK);
+
+			b.ref().incAll();
+		});
+
+		exec.submit(() -> {
+			JReplicaSystem sys = Replicas.replicaSystem2;
+			JRef<@Weak ObjB> b = sys.lookup("b", (Class<@Weak ObjB>) ObjB.class, JConsistencyLevels.WEAK);
+
+			b.ref().incAll();
+		});
 
 		exec.shutdown();
 		exec.awaitTermination(10, TimeUnit.SECONDS);
-
-
-		System.out.println("#1");
-		System.out.println(
-			"a1.f = " + a1.ref().f + ", " +
-				"a2.f = " + a2.ref().f + ", " +
-				"b1.g = " + b1.ref().g + ", " +
-				"b2.g = " + b2.ref().g
-		);
-
-
-
-		b2.syncAll();
-
-		System.out.println("#2");
-		System.out.println(
-			"a1.f = " + a1.ref().f + ", " +
-				"a2.f = " + a2.ref().f + ", " +
-				"b1.g = " + b1.ref().g + ", " +
-				"b2.g = " + b2.ref().g
-		);
-
 
 		Replicas.replicaSystem1.close();
 		Replicas.replicaSystem2.close();
