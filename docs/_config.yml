@@ -1,1 +1,5 @@
 theme: jekyll-theme-slate
+
+title: "consys"
+description: "Simply consistent."
+show_downloads: true # displays download button on the .io page
