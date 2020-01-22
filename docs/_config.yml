@@ -1,7 +1,7 @@
 theme: jekyll-theme-slate
 
 # Change title and subtitle of the page
-title: "consys - Simply consistency."
+title: "consys - simply consistent."
 description: "Language extension and middleware for programming with consistent, replicated data."
 
 # displays download button on the .io page
