@@ -25,7 +25,7 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 
 	//This method is called for every object that was part of a transaction.
 	//It has to be used to write changes back to Cassandra and to release all locks.
-	def commit() : Unit
+//	def commit() : Unit
 
 	/**
 	 * This private object encapsulates the reflective access to the stored state.

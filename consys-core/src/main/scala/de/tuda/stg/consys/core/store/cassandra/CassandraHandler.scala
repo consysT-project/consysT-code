@@ -26,6 +26,7 @@ class CassandraHandler[T <: java.io.Serializable : TypeTag](
 		obj
 	}
 
+	/* This method is for convenience use in transactions */
 	def resolve() : CassandraStore#RawType[T] =
-		resolve(CassandraStores.currentTransaction.value)
+		resolve(CassandraStores.getCurrentTransaction)
 }

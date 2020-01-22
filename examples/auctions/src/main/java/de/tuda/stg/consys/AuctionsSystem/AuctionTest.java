@@ -97,7 +97,7 @@ public class AuctionTest {
 
         System.out.println("Replica Systems Started");
 
-        initializeSystems();
+//        initializeSystems();
         
 
         System.out.println("Test " + nr);

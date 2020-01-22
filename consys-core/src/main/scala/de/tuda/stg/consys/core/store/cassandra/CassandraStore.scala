@@ -27,6 +27,9 @@ import scala.reflect.runtime.universe.TypeTag
 trait CassandraStore extends DistributedStore
 	with ZookeeperStoreExt
 	with LockingStoreExt {
+	/* Force initialization of binding */
+	CassandraBinding
+
 
 	override final type Addr = String
 	override final type ObjType = Any with java.io.Serializable
@@ -81,7 +84,7 @@ trait CassandraStore extends DistributedStore
 			cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
 			cassandraSession.execute(
 				s"""CREATE KEYSPACE $keyspaceName
-					 |with replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
+					 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
 					.stripMargin
 			)
 			cassandraSession.execute(
@@ -91,6 +94,7 @@ trait CassandraStore extends DistributedStore
 					 |) with comment = 'stores objects as blobs'"""
 					.stripMargin
 			)
+			Thread.sleep(100)
 		}
 
 		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CLevel) : Unit = {
