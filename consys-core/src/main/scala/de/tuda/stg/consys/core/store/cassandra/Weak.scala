@@ -33,9 +33,5 @@ case object Weak extends StoreConsistencyLevel {
 
 	private class WeakCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Weak
-
-		override def commit() : Unit = {
-			store.CassandraBinding.writeObject(addr, state, CLevel.ONE)
-		}
 	}
 }

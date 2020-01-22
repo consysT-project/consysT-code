@@ -24,37 +24,64 @@ object CassandraStoreDemo extends App {
 	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._
-		val int1 = replicate[MyInt]("myint1", new MyInt, level)
-		val int2 = replicate[MyInt]("myint2", new MyInt, level)
-		replicate[MyInts]("myints", new MyInts(int1, int2), level)
+		val int1 = replicate[MyInt]("myint1", MyInt(0), level)
+		println("replicated myint1")
+		val int2 = replicate[MyInt]("myint2", MyInt(0), level)
+		println("replicated myint2")
+		val ints = replicate[MyInts]("myints", MyInts(int1, int2), level)
+		println("replicated myints")
+		int1.invoke("inc", Seq(Seq()))
+		println("inced int1")
+		int1.invoke("inc", Seq(Seq()))
+		println("inced int1")
+		ints.invoke("double", Seq(Seq()))
+		println("doubled myints")
+
+		println(s"int1: ${int1.invoke("toString", Seq(Seq()))}")
+		println(s"int2: ${int2.invoke("toString", Seq(Seq()))}")
+		println(s"ints: ${ints.invoke("toString", Seq(Seq()))}")
 
 		Some(())
 	}
 
-//	println("transaction 2")
 //	store2.transaction { ctx =>
 //		import ctx._
-//		val ints = lookup[MyInts]("myints", Strong)
-//		ints.invoke("double", Seq(Seq()))
+//		val int1 = lookup[MyInt]("myint1", level)
+//		val int2 = lookup[MyInt]("myint2", level)
+//		val ints = lookup[MyInts]("myints", level)
 //
-//		Some (())
+//		println(s"int1: ${int1.invoke("toString", Seq(Seq()))}")
+//		println(s"int2: ${int2.invoke("toString", Seq(Seq()))}")
+//		println(s"ints: ${ints.invoke("toString", Seq(Seq()))}")
+//
+//		Some(())
 //	}
 
-	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
-	println("transaction 3")
-	Future {
-		for (i <- 1 to 10) doTx(store2)
-	} onComplete {
-		case Failure(exception) => exception.printStackTrace()
-		case Success(value) => println(store2.name + " woop woop")
+	println("transaction 2")
+	store2.transaction { ctx =>
+		import ctx._
+		val ints = lookup[MyInts]("myints", Strong)
+		ints.invoke("double", Seq(Seq()))
+
+		Some (())
 	}
-	Future {
-		for (i <- 1 to 10) doTx(store3)
-	} onComplete {
-		case Failure(exception) => exception.printStackTrace()
-		case Success(value) => println(store3.name + " woop woop")
-	}
+
+//	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+
+//	println("transaction 3")
+//	Future {
+//		for (i <- 1 to 10) doTx(store2)
+//	} onComplete {
+//		case Failure(exception) => exception.printStackTrace()
+//		case Success(value) => println(store2.name + " woop woop")
+//	}
+//	Future {
+//		for (i <- 1 to 10) doTx(store3)
+//	} onComplete {
+//		case Failure(exception) => exception.printStackTrace()
+//		case Success(value) => println(store3.name + " woop woop")
+//	}
 
 
 	private def doTx(str : CassandraStore) : Unit = str.transaction { ctx =>
@@ -71,14 +98,15 @@ object CassandraStoreDemo extends App {
 
 	Thread.sleep(100000)
 
+	println("done.")
 	store1.close()
 	store2.close()
 	store3.close()
 
-	class MyInts(
-		val i : CassandraHandler[MyInt],
-		val j : CassandraHandler[MyInt]
-  ) extends Serializable {
+	case class MyInts(
+		i : CassandraHandler[MyInt],
+		j : CassandraHandler[MyInt]
+  ) {
 		def double() : Unit = {
 			i.resolve().invoke("double", Seq(Seq()))
 			j.resolve().invoke("double", Seq(Seq()))
@@ -86,8 +114,7 @@ object CassandraStoreDemo extends App {
 	}
 
 
-	class MyInt extends Serializable {
-		var i : Int = 0
+	case class MyInt(var i : Int = 0) {
 
 		def double() : Unit = {
 			i = 2 * i

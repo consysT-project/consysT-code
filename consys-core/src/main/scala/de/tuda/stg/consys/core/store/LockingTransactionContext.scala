@@ -32,6 +32,8 @@ trait LockingTransactionContext extends TransactionContext {
 			lock.release()
 			acquiredLocks.remove(addr)
 	}
+
+	def locks : Iterator[StoreType#LockType] = acquiredLocks.valuesIterator
 }
 
 object LockingTransactionContext {

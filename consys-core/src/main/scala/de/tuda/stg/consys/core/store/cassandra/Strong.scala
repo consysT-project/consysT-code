@@ -35,11 +35,6 @@ case object Strong extends StoreConsistencyLevel {
 
 	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Strong
-
-		override def commit() : Unit = {
-			store.CassandraBinding.writeObject(addr, state, CLevel.ALL)
-			txContext.releaseLock(addr)
-		}
 	}
 
 }

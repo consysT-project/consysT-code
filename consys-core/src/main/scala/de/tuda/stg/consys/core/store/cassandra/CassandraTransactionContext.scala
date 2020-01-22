@@ -17,10 +17,7 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 	with LockingTransactionContext
 {
 	override final type StoreType = CassandraStore
-
 	protected final type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
-
-
 
 	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
 		super.replicate(addr, obj, level)
@@ -29,11 +26,11 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 		super.lookup[T](addr, level)
 
 	override def commit() : Unit = {
-		cache.values.foreach(obj => obj.commit())
+		locks.foreach(lock => lock.release())
 	}
 
 	override protected def refToCached[T <: StoreType#ObjType : TypeTag](ref : StoreType#RefType[T]) : CachedType[T] =
-		ref.resolve(CassandraStores.currentTransaction.value)
+		ref.resolve(CassandraStores.getCurrentTransaction)
 
 	override protected def cachedToRef[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RefType[T] =
 		new CassandraHandler[T](cached.addr, cached, cached.consistencyLevel)
@@ -44,10 +41,4 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 	 */
 	implicit def resolveHandler[T <: StoreType#ObjType : TypeTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
 		handler.resolve(this)
-}
-
-object CassandraTransactionContext {
-
-
-
 }
