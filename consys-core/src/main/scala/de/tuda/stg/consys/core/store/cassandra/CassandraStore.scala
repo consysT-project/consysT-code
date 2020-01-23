@@ -47,11 +47,14 @@ trait CassandraStore extends DistributedStore
 	override def transaction[T](code : TxContext => Option[T]) : Option[T] = {
 		val tx = CassandraTransactionContext(this)
 		CassandraStores.currentTransaction.withValue(tx) {
-			code(tx) match {
-				case None => None
-				case res@Some(_) =>
-					tx.commit()
-					res
+			try {
+				code(tx) match {
+					case None => None
+					case res@Some(_) =>
+						res
+				}
+			} finally {
+				tx.commit()
 			}
 		}
 	}
@@ -97,12 +100,13 @@ trait CassandraStore extends DistributedStore
 			Thread.sleep(100)
 		}
 
-		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CLevel) : Unit = {
+		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CLevel, timestamp : Long) : Unit = {
 			import QueryBuilder._
 
 			val query = insertInto(s"$objectTableName")
 				.value("addr", literal(addr))
 				.value("state", literal(CassandraStore.serializeObject(obj)))
+  			.usingTimestamp(timestamp)
 				.build()
 				.setConsistencyLevel(clevel)
 
@@ -110,7 +114,7 @@ trait CassandraStore extends DistributedStore
 			cassandraSession.execute(query)
 		}
 
-		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CLevel) : Unit = {
+		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CLevel, timestamp : Long) : Unit = {
 			import QueryBuilder._
 			val batch = BatchStatement.builder(BatchType.LOGGED)
 
@@ -118,6 +122,7 @@ trait CassandraStore extends DistributedStore
 				val query = insertInto(s"$objectTableName")
 					.value("addr", literal(obj._1))
 					.value("state", literal(CassandraStore.serializeObject(obj._2.asInstanceOf[Serializable])))
+  				.usingTimestamp(timestamp)
 					.build()
 					.setConsistencyLevel(clevel)
 

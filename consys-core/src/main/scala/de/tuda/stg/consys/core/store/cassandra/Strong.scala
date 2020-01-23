@@ -28,13 +28,16 @@ case object Strong extends StoreConsistencyLevel {
 
 		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
-			val obj = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
+			val obj = store.CassandraBinding.readObject[T](addr, CLevel.ALL)
 			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 	}
 
 	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Strong
+
+		override def writeToStore(store : CassandraStore) : Unit =
+			store.CassandraBinding.writeObject(addr, state, CLevel.ALL, txContext.timestamp)
 	}
 
 }

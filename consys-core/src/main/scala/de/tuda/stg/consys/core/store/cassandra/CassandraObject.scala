@@ -23,6 +23,8 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 		ReflectiveAccess.doInvoke(methodId, args)
 	}
 
+	def writeToStore(store : CassandraStore) : Unit
+
 	//This method is called for every object that was part of a transaction.
 	//It has to be used to write changes back to Cassandra and to release all locks.
 //	def commit() : Unit
