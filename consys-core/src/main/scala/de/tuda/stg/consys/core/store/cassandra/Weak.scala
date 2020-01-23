@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
-import de.tuda.stg.consys.core.store.{StoreConsistencyModel, StoreConsistencyLevel}
+import de.tuda.stg.consys.core.store.cassandra.Strong.StoreType
+import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyModel}
 
 import scala.reflect.runtime.universe._
 
@@ -20,18 +21,21 @@ case object Weak extends StoreConsistencyLevel {
 		override def toLevel : StoreConsistencyLevel = Weak
 
 		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
-			val cassObj = new WeakCassandraObject(addr, obj, store)
+			val cassObj = new WeakCassandraObject(addr, obj, store, txContext)
 			cassObj
 		}
 
 		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			val raw = store.CassandraBinding.readObject[T](addr, CLevel.ONE)
-			new WeakCassandraObject(addr, raw, store)
+			new WeakCassandraObject(addr, raw, store, txContext)
 		}
 	}
 
 
-	private class WeakCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType) extends CassandraObject[T] {
+	private class WeakCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Weak
+
+		override def writeToStore(store : CassandraStore) : Unit =
+			store.CassandraBinding.writeObject(addr, state, CLevel.ONE, txContext.timestamp)
 	}
 }

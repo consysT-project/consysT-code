@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
+import com.datastax.oss.driver.api.core.time.TimestampGenerator
 import de.tuda.stg.consys.core.store.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext, TransactionContext}
 
 import scala.language.implicitConversions
@@ -19,6 +20,8 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 	override final type StoreType = CassandraStore
 	protected final type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
 
+	val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra
+
 	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
 		super.replicate(addr, obj, level)
 
@@ -26,6 +29,7 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 		super.lookup[T](addr, level)
 
 	override def commit() : Unit = {
+		cache.valuesIterator.foreach(obj => obj.writeToStore(store))
 		locks.foreach(lock => lock.release())
 	}
 

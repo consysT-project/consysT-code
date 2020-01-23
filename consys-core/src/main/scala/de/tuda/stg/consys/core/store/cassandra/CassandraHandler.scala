@@ -21,7 +21,7 @@ class CassandraHandler[T <: java.io.Serializable : TypeTag](
 			//The obj may be null, e.g., if the handler has been serialized. In that case, we have
 			//to look up the handled object in the store. This is done via the consistency level
 			//of the handled object. TODO: Can this be just a local lookup?
-			obj = level.toModel(tx.store).lookupRaw(addr, tx)
+			obj = tx.lookup() //TODO: Make a raw lookup in the tx context here //level.toModel(tx.store).lookupRaw(addr, tx)
 		}
 		obj
 	}

@@ -24,9 +24,9 @@ object CassandraStoreDemo extends App {
 	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._
-		val int1 = replicate[MyInt]("myint1", MyInt(0), level)
+		val int1 = replicate[MyInt]("myint1", MyInt(), level)
 		println("replicated myint1")
-		val int2 = replicate[MyInt]("myint2", MyInt(0), level)
+		val int2 = replicate[MyInt]("myint2", MyInt(), level)
 		println("replicated myint2")
 		val ints = replicate[MyInts]("myints", MyInts(int1, int2), level)
 		println("replicated myints")
@@ -61,27 +61,31 @@ object CassandraStoreDemo extends App {
 	println("transaction 2")
 	store2.transaction { ctx =>
 		import ctx._
-		val ints = lookup[MyInts]("myints", Strong)
+		val ints = lookup[MyInts]("myints", level)
 		ints.invoke("double", Seq(Seq()))
+
+		println(s"int1: ${lookup[MyInt]("myint1", level).invoke("toString", Seq(Seq()))}")
+		println(s"int2: ${lookup[MyInt]("myint2", level).invoke("toString", Seq(Seq()))}")
+		println(s"ints: ${ints.invoke("toString", Seq(Seq()))}")
 
 		Some (())
 	}
 
-//	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
-//	println("transaction 3")
-//	Future {
-//		for (i <- 1 to 10) doTx(store2)
-//	} onComplete {
-//		case Failure(exception) => exception.printStackTrace()
-//		case Success(value) => println(store2.name + " woop woop")
-//	}
-//	Future {
-//		for (i <- 1 to 10) doTx(store3)
-//	} onComplete {
-//		case Failure(exception) => exception.printStackTrace()
-//		case Success(value) => println(store3.name + " woop woop")
-//	}
+	println("transaction 3")
+	Future {
+		for (i <- 1 to 10) doTx(store2)
+	} onComplete {
+		case Failure(exception) => exception.printStackTrace()
+		case Success(value) => println(store2.name + " woop woop")
+	}
+	Future {
+		for (i <- 1 to 10) doTx(store3)
+	} onComplete {
+		case Failure(exception) => exception.printStackTrace()
+		case Success(value) => println(store3.name + " woop woop")
+	}
 
 
 	private def doTx(str : CassandraStore) : Unit = str.transaction { ctx =>
@@ -96,7 +100,7 @@ object CassandraStoreDemo extends App {
 	}
 
 
-	Thread.sleep(100000)
+	Thread.sleep(10000)
 
 	println("done.")
 	store1.close()
