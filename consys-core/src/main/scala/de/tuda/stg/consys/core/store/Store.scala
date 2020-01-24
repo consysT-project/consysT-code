@@ -22,5 +22,5 @@ trait Store extends AutoCloseable {
 
 	def transaction[T](code : TxContext => Option[T]) : Option[T]
 
-	def enref[T <: ObjType : TypeTag](obj : RawType[T]) : RefType[T]
+	protected[store] def enref[T <: ObjType : TypeTag](obj : RawType[T]) : RefType[T]
 }

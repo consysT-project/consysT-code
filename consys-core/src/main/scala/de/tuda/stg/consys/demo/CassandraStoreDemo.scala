@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store
+package de.tuda.stg.consys.demo
 
 import java.util.concurrent.Executors
 
