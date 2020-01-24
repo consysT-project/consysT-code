@@ -17,27 +17,27 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 	with CachedTransactionContext
 	with LockingTransactionContext
 {
-	override final type StoreType = CassandraStore
-	protected final type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
+	override type StoreType = CassandraStore
+	override protected type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
 
-	val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra
+	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
 
-	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
-		super.replicate(addr, obj, level)
+	override private[store] def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
+		super.replicateRaw[T](addr, obj, level)
 
-	override def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
-		super.lookup[T](addr, level)
+	override private[store] def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
+		super.lookupRaw[T](addr, level)
 
-	override def commit() : Unit = {
+	//TODO: Can we make this method package private?
+	override private[store] def commit() : Unit = {
 		cache.valuesIterator.foreach(obj => obj.writeToStore(store))
 		locks.foreach(lock => lock.release())
 	}
 
-	override protected def refToCached[T <: StoreType#ObjType : TypeTag](ref : StoreType#RefType[T]) : CachedType[T] =
-		ref.resolve(CassandraStores.getCurrentTransaction)
+	override protected def rawToCached[T <: StoreType#ObjType : TypeTag](raw : StoreType#RawType[T]) : CachedType[T] = raw
 
-	override protected def cachedToRef[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RefType[T] =
-		new CassandraHandler[T](cached.addr, cached, cached.consistencyLevel)
+	override protected def cachedToRaw[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
+
 
 
 	/**

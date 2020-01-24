@@ -1,11 +1,11 @@
-package de.tuda.stg.consys.core.store.cassandra
+package de.tuda.stg.consys.core.store
 
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.Executors
 
-import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraHandler, CassandraStore, Strong}
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /**
@@ -24,18 +24,30 @@ object CassandraStoreDemo extends App {
 	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._
-		val int1 = replicate[MyInt]("myint1", MyInt(), level)
+		val int1 = replicate[MyInt]("myint1", MyInt(47), level)
 		println("replicated myint1")
-		val int2 = replicate[MyInt]("myint2", MyInt(), level)
+		val int2 = replicate[MyInt]("myint2", MyInt(47), level)
 		println("replicated myint2")
 		val ints = replicate[MyInts]("myints", MyInts(int1, int2), level)
 		println("replicated myints")
-		int1.invoke("inc", Seq(Seq()))
-		println("inced int1")
-		int1.invoke("inc", Seq(Seq()))
-		println("inced int1")
+		Some(())
+	}
+
+	println("transaction 2")
+	store2.transaction { ctx =>
+		import ctx._
+		val ints = lookup[MyInts]("myints", level)
 		ints.invoke("double", Seq(Seq()))
-		println("doubled myints")
+
+		Some (())
+	}
+
+	println("transaction 3")
+	store3.transaction { ctx =>
+		import ctx._
+		val int1 = lookup[MyInt]("myint1", level)
+		val int2 = lookup[MyInt]("myint2", level)
+		val ints = lookup[MyInts]("myints", level)
 
 		println(s"int1: ${int1.invoke("toString", Seq(Seq()))}")
 		println(s"int2: ${int2.invoke("toString", Seq(Seq()))}")
@@ -44,32 +56,6 @@ object CassandraStoreDemo extends App {
 		Some(())
 	}
 
-//	store2.transaction { ctx =>
-//		import ctx._
-//		val int1 = lookup[MyInt]("myint1", level)
-//		val int2 = lookup[MyInt]("myint2", level)
-//		val ints = lookup[MyInts]("myints", level)
-//
-//		println(s"int1: ${int1.invoke("toString", Seq(Seq()))}")
-//		println(s"int2: ${int2.invoke("toString", Seq(Seq()))}")
-//		println(s"ints: ${ints.invoke("toString", Seq(Seq()))}")
-//
-//		Some(())
-//	}
-
-
-	println("transaction 2")
-	store2.transaction { ctx =>
-		import ctx._
-		val ints = lookup[MyInts]("myints", level)
-		ints.invoke("double", Seq(Seq()))
-
-		println(s"int1: ${lookup[MyInt]("myint1", level).invoke("toString", Seq(Seq()))}")
-		println(s"int2: ${lookup[MyInt]("myint2", level).invoke("toString", Seq(Seq()))}")
-		println(s"ints: ${ints.invoke("toString", Seq(Seq()))}")
-
-		Some (())
-	}
 
 	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
