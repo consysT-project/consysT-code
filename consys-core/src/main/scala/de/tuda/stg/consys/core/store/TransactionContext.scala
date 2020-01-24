@@ -15,11 +15,22 @@ trait TransactionContext {
 
 	val store : StoreType
 
-	def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] =
+	final def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
+		store.enref(
+			replicateRaw[T](addr, obj, level)(implicitly[TypeTag[T]])
+				.asInstanceOf[store.RawType[T with store.ObjType]]
+		).asInstanceOf[StoreType#RefType[T]]
+	}
+
+	final def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
+		store.enref(
+			lookupRaw[T](addr, level)(implicitly[TypeTag[T]])
+				.asInstanceOf[store.RawType[T with store.ObjType]]
+		).asInstanceOf[StoreType#RefType[T]]
+
+	private[store] def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
 		throw new UnsupportedOperationException("this transaction context does not support replication.")
 
-	def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
+	private[store] def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
 		throw new UnsupportedOperationException("this transaction context does not support lookups.")
-
-
 }

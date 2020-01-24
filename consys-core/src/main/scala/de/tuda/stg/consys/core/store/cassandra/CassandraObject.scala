@@ -33,13 +33,9 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 	 * This private object encapsulates the reflective access to the stored state.
 	 */
 	private final object ReflectiveAccess {
-
-		private implicit val ct : ClassTag[T]  = ConsysUtils.typeToClassTag[T] //used as implicit argument
-		//TODO: Define this as field and keep in sync with obj
-		private val rtMirror = runtimeMirror(CassandraObject.this.getClass.getClassLoader)
-
+		private val rtMirror = runtimeMirror(state.getClass.getClassLoader)
+		private implicit val ct : ClassTag[T]  = ClassTag[T](rtMirror.runtimeClass(rtMirror.classSymbol(state.getClass).toType))
 		private val objMirror : InstanceMirror = rtMirror.reflect(state)
-
 
 		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			val mthdTerm = TermName(methodName)

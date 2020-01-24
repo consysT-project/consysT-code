@@ -12,18 +12,11 @@ import scala.reflect.runtime.universe.TypeTag
  */
 class CassandraHandler[T <: java.io.Serializable : TypeTag](
 	val addr : String,
-	@transient var obj : CassandraObject[T],
 	val level : StoreConsistencyLevel {type StoreType = CassandraStore}
 ) extends Handler[CassandraStore, T] with Serializable {
 
 	override def resolve(tx : => CassandraStore#TxContext) : CassandraStore#RawType[T] = {
-		if (obj == null) {
-			//The obj may be null, e.g., if the handler has been serialized. In that case, we have
-			//to look up the handled object in the store. This is done via the consistency level
-			//of the handled object. TODO: Can this be just a local lookup?
-			obj = tx.lookup() //TODO: Make a raw lookup in the tx context here //level.toModel(tx.store).lookupRaw(addr, tx)
-		}
-		obj
+		tx.lookupRaw[T](addr, level)
 	}
 
 	/* This method is for convenience use in transactions */

@@ -32,7 +32,7 @@ trait CassandraStore extends DistributedStore
 
 
 	override final type Addr = String
-	override final type ObjType = Any with java.io.Serializable
+	override final type ObjType = java.io.Serializable
 
 	override final type TxContext = CassandraTransactionContext
 
@@ -68,7 +68,7 @@ trait CassandraStore extends DistributedStore
 	override def name : String = s"node@${cassandraSession.getContext.getSessionName}"
 
 	override def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
-		new CassandraHandler[T](obj.addr, obj, obj.consistencyLevel)
+		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
 
 
 	/**

@@ -6,5 +6,5 @@ package de.tuda.stg.consys.core.store
  * @author Mirko Köhler
  */
 trait CommitableTransactionContext extends TransactionContext {
-	def commit() : Unit
+	private[store] def commit() : Unit
 }

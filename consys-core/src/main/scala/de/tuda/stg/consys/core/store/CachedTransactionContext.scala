@@ -15,27 +15,27 @@ trait CachedTransactionContext extends TransactionContext {
 
 	protected val cache : mutable.Map[StoreType#Addr, CachedType[_]] = mutable.HashMap.empty
 
-	protected def refToCached[T <: StoreType#ObjType : TypeTag](ref : StoreType#RefType[T]) : CachedType[T]
+	protected def rawToCached[T <: StoreType#ObjType : TypeTag](ref : StoreType#RawType[T]) : CachedType[T]
 
-	protected def cachedToRef[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RefType[T]
+	protected def cachedToRaw[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RawType[T]
 
-	protected def cacheRef[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, ref : StoreType#RefType[T]) : Unit = {
-		cache(addr) = refToCached(ref)
+	protected def cacheRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, raw : StoreType#RawType[T]) : Unit = {
+		cache(addr) = rawToCached(raw)
 	}
 
 
-	override def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
-		val res = super.replicate[T](addr, obj, level)
-		cacheRef(addr, res)
+	override private[store] def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] = {
+		val res = super.replicateRaw[T](addr, obj, level)
+		cacheRaw(addr, res)
 		res
 	}
 
-	override def lookup[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] = cache.get(addr) match {
+	override private[store] def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] = cache.get(addr) match {
 		case Some(cachedObject : CachedType[T@unchecked]@unchecked) =>
-			cachedToRef[T](cachedObject)
+			cachedToRaw[T](cachedObject)
 		case None =>
-			val res = super.lookup[T](addr, level)
-			cacheRef(addr, res)
+			val res = super.lookupRaw[T](addr, level)
+			cacheRaw(addr, res)
 			res
 	}
 
