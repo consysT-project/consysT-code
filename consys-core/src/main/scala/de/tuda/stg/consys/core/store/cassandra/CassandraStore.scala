@@ -39,7 +39,7 @@ trait CassandraStore extends DistributedStore
 	override final type RawType[T <: ObjType] = CassandraObject[T]
 	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
-	protected val cassandraSession : CqlSession
+	protected[store] val cassandraSession : CqlSession
 
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
@@ -67,7 +67,7 @@ trait CassandraStore extends DistributedStore
 
 	override def name : String = s"node@${cassandraSession.getContext.getSessionName}"
 
-	override def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
+	override protected[store] def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
 		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
 
 
