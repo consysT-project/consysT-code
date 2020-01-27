@@ -1,3 +1,7 @@
+---
+show_downloads: true 
+---
+
 If you want to use **consys** in your Java project you have to download and build the sources. As we are using the popular build tool [Apache Maven](https://maven.apache.org), the installation is simple and easy. This page explains how to install **consys** and how to use it in your project.
 
 # How to install **consys**?
@@ -23,7 +27,7 @@ Now, you can install **consys**:
 
 ## Minimum dependencies
 
-After having installed **consys** locally, you can add it as a dependency to your own Maven project. 
+After having installed **consys** locally, you can add it as a dependency to your own Maven project.
 
 ```xml
 <dependency>
@@ -32,7 +36,7 @@ After having installed **consys** locally, you can add it as a dependency to you
 	<version>2.0.0</version>
 </dependency>
 ```
-  
+
 This dependency will add the Java API to your project. Further, if you use [Aeron UDP](https://github.com/real-logic/Aeron)  as communication protocol between replicas (default), then you also need to add it as a dependency.
 
 ```xml
@@ -47,7 +51,7 @@ This dependency will add the Java API to your project. Further, if you use [Aero
 	<version>1.22.1</version>
 </dependency>
 ```
-  
+
 ## Recommended additional dependencies
 
 These steps already suffice to use **consys** in your project. The following additions, which enable the typesystem and more convienent syntax, are recommended.
@@ -67,7 +71,7 @@ Add the **consys** type checker and the **consys** compiler plugin to your depen
 	<version>2.0.0</version>
 </dependency>
 ```
-  
+
 Further, add the following configuration for the Maven compiler plugin.
 
 ```xml
@@ -104,7 +108,7 @@ Further, add the following configuration for the Maven compiler plugin.
 	</plugins>
 </build>
 ```
-	
+
 Now you are ready to enjoy **consys**!
 
 
@@ -124,7 +128,7 @@ Now, we introduce how to test out **consys** in a local setting.
 ## Setting up a local replica system
 
 If you just want to try out **consys**, the easiest wayt to do this is in a local setting. **consys** provides an easy interface for trying it out locally.
-  
+
 First, you create a bunch (in this case 4) of local replica systems
 
 ```java
@@ -199,4 +203,3 @@ b.ref().incAll();
 ```
 
 **consys** automatically replicates method calls or field accesses to other replica system using the specified consistency level. At the point of writing this introduction, the only supported levels are `WEAK` and `STRONG`. We are working hard to include additional levels.
-
