@@ -6,11 +6,13 @@ package de.tuda.stg.consys.core
 	* @author Mirko Köhler
 	*/
 trait Ref[Addr, T] extends Serializable {
+	type ConsistencyLevel
 
 	val addr : Addr
+
 	val consistencyLevel : ConsistencyLevel
 
-	def deref : ReplicatedObject[Addr, T]
+	def deref : ReplicatedObject[Addr, T] {type ConsistencyLevel}
 
 	def isAvailable : Boolean
 

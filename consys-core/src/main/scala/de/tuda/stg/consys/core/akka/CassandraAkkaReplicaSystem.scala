@@ -4,8 +4,8 @@ import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch}
 
 import akka.actor.ActorRef
 import akka.dispatch.ExecutionContexts
-import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.ConsistencyLevel.Cassandra
+import de.tuda.stg.consys.core.ConsistencyLabel
+import de.tuda.stg.consys.core.ConsistencyLabel.Cassandra
 import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, Operation, Request}
 
 import scala.collection.{JavaConverters, mutable}
@@ -41,7 +41,7 @@ object CassandraAkkaReplicaSystem {
 		init : T,
 		val addr : Loc,
 		val replicaSystem : AkkaReplicaSystem {type Addr = Loc},
-		override val consistencyLevel : ConsistencyLevel
+		override val consistencyLevel : ConsistencyLabel
 	)(
 		protected implicit val ttt : TypeTag[T]
 	) extends AkkaReplicatedObject[Loc, T] {

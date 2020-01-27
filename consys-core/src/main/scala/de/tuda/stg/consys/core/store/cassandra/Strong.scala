@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
-import de.tuda.stg.consys.core.ConsistencyLevel
+import de.tuda.stg.consys.core.ConsistencyLabel
 import de.tuda.stg.consys.core.store.{StoreConsistencyModel, StoreConsistencyLevel}
 import de.tuda.stg.consys.core.store.cassandra.LockingStoreExt.ZookeeperLock
 

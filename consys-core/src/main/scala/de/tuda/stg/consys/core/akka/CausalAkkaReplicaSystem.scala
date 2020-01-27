@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
-import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.ConsistencyLevel.Causal
+import de.tuda.stg.consys.core.ConsistencyLabel
+import de.tuda.stg.consys.core.ConsistencyLabel.Causal
 import de.tuda.stg.consys.core.akka.CausalAkkaReplicaSystem.CausalReplicatedObject.CausalMasterReplicatedObject
 import de.tuda.stg.consys.core.akka.Requests._
 
@@ -27,7 +27,7 @@ trait CausalAkkaReplicaSystem extends AkkaReplicaSystem {
 object CausalAkkaReplicaSystem {
 
   trait CausalReplicatedObject[Loc, T] extends AkkaReplicatedObject[Loc, T] {
-    override final def consistencyLevel: ConsistencyLevel = Causal
+    override final def consistencyLevel: ConsistencyLabel = Causal
   }
 
   object CausalReplicatedObject {

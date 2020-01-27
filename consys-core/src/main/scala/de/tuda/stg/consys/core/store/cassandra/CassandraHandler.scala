@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.ConsistencyLevel
+import de.tuda.stg.consys.core.ConsistencyLabel
 import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
 
 import scala.reflect.runtime.universe.TypeTag

@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.demo.counter;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
@@ -53,7 +53,7 @@ public class JMHBenchmark {
 			replicaSystem2 = systems[1];
 			replicaSystem3 = systems[2];
 
-			ConsistencyLevel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
+			ConsistencyLabel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
 
 			replicaSystem1.replicate("counter1", new Counter(0), consistencyLevel);
 			replicaSystem2.replicate("counter2", new Counter(0), consistencyLevel);

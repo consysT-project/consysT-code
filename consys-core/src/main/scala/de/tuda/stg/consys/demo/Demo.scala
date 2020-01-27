@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo
 import java.util.concurrent.Executors
 
 import akka.dispatch.ExecutionContexts
-import de.tuda.stg.consys.core.ConsistencyLevel.Strong
+import de.tuda.stg.consys.core.ConsistencyLabel.Strong
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory
 
 import scala.concurrent.ExecutionContext

@@ -3,7 +3,7 @@ package de.tuda.stg.consys.examples.collections;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
@@ -29,10 +29,10 @@ public class JRefArrayList implements Serializable, JReplicated {
 
     public int arraySize;
 
-    public ConsistencyLevel level;
+    public ConsistencyLabel level;
 
 
-    public <T> JRefArrayList(ConsistencyLevel level, int arraySize) {
+    public <T> JRefArrayList(ConsistencyLabel level, int arraySize) {
         current = head; this.level = level;
         tail = head; this.arraySize=arraySize;
     }

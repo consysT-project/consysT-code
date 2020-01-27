@@ -44,7 +44,7 @@ trait CassandraStore extends DistributedStore
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
 
-	override def transaction[T](code : TxContext => Option[T]) : Option[T] = {
+	override def transaction[U](code : TxContext => Option[U]) : Option[U] = {
 		val tx = CassandraTransactionContext(this)
 		CassandraStores.currentTransaction.withValue(tx) {
 			try {

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.ConsistencyLevel.Weak
+import de.tuda.stg.consys.core.ConsistencyLabel.Weak
 import de.tuda.stg.consys.core.Ref
 import de.tuda.stg.consys.core.akka.Data.A
 import org.scalatest.fixture

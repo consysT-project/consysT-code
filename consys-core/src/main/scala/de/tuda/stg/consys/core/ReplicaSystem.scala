@@ -31,6 +31,9 @@ trait ReplicaSystem {
 	type Ref[T <: Obj] <: core.Ref[Addr, T]
 
 
+	type ConsistencyLevel
+
+
 	/**
 	 * The name of the replica system.
 	 *

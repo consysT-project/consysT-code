@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.ConsistencyLevel
+import de.tuda.stg.consys.core.ConsistencyLabel
 import de.tuda.stg.consys.core.akka.Transaction.NestedTransaction
 
 import scala.collection.mutable
@@ -14,7 +14,7 @@ private[akka] trait Transaction extends Serializable {
 
 	val timestamp : Long = System.currentTimeMillis()
 
-	def consistencyLevel : ConsistencyLevel
+	def consistencyLevel : ConsistencyLabel
 	def id : Long
 
 	def isToplevel : Boolean = getParent.isEmpty
@@ -27,17 +27,17 @@ private[akka] trait Transaction extends Serializable {
 
 	def locks : Iterable[String]
 
-	def hasOnlyLevel(level : ConsistencyLevel) : Boolean
+	def hasOnlyLevel(level : ConsistencyLabel) : Boolean
 
-	def start(consistencyLevel : ConsistencyLevel) : Transaction = {
+	def start(consistencyLevel : ConsistencyLabel) : Transaction = {
 		NestedTransaction(this, incAndGetSeqFor(consistencyLevel), consistencyLevel)
 	}
 
 
 
-	@transient private var sequence : mutable.Map[ConsistencyLevel, Int] = null
+	@transient private var sequence : mutable.Map[ConsistencyLabel, Int] = null
 
-	private def incAndGetSeqFor(level : ConsistencyLevel): Int = {
+	private def incAndGetSeqFor(level : ConsistencyLabel): Int = {
 		if (sequence == null)
 			sequence = mutable.HashMap.empty
 
@@ -55,7 +55,7 @@ private[akka] trait Transaction extends Serializable {
 object Transaction {
 
 	@SerialVersionUID(-9453185352L)
-	case class ToplevelTransaction(override val id : Long, override val consistencyLevel : ConsistencyLevel)
+	case class ToplevelTransaction(override val id : Long, override val consistencyLevel : ConsistencyLabel)
 		extends Transaction {
 
 		override def getParent : Option[Transaction] = None
@@ -76,12 +76,12 @@ object Transaction {
 
 		override def toString : String = s"tx[locked=${lockList.mkString(",")}]::$consistencyLevel|$id"
 
-		override def hasOnlyLevel(level : ConsistencyLevel) : Boolean =
+		override def hasOnlyLevel(level : ConsistencyLabel) : Boolean =
 			consistencyLevel == level
 	}
 
 	@SerialVersionUID(-1542145564L)
-	case class NestedTransaction(parent : Transaction, seqId : Int, override val consistencyLevel : ConsistencyLevel)
+	case class NestedTransaction(parent : Transaction, seqId : Int, override val consistencyLevel : ConsistencyLabel)
 		extends Transaction {
 
 		override def id : Long = parent.id
@@ -101,7 +101,7 @@ object Transaction {
 
 		override def toString : String = parent.toString + s"::/$consistencyLevel|$seqId"
 
-		override def hasOnlyLevel(level : ConsistencyLevel) : Boolean =
+		override def hasOnlyLevel(level : ConsistencyLabel) : Boolean =
 			consistencyLevel == level && parent.hasOnlyLevel(level)
 
 

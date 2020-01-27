@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
@@ -22,7 +22,7 @@ public class JRefHashMap implements Serializable, JReplicated {
     private JRef<JRefDistList> map;
     private double loadFactor;
     private int filled;
-    private ConsistencyLevel level;
+    private ConsistencyLabel level;
 
 
     public int size() {
@@ -32,7 +32,7 @@ public class JRefHashMap implements Serializable, JReplicated {
     public JRefHashMap() {
     }
 
-    public boolean init(int initial_size, ConsistencyLevel level) {
+    public boolean init(int initial_size, ConsistencyLabel level) {
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())

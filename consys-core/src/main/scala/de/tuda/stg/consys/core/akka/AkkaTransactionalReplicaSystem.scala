@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.{ConsistencyLevel, TransactionalReplicaSystem}
+import de.tuda.stg.consys.core.{ConsistencyLabel, TransactionalReplicaSystem}
 
 import scala.util.DynamicVariable
 
@@ -34,7 +34,7 @@ trait AkkaTransactionalReplicaSystem extends TransactionalReplicaSystem {
 	override def getCurrentTransaction : Tx = context.getCurrentTransaction
 
 	override def newTransaction(consistencyLevel : ConsistencyLevel) : Unit =
-		context.newTransaction(consistencyLevel)
+		context.newTransaction(consistencyLevel.asInstanceOf[ConsistencyLabel])
 
 	override def commitTransaction() : Unit =
 		context.commitTransaction()

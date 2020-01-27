@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi.impl.akka;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.Ref;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.*;
@@ -28,7 +28,7 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 
 
 	@Override
-	public <T> JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel) {
+	public <T> JRef<T> replicate(String addr, @Local T obj, ConsistencyLabel consistencyLevel) {
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(addr, obj, objCls, consistencyLevel);
 
@@ -36,7 +36,7 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 	}
 
 	@Override
-	public <T> JRef<T> replicate(@Local T obj, ConsistencyLevel consistencyLevel) {
+	public <T> JRef<T> replicate(@Local T obj, ConsistencyLabel consistencyLevel) {
 		Class<T> objCls = (Class<T>) obj.getClass();
 		Ref<String, T> ref = replicaSystem.replicate(obj, objCls, consistencyLevel);
 
@@ -44,7 +44,7 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 	}
 
 	@Override
-	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel) {
+	public <T> JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLabel consistencyLevel) {
 		Ref<String, T> ref = replicaSystem.lookup(addr, objCls, consistencyLevel);
 		return new JAkkaRef<>(ref);
 	}
