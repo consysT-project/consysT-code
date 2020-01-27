@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
-import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.ConsistencyLevel.Strong
+import de.tuda.stg.consys.core.ConsistencyLabel
+import de.tuda.stg.consys.core.ConsistencyLabel.Strong
 import de.tuda.stg.consys.core.akka.Requests._
 import de.tuda.stg.consys.core.akka.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 
@@ -35,7 +35,7 @@ object StrongAkkaReplicaSystem {
 	trait StrongReplicatedObject[Addr, T]
 		extends AkkaReplicatedObject[Addr, T]
 		with Lockable[T] {
-		override final def consistencyLevel : ConsistencyLevel = Strong
+		override final def consistencyLevel : ConsistencyLabel = Strong
 	}
 
 	object StrongReplicatedObject {

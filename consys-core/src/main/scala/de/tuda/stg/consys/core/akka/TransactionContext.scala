@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.ConsistencyLevel
+import de.tuda.stg.consys.core.ConsistencyLabel
 import de.tuda.stg.consys.core.akka.Transaction.ToplevelTransaction
 
 import scala.util.Random
@@ -35,7 +35,7 @@ class TransactionContext {
 	}
 
 
-	def newTransaction(consistencyLevel : ConsistencyLevel) : Unit = {
+	def newTransaction(consistencyLevel : ConsistencyLabel) : Unit = {
 		if (hasCurrentTransaction) {
 			currentTransaction = currentTransaction.start(consistencyLevel)
 		} else {

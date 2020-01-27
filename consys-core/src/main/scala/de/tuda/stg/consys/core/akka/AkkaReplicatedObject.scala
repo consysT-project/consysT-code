@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.akka
 import java.lang.reflect.Modifier
 
 import de.tuda.stg.consys.core.akka.Requests._
-import de.tuda.stg.consys.core.{ReflectiveReplicatedObject, Replicated}
+import de.tuda.stg.consys.core.{ConsistencyLabel, ReflectiveReplicatedObject, Replicated}
 
 import scala.language.postfixOps
 
@@ -13,6 +13,8 @@ import scala.language.postfixOps
 	* @author Mirko Köhler
 	*/
 trait AkkaReplicatedObject[Loc, T] extends ReflectiveReplicatedObject[Loc, T] {
+
+	type ConsistencyLevel = ConsistencyLabel
 
 	protected val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 

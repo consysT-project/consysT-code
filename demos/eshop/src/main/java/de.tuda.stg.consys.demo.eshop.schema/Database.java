@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
@@ -223,7 +223,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
         }
     }
 
-    private JRef<User> resolveUser(String addr, ConsistencyLevel level){
+    private JRef<User> resolveUser(String addr, ConsistencyLabel level){
         if(addr == null)return null;
 
         Optional<JReplicaSystem> systemOptional = getSystem();
@@ -236,7 +236,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
         return system.lookup(addr, User.class, level);
     }
 
-    private JRef<Product> resolveProduct(String addr, ConsistencyLevel level){
+    private JRef<Product> resolveProduct(String addr, ConsistencyLabel level){
         if(addr == null)return null;
 
         Optional<JReplicaSystem> systemOptional = getSystem();

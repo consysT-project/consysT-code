@@ -2,7 +2,7 @@ package de.tuda.stg.consys.core.akka
 
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import de.tuda.stg.consys.core.{Address, ConsistencyLevel, ReplicaSystemFactory}
+import de.tuda.stg.consys.core.{Address, ConsistencyLabel, ReplicaSystemFactory}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.runtime.universe._

@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 
 /**
@@ -32,11 +32,11 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
-	protected ConsistencyLevel getStrongLevel() {
+	protected ConsistencyLabel getStrongLevel() {
 		return JConsistencyLevels.STRONG;
 	}
 
-	protected ConsistencyLevel getWeakLevel() {
+	protected ConsistencyLabel getWeakLevel() {
 		switch (benchType) {
 			case MIXED: return JConsistencyLevels.WEAK;
 			case STRONG: return JConsistencyLevels.STRONG;
@@ -45,7 +45,7 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 		throw new IllegalArgumentException("unsupported benchtype " + benchType);
 	}
 
-	protected ConsistencyLevel getCausalLevel() {
+	protected ConsistencyLabel getCausalLevel() {
 		switch (benchType) {
 			case MIXED: return JConsistencyLevels.CAUSAL;
 			case STRONG: return JConsistencyLevels.STRONG;

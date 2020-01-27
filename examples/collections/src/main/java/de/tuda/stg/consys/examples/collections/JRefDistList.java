@@ -3,7 +3,7 @@ package de.tuda.stg.consys.examples.collections;
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
@@ -27,7 +27,7 @@ public class JRefDistList implements Serializable, JReplicated {
 
     public JRef tail;
 
-    public ConsistencyLevel level;
+    public ConsistencyLabel level;
 
     //A variable to indicate if searching by jref should be done based on
     // exact reference or on the replica, default is false
@@ -39,7 +39,7 @@ public class JRefDistList implements Serializable, JReplicated {
 
     //TODO: Add unsynced and synced functions, rerun benchmarks
 
-    public <T> JRefDistList(ConsistencyLevel level) {
+    public <T> JRefDistList(ConsistencyLabel level) {
         current = head; this.level = level;
         tail = head;
     }

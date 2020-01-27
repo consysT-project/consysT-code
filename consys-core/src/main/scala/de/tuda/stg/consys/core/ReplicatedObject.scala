@@ -8,6 +8,8 @@ package de.tuda.stg.consys.core
 
 trait ReplicatedObject[Addr, T] {
 
+	type ConsistencyLevel
+
 	def addr : Addr
 
 	def consistencyLevel : ConsistencyLevel

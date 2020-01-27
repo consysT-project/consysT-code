@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 
 
 /**
@@ -43,7 +43,7 @@ public interface JReplicaSystem extends AutoCloseable {
 	 *
 	 * @see JRef
 	 */
-	<T> @Local JRef<T> replicate(String addr, @Local T obj, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> replicate(String addr, @Local T obj, ConsistencyLabel consistencyLevel);
 
 	/**
 	 * Creates a new replicated object from the given local Java object. The implementation can decide whether the state of
@@ -59,7 +59,7 @@ public interface JReplicaSystem extends AutoCloseable {
 	 *
 	 * @see JRef
 	 */
-	<T> @Local JRef<T> replicate(@Local T obj, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> replicate(@Local T obj, ConsistencyLabel consistencyLevel);
 
 	/**
 	 * Looks up an existing replicated object by its address. The class of the object has to be known
@@ -73,6 +73,6 @@ public interface JReplicaSystem extends AutoCloseable {
 	 * @param <T> The type of the replicated object.
 	 * @return A reference to the replicated object.
 	 */
-	<T> @Local JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLevel consistencyLevel);
+	<T> @Local JRef<T> lookup(String addr, Class<T> objCls, ConsistencyLabel consistencyLevel);
 }
 

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.akka
 
 
-import de.tuda.stg.consys.core.{ConsistencyLevel, Ref, ReplicatedObject}
+import de.tuda.stg.consys.core.{ConsistencyLabel, Ref, ReplicatedObject}
 
 import scala.concurrent.TimeoutException
 
@@ -11,10 +11,12 @@ import scala.concurrent.TimeoutException
 	* @author Mirko Köhler
 	*/
 private[akka] class AkkaRef[Loc, T](
-	val addr : Loc,
-	val consistencyLevel : ConsistencyLevel,
-	@transient private[akka] var replicaSystem : AkkaReplicaSystem { type Addr = Loc }
+	                                   val addr : Loc,
+	                                   val consistencyLevel : ConsistencyLabel,
+	                                   @transient private[akka] var replicaSystem : AkkaReplicaSystem { type Addr = Loc }
 ) extends Ref[Loc, T] {
+
+	type ConsistencyLevel = ConsistencyLabel
 
 	/* Only use this for emergencies */
 	def setReplicaSystem(replicaSystem  : AkkaReplicaSystem { type Addr = Loc } ) : Unit = {

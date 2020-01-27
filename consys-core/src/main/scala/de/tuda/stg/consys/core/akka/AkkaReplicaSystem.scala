@@ -9,7 +9,7 @@ import akka.util.Timeout
 import de.tuda.stg.consys.core
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
 import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest, _}
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
+import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLabel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -36,6 +36,8 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	override type Tx = Transaction
 
 	override type Ref[T <: Obj] <: AkkaRef[Addr, T]
+
+	override type ConsistencyLevel = ConsistencyLabel
 
 	/*The actor that is used to communicate with this replica.*/
 	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
@@ -67,7 +69,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 			}
 		}
 
-		def size : Int = localObjects.valuesIterator.foldLeft(0)((i, obj) => if (obj.consistencyLevel == ConsistencyLevel.Strong) i + 1 else i)
+		def size : Int = localObjects.valuesIterator.foldLeft(0)((i, obj) => if (obj.consistencyLevel == ConsistencyLabel.Strong) i + 1 else i)
 
 
 		def remove(addr : Addr) : Unit = localObjects.remove(addr) match {
@@ -432,7 +434,7 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 	sealed trait ReplicaActorMessage
-	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
+	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : ConsistencyLabel, masterRef : ActorRef) extends ReplicaActorMessage {
 		require(obj.isInstanceOf[java.io.Serializable], s"expected serializable, but was $obj of class ${obj.getClass}")
 	}
 

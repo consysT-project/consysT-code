@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
@@ -24,7 +24,7 @@ public class JRefAddressMap implements Serializable, JReplicated {
     private JRef<StringNode> tail;
     private JRef<StringNode> current;
 
-    ConsistencyLevel level;
+    ConsistencyLabel level;
 
     private double loadFactor;
     private int filled;
@@ -37,7 +37,7 @@ public class JRefAddressMap implements Serializable, JReplicated {
     public JRefAddressMap() {
     }
 
-    public boolean init(int initial_size, ConsistencyLevel level) throws Exception{
+    public boolean init(int initial_size, ConsistencyLabel level) throws Exception{
         Optional<JReplicaSystem> systemOptional = getSystem();
         JReplicaSystem system;
         if(systemOptional.isPresent())

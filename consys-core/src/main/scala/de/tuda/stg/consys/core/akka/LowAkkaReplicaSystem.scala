@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
-import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.ConsistencyLevel.Low
+import de.tuda.stg.consys.core.ConsistencyLabel
+import de.tuda.stg.consys.core.ConsistencyLabel.Low
 import de.tuda.stg.consys.core.akka.LowAkkaReplicaSystem.LowReplicatedObject
 import de.tuda.stg.consys.core.akka.Requests._
 
@@ -51,7 +51,7 @@ object LowAkkaReplicaSystem {
 		with Lockable[T] {
 		setObject(init)
 
-		override final def consistencyLevel : ConsistencyLevel = Low
+		override final def consistencyLevel : ConsistencyLabel = Low
 
 		private final val isRequest : DynamicVariable[Boolean] = new DynamicVariable(false)
 

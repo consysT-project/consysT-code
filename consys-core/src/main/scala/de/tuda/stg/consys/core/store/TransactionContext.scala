@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store
 
-import de.tuda.stg.consys.core.store
+import de.tuda.stg.consys.core.{ConsysUtils, store}
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -33,4 +33,17 @@ trait TransactionContext {
 
 	private[store] def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
 		throw new UnsupportedOperationException("this transaction context does not support lookups.")
+
+
+	/* Java interface for replicate */
+	final def replicate[T <: StoreType#ObjType](addr : StoreType#Addr, obj : T, objCls : Class[T], level : ConsistencyLevel) : StoreType#RefType[T] = {
+		replicate(addr, obj, level)(ConsysUtils.typeTagFromCls(objCls))
+	}
+	/* Java interface for ref */
+	final def lookup[T <: StoreType#ObjType](addr : StoreType#Addr, objCls : Class[T], l : ConsistencyLevel) : StoreType#RefType[T] = {
+		lookup(addr, l)(ConsysUtils.typeTagFromCls(objCls))
+	}
+
 }
+
+
