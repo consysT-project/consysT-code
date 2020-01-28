@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store
 
-import de.tuda.stg.consys.core.{ConsysUtils, store}
+import de.tuda.stg.consys.core.store.legacy.ConsysUtils
 
 import scala.reflect.runtime.universe.TypeTag
 

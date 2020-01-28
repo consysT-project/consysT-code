@@ -15,6 +15,7 @@ trait ZookeeperStoreExt { self : DistributedStore =>
 
 	override def close() : Unit = {
 		curator.close()
+		self.close()
 	}
 
 }

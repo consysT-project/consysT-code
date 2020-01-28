@@ -155,12 +155,18 @@ public class ConsysJavacPlugin implements Plugin {
 	}
 
 	private static Optional<CRefUsage> classifyRef(ModifyingTreePath path, Context context) {
-		if (path == null) return Optional.empty();
+		if (path == null) {
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"Cannont classify ref for null\n=> empty1");
+			return Optional.empty();
+		}
+
+		if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"# " + path.getLeaf());
 		Tree curr = path.getLeaf();
 
 		//Check for a call to ref(), i.e. there is a MemberSelect and a MethodInvocation
 		if (!(curr instanceof MemberSelectTree
 			&& ((MemberSelectTree) curr).getIdentifier().contentEquals("ref"))) {
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty1");
 			return Optional.empty();
 		}
 
@@ -170,18 +176,25 @@ public class ConsysJavacPlugin implements Plugin {
 
 		//Move to parent leaf
 		path = path.getParentPath();
-		if (path == null) return Optional.empty();
+		if (path == null) {
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty2");
+			return Optional.empty();
+		}
 		curr = path.getLeaf();
 
 		if (!(curr instanceof MethodInvocationTree
 			&& ((MethodInvocationTree) curr).getArguments().isEmpty()
 			&& ((MethodInvocationTree) curr).getTypeArguments().isEmpty())) {
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty3");
 			return Optional.empty();
 		}
 
 		//Move to parent leaf
 		path = path.getParentPath();
-		if (path == null) return Optional.empty();
+		if (path == null) {
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty4");
+			return Optional.empty();
+		}
 		curr = path.getLeaf();
 
 		//Test if the ref belongs to a method invocation
@@ -194,7 +207,7 @@ public class ConsysJavacPlugin implements Plugin {
 
 			if (methodCurr instanceof MethodInvocationTree && ((MethodInvocationTree) methodCurr).getMethodSelect() == curr) {
 				List<? extends ExpressionTree> args = ((MethodInvocationTree) methodCurr).getArguments();
-//				Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found method: " + expr + "." + name + "(" + args + ")");
+				if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "=> method: " + expr + "." + name + "(" + args + ")");
 				return Optional.of(new CMethodInv(methodPath, expr, name, args));
 			}
 		}
@@ -208,6 +221,7 @@ public class ConsysJavacPlugin implements Plugin {
 			Tree assignCurr = assignPath.getLeaf();
 
 			if (assignCurr instanceof AssignmentTree && ((AssignmentTree) assignCurr).getVariable() == curr) {
+				if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "=> field set: " + expr + "." + name );
 				return Optional.of(new CAssign(assignPath, expr, name, ((AssignmentTree) assignCurr).getExpression()));
 			}
 		}
@@ -215,11 +229,11 @@ public class ConsysJavacPlugin implements Plugin {
 		//Test if the ref belongs to a field access
 		if (curr instanceof MemberSelectTree) {
 			Name name = ((MemberSelectTree) curr).getIdentifier();
-//			Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Found facc: " + expr + "." + name );
+			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "=> field get: " + expr + "." + name );
 			return Optional.of(new CFieldAcc(path, expr, name));
 		}
 
-
+		if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty5");
 		return Optional.empty();
 	}
 

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.eshop;
 
-import de.tuda.stg.consys.core.ConsistencyLabel;
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
 
 /**
  * Created on 19.11.19.

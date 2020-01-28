@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.core.ConsistencyLabel;
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 
 /**

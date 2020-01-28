@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.ConsysUtils
 import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
 import jdk.dynalink.linker.support.TypeUtilities
 
@@ -19,11 +18,20 @@ private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : Ty
 	def state : T
 	def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore }
 
-	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
-		ReflectiveAccess.doInvoke(methodId, args)
+	override def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
+		ReflectiveAccess.doInvoke[R](methodId, args)
 	}
 
-	def writeToStore(store : CassandraStore) : Unit
+	override def getField[R](fieldName : String) : R = {
+		ReflectiveAccess.doGetField[R](fieldName)
+	}
+
+	override def setField[R](fieldName : String, value : R) : Unit = {
+		ReflectiveAccess.doSetField(fieldName, value)
+	}
+
+
+	protected[cassandra] def writeToStore(store : CassandraStore) : Unit
 
 	//This method is called for every object that was part of a transaction.
 	//It has to be used to write changes back to Cassandra and to release all locks.

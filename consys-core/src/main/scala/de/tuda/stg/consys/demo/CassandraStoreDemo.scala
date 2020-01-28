@@ -64,13 +64,13 @@ object CassandraStoreDemo extends App {
 		for (i <- 1 to 10) doTx(store2)
 	} onComplete {
 		case Failure(exception) => exception.printStackTrace()
-		case Success(value) => println(store2.name + " woop woop")
+		case Success(value) => println(store2.id + " woop woop")
 	}
 	Future {
 		for (i <- 1 to 10) doTx(store3)
 	} onComplete {
 		case Failure(exception) => exception.printStackTrace()
-		case Success(value) => println(store3.name + " woop woop")
+		case Success(value) => println(store3.id + " woop woop")
 	}
 
 
@@ -81,7 +81,7 @@ object CassandraStoreDemo extends App {
 		obj1.invoke("inc", Seq(Seq()))
 		obj1.invoke("inc", Seq(Seq()))
 		obj1.invoke("half", Seq(Seq()))
-		println(str.name + ": " + obj1.invoke("get", Seq()))
+		println(str.id + ": " + obj1.invoke("get", Seq()))
 		Some (())
 	}
 

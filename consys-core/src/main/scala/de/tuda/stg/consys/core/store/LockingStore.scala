@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store
 
-import de.tuda.stg.consys.core.store.LockingTransactionContext.DistributedLock
+import LockingStore.DistributedLock
 
 /**
  * Created on 16.01.20.
@@ -9,5 +9,14 @@ import de.tuda.stg.consys.core.store.LockingTransactionContext.DistributedLock
  */
 trait LockingStore extends DistributedStore {
 	type LockType <: DistributedLock
-	def retrieveLockFor(addr : Addr) : LockType
+
+	def lockFor(addr : Addr) : LockType
+}
+
+object LockingStore {
+
+	trait DistributedLock {
+		def acquire() : Unit
+		def release() : Unit
+	}
 }

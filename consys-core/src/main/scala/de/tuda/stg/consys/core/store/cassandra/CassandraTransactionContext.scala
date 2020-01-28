@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import com.datastax.oss.driver.api.core.time.TimestampGenerator
 import de.tuda.stg.consys.core.store.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext, TransactionContext}
 
 import scala.language.implicitConversions
