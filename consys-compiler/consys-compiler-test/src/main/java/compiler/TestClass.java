@@ -1,12 +1,12 @@
 package compiler;
 
-import de.tuda.stg.consys.japi.JConsistencyLevels;
-import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.japi.next.cassandra.Binding;
+import de.tuda.stg.consys.japi.next.Ref;
+import scala.Option;
+import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 /**
  * Created on 30.09.19.
@@ -26,29 +26,64 @@ public class TestClass {
 		}
 	}
 
+//	public static void main(String[] args) throws Exception {
+//
+//		JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(2);
+//
+//		JReplicaSystem replicaSystem1 = systems[0];
+//		JReplicaSystem replicaSystem2 = systems[1];
+//
+//		try {
+//			JRef<Box> ref1Strong = replicaSystem1.replicate("os", new Box(42), JConsistencyLevels.STRONG);
+//			JRef<Box> ref2Strong = replicaSystem2.lookup("os", Box.class, JConsistencyLevels.STRONG);
+//
+//			ref1Strong.ref().incBy(23);
+//			System.out.println(Objects.toString(ref2Strong.ref().i));
+//			ref2Strong.ref().i = 777;
+//			System.out.println(Objects.toString(ref1Strong.ref().i));
+//
+//			ref2Strong.ref().i = ref2Strong.ref().i;
+//
+//		} finally {
+//			replicaSystem1.close();
+//			replicaSystem2.close();
+//		}
+//
+//	}
+
+
 	public static void main(String[] args) throws Exception {
+		Binding.Cassandra.ReplicaBinding replica1 = Binding.Cassandra.newReplica(
+			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
+		);
 
-		JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(2);
+		Binding.Cassandra.ReplicaBinding replica2 = Binding.Cassandra.newReplica(
+			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
+		);
 
-		JReplicaSystem replicaSystem1 = systems[0];
-		JReplicaSystem replicaSystem2 = systems[1];
+		System.out.println("transaction 1");
+		replica1.transaction(ctx -> {
+			Ref<Box> box1 = ctx.replicate("box1", new Box(42), CassandraConsistencyLevels.STRONG());
+			box1.ref().incBy(23);
+			System.out.println("inced");
+			return Option.empty();
+		});
 
-		try {
-			JRef<Box> ref1Strong = replicaSystem1.replicate("os", new Box(42), JConsistencyLevels.STRONG);
-			JRef<Box> ref2Strong = replicaSystem2.lookup("os", Box.class, JConsistencyLevels.STRONG);
+		System.out.println("done.");
 
-			ref1Strong.ref().incBy(23);
-			System.out.println(Objects.toString(ref2Strong.ref().i));
-			ref2Strong.ref().i = 777;
-			System.out.println(Objects.toString(ref1Strong.ref().i));
+//		System.out.println("transaction 2");
+//		replica1.transaction(ctx -> {
+//			Ref<Box> box1 = ctx.lookup("box1", Box.class, CassandraConsistencyLevels.STRONG());
+//			box1.ref().incBy(1);
+//			int i = box1.ref().i;
+//			System.out.println(i);
+//			return Option.empty();
+//		});
 
-			ref2Strong.ref().i = ref2Strong.ref().i;
-
-		} finally {
-			replicaSystem1.close();
-			replicaSystem2.close();
-		}
+		replica1.close();
+		replica2.close();
 
 	}
+
 
 }

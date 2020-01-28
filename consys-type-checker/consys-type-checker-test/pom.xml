@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>consys-type-checker-test</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0-alpha</version>
     
     <parent>
     	<groupId>de.tuda.stg.consys</groupId>
 		<artifactId>consys</artifactId>
-		<version>2.0.0</version>
+		<version>3.0.0-alpha</version>
         <relativePath>/../..</relativePath>
     </parent>
 
@@ -57,12 +57,12 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
     </dependencies>
     

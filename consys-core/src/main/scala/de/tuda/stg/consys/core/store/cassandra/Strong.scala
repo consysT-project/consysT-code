@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import com.datastax.oss.driver.api.core.{ConsistencyLevel => CLevel}
-import de.tuda.stg.consys.core.ConsistencyLabel
-import de.tuda.stg.consys.core.store.{StoreConsistencyModel, StoreConsistencyLevel}
-import de.tuda.stg.consys.core.store.cassandra.LockingStoreExt.ZookeeperLock
+import com.datastax.oss.driver.api.core.ConsistencyLevel
+import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyModel}
 
 import scala.reflect.runtime.universe._
 
@@ -28,7 +26,7 @@ case object Strong extends StoreConsistencyLevel {
 
 		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
-			val obj = store.CassandraBinding.readObject[T](addr, CLevel.ALL)
+			val obj = store.CassandraBinding.readObject[T](addr, ConsistencyLevel.ALL)
 			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 	}
@@ -36,8 +34,8 @@ case object Strong extends StoreConsistencyLevel {
 	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Strong
 
-		override def writeToStore(store : CassandraStore) : Unit =
-			store.CassandraBinding.writeObject(addr, state, CLevel.ALL, txContext.timestamp)
+		override protected[cassandra] def writeToStore(store : CassandraStore) : Unit =
+			store.CassandraBinding.writeObject(addr, state, ConsistencyLevel.ALL, txContext.timestamp)
 	}
 
 }

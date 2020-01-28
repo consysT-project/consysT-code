@@ -3,14 +3,13 @@ package de.tuda.stg.consys.core.store.cassandra
 import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.util.concurrent.TimeUnit
 
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
-import de.tuda.stg.consys.core.Address
-import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
+import de.tuda.stg.consys.core.store.DistributedStore
+import io.aeron.exceptions.DriverTimeoutException
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
@@ -30,6 +29,7 @@ trait CassandraStore extends DistributedStore
 	/* Force initialization of binding */
 	CassandraBinding
 
+	override final type Id = CassandraStoreId
 
 	override final type Addr = String
 	override final type ObjType = java.io.Serializable
@@ -45,16 +45,18 @@ trait CassandraStore extends DistributedStore
 	protected def initializing : Boolean
 
 	override def transaction[U](code : TxContext => Option[U]) : Option[U] = {
-		val tx = CassandraTransactionContext(this)
-		CassandraStores.currentTransaction.withValue(tx) {
-			try {
-				code(tx) match {
-					case None => None
-					case res@Some(_) =>
-						res
+		CassandraStores.currentStore.withValue(this) {
+			val tx = CassandraTransactionContext(this)
+			CassandraStores.currentTransaction.withValue(tx) {
+				try {
+					code(tx) match {
+						case None => None
+						case res@Some(_) =>
+							res
+					}
+				} finally {
+					tx.commit()
 				}
-			} finally {
-				tx.commit()
 			}
 		}
 	}
@@ -65,7 +67,7 @@ trait CassandraStore extends DistributedStore
 		cassandraSession.close()
 	}
 
-	override def name : String = s"node@${cassandraSession.getContext.getSessionName}"
+	override def id : CassandraStoreId = CassandraStoreId(s"node@${cassandraSession.getContext.getSessionName}")
 
 	override protected[store] def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
 		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
@@ -84,7 +86,12 @@ trait CassandraStore extends DistributedStore
 
 
 		private def initialize(): Unit = {
-			cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+			//TODO: Remove try catch once it's fixed.
+			try {
+				cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+			} catch {
+				case e : DriverTimeoutException => println("driver timeout during drop")
+			}
 			cassandraSession.execute(
 				s"""CREATE KEYSPACE $keyspaceName
 					 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""

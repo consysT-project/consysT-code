@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.japi;
 
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
 
 /**
  * Created on 01.03.19.

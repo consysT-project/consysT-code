@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.integrationtest;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.core.Address;
+import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.integrationtest.schema.ObjA;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;

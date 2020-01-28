@@ -5,7 +5,7 @@
     <parent>
         <artifactId>consys</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
-        <version>2.0.0</version>
+        <version>3.0.0-alpha</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -30,17 +30,17 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-compiler</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-core</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
     </dependencies>
 

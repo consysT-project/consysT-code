@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store
 
-import scala.reflect.runtime.universe._
 import scala.language.higherKinds
+import scala.reflect.runtime.universe._
 
 /**
  * Created on 10.12.19.
@@ -9,6 +9,8 @@ import scala.language.higherKinds
  * @author Mirko Köhler
  */
 trait Store extends AutoCloseable {
+
+	type Id
 
 	type Addr
 	type ObjType
@@ -18,9 +20,11 @@ trait Store extends AutoCloseable {
 	type RawType[T <: ObjType] <: StoredObject[_ <: Store, T]
 	type RefType[T <: ObjType] <: Handler[_ <: Store, T]
 
-	def name : String
+	def id : Id
 
 	def transaction[T](code : TxContext => Option[T]) : Option[T]
+
+	override def close() : Unit = { }
 
 	protected[store] def enref[T <: ObjType : TypeTag](obj : RawType[T]) : RefType[T]
 }

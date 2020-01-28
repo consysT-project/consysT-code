@@ -11,7 +11,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import com.typesafe.config.{Config, ConfigFactory}
-import de.tuda.stg.consys.core.Address
+import de.tuda.stg.consys.core.store.utils.Address
 import de.tuda.stg.consys.japi.impl.JReplicaSystems
 import de.tuda.stg.consys.japi.JReplicaSystem
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem
