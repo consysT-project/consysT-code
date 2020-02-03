@@ -5,7 +5,7 @@
 # layout: home
 ---
 
-**consys** allows you to easily write programs with distributed, replicated data. It is [available](install.md) as an extension to *Java*.
+**consys** is a statically typed language that allows to distribute and replicate data with different consistency levels, to boost performance or to increase consistency. The static type system ensures safe mixing of replicated data with different consistency levels. **consys** is object oriented and is easily integrated into existing Java programs.
 
 
 # Features
