@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store
 
+import akka.actor.ActorSystem
 import de.tuda.stg.consys.core.store.legacy.ConsysUtils
 
 import scala.reflect.runtime.universe.TypeTag
@@ -16,6 +17,7 @@ trait TransactionContext {
 	val store : StoreType
 
 	final def replicate[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RefType[T] = {
+		ActorSystem
 		store.enref(
 			replicateRaw[T](addr, obj, level)(implicitly[TypeTag[T]])
 				.asInstanceOf[store.RawType[T with store.ObjType]]
