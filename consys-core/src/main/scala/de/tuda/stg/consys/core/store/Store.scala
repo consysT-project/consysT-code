@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.core.store
 
 import scala.language.higherKinds
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
@@ -26,5 +27,5 @@ trait Store extends AutoCloseable {
 
 	override def close() : Unit = { }
 
-	protected[store] def enref[T <: ObjType : TypeTag](obj : RawType[T]) : RefType[T]
+	protected[store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T]
 }

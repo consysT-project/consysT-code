@@ -37,6 +37,10 @@ private[consys] object ConsysUtils {
 		ClassTag[T]( typeTag[T].mirror.runtimeClass( typeTag[T].tpe ) )
 
 
+	def classToClassTag[T](clazz : Class[T]) : ClassTag[T] = {
+		val rtMirror = runtimeMirror(clazz.getClassLoader)
+		ClassTag[T](rtMirror.runtimeClass(rtMirror.classSymbol(clazz).toType))
+	}
 
 
 	/*Implementation adapted from https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/LockSupport.html:

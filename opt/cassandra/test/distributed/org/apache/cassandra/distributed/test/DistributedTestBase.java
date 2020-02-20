@@ -28,8 +28,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
+import com.datastax.driver.core.ResultSet;
 import org.apache.cassandra.distributed.impl.AbstractCluster;
 import org.apache.cassandra.distributed.impl.IsolatedExecutor;
+import org.apache.cassandra.distributed.impl.RowUtil;
 
 public class DistributedTestBase
 {
@@ -78,6 +80,11 @@ public class DistributedTestBase
         return cluster;
     }
 
+    public static void assertRows(ResultSet actual,Object[]... expected)
+    {
+        assertRows(RowUtil.toObjects(actual), expected);
+    }
+
     public static void assertRows(Object[][] actual, Object[]... expected)
     {
         Assert.assertEquals(rowsNotEqualErrorMessage(expected, actual),
@@ -87,7 +94,7 @@ public class DistributedTestBase
         {
             Object[] expectedRow = expected[i];
             Object[] actualRow = actual[i];
-            Assert.assertTrue(rowsNotEqualErrorMessage(expected, actual),
+            Assert.assertTrue(rowsNotEqualErrorMessage(actual, expected),
                               Arrays.equals(expectedRow, actualRow));
         }
     }

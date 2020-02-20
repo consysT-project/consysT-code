@@ -302,7 +302,56 @@
     <fileset id="org.apache.ant:ant-launcher:jar" dir="/home/mirko/.m2/repository/org/apache/ant/ant-launcher/1.9.7">
       <include name="ant-launcher-1.9.7.jar"/>
     </fileset>
+    <property name="org.gridkit.jvmtool:sjk-cli:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-cli/0.14/sjk-cli-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:sjk-cli:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-cli/0.14">
+      <include name="sjk-cli-0.14.jar"/>
+    </fileset>
+    <property name="com.beust:jcommander:jar" value="/home/mirko/.m2/repository/com/beust/jcommander/1.30/jcommander-1.30.jar"/>
+    <fileset id="com.beust:jcommander:jar" dir="/home/mirko/.m2/repository/com/beust/jcommander/1.30">
+      <include name="jcommander-1.30.jar"/>
+    </fileset>
+    <property name="org.gridkit.jvmtool:sjk-core:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-core/0.14/sjk-core-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:sjk-core:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-core/0.14">
+      <include name="sjk-core-0.14.jar"/>
+    </fileset>
+    <property name="org.gridkit.jvmtool:sjk-stacktrace:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-stacktrace/0.14/sjk-stacktrace-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:sjk-stacktrace:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-stacktrace/0.14">
+      <include name="sjk-stacktrace-0.14.jar"/>
+    </fileset>
+    <property name="org.gridkit.jvmtool:sjk-json:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-json/0.14/sjk-json-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:sjk-json:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-json/0.14">
+      <include name="sjk-json-0.14.jar"/>
+    </fileset>
+    <property name="org.gridkit.jvmtool:sjk-hflame:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-hflame/0.14/sjk-hflame-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:sjk-hflame:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/sjk-hflame/0.14">
+      <include name="sjk-hflame-0.14.jar"/>
+    </fileset>
+    <property name="org.perfkit.sjk.parsers:sjk-jfr5:jar" value="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr5/0.5/sjk-jfr5-0.5.jar"/>
+    <fileset id="org.perfkit.sjk.parsers:sjk-jfr5:jar" dir="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr5/0.5">
+      <include name="sjk-jfr5-0.5.jar"/>
+    </fileset>
+    <property name="org.perfkit.sjk.parsers:sjk-jfr6:jar" value="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr6/0.7/sjk-jfr6-0.7.jar"/>
+    <fileset id="org.perfkit.sjk.parsers:sjk-jfr6:jar" dir="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr6/0.7">
+      <include name="sjk-jfr6-0.7.jar"/>
+    </fileset>
+    <property name="org.perfkit.sjk.parsers:sjk-jfr-standalone:jar" value="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr-standalone/0.7/sjk-jfr-standalone-0.7.jar"/>
+    <fileset id="org.perfkit.sjk.parsers:sjk-jfr-standalone:jar" dir="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-jfr-standalone/0.7">
+      <include name="sjk-jfr-standalone-0.7.jar"/>
+    </fileset>
+    <property name="org.perfkit.sjk.parsers:sjk-nps:jar" value="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-nps/0.5/sjk-nps-0.5.jar"/>
+    <fileset id="org.perfkit.sjk.parsers:sjk-nps:jar" dir="/home/mirko/.m2/repository/org/perfkit/sjk/parsers/sjk-nps/0.5">
+      <include name="sjk-nps-0.5.jar"/>
+    </fileset>
+    <property name="org.gridkit.lab:jvm-attach-api:jar" value="/home/mirko/.m2/repository/org/gridkit/lab/jvm-attach-api/1.5/jvm-attach-api-1.5.jar"/>
+    <fileset id="org.gridkit.lab:jvm-attach-api:jar" dir="/home/mirko/.m2/repository/org/gridkit/lab/jvm-attach-api/1.5">
+      <include name="jvm-attach-api-1.5.jar"/>
+    </fileset>
+    <property name="org.gridkit.jvmtool:mxdump:jar" value="/home/mirko/.m2/repository/org/gridkit/jvmtool/mxdump/0.14/mxdump-0.14.jar"/>
+    <fileset id="org.gridkit.jvmtool:mxdump:jar" dir="/home/mirko/.m2/repository/org/gridkit/jvmtool/mxdump/0.14">
+      <include name="mxdump-0.14.jar"/>
+    </fileset>
     <fileset id="build-dependency-jars" dir="/home/mirko/.m2/repository">
+      <include name="com/beust/jcommander/1.30/jcommander-1.30.jar"/>
       <include name="com/datastax/cassandra/cassandra-driver-core/3.6.0/cassandra-driver-core-3.6.0-shaded.jar"/>
       <include name="com/github/jnr/jffi/1.2.16/jffi-1.2.16-native.jar"/>
       <include name="com/github/jnr/jffi/1.2.16/jffi-1.2.16.jar"/>
@@ -359,6 +408,13 @@
       <include name="org/codehaus/jackson/jackson-core-asl/1.0.1/jackson-core-asl-1.0.1.jar"/>
       <include name="org/codehaus/jackson/jackson-mapper-asl/1.0.1/jackson-mapper-asl-1.0.1.jar"/>
       <include name="org/eclipse/jdt/core/compiler/ecj/4.6.1/ecj-4.6.1.jar"/>
+      <include name="org/gridkit/jvmtool/mxdump/0.14/mxdump-0.14.jar"/>
+      <include name="org/gridkit/jvmtool/sjk-cli/0.14/sjk-cli-0.14.jar"/>
+      <include name="org/gridkit/jvmtool/sjk-core/0.14/sjk-core-0.14.jar"/>
+      <include name="org/gridkit/jvmtool/sjk-hflame/0.14/sjk-hflame-0.14.jar"/>
+      <include name="org/gridkit/jvmtool/sjk-json/0.14/sjk-json-0.14.jar"/>
+      <include name="org/gridkit/jvmtool/sjk-stacktrace/0.14/sjk-stacktrace-0.14.jar"/>
+      <include name="org/gridkit/lab/jvm-attach-api/1.5/jvm-attach-api-1.5.jar"/>
       <include name="org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"/>
       <include name="org/mortbay/jetty/jetty-util/6.1.26/jetty-util-6.1.26.jar"/>
       <include name="org/mortbay/jetty/jetty/6.1.26/jetty-6.1.26.jar"/>
@@ -372,6 +428,10 @@
       <include name="org/ow2/asm/asm-tree/5.0.3/asm-tree-5.0.3.jar"/>
       <include name="org/ow2/asm/asm-util/5.0.3/asm-util-5.0.3.jar"/>
       <include name="org/ow2/asm/asm/5.0.3/asm-5.0.3.jar"/>
+      <include name="org/perfkit/sjk/parsers/sjk-jfr-standalone/0.7/sjk-jfr-standalone-0.7.jar"/>
+      <include name="org/perfkit/sjk/parsers/sjk-jfr5/0.5/sjk-jfr5-0.5.jar"/>
+      <include name="org/perfkit/sjk/parsers/sjk-jfr6/0.7/sjk-jfr6-0.7.jar"/>
+      <include name="org/perfkit/sjk/parsers/sjk-nps/0.5/sjk-nps-0.5.jar"/>
       <include name="org/psjava/psjava/0.1.19/psjava-0.1.19.jar"/>
       <include name="org/quicktheories/quicktheories/0.25/quicktheories-0.25.jar"/>
       <include name="oro/oro/2.0.8/oro-2.0.8.jar"/>
