@@ -55,15 +55,14 @@ public class Cassandra {
 		}
 
 		@Override
-		public <T extends Serializable> Ref<T> replicate(String s, T object, StoreConsistencyLevel level) {
-			Class<T> objCls = (Class<T>) object.getClass();
-			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.replicate(s, object, objCls, level);
+		public <T extends Serializable> Ref<T> replicate(String s, StoreConsistencyLevel level, Class<T> clazz, Object... constructorArgs) {
+			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.replicate(s, level, clazz, constructorArgs);
 			return new RefBinding<>(handler);
 		}
 
 		@Override
 		public <T extends Serializable> Ref<T> lookup(String s, Class<T> clazz, StoreConsistencyLevel level) {
-			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.lookup(s, clazz, level);
+			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.lookup(s, level, clazz);
 			return new RefBinding<>(handler);
 		}
 	}

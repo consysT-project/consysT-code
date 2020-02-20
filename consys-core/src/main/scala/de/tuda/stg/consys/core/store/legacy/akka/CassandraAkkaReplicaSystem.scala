@@ -10,6 +10,7 @@ import de.tuda.stg.consys.core.store.legacy.akka.Requests.{AsynchronousRequest, 
 
 import scala.collection.{JavaConverters, mutable}
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success}
 

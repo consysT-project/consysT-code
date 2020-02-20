@@ -15,6 +15,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry
 
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 
@@ -69,7 +70,7 @@ trait CassandraStore extends DistributedStore
 
 	override def id : CassandraStoreId = CassandraStoreId(s"node@${cassandraSession.getContext.getSessionName}")
 
-	override protected[store] def enref[T <: ObjType : TypeTag](obj : CassandraObject[T]) : CassandraHandler[T] =
+	override protected[store] def enref[T <: ObjType : ClassTag](obj : CassandraObject[T]) : CassandraHandler[T] =
 		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
 
 
@@ -141,7 +142,7 @@ trait CassandraStore extends DistributedStore
 		}
 
 
-		private[cassandra] def readObject[T <: Serializable : TypeTag](addr : String, clevel : CLevel) : T = {
+		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CLevel) : T = {
 			import QueryBuilder._
 
 			val query = selectFrom(s"$objectTableName")

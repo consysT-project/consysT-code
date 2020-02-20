@@ -3,6 +3,7 @@ package de.tuda.stg.consys.core.store.cassandra
 import com.datastax.oss.driver.api.core.ConsistencyLevel
 import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyModel}
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
@@ -19,19 +20,19 @@ case object Strong extends StoreConsistencyLevel {
 
 		override def toLevel : StoreConsistencyLevel = Strong
 
-		override def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+		override def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
 			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 
-		override def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+		override def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
 			val obj = store.CassandraBinding.readObject[T](addr, ConsistencyLevel.ALL)
 			new StrongCassandraObject(addr, obj, store, txContext)
 		}
 	}
 
-	private class StrongCassandraObject[T <: java.io.Serializable : TypeTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
+	private class StrongCassandraObject[T <: java.io.Serializable : ClassTag](override val addr : String, override val state : T, store : StoreType, txContext : StoreType#TxContext) extends CassandraObject[T] {
 		override def consistencyLevel : StoreConsistencyLevel { type StoreType = CassandraStore } = Strong
 
 		override protected[cassandra] def writeToStore(store : CassandraStore) : Unit =

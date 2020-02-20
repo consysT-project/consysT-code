@@ -3,6 +3,7 @@ package de.tuda.stg.consys.core.store.cassandra
 import de.tuda.stg.consys.core.store.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext, TransactionContext}
 
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 /**
@@ -21,10 +22,10 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 
 	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
+	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
 		super.replicateRaw[T](addr, obj, level)
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
+	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
 		super.lookupRaw[T](addr, level)
 
 	//TODO: Can we make this method package private?
@@ -33,9 +34,9 @@ case class CassandraTransactionContext(store : CassandraStore) extends Transacti
 		locks.foreach(lock => lock.release())
 	}
 
-	override protected def rawToCached[T <: StoreType#ObjType : TypeTag](raw : StoreType#RawType[T]) : CachedType[T] = raw
+	override protected def rawToCached[T <: StoreType#ObjType : ClassTag](raw : StoreType#RawType[T]) : CachedType[T] = raw
 
-	override protected def cachedToRaw[T <: StoreType#ObjType : TypeTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
+	override protected def cachedToRaw[T <: StoreType#ObjType : ClassTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
 
 
 
