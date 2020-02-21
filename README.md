@@ -1,6 +1,6 @@
 # Consistency Types
 
-Find our website at https://allprojects.github.io/consistency-types-impl/.
+Find our website at https://consyst-project.github.io/.
 
 In replicated datastores, users have to decide between available and consistent data.
 Consistency ensures that the data is the same across all replicas, whereas availability
@@ -35,7 +35,7 @@ To use consys in your project just add the Java API as a dependency:
         <artifactId>consys-japi</artifactId>
         <version>1.1.0</version>
     </dependency>
- 
+
 
 
 To enable the type checker and compiler plugin, add the following to your `pom.xml`:
@@ -130,12 +130,12 @@ For further examples, refer to the testcases.
 
 ## Project overview
 
-* **consys-type-checker**: Implements the type annotations and the information flow analysis using the 
+* **consys-type-checker**: Implements the type annotations and the information flow analysis using the
 Checker framework.
     * **consys-type-checker-test**: Unit tests for checking information flow with the
      consistency checker. (Has its own maven module, because
-    it needs to be compiled using the consistency checker as annotation processor). 
-* 
+    it needs to be compiled using the consistency checker as annotation processor).
+*
 
 ## Students
 
