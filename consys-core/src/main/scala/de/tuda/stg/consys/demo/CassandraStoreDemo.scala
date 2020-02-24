@@ -25,7 +25,7 @@ object CassandraStoreDemo extends App {
 	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._
-		val int1 = replicate[MyInt]("myint1", level, 47)(ClassTag(classOf[MyInt]))
+		val int1 = replicate[MyInt]("myint1", level, 47)
 		println("replicated myint1")
 		val int2 = replicate[MyInt]("myint2", level, 47)
 		println("replicated myint2")
@@ -94,6 +94,8 @@ object CassandraStoreDemo extends App {
 	store2.close()
 	store3.close()
 
+
+
 	case class MyInts(
 		i : CassandraHandler[MyInt],
 		j : CassandraHandler[MyInt]
@@ -104,21 +106,16 @@ object CassandraStoreDemo extends App {
 		}
 	}
 
-
 	case class MyInt(var i : Int = 0) {
-
 		def double() : Unit = {
 			i = 2 * i
 		}
-
 		def half() : Unit = {
 			i = i / 2
 		}
-
 		def inc() : Unit = {
 			i = i + 1
 		}
-
 		def get : Int = {
 			i
 		}
