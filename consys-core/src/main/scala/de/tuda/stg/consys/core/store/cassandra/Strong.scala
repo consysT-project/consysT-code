@@ -22,13 +22,13 @@ case object Strong extends StoreConsistencyLevel {
 
 		override def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
-			new StrongCassandraObject(addr, obj, store, txContext)
+			new StrongCassandraObject[T](addr, obj, store, txContext)
 		}
 
 		override def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
 			txContext.acquireLock(addr)
 			val obj = store.CassandraBinding.readObject[T](addr, ConsistencyLevel.ALL)
-			new StrongCassandraObject(addr, obj, store, txContext)
+			new StrongCassandraObject[T](addr, obj, store, txContext)
 		}
 	}
 

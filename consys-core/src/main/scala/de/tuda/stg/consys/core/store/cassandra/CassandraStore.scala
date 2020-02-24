@@ -91,20 +91,25 @@ trait CassandraStore extends DistributedStore
 			try {
 				cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
 			} catch {
-				case e : DriverTimeoutException => println("driver timeout during drop")
+				//TODO: Is it a driver bug to have a timeout here?
+				case e :
+					com.datastax.oss.driver.api.core.DriverTimeoutException => println("driver timeout during init")
+					Thread.sleep(1000)
 			}
-			cassandraSession.execute(
-				s"""CREATE KEYSPACE $keyspaceName
-					 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
-					.stripMargin
-			)
-			cassandraSession.execute(
-				s"""CREATE TABLE IF NOT EXISTS $keyspaceName.$objectTableName (
-					 |addr text primary key,
-					 |state blob
-					 |) with comment = 'stores objects as blobs'"""
-					.stripMargin
-			)
+
+				cassandraSession.execute(
+					s"""CREATE KEYSPACE $keyspaceName
+						 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
+						.stripMargin
+				)
+				cassandraSession.execute(
+					s"""CREATE TABLE IF NOT EXISTS $keyspaceName.$objectTableName (
+						 |addr text primary key,
+						 |state blob
+						 |) with comment = 'stores objects as blobs'"""
+						.stripMargin
+				)
+
 			Thread.sleep(100)
 		}
 
