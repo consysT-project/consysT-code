@@ -59,7 +59,8 @@ trait ReflectiveReplicatedObject[Addr, T] extends ReplicatedObject[Addr, T] {
 			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
 				val flattenedParams : Seq[Seq[Class[_]]] =
 					s.asMethod.paramLists.map(paramList => paramList.map(param => {
-						val classSymbol = param.typeSignature.typeSymbol.asClass
+						val typeSymbol = param.typeSignature.typeSymbol
+						val classSymbol = typeSymbol.asClass
 						rtMirror.runtimeClass(classSymbol)
 					} ))
 
