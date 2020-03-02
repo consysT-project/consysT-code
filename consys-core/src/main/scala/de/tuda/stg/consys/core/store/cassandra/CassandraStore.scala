@@ -26,7 +26,7 @@ import scala.reflect.runtime.universe.TypeTag
  */
 trait CassandraStore extends DistributedStore
 	with ZookeeperStoreExt
-	with LockingStoreExt {
+	with ZookeeperLockingStoreExt {
 	/* Force initialization of binding */
 	CassandraBinding
 

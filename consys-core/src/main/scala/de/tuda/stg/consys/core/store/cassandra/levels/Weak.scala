@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.core.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.ConsistencyLevel
+import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraStore}
 import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyModel}
 
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 /**
  * Created on 11.12.19.

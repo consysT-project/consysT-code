@@ -2,7 +2,8 @@ package de.tuda.stg.consys.demo
 
 import java.util.concurrent.Executors
 
-import de.tuda.stg.consys.core.store.cassandra.{CassandraHandler, CassandraStore, Strong}
+import de.tuda.stg.consys.core.store.cassandra.levels.Strong
+import de.tuda.stg.consys.core.store.cassandra.{CassandraHandler, CassandraStore}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}

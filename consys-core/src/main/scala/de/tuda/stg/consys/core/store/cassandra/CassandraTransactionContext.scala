@@ -11,7 +11,7 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-case class CassandraTransactionContext(store : CassandraStore) extends TransactionContext
+case class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext
 	with CassandraTransactionContextBinding
 	with CommitableTransactionContext
 	with CachedTransactionContext
