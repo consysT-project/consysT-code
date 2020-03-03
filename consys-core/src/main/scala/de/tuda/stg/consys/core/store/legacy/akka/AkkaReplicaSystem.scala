@@ -45,6 +45,9 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	/*Other replicas known to this replica.*/
 	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
+	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
+		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]
+
 	val defaultTimeout : FiniteDuration
 
 	protected[akka] object replica {
@@ -201,8 +204,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		Await.ready(actorSystem.terminate(), defaultTimeout)
 	}
 
-	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
-		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]
+
 
 
 	override def barrier(name : String, timeout : Duration) : Unit = {

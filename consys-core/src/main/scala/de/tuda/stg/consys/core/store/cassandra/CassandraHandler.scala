@@ -11,7 +11,7 @@ import scala.reflect.ClassTag
  */
 class CassandraHandler[T <: java.io.Serializable : ClassTag](
 	val addr : String,
-	val level : StoreConsistencyLevel {type StoreType = CassandraStore}
+	val level : CassandraStore#Level
 ) extends Handler[CassandraStore, T] with Serializable {
 
 	override def resolve(tx : => CassandraStore#TxContext) : CassandraStore#RawType[T] = {

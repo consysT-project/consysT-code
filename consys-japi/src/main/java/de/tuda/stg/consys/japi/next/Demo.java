@@ -36,7 +36,7 @@ public class Demo {
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.replicate("box1", new Box(), CassandraConsistencyLevels.STRONG());
+			Ref<Box> box1 = ctx.replicate("box1",CassandraConsistencyLevels.STRONG(), Box.class);
 			box1.invoke("inc");
 			return Option.empty();
 		});

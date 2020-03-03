@@ -9,6 +9,7 @@ import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.store.DistributedStore
+import de.tuda.stg.consys.core.store.cassandra.levels.CassandraConsistencyLevel
 import io.aeron.exceptions.DriverTimeoutException
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
@@ -40,6 +41,10 @@ trait CassandraStore extends DistributedStore
 	override final type RawType[T <: ObjType] = CassandraObject[T]
 	override final type RefType[T <: ObjType] = CassandraHandler[T]
 
+	override final type Level = CassandraConsistencyLevel
+
+
+
 	protected[store] val cassandraSession : CqlSession
 
 	//This flag states whether the creation should initialize tables etc.
@@ -68,7 +73,7 @@ trait CassandraStore extends DistributedStore
 		cassandraSession.close()
 	}
 
-	override def id : CassandraStoreId = CassandraStoreId(s"node@${cassandraSession.getContext.getSessionName}")
+	override def id : CassandraStoreId = CassandraStoreId(s"cassandra-store@${cassandraSession.getContext.getSessionName}")
 
 	override protected[store] def enref[T <: ObjType : ClassTag](obj : CassandraObject[T]) : CassandraHandler[T] =
 		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
