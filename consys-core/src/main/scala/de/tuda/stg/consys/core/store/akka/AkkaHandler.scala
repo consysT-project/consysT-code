@@ -11,7 +11,7 @@ import scala.reflect.ClassTag
  */
 class AkkaHandler[T <: java.io.Serializable : ClassTag](
 	val addr : String,
-	val level : StoreConsistencyLevel {type StoreType = AkkaStore}
+	val level : AkkaStore#Level
 ) extends Handler[AkkaStore, T] with Serializable {
 
 	override def resolve(tx : => AkkaStore#TxContext) : AkkaStore#RawType[T] = {

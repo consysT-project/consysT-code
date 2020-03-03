@@ -22,10 +22,10 @@ case class CassandraTransactionContext(override val store : CassandraStore) exte
 
 	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
+	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] =
 		super.replicateRaw[T](addr, obj, level)
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
+	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
 		super.lookupRaw[T](addr, level)
 
 	//TODO: Can we make this method package private?

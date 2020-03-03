@@ -24,13 +24,13 @@ trait CachedTransactionContext extends TransactionContext {
 	}
 
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] = {
+	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] = {
 		val res = super.replicateRaw[T](addr, obj, level)
 		cacheRaw(addr, res)
 		res
 	}
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] = cache.get(addr) match {
+	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] = cache.get(addr) match {
 		case Some(cachedObject : CachedType[T@unchecked]@unchecked) =>
 			cachedToRaw[T](cachedObject)
 		case None =>

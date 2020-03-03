@@ -21,11 +21,13 @@ trait Store extends AutoCloseable {
 	type RawType[T <: ObjType] <: StoredObject[_ <: Store, T]
 	type RefType[T <: ObjType] <: Handler[_ <: Store, T]
 
+	type Level <: StoreConsistencyLevel
+
 	def id : Id
 
 	def transaction[T](code : TxContext => Option[T]) : Option[T]
 
 	override def close() : Unit = { }
 
-	protected[store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T]
+	protected [store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T]
 }

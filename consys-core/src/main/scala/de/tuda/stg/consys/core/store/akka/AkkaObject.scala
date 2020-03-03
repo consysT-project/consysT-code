@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.akka
 
+import de.tuda.stg.consys.core.store.akka.Requests.Request
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
 
@@ -14,7 +15,20 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 
 	def addr : AkkaStore#Addr
 	def state : T
-	def consistencyLevel : StoreConsistencyLevel { type StoreType = AkkaStore }
+	def consistencyLevel : AkkaStore#Level
+
+
+	/**
+	 * Handles a request possibly from another replica system.
+	 * This method can be called concurrently.
+	 *
+	 * @param request The request to be handled
+	 *
+	 * @return The return value of the request.
+	 */
+	def handleRequest[R](request : Request[R]) : R = {
+		throw new IllegalArgumentException(s"can not handle request $request")
+	}
 
 	override def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke[R](methodId, args)

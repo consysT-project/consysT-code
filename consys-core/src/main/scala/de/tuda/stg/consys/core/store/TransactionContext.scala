@@ -1,14 +1,8 @@
 package de.tuda.stg.consys.core.store
 
-import java.lang.reflect.Constructor
-
-import akka.util.BoxedType
-import de.tuda.stg.consys.core.store.legacy.ConsysUtils
 import de.tuda.stg.consys.core.store.utils.Reflect
 
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.TypeTag
-import scala.util.Try
 
 /**
  * Created on 10.12.19.
@@ -17,11 +11,10 @@ import scala.util.Try
  */
 trait TransactionContext {
 	type StoreType <: Store
-	type ConsistencyLevel =  StoreConsistencyLevel {type StoreType = TransactionContext.this.StoreType}
 
 	val store : StoreType
 
-	final def replicate[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel, constructorArgs : Any*) : StoreType#RefType[T] = {
+	final def replicate[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level, constructorArgs : Any*) : StoreType#RefType[T] = {
 		val obj = callConstructor(implicitly[ClassTag[T]], constructorArgs : _*)
 
 		store.enref(
@@ -29,24 +22,24 @@ trait TransactionContext {
 		)(implicitly[ClassTag[T]].asInstanceOf[ClassTag[T with store.ObjType]]).asInstanceOf[StoreType#RefType[T]]
 	}
 
-	final def lookup[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RefType[T] =
+	final def lookup[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RefType[T] =
 		store.enref(
 			lookupRaw[T](addr, level)(implicitly[ClassTag[T]]).asInstanceOf[store.RawType[T with store.ObjType]]
 		)(implicitly[ClassTag[T]].asInstanceOf[ClassTag[T with store.ObjType]]).asInstanceOf[StoreType#RefType[T]]
 
-	private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : ConsistencyLevel) : StoreType#RawType[T] =
+	private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] =
 		throw new UnsupportedOperationException("this transaction context does not support replication.")
 
-	private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : ConsistencyLevel) : StoreType#RawType[T] =
+	private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
 		throw new UnsupportedOperationException("this transaction context does not support lookups.")
 
 
 	/* Java interface for replicate */
-	final def replicate[T <: StoreType#ObjType](addr : StoreType#Addr, level : ConsistencyLevel, clazz : Class[T], constructorArgs : Array[Any]) : StoreType#RefType[T] = {
+	final def replicate[T <: StoreType#ObjType](addr : StoreType#Addr, level : StoreType#Level, clazz : Class[T], constructorArgs : Array[Any]) : StoreType#RefType[T] = {
 		replicate(addr, level, constructorArgs : _*)(ClassTag(clazz))
 	}
 	/* Java interface for ref */
-	final def lookup[T <: StoreType#ObjType](addr : StoreType#Addr, l : ConsistencyLevel, clazz : Class[T]) : StoreType#RefType[T] = {
+	final def lookup[T <: StoreType#ObjType](addr : StoreType#Addr, l : StoreType#Level, clazz : Class[T]) : StoreType#RefType[T] = {
 		lookup(addr, l)(ClassTag(clazz))
 	}
 

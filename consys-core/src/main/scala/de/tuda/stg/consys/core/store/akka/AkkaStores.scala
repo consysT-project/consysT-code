@@ -9,33 +9,33 @@ import scala.util.DynamicVariable
  */
 object AkkaStores {
 
-	private[cassandra] val currentStore : DynamicVariable[AkkaStore] = new DynamicVariable[AkkaStore](null)
+	private[akka] val currentStore : DynamicVariable[AkkaStore] = new DynamicVariable[AkkaStore](null)
 
-	private[cassandra] val currentTransaction : DynamicVariable[AkkaTransactionContext] = new DynamicVariable[AkkaTransactionContext](null)
+	private[akka] val currentTransaction : DynamicVariable[AkkaTransactionContext] = new DynamicVariable[AkkaTransactionContext](null)
 
 
 	def getCurrentStore : Option[AkkaStore] = {
 		Option(currentStore.value)
 	}
 
-	private[cassandra] def setCurrentStore(tx : AkkaStore) : Unit = currentStore synchronized {
+	private[akka] def setCurrentStore(store : AkkaStore) : Unit =
 		if (currentStore.value == null) {
-			currentStore.value = tx
+			currentStore.value = store
 		} else {
-			throw new IllegalStateException(s"unable to set current transaction. transaction already active.\nactive transaction: ${currentTransaction.value}\nnew transaction: $tx")
+			throw new IllegalStateException(s"unable to set current store. store already active.\nactive store: ${currentStore.value}\nnew store: $store")
 		}
-	}
+
 
 	def getCurrentTransaction : Option[AkkaTransactionContext] = {
 		Option(currentTransaction.value)
 	}
 
-	private[cassandra] def setCurrentTransaction(tx : AkkaTransactionContext) : Unit = currentTransaction synchronized {
+	private[akka] def setCurrentTransaction(tx : AkkaTransactionContext) : Unit =
 		if (currentTransaction.value == null) {
 			currentTransaction.value = tx
 		} else {
 			throw new IllegalStateException(s"unable to set current transaction. transaction already active.\nactive transaction: ${currentTransaction.value}\nnew transaction: $tx")
 		}
-	}
+
 
 }
