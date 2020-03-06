@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.core.store.akka
 
+import java.lang.reflect.Modifier
+
 import de.tuda.stg.consys.core.store.akka.Requests.Request
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
@@ -18,6 +20,9 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 	def consistencyLevel : AkkaStore#Level
 
 
+	def sync() : Unit
+
+
 	/**
 	 * Handles a request possibly from another replica system.
 	 * This method can be called concurrently.
@@ -26,7 +31,7 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 	 *
 	 * @return The return value of the request.
 	 */
-	def handleRequest[R](request : Request[R]) : R = {
+	private[akka] def handleRequest[R](request : Request[R]) : R = {
 		throw new IllegalArgumentException(s"can not handle request $request")
 	}
 
@@ -43,6 +48,59 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 	}
 
 
+
+	final def syncAll() : Unit = {
+		def syncObject(obj : Any, alreadySynced : Set[Any]) : Unit = {
+			//TODO:Change contains so that it uses eq?
+			if (obj == null || alreadySynced.contains(obj)) {
+				return
+			}
+
+			obj match {
+				case rob : AkkaObject[_] =>
+					rob.sync()
+					syncObject(state, alreadySynced + rob)
+
+				case ref : AkkaHandler[_] =>
+					val rob = ref.resolve()
+					syncObject(rob, alreadySynced + ref)
+
+				case _ =>
+
+					val anyClass = obj.getClass
+					//If the value is primitive (e.g. int) then stop
+					if (anyClass.isPrimitive) {
+						return
+					}
+
+					//If the value is an array, then initialize ever element of the array.
+					if (anyClass.isArray) {
+						val anyArray : Array[_] = obj.asInstanceOf[Array[_]]
+						val initSet = alreadySynced + obj
+						anyArray.foreach(e => syncObject(e, initSet))
+					}
+
+
+					val anyPackage = anyClass.getPackage
+					if (anyPackage == null) {
+						return
+					}
+
+					//If the object should be initialized, then initialize all fields
+					anyClass.getDeclaredFields.foreach { field =>
+						if ((field.getModifiers & Modifier.STATIC) == 0) { //If field is not static
+							//Recursively initialize refs in the fields
+							field.setAccessible(true)
+							val fieldObj = field.get(obj)
+							syncObject(fieldObj, alreadySynced + obj)
+						}
+					}
+			}
+		}
+
+		syncObject(this, Set.empty)
+	}
+
 	/**
 	 * This private object encapsulates the reflective access to the stored state.
 	 */
@@ -58,66 +116,24 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 			val clazz = implicitly[ClassTag[T]]
 			val method = Reflect.findMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
 
-			method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]
+			try {
+				method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]
+			} catch {
+				case e : Exception =>
+					println("ex")
+					throw e
+			}
 
-
-
-			//			val mthdTerm = TermName(methodName)
-			//			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
-			//			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
-			//				val flattenedParams : Seq[Seq[Class[_]]] =
-			//					s.asMethod.paramLists.map(paramList => paramList.map(param => {
-			//						val classSymbol = param.typeSignature.typeSymbol.asClass
-			//						rtMirror.runtimeClass(classSymbol)
-			//					} ))
-			//
-			//				//Check whether parameters can be assigned the given arguments
-			//				flattenedParams.length == argClasses.length && flattenedParams.zip(argClasses).forall(t1 => {
-			//					val (paramList, argList) = t1
-			//					paramList.length == argList.length && paramList.zip(argList).forall(t2 => {
-			//						val (param, arg) = t2
-			//						val result = if (param.isPrimitive) {
-			//							//Treat boxed types correctly: primitive types are converted to boxed types and then checked.
-			//							TypeUtilities.getWrapperType(param).isAssignableFrom(arg)
-			//						} else {
-			//							param.isAssignableFrom(arg)
-			//						}
-			//						result
-			//					})
-			//				})
-			//				//				flattenedParams == argClasses
-			//			}
-			//
-			//			mbMethodSym match {
-			//				case Some(methodSymbol: MethodSymbol) =>
-			//					val methodMirror = objMirror.reflectMethod(methodSymbol)
-			//					val result = methodMirror.apply(args.flatten : _*)
-			//					result.asInstanceOf[R]
-			//				case _ =>
-			//					throw new NoSuchMethodException(s"method <$methodName> with arguments $args was not found in $objMirror.")
-			//			}
 		}
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
 			val clazz = implicitly[ClassTag[T]]
 			clazz.runtimeClass.getField(fieldName).get(state).asInstanceOf[R]
-
-			//			val tpe = typeOf[T]
-			//			val fldTerm = TermName(fieldName)
-			//
-			//			val fieldSymbol = tpe.member(fldTerm).asTerm
-			//			val fieldMirror = objMirror.reflectField(fieldSymbol)
-			//			val result = fieldMirror.get
-			//			result.asInstanceOf[R]
 		}
 
 		def doSetField(fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
 			val clazz = implicitly[ClassTag[T]]
 			clazz.runtimeClass.getField(fieldName).set(state, value.asInstanceOf[AnyRef])
-
-			//			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
-			//			val fieldMirror = objMirror.reflectField(fieldSymbol)
-			//			fieldMirror.set(value)
 		}
 	}
 

@@ -38,11 +38,11 @@ case class CassandraTransactionContext(override val store : CassandraStore) exte
 
 	override protected def cachedToRaw[T <: StoreType#ObjType : ClassTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
 
-
-
 	/**
 	 * Implicitly resolves handlers in this transaction context.
 	 */
-	implicit def resolveHandler[T <: StoreType#ObjType : TypeTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
+	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
 		handler.resolve(this)
+
+
 }
