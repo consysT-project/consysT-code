@@ -3,15 +3,21 @@ package de.tuda.stg.consys.core.store.akka
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address => AkkaAddr, ExtendedActorSystem, Props, RootActorPath}
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
 import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
 import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, EnterBarrier, RemoveObjectReplica}
-import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandlerImpl, SynchronousRequest}
+import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
+import de.tuda.stg.consys.core.store.utils.Address
 
 import scala.collection.mutable
+import scala.concurrent.{Await, Future, TimeoutException}
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
+import scala.util.{Failure, Success}
 
 /**
  * Created on 25.02.20.
@@ -33,7 +39,7 @@ trait AkkaStore extends DistributedStore with LockingStore {
 
 
 	/*The actor that is used to communicate with this replica.*/
-	private[akka] final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	"replica-base")
+	private[akka] final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaStore.defaultActorName)
 
 	/*Other replicas known to this replica.*/
 	private[akka] final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
@@ -65,6 +71,78 @@ trait AkkaStore extends DistributedStore with LockingStore {
 
 	override protected[store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T] =
 		new AkkaHandler[T](obj.addr, obj.consistencyLevel)
+
+
+	private[akka] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
+		import akka.pattern.ask
+		val response = replicaRef.ask(AcquireHandler)(timeout)
+		val result = Await.result(response, timeout)
+		result.asInstanceOf[RequestHandler[Addr]]
+	}
+
+	private[akka] def getActorSystemAddress : AkkaAddr =
+		actorSystem.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress
+
+	def getOtherReplicas : Set[ActorRef] = {
+		otherReplicas.toSet
+	}
+
+	private def addOtherReplica(replicaActorRef : ActorRef) : Unit = {
+		otherReplicas.add(replicaActorRef)
+	}
+
+	private[akka] def addOtherReplica(replicaActorPath : ActorPath) : Unit = {
+
+		//Skip adding the replica if the path is the path to the current replica
+		if (replicaActorPath.address.host == getActorSystemAddress.host
+			&& replicaActorPath.address.port == getActorSystemAddress.port) {
+			return
+		}
+
+
+		val selection = actorSystem.actorSelection(replicaActorPath)
+
+		//Search for the other replica until it is found or the timeout is reached
+		val start = System.nanoTime()
+		var loop = true
+		while (loop) {
+			val resolved : Future[ActorRef] = selection.resolveOne(timeout)
+
+			//Wait for resolved to be ready
+			Await.ready(selection.resolveOne(timeout), timeout)
+
+			resolved.value match {
+				case None =>
+					sys.error("Future not ready yet. But we waited for it to be ready. How?")
+
+				case Some(Success(actorRef)) =>
+					loop = false
+					addOtherReplica(actorRef)
+
+				case Some(Failure(exc)) =>
+					if (System.nanoTime() > start + timeout.toNanos)
+						throw new TimeoutException(s"actor path $replicaActorPath was not resolved in the given time ($timeout).")
+			}
+
+		}
+
+
+
+	}
+
+	private[akka] def addOtherReplica(hostname : String, port : Int) : Unit = {
+		val sysname = AkkaStore.defaultSystemName
+		val address = AkkaAddr("akka", sysname, hostname, port)
+		addOtherReplica(address)
+	}
+
+	private[akka] def addOtherReplica(address : AkkaAddr) : Unit = {
+		/*
+		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
+		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
+		 */
+		addOtherReplica(RootActorPath(address) / "user" / AkkaStore.defaultActorName)
+	}
 
 
 
@@ -141,7 +219,7 @@ trait AkkaStore extends DistributedStore with LockingStore {
 
 				//Create the replicated object on this replica and add it to the object map
 				val ref = level.toModel(AkkaStore.this).createFollowerReplica(addr, obj, masterRef, null)(
-					ClassTag(obj.getClass.asInstanceOf)
+					ClassTag(obj.getClass)
 				)
 				LocalReplica.putNewReplica(ref)
 				sender() ! ()
@@ -195,6 +273,46 @@ trait AkkaStore extends DistributedStore with LockingStore {
 
 
 object AkkaStore {
+
+	private[AkkaStore] val defaultSystemName = "consys-replicas"
+	private[AkkaStore] val defaultActorName = "replica-base"
+
+	def fromAddress(host : Address, others : Seq[Address], timeout : Duration) : AkkaStore = {
+		require(timeout.isFinite())
+
+		//Loads the reference.conf for the akka properties
+		val config = ConfigFactory.load()
+			.withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(host.hostname))
+			.withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(host.port))
+			.resolve()
+
+		//Creates the actor system
+		val system = ActorSystem(defaultSystemName, config)
+		system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+
+		val finiteDuration = timeout match {
+			case x : FiniteDuration => x
+			case x => FiniteDuration(x.toMillis, "ms")
+		}
+
+		//Creates and initializes the replica system
+		val store = new AkkaStore {
+			override protected[akka] def actorSystem : ActorSystem = system
+			override type LockType = DistributedLock
+			override def lockFor(addr : String) : LockType = ???
+			override def timeout : FiniteDuration = finiteDuration
+		}
+
+		others.foreach(address => {
+			store.addOtherReplica(address.hostname, address.port)
+		})
+
+		store
+	}
+
+
+
+
 	sealed trait ReplicaActorMessage
 	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : AkkaConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
 		require(obj.isInstanceOf[java.io.Serializable], s"expected serializable, but was $obj of class ${obj.getClass}")

@@ -46,4 +46,11 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 
 
 	override private[store] def commit() : Unit = { }
+
+
+	/**
+	 * Implicitly resolves handlers in this transaction context.
+	 */
+	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
+		handler.resolve(this)
 }

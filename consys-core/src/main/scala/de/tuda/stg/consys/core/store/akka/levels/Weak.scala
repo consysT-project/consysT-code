@@ -1,8 +1,7 @@
 package de.tuda.stg.consys.core.store.akka.levels
 
 import akka.actor.ActorRef
-import com.datastax.oss.driver.api.core.ConsistencyLevel
-import de.tuda.stg.consys.core.store.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.store.akka.Requests._
 import de.tuda.stg.consys.core.store.akka.{AkkaObject, AkkaStore, AkkaStores}
 
 import scala.collection.mutable
@@ -46,16 +45,15 @@ case object Weak extends AkkaConsistencyLevel {
 			super.setField(fldName, newVal)
 		}
 
-		def internalSync() : Unit = {
+		def sync() : Unit = {
 			//super.internalSync()
-			//	println("WARNING: sync on master")
+			println("WARNING: sync on master")
 		}
 
 		override def handleRequest[R](request : Request[R]) : R = request match {
 			case SynchronizeWithWeakMaster(ops) =>
-
 				ops.foreach(op => {
-					AkkaStores.currentTransaction.withValue (??? /* replicaSystem.setCurrentTransaction(op.tx) */) {
+					AkkaStores.currentTransaction.withValue (null /* replicaSystem.setCurrentTransaction(op.tx) */) {
 						op match {
 							case InvokeOp(path, mthdName, args) => invoke[Any](mthdName, args)
 							case SetFieldOp(path, fldName, newVal) => setField(fldName, newVal)
@@ -63,9 +61,7 @@ case object Weak extends AkkaConsistencyLevel {
 						}
 					}
 				})
-
 				WeakSynchronized(state).asInstanceOf[R]
-
 			case _ =>
 				super.handleRequest(request)
 		}
@@ -95,15 +91,15 @@ case object Weak extends AkkaConsistencyLevel {
 		}
 
 
-		def internalSync() : Unit = {
-//			val handler = store.handlerFor(masterReplica)
-//
-//			val WeakSynchronized(newObj : T@unchecked) =
-//				handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
-//			handler.close()
-//
-//			setObject(newObj)
-//			unsynchronized.clear()
+		def sync() : Unit = {
+			val handler = store.handlerFor(masterRef)
+
+			val WeakSynchronized(newObj : T@unchecked) =
+				handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
+			handler.close()
+
+			internalState = newObj
+			unsynchronized.clear()
 		}
 
 		override def toString : String = s"WeakFollower($addr, $state)"
