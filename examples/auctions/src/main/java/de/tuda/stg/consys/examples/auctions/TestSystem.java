@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
@@ -10,23 +10,54 @@ import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 import java.io.IOException;
 import java.util.List;
 
-public class AuctionTest {
+public class TestSystem {
 
     static long time;
     static JReplicaSystem replicaSystem1;
     static JReplicaSystem replicaSystem2;
 
     public static void main(String... args) throws Exception {
+        /*
+
+        Test numbers:
+        1:TestNoWrapper
+        2:TestStrongWrapper
+        3:TestWeakToStrong
+        4:TestCreateBidSubSys
+        5:TestCreateBidSubSysOnMain
+         */
 
 
+        replicaSystem1 = Replicas.replicaSystem1;
+        replicaSystem2 = Replicas.replicaSystem2;
 
+        //TestReplicas();
+        TestCreateBidSubSys(replicaSystem1, replicaSystem2);
+        System.out.println("Test done!");
+        try {
+            replicaSystem2.close();
+            replicaSystem1.close();
+
+            initializeSystems();
+            //Replicas.replicaSystem1.close();
+            //Replicas.replicaSystem2.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        TestCreateBidSubSys(replicaSystem1, replicaSystem2);
+
+        //replicaSystem1.addReplicaSystem("127.0.0.1", 2552);
+        //replicaSystem2.addReplicaSystem("127.0.0.1", 2553);
+        //RunTest(1, true);
+        //System.out.println("Test done!");
         //TestCreateBidSubSys();
 
+        //Warmup
         //Warmup();
         //Warmup();
 
 
-        FullTest(1, false, false, false, true, true);
+        //FullTest(1, false, false, false, true, true);
 
 
 
@@ -57,16 +88,17 @@ public class AuctionTest {
                 initializeSystems();
             }
 
-            //Test Bid subsystem
+            //test on one auctioneer with everything strongly consistent;
             if(t1)avg1 += RunTest(1, true);
-            //Test with wrapper for functions that require strong consistency
 
+            //Test with wrapper for functions that require strong consistency
             if(t2)avg2 += RunTest(2, true);
 
-            //test on one auctioneer with everything strongly consistent;
+            //Test with 3 struktures
             if(t3)avg3 += RunTest(3, true);
 
             //Test with 3 struktures
+            //Test Bid subsystem
             if(t4)avg4 += RunTest(4, true);
 
             //Test Bid subsystem on Main
@@ -91,14 +123,7 @@ public class AuctionTest {
         float duration = 0;
         long finalTime;
 
-        System.out.println("Starting replica systems");
 
-        initializeSystems();
-
-        System.out.println("Replica Systems Started");
-
-//        initializeSystems();
-        
 
         System.out.println("Test " + nr);
 
@@ -108,38 +133,33 @@ public class AuctionTest {
 
         switch (nr){
             case 1:
-                TestCreateBidSubSys();
+                TestNoWrapper();
                 break;
             case 2:
                 TestStrongWrapper();
                 break;
             case 3:
-                TestNoWrapper();
+                TestWeakToStrong();
                 break;
             case 4:
-                TestWeakToStrong();
+                TestCreateBidSubSys(replicaSystem1, replicaSystem2);
                 break;
             case 5:
                 TestCreateBidSubSysOnMain();
                 break;
         }
 
-        if(timer) {
+        if(timer){
             finalTime = System.currentTimeMillis();
-            duration = (int) finalTime - (int) time;
-            duration = duration / 1000;
+            duration = (int)finalTime - (int)time;
+            duration = duration  / 1000;
 
         }
 
-        try {
-            replicaSystem2.close();
-            replicaSystem1.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        System.out.println("Done");
+
         try {
+            System.out.println("Press enter to start next test");
             System.in.read();
         } catch (IOException e) {
             e.printStackTrace();
@@ -147,46 +167,24 @@ public class AuctionTest {
         return duration;
     }
 
-    public static void Warmup(int nr){
-        for(int i = 0; i < nr; i++){
-
-
+    public static void Warmup(){
         RunTest(1, false);
         RunTest(2, false);
         RunTest(3, false);
         RunTest(4, false);
-
-        }
-    }
-    //Starts the timer for the next test
-    public static void StartTest(String txt){
-        System.out.println(txt);
-        time = System.currentTimeMillis();
     }
 
-    //Stops the timer, showing the test duration and then stopps the replicated objects
-    public static float EndTest(String txt){
-        float duration;
-        long finalTime;
+    public static void TestReplicas(){
 
 
-        finalTime = System.currentTimeMillis();
-        duration = (int)finalTime - (int)time;
-        duration = duration  / 1000;
-
-        if(false){
-            try {
-                replicaSystem2.close();
-                replicaSystem1.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return duration;
+        //replicaSystem1 = JReplicaSystem.fromActorSystem(2552);
+        //replicaSystem2 = JReplicaSystem.fromActorSystem(2553);
     }
 
-    public static void TestCreateBidSubSys(){
+
+
+
+    public static void TestCreateBidSubSys(JReplicaSystem sys1, JReplicaSystem sys2){
         //Create Auction System
         T4StrongSys system = new T4StrongSys(); //Replicate?
 
@@ -204,7 +202,7 @@ public class AuctionTest {
 
         //Starting auction
         System.out.println("Starting Auction");
-        system.StartAuction(null, null);
+        system.StartAuction(sys1, sys2);
 
 
         bidSys1 = system.GetBidSys(1);
@@ -318,8 +316,8 @@ public class AuctionTest {
     }
 
     private static void TestNoWrapper(){
-        JRef<@Strong T1Auctioneer> auctioneer1 = replicaSystem1.replicate("auctioneer", new T1Auctioneer(), JConsistencyLevels.WEAK);
-        JRef<@Strong T1Auctioneer> auctioneer2 = replicaSystem2.lookup("auctioneer", (Class<@Weak T1Auctioneer>) T1Auctioneer.class, JConsistencyLevels.WEAK);
+        JRef<@Strong T1Auctioneer> auctioneer1 = Replicas.replicaSystem1.replicate("auctioneer", new T1Auctioneer(), JConsistencyLevels.WEAK);
+        JRef<@Strong T1Auctioneer> auctioneer2 = Replicas.replicaSystem2.lookup("auctioneer", (Class<@Weak T1Auctioneer>) T1Auctioneer.class, JConsistencyLevels.WEAK);
 
         Client c1 = auctioneer1.invoke("RegisterUser", "hans");
         Client cTest = auctioneer1.invoke("RegisterUser", "hans");
@@ -345,6 +343,14 @@ public class AuctionTest {
 
         auctioneer1.invoke("ShowBids");
 
+        if(false){
+            try {
+                replicaSystem2.close();
+                replicaSystem1.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 
@@ -354,12 +360,12 @@ public class AuctionTest {
         //Start and Closing of the Auction are done through a Strong sub system
 
         //Strong sub system
-        JRef<@Strong T3SubSystemStrong> subSyst1 = replicaSystem1.replicate("auctionWrapper", new T3SubSystemStrong(), JConsistencyLevels.STRONG);
-        JRef<@Strong T3SubSystemStrong> subSyst2 = replicaSystem2.lookup("auctionWrapper", (Class<@Strong T3SubSystemStrong>) T3SubSystemStrong.class, JConsistencyLevels.STRONG);
+        JRef<@Strong T3SubSystemStrong> subSyst1 = Replicas.replicaSystem1.replicate("auctionWrapper", new T3SubSystemStrong(), JConsistencyLevels.STRONG);
+        JRef<@Strong T3SubSystemStrong> subSyst2 = Replicas.replicaSystem2.lookup("auctionWrapper", (Class<@Strong T3SubSystemStrong>) T3SubSystemStrong.class, JConsistencyLevels.STRONG);
 
         //Wrapper
-        JRef<@Weak T3WeakBidSystem> weakWrap1 = replicaSystem1.replicate("auctioneer2", new T3WeakBidSystem(subSyst1), JConsistencyLevels.WEAK);
-        JRef<@Weak T3WeakBidSystem> weakWrap2 = replicaSystem2.lookup("auctioneer2", (Class<@Weak T3WeakBidSystem>) T3WeakBidSystem.class, JConsistencyLevels.WEAK);
+        JRef<@Weak T3WeakBidSystem> weakWrap1 = Replicas.replicaSystem1.replicate("auctioneer2", new T3WeakBidSystem(subSyst1), JConsistencyLevels.WEAK);
+        JRef<@Weak T3WeakBidSystem> weakWrap2 = Replicas.replicaSystem2.lookup("auctioneer2", (Class<@Weak T3WeakBidSystem>) T3WeakBidSystem.class, JConsistencyLevels.WEAK);
 
         System.out.println("Registering users");
 
@@ -418,6 +424,7 @@ public class AuctionTest {
 
         //Starting auction
         System.out.println("Starting Auction");
+
         JRef<@Weak T5BidSystemOnMain> bidSys1 = replicaSystem1.replicate("bidSys1", new T5BidSystemOnMain(system.registeredUsers), JConsistencyLevels.WEAK);
         JRef<@Weak T5BidSystemOnMain> bidSys2 = replicaSystem2.lookup("bidSys1", (Class<@Weak T5BidSystemOnMain>) T5BidSystemOnMain.class, JConsistencyLevels.WEAK);
         system.StartAuction(bidSys1, bidSys2);

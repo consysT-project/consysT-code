@@ -1,7 +1,9 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import java.io.Serializable;
 
+//Klasse die ein Gebot repräsentiert
+//Ein gebot hat die ID des Bieters und einen Wert
 public class Bid implements Serializable {
     int itemID;
     int clientID;

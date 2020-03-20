@@ -1,18 +1,23 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class T4BidSystem implements Serializable {
+public class T5BidSystemOnMainDistributed implements Serializable {
 
     boolean enabled;
     List<Bid> bids;
     List<Client> registeredUsers;
 
-    public T4BidSystem(List<Client> registeredUsers){
+
+    public T5BidSystemOnMainDistributed(List<Client> registeredUsers){
         this.registeredUsers = registeredUsers;
         bids = new ArrayList<>();
+        enabled = false;
+    }
+
+    public void EnableAuction(){
         enabled = true;
     }
 

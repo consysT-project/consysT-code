@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import java.io.Serializable;
 import java.util.ArrayList;

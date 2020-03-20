@@ -1,7 +1,9 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import java.io.Serializable;
 
+//Klasse die Einen User repräsentiert.
+//Der User hat einen Namen und eine ID
 public class Client implements Serializable {
 
     private int clientID;

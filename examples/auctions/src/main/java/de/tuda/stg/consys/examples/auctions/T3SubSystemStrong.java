@@ -1,7 +1,9 @@
-package de.tuda.stg.consys.AuctionsSystem;
+package de.tuda.stg.consys.examples.auctions;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class T3SubSystemStrong implements Serializable {
@@ -21,18 +23,18 @@ public class T3SubSystemStrong implements Serializable {
      */
     boolean StartAuction(){
         if(auctionRunning)return false;
-        System.out.println("Auction started!");
+        System.out.println(getCurrentTimeStamp() +"Auction started!");
         auctionRunning = true;
         return true;
     }
 
     boolean StopAuction(){
         if(!auctionRunning){
-            System.out.println("No Auction is aktive");
+            System.out.println(getCurrentTimeStamp() +"No Auction is active");
             return false;
         }
         auctionRunning = false;
-        System.out.println("Auction stopped!");
+        System.out.println(getCurrentTimeStamp() +"Auction stopped!");
         return true;
     }
 
@@ -43,21 +45,26 @@ public class T3SubSystemStrong implements Serializable {
         }
         Client client = new Client(name, registeredUsers.size() + 1);
         registeredUsers.add(client);
-        System.out.println("Created " + client.getName() + " with ID: " + client.getClientID());
+        System.out.println(getCurrentTimeStamp() +" Created " + client.getName() + " with ID: " + client.getClientID());
         return client;
     }
 
-    boolean IsUserRegistered(int clientID){
+    public boolean IsUserRegistered(int clientID){
         for(Client c : registeredUsers){
             if(c.getClientID() == clientID){
-                System.out.println(("Client " + clientID + " found"));
+                //System.out.println(getCurrentTimeStamp() +(" client " + clientID + " found"));
                 return true;
             }
         }
-        System.out.println(("Client " + clientID + " is not registered"));
+        System.out.println(getCurrentTimeStamp() +(" Client " + clientID + " is not registered"));
         return false;
     }
-
+    public static String getCurrentTimeStamp() {
+        SimpleDateFormat sdfDate = new SimpleDateFormat("HH:mm:ss");//dd/MM/yyyy
+        Date now = new Date();
+        String strDate = sdfDate.format(now);
+        return strDate;
+    }
     boolean GetAuctionStatus(){
         return auctionRunning;
     }
