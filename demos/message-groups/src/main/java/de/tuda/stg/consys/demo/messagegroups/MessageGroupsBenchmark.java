@@ -13,32 +13,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created on 10.10.19.
  *
  * @author Mirko Köhler
  */
-public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
-
-
+public class MessageGroupsBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
-		start(DistributedMessageGroupsBenchmark.class, args[0]);
+		start(MessageGroupsBenchmark.class, args[0]);
 	}
 
 	private final int numOfGroupsPerReplica;
-	private final int numOfTransactions;
 
 	private final List<JRef<Group>> groups;
 	private final List<JRef<User>> users;
 
 	private final Random random = new Random();
+	private final ExecutorService executor = Executors.newCachedThreadPool();
 
-	public DistributedMessageGroupsBenchmark(Config config) {
+	public MessageGroupsBenchmark(Config config) {
 		super(config);
 
 		numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
-		numOfTransactions = config.getInt("consys.bench.demo.messagegroups.transactions");
 
 		groups = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
 		users = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
@@ -89,18 +89,22 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		DemoUtils.printDone();
 	}
 
-    @Override
-    public void iteration() {
-        for (int i = 0; i < numOfTransactions; i++) {
-            long start = System.currentTimeMillis();
-            long interval = 1;
-            if (processId() != 1) while(System.currentTimeMillis() < start + interval);
-            randomTransaction();
-            DemoUtils.printProgress(i);
-        }
-        DemoUtils.printDone();
-    }
 
+
+	@Override
+	public void operation() {
+		randomTransaction();
+		System.out.print(".");
+	}
+
+	@Override
+	public void closeOperations() {
+		try {
+			executor.awaitTermination(5, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 	@Override
 	public void cleanup() {
@@ -114,6 +118,15 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		JRef<Group> group = groups.get(i);
 		//   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
 		group.ref().addPost("Hello " + i);
+		return 2;
+	}
+
+	private int transaction1b() {
+		int i = random.nextInt(groups.size());
+		JRef<Group> group = groups.get(i);
+		//   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
+		group.ref().addPost("Hello " + i);
+		executor.submit(() -> group.sync());
 		return 2;
 	}
 
@@ -133,10 +146,10 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		// System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
 		JRef<Inbox> inbox = user.ref().inbox;
-		if (random.nextInt(100) < 20) {
+		executor.submit(() -> {
 			user.sync();
 			inbox.sync();
-		}
+		});
 		Set<String> inboxVal = user.ref().getInbox();
 
 		return 0;
@@ -153,6 +166,7 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 
 		//  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
 		group.ref().addUser(user);
+		executor.submit(() -> group.sync());
 
 		return 3;
 	}
@@ -162,12 +176,10 @@ public class DistributedMessageGroupsBenchmark extends DemoBenchmark {
 		int rand = random.nextInt(100);
 		if (rand < 58) /*12*/ {
 			//inbox checking with sync
-			return transaction2b();
-		} else if (rand < 58) {
-			return transaction2();
+			return transaction2b(); //use 2b for syncing here
 		} else if (rand < 80) {
 			//Message posting
-			return transaction1();
+			return transaction1b();
 		} else if (rand < 100) {
 			//group joining
 			return transaction3();

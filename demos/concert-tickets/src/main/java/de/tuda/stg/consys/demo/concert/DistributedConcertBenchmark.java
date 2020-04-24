@@ -44,7 +44,7 @@ public class DistributedConcertBenchmark extends DemoBenchmark {
     }
 
     @Override
-    public void iteration() {
+    public void operation() {
         if (processId() != 0) {
             for (int i = 0; i < numOfTransactions; i++) {
                 concert.ref().buyTicket();

@@ -27,8 +27,8 @@ public class ContentionCounterBenchmark extends DemoBenchmark {
 		super(config);
 		numOfTransactions = config.getInt("consys.bench.demo.counter.transactions");
 
-		setStepsPerIteration(numOfTransactions);
-		setWaitPerIteration(1000);
+		setOperationsPerIteration(numOfTransactions);
+		setWaitPerOperation(1000);
 	}
 
 	private JRef<Counter> counter;
@@ -45,7 +45,7 @@ public class ContentionCounterBenchmark extends DemoBenchmark {
 	}
 
 	@Override
-	public void iteration() {
+	public void operation() {
 		counter.ref().inc();
 		System.out.print(".");
 	}

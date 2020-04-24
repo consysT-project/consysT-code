@@ -113,7 +113,7 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
     }
 
     @Override
-    public void iteration() {
+    public void operation() {
         for (int i = 0; i < numOfTransactions; i++) {
             randomTransaction();
             DemoUtils.printProgress(i);

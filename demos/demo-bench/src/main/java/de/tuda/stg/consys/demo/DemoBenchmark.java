@@ -2,8 +2,10 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.core.ConsistencyLabel;
+import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
+
+import static de.tuda.stg.consys.japi.JConsistencyLevels.WEAK;
 
 /**
  * Created on 19.11.19.
@@ -13,7 +15,7 @@ import de.tuda.stg.consys.japi.JConsistencyLevels;
 public abstract class DemoBenchmark extends DistributedBenchmark {
 
 	private enum BenchmarkType {
-		MIXED, STRONG
+		WEAK, MIXED, STRONG
 	}
 
 
@@ -32,23 +34,28 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
-	protected ConsistencyLabel getStrongLevel() {
-		return JConsistencyLevels.STRONG;
-	}
-
-	protected ConsistencyLabel getWeakLevel() {
+	protected ConsistencyLevel getStrongLevel() {
 		switch (benchType) {
-			case MIXED: return JConsistencyLevels.WEAK;
-			case STRONG: return JConsistencyLevels.STRONG;
+			case WEAK: return WEAK;
+			default: return JConsistencyLevels.STRONG;
 		}
 
-		throw new IllegalArgumentException("unsupported benchtype " + benchType);
+
 	}
 
-	protected ConsistencyLabel getCausalLevel() {
+	protected ConsistencyLevel getWeakLevel() {
+		switch (benchType) {
+			case STRONG: return JConsistencyLevels.STRONG;
+			default: return JConsistencyLevels.WEAK;
+		}
+
+	}
+
+	protected ConsistencyLevel getCausalLevel() {
 		switch (benchType) {
 			case MIXED: return JConsistencyLevels.CAUSAL;
 			case STRONG: return JConsistencyLevels.STRONG;
+			case WEAK: return JConsistencyLevels.WEAK;
 		}
 
 		throw new IllegalArgumentException("unsupported benchtype " + benchType);
