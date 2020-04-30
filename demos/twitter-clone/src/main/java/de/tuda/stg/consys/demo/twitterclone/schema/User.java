@@ -4,16 +4,13 @@ import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicated;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class User implements JReplicated {
-
-    /* Needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
-
+public class User implements Serializable {
 
     private UUID id = UUID.randomUUID();
     private String username = id.hashCode() + "";
@@ -79,10 +76,7 @@ public class User implements JReplicated {
     public void addToTimeline(JRef<Tweet> tweet) {
         timeline.add(tweet);
         for(JRef<User> user: followers) {
-            getSystem().ifPresent(system -> {
-                user.setReplicaSystem(replicaSystem);
-                user.ref().addToTimeline(tweet);
-            });
+            user.ref().addToTimeline(tweet);
         }
     }
 

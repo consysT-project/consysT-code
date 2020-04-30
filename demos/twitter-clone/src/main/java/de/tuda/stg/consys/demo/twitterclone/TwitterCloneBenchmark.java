@@ -4,7 +4,7 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.DemoBenchmark;
-import de.tuda.stg.consys.demo.DemoUtils;
+import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
@@ -22,15 +22,14 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
-public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
+public class TwitterCloneBenchmark extends DemoBenchmark {
 
 
     public static void main(String[] args) {
-        start(DistributedTwitterCloneBenchmark.class, args[0]);
+        start(TwitterCloneBenchmark.class, args[0]);
     }
 
     private final int numOfGroupsPerReplica;
-    private final int numOfTransactions;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -45,11 +44,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
     private final Random random = new Random();
 
-    public DistributedTwitterCloneBenchmark(Config config) {
+    public TwitterCloneBenchmark(Config config) {
         super(config);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");
-        numOfTransactions = config.getInt("consys.bench.demo.twitterclone.transactions");
 
         tweets = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
         users = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
@@ -61,7 +59,8 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
 
     private int numOfReplicas() {
-        return replicaSystem().numOfReplicas();
+        return replicas().length;
+        // return system().numOfReplicas();
     }
 
     private String generateRandomName() {
@@ -86,44 +85,41 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
 
-            JRef<@Weak User> user = replicaSystem().replicate
+            JRef<@Weak User> user = system().replicate
                     (addr("user", grpIndex, processId()), new User(generateRandomName()), getWeakLevel());
-            JRef<@Strong Counter> retweetCount =  replicaSystem().replicate(
+            JRef<@Strong Counter> retweetCount =  system().replicate(
                     addr("retweetCount", grpIndex, processId()), new Counter(0), getStrongLevel());
-            JRef<@Weak Tweet> tweet = replicaSystem().replicate(
+            JRef<@Weak Tweet> tweet = system().replicate(
                     addr("tweet", grpIndex, processId()), new Tweet(user, generateRandomText(3), retweetCount), getWeakLevel());
 
             user.ref().addToTimeline(tweet);
+            user.sync();
 
-            DemoUtils.printProgress(grpIndex);
+            BenchmarkUtils.printProgress(grpIndex);
         }
 
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
-                JRef<@Weak User> user = replicaSystem().lookup(
+                JRef<@Weak User> user = system().lookup(
                         addr("user", grpIndex, replIndex), User.class, getWeakLevel());
-                JRef<@Weak Tweet> tweet = replicaSystem().lookup(
+                JRef<@Weak Tweet> tweet = system().lookup(
                         addr("tweet", grpIndex, replIndex), Tweet.class, getWeakLevel());
 
                 users.add(user);
                 tweets.add(tweet);
             }
         }
-        DemoUtils.printDone();
+        BenchmarkUtils.printDone();
     }
 
     @Override
     public void operation() {
-        for (int i = 0; i < numOfTransactions; i++) {
-            randomTransaction();
-            DemoUtils.printProgress(i);
-        }
-        DemoUtils.printDone();
+        randomTransaction();
     }
 
     @Override
     public void cleanup() {
-        replicaSystem().clear(Sets.newHashSet());
+        system().clear(Sets.newHashSet());
     }
 
 
@@ -134,10 +130,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         follower.ref().addFollower(following);
         following.ref().addFollowing(follower);
 
-        if (random.nextInt(100) < 20) {
+        doSync(() -> {
             follower.sync();
             following.sync();
-        }
+        });
 
         return 0;
     }
@@ -149,10 +145,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         follower.ref().removeFollower(following);
         following.ref().removeFollowing(follower);
 
-        if (random.nextInt(100) < 20) {
+        doSync(() -> {
             follower.sync();
             following.sync();
-        }
+        });
 
         return 1;
     }
@@ -164,10 +160,10 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
         tweet.ref().retweet();
         user.ref().addRetweet(tweet);
 
-        if (random.nextInt(100) < 20) {
-            tweet.sync();
-            user.sync();
-        }
+       doSync(() -> {
+           tweet.sync();
+           user.sync();
+       });
 
         return 2;
     }
@@ -177,7 +173,7 @@ public class DistributedTwitterCloneBenchmark extends DemoBenchmark {
 
         List<JRef<Tweet>> timeline = user.ref().getTimeline();
 
-        if (random.nextInt(100) < 20) user.sync();
+        doSync(() -> user.sync());
 
         return 3;
     }

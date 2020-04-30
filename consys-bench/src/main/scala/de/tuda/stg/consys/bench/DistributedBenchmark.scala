@@ -12,7 +12,8 @@ import java.util.Date
 
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.core.Address
-import de.tuda.stg.consys.japi.{JReplicaSystem, JReplicaSystems}
+import de.tuda.stg.consys.japi.impl.JReplicaSystems
+import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem
 
 import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
@@ -42,11 +43,13 @@ abstract class DistributedBenchmark(
 	val outputFileName : String
 ) {
 	//Important: create the followers before creating the coordinator
-	final protected var replicaSystem : JReplicaSystem = JReplicaSystems.fromActorSystem(
-		address,
-		JavaConverters.asJavaIterable(replicas),
-		java.time.Duration.ofSeconds(30000)
-	)
+//	final protected var replicaSystem : JAkkaReplicaSystem = JReplicaSystems.fromActorSystem(
+//		address,
+//		JavaConverters.asJavaIterable(replicas),
+//		java.time.Duration.ofSeconds(30000)
+//	)
+
+	def system : JAkkaReplicaSystem = JReplicaSystems.getSystem
 
 	println("All replicas found")
 
@@ -89,26 +92,32 @@ abstract class DistributedBenchmark(
 
 
 	private def warmup() : Unit = {
-		replicaSystem.barrier("warmup")
+		system.barrier("warmup")
 		println("## START WARMUP ##")
 		for (i <- 1 to warmupIterations) {
-			replicaSystem.barrier("setup")
+			system.barrier("setup")
 			println(s"### WARMUP $i : SETUP ###")
 			setup()
-			replicaSystem.barrier("iterations")
+			system.barrier("iterations")
 			println(s"### WARMUP $i : ITERATIONS ###")
-			for (i <- 1 to operationsPerIteration) operation()
-			replicaSystem.barrier("cleanup")
+			for (j <- 1 to operationsPerIteration) {
+				if (!waitBetweenOperations.isZero) busyWait(waitBetweenOperations.toMillis)
+				operation()
+				BenchmarkUtils.printProgress(j)
+			}
+			closeOperations()
+			BenchmarkUtils.printDone()
+			system.barrier("cleanup")
 			println(s"### WARMUP $i : CLEANUP ###")
 			cleanup()
 		}
-		replicaSystem.barrier("warmup-done")
+		system.barrier("warmup-done")
 		println("## WARMUP DONE ##")
 	}
 
 
 	private def measure() : Unit = {
-		replicaSystem.barrier("measure")
+		system.barrier("measure")
 		println("## START MEASUREMENT ##")
 		val sdf = new SimpleDateFormat("YY-MM-dd_kk-mm-ss")
 		val outputDir = Paths.get(outputFileName, sdf.format(new Date))
@@ -139,12 +148,12 @@ abstract class DistributedBenchmark(
 
 			for (i <- 1 to measureIterations) {
 				//Setup the measurement
-				replicaSystem.barrier("setup")
+				system.barrier("setup")
 				println(s"### MEASURE $i : SETUP ###")
 				setup()
 
 				//Run the measurement
-				replicaSystem.barrier("iterations")
+				system.barrier("iterations")
 				println(s"### MEASURE $i : OPERATIONS ###")
 				val startIt = System.nanoTime()
 				for (j <- 1 to operationsPerIteration) {
@@ -152,18 +161,20 @@ abstract class DistributedBenchmark(
 					val startOp = System.nanoTime
 					operation()
 					val latency = System.nanoTime - startOp
-					latencyWriter.println(s"$i, $j, $latency")
+					latencyWriter.println(s"$i,$j,$latency")
+					BenchmarkUtils.printProgress(j)
 				}
 				closeOperations()
 				//Measure total runtime (~ time to consistency)
 				val runtime = System.nanoTime - startIt
-				runtimeWriter.println(s"$i, $runtime")
+				runtimeWriter.println(s"$i,$runtime")
+				BenchmarkUtils.printDone()
 				//Flush writers
 				runtimeWriter.flush()
 				latencyWriter.flush()
 
 				//Cleanup the iteration
-				replicaSystem.barrier("cleanup")
+				system.barrier("cleanup")
 				println(s"### MEASURE $i : CLEANUP ###")
 				cleanup()
 			}
@@ -176,16 +187,20 @@ abstract class DistributedBenchmark(
 		}
 
 		//Wait for measurement being done.
-		replicaSystem.barrier("measure-done")
+		system.barrier("measure-done")
 		println("## MEASUREMENT DONE ##")
 	}
 
+	private def doOperations(): Unit = {
 
-	def runBenchmark() : Unit = {
-		warmup()
-		measure()
-		replicaSystem.close()
 	}
+
+
+	def runBenchmark() : Unit = JReplicaSystems.withActorSystem(
+		address,
+		JavaConverters.asJavaIterable(replicas),
+		java.time.Duration.ofSeconds(30000)
+	).use( () => { warmup(); measure() } )
 }
 
 object DistributedBenchmark {
@@ -195,6 +210,7 @@ object DistributedBenchmark {
 	case class BenchmarkCommunication()
 
 	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String) : Unit = {
+
 
 		val constructor = benchmark.getConstructor(classOf[Config])
 		val bench = constructor.newInstance(ConfigFactory.load(configName))

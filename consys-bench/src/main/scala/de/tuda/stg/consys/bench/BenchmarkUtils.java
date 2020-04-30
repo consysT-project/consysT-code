@@ -1,11 +1,11 @@
-package de.tuda.stg.consys.demo;
+package de.tuda.stg.consys.bench;
 
 /**
  * Created on 19.11.19.
  *
  * @author Mirko Köhler
  */
-public class DemoUtils {
+public class BenchmarkUtils {
 
 	public static void printProgress(int iteration) {
 		System.out.print(iteration % 100 == 0 ? iteration : ".");

@@ -2,8 +2,15 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
+
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static de.tuda.stg.consys.japi.JConsistencyLevels.WEAK;
 
@@ -18,40 +25,44 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 		WEAK, MIXED, STRONG
 	}
 
-
 	private final BenchmarkType benchType;
+
+
+	// An executor to use for asynchronous syncs.
+	private ExecutorService executor = Executors.newCachedThreadPool(); //Currently unused
+	private final Random random = new Random();
 
 
 	public DemoBenchmark(Config config) {
 		super(config);
-
 		String typeString = config.getString("consys.bench.demo.type");
-
 		if (typeString == null) {
 			throw new IllegalArgumentException("config key not found: consys.bench.demo.type");
 		}
-
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
-	protected ConsistencyLevel getStrongLevel() {
+	protected void doSync(Runnable f)  {
+//		final JAkkaReplicaSystem sys = system();
+//		executor.execute(JReplicaSystems.withSystem(sys).use(() -> f));
+		if (random.nextInt(100) < 20) f.run();
+	}
+
+	protected ConsistencyLabel getStrongLevel() {
 		switch (benchType) {
 			case WEAK: return WEAK;
 			default: return JConsistencyLevels.STRONG;
 		}
-
-
 	}
 
-	protected ConsistencyLevel getWeakLevel() {
+	protected ConsistencyLabel getWeakLevel() {
 		switch (benchType) {
 			case STRONG: return JConsistencyLevels.STRONG;
 			default: return JConsistencyLevels.WEAK;
 		}
-
 	}
 
-	protected ConsistencyLevel getCausalLevel() {
+	protected ConsistencyLabel getCausalLevel() {
 		switch (benchType) {
 			case MIXED: return JConsistencyLevels.CAUSAL;
 			case STRONG: return JConsistencyLevels.STRONG;
@@ -59,5 +70,16 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 		}
 
 		throw new IllegalArgumentException("unsupported benchtype " + benchType);
+	}
+
+	@Override
+	public void closeOperations() {
+		try {
+			executor.shutdown();
+			executor.awaitTermination(5, TimeUnit.MINUTES);
+			executor = Executors.newCachedThreadPool();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 }

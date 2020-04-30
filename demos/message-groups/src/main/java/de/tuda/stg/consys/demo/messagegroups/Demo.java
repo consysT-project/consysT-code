@@ -17,14 +17,14 @@ import java.util.concurrent.Executors;
 
 public class Demo {
 
-	public static void main(String... args) throws Exception {
+    public static void main(String... args) throws Exception {
         runBenchmark();
-	}
+    }
 
     public static void runBenchmark() throws InterruptedException {
         int numReplicas = Replicas.replicaSystems.length;
 
-         System.out.println("Initializing benchmarks...");
+        System.out.println("Initializing benchmarks...");
         MessageGroupsBenchmark[] benchmarks = MessageGroupsBenchmark.createWith(Replicas.replicaSystems, 1);
 
         //Run benchmarks
@@ -62,12 +62,12 @@ public class Demo {
             for (int i = 0; i <= entriesPerSystem; i++) {
 
                 for (int j = 0; j < replicaSystems.length; j++) {
-                    JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$"+ j, new Group(), JConsistencyLevels.STRONG);
-                    JRef<Inbox> inbox =  replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.CAUSAL);
-                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$"+ j, new User(inbox, "alice$" + i + "$"+ j), JConsistencyLevels.CAUSAL);
+                    JRef<Group> group = replicaSystems[j].replicate("group$" + i + "$" + j, new Group(), JConsistencyLevels.STRONG);
+                    JRef<Inbox> inbox = replicaSystems[j].replicate("inbox$" + i + "$" + j, new Inbox(), JConsistencyLevels.CAUSAL);
+                    JRef<User> user = replicaSystems[j].replicate("user$" + i + "$" + j, new User(inbox, "alice$" + i + "$" + j), JConsistencyLevels.CAUSAL);
 
                     group.ref().addUser(user);
-                    System.out.println("Added user$" + i + "$"+ j);
+                    System.out.println("Added user$" + i + "$" + j);
                 }
             }
 
@@ -98,11 +98,10 @@ public class Demo {
         }
 
 
-
         private int transaction1() {
             int i = random.nextInt(groups.size());
             JRef<Group> group = groups.get(i);
-         //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
+            //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
             group.ref().addPost("Hello " + i);
             return 2;
         }
@@ -110,7 +109,7 @@ public class Demo {
         private int transaction2() {
             int i = random.nextInt(users.size());
             JRef<User> user = users.get(i);
-           // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
+            // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
 
             //No sync
             Set<String> inbox = user.ref().getInbox();
@@ -120,7 +119,7 @@ public class Demo {
         private int transaction2b() {
             int i = random.nextInt(users.size());
             JRef<User> user = users.get(i);
-           // System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
+            // System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
             JRef<Inbox> inbox = user.ref().inbox;
             user.sync();
@@ -131,7 +130,6 @@ public class Demo {
         }
 
 
-
         private int transaction3() {
             int i = random.nextInt(groups.size());
             int j = random.nextInt(users.size());
@@ -139,7 +137,7 @@ public class Demo {
             JRef<Group> group = groups.get(i);
             JRef<User> user = users.get(j);
 
-          //  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
+            //  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
             group.ref().addUser(user);
 
             return 3;

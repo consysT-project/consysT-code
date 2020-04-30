@@ -20,7 +20,7 @@ trait AkkaReplicatedObject[Loc, T] extends ReflectiveReplicatedObject[Loc, T] {
 
 	override protected def setObject(obj : T) : Unit = {
 		super.setObject(obj)
-		replicaSystem.initializeRefFields(obj)
+//		replicaSystem.initializeRefFields(obj)
 		initializeReplicated()
 	}
 
@@ -84,7 +84,7 @@ trait AkkaReplicatedObject[Loc, T] extends ReflectiveReplicatedObject[Loc, T] {
 					rob.sync()
 					syncObject(rob.getObject, alreadySynced + rob)
 
-				case ref : AkkaRef[_, _] if ref.replicaSystem == replicaSystem =>
+				case ref : AkkaRef[_, _] => //if ref.replicaSystem == replicaSystem =>
 					val rob = ref.deref
 					syncObject(rob, alreadySynced + ref)
 

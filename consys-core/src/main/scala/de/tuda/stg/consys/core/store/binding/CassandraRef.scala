@@ -10,14 +10,14 @@ import de.tuda.stg.consys.core.store.cassandra.{CassandraHandler, CassandraStore
  */
 class CassandraRef[T <: java.io.Serializable](
 	override val addr : CassandraStore#Addr,
-	override val consistencyLevel : ConsistencyLabel = ???
+	override val label : ConsistencyLabel = ???
 ) extends Ref[CassandraStore#Addr, T] {
 
 	type ConsistencyLevel = ConsistencyLabel
 
 	private val handler : CassandraHandler[T] = ???
 
-	override def deref : ReplicatedObject[String, T] = ???
+	override def deref : ReplicatedObject[String, T] { type ConsistencyLevel = CassandraRef.this.ConsistencyLevel } = ???
 	override def isAvailable : Boolean = ???
 	override def await() : Unit = ???
 	override def delete() : Unit = ???

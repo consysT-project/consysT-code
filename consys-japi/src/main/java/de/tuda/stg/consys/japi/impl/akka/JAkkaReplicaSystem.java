@@ -4,6 +4,7 @@ import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.Ref;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory;
 import de.tuda.stg.consys.japi.*;
 import scala.collection.JavaConverters;
 
@@ -20,10 +21,10 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 	JReplicaSystemWithRemove,
 	JReplicaSystemWithBarrier {
 
-	public final AkkaReplicaSystem replicaSystem;
+	public final AkkaReplicaSystemFactory.AkkaReplicaSystemBinding replicaSystem;
 
 	public JAkkaReplicaSystem(AkkaReplicaSystem replicaSystem) {
-		this.replicaSystem = replicaSystem;
+		this.replicaSystem = (AkkaReplicaSystemFactory.AkkaReplicaSystemBinding) replicaSystem;
 	}
 
 

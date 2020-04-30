@@ -2,9 +2,11 @@ package de.tuda.stg.consys.demo.eshop;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
-import de.tuda.stg.consys.demo.DemoUtils;
+import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.eshop.schema.Database;
 import de.tuda.stg.consys.demo.eshop.schema.ShoppingSite;
+import de.tuda.stg.consys.demo.eshop.schema.User;
+import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
@@ -12,28 +14,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static de.tuda.stg.consys.demo.DemoUtils.printProgress;
+import static de.tuda.stg.consys.bench.BenchmarkUtils.printProgress;
 
 /**
  * Created on 10.10.19.
  *
  * @author Mirko Köhler
  */
-public class DistributedEShopBenchmark extends DemoBenchmark {
+public class EShopBenchmark extends DemoBenchmark {
 
 
 	public static void main(String[] args) {
-		start(DistributedEShopBenchmark.class, args[0]);
+		start(EShopBenchmark.class, args[0]);
 	}
 
-	private final int numOfTransactions;
 	private final int numOfProducts;
 	private final int numOfUsers;
 
 
-	public DistributedEShopBenchmark(Config config) {
+	public EShopBenchmark(Config config) {
 		super(config);
-		numOfTransactions = config.getInt("consys.bench.demo.eshop.transactions");
 		numOfProducts = config.getInt("consys.bench.demo.eshop.products");
 		numOfUsers = config.getInt("consys.bench.demo.eshop.users");
 
@@ -55,9 +55,9 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	@Override
 	public void setup() {
 		if (processId() == 0) {
-			database = replicaSystem().replicate("db", new Database(100, 100), getWeakLevel());
+			database = system().replicate("db", new Database(100, 100), getWeakLevel());
 			database.ref().init(numOfUsers, numOfProducts);
-			shoppingSite = replicaSystem().replicate("page", new ShoppingSite(database), getWeakLevel());
+			shoppingSite = system().replicate("page", new ShoppingSite(database), getWeakLevel());
 
 			List<String> initialProducts = new ArrayList<>(numOfProducts);
 			for (int i = 0; i < numOfProducts; i++){
@@ -72,24 +72,24 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 				String name = "User" + i;
 				//Add one random searchable word to the products
 				database.ref().addUser(name, Integer.toString(i));
-				DemoUtils.printProgress(i);
+				BenchmarkUtils.printProgress(i);
 			}
-			DemoUtils.printDone();
+			BenchmarkUtils.printDone();
 
-			replicaSystem().barrier("added");
+			system().barrier("added");
 
-			System.out.println("number of objects = " + replicaSystem().numberOfObjects());
+			System.out.println("number of objects = " + system().numberOfObjects());
 
 		} else {
-			database = replicaSystem().lookup("db", Database.class, getWeakLevel());
-			shoppingSite = replicaSystem().lookup("page", ShoppingSite.class, getWeakLevel());
+			database = system().lookup("db", Database.class, getWeakLevel());
+			shoppingSite = system().lookup("page", ShoppingSite.class, getWeakLevel());
 
 			database.sync(); //Force dereference
 			shoppingSite.sync();
 
-			replicaSystem().barrier("added");
+			system().barrier("added");
 
-			System.out.println("number of objects = " + replicaSystem().numberOfObjects());
+			System.out.println("number of objects = " + system().numberOfObjects());
 
 			database.sync();
 			shoppingSite.sync();
@@ -99,19 +99,15 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	@Override
 	public void operation() {
 		if (processId() != 0) {
-			for (int i = 0; i < numOfTransactions; i++) {
-				randomTransaction();
-				printProgress(i);
-			}
-			DemoUtils.printDone();
+			randomTransaction();
 		}
 	}
 
 	@Override
 	public void cleanup() {
-		System.out.println("number of objects = " + replicaSystem().numberOfObjects());
+		System.out.println("number of objects = " + system().numberOfObjects());
 
-		replicaSystem().clear(Sets.newHashSet());
+		system().clear(Sets.newHashSet());
 	}
 
 
@@ -139,45 +135,72 @@ public class DistributedEShopBenchmark extends DemoBenchmark {
 	private void transactionAddBalance() {
         System.out.println("--transactionAddBalance--");
 	    shoppingSite.ref().addBalance((double) random.nextInt(100), false);
+	    doSync(() -> {
+	    	JRef<User> user = shoppingSite.ref().currentlyLoggedIn;
+	    	user.sync();
+		});
 	}
 
 	private void transactionAddCart() {
         System.out.println("--transactionAddCart--");
 	    shoppingSite.ref().FromFoundAddToCart(random.nextInt(3) + 1, 1);
+		doSync(() -> {
+			JRef prod = shoppingSite.ref().foundProducts;
+			prod.sync();
+			JRef ref = shoppingSite.ref().cartOfLoggedIn;
+			ref.sync();
+		});
 	}
 
 	private void transactionCheckout() {
         System.out.println("--transactionCheckout--");
 	    shoppingSite.ref().Checkout(false);
+		doSync(() -> {
+			JRef ref = shoppingSite.ref().currentlyLoggedIn;
+			ref.sync();
+		});
 	}
 
 	private void transactionLogin() {
         System.out.println("--transactionLogin--");
 		int userIndex = random.nextInt(numOfUsers);
 		shoppingSite.ref().login("User" + userIndex, Integer.toString(userIndex));
+		doSync(() -> {
+			JRef ref = shoppingSite.ref().currentlyLoggedIn;
+			ref.sync();
+		});
 	}
 
 	private void transactionLogout() {
         System.out.println("--transactionLogout--");
 	    shoppingSite.ref().Logout();
+		doSync(() -> shoppingSite.sync());
 	}
 
 	private void transactionRegisterUser() {
 		//TODO: This does not really work out...
-		String password = "";
+		StringBuilder password = new StringBuilder();
 		for(int j = 0; j < 6; j++){
-			password += (char) (random.nextInt(26) + 'a');
+			password.append((char) (random.nextInt(26) + 'a'));
 		}
-		password += random.nextInt(1000);
+		password.append(random.nextInt(1000));
 
 		byte[] usernameRaw = new byte[16];
 		random.nextBytes(usernameRaw);
 
-		shoppingSite.ref().RegisterNewUser("User" + new String(usernameRaw), password);
+		shoppingSite.ref().RegisterNewUser("User" + new String(usernameRaw), password.toString());
+		doSync(() -> {
+			JRef ref = shoppingSite.ref().database;
+			ref.sync();
+		});
 	}
 
 	private void transactionSearch() {
 		shoppingSite.ref().Search(searchableWords[random.nextInt(searchableWords.length)], false, 1000);
+		doSync(() -> {
+			JRef ref = shoppingSite.ref().foundProducts;
+			ref.sync();
+		});
 	}
 
 	private void transactionViewInfo() {

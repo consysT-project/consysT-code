@@ -13,26 +13,26 @@ import java.util.Set;
  */
 public class User implements Serializable {
 
-	public final JRef<Inbox> inbox;
-	public final String name;
+    public final JRef<Inbox> inbox;
+    public final String name;
 
-	public User(JRef<Inbox> inbox, String name) {
-		this.inbox = inbox;
-		this.name = name;
-	}
+    public User(JRef<Inbox> inbox, String name) {
+        this.inbox = inbox;
+        this.name = name;
+    }
 
-	public void send(String msg) {
+    public void send(String msg) {
 //		System.out.println("[Message] " + name + ": " + msg);
-		inbox.ref().add(msg);
-	}
+        inbox.ref().add(msg);
+    }
 
-	public Set<String> getInbox() {
-		return inbox.ref().getEntries();
-	}
+    public Set<String> getInbox() {
+        return inbox.ref().getEntries();
+    }
 
 
-	public void printInbox() {
-		String s = "[Inbox] " + name + ": " + inbox.ref().toString();
-		System.out.println(s);
-	}
+    public void printInbox() {
+        String s = "[Inbox] " + name + ": " + inbox.ref().toString();
+        System.out.println(s);
+    }
 }

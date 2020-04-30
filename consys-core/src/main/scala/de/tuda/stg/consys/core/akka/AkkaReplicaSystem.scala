@@ -8,6 +8,7 @@ import akka.event.LoggingAdapter
 import akka.util.Timeout
 import de.tuda.stg.consys.core
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
 import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest, _}
 import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLabel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
 
@@ -309,65 +310,59 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 
-	/**
-		* Recursively initializes all fields of an object that store a Ref.
-		* Initializing means, setting the replica system of the ref.
-		*
-		* @param obj
-		*/
-	private[akka] def initializeRefFields(obj : Any) : Unit = {
-
-		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
-			//If the object is null, there is nothing to initialize
-			//If the object has already been initialized than stop
-			if (any == null || alreadyInitialized.contains(any)) {
-				return
-			}
-
-			any match {
-				//If the object is a RefImpl
-				case refImpl : AkkaRef[Addr, _] =>
-
-					refImpl.replicaSystem = this
-
-				//The object is a ref, but is not supported by the replica system
-				case ref :  core.Ref[_, _] =>
-					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
-
-				case _ =>
-
-					val anyClass = any.getClass
-					//If the value is primitive (e.g. int) then stop
-					if (anyClass.isPrimitive) {
-						return
-					}
-
-					//If the value is an array, then initialize ever element of the array.
-					if (anyClass.isArray) {
-						val anyArray : Array[_] = any.asInstanceOf[Array[_]]
-						val initSet = alreadyInitialized + any
-						anyArray.foreach(e => initializeObject(e, initSet))
-					}
-
-
-					val anyPackage = anyClass.getPackage
-					//Check that the object has a package declaration and that it is not the Java standard library
-					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment" || anyPackage.getName.startsWith("java")) {
-						return
-					}
-
-					//If the object should be initialized, then initialize all fields
-					anyClass.getDeclaredFields.foreach { field =>
-						//Recursively initialize refs in the fields
-						field.setAccessible(true)
-						val fieldObj = field.get(any)
-						initializeObject(fieldObj, alreadyInitialized + any)
-					}
-			}
-		}
-
-		initializeObject(obj, Set.empty)
-	}
+//	private[akka] def initializeRefFields(obj : Any) : Unit = {
+//
+//		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
+//			//If the object is null, there is nothing to initialize
+//			//If the object has already been initialized than stop
+//			if (any == null || alreadyInitialized.contains(any)) {
+//				return
+//			}
+//
+//			any match {
+//				//If the object is a RefImpl
+//				case refImpl : AkkaRef[Addr, _] =>
+//
+//					refImpl.replicaSystem = this
+//
+//				//The object is a ref, but is not supported by the replica system
+//				case ref :  core.Ref[_, _] =>
+//					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
+//
+//				case _ =>
+//
+//					val anyClass = any.getClass
+//					//If the value is primitive (e.g. int) then stop
+//					if (anyClass.isPrimitive) {
+//						return
+//					}
+//
+//					//If the value is an array, then initialize ever element of the array.
+//					if (anyClass.isArray) {
+//						val anyArray : Array[_] = any.asInstanceOf[Array[_]]
+//						val initSet = alreadyInitialized + any
+//						anyArray.foreach(e => initializeObject(e, initSet))
+//					}
+//
+//
+//					val anyPackage = anyClass.getPackage
+//					//Check that the object has a package declaration and that it is not the Java standard library
+//					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment" || anyPackage.getName.startsWith("java")) {
+//						return
+//					}
+//
+//					//If the object should be initialized, then initialize all fields
+//					anyClass.getDeclaredFields.foreach { field =>
+//						//Recursively initialize refs in the fields
+//						field.setAccessible(true)
+//						val fieldObj = field.get(any)
+//						initializeObject(fieldObj, alreadyInitialized + any)
+//					}
+//			}
+//		}
+//
+//		initializeObject(obj, Set.empty)
+//	}
 
 
 	private class ReplicaActor extends Actor {
@@ -412,7 +407,8 @@ trait AkkaReplicaSystem extends ReplicaSystem
 					()
 
 				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
-					case None => sys.error(s"object $addr not found")
+					case None =>
+						sys.error(s"object $addr not found")
 					case Some(obj) => request match {
 						case _ : SynchronousRequest[_] | _ : AsynchronousRequest[_] =>
 							sender() ! obj.handleRequest(request)

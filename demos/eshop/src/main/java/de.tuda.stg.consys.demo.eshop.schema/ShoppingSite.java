@@ -18,13 +18,13 @@ public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
     /* This field is needed for JReplicated */
     public transient AkkaReplicaSystem replicaSystem = null;
 
-    private JRef<@Strong User> currentlyLoggedIn;
+    public JRef<@Strong User> currentlyLoggedIn;
 
-    private JRef<@Weak Cart> cartOfLoggedIn;
+    public JRef<@Weak Cart> cartOfLoggedIn;
 
-    private JRef<@Weak Database> database;
+    public JRef<@Weak Database> database;
 
-    private JRef<@Weak JRefArrayList> foundProducts;
+    public JRef<@Weak JRefArrayList> foundProducts;
 
     public ShoppingSite(JRef<@Weak Database> db) {
         database = db;

@@ -3,6 +3,7 @@ package de.tuda.stg.consys.core.akka
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.ConsistencyLabel
 import de.tuda.stg.consys.core.ConsistencyLabel.Weak
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
 import de.tuda.stg.consys.core.akka.Requests._
 import de.tuda.stg.consys.core.akka.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 
@@ -70,22 +71,22 @@ object WeakAkkaReplicaSystem {
 
 			override def handleRequest[R](request : Request[R]) : R = request match {
 					case SynchronizeWithWeakMaster(ops) =>
+						AkkaReplicaSystems.withValue(replicaSystem.asInstanceOf[AkkaReplicaSystemBinding]) {
+							ops.foreach(op => {
+								val before = op.tx.locks.toSet
 
-						ops.foreach(op => {
-							val before = op.tx.locks.toSet
+								replicaSystem.setCurrentTransaction(op.tx)
+								op match {
+									case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
+									case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
+									case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
+								}
 
-							replicaSystem.setCurrentTransaction(op.tx)
-							op match {
-								case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
-								case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
-								case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
-							}
+								assert(replicaSystem.getCurrentTransaction.locks.toSet == before)
 
-							assert(replicaSystem.getCurrentTransaction.locks.toSet == before)
-
-							replicaSystem.clearTransaction()
-
-						})
+								replicaSystem.clearTransaction()
+							})
+						}
 
 						WeakSynchronized(getObject).asInstanceOf[R]
 

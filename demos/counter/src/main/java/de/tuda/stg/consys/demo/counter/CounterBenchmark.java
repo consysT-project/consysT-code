@@ -4,42 +4,36 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
 import org.checkerframework.com.google.common.collect.Sets;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created on 10.10.19.
  *
  * @author Mirko Köhler
  */
-public class ContentionCounterBenchmark extends DemoBenchmark {
-
-
+public class CounterBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
-		start(ContentionCounterBenchmark.class, args[0]);
+		start(CounterBenchmark.class, args[0]);
 	}
 
-	private final int numOfTransactions;
-
-
-	public ContentionCounterBenchmark(Config config) {
+	public CounterBenchmark(Config config) {
 		super(config);
-		numOfTransactions = config.getInt("consys.bench.demo.counter.transactions");
-
-		setOperationsPerIteration(numOfTransactions);
-		setWaitPerOperation(1000);
 	}
 
 	private JRef<Counter> counter;
-	private final Random random = new Random();
 
 	@Override
 	public void setup() {
 		if (processId() == 0) {
-			counter = replicaSystem().replicate("counter", new Counter(0), getWeakLevel());
+			counter = system().replicate("counter", new Counter(0), getWeakLevel());
 		} else {
-			counter = replicaSystem().lookup("counter", Counter.class, getWeakLevel());
+			counter = system().lookup("counter", Counter.class, getWeakLevel());
 			counter.sync(); //Force dereference
 		}
 	}
@@ -47,12 +41,13 @@ public class ContentionCounterBenchmark extends DemoBenchmark {
 	@Override
 	public void operation() {
 		counter.ref().inc();
+		doSync(() -> counter.sync());
 		System.out.print(".");
 	}
 
 	@Override
 	public void cleanup() {
-		replicaSystem().clear(Sets.newHashSet());
+		system().clear(Sets.newHashSet());
 	}
 
 
