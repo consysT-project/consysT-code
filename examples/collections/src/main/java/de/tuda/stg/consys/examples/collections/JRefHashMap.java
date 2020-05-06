@@ -6,14 +6,12 @@ import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.Optional;
 
-public class JRefHashMap implements Serializable, JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class JRefHashMap implements Serializable {
 
     final double maxLoadFactor = 0.75;
     final double resizeFactor = 1.4;
@@ -33,12 +31,8 @@ public class JRefHashMap implements Serializable, JReplicated {
     }
 
     public boolean init(int initial_size, ConsistencyLabel level) {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
         this.level = level;
 
 
@@ -160,12 +154,8 @@ public class JRefHashMap implements Serializable, JReplicated {
 
 
     private void checkLoad() {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         int mapLen = map.invoke("size", true);
 

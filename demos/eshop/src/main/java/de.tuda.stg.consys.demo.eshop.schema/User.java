@@ -7,16 +7,14 @@ import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Optional;
 
-public class User implements Serializable , JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class User implements Serializable {
 
     private String userID;
 
@@ -40,12 +38,7 @@ public class User implements Serializable , JReplicated {
     }
 
     public boolean init(){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         this.cart = system.replicate(new Cart(system),  EShopLevels.getStrongLevel());
         return true;

@@ -137,7 +137,7 @@ public class EShopBenchmark extends DemoBenchmark {
 	    shoppingSite.ref().addBalance((double) random.nextInt(100), false);
 	    doSync(() -> {
 	    	JRef<User> user = shoppingSite.ref().currentlyLoggedIn;
-	    	user.sync();
+			if (user != null) user.sync();
 		});
 	}
 
@@ -146,9 +146,9 @@ public class EShopBenchmark extends DemoBenchmark {
 	    shoppingSite.ref().FromFoundAddToCart(random.nextInt(3) + 1, 1);
 		doSync(() -> {
 			JRef prod = shoppingSite.ref().foundProducts;
-			prod.sync();
+			if (prod != null) prod.sync();
 			JRef ref = shoppingSite.ref().cartOfLoggedIn;
-			ref.sync();
+			if (ref != null) ref.sync();
 		});
 	}
 
@@ -157,7 +157,7 @@ public class EShopBenchmark extends DemoBenchmark {
 	    shoppingSite.ref().Checkout(false);
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().currentlyLoggedIn;
-			ref.sync();
+			if (ref != null) ref.sync(); ref.sync();
 		});
 	}
 
@@ -167,7 +167,7 @@ public class EShopBenchmark extends DemoBenchmark {
 		shoppingSite.ref().login("User" + userIndex, Integer.toString(userIndex));
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().currentlyLoggedIn;
-			ref.sync();
+			if (ref != null) ref.sync();
 		});
 	}
 
@@ -191,7 +191,7 @@ public class EShopBenchmark extends DemoBenchmark {
 		shoppingSite.ref().RegisterNewUser("User" + new String(usernameRaw), password.toString());
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().database;
-			ref.sync();
+			if (ref != null) ref.sync();
 		});
 	}
 
@@ -199,7 +199,7 @@ public class EShopBenchmark extends DemoBenchmark {
 		shoppingSite.ref().Search(searchableWords[random.nextInt(searchableWords.length)], false, 1000);
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().foundProducts;
-			ref.sync();
+			if (ref != null) ref.sync();
 		});
 	}
 

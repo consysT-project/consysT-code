@@ -10,6 +10,7 @@ import de.tuda.stg.consys.examples.collections.JRefArrayMap;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,11 +19,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public class Database implements Serializable , JReplicated, IDatabase<User, Product> {
-
-    //This is a pointless comment
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class Database implements Serializable, IDatabase<User, Product> {
 
     private JRef<@Strong JRefArrayMap> registeredUsers;
 
@@ -42,15 +39,9 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
 
     public boolean init(int initUserCount, int initProductCount){
 
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
-        registeredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(), EShopLevels.getStrongLevel());
-        registeredUsers.ref().init(initUserCount, mapArraySize, EShopLevels.getStrongLevel());
+        registeredUsers = system.replicate("RegisteredUserMap", new JRefArrayMap(initUserCount, mapArraySize, EShopLevels.getStrongLevel()), EShopLevels.getStrongLevel());
 
         registeredProducts = system.replicate("RegisteredObjectList",
                 new JRefArrayList(EShopLevels.getWeakLevel(), listArraySize), EShopLevels.getWeakLevel());
@@ -63,12 +54,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
      * Function to be called when directly invoking the database
      */
     public boolean addUser(String Username, String Password){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         JRef<@Strong User> newUser = system.replicate(new User(Username, Password), EShopLevels.getStrongLevel());
         newUser.ref().init();
@@ -79,12 +65,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
     Delete User from database
      */
     public ArrayList<JRef> deleteUser(String Username){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         String user = registeredUsers.ref().remove(Username);
         if(user != null){
@@ -153,12 +134,8 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
      * add initial list of products as semicolon seperated Name and price
      */
     public boolean addInitialProducts(Collection<String> prods){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
         if(prods.size() < 1)
             return false;
 
@@ -199,12 +176,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
      * Checks for types & if the product is already in the database
      */
     public boolean addProduct(String name, double price){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         Predicate<JRef<Product>> tester = (Predicate<JRef<Product>> & Serializable) productJRef -> {
             String currName = productJRef.ref().getName();
@@ -226,12 +198,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
     private JRef<User> resolveUser(String addr, ConsistencyLabel level){
         if(addr == null)return null;
 
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         return system.lookup(addr, User.class, level);
     }
@@ -239,12 +206,7 @@ public class Database implements Serializable , JReplicated, IDatabase<User, Pro
     private JRef<Product> resolveProduct(String addr, ConsistencyLabel level){
         if(addr == null)return null;
 
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         return system.lookup(addr, Product.class, level);
     }
