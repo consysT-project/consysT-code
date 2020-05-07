@@ -157,7 +157,7 @@ public class EShopBenchmark extends DemoBenchmark {
 	    shoppingSite.ref().Checkout(false);
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().currentlyLoggedIn;
-			if (ref != null) ref.sync(); ref.sync();
+			if (ref != null) ref.sync();
 		});
 	}
 

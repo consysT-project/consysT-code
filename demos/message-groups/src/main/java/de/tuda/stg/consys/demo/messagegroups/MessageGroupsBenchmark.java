@@ -114,6 +114,11 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
     @Override
     public void cleanup() {
         system().clear(Sets.newHashSet());
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 
