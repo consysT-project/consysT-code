@@ -137,7 +137,7 @@ public class EShopBenchmark extends DemoBenchmark {
 	    shoppingSite.ref().addBalance((double) random.nextInt(100), false);
 	    doSync(() -> {
 	    	JRef<User> user = shoppingSite.ref().currentlyLoggedIn;
-			if (user != null) user.sync();
+	    	if (user != null) user.sync();
 		});
 	}
 
@@ -147,6 +147,7 @@ public class EShopBenchmark extends DemoBenchmark {
 		doSync(() -> {
 			JRef prod = shoppingSite.ref().foundProducts;
 			if (prod != null) prod.sync();
+
 			JRef ref = shoppingSite.ref().cartOfLoggedIn;
 			if (ref != null) ref.sync();
 		});
@@ -155,7 +156,8 @@ public class EShopBenchmark extends DemoBenchmark {
 	private void transactionCheckout() {
         System.out.println("--transactionCheckout--");
 	    shoppingSite.ref().Checkout(false);
-		doSync(() -> {
+
+	    doSync(() -> {
 			JRef ref = shoppingSite.ref().currentlyLoggedIn;
 			if (ref != null) ref.sync();
 		});
@@ -165,6 +167,7 @@ public class EShopBenchmark extends DemoBenchmark {
         System.out.println("--transactionLogin--");
 		int userIndex = random.nextInt(numOfUsers);
 		shoppingSite.ref().login("User" + userIndex, Integer.toString(userIndex));
+
 		doSync(() -> {
 			JRef ref = shoppingSite.ref().currentlyLoggedIn;
 			if (ref != null) ref.sync();
