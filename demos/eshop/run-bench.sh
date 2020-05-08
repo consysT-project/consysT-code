@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONF_PATH='local/mixed/'
+CONF_PATH='local/weak/'
 CLASS_NAME='de.tuda.stg.consys.demo.eshop.EShopBenchmark'
 JAR_NAME='target/eshop-2.0.0-allinone.jar'
 

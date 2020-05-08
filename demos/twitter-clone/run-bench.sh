@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONF_PATH='local/mixed/'
+CONF_PATH='local/weak/'
 CLASS_NAME='de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark'
 JAR_NAME='target/twitter-clone-2.0.0-allinone.jar'
 

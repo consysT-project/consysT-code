@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONF_PATH='local/mixed/'
+CONF_PATH='local/75perc-weak/'
 CLASS_NAME='de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark'
 JAR_NAME='target/message-groups-2.0.0-allinone.jar'
 
