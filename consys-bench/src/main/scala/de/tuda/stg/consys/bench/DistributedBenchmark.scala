@@ -86,8 +86,9 @@ abstract class DistributedBenchmark(
 	protected def cleanup() : Unit
 
 	private def busyWait(ms : Long) : Unit = {
-		val start = System.currentTimeMillis
-		while (System.currentTimeMillis < start + ms) {}
+//		val start = System.currentTimeMillis
+//		while (System.currentTimeMillis < start + ms) {}
+		Thread.sleep(ms)
 	}
 
 
