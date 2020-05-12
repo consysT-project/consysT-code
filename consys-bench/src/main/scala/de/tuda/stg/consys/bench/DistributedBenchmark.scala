@@ -206,18 +206,11 @@ abstract class DistributedBenchmark(
 
 object DistributedBenchmark {
 
-	final val BARRIER_TIMEOUT : Duration = Duration(1800, "s")
-
-	case class BenchmarkCommunication()
-
 	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String) : Unit = {
-
-
 		val constructor = benchmark.getConstructor(classOf[Config])
 		val bench = constructor.newInstance(ConfigFactory.load(configName))
 
 		bench.runBenchmark()
-
 	}
 
 }

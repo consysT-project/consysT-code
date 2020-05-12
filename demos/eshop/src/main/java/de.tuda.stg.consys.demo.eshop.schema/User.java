@@ -115,8 +115,7 @@ public class User implements Serializable {
             }
             return Double.NaN;
         }
-        else
-            return Double.NaN;
+        else return Double.NaN;
     }
 
     public ArrayList<JRef> getForDelete(){
