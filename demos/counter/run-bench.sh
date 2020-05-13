@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONF_PATH='local/weak/'
+CONF_PATH='local/contention/mixed/'
 CLASS_NAME='de.tuda.stg.consys.demo.counter.CounterBenchmark'
 JAR_NAME='target/counter-2.0.0-allinone.jar'
 

@@ -110,7 +110,7 @@ public class EShopBenchmark extends DemoBenchmark {
 		system().clear(Sets.newHashSet());
 	}
 
-in
+
 	private void randomTransaction() {
 		int roll = random.nextInt(100);
 
