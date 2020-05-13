@@ -179,6 +179,43 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         return 3;
     }
 
+    private int counter = 0;
+    private boolean shouldSync = false;
+    private int randomTransaction2() {
+        counter++;
+        int rand = counter % 10;
+        if (rand < 5) /*12*/ {
+            //inbox checking with sync
+            return transaction2b();
+        } else if (rand < 6) /*12*/ {
+            //inbox checking with sync
+            shouldSync = true;
+            int res = transaction2b();
+            shouldSync = false;
+            return res;
+        } else if (rand < 7) {
+            //Message posting
+            return transaction1b();
+        }  else if (rand < 8) {
+            //Message posting
+            shouldSync = true;
+            int res = transaction1b();
+            shouldSync = false;
+            return res;
+        } else if (rand < 9) {
+            //group joining
+            return transaction3();
+        } else if (rand < 10) {
+            //group joining
+            shouldSync = true;
+            int res = transaction3();
+            shouldSync = false;
+            return res;
+        }
+
+        //user creation: left out
+        throw new IllegalStateException("cannot be here");
+    }
 
     private int randomTransaction() {
         int rand = random.nextInt(100);
@@ -195,6 +232,11 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         //user creation: left out
 
         throw new IllegalStateException("cannot be here");
+    }
+
+    @Override
+    protected boolean shouldSync() {
+        return shouldSync;
     }
 
 

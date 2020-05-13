@@ -45,7 +45,11 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 	protected void doSync(Runnable f)  {
 //		final JAkkaReplicaSystem sys = system();
 //		executor.execute(JReplicaSystems.withSystem(sys).use(() -> f));
-		if (random.nextInt(100) < 20) f.run();
+		if (shouldSync()) f.run();
+	}
+
+	protected boolean shouldSync() {
+		return random.nextInt(100) < 20;
 	}
 
 	protected ConsistencyLabel getStrongLevel() {
