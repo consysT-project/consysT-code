@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
  *
  * @author Mirko Köhler
  */
-public class DistributedDemo {
+public class Demo {
 
 	public static void main(String... args) throws Exception {
 		ExecutorService exec = Executors.newFixedThreadPool(4);
