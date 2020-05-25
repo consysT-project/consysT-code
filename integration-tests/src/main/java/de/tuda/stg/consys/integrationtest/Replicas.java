@@ -8,6 +8,7 @@ import de.tuda.stg.consys.japi.impl.JReplicaSystems;
  *
  * @author Mirko Köhler
  */
+@Deprecated
 public class Replicas {
 
 	public static final JReplicaSystem replicaSystem1;
