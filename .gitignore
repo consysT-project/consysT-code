@@ -152,6 +152,9 @@ gen/
 # Cassandra specific
 opt/cassandra/data/
 
+# Exclude bench-results
+bench-results/
+
 
 
 
