@@ -2,7 +2,7 @@ package de.tuda.stg.consys.core.akka
 import java.io
 
 import akka.actor.ActorSystem
-import com.sun.tools.javac.code.TypeTag
+import scala.reflect.runtime.universe._
 import de.tuda.stg.consys.core.akka.DeltaCRDTAkkaReplicaSystem.DeltaCRDTReplicatedObject
 import de.tuda.stg.consys.core.ConsistencyLabel.DCRDT
 import de.tuda.stg.consys.core.akka.Requests.{InvokeOp, NoAnswerRequest, Operation, Request, SynchronousRequest}
