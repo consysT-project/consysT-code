@@ -24,6 +24,7 @@ object ConsistencyLabel {
 	/* CRDTs */
 	case object CvRDT extends ConsistencyLabel
 	case object CmRDT extends ConsistencyLabel
+	case object DCRDT extends ConsistencyLabel
 
 
 	case class Cassandra(replicas : Int) extends ConsistencyLabel
