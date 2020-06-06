@@ -32,9 +32,9 @@ public class JMHBenchmark {
 		JReplicaSystem replicaSystem2;
 		JReplicaSystem replicaSystem3;
 
-		List<JRef<AddOnlySet>> counters;
+		List<JRef<AddOnlySet<String>>> counters;
 
-		public List<JRef<AddOnlySet>> getCounters() {
+		public List<JRef<AddOnlySet<String>>> getCounters() {
 			return counters;
 		}
 
@@ -46,7 +46,7 @@ public class JMHBenchmark {
 
 		@Setup(Level.Iteration)
 		public void systemSetup() throws Exception {
-			/*
+
 			JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(3);
 
 			replicaSystem1 = systems[0];
@@ -56,24 +56,27 @@ public class JMHBenchmark {
 			ConsistencyLabel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
 
 			replicaSystem1.replicate("counter1", new AddOnlySet<String>(), consistencyLevel);
-			replicaSystem2.replicate("counter2", new AddOnlySet(), consistencyLevel);
-			replicaSystem3.replicate("counter3", new AddOnlySet(), consistencyLevel);
+			replicaSystem2.replicate("counter2", new AddOnlySet<String>(), consistencyLevel);
+			replicaSystem3.replicate("counter3", new AddOnlySet<String>(), consistencyLevel);
 
 			counters = new ArrayList<>();
-			counters.add(replicaSystem1.lookup("counter1", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem1.lookup("counter2", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem1.lookup("counter3", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem2.lookup("counter1", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem2.lookup("counter2", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem2.lookup("counter3", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem3.lookup("counter1", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem3.lookup("counter2", AddOnlySet.class, consistencyLevel));
-			counters.add(replicaSystem3.lookup("counter3", AddOnlySet.class, consistencyLevel));
+
+
+			Class<AddOnlySet<String>> c = (Class<AddOnlySet<String>>) new AddOnlySet<String>().getClass();
+			counters.add(replicaSystem1.lookup("counter1", c, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter2", c, consistencyLevel));
+			counters.add(replicaSystem1.lookup("counter3", c, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter1", c, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter2", c, consistencyLevel));
+			counters.add(replicaSystem2.lookup("counter3", c, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter1", c, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter2", c, consistencyLevel));
+			counters.add(replicaSystem3.lookup("counter3", c, consistencyLevel));
 
 			index = -1;
 
 			Thread.sleep(1000);
-			*/
+
 
 		}
 

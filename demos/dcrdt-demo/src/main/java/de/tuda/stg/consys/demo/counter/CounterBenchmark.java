@@ -25,18 +25,19 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void setup() {
-
+		System.out.println("setup");
 		if (processId() == 0) {
 			set = system().replicate("counter", new AddOnlySet<String>(), JConsistencyLevels.DCRDT);
 		} else {
 			set = system().<AddOnlySet<String>>lookup("counter", (Class<AddOnlySet<String>>) new AddOnlySet<String>().getClass(), JConsistencyLevels.DCRDT);
 			set.sync(); //Force dereference
 		}
+		System.out.println(processId() + " finished setup");
 	}
 
 	@Override
 	public void operation() {
-		set.ref().addElement("Hello");
+		set.ref().addElement("Hello from " + processId());
 		doSync(() -> set.sync());
 		System.out.print(".");
 	}
