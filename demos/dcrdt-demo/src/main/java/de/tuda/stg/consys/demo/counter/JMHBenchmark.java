@@ -46,7 +46,7 @@ public class JMHBenchmark {
 
 		@Setup(Level.Iteration)
 		public void systemSetup() throws Exception {
-
+			/*
 			JReplicaSystem[] systems = JReplicaSystems.fromActorSystemForTesting(3);
 
 			replicaSystem1 = systems[0];
@@ -55,9 +55,9 @@ public class JMHBenchmark {
 
 			ConsistencyLabel consistencyLevel = level.equals("weak") ? JConsistencyLevels.WEAK : JConsistencyLevels.STRONG;
 
-			replicaSystem1.replicate("counter1", new AddOnlySet(0), consistencyLevel);
-			replicaSystem2.replicate("counter2", new AddOnlySet(0), consistencyLevel);
-			replicaSystem3.replicate("counter3", new AddOnlySet(0), consistencyLevel);
+			replicaSystem1.replicate("counter1", new AddOnlySet<String>(), consistencyLevel);
+			replicaSystem2.replicate("counter2", new AddOnlySet(), consistencyLevel);
+			replicaSystem3.replicate("counter3", new AddOnlySet(), consistencyLevel);
 
 			counters = new ArrayList<>();
 			counters.add(replicaSystem1.lookup("counter1", AddOnlySet.class, consistencyLevel));
@@ -73,6 +73,8 @@ public class JMHBenchmark {
 			index = -1;
 
 			Thread.sleep(1000);
+			*/
+
 		}
 
 		@TearDown(Level.Iteration)

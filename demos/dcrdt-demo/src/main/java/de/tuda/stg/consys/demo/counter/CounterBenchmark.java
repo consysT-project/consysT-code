@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.counter;
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.AddOnlySet;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
@@ -20,23 +21,23 @@ public class CounterBenchmark extends DemoBenchmark {
 		super(config);
 	}
 
-	private JRef<AddOnlySet> counter;
+	private JRef<AddOnlySet<String>> set;
 
 	@Override
 	public void setup() {
 
 		if (processId() == 0) {
-			counter = system().replicate("counter", new AddOnlySet(0), getWeakLevel());
+			set = system().replicate("counter", new AddOnlySet<String>(), JConsistencyLevels.DCRDT);
 		} else {
-			counter = system().lookup("counter", AddOnlySet.class, getWeakLevel());
-			counter.sync(); //Force dereference
+			set = system().<AddOnlySet<String>>lookup("counter", (Class<AddOnlySet<String>>) new AddOnlySet<String>().getClass(), JConsistencyLevels.DCRDT);
+			set.sync(); //Force dereference
 		}
 	}
 
 	@Override
 	public void operation() {
-		counter.ref().inc();
-		doSync(() -> counter.sync());
+		set.ref().addElement("Hello");
+		doSync(() -> set.sync());
 		System.out.print(".");
 	}
 
