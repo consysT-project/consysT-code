@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.akka
 import java.io
 
 import akka.actor.{ActorRef, ActorSystem}
+import de.tuda.stg.consys.core.Address
 
 import scala.reflect.runtime.universe._
 import de.tuda.stg.consys.core.akka.DeltaCRDTAkkaReplicaSystem.{DeltaCRDTReplicatedObject, DeltaUpdateReq}
@@ -38,6 +39,10 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
     }
 */
 
+trait DeltaHandler {
+  def transmitDelta(delta: Any)
+}
+
     object DeltaCRDTAkkaReplicaSystem {
 
       private case class RequestOperation(op: Operation[_]) extends SynchronousRequest[Unit]
@@ -49,6 +54,7 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
       case class DeltaUpdateReq(obj: Any) extends NoAnswerRequest
 
 
+
       private[DeltaCRDTAkkaReplicaSystem] class DeltaCRDTReplicatedObject[Loc, T <: DeltaCRDT]
       (
         init: T, val addr: Loc, val replicaSystem: AkkaReplicaSystem {type Addr = Loc}
@@ -56,8 +62,11 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
         protected implicit val ttt: TypeTag[T]
       ) extends AkkaSECReplicatedObject[Loc, T]
         with Lockable[T]
-        with Serializable {
+        with Serializable
+        with DeltaHandler
+      {
         setObject(init)
+        init.handler = this
         override final def consistencyLevel: ConsistencyLevel = DCRDT
 
         override def handleRequest[R](request: Request[R]): R = request match {
@@ -72,7 +81,7 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
 
         override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]): R = {
           val result = super.internalInvoke[R](tx, methodName, args)
-          replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(getObject)))
+          //replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(result)))
           result
         }
 
@@ -86,16 +95,18 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
 
         override def toString: String = s"@DCRDT($addr, $getObject)"
 
+        override def transmitDelta(delta: Any): Unit = {
+          replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(delta)))
+        }
       }
     }
 
 abstract class DeltaCRDT extends DeltaMergeable {
 
-
+  var handler : DeltaHandler = null
 
   def transmitDelta(delta: AkkaReplicaSystem#Obj) = {
-    AkkaReplicaSystems.system.foreachOtherReplica(handler => handler.request( DeltaUpdateReq(delta)))
+    handler.transmitDelta(delta)
   }
-
 
 }
