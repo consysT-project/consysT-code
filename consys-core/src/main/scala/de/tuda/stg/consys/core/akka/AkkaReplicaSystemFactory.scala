@@ -30,6 +30,7 @@ object AkkaReplicaSystemFactory extends ReplicaSystemFactory {
 			with CausalAkkaReplicaSystem
 			with CmRDTAkkaReplicaSystem
 			with CvRDTAkkaReplicaSystem
+			with DeltaCRDTAkkaReplicaSystem
 	{
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)

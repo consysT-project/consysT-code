@@ -18,15 +18,23 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
 
-  override protected def createMasterReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T): AkkaReplicatedObject[Addr, T] = l match {
+  override protected def createMasterReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T): AkkaReplicatedObject[Addr, T] = {
+    val result = l match {
 
-    case DCRDT => new DeltaCRDTReplicatedObject[Addr, T](obj, addr, this)
-    case _ => super.createMasterReplica[T](l, addr, obj)
+      case DCRDT => new DeltaCRDTReplicatedObject[Addr, T](obj, addr, this)
+      case _ => super.createMasterReplica[T](l, addr, obj)
+    }
+    println("created master replica")
+    result
   }
 
-  override protected def createFollowerReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T, masterRef: ActorRef): AkkaReplicatedObject[Addr, T] = l match {
-    case DCRDT => new DeltaCRDTReplicatedObject[Addr, T](obj, addr, this)
-    case _ => super.createFollowerReplica[T](l, addr, obj, masterRef)
+  override protected def createFollowerReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T, masterRef: ActorRef): AkkaReplicatedObject[Addr, T] = {
+    val result = l match {
+      case DCRDT => new DeltaCRDTReplicatedObject[Addr, T](obj, addr, this)
+      case _ => super.createFollowerReplica[T](l, addr, obj, masterRef)
+    }
+    println("created follower replicas")
+    result
   }
 }
 /*
@@ -55,7 +63,7 @@ trait DeltaHandler {
 
 
 
-      private[DeltaCRDTAkkaReplicaSystem] class DeltaCRDTReplicatedObject[Loc, T <: DeltaCRDT]
+      class DeltaCRDTReplicatedObject[Loc, T]
       (
         init: T, val addr: Loc, val replicaSystem: AkkaReplicaSystem {type Addr = Loc}
       )(
@@ -66,12 +74,14 @@ trait DeltaHandler {
         with DeltaHandler
       {
         setObject(init)
-        init.handler = this
+        val t = init.asInstanceOf[DeltaCRDT]
+        t.handler = this
+
         override final def consistencyLevel: ConsistencyLevel = DCRDT
 
         override def handleRequest[R](request: Request[R]): R = request match {
           case DeltaUpdateReq(state: AkkaReplicaSystem#Obj) =>
-            getObject.merge(state)
+            getObject.asInstanceOf[DeltaCRDT].merge(state)
 
             None.asInstanceOf[R]
           case _ =>
@@ -83,6 +93,15 @@ trait DeltaHandler {
           val result = super.internalInvoke[R](tx, methodName, args)
           //replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(result)))
           result
+        }
+
+
+
+        override def sync(): Unit = {
+          // todo:
+          // traditional sync method does not make sense in the context of dcrdt
+          // should there be an option to force sync?
+          println(s"DCRDT '$addr' sync")
         }
 
         override protected def transactionStarted(tx: Transaction): Unit = {
@@ -108,5 +127,7 @@ abstract class DeltaCRDT extends DeltaMergeable {
   def transmitDelta(delta: AkkaReplicaSystem#Obj) = {
     handler.transmitDelta(delta)
   }
+
+
 
 }
