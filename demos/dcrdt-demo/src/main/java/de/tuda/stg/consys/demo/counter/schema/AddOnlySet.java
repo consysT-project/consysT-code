@@ -1,8 +1,10 @@
 package de.tuda.stg.consys.demo.counter.schema;
 
+import akka.stream.impl.fusing.Collect;
 import de.tuda.stg.consys.core.akka.DeltaCRDT;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,8 +37,15 @@ public class AddOnlySet<T> extends DeltaCRDT implements Serializable {
             set.addAll(s);
         }
 
-
+        System.out.println("current state:" + toString());
     }
 
-
+    @Override
+    public String toString() {
+        String s = "";
+        for (T k : set){
+            s = s + k.toString() + ",";
+        }
+        return s;
+    }
 }

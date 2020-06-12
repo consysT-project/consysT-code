@@ -1,10 +1,16 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.core.Ref;
+import de.tuda.stg.consys.core.ReplicatedObject;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory;
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystems;
+import de.tuda.stg.consys.core.akka.DeltaCRDTAkkaReplicaSystem;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.AddOnlySet;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
 /**
@@ -37,7 +43,17 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void operation() {
-		set.ref().addElement("Hello from " + processId());
+
+		// we need a way to access the object without ref().
+		// this is an extremely ugly way to access it
+		// the framework needs to be adapted for easier access
+
+		JAkkaRef<AddOnlySet<String>> c = (JAkkaRef<AddOnlySet<String>>) set;
+		Ref<String, AddOnlySet<String>> setRef = c.getRef();
+		ReplicatedObject<String, AddOnlySet<String>> deref = setRef.deref();
+		DeltaCRDTAkkaReplicaSystem.DeltaCRDTReplicatedObject o = (DeltaCRDTAkkaReplicaSystem.DeltaCRDTReplicatedObject) deref;
+		AddOnlySet<String> derefderef = (AddOnlySet<String>) o.t();
+		derefderef.addElement("Hello from " + processId());
 		doSync(() -> set.sync());
 		System.out.print(".");
 	}
