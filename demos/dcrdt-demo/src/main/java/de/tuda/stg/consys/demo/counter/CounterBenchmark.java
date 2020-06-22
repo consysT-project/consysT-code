@@ -44,10 +44,11 @@ public class CounterBenchmark extends DemoBenchmark {
 	@Override
 	public void operation() {
 
+		set.invoke("addElement","hi");
 		// we need a way to access the object without ref().
 		// this is an extremely ugly way to access it
 		// the framework needs to be adapted for easier access
-
+		AddOnlySet<String> s = set.ref();
 		JAkkaRef<AddOnlySet<String>> c = (JAkkaRef<AddOnlySet<String>>) set;
 		Ref<String, AddOnlySet<String>> setRef = c.getRef();
 		ReplicatedObject<String, AddOnlySet<String>> deref = setRef.deref();
