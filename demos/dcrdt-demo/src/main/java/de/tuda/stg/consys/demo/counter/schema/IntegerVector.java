@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import javafx.util.Pair;
 
 public class IntegerVector extends DeltaCRDT implements Serializable {
     // todo implement serializable!!!
@@ -29,23 +30,21 @@ public class IntegerVector extends DeltaCRDT implements Serializable {
         vector[i] += 1;
 
         System.out.println("Transmitting Delta");
-        Delta  d = new Delta(vector);
+        Pair<Integer, Integer> pair = new Pair<>(index, vector[index]);
+        Delta  d = new Delta(pair);
         return d;
 
     }
 
     @Override
     public void merge(Object other) {
-        if (other instanceof Integer[]) {
-            Integer[] arr = (Integer[]) other;
+        if (other instanceof Pair<Integer,Integer>) {
+            Pair<Integer,Integer> p = (Pair<Integer, Integer>) other;
 
             System.out.println("received delta. merging");
-            for(int i = 0; i < arr.length; i++){
-                if(arr[i]> vector[i]){
-                    vector[i] = arr[i];
-                }
+            if(vector[p.getKey()] < p.getValue() ){
+                vector[p.getKey()] = p.getValue();
             }
-        }
         System.out.println("current state:" + toString());
     }
 
