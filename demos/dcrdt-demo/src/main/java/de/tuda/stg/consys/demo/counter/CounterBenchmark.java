@@ -27,15 +27,15 @@ public class CounterBenchmark extends DemoBenchmark {
 		super(config);
 	}
 
-	private JRef<AddOnlySet<String>> set;
+	private JRef<AddOnlySetString> set;
 
 	@Override
 	public void setup() {
 		System.out.println("setup");
 		if (processId() == 0) {
-			set = system().replicate("counter", new AddOnlySet<String>(), JConsistencyLevels.DCRDT);
+			set = system().replicate("counter", new AddOnlySetString(), JConsistencyLevels.DCRDT);
 		} else {
-			set = system().<AddOnlySet<String>>lookup("counter", (Class<AddOnlySet<String>>) new AddOnlySet<String>().getClass(), JConsistencyLevels.DCRDT);
+			set = system().<AddOnlySetString>lookup("counter", AddOnlySetString.getClass(), JConsistencyLevels.DCRDT);
 			set.sync(); //Force dereference
 		}
 		System.out.println(processId() + " finished setup");
@@ -43,16 +43,15 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void operation() {
-
 		// we need a way to access the object without ref().
 		// this is an extremely ugly way to access it
 		// the framework needs to be adapted for easier access
 
-		JAkkaRef<AddOnlySet<String>> c = (JAkkaRef<AddOnlySet<String>>) set;
-		Ref<String, AddOnlySet<String>> setRef = c.getRef();
-		ReplicatedObject<String, AddOnlySet<String>> deref = setRef.deref();
+		JAkkaRef<AddOnlySetString> c = (JAkkaRef<AddOnlySetString>) set;
+		Ref<String, AddOnlySetString> setRef = c.getRef();
+		ReplicatedObject<String, AddOnlySetString> deref = setRef.deref();
 		DeltaCRDTAkkaReplicaSystem.DeltaCRDTReplicatedObject o = (DeltaCRDTAkkaReplicaSystem.DeltaCRDTReplicatedObject) deref;
-		AddOnlySet<String> derefderef = (AddOnlySet<String>) o.t();
+		AddOnlySetString derefderef = (AddOnlySetString) o.t();
 		derefderef.addElement("Hello from " + processId());
 		doSync(() -> set.sync());
 		System.out.print(".");
