@@ -90,9 +90,9 @@ trait DeltaHandler {
 
         override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]): R = {
           val result = super.internalInvoke[R](tx, methodName, args)
-          if (result.isInstanceOf[ResultWrapper]){
-            val wrapper = result.asInstanceOf[ResultWrapper]
-            replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(wrapper.delta)))
+          if (result.isInstanceOf[Delta]) {
+            val d = result.asInstanceOf[Delta]
+            replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(d.delta)))
           }
           result
         }
@@ -126,16 +126,15 @@ abstract class DeltaCRDT extends DeltaMergeable {
 
 }
 
-class Delta[D <: Object] (
-  d: D
-  ) {
-    val delta = d
+class Delta (
+  d: AkkaReplicaSystem#Obj
+  )  {
+    var delta :AkkaReplicaSystem#Obj = d
   }
 
-class ResultWrapper[T <: Object, D <: Object] (v: T, d: D)
-extends Delta[D](d)
-{
-  var value: T = v
+class ResultWrapper[T <: Object] (v: T, d: AkkaReplicaSystem#Obj)
+extends Delta(d) {
+  val value: T = v
 }
 
 
