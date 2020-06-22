@@ -126,7 +126,17 @@ abstract class DeltaCRDT extends DeltaMergeable {
 
 }
 
-class ResultWrapper[T <: Object, D <: Object] {
-  var value: T = null;
-  var delta: D = null;
+class Delta[D <: Object] (
+  d: D
+  ) {
+    val delta = d
+  }
+
+class ResultWrapper[T <: Object, D <: Object] (v: T, d: D)
+extends Delta[D](d)
+{
+  var value: T = v
 }
+
+
+
