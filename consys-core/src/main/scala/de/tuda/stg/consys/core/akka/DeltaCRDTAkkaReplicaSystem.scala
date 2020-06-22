@@ -75,7 +75,6 @@ trait DeltaHandler {
       {
         setObject(init)
         val t = init.asInstanceOf[DeltaCRDT]
-        t.handler = this
 
         override final def consistencyLevel: ConsistencyLevel = DCRDT
 
@@ -91,7 +90,10 @@ trait DeltaHandler {
 
         override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]): R = {
           val result = super.internalInvoke[R](tx, methodName, args)
-          //replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(result)))
+          if (result.isInstanceOf[ResultWrapper]){
+            val wrapper = result.asInstanceOf[ResultWrapper]
+            replicaSystem.foreachOtherReplica(handler => handler.request(addr, DeltaUpdateReq(wrapper.delta)))
+          }
           result
         }
 
@@ -122,12 +124,9 @@ trait DeltaHandler {
 
 abstract class DeltaCRDT extends DeltaMergeable {
 
-  var handler : DeltaHandler = null
+}
 
-  def transmitDelta(delta: AkkaReplicaSystem#Obj) = {
-    handler.transmitDelta(delta)
-  }
-
-
-
+class ResultWrapper[T <: Object, D <: Object] {
+  var value: T = null;
+  var delta: D = null;
 }
