@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.counter.schema;
 
 import akka.stream.impl.fusing.Collect;
+import de.tuda.stg.consys.core.akka.Delta;
 import de.tuda.stg.consys.core.akka.DeltaCRDT;
 import de.tuda.stg.consys.core.akka.ResultWrapper;
 
@@ -17,20 +18,21 @@ public class AddOnlySetString extends DeltaCRDT implements Serializable {
     public AddOnlySetString() {
         System.out.println("constructor");
     }
-    public ResultWrapper<Void, Set<String>> addElement(String str) {
-        System.out.println("Adding String " + s);
+
+    public Delta addElement(String str) {
+        System.out.println("Adding String " + str);
         set.add(str);
         Set<String> s = new HashSet<String>();
 
         s.add(str);
         System.out.println("TRANSMITTING DELTA");
-        return new ResultWrapper<>(s);
+        return new Delta(s);
     }
 
 
     @Override
     public void merge(Object other) {
-        if (other instanceof Set<String>) {
+        if (other instanceof Set) {
             Set<String> s = (Set<String>) other;
 
             System.out.println("received delta. merging");
