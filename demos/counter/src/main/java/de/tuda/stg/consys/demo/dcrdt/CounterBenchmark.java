@@ -1,16 +1,10 @@
-package de.tuda.stg.consys.demo.counter;
+package de.tuda.stg.consys.demo.dcrdt;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
-import de.tuda.stg.consys.demo.counter.schema.Counter;
+import de.tuda.stg.consys.demo.dcrdt.schema.Counter;
 import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
-import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
 import org.checkerframework.com.google.common.collect.Sets;
-
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created on 10.10.19.
@@ -30,6 +24,7 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void setup() {
+
 		if (processId() == 0) {
 			counter = system().replicate("counter", new Counter(0), getWeakLevel());
 		} else {

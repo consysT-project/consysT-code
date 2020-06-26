@@ -1,7 +1,7 @@
-package de.tuda.stg.consys.demo.counter;
+package de.tuda.stg.consys.demo.dcrdt;
 
 import de.tuda.stg.consys.core.ConsistencyLabel;
-import de.tuda.stg.consys.demo.counter.schema.AddOnlySet;
+import de.tuda.stg.consys.demo.dcrdt.schema.AddOnlySet;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;

@@ -1,17 +1,10 @@
-package de.tuda.stg.consys.demo.counter;
+package de.tuda.stg.consys.demo.dcrdt;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.core.Ref;
-import de.tuda.stg.consys.core.ReplicatedObject;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystems;
-import de.tuda.stg.consys.core.akka.DeltaCRDTAkkaReplicaSystem;
 import de.tuda.stg.consys.demo.DemoBenchmark;
-import de.tuda.stg.consys.demo.counter.schema.AddOnlySet;
-import de.tuda.stg.consys.demo.counter.schema.AddOnlySetString;
+import de.tuda.stg.consys.demo.dcrdt.schema.AddOnlySetString;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.impl.akka.JAkkaRef;
 import org.checkerframework.com.google.common.collect.Sets;
 
 /**
@@ -33,10 +26,11 @@ public class CounterBenchmark extends DemoBenchmark {
 	@Override
 	public void setup() {
 		System.out.println("setup");
+
 		if (processId() == 0) {
 			set = system().replicate("counter", new AddOnlySetString(), JConsistencyLevels.DCRDT);
 		} else {
-			set = system().<AddOnlySetString>lookup("counter", AddOnlySetString.getClass(), JConsistencyLevels.DCRDT);
+			set = system().<AddOnlySetString>lookup("counter", AddOnlySetString.class, JConsistencyLevels.DCRDT);
 			set.sync(); //Force dereference
 		}
 		System.out.println(processId() + " finished setup");

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.counter.schema;
+package de.tuda.stg.consys.demo.dcrdt.schema;
 
 import java.io.Serializable;
 

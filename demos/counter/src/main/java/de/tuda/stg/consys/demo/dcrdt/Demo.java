@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.counter;
+package de.tuda.stg.consys.demo.dcrdt;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
