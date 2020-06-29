@@ -1,5 +1,8 @@
 package de.tuda.stg.consys.demo.dcrdt.schema;
 
+import de.tuda.stg.consys.core.akka.Delta;
+import de.tuda.stg.consys.core.akka.DeltaCRDT;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
@@ -38,4 +41,14 @@ public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
     public String toString() {
         return map.toString();
     }
+
+    public V get(K key) {
+        return map.get(key);
+    }
+
+    public boolean containsKey(K key) {
+        return map.containsKey(key);
+    }
+
+
 }
