@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
+public class AddRemoveSet<T extends Serializable> extends DeltaCRDT implements Serializable {
     // todo implement serializable!!!
 
     private Set<T> addSet = new HashSet<T>();
@@ -26,7 +26,7 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
 
         s.add(el);
         System.out.println("TRANSMITTING DELTA");
-        Pair<Set<T>,Set<T>> p = new Pair<Set<T>, Set<T>>(s,null);
+        Pair<Set<T >,Set<T>> p = new Pair<Set<T>, Set<T>>(s,null);
         return new Delta(p);
     }
 

@@ -3,6 +3,8 @@ package de.tuda.stg.consys.demo.dcrdt;
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.dcrdt.schema.AddOnlySetString;
+import de.tuda.stg.consys.demo.dcrdt.schema.Hashmap;
+import de.tuda.stg.consys.demo.dcrdt.schema.StringHashmap;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
@@ -21,17 +23,17 @@ public class CounterBenchmark extends DemoBenchmark {
 		super(config);
 	}
 
-	private JRef<AddOnlySetString> set;
+	private JRef<StringHashmap> map;
 
 	@Override
 	public void setup() {
 		System.out.println("setup");
 
 		if (processId() == 0) {
-			set = system().replicate("counter", new AddOnlySetString(), JConsistencyLevels.DCRDT);
+			map = system().replicate("counter", new StringHashmap(), JConsistencyLevels.DCRDT);
 		} else {
-			set = system().<AddOnlySetString>lookup("counter", AddOnlySetString.class, JConsistencyLevels.DCRDT);
-			set.sync(); //Force dereference
+			map = system().<StringHashmap>lookup("counter", StringHashmap.class, JConsistencyLevels.DCRDT);
+			map.sync(); //Force dereference
 		}
 		System.out.println(processId() + " finished setup");
 	}
@@ -39,9 +41,9 @@ public class CounterBenchmark extends DemoBenchmark {
 	@Override
 	public void operation() {
 
-		set.ref().addElement("Hello from " + processId());
+		map.ref().addEntry("Key " + processId(), "Value " + processId());
 
-		doSync(() -> set.sync());
+		doSync(() -> map.sync());
 		System.out.print(".");
 	}
 

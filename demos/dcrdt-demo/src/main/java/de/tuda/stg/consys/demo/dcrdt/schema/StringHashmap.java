@@ -5,21 +5,20 @@ import de.tuda.stg.consys.core.akka.DeltaCRDT;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Set;
 
-public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
+public class StringHashmap extends DeltaCRDT implements Serializable {
 
-    private HashMap<K,V> map = new HashMap<K, V>();
+    private HashMap<String, Serializable> map = new HashMap<String, Serializable>();
 
-    public Hashmap(){
+    public StringHashmap(){
         System.out.println("construktor");
     }
 
-    public Delta addEntry(K key, V value){
+    public Delta addEntry(String key, Serializable value){
         System.out.println("Adding key and value:"+key.toString() + value.toString());
         map.put(key,value);
 
-        Pair<K,V> p = new Pair<K, V>(key, value);
+        Pair<String, Serializable> p = new Pair<String, Serializable>(key, value);
         System.out.println("transmitting Delta");
         return new Delta(p);
     }
@@ -27,7 +26,7 @@ public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
     @Override
     public void merge(Object other) {
         if (other instanceof Pair) {
-            Pair<K,V> p = (Pair<K,V>) other;
+            Pair<String, Serializable> p = (Pair<String, Serializable>) other;
 
             System.out.println("received delta. merging");
 
@@ -42,11 +41,11 @@ public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
         return map.toString();
     }
 
-    public V get(K key) {
+    public Serializable get(String key) {
         return map.get(key);
     }
 
-    public boolean containsKey(K key) {
+    public boolean containsKey(String key) {
         return map.containsKey(key);
     }
 

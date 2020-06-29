@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
 
-public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
+public class Hashmap<K extends Serializable,V extends Serializable> extends DeltaCRDT implements Serializable {
 
     private HashMap<K,V> map = new HashMap<K, V>();
 
