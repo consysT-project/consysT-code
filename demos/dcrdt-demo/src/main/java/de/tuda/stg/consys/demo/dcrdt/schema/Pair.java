@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.demo.dcrdt.schema;
 
-public class Pair<K,V>{
+import java.io.Serializable;
+
+public class Pair<K,V> implements Serializable {
 
     private K key;
     private V value;
@@ -18,4 +20,13 @@ public class Pair<K,V>{
         return this.value;
     }
 
+    @Override
+    public String toString(){
+        return "(" + this.getKey().toString() + ","+ this.getValue().toString() + ")";
+    }
+
+
+    public void merge(Object other){
+        System.out.println("should not merge!");
+    }
 }

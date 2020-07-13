@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.dcrdt;
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.dcrdt.schema.AddOnlySetString;
+import de.tuda.stg.consys.demo.dcrdt.schema.DotStoreString;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
@@ -38,8 +39,12 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void operation() {
-
-		set.ref().addElement("Hello from " + processId());
+		set.ref().addElement("Hello from "+processId());
+		//set.ref().addString("Hello from "+ processId(), processId());
+		//set.ref().removeString("Hello from "+ processId(),processId());
+		//String s = set.ref().toString() + "i am "+ processId();
+		//System.out.println(s);
+		//set.ref().addString("Hello from "+ processId(), processId());
 
 		doSync(() -> set.sync());
 		System.out.print(".");

@@ -4,6 +4,10 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
 
+import de.tuda.stg.consys.core.akka.Delta;
+import de.tuda.stg.consys.core.akka.DeltaCRDT;
+
+
 public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
 
     private HashMap<K,V> map = new HashMap<K, V>();
