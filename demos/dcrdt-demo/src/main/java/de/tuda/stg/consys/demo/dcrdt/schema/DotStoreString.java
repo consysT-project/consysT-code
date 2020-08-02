@@ -9,6 +9,12 @@ import java.util.Set;
 import de.tuda.stg.consys.core.akka.Delta;
 import de.tuda.stg.consys.core.akka.DeltaCRDT;
 
+/**
+ * @author = Kris Frühwein, Julius Näumann
+ * Class of a Dot-Store. Consists of an Context that tells which Dot is
+ * assisiated with which Event, a store for all Dots and a (String) Set
+ * for the actual elements that should be stored
+ */
 public class DotStoreString extends DeltaCRDT implements Serializable {
 
 
@@ -18,12 +24,20 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
 
     public Set<String> stringset;
 
+    /**
+     * Constructor
+     */
     public DotStoreString() {
         context = new LinkedList<>();
         store = new HashSet<>();
        stringset = new HashSet<>();
     }
 
+    /**
+     *
+     * @param id ID of the Dot
+     * @return the current maximum sequence number of the dot with the given ID
+     */
     public int max(int id) {
         int x = -1;
         int k ;
@@ -42,12 +56,23 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
         return x;
     }
 
+    /**
+     *
+     * @param id ID of the dot
+     * @return the next sequence number of the dot with the given ID
+     */
     public int next(int id) {
         //next sequence number
         return this.max(id) + 1;
     }
 
 
+    /**
+     * adds a String to the Dot-Store
+     * @param s String that should be added
+     * @param id ID of the Dot
+     * @return a Delta Object with an Add-Event associated with a Dot
+     */
     public Delta addString(String s, int id) {
         int next = this.next(id);
         Dot dot = new Dot(id, next);
@@ -60,6 +85,12 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
         return new Delta(p);
     }
 
+    /**
+     * removes a String to the Dot-Store
+     * @param s String that should be removed
+     * @param id ID of the Dot
+     * @return a Delta Object with an Remove-Event associated with a Dot
+     */
     public Delta removeString(String s, int id){
         int next = this.next(id);
         Dot dot = new Dot(id,next);
@@ -73,6 +104,10 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
     }
 
 
+    /**
+     * merges incoming delta messages with the current Dot-Store
+     * @param other Delta message
+     */
     @Override
     public void merge(Object other) {
         if (other instanceof Pair) {
@@ -88,36 +123,10 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
                 store.remove(d);
                 stringset.remove(r.element);
             }
-       //     Set<Pair<Event, Dot>> otherStore = p.getKey();
-          //  Set<Dot> otherContext = p.getValue();
-      //      this.context.addAll(otherContext);
-         //   Set<Pair<Event, Dot>> intersection = Sets.intersection(store,otherStore);
-           // Set<Pair<Event, Dot>> difference1 = removeDots(store,otherContext);
-            //Set<Pair<Event, Dot>> difference2 = removeDots(otherStore,context);
-         //   intersection.addAll(difference1);
-          //  intersection.addAll(difference2);
-         //   store = intersection;
 
-
-           // System.out.println("current DotStore: "+ this.toString());
         }
     }
 
-/*
-    public Set<Pair<Event, Dot>> removeDots(Set<Pair<Event,Dot>> s,Set<Dot> c){
-        Set<Pair<Event,Dot>> p = new HashSet<>();
-        for(Dot d : c){
-            for(Pair pair : s){
-                if(pair.getValue().equals(d)){
-                 p.add(pair);
-                }
-            }
-        }
-        s.removeAll(p);
-        return s;
-    }
-
-*/
     @Override
     public String toString() {
             String s = "";

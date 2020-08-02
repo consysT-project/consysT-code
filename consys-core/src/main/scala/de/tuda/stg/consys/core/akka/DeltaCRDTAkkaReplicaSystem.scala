@@ -11,8 +11,8 @@ import de.tuda.stg.consys.core.akka.Requests.{InvokeOp, NoAnswerRequest, Operati
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.runtime.universe
-/*
-Author: Kris Frühwein und Julius Näumann
+/**
+@author: Kris Frühwein und Julius Näumann
  */
 trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
 

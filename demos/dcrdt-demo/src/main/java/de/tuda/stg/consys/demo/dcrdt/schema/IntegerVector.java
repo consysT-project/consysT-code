@@ -6,12 +6,20 @@ import de.tuda.stg.consys.core.akka.DeltaCRDT;
 import java.io.Serializable;
 import java.util.Set;
 
+/**
+ * @author = Kris Frühwein, Julius Näumann
+ * Integer vetor that only grows
+ */
 public class IntegerVector extends DeltaCRDT implements Serializable {
 
     private Integer[] vector;
 
     private int length;
 
+    /**
+     * Constructor; initializes all values with 0
+     * @param n length of the vector
+     */
     public IntegerVector(int n){
         this.length = n;
         this.vector = new Integer[n];
@@ -20,6 +28,11 @@ public class IntegerVector extends DeltaCRDT implements Serializable {
         }
     }
 
+    /**
+     * increases the number at the given index by 1
+     * @param index index if the number that should be incremented
+     * @return a delta object with the index and the new value
+     */
     public Delta inc (int index){
         System.out.println("incrementing at index: "+index);
         vector[index] += 1;
@@ -28,6 +41,10 @@ public class IntegerVector extends DeltaCRDT implements Serializable {
         return new Delta(p);
     }
 
+    /**
+     * merges the current integer vector with a delta message
+     * @param other delta message
+     */
     public void merge(Object other) {
         if (other instanceof Pair) {
             Pair<Integer, Integer> p = (Pair<Integer, Integer>) other;
