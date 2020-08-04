@@ -17,7 +17,7 @@ import scala.reflect.runtime.universe
 trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
 
 
-
+//creates master replica
   override protected def createMasterReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T): AkkaReplicatedObject[Addr, T] = {
     val result = l match {
 
@@ -28,6 +28,7 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
     result
   }
 
+  //creates follower replica
   override protected def createFollowerReplica[T <: Obj : TypeTag](l: ConsistencyLevel, addr: Addr, obj: T, masterRef: ActorRef): AkkaReplicatedObject[Addr, T] = {
     val result = l match {
       case DCRDT => new DeltaCRDTReplicatedObject[Addr, T](obj, addr, this)
@@ -63,6 +64,7 @@ trait DeltaHandler {
 
 
 
+      //Class for an Replicated Object. must be serializable
       class DeltaCRDTReplicatedObject[Loc, T]
       (
         init: T, val addr: Loc, val replicaSystem: AkkaReplicaSystem {type Addr = Loc}
@@ -122,16 +124,19 @@ trait DeltaHandler {
       }
     }
 
+//abstract class for all deltaCRDT
 abstract class DeltaCRDT extends DeltaMergeable {
 
 }
 
+//general delta return type
 class Delta (
   d: AkkaReplicaSystem#Obj
   )  {
     var delta :AkkaReplicaSystem#Obj = d
   }
 
+//delta return type if method returns something too
 class ResultWrapper[T <: Object] (v: T, d: AkkaReplicaSystem#Obj)
 extends Delta(d) {
   val value: T = v
