@@ -22,16 +22,16 @@ public class CounterBenchmark extends DemoBenchmark {
 		super(config);
 	}
 
-	private JRef<AddOnlySetString> set;
+	private JRef<DotStoreString> set;
 
 	@Override
 	public void setup() {
 		System.out.println("setup");
 
 		if (processId() == 0) {
-			set = system().replicate("counter", new AddOnlySetString(), JConsistencyLevels.DCRDT);
+			set = system().replicate("counter", new DotStoreString(), JConsistencyLevels.DCRDT);
 		} else {
-			set = system().<AddOnlySetString>lookup("counter", AddOnlySetString.class, JConsistencyLevels.DCRDT);
+			set = system().lookup("counter", DotStoreString.class, JConsistencyLevels.DCRDT);
 			set.sync(); //Force dereference
 		}
 		System.out.println(processId() + " finished setup");
@@ -39,11 +39,11 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	@Override
 	public void operation() {
-		set.ref().addElement("Hello from "+processId());
-		//set.ref().addString("Hello from "+ processId(), processId());
-		//set.ref().removeString("Hello from "+ processId(),processId());
-		//String s = set.ref().toString() + "i am "+ processId();
-		//System.out.println(s);
+		//	set.ref().addElement("Hello from "+processId());
+		set.ref().addString("Hello from "+ processId(), processId());
+		set.ref().removeString("Hello from "+ processId(),processId());
+		String s = set.ref().toString() + "i am "+ processId();
+		System.out.println(s);
 		//set.ref().addString("Hello from "+ processId(), processId());
 
 		doSync(() -> set.sync());

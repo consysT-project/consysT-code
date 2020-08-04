@@ -99,7 +99,7 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
         Pair<Event,Dot> p = new Pair<>(rem,dot);
         context.add(p); //context is grow only
         store.remove(dot);
-        stringset.remove(s);
+        stringset.add(s);
         return new Delta(p);
     }
 
@@ -116,22 +116,77 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
             Dot d = p.getValue();
             if(e instanceof Add){
                 Add a = (Add) e;
-                store.add(d);
+                int id = d.dot.getKey();
+                int seqNr = d.dot.getValue();
+                if(findElement(id,a.element)<seqNr) {
+                    store.add(d);
+                }
+
                 stringset.add(a.element);
             }else if (e instanceof Remove){
                 Remove r = (Remove) e ;
-                store.remove(d);
-                stringset.remove(r.element);
+                int id = d.dot.getKey();
+                int seqNr = d.dot.getValue();
+                if(findElement(id,r.element)<seqNr && findElement(id,r.element) != -1) {
+                    store.remove(d);
+                }
+                stringset.add(r.element);
             }
 
         }
+    }
+
+    /**
+     * checks if the given String is currently element of the store
+     * @param id id of the dot
+     * @param s String that is checked
+     * @return the sequence number of the last addition or
+     * -1 if it is removed/not present in the dot
+     */
+    public int findElement(int id, String s){
+       LinkedList<Pair<Event,Dot>> idList = new LinkedList<>();
+        //searches for all Dots with the given id
+       for (int i = 0; i< context.size(); i++){
+           if(context.get(i).getValue().dot.getKey() == id){
+               idList.add(context.get(i));
+           }
+       }
+
+       int max = 0;
+       int found = -1;
+       for(int j = 0; j< idList.size(); j++){
+           Pair<Event,Dot> p = idList.get(j);
+           Event e = p.getKey();
+           if( e instanceof Add){
+               Add a = (Add) e;
+               if(a.element.equals(s)){
+                   if(p.getValue().dot.getValue()>max){
+
+                       max = p.getValue().dot.getValue();
+                       found = max;
+                   }
+               }
+           }else if (e instanceof Remove){
+               Remove r = (Remove) e ;
+               if(r.element.equals(s)){
+                   if(p.getValue().dot.getValue()>max){
+                       found = -1;
+                       max = p.getValue().dot.getValue();
+                   }
+               }
+           }
+       }
+
+        return found;
     }
 
     @Override
     public String toString() {
             String s = "";
             for (String k : stringset){
-                s = s + k + ",";
+                if(findElement(0,k)>=0) {
+                    s = s + k + ",";
+                }
             }
             return s;
     }
