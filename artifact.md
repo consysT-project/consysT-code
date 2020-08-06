@@ -2,12 +2,14 @@
 
 We provide a VM image that has our project ConSysT preinstalled.
 Note that the VM is configured to use 8192MB of memory as it needs
-to run multiple JVMs to execute the provided benchmarks .
+to run multiple JVMs to execute the provided benchmarks.
 
 The user credentials for the virtual machine are:
 * Username: consyst
 * Password: consyst
 
+The VM has been created with Oracle VirtualBox. Import the image by 
+starting VirtualBox and then File > Import appliance.
 
 ## Executing the benchmarks
 
