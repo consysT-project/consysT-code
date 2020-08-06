@@ -1,7 +1,7 @@
 # OOPSLA 2020 Artifact Evaluation
 
 We provide a VM image that has our project ConSysT preinstalled.
-Note that the VM is configured to use 6144MB of memory as it needs
+Note that the VM is configured to use 8192MB of memory as it needs
 to run multiple JVMs to execute the provided benchmarks .
 
 The user credentials for the virtual machine are:
