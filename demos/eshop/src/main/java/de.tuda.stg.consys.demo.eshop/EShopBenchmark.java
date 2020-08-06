@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.eshop;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.eshop.schema.Database;
@@ -9,6 +10,7 @@ import de.tuda.stg.consys.demo.eshop.schema.User;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
+import scala.Option;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,15 +27,16 @@ public class EShopBenchmark extends DemoBenchmark {
 
 
 	public static void main(String[] args) {
-		start(EShopBenchmark.class, args[0]);
+		start(EShopBenchmark.class, args);
 	}
 
 	private final int numOfProducts;
 	private final int numOfUsers;
 
 
-	public EShopBenchmark(Config config) {
-		super(config);
+	public EShopBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+		super(config, outputResolver);
+
 		numOfProducts = config.getInt("consys.bench.demo.eshop.products");
 		numOfUsers = config.getInt("consys.bench.demo.eshop.users");
 

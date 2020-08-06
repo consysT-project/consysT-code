@@ -1,12 +1,14 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
 import org.checkerframework.com.google.common.collect.Sets;
+import scala.Option;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -19,11 +21,11 @@ import java.util.concurrent.Executors;
  */
 public class CounterBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
-		start(CounterBenchmark.class, args[0]);
+		start(CounterBenchmark.class, args);
 	}
 
-	public CounterBenchmark(Config config) {
-		super(config);
+	public CounterBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+		super(config, outputResolver);
 	}
 
 	private JRef<Counter> counter;

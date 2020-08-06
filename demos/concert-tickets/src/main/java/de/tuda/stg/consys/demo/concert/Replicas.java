@@ -4,7 +4,7 @@ import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 public class Replicas {
-	public static final JReplicaSystem replicaSystem1 ;
+	public static final JReplicaSystem replicaSystem1;
 	public static final JReplicaSystem replicaSystem2;
 
 	static {

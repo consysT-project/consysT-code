@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.DemoBenchmark;
@@ -10,6 +11,7 @@ import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
+import scala.Option;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +28,7 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
 
 
     public static void main(String[] args) {
-        start(TwitterCloneBenchmark.class, args[0]);
+        start(TwitterCloneBenchmark.class, args);
     }
 
     private final int numOfGroupsPerReplica;
@@ -44,8 +46,8 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
 
     private final Random random = new Random();
 
-    public TwitterCloneBenchmark(Config config) {
-        super(config);
+    public TwitterCloneBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+        super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");
 

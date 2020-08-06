@@ -1,10 +1,12 @@
 package de.tuda.stg.consys.demo.concert;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.concert.schema.*;
 import de.tuda.stg.consys.japi.JRef;
+import scala.Option;
 
 import java.util.Date;
 import java.util.Random;
@@ -12,14 +14,13 @@ import java.util.Random;
 public class ConcertBenchmark extends DemoBenchmark {
 
     public static void main(String[] args) {
-        start(ConcertBenchmark.class, args[0]);
+        start(ConcertBenchmark.class, args);
     }
-
 
     private JRef<Concert> concert;
 
-    public ConcertBenchmark(Config config) {
-        super(config);
+    public ConcertBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+        super(config, outputResolver);
     }
 
     private final Random random = new Random();

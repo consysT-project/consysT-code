@@ -2,8 +2,8 @@ import csv
 import sys
 import argparse
 import os
-#import plotly.graph_objects as go
-#import plotly.express as px
+import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 import numpy as np, scipy.stats as st
 
@@ -52,8 +52,8 @@ print(data)
 
 data.to_csv(args.output, sep = ';')
 
-#px.bar(input, y = 'mean').show()
-#px.bar(data, x = 'file', y = 'normalized_mean').show()
+px.bar(input, y = 'mean').show()
+px.bar(data, x = 'file', y = 'normalized_mean').show()
 
 
 
