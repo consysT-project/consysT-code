@@ -57,20 +57,29 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
     public void setup() {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            if (grpIndex < numOfWeakGroupsPerReplica) {
+            try {
+                if (grpIndex < numOfWeakGroupsPerReplica) {
+                    system().replicate(
+                            addr("group", grpIndex, processId()), new Group(), getWeakLevel());
+                } else {
+                    system().replicate(
+                            addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+                }
+                Thread.sleep(33);
+
+
+                JRef<Inbox> inbox = system().replicate(
+                        addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
+                Thread.sleep(33);
+
                 system().replicate(
-                        addr("group", grpIndex, processId()), new Group(), getWeakLevel());
-            } else {
-                system().replicate(
-                        addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+                        addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
+                Thread.sleep(33);
+
+                BenchmarkUtils.printProgress(grpIndex);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            JRef<Inbox> inbox = system().replicate(
-                    addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
-
-            system().replicate(
-                    addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
-
-            BenchmarkUtils.printProgress(grpIndex);
         }
         BenchmarkUtils.printDone();
 

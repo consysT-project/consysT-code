@@ -88,27 +88,33 @@ abstract class DistributedBenchmark(
 
 
 	private def warmup() : Unit = {
-		system.barrier("warmup")
-		println("## START WARMUP ##")
-		for (i <- 1 to warmupIterations) {
-			system.barrier("setup")
-			println(s"### WARMUP $i : SETUP ###")
-			setup()
-			system.barrier("iterations")
-			println(s"### WARMUP $i : ITERATIONS ###")
-			for (j <- 1 to operationsPerIteration) {
-				if (!waitBetweenOperations.isZero) busyWait(waitBetweenOperations.toMillis)
-				operation()
-				BenchmarkUtils.printProgress(j)
+		try {
+			system.barrier("warmup")
+			println("## START WARMUP ##")
+			for (i <- 1 to warmupIterations) {
+				system.barrier("setup")
+				println(s"### WARMUP $i : SETUP ###")
+				setup()
+				system.barrier("iterations")
+				println(s"### WARMUP $i : ITERATIONS ###")
+				for (j <- 1 to operationsPerIteration) {
+					if (!waitBetweenOperations.isZero) busyWait(waitBetweenOperations.toMillis)
+					operation()
+					BenchmarkUtils.printProgress(j)
+				}
+				closeOperations()
+				BenchmarkUtils.printDone()
+				system.barrier("cleanup")
+				println(s"### WARMUP $i : CLEANUP ###")
+				cleanup()
 			}
-			closeOperations()
-			BenchmarkUtils.printDone()
-			system.barrier("cleanup")
-			println(s"### WARMUP $i : CLEANUP ###")
-			cleanup()
+			system.barrier("warmup-done")
+			println("## WARMUP DONE ##")
+		} catch {
+			case e : Exception =>
+				e.printStackTrace()
+				System.err.println("Warmup failed. Retry.")
 		}
-		system.barrier("warmup-done")
-		println("## WARMUP DONE ##")
 	}
 
 
@@ -159,6 +165,9 @@ abstract class DistributedBenchmark(
 		} catch {
 			case e : FileNotFoundException =>
 				throw new IllegalStateException("file not found", e)
+			case e : Exception =>
+				e.printStackTrace()
+				System.err.println("Measure failed. Retry.")
 		} finally {
 			latencyWriter.close()
 			runtimeWriter.close()
@@ -167,10 +176,6 @@ abstract class DistributedBenchmark(
 		//Wait for measurement being done.
 		system.barrier("measure-done")
 		println("## MEASUREMENT DONE ##")
-	}
-
-	private def doOperations(): Unit = {
-
 	}
 
 

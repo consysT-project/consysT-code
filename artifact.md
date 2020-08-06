@@ -1,23 +1,72 @@
 # OOPSLA 2020 Artifact Evaluation
 
+We provide a VM image that has our project ConSysT preinstalled.
+Note that the VM is configured to use 6144MB of memory as it needs
+to run multiple JVMs to execute the provided benchmarks .
+
+The user credentials for the virtual machine are:
+* Username: consyst
+* Password: consyst
+
+
 ## Executing the benchmarks
 
-We have benchmarks for five case studies in the paper. 
-To execute them on your local machine, you need to follow the
-following steps.
+In the paper, there are benchmarks for five different case studies
+(see Section 6.1). 
+In the following, we explain how to execute them on the provided
+VM image.
 
-There are 5 different benchmarks in the paper. 
-Change your open a terminal and navigate to `demos/[benchmark-name]`.
-This tutorial shows you how to execute the counter benchmark.
+Open a terminal and navigate to the root of the code repository.
+
+`$ cd ~/consysT-code`
+
+
+Each case study as well as the benchmarks for the case study are
+located in a different folder:
+
+* Counter in `demos/counter`
+* TicketShop in `demos/concert-tickets`
+* MixT Message Groups in `demos/message-groups`
+* E-Commerce in `demos/eshop`
+* IP Twitter Clone in `demos/twitter-clone`
+
+Open a terminal and navigate to the directory of the case study
+that you want to execute. For example, for the Counter case study
+type:
 
 `$ cd demos/counter`
 
-Run the `run-all.sh` script that is located in the benchmark 
+You can execute the performance benchmark from the paper.
+For that execute the `run-artifact.sh` script located in the benchmark 
 folder.
 
-`./run-all.sh`
+`$ ./run-artifact.sh`
 
-This will execute the default benchmark for the `weak`, `strong` 
-and `mixed` configurations.
+This will execute the performance benchmarks 
+for the `weak`, `strong` and `mixed` configurations.
+The benchmarks executes a few warmup and measure iterations.
+The configuration file of the benchmarks are in `src/main/resources/local`.
+The benchmarks use the configuration files in `weak`, `mixed` and `strong`,
+respectively.
 
-The raw output is in folder `demos/counter/bench-results`.
+
+The benchmark will generate some raw output in 
+`bench-results/artifact`. 
+However, the script also processes the raw results.
+After the benchmarks are executed, a browser window opens
+with two tabs, each showing a graph with the results of the run.
+One graph (y-axis labelled normalized_mean) shows the percentage
+of mean runtime over all runs of the `weak` and `mixed` configuration
+compared to the `strong` configuration (cf. Figure 7 in the paper).
+The other graph (y-axis labelled mean) shows the absolute mean
+runtime.
+
+
+### Troubleshooting
+
+In case a benchmark fails to execute, you need to rerun the whole
+script. Before rerunning, ensure that all processes
+are stopped. For that, you can kill all Java processes:
+
+`pkill -f java`
+
