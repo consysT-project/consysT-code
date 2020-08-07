@@ -53,7 +53,7 @@ public class Demo {
 
 	private static void replica1Code() throws Exception {
 		JReplicaSystems.withActorSystem(
-				new Address("127.0.0.1", 3344),
+				new Address("127.0.0.1", 3345),
 				Arrays.asList(new Address("127.0.0.1", 3344), new Address("127.0.0.1", 3345))
 		).use(() -> {
 			JRef<@Strong ObjA> counter = JReplicaSystems.getSystem().lookup("counter", (Class<@Strong ObjA>) ObjA.class, JConsistencyLevels.STRONG);
