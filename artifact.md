@@ -1,15 +1,19 @@
 # OOPSLA 2020 Artifact Evaluation
 
 We provide a VM image that has our project ConSysT preinstalled.
-Note that the VM is configured to use 8192MB of memory as it needs
-to run multiple JVMs to execute the provided benchmarks.
+The VM is for executing the benchmarks that are available
+in our paper.
+As the benchmarks spawn 9 processes (each running its own JVM), 
+we suggest that you use at least 12GB of memory to avoid out of memory
+errors.
+We tested the VM with 12GB provided memory on a Linux Mint 19 
+machine using Oracle VirtualBox.
 
 The user credentials for the virtual machine are:
 * Username: consyst
 * Password: consyst
 
-The VM has been created with Oracle VirtualBox. Import the image by 
-starting VirtualBox and then File > Import appliance.
+Import the image by starting VirtualBox and then File > Import appliance.
 
 ## Executing the benchmarks
 
@@ -46,7 +50,9 @@ folder.
 
 This will execute the performance benchmarks 
 for the `weak`, `strong` and `mixed` configurations.
-The benchmarks executes a few warmup and measure iterations.
+The benchmarks executes a 5 warmup and 5 measure iterations.
+Depending on the case study and your machine, 
+the benchmark may run several hours.
 The configuration file of the benchmarks are in `src/main/resources/local`.
 The benchmarks use the configuration files in `weak`, `mixed` and `strong`,
 respectively.
