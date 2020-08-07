@@ -7,7 +7,15 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
 
+<<<<<<< HEAD
 public class Hashmap<K extends Serializable,V extends Serializable> extends DeltaCRDT implements Serializable {
+=======
+import de.tuda.stg.consys.core.akka.Delta;
+import de.tuda.stg.consys.core.akka.DeltaCRDT;
+
+
+public class Hashmap<K,V> extends DeltaCRDT implements Serializable {
+>>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
 
     private HashMap<K,V> map = new HashMap<K, V>();
 
