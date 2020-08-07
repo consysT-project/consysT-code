@@ -34,10 +34,8 @@ public class IntegerVector extends DeltaCRDT implements Serializable {
      * @return a delta object with the index and the new value
      */
     public Delta inc (int index){
-        System.out.println("incrementing at index: "+index);
         vector[index] += 1;
         Pair<Integer,Integer> p = new Pair<Integer, Integer>(index,vector[index]);
-        System.out.println("transmitting Delta!");
         return new Delta(p);
     }
 
@@ -57,5 +55,15 @@ public class IntegerVector extends DeltaCRDT implements Serializable {
         }
 
         System.out.println("current state:" + toString());
+    }
+
+    @Override
+    public String toString(){
+
+        String s = "";
+        for(int i = 0; i<vector.length; i++){
+            s+= vector[i]+ ",";
+        }
+        return s;
     }
 }

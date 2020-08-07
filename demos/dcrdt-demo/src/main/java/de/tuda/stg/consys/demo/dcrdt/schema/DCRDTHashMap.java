@@ -12,7 +12,7 @@ public class DCRDTHashMap extends DeltaCRDT{
     private HashMap<String, DeltaCRDT> internalMap = new HashMap<>();
 
     /**
-     * puts the given object wiht the key in the map
+     * puts the given object with the key in the map
      * @param key the key of the map entry
      * @param object the object of the map entry
      * @return a delta message containing the entry
@@ -47,7 +47,7 @@ public class DCRDTHashMap extends DeltaCRDT{
     }
 
     /**
-     * returns the object corrsponding to the key
+     * returns the object corresponding to the key
      * @param key the key of the entry
      * @return the corresponding object of the entry
      */

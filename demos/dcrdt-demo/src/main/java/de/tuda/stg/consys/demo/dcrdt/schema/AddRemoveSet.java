@@ -14,13 +14,13 @@ import java.util.Set;
  * Set that allows adding and removing elements. Is a Tombstone set, once an element is removed,
  * it cannot be added again
  */
-public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
+public class AddRemoveSet extends DeltaCRDT implements Serializable {
     // todo implement serializable!!!
 
     //addition set
-    private Set<T> addSet = new HashSet<T>();
+    private Set<String> addSet = new HashSet<String>();
     //tombstone set
-    private Set<T> removeSet = new HashSet<T>();
+    private Set<String> removeSet = new HashSet<String>();
 
     /**
      * Constructor
@@ -34,14 +34,13 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
      * @param el element that should be added
      * @return a delta object with the new set
      */
-    public Delta addElement(T el) {
-        System.out.println("Adding element " + el);
+    public Delta addElement(String el) {
         addSet.add(el);
-        Set<T> s = new HashSet<T>();
+        Set<String> s = new HashSet<String>();
 
         s.add(el);
         System.out.println("TRANSMITTING DELTA");
-        Pair<Set<T>,Set<T>> p = new Pair<Set<T>, Set<T>>(s,null);
+        Pair<Set<String>,Set<String>> p = new Pair<Set<String>, Set<String>>(s,null);
         return new Delta(p);
     }
 
@@ -50,12 +49,11 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
      * @param el element that should be removed
      * @return a delta object with the new tombstone set
      */
-    public Delta removeElement(T el){
-        System.out.println("removing element " + el);
+    public Delta removeElement(String el){
         removeSet.add(el);
-        Set<T> s = new HashSet<T>();
+        Set<String> s = new HashSet<String>();
         s.add(el);
-        Pair<Set<T>,Set<T>> p = new Pair<Set<T>, Set<T>>(null,s);
+        Pair<Set<String>,Set<String>> p = new Pair<Set<String>, Set<String>>(null,s);
         return new Delta(p);
 
     }
@@ -68,12 +66,16 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
     @Override
     public void merge(Object other) {
         if (other instanceof Pair) {
-            Pair<Set<T>,Set<T>> p = (Pair<Set<T>,Set<T>>) other;
+            Pair<Set<String>,Set<String>> p = (Pair<Set<String>,Set<String>>) other;
 
             System.out.println("received delta. merging");
 
-            addSet.addAll(p.getKey());
-            removeSet.addAll(p.getValue());
+            if(p.getKey()!=null) {
+                addSet.addAll(p.getKey());
+            }
+            if(p.getValue()!=null) {
+                removeSet.addAll(p.getValue());
+            }
         }
 
         System.out.println("current state:" + toString());
@@ -83,7 +85,7 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
      *
      * @return the addition set
      */
-    public Set<T> getAddSet() {
+    public Set<String> getAddSet() {
         return addSet;
     }
 
@@ -91,7 +93,7 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
      *
      * @return the tombstone set
      */
-    public Set<T> getRemoveSet() {
+    public Set<String> getRemoveSet() {
         return removeSet;
     }
 
@@ -100,8 +102,8 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
      * @return the resulting set by creating the difference from the addition set
      * with the tombstone set
      */
-    public Set<T> getSet(){
-        Set<T> s = new HashSet<T>();
+    public Set<String> getSet(){
+        Set<String> s = new HashSet<String>();
         s.addAll(addSet);
         s.removeAll(removeSet);
         return s;
@@ -110,12 +112,11 @@ public class AddRemoveSet<T> extends DeltaCRDT implements Serializable {
     @Override
     public String toString() {
         String s = "";
-        for (T k : addSet){
+        Set<String> set = this.getSet();
+        for (String k : set){
             s = s + k.toString() + ",";
         }
-        for (T k: removeSet){
-            s = s + k.toString() + ",";
-        }
+
         return s;
     }
 }
