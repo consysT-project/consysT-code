@@ -9,12 +9,11 @@ import java.io.{FileNotFoundException, IOException, PrintWriter}
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import com.typesafe.config.{Config, ConfigFactory}
+import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
 import de.tuda.stg.consys.core.Address
 import de.tuda.stg.consys.japi.impl.JReplicaSystems
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem
-
 import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 
@@ -40,21 +39,14 @@ abstract class DistributedBenchmark(
 	/** Defines how long we wait between operations. */
 	val waitBetweenOperations : java.time.Duration,
 	/** Defines where the measurement output is stored. */
-	val outputFileName : String
+	val outputResolver : OutputFileResolver
 ) {
-	//Important: create the followers before creating the coordinator
-//	final protected var replicaSystem : JAkkaReplicaSystem = JReplicaSystems.fromActorSystem(
-//		address,
-//		JavaConverters.asJavaIterable(replicas),
-//		java.time.Duration.ofSeconds(30000)
-//	)
 
 	def system : JAkkaReplicaSystem = JReplicaSystems.getSystem
 
 	println("All replicas found")
 
-
-	def this(config : Config) {
+	def this(config : Config, outputResolver : Option[OutputFileResolver]) {
 		this(
 			Address.parse(config.getString("consys.bench.hostname")),
 			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.parse(str)).toArray(i => new Array[Address](i)),
@@ -63,13 +55,16 @@ abstract class DistributedBenchmark(
 			config.getInt("consys.bench.measureIterations"),
 			config.getInt("consys.bench.operationsPerIteration"),
 			config.getDuration("consys.bench.waitPerOperation"),
-			config.getString("consys.bench.outputFile")
+			outputResolver match {
+				case None => new DateTimeOutputResolver(config.getString("consys.bench.outputFile"))
+				case Some(e) => e
+			}
 		)
 	}
 
 
-	def this(configName : String) {
-		this(ConfigFactory.load(configName))
+	def this(configName : String, outputResolver : Option[OutputFileResolver]) {
+		this(ConfigFactory.load(configName), outputResolver)
 	}
 
 
@@ -93,55 +88,43 @@ abstract class DistributedBenchmark(
 
 
 	private def warmup() : Unit = {
-		system.barrier("warmup")
-		println("## START WARMUP ##")
-		for (i <- 1 to warmupIterations) {
-			system.barrier("setup")
-			println(s"### WARMUP $i : SETUP ###")
-			setup()
-			system.barrier("iterations")
-			println(s"### WARMUP $i : ITERATIONS ###")
-			for (j <- 1 to operationsPerIteration) {
-				if (!waitBetweenOperations.isZero) busyWait(waitBetweenOperations.toMillis)
-				operation()
-				BenchmarkUtils.printProgress(j)
+		try {
+			system.barrier("warmup")
+			println("## START WARMUP ##")
+			for (i <- 1 to warmupIterations) {
+				system.barrier("setup")
+				println(s"### WARMUP $i : SETUP ###")
+				setup()
+				system.barrier("iterations")
+				println(s"### WARMUP $i : ITERATIONS ###")
+				for (j <- 1 to operationsPerIteration) {
+					if (!waitBetweenOperations.isZero) busyWait(waitBetweenOperations.toMillis)
+					operation()
+					BenchmarkUtils.printProgress(j)
+				}
+				closeOperations()
+				BenchmarkUtils.printDone()
+				system.barrier("cleanup")
+				println(s"### WARMUP $i : CLEANUP ###")
+				cleanup()
 			}
-			closeOperations()
-			BenchmarkUtils.printDone()
-			system.barrier("cleanup")
-			println(s"### WARMUP $i : CLEANUP ###")
-			cleanup()
+			system.barrier("warmup-done")
+			println("## WARMUP DONE ##")
+		} catch {
+			case e : Exception =>
+				e.printStackTrace()
+				System.err.println("Warmup failed. Retry.")
 		}
-		system.barrier("warmup-done")
-		println("## WARMUP DONE ##")
 	}
+
 
 
 	private def measure() : Unit = {
 		system.barrier("measure")
 		println("## START MEASUREMENT ##")
-		val sdf = new SimpleDateFormat("YY-MM-dd_kk-mm-ss")
-		val outputDir = Paths.get(outputFileName, sdf.format(new Date))
 
-		val latencyFile = outputDir.resolve("proc" + processId + ".csv")
-		val runtimeFile = outputDir.resolve("runtime" + processId + ".csv")
-
-		//Initialize files
-		try {
-			Files.createDirectories(outputDir)
-
-			Files.deleteIfExists(latencyFile)
-			Files.createFile(latencyFile)
-
-			Files.deleteIfExists(runtimeFile)
-			Files.createFile(runtimeFile)
-		} catch {
-			case e : IOException =>
-				throw new IllegalStateException("cannot instantiate output file", e)
-		}
-
-		val latencyWriter = new PrintWriter(latencyFile.toFile)
-		val runtimeWriter = new PrintWriter(runtimeFile.toFile)
+		val latencyWriter = new PrintWriter(outputResolver.resolveLatencyFile(processId).toFile)
+		val runtimeWriter = new PrintWriter(outputResolver.resolveRuntimeFile(processId).toFile)
 
 		try {
 			latencyWriter.println("iteration,operation,ns")
@@ -182,6 +165,9 @@ abstract class DistributedBenchmark(
 		} catch {
 			case e : FileNotFoundException =>
 				throw new IllegalStateException("file not found", e)
+			case e : Exception =>
+				e.printStackTrace()
+				System.err.println("Measure failed. Retry.")
 		} finally {
 			latencyWriter.close()
 			runtimeWriter.close()
@@ -190,10 +176,6 @@ abstract class DistributedBenchmark(
 		//Wait for measurement being done.
 		system.barrier("measure-done")
 		println("## MEASUREMENT DONE ##")
-	}
-
-	private def doOperations(): Unit = {
-
 	}
 
 
@@ -206,9 +188,19 @@ abstract class DistributedBenchmark(
 
 object DistributedBenchmark {
 
-	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String) : Unit = {
-		val constructor = benchmark.getConstructor(classOf[Config])
-		val bench = constructor.newInstance(ConfigFactory.load(configName))
+	def start(benchmark : Class[_ <: DistributedBenchmark], args : Array[String]) : Unit = {
+		if (args.length == 1) {
+			start(benchmark, args(0), None)
+		} else if (args.length == 2) {
+			start(benchmark, args(0), Some(new SimpleOutputResolver(args(1))))
+		} else {
+			println("Wrong usage of command. Expected: $ benchmark configFilePath [outputDirectory]")
+		}
+	}
+
+	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String, outputResolver : Option[OutputFileResolver]) : Unit = {
+		val constructor = benchmark.getConstructor(classOf[Config], classOf[Option[OutputFileResolver]])
+		val bench = constructor.newInstance(ConfigFactory.load(configName), outputResolver)
 
 		bench.runBenchmark()
 	}

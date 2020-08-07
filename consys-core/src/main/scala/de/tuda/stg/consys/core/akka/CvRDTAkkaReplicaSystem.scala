@@ -51,7 +51,6 @@ object CvRDTAkkaReplicaSystem {
         None.asInstanceOf[R]
       case _ =>
         super.handleRequest(request)
-
     }
 
     override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]): R = {

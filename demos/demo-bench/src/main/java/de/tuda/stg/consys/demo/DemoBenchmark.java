@@ -2,10 +2,12 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.DistributedBenchmark;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
+import scala.Option;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -33,8 +35,8 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 	private final Random random = new Random();
 
 
-	public DemoBenchmark(Config config) {
-		super(config);
+	public DemoBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+		super(config, outputResolver);
 		String typeString = config.getString("consys.bench.demo.type");
 		if (typeString == null) {
 			throw new IllegalArgumentException("config key not found: consys.bench.demo.type");

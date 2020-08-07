@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
@@ -8,6 +9,7 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
+import scala.Option;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +23,7 @@ import java.util.Set;
  */
 public class MessageGroupsBenchmark extends DemoBenchmark {
     public static void main(String[] args) {
-        start(MessageGroupsBenchmark.class, args[0]);
+        start(MessageGroupsBenchmark.class, args);
     }
 
     private final int numOfGroupsPerReplica;
@@ -32,8 +34,8 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
 
     private final Random random = new Random();
 
-    public MessageGroupsBenchmark(Config config) {
-        super(config);
+    public MessageGroupsBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+        super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
         numOfWeakGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.weakGroups");
@@ -55,20 +57,29 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
     public void setup() {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            if (grpIndex < numOfWeakGroupsPerReplica) {
+            try {
+                if (grpIndex < numOfWeakGroupsPerReplica) {
+                    system().replicate(
+                            addr("group", grpIndex, processId()), new Group(), getWeakLevel());
+                } else {
+                    system().replicate(
+                            addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+                }
+                Thread.sleep(33);
+
+
+                JRef<Inbox> inbox = system().replicate(
+                        addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
+                Thread.sleep(33);
+
                 system().replicate(
-                        addr("group", grpIndex, processId()), new Group(), getWeakLevel());
-            } else {
-                system().replicate(
-                        addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+                        addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
+                Thread.sleep(33);
+
+                BenchmarkUtils.printProgress(grpIndex);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            JRef<Inbox> inbox = system().replicate(
-                    addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
-
-            system().replicate(
-                    addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
-
-            BenchmarkUtils.printProgress(grpIndex);
         }
         BenchmarkUtils.printDone();
 
