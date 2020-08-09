@@ -3,12 +3,13 @@ package de.tuda.stg.consys.demo.dcrdt.schema;
 import de.tuda.stg.consys.core.akka.Delta;
 import de.tuda.stg.consys.core.akka.DeltaCRDT;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 /**
  * @author Kris Frühwein und Julius Näumann
  */
-public class DCRDTHashMap extends DeltaCRDT{
+public class DCRDTHashMap extends DeltaCRDT implements Serializable {
     private HashMap<String, DeltaCRDT> internalMap = new HashMap<>();
 
     /**

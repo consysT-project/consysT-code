@@ -9,16 +9,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-<<<<<<< HEAD
-public class AddRemoveSet<T extends Serializable> extends DeltaCRDT implements Serializable {
-=======
+
 /**
  * @author = Kris Frühwein, Julius Näumann
  * Set that allows adding and removing elements. Is a Tombstone set, once an element is removed,
  * it cannot be added again
  */
-public class AddRemoveSet extends DeltaCRDT implements Serializable {
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
+public class AddRemoveSet<T extends Serializable> extends DeltaCRDT implements Serializable {
+
     // todo implement serializable!!!
 
     //addition set
@@ -44,11 +42,7 @@ public class AddRemoveSet extends DeltaCRDT implements Serializable {
 
         s.add(el);
         System.out.println("TRANSMITTING DELTA");
-<<<<<<< HEAD
-        Pair<Set<T >,Set<T>> p = new Pair<Set<T>, Set<T>>(s,null);
-=======
         Pair<Set<String>,Set<String>> p = new Pair<Set<String>, Set<String>>(s,null);
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
         return new Delta(p);
     }
 

@@ -4,16 +4,11 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.core.Address;
 import de.tuda.stg.consys.core.akka.VectorClock;
 import de.tuda.stg.consys.demo.DemoBenchmark;
-<<<<<<< HEAD
-import de.tuda.stg.consys.demo.dcrdt.schema.AddOnlySetString;
-import de.tuda.stg.consys.demo.dcrdt.schema.Hashmap;
-import de.tuda.stg.consys.demo.dcrdt.schema.StringHashmap;
-=======
 import de.tuda.stg.consys.demo.dcrdt.schema.*;
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
+import scala.Option;
 
 /**
  * Created on 10.10.19.
@@ -22,20 +17,17 @@ import org.checkerframework.com.google.common.collect.Sets;
  */
 public class CounterBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
-		start(CounterBenchmark.class, args[0]);
+		start(CounterBenchmark.class, args);
 	}
 
 	public CounterBenchmark(Config config) {
-		super(config);
+		super(config, Option.empty());
 	}
 
-<<<<<<< HEAD
 	private JRef<StringHashmap> map;
-=======
 	private JRef<DotStoreString> dotStore;
 
 	private JRef<AddOnlySetString> set;
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
 
 	private JRef<AddOnlySetString> set2;
 
@@ -45,27 +37,10 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	private  JRef<DCRDTHashMap> hashMap;
 
-	private int switcher = 4;
+	private int switcher = 1;
 
 	@Override
 	public void setup() {
-	/*	System.out.println("setup");
-		if (processId() == 0) {
-<<<<<<< HEAD
-			map = system().replicate("counter", new StringHashmap(), JConsistencyLevels.DCRDT);
-		} else {
-			map = system().<StringHashmap>lookup("counter", StringHashmap.class, JConsistencyLevels.DCRDT);
-			map.sync(); //Force dereference
-=======
-			dotStore = system().replicate("counter", new DotStoreString(), JConsistencyLevels.DCRDT);
-		} else {
-			dotStore = system().lookup("counter", DotStoreString.class, JConsistencyLevels.DCRDT);
-			dotStore.sync(); //Force dereference
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
-		}
-		System.out.println(processId() + " finished setup of dotStore");
-		*/
-
 		switch (switcher) {
 			case 0:
 				if (processId() == 0) {
@@ -123,7 +98,15 @@ public class CounterBenchmark extends DemoBenchmark {
 				}
 				System.out.println(processId() + " finished setup of HashMap");
 				break;
+			case 5:
+				if (processId() == 0) {
+					map = system().replicate("counter", new StringHashmap(), JConsistencyLevels.DCRDT);
+				} else {
+					map = system().<StringHashmap>lookup("counter", StringHashmap.class, JConsistencyLevels.DCRDT);
+					map.sync(); //Force dereference
 
+				}
+				break;
 		}
 
 	}
@@ -152,12 +135,6 @@ public class CounterBenchmark extends DemoBenchmark {
 				System.out.print(".");
 				break;
 
-<<<<<<< HEAD
-		map.ref().addEntry("Key " + processId(), "Value " + processId());
-
-		doSync(() -> map.sync());
-		System.out.print(".");
-=======
 			case 2:
 				addRemove.ref().addElement("Hello from " + processId());
 				addRemove.ref().removeElement("Hello from "+processId());
@@ -182,8 +159,15 @@ public class CounterBenchmark extends DemoBenchmark {
 				hashMap.ref().put("A",set2.ref());
 				String y = hashMap.ref().get("A").toString();
 				System.out.println(y);
+				break;
+
+			case 5:
+				map.ref().addEntry("Key " + processId(), "Value " + processId());
+
+				doSync(() -> map.sync());
+				System.out.print(".");
+				break;
 		}
->>>>>>> 02160a0b2053e5b64b23be342691dd274ccf3dc0
 	}
 
 	@Override
