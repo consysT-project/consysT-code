@@ -32,6 +32,7 @@ public class StringHashmap extends DeltaCRDT implements Serializable {
         return new Delta(p);
     }
 
+    
     /**
      * merges the current map with the delta message
      * @param other delta message
