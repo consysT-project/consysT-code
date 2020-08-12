@@ -43,7 +43,6 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
         int k ;
         int v;
         //get maximum sequence
-        //change concurrent thingy
         for(int i = 0; i < context.size(); i++){
             if(context.get(i).getValue().dot.getKey() == id){
                 k = context.get(i).getValue().dot.getValue();

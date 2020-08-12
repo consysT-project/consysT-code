@@ -9,9 +9,8 @@ import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
 /**
- * Created on 10.10.19.
- *
- * @author Mirko Köhler
+ * @author = Kris Frühwein, Julius Näumann
+ * Integer vetor that only grows
  */
 public class DCRDTBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
