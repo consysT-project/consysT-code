@@ -20,7 +20,8 @@
         <module>counter</module>
         <module>twitter-clone</module>
         <module>eshop</module>
-    </modules>
+	<module>dcrdt-demo</module>
+</modules>
 
 
 

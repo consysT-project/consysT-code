@@ -16,5 +16,5 @@ public interface JConsistencyLevels {
 
 	@Local ConsistencyLabel CMRDT = ConsistencyLabel.CmRDT$.MODULE$;
 	@Local ConsistencyLabel CVRDT = ConsistencyLabel.CvRDT$.MODULE$;
-
+	@Local ConsistencyLabel DCRDT = ConsistencyLabel.DCRDT$.MODULE$;
 }
