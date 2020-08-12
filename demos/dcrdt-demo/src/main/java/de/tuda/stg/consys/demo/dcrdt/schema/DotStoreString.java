@@ -51,7 +51,6 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
                 }
             }
         }
-       // System.out.println("called max");
         return x;
     }
 
@@ -179,11 +178,31 @@ public class DotStoreString extends DeltaCRDT implements Serializable {
         return found;
     }
 
-    @Override
-    public String toString() {
+    /**
+     *
+     * @param id id of the replica
+     * @return a Set with all Strings, that the replica currently contains
+     */
+    public Set<String> getSet(int id) {
+        Set<String> s = new HashSet<>();
+        for (String k : stringset) {
+            if (findElement(id, k) >= 0) {
+                s.add(k);
+            }
+        }
+        return s;
+
+    }
+
+    /**
+     *
+     * @param id id of the replica
+     * @return the strings that the replica contains currently
+     */
+    public String toString(int id) {
             String s = "";
             for (String k : stringset){
-                if(findElement(0,k)>=0) {
+                if(findElement(id,k)>=0) {
                     s = s + k + ",";
                 }
             }
