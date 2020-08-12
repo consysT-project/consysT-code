@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.demo.dcrdt;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.core.Address;
-import de.tuda.stg.consys.core.akka.VectorClock;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.dcrdt.schema.*;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
@@ -15,12 +13,12 @@ import scala.Option;
  *
  * @author Mirko Köhler
  */
-public class CounterBenchmark extends DemoBenchmark {
+public class DCRDTBenchmark extends DemoBenchmark {
 	public static void main(String[] args) {
-		start(CounterBenchmark.class, args);
+		start(DCRDTBenchmark.class, args);
 	}
 
-	public CounterBenchmark(Config config) {
+	public DCRDTBenchmark(Config config) {
 		super(config, Option.empty());
 	}
 
@@ -37,7 +35,7 @@ public class CounterBenchmark extends DemoBenchmark {
 
 	private  JRef<DCRDTHashMap> hashMap;
 
-	private int switcher = 1;
+	private int switcher = 4;
 
 	@Override
 	public void setup() {

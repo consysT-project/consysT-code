@@ -4,7 +4,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import de.tuda.stg.consys.demo.DemoExecutor;
 
-public class DCRDTDemo extends DemoExecutor<CounterBenchmark> {
+public class DCRDTDemo extends DemoExecutor<DCRDTBenchmark> {
     public static void main(String[] args) throws Exception{
         new DCRDTDemo().runDemo();
     }
@@ -23,7 +23,7 @@ public class DCRDTDemo extends DemoExecutor<CounterBenchmark> {
     }
 
     @Override
-    protected Class<CounterBenchmark> benchmarkClass() {
-        return CounterBenchmark.class;
+    protected Class<DCRDTBenchmark> benchmarkClass() {
+        return DCRDTBenchmark.class;
     }
 }
