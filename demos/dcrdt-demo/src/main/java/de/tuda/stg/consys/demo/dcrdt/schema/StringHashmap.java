@@ -8,6 +8,8 @@ import java.util.HashMap;
 
 /**
  * @author Kris Frühwein und Julius Näumann
+ * This Hashmap can map from a String key to a Serializable value.
+ * In the case of a key collision, behavior is undefined.
  */
 public class StringHashmap extends DeltaCRDT implements Serializable {
 
