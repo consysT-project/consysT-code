@@ -105,18 +105,11 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 	@Override
 	public void operation() {
-		/*dotStore.ref().addString("Hello from " + processId(), processId());
-		dotStore.ref().removeString("Hello from " + processId(), processId());
-		String s = dotStore.ref().toString() + "i am " + processId();
-		System.out.println(s);
-		doSync(() -> dotStore.sync());
-		System.out.print(".");*/
-
 		switch (switcher) {
 			case 0:
 				dotStore.ref().addString("Hello from " + processId(), processId());
 				dotStore.ref().removeString("Hello from " + processId(), processId());
-				String s = "current String of" + processId() +" after removal: "+dotStore.ref().toString();
+				String s = "current String of" + processId() +" after removal: "+dotStore.ref().toString(processId());
 				System.out.println(s);
 				doSync(() -> dotStore.sync());
 				System.out.print(".");
