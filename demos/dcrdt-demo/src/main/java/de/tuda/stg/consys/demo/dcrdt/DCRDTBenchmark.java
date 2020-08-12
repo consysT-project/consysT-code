@@ -35,16 +35,16 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 	private  JRef<DCRDTHashMap> hashMap;
 
-	private int switcher = 4;
+	private int switcher = 2;
 
 	@Override
 	public void setup() {
 		switch (switcher) {
 			case 0:
 				if (processId() == 0) {
-					dotStore = system().replicate("counter", new DotStoreString(), JConsistencyLevels.DCRDT);
+					dotStore = system().replicate("dotstore", new DotStoreString(), JConsistencyLevels.DCRDT);
 				} else {
-					dotStore = system().lookup("counter", DotStoreString.class, JConsistencyLevels.DCRDT);
+					dotStore = system().lookup("dotstore", DotStoreString.class, JConsistencyLevels.DCRDT);
 					dotStore.sync(); //Force dereference
 				}
 				System.out.println(processId() + " finished setup of dotStore");
@@ -52,9 +52,9 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 			case 1:
 				if (processId() == 0) {
-					set = system().replicate("counter", new AddOnlySetString(), JConsistencyLevels.DCRDT);
+					set = system().replicate("aoset", new AddOnlySetString(), JConsistencyLevels.DCRDT);
 				} else {
-					set = system().lookup("counter", AddOnlySetString.class, JConsistencyLevels.DCRDT);
+					set = system().lookup("aoset", AddOnlySetString.class, JConsistencyLevels.DCRDT);
 					set.sync(); //Force dereference
 				}
 				System.out.println(processId() + " finished setup of set");
@@ -62,9 +62,9 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 			case 2:
 				if (processId() == 0) {
-					addRemove = system().replicate("counter", new AddRemoveSet(), JConsistencyLevels.DCRDT);
+					addRemove = system().replicate("arset", new AddRemoveSet(), JConsistencyLevels.DCRDT);
 				} else {
-					addRemove = system().lookup("counter", AddRemoveSet.class, JConsistencyLevels.DCRDT);
+					addRemove = system().lookup("arset", AddRemoveSet.class, JConsistencyLevels.DCRDT);
 					addRemove.sync(); //Force dereference
 				}
 				System.out.println(processId() + " finished setup of addRemove");
@@ -82,25 +82,25 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 			case 4:
 				if (processId() == 0) {
-					hashMap = system().replicate("counter", new DCRDTHashMap(), JConsistencyLevels.DCRDT);
-					set = system().replicate("counter2", new AddOnlySetString(), JConsistencyLevels.DCRDT);
-					set2 = system().replicate("counter3", new AddOnlySetString(), JConsistencyLevels.DCRDT);
+					hashMap = system().replicate("hashmap", new DCRDTHashMap(), JConsistencyLevels.DCRDT);
+					set = system().replicate("s1", new AddOnlySetString(), JConsistencyLevels.DCRDT);
+					set2 = system().replicate("s2", new AddOnlySetString(), JConsistencyLevels.DCRDT);
 
 				} else {
-					hashMap = system().lookup("counter", DCRDTHashMap.class, JConsistencyLevels.DCRDT);
+					hashMap = system().lookup("hashmap", DCRDTHashMap.class, JConsistencyLevels.DCRDT);
 					hashMap.sync(); //Force dereference
-					set = system().lookup("counter2", AddOnlySetString.class, JConsistencyLevels.DCRDT);
+					set = system().lookup("s1", AddOnlySetString.class, JConsistencyLevels.DCRDT);
 					set.sync(); //Force dereference
-					set2 = system().lookup("counter3", AddOnlySetString.class, JConsistencyLevels.DCRDT);
+					set2 = system().lookup("s2", AddOnlySetString.class, JConsistencyLevels.DCRDT);
 					set2.sync(); //Force dereference
 				}
 				System.out.println(processId() + " finished setup of HashMap");
 				break;
 			case 5:
 				if (processId() == 0) {
-					map = system().replicate("counter", new StringHashmap(), JConsistencyLevels.DCRDT);
+					map = system().replicate("hashmap", new StringHashmap(), JConsistencyLevels.DCRDT);
 				} else {
-					map = system().<StringHashmap>lookup("counter", StringHashmap.class, JConsistencyLevels.DCRDT);
+					map = system().<StringHashmap>lookup("hashmap", StringHashmap.class, JConsistencyLevels.DCRDT);
 					map.sync(); //Force dereference
 
 				}
