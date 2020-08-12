@@ -38,15 +38,7 @@ trait DeltaCRDTAkkaReplicaSystem extends AkkaReplicaSystem {
     result
   }
 }
-/*
-  object DeltaCRDTAkkaReplicatedObject {
 
-    trait DeltaCRDTReplicatedObject[Addr, T]
-      extends AkkaReplicatedObject[Addr, T]
-        with Lockable[T] {
-
-    }
-*/
 
 trait DeltaHandler {
   def transmitDelta(delta: Any)
