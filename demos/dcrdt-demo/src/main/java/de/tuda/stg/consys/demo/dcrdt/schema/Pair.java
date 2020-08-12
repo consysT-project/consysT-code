@@ -40,21 +40,7 @@ public class Pair<K,V> implements Serializable {
         return this.value;
     }
 
-    private void writeObject(java.io.ObjectOutputStream out)
-            throws IOException {
-        out.writeObject(key);
-        out.writeObject(value);
-    }
-    private void readObject(java.io.ObjectInputStream in)
-            throws IOException, ClassNotFoundException {
-        key = (K) in.readObject();
-        value = (V) in.readObject();
-    }
-    private void readObjectNoData()
-            throws ObjectStreamException {
-        key = null;
-        value = null;
-    }
+    
 
     @Override
     public String toString(){
