@@ -50,6 +50,8 @@ public class AddOnlySetString extends DeltaCRDT implements Serializable {
 
 }
 ```
+The `addElement` method returns a Delta instance containing _delta-state_. 
+`merge()` takes an `Object` parameter. Any value wrapped in a `Delta` or `ResultWrapper` instance will be passed here.
 
 
 Things to note:
@@ -57,7 +59,7 @@ Things to note:
 * As of yet, akka does not support generics, which is why the merge method only takes an `Object`. This is also why this example explicitly uses strings. 
 * If a method results in a changed state, it must return a `Delta` instance that includes the delta state. Akka will transmit this Delta to other replicas by invoking their `merge` method.
 * If a method intended to return a value results in a changed state, it must return a `ResultWrapper` object, which allows setting a delta state and an arbitrary value. `ResultWrapper` takes a type parameter, as akka's generics limitation does not apply here.
-   
+* Please not that DCRDT methods are currently not yet atomic. This can pose a problem if a set being iterated over is modified by a `merge()` call. This issue will be fixed in a future version.
 
 Once implemented correctly, instances of DCRDT classes can be used just like any other data type in akka:
 
