@@ -40,15 +40,11 @@ public class Pair<K,V> implements Serializable {
         return this.value;
     }
 
-    
+
 
     @Override
     public String toString(){
         return "(" + this.getKey().toString() + ","+ this.getValue().toString() + ")";
     }
 
-
-    public void merge(Object other){
-        System.out.println("should not merge!");
-    }
 }
