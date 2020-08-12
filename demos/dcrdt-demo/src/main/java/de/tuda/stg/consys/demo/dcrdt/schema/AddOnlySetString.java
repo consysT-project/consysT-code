@@ -13,7 +13,6 @@ import java.util.Set;
  * Add Only Set of Strings
  */
 public class AddOnlySetString extends DeltaCRDT implements Serializable {
-    // todo implement serializable!!!
 
     private Set<String> set = new HashSet<String>();
 

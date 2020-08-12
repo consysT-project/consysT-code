@@ -17,8 +17,6 @@ import java.util.Set;
  */
 public class AddRemoveSet<T extends Serializable> extends DeltaCRDT implements Serializable {
 
-    // todo implement serializable!!!
-
     //addition set
     private Set<String> addSet = new HashSet<String>();
     //tombstone set
