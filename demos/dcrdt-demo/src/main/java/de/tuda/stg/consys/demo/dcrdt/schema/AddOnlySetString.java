@@ -49,7 +49,6 @@ public class AddOnlySetString extends DeltaCRDT implements Serializable {
         System.out.println("Adding String " + str);
         set.add(str);
         Set<String> s = new HashSet<String>();
-
         s.add(str);
         System.out.println("TRANSMITTING DELTA");
         return new Delta(s);
@@ -67,6 +66,13 @@ public class AddOnlySetString extends DeltaCRDT implements Serializable {
             System.out.println("received delta. merging");
 
             set.addAll(s);
+        }
+        if (other instanceof AddOnlySetString) {
+            AddOnlySetString o = (AddOnlySetString) other;
+
+            System.out.println("received delta. merging");
+
+            set.addAll(o.set);
         }
 
         System.out.println("current state:" + toString());

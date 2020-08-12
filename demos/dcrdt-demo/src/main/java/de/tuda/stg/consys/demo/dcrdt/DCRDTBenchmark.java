@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.dcrdt;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.demo.Demo;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.dcrdt.schema.*;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
@@ -34,7 +35,7 @@ public class DCRDTBenchmark extends DemoBenchmark {
 
 	private  JRef<DCRDTHashMap> hashMap;
 
-	private int switcher = 2;
+	private int switcher = 4;
 
 	@Override
 	public void setup() {
@@ -82,16 +83,10 @@ public class DCRDTBenchmark extends DemoBenchmark {
 			case 4:
 				if (processId() == 0) {
 					hashMap = system().replicate("hashmap", new DCRDTHashMap(), JConsistencyLevels.DCRDT);
-					set = system().replicate("s1", new AddOnlySetString(), JConsistencyLevels.DCRDT);
-					set2 = system().replicate("s2", new AddOnlySetString(), JConsistencyLevels.DCRDT);
 
 				} else {
 					hashMap = system().lookup("hashmap", DCRDTHashMap.class, JConsistencyLevels.DCRDT);
 					hashMap.sync(); //Force dereference
-					set = system().lookup("s1", AddOnlySetString.class, JConsistencyLevels.DCRDT);
-					set.sync(); //Force dereference
-					set2 = system().lookup("s2", AddOnlySetString.class, JConsistencyLevels.DCRDT);
-					set2.sync(); //Force dereference
 				}
 				System.out.println(processId() + " finished setup of HashMap");
 				break;
@@ -150,12 +145,12 @@ public class DCRDTBenchmark extends DemoBenchmark {
 				break;
 
 			case 4:
-				set.ref().addElement("a");
-				set2.ref().addElement("b");
-				hashMap.ref().put("A",set.ref());
-				hashMap.ref().put("A",set2.ref());
-				String y = hashMap.ref().get("A").toString();
-				System.out.println(y);
+				AddOnlySetString strset = new AddOnlySetString();
+				strset.addElement("a" + processId());
+				AddOnlySetString strset2 = new AddOnlySetString();
+				strset2.addElement("b" + processId());
+				hashMap.ref().put("KEY",strset);
+				hashMap.ref().put("KEY"+processId(),strset2);
 				break;
 
 			case 5:

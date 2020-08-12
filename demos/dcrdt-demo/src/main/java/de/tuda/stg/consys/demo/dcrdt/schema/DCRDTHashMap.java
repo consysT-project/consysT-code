@@ -38,9 +38,13 @@ public class DCRDTHashMap extends DeltaCRDT implements Serializable {
             Pair<String, DeltaCRDT> p = (Pair<String, DeltaCRDT>) other;
             String key = p.getKey();
             DeltaCRDT val = p.getValue();
+
+            System.out.println("received " + key + " : " + val.toString());
             DeltaCRDT oldVal = internalMap.get(key);
             if (oldVal != null) {
+                System.out.println("key collision for " + key + ". Old value: " + oldVal.toString() +". Merging.");
                 oldVal.merge(val);
+                System.out.println("After merge: " + oldVal.toString());
             } else {
                 internalMap.put(key,val);
             }

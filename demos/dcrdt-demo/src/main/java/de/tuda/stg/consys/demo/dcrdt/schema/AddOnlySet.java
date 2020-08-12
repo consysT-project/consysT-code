@@ -5,9 +5,11 @@ import de.tuda.stg.consys.core.akka.DeltaCRDT;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
-
+/*
+ * This AddOnlySet implementation is generically typed.
+ * As of yet, akka does not support generics.
+ */
 public class AddOnlySet<T> extends DeltaCRDT implements Serializable {
-    // todo implement serializable!!!
 
     private Set<T> set = new HashSet<>();
 
