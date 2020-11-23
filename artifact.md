@@ -10,6 +10,7 @@ We tested the VM with 12GB provided memory on a Linux Mint 19
 machine using Oracle VirtualBox with VT-x (processor virtualization) enabled.
 
 The user credentials for the virtual machine are:
+
 * Username: consyst
 * Password: consyst
 
