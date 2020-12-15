@@ -15,11 +15,9 @@ public class Demo {
 
 	public static class Box implements Serializable {
 		private int i = 0;
-
 		public void inc() {
 			i++;
 		}
-
 		public int get() {
 			return i;
 		}
@@ -37,15 +35,15 @@ public class Demo {
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {
 			Ref<Box> box1 = ctx.replicate("box1",CassandraConsistencyLevels.STRONG(), Box.class);
-			box1.invoke("inc");
+			box1.ref().inc();
 			return Option.empty();
 		});
 
 		System.out.println("transaction 2");
 		replica1.transaction(ctx -> {
 			Ref<Box> box1 = ctx.lookup("box1", Box.class, CassandraConsistencyLevels.STRONG());
-			box1.invoke("inc");
-			int i = box1.invoke("get");
+			box1.ref().inc();
+			int i = box1.ref().get();
 			System.out.println(i);
 			return Option.empty();
 		});
