@@ -36,7 +36,7 @@ public class Demo {
 		replica1.transaction(ctx -> {
 			Ref<Box> box1 = ctx.replicate("box1",CassandraConsistencyLevels.STRONG(), Box.class);
 			box1.ref().inc();
-			return Option.empty();
+			return Option.apply(2);
 		});
 
 		System.out.println("transaction 2");
@@ -50,6 +50,6 @@ public class Demo {
 
 		replica1.close();
 		replica2.close();
-
 	}
+
 }
