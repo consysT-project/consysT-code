@@ -1,10 +1,11 @@
 package compiler;
 
 import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.next.cassandra.Binding;
 import de.tuda.stg.consys.japi.next.Ref;
 import scala.Option;
 import scala.concurrent.duration.Duration;
+import de.tuda.stg.consys.japi.next.binding.Cassandra;
+
 
 import java.io.Serializable;
 
@@ -53,17 +54,17 @@ public class TestClass {
 
 
 	public static void main(String[] args) throws Exception {
-		Binding.Cassandra.ReplicaBinding replica1 = Binding.Cassandra.newReplica(
+		Cassandra.ReplicaBinding replica1 = Cassandra.newReplica(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
 		);
 
-		Binding.Cassandra.ReplicaBinding replica2 = Binding.Cassandra.newReplica(
+		Cassandra.ReplicaBinding replica2 = Cassandra.newReplica(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.replicate("box1", new Box(42), CassandraConsistencyLevels.STRONG());
+			Ref<Box> box1 = ctx.replicate("box1",  CassandraConsistencyLevels.STRONG(), Box.class, 42);
 			box1.ref().incBy(23);
 			System.out.println("inced");
 			return Option.empty();
