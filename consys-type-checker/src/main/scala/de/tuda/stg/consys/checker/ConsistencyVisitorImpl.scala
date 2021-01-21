@@ -7,7 +7,6 @@ import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.framework.source.Result
 
 /**
 	* Created on 05.03.19.
@@ -50,7 +49,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 
 	private def checkAssignment(lhsType : AnnotatedTypeMirror, rhsType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (!implicitContext.allowsUpdatesTo(lhsType, tree) || !implicitContext.allowsUpdatesFrom(rhsType, tree))
-			checker.report(Result.failure("assignment.type.implicitflow", lhsType, implicitContext.get, tree), tree)
+			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
 	}
 
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
@@ -145,12 +144,12 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 
 	private def checkMethodInvocationReceiver(receiverType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (!implicitContext.allowsAsReceiver(receiverType, tree))
-			checker.report(Result.failure("invocation.receiver.implicitflow", receiverType, implicitContext.get, tree), tree)
+			checker.reportError(tree,"invocation.receiver.implicitflow", receiverType, implicitContext.get, tree)
 	}
 
 	private def checkMethodInvocationArgument(argType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (!implicitContext.allowsAsArgument(argType, tree))
-			checker.report(Result.failure("invocation.argument.implicitflow", argType, implicitContext.get, tree), tree)
+			checker.reportError(tree, "invocation.argument.implicitflow", argType, implicitContext.get, tree)
 	}
 
 

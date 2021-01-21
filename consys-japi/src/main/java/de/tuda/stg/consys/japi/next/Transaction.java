@@ -9,6 +9,5 @@ import scala.Option;
  */
 @FunctionalInterface
 public interface Transaction<Context extends TransactionContext<Addr, Obj, Consistency>, U, Addr, Obj, Consistency> {
-
 	Option<U> doTransaction(Context context);
 }

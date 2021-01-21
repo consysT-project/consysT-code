@@ -37,6 +37,8 @@ public class ConsysJavacPlugin implements Plugin {
 		Context context = ((BasicJavacTask) task).getContext();
 		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Plugin loaded: " + getName());
 
+
+
 		task.addTaskListener(new TaskListener() {
 			@Override
 			public void started(TaskEvent taskEvent) {

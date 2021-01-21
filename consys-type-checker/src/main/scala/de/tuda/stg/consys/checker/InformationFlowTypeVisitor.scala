@@ -4,7 +4,6 @@ import com.sun.source.tree._
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
-import org.checkerframework.framework.source.Result
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -167,7 +166,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 			val typeAnnotation : AnnotationMirror = getStrongestNonLocalAnnotationIn(typ, getTopAnnotation)
 
 			if (typeAnnotation == null) {
-				checker.report(Result.warning("consistency.inferred", typ, tree), tree)
+				checker.reportWarning(tree, "consistency.inferred", typ, tree)
 				//Log.info(getClass(), String.format("consistency.inferred: consistency level of {%s} unknown and has been inferred to @Inconsistent.\nin: %s", type, tree));
 				return true
 			}

@@ -34,17 +34,17 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <java.version>11</java.version>
-        <scala.version>2.12.9</scala.version>
+        <scala.version>2.12.13</scala.version>
 
-        <akka.version>2.6.1</akka.version>
-        <aeron.version>1.22.1</aeron.version>
+        <akka.version>2.6.11</akka.version>
+        <aeron.version>1.31.1</aeron.version>
 
         <cassandra-driver.version>4.4.0</cassandra-driver.version>
 
         <zookeeper.version>3.5.6</zookeeper.version>
         <curator.version>4.2.0</curator.version>
 
-        <checkerframework.version>3.0.0</checkerframework.version>
+        <checkerframework.version>3.9.1</checkerframework.version>
 
         <plugins.shade.version>3.2.1</plugins.shade.version>
     </properties>
