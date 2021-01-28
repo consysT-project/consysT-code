@@ -1,10 +1,9 @@
-package de.tuda.stg.consys.core.store.cassandra
-
-import java.util.concurrent.{TimeUnit, TimeoutException}
+package de.tuda.stg.consys.core.store.extensions
 
 import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
-import de.tuda.stg.consys.core.store.cassandra.ZookeeperLockingStoreExt.ZookeeperLock
+import de.tuda.stg.consys.core.store.extensions.ZookeeperLockingStoreExt.ZookeeperLock
 import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
+import java.util.concurrent.{TimeUnit, TimeoutException}
 import org.apache.curator.framework.recipes.locks.{InterProcessLock, InterProcessMutex}
 
 /**

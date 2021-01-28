@@ -23,7 +23,7 @@ case object Strong extends AkkaConsistencyLevel {
 		}
 
 		def createFollowerReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, masterRef : ActorRef, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
-			new StrongFollowerAkkaObject[T](addr, obj, store, masterRef, txContext)
+			new StrongMasterAkkaObject[T](addr, obj, store, txContext)
 		}
 	}
 
@@ -37,48 +37,39 @@ case object Strong extends AkkaConsistencyLevel {
 			val lock = store.lockFor(addr)
 			lock.acquire()
 			val result = super.invoke(methodName, args)
+			txContext
 			lock.release()
 			result
 		}
 
 		override def getField[R](fldName : String) : R = {
-			super.getField(fldName)
+			val lock = store.lockFor(addr)
+			lock.acquire()
+			val result = super.getField(fldName)
+			lock.release()
+			result
 		}
 
 		override def setField[R](fldName : String, newVal : R) : Unit = {
+			val lock = store.lockFor(addr)
+			lock.acquire()
 			super.setField(fldName, newVal)
+			lock.release()
 		}
 
-		override def handleRequest[R](request : Request[R]) : R = request match {
-			case SynchronizeWithWeakMaster(ops) =>
-				ops.foreach(op => {
-					AkkaStores.currentTransaction.withValue (null /* replicaSystem.setCurrentTransaction(op.tx) */) {
-						op match {
-							case InvokeOp(path, mthdName, args) => invoke[Any](mthdName, args)
-							case SetFieldOp(path, fldName, newVal) => setField(fldName, newVal)
-							case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
-						}
-					}
-				})
-				WeakSynchronized(state).asInstanceOf[R]
-			case _ =>
-				super.handleRequest(request)
-		}
-
-		override def toString : String = s"WeakMaster($addr, $state)"
+		override def toString : String = s"StrongMaster($addr, $state)"
 
 		override def sync() : Unit = ???
 	}
 
 	private class StrongFollowerAkkaObject[T <: StoreType#ObjType : ClassTag](override val addr : String, private var internalState : T, store : StoreType, masterRef : ActorRef, txContext : StoreType#TxContext) extends AkkaObject[T] {
+		throw new UnsupportedOperationException("Do not use follower objects for strong.")
+
 		override def consistencyLevel : AkkaStore#Level = Strong
 
 		override def state : T = internalState
 
-		private val unsynchronized : mutable.Buffer[Operation[_]] = mutable.Buffer.empty
-
 		override def invoke[R](methodName: String, args: Seq[Seq[Any]]) : R = {
-			unsynchronized += InvokeOp("lol", methodName, args)
 			super.invoke(methodName, args)
 		}
 
@@ -87,29 +78,16 @@ case object Strong extends AkkaConsistencyLevel {
 		}
 
 		override def setField[R](fldName : String, newVal : R) : Unit = {
-			unsynchronized += SetFieldOp("xD", fldName, newVal)
 			super.setField(fldName, newVal)
 		}
 
 
 		def sync() : Unit = {
-			val handler = store.handlerFor(masterRef)
-
-			val WeakSynchronized(newObj : T@unchecked) =
-				handler.request(addr, SynchronizeWithWeakMaster(unsynchronized))
-			handler.close()
-
-			internalState = newObj
-			unsynchronized.clear()
+			???
 		}
 
-		override def toString : String = s"WeakFollower($addr, $state)"
+		override def toString : String = s"StrongFollower($addr, $state)"
 	}
-
-
-	case class SynchronizeWithWeakMaster(seq : scala.collection.Seq[Operation[_]]) extends SynchronousRequest[WeakSynchronized]
-	case class WeakSynchronized(obj : Any)
-
 }
 
 

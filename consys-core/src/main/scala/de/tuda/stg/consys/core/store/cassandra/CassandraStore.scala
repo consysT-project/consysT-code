@@ -3,17 +3,16 @@ package de.tuda.stg.consys.core.store.cassandra
 import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.store.DistributedStore
 import de.tuda.stg.consys.core.store.cassandra.levels.CassandraConsistencyLevel
+import de.tuda.stg.consys.core.store.extensions.{ZookeeperLockingStoreExt, ZookeeperStoreExt}
 import io.aeron.exceptions.DriverTimeoutException
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
-
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag

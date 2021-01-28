@@ -2,16 +2,15 @@ package de.tuda.stg.consys.core.store.akka
 
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
-
-import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address => AkkaAddr, ExtendedActorSystem, Props, RootActorPath}
+import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, ExtendedActorSystem, Props, RootActorPath, Address => AkkaAddr}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
 import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
 import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, EnterBarrier, RemoveObjectReplica}
 import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
+import de.tuda.stg.consys.core.store.extensions.{ZookeeperLockingStoreExt, ZookeeperStoreExt}
 import de.tuda.stg.consys.core.store.utils.Address
-
 import scala.collection.mutable
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -24,7 +23,10 @@ import scala.util.{Failure, Success}
  *
  * @author Mirko Köhler
  */
-trait AkkaStore extends DistributedStore with LockingStore {
+trait AkkaStore extends DistributedStore
+	with ZookeeperStoreExt
+	with ZookeeperLockingStoreExt
+{
 	override type Id = AkkaStoreId
 
 	override type Addr = String
@@ -296,12 +298,10 @@ object AkkaStore {
 		}
 
 		//Creates and initializes the replica system
-		val store = new AkkaStore {
-			override protected[akka] def actorSystem : ActorSystem = system
-			override type LockType = DistributedLock
-			override def lockFor(addr : String) : LockType = ???
-			override def timeout : FiniteDuration = finiteDuration
-		}
+		val store : AkkaStore = null //new AkkaStore {
+//			override protected[akka] def actorSystem : ActorSystem = system
+//			override def timeout : FiniteDuration = finiteDuration
+//		}
 
 		others.foreach(address => {
 			store.addOtherReplica(address.hostname, address.port)

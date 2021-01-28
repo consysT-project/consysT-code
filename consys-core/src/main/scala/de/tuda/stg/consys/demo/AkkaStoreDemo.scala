@@ -1,11 +1,9 @@
 package de.tuda.stg.consys.demo
 
 import java.util.concurrent.Executors
-
 import de.tuda.stg.consys.core.store.akka.{AkkaHandler, AkkaStore}
-import de.tuda.stg.consys.core.store.akka.levels.Weak
+import de.tuda.stg.consys.core.store.akka.levels.{Strong, Weak}
 import de.tuda.stg.consys.core.store.utils.Address
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -33,7 +31,7 @@ object AkkaStoreDemo extends App {
 	val store2 = Await.result(future2, Duration(60, "s"))
 	val store3 = Await.result(future3, Duration(60, "s"))
 
-	val level = Weak
+	val level = Strong
 
 	println("transaction 1")
 	store1.transaction { ctx =>

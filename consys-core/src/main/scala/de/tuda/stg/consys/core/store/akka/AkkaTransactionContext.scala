@@ -2,8 +2,7 @@ package de.tuda.stg.consys.core.store.akka
 
 import akka.util.Timeout
 import de.tuda.stg.consys.core.store.akka.AkkaStore.CreateObjectReplica
-import de.tuda.stg.consys.core.store.{CommitableTransactionContext, TransactionContext}
-
+import de.tuda.stg.consys.core.store.{CommitableTransactionContext, LockingTransactionContext, TransactionContext}
 import scala.concurrent.Await
 import scala.reflect.ClassTag
 
@@ -13,11 +12,12 @@ import scala.reflect.ClassTag
  * @author Mirko Köhler
  */
 case class AkkaTransactionContext(override val store : AkkaStore) extends TransactionContext
-	with CommitableTransactionContext {
+	with CommitableTransactionContext
+	with LockingTransactionContext
+{
 
 	override type StoreType = AkkaStore
 
-	
 	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] = {
 		require(!store.LocalReplica.contains(addr))
 
@@ -45,7 +45,9 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 		store.LocalReplica.get(addr).get.asInstanceOf[AkkaObject[T]]
 
 
-	override private[store] def commit() : Unit = { }
+	override private[store] def commit() : Unit = {
+		locks.foreach(lock => lock.release())
+	}
 
 
 	/**

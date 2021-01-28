@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store.cassandra
+package de.tuda.stg.consys.core.store.extensions
 
 import de.tuda.stg.consys.core.store.DistributedStore
 import org.apache.curator.framework.CuratorFramework
