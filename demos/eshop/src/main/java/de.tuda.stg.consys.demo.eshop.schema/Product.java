@@ -8,15 +8,13 @@ import de.tuda.stg.consys.examples.collections.JRefDistList;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Optional;
 
-public class Product implements Serializable, JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class Product implements Serializable {
 
     private JRef<@Strong Double> cost;
 
@@ -32,12 +30,7 @@ public class Product implements Serializable, JReplicated {
     }
 
     public boolean init(){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         cost = system.replicate(initialCost, EShopLevels.getWeakLevel());
         comments = system.replicate(new JRefDistList(EShopLevels.getWeakLevel()), EShopLevels.getWeakLevel());

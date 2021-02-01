@@ -77,7 +77,7 @@ public class JAkkaRef<T> implements JRef<T>, Serializable {
 
 	@Override
 	public void setReplicaSystem(AkkaReplicaSystem replicaSystem) {
-		((AkkaRef<String, T>) ref).setReplicaSystem(replicaSystem);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

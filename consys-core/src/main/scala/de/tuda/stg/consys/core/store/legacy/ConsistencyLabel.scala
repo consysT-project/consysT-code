@@ -21,6 +21,10 @@ object ConsistencyLabel {
 	case object High extends ConsistencyLabel
 	case object Low extends ConsistencyLabel
 
+	/* CRDTs */
+	case object CvRDT extends ConsistencyLabel
+	case object CmRDT extends ConsistencyLabel
+
 
 	case class Cassandra(replicas : Int) extends ConsistencyLabel
 

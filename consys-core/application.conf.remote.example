@@ -967,7 +967,7 @@ akka {
         # The timeout for outbound associations to perform the initial handshake.
         # This timeout must be greater than the 'image-liveness-timeout' when
         # transport is aeron-udp.
-        handshake-timeout = 20 seconds
+        handshake-timeout = 90 seconds
 
         # incomplete initial handshake attempt is retried with this interval
         handshake-retry-interval = 1 second
@@ -1024,22 +1024,22 @@ akka {
         shutdown-flush-timeout = 1 second
 
         # See 'inbound-max-restarts'
-        inbound-restart-timeout = 5 seconds
+        inbound-restart-timeout = 90 seconds
 
         # Max number of restarts within 'inbound-restart-timeout' for the inbound streams.
         # If more restarts occurs the ActorSystem will be terminated.
-        inbound-max-restarts = 5
+        inbound-max-restarts = 40
 
         # Retry outbound connection after this backoff.
         # Only used when transport is tcp or tls-tcp.
-        outbound-restart-backoff = 1 second
+        outbound-restart-backoff = 2 second
 
         # See 'outbound-max-restarts'
-        outbound-restart-timeout = 5 seconds
+        outbound-restart-timeout = 90 seconds
 
         # Max number of restarts within 'outbound-restart-timeout' for the outbound streams.
         # If more restarts occurs the ActorSystem will be terminated.
-        outbound-max-restarts = 5
+        outbound-max-restarts = 40
 
         # Timeout after which aeron driver has not had keepalive messages
         # from a client before it considers the client dead.

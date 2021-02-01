@@ -3,9 +3,9 @@ package de.tuda.stg.consys.core.store.legacy.akka
 import akka.actor.ActorRef
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Weak
-import de.tuda.stg.consys.core.store.legacy.akka.Requests._
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
+import de.tuda.stg.consys.core.store.legacy.akka.Requests.{InvokeOp, Operation, Request, SetFieldOp, SynchronousRequest}
 import de.tuda.stg.consys.core.store.legacy.akka.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
-
 import scala.collection.mutable
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
@@ -37,8 +37,6 @@ object WeakAkkaReplicaSystem {
 		override final def consistencyLevel : ConsistencyLabel = Weak
 	}
 
-
-
 	object WeakReplicatedObject {
 
 		class WeakMasterReplicatedObject[Loc, T](
@@ -69,28 +67,29 @@ object WeakAkkaReplicaSystem {
 			}
 
 			override def handleRequest[R](request : Request[R]) : R = request match {
-				case SynchronizeWithWeakMaster(ops) =>
+					case SynchronizeWithWeakMaster(ops) =>
+						AkkaReplicaSystems.withValue(replicaSystem.asInstanceOf[AkkaReplicaSystemBinding]) {
+							ops.foreach(op => {
+								val before = op.tx.locks.toSet
 
-					ops.foreach(op => {
-						val before = op.tx.locks.toSet
+								replicaSystem.setCurrentTransaction(op.tx)
+								op match {
+									case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
+									case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
+									case x => throw new IllegalStateException(s"Cannot apply operation ${x}")
+								}
 
-						replicaSystem.setCurrentTransaction(op.tx)
-						op match {
-							case InvokeOp(path, mthdName, args) => internalInvoke[Any](path, mthdName, args)
-							case SetFieldOp(path, fldName, newVal) => internalSetField(path, fldName, newVal)
-							case GetFieldOp(_, _) => throw new IllegalStateException("get field operations are not needed to be applied.")
+								assert(replicaSystem.getCurrentTransaction.locks.toSet == before)
+
+								replicaSystem.clearTransaction()
+							})
 						}
 
-						assert(replicaSystem.getCurrentTransaction.locks.toSet == before)
+						WeakSynchronized(getObject).asInstanceOf[R]
 
-						replicaSystem.clearTransaction()
+					case _ =>
+						super.handleRequest(request)
 
-					})
-
-					WeakSynchronized(getObject).asInstanceOf[R]
-
-				case _ =>
-					super.handleRequest(request)
 			}
 
 			override def toString : String = s"WeakMaster($addr, $getObject)"

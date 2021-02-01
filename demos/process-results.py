@@ -2,8 +2,8 @@ import csv
 import sys
 import argparse
 import os
-import plotly.graph_objects as go
-import plotly.express as px
+# import plotly.graph_objects as go
+# import plotly.express as px
 import pandas as pd
 import numpy as np, scipy.stats as st
 
@@ -29,20 +29,22 @@ for input in args.inputs :
 	splitted_input = input.split(":", 1)
 	path = splitted_input[0]
 	num_of_transactions = int(splitted_input[1])
-	csv_paths = [path + '/' + filepath for filepath in os.listdir(path)]
+	csv_paths = [path + '/' + filepath for filepath in os.listdir(path) if filepath.startswith('proc')]
 	times = []
 	for csv_path in csv_paths:
 		print(f"\rProcessing {csv_path}...", end ='')
-		csv_read = csv.reader(open(csv_path), delimiter=',')
-		headers = next(csv_read, None)
+		
+		dataframe = pd.read_csv(open(csv_path), delimiter=',')
 
-		for row in csv_read:
-			times.append(int(row[1]))
+		for row in dataframe.iterrows():
+			times.append(row[1]['ns'])
 
 	times_ms = [(time / 1000000) / num_of_transactions for time in times]
 
 	#Compute interesting data points
 	arr = np.array(times_ms)
+
+	print(arr)
 
 	count = len(arr)
 	mean = np.mean(arr)

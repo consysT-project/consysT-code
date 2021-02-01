@@ -2,15 +2,14 @@ package de.tuda.stg.consys.core.store.legacy.akka
 
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
-
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import akka.event.LoggingAdapter
 import akka.util.Timeout
 import de.tuda.stg.consys.core.store.legacy
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem._
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
 import de.tuda.stg.consys.core.store.legacy.akka.Requests._
 import de.tuda.stg.consys.core.store.legacy.{BarrierReplicaSystem, ConsistencyLabel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
-
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
@@ -329,8 +328,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 			any match {
 				//If the object is a RefImpl
 				case refImpl : AkkaRef[Addr, _] =>
-
-					refImpl.replicaSystem = this
+					AkkaReplicaSystems.setSystem(this.asInstanceOf[AkkaReplicaSystemBinding])
 
 				//The object is a ref, but is not supported by the replica system
 				case ref :  legacy.Ref[_, _] =>

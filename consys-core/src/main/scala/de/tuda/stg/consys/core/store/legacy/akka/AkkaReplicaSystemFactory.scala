@@ -17,25 +17,26 @@ import scala.util.Random
  */
 object AkkaReplicaSystemFactory extends ReplicaSystemFactory {
 
-	override type System = AkkaReplicaSystem { type Addr = String }
+	override type System = AkkaReplicaSystemBinding
 
-	private class AkkaReplicaSystemImpl(override val actorSystem : ActorSystem, override val defaultTimeout : FiniteDuration)
-		extends AkkaReplicaSystem
+	trait AkkaReplicaSystemBinding extends AkkaReplicaSystem {
+		override type Addr = String
+		override type Ref[T <: Obj] = AkkaRef[String, T]
+	}
+
+	private[akka] class AkkaReplicaSystemImpl(override val actorSystem : ActorSystem, override val defaultTimeout : FiniteDuration)
+		extends AkkaReplicaSystemBinding
 			with StrongAkkaReplicaSystem
 			with WeakAkkaReplicaSystem
 			with CausalAkkaReplicaSystem
+			with CmRDTAkkaReplicaSystem
+			with CvRDTAkkaReplicaSystem
 	{
-
-		type Addr = String
-
 		override protected def freshAddr() : String =
 			"$" + String.valueOf(Random.alphanumeric.take(16).toArray)
 
-
-		override type Ref[T <: Obj] = AkkaRef[String, T]
-
 		override protected def newRef[T <: Obj : TypeTag](addr : String, consistencyLevel : ConsistencyLevel) : Ref[T] =
-			new AkkaRef(addr, consistencyLevel, this)
+			new AkkaRef(addr, consistencyLevel)
 	}
 
 
