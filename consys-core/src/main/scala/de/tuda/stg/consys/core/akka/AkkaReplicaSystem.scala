@@ -5,18 +5,16 @@ import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import akka.event.LoggingAdapter
-import akka.remote.WireFormats.TimeUnit
 import akka.util.Timeout
 import de.tuda.stg.consys.core
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
-import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest}
-import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLevel, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding, Utils}
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem._
-import de.tuda.stg.consys.core.akka.Requests._
+import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
+import de.tuda.stg.consys.core.akka.Requests.{AsynchronousRequest, CloseHandler, InitHandler, NoAnswerRequest, RequestHandler, SynchronousRequest, _}
+import de.tuda.stg.consys.core.{BarrierReplicaSystem, ConsistencyLabel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
 
 import scala.collection.mutable
-import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.language.{higherKinds, postfixOps}
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success}
@@ -34,11 +32,13 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	with ReplicaSystemJavaBinding
 {
 
-	override type Obj = AnyRef with Serializable
+	override type Obj = AnyRef with java.io.Serializable
 
 	override type Tx = Transaction
 
 	override type Ref[T <: Obj] <: AkkaRef[Addr, T]
+
+	override type ConsistencyLevel = ConsistencyLabel
 
 	/*The actor that is used to communicate with this replica.*/
 	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaReplicaSystem.replicaActorName)
@@ -48,8 +48,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 	val defaultTimeout : FiniteDuration
 
-		protected[akka] object replica {
-
+	protected[akka] object replica {
 
 		/*The replicated objects stored by this replica*/
 		private final val localObjects : mutable.Map[Addr, AkkaReplicatedObject[Addr, _]] = mutable.HashMap.empty
@@ -71,7 +70,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 			}
 		}
 
-		def size : Int = localObjects.valuesIterator.foldLeft(0)((i, obj) => if (obj.consistencyLevel == ConsistencyLevel.Strong) i + 1 else i)
+		def size : Int = localObjects.valuesIterator.foldLeft(0)((i, obj) => if (obj.consistencyLevel == ConsistencyLabel.Strong) i + 1 else i)
 
 
 		def remove(addr : Addr) : Unit = localObjects.remove(addr) match {
@@ -133,13 +132,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		case Some(x) => sys.error(s"expected lockable replicated object, but got$x")
 	}
 
-//	def barrier(name : String) : Unit = {
-//		import akka.pattern.ask
-//
-//		otherReplicas.map(ref => {
-//			ref ! Barrier
-//		})
-//	}
 
 	override final def replicate[T <: Obj : TypeTag](addr : Addr, obj : T, l : ConsistencyLevel) : Ref[T] = {
 		require(!replica.contains(addr))
@@ -153,7 +145,9 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 		/*notify other replicas for the new object.*/
 		implicit val timeout : Timeout = defaultTimeout
-		val futures = otherReplicas.map(actorRef =>	actorRef ? CreateObjectReplica(addr, obj, l, replicaActor))
+		val futures = otherReplicas.map { actorRef =>
+			actorRef ? CreateObjectReplica(addr, obj, l, replicaActor)
+		}
 		futures.foreach { future => Await.ready(future, defaultTimeout) }
 
 		/*create a ref to that object*/
@@ -172,7 +166,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 	override def clear(except : Set[Addr] = Set.empty) : Unit = {
-		import akka.pattern.ask
 		replica.clear(except)
 
 		/*notify other replicas for the new object.*/
@@ -225,10 +218,6 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 	def barrier(name : String) : Unit = barrier(name, defaultTimeout)
-
-
-
-
 
 
 	def getName : String = getActorSystemAddress.toString
@@ -321,77 +310,72 @@ trait AkkaReplicaSystem extends ReplicaSystem
 	}
 
 
-	/**
-		* Recursively initializes all fields of an object that store a Ref.
-		* Initializing means, setting the replica system of the ref.
-		*
-		* @param obj
-		*/
-	private[akka] def initializeRefFields(obj : Any) : Unit = {
-
-		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
-			//If the object is null, there is nothing to initialize
-			//If the object has already been initialized than stop
-			if (any == null || alreadyInitialized.contains(any)) {
-				return
-			}
-
-			any match {
-				//If the object is a RefImpl
-				case refImpl : AkkaRef[Addr, _] =>
-
-					refImpl.replicaSystem = this
-
-				//The object is a ref, but is not supported by the replica system
-				case ref :  core.Ref[_, _] =>
-					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
-
-				case _ =>
-
-					val anyClass = any.getClass
-					//If the value is primitive (e.g. int) then stop
-					if (anyClass.isPrimitive) {
-						return
-					}
-
-					//If the value is an array, then initialize ever element of the array.
-					if (anyClass.isArray) {
-						val anyArray : Array[_] = any.asInstanceOf[Array[_]]
-						val initSet = alreadyInitialized + any
-						anyArray.foreach(e => initializeObject(e, initSet))
-					}
-
-
-					val anyPackage = anyClass.getPackage
-					//Check that the object has a package declaration and that it is not the Java standard library
-					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment" || anyPackage.getName.startsWith("java")) {
-						return
-					}
-
-					//If the object should be initialized, then initialize all fields
-					anyClass.getDeclaredFields.foreach { field =>
-						//Recursively initialize refs in the fields
-						field.setAccessible(true)
-						val fieldObj = field.get(any)
-						initializeObject(fieldObj, alreadyInitialized + any)
-					}
-			}
-		}
-
-		initializeObject(obj, Set.empty)
-	}
+//	private[akka] def initializeRefFields(obj : Any) : Unit = {
+//
+//		def initializeObject(any : Any, alreadyInitialized : Set[Any]) : Unit = {
+//			//If the object is null, there is nothing to initialize
+//			//If the object has already been initialized than stop
+//			if (any == null || alreadyInitialized.contains(any)) {
+//				return
+//			}
+//
+//			any match {
+//				//If the object is a RefImpl
+//				case refImpl : AkkaRef[Addr, _] =>
+//
+//					refImpl.replicaSystem = this
+//
+//				//The object is a ref, but is not supported by the replica system
+//				case ref :  core.Ref[_, _] =>
+//					sys.error(s"cannot initialize unknown implementation of Ref. $ref : ${ref.getClass}")
+//
+//				case _ =>
+//
+//					val anyClass = any.getClass
+//					//If the value is primitive (e.g. int) then stop
+//					if (anyClass.isPrimitive) {
+//						return
+//					}
+//
+//					//If the value is an array, then initialize ever element of the array.
+//					if (anyClass.isArray) {
+//						val anyArray : Array[_] = any.asInstanceOf[Array[_]]
+//						val initSet = alreadyInitialized + any
+//						anyArray.foreach(e => initializeObject(e, initSet))
+//					}
+//
+//
+//					val anyPackage = anyClass.getPackage
+//					//Check that the object has a package declaration and that it is not the Java standard library
+//					if (anyPackage == null || anyPackage.getImplementationTitle == "Java Runtime Environment" || anyPackage.getName.startsWith("java")) {
+//						return
+//					}
+//
+//					//If the object should be initialized, then initialize all fields
+//					anyClass.getDeclaredFields.foreach { field =>
+//						//Recursively initialize refs in the fields
+//						field.setAccessible(true)
+//						val fieldObj = field.get(any)
+//						initializeObject(fieldObj, alreadyInitialized + any)
+//					}
+//			}
+//		}
+//
+//		initializeObject(obj, Set.empty)
+//	}
 
 
 	private class ReplicaActor extends Actor {
 
 		override def receive : Receive = {
-			case CreateObjectReplica(addr : Addr@unchecked, obj : Obj@unchecked, consistencyLevel, masterRef) =>
+			case CreateObjectReplica(addr : Addr@unchecked, obj : Obj, consistencyLevel, masterRef) =>
 				/*Initialize a new replicated object on this host*/
 				//Ensure that no object already exists under this name
 				require(!replica.contains(addr), s"address $addr is already defined")
+
 				//Create the replicated object on this replica and add it to the object map
 				val ref = createFollowerReplica(consistencyLevel, addr, obj, masterRef)(
-					Utils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])
+					ConsysUtils.typeTagFromCls(obj.getClass.asInstanceOf[Class[Obj]])
 				)
 				replica.putNewReplica(ref)
 				sender() ! ()
@@ -423,7 +407,8 @@ trait AkkaReplicaSystem extends ReplicaSystem
 					()
 
 				case HandleRequest(addr : Addr@unchecked, request) =>	replica.get(addr) match {
-					case None => sys.error(s"object $addr not found")
+					case None =>
+						sys.error(s"object $addr not found")
 					case Some(obj) => request match {
 						case _ : SynchronousRequest[_] | _ : AsynchronousRequest[_] =>
 							sender() ! obj.handleRequest(request)
@@ -445,7 +430,7 @@ object AkkaReplicaSystem {
 	private final val replicaActorName : String = "replica-base"
 
 	sealed trait ReplicaActorMessage
-	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : ConsistencyLevel, masterRef : ActorRef) extends ReplicaActorMessage {
+	case class CreateObjectReplica[Addr, L](addr : Addr, obj : Any, consistencyLevel : ConsistencyLabel, masterRef : ActorRef) extends ReplicaActorMessage {
 		require(obj.isInstanceOf[java.io.Serializable], s"expected serializable, but was $obj of class ${obj.getClass}")
 	}
 

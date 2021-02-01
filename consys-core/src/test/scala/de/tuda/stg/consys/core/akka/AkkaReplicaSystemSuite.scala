@@ -2,7 +2,7 @@ package de.tuda.stg.consys.core.akka
 
 import java.util.concurrent.{Executors, TimeUnit}
 
-import de.tuda.stg.consys.core.{ConsistencyLevel, Ref}
+import de.tuda.stg.consys.core.{ConsistencyLabel, Ref}
 import org.scalatest.{Outcome, fixture}
 
 import scala.concurrent.duration.Duration
@@ -23,7 +23,7 @@ trait AkkaReplicaSystemSuite { this: fixture.FunSuite =>
 	case class F(replicas : Seq[System]) {
 		def apply(index : Int) : System = replicas(index)
 
-		def refs[A <: System#Obj : TypeTag](name : String, consistencyLevel : ConsistencyLevel) : Seq[Ref[String, A]] = {
+		def refs[A <: System#Obj : TypeTag](name : String, consistencyLevel : ConsistencyLabel) : Seq[Ref[String, A]] = {
 			val x = replicas.map(replica => replica.lookup[A](name, consistencyLevel))
 			x
 		}

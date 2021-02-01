@@ -36,10 +36,13 @@
         <java.version>11</java.version>
         <scala.version>2.12.9</scala.version>
 
-        <akka.version>2.6.0</akka.version>
+        <akka.version>2.6.1</akka.version>
         <aeron.version>1.22.1</aeron.version>
 
-        <cassandra.version>4.3.0</cassandra.version>
+        <cassandra-driver.version>4.4.0</cassandra-driver.version>
+
+        <zookeeper.version>3.5.6</zookeeper.version>
+        <curator.version>4.2.0</curator.version>
 
         <checkerframework.version>3.0.0</checkerframework.version>
 
@@ -82,7 +85,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.2.4</version>
+                    <version>4.4.0</version>
                     <executions>
                         <execution>
                             <id>scala-compile-first</id>
@@ -114,6 +117,8 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <!-- Scala dependencies -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-compiler</artifactId>
@@ -141,6 +146,12 @@
                 <scope>test</scope>
             </dependency>
 
+            <!-- Akka dependencies -->
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-actor_2.12</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-remote_2.12</artifactId>
@@ -156,7 +167,40 @@
                 <artifactId>aeron-client</artifactId>
                 <version>${aeron.version}</version>
             </dependency>
+
+
+            <!-- Dependencies for cassandra -->
+            <dependency>
+                <groupId>com.datastax.oss</groupId>
+                <artifactId>java-driver-core</artifactId>
+                <version>${cassandra-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.datastax.oss</groupId>
+                <artifactId>java-driver-query-builder</artifactId>
+                <version>${cassandra-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.datastax.oss</groupId>
+                <artifactId>java-driver-mapper-runtime</artifactId>
+                <version>${cassandra-driver.version}</version>
+            </dependency>
+
+            <!-- Dependencies for Zookeeper -->
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-recipes</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+
         </dependencies>
+
+
     </dependencyManagement>
 
 

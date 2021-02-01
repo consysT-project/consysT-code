@@ -3,23 +3,18 @@ package de.tuda.stg.consys.examples.collections;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.ConsistencyLevel;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Optional;
 import java.util.function.Predicate;
 
-public class JRefArrayList implements Serializable, JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class JRefArrayList implements Serializable {
 
     public JRef<ArrayNode> head;
 
@@ -29,10 +24,10 @@ public class JRefArrayList implements Serializable, JReplicated {
 
     public int arraySize;
 
-    public ConsistencyLevel level;
+    public ConsistencyLabel level;
 
 
-    public <T> JRefArrayList(ConsistencyLevel level, int arraySize) {
+    public <T> JRefArrayList(ConsistencyLabel level, int arraySize) {
         current = head; this.level = level;
         tail = head; this.arraySize=arraySize;
     }
@@ -102,12 +97,7 @@ public class JRefArrayList implements Serializable, JReplicated {
     }
 
     public <T> boolean append(JRef<T> item) {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         if(tail != null)
             tail.sync();
@@ -130,12 +120,7 @@ public class JRefArrayList implements Serializable, JReplicated {
     }
 
     public <T> boolean insert(int index, JRef<T> item, boolean sync){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         int found = findIndexFront(index, sync);
         if(found>=0){
@@ -295,12 +280,7 @@ public class JRefArrayList implements Serializable, JReplicated {
      * (Predicate<T> & Serializable)
      */
     public <T> JRef<@Weak JRefArrayList> getWeakReplicaSublist(Predicate<T> function, int searchLimit, boolean sync){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         JRef<@Weak JRefArrayList> retList = system.replicate(new JRefArrayList(JConsistencyLevels.WEAK, arraySize),
                 JConsistencyLevels.WEAK);
@@ -333,12 +313,7 @@ public class JRefArrayList implements Serializable, JReplicated {
 
 
     public <T> JRef<@Strong JRefArrayList> getStrongReplicaSublist(Predicate<T> function, int searchLimit, boolean sync){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         JRef<@Strong JRefArrayList> retList = system.replicate(new JRefArrayList(JConsistencyLevels.STRONG, arraySize),
                 JConsistencyLevels.STRONG);
@@ -453,12 +428,7 @@ public class JRefArrayList implements Serializable, JReplicated {
     }
 
     public JRef CreateCondensedWeakCopy() throws Exception {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         JRef ret = system.replicate(new JRefArrayList(JConsistencyLevels.WEAK,arraySize), JConsistencyLevels.WEAK);
         int cnt = size(true);

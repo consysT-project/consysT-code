@@ -10,8 +10,8 @@ import java.io.Serializable;
  * @author Mirko Köhler
  */
 public class BuyTicket implements Serializable {
-	private final JRef<ConcertHall> hall;
-	private final JRef<Counter> soldTickets;
+	public final JRef<ConcertHall> hall;
+	public final JRef<Counter> soldTickets;
 
 	public BuyTicket(JRef<ConcertHall> hall, JRef<Counter> soldTickets) {
 		this.hall = hall;

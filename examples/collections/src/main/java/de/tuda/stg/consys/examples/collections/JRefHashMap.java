@@ -1,19 +1,17 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.Optional;
 
-public class JRefHashMap implements Serializable, JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class JRefHashMap implements Serializable {
 
     final double maxLoadFactor = 0.75;
     final double resizeFactor = 1.4;
@@ -22,7 +20,7 @@ public class JRefHashMap implements Serializable, JReplicated {
     private JRef<JRefDistList> map;
     private double loadFactor;
     private int filled;
-    private ConsistencyLevel level;
+    private ConsistencyLabel level;
 
 
     public int size() {
@@ -32,13 +30,9 @@ public class JRefHashMap implements Serializable, JReplicated {
     public JRefHashMap() {
     }
 
-    public boolean init(int initial_size, ConsistencyLevel level) {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+    public boolean init(int initial_size, ConsistencyLabel level) {
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
         this.level = level;
 
 
@@ -160,12 +154,8 @@ public class JRefHashMap implements Serializable, JReplicated {
 
 
     private void checkLoad() {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         int mapLen = map.invoke("size", true);
 

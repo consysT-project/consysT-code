@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 /**
  * Created on 01.03.19.
@@ -63,8 +64,8 @@ public class Demo {
 			ref2Strong.getField("f");
 
 		} finally {
+			replicas[0].close();
 			replicas[1].close();
-			replicas[2].close();
 		}
 	}
 }

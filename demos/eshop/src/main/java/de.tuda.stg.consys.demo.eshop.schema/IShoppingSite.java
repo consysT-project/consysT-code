@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.examples.collections.JRefDistList;
 import de.tuda.stg.consys.japi.JRef;
 
@@ -9,7 +10,7 @@ import java.util.ArrayList;
 /*
 Interface for the shopping site class of the case study
  */
-public interface IShoppingSite<T> {
+public interface IShoppingSite {
 
     boolean RegisterNewUser(String UserName, String Password);
 
@@ -17,7 +18,7 @@ public interface IShoppingSite<T> {
 
     boolean Logout();
 
-    JRef<@Weak JRefDistList> Search(String SearchTerm, boolean printResults, int limit);
+    JRef<@Weak JRefArrayList> Search(String SearchTerm, boolean printResults, int limit);
 
     boolean FromFoundAddToCart(int number, int count);
 

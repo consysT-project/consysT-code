@@ -4,12 +4,10 @@ import java.util
 
 import com.sun.source.tree._
 import javax.lang.model.element.AnnotationMirror
-import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
+import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.source.Result
-
-import scala.collection.{JavaConverters, mutable}
 
 /**
 	* Created on 05.03.19.
@@ -105,7 +103,7 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 
 
 
-						println(s"args = ${node.getArguments}, targs = $targs")
+//						println(s"args = ${node.getArguments}, targs = $targs")
 					}
 				case _ =>
 			}

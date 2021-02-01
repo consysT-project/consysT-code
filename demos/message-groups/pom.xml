@@ -28,22 +28,22 @@
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>1.1.0</version>
+                            <version>2.0.0</version>
                         </path>
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>1.1.0</version>
+                            <version>2.0.0</version>
                         </path>
                     </annotationProcessorPaths>
-<!--                    <annotationProcessors>-->
-<!--                        &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->
-<!--                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
-<!--                    </annotationProcessors>-->
+                    <!--                    <annotationProcessors>-->
+                    <!--                        &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->
+                    <!--                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
+                    <!--                    </annotationProcessors>-->
                     <compilerArgs>
-<!--                        <arg>-AprintErrorStack</arg>-->
-<!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
-<!--                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>-->
+                        <!--                        <arg>-AprintErrorStack</arg>-->
+                        <!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
+                        <!--                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>-->
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
                         <!-- Add the consys compiler plugin for preprocessing sources -->
@@ -66,11 +66,11 @@
                         </goals>
                         <configuration>
                             <finalName>benchmarks</finalName>
-<!--                            <transformers>-->
-<!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-<!--                                    <mainClass>org.openjdk.jmh.Main</mainClass>-->
-<!--                                </transformer>-->
-<!--                            </transformers>-->
+                            <!--                            <transformers>-->
+                            <!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
+                            <!--                                    <mainClass>org.openjdk.jmh.Main</mainClass>-->
+                            <!--                                </transformer>-->
+                            <!--                            </transformers>-->
                             <filters>
                                 <filter>
                                     <!--
@@ -107,12 +107,12 @@
                                         implementation="de.tuda.stg.consys.maven.plugins.shade.resource.ReverseAppendingTransformer">
                                     <resource>reference.conf</resource>
                                 </transformer>
-<!--                                <transformer-->
-<!--                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-<!--                                    <manifestEntries>-->
-<!--                                        <Main-Class>akka.Main</Main-Class>-->
-<!--                                    </manifestEntries>-->
-<!--                                </transformer>-->
+                                <!--                                <transformer-->
+                                <!--                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
+                                <!--                                    <manifestEntries>-->
+                                <!--                                        <Main-Class>akka.Main</Main-Class>-->
+                                <!--                                    </manifestEntries>-->
+                                <!--                                </transformer>-->
                             </transformers>
                         </configuration>
                     </execution>
@@ -129,8 +129,6 @@
             </plugin>
         </plugins>
     </build>
-
-
 
 
     <dependencies>

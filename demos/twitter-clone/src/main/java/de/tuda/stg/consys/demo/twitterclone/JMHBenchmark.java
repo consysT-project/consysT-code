@@ -8,7 +8,7 @@ import de.tuda.stg.consys.demo.twitterclone.schema.User;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 

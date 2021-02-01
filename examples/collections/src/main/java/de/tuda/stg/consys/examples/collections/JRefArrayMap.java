@@ -1,22 +1,20 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.Optional;
 
-public class JRefArrayMap implements Serializable, JReplicated {
+public class JRefArrayMap implements Serializable {
     /*
     A JRefAddressMap, but it has arrays as nodes
      */
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
 
     private static final double maxLoadFactor = 0.75;
     private static final double resizeFactor = 1.4;
@@ -25,7 +23,7 @@ public class JRefArrayMap implements Serializable, JReplicated {
     private JRef<KeyValArrayNode> tail;
     private JRef<KeyValArrayNode> current;
 
-    ConsistencyLevel level;
+    ConsistencyLabel level;
 
     private double loadFactor;
     private int filled;
@@ -37,16 +35,8 @@ public class JRefArrayMap implements Serializable, JReplicated {
         return filled;
     }
 
-    public JRefArrayMap() {
-    }
-
-    public boolean init(int initial_size, int arraySize, ConsistencyLevel level) {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+    public JRefArrayMap(int initial_size, int arraySize, ConsistencyLabel level) {
+        JReplicaSystem system = JReplicaSystems.getSystem();
 
         this.arraySize = arraySize;
         this.level = level;
@@ -58,18 +48,14 @@ public class JRefArrayMap implements Serializable, JReplicated {
             addNode(tail);
         }
         nodeCount = countNodes();
-        bucketCount = nodeCount*arraySize;
+        bucketCount = nodeCount * arraySize;
         loadFactor = (double) filled / nodeCount;
-        return true;
     }
 
+
     private boolean addNode(JRef<KeyValArrayNode> previous){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         JRef<KeyValArrayNode> newNode = system.replicate(new KeyValArrayNode(previous, previous.getField("next"), arraySize), level);
         if(newNode.getField("next") == null){

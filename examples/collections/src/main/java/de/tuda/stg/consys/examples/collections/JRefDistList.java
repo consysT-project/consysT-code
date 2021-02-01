@@ -3,12 +3,13 @@ package de.tuda.stg.consys.examples.collections;
 
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -16,10 +17,7 @@ import java.util.LinkedList;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public class JRefDistList implements Serializable, JReplicated {
-
-    /* This field is needed for JReplicated */
-    public transient AkkaReplicaSystem replicaSystem = null;
+public class JRefDistList implements Serializable {
 
     public JRef head;
 
@@ -27,7 +25,7 @@ public class JRefDistList implements Serializable, JReplicated {
 
     public JRef tail;
 
-    public ConsistencyLevel level;
+    public ConsistencyLabel level;
 
     //A variable to indicate if searching by jref should be done based on
     // exact reference or on the replica, default is false
@@ -39,7 +37,7 @@ public class JRefDistList implements Serializable, JReplicated {
 
     //TODO: Add unsynced and synced functions, rerun benchmarks
 
-    public <T> JRefDistList(ConsistencyLevel level) {
+    public <T> JRefDistList(ConsistencyLabel level) {
         current = head; this.level = level;
         tail = head;
     }
@@ -134,12 +132,8 @@ public class JRefDistList implements Serializable, JReplicated {
     }
 
     public <T> boolean append(JRef<T> item) {
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         JRef<@Inconsistent DistNode> node = system.replicate(new DistNode(item), level);
 
@@ -158,12 +152,8 @@ public class JRefDistList implements Serializable, JReplicated {
     }
 
     public <T> boolean insert(int index, JRef<T> item, boolean sync){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         JRef<@Inconsistent DistNode> node = system.replicate(new DistNode(item), level);
 
@@ -346,12 +336,8 @@ public class JRefDistList implements Serializable, JReplicated {
      */
     public <T> JRef<@Weak JRefDistList> getWeakReplicaSublist(Predicate<T> function, int searchLimit,boolean sync){
 
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return null;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
 
         JRef<@Weak JRefDistList> retList = system.replicate(new JRefDistList(JConsistencyLevels.WEAK), JConsistencyLevels.WEAK);

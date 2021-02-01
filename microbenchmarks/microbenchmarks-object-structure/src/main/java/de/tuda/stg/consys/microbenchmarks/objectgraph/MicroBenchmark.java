@@ -1,8 +1,12 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicatedObject;
-import de.tuda.stg.consys.japi.*;
+import de.tuda.stg.consys.japi.JConsistencyLevels;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.impl.akka.JAkkaRef;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 
@@ -74,7 +78,7 @@ public class MicroBenchmark {
 
             int strongCount = (int)(count * strongConsistencyRatio);
 
-            List<ConsistencyLevel> levels = new ArrayList<>(count);
+            List<ConsistencyLabel> levels = new ArrayList<>(count);
             for (int i = 0; i < count; i++)
                 levels.add(JConsistencyLevels.WEAK);
 
@@ -85,9 +89,9 @@ public class MicroBenchmark {
                 levels.set(j, JConsistencyLevels.STRONG);
             }
 
-            Iterator<ConsistencyLevel> level = levels.iterator();
+            Iterator<ConsistencyLabel> level = levels.iterator();
 
-            ConsistencyLevel rootLevel = level.next();
+            ConsistencyLabel rootLevel = level.next();
 
             replicaSystem1.replicate("root", createStructure(1, level), rootLevel);
 
@@ -96,7 +100,7 @@ public class MicroBenchmark {
             Thread.sleep(1000);
         }
 
-        public BenchmarkObject createStructure(int length, Iterator<ConsistencyLevel> level) {
+        public BenchmarkObject createStructure(int length, Iterator<ConsistencyLabel> level) {
             if (length != depth) {
                 if (branching == 1 || !branchAtEveryLevel && length != 1)
                     return new BenchmarkObject1(
@@ -151,7 +155,7 @@ public class MicroBenchmark {
     }
 
     public void updateValue(int value, JRef<BenchmarkObject> ref) {
-        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JRefImpl<BenchmarkObject>) ref).getRef().deref()).getObject();
+        BenchmarkObject object = ((AkkaReplicatedObject<?, BenchmarkObject>) ((JAkkaRef<BenchmarkObject>) ref).getRef().deref()).getObject();
         if (object instanceof BenchmarkObject0)
             ref.setField("value", value);
         else if (object instanceof BenchmarkObject1)

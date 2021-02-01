@@ -1,0 +1,2 @@
+org/apache/zookeeper/recipes/queue/DistributedQueue.class
+org/apache/zookeeper/recipes/queue/DistributedQueue$LatchChildWatcher.class

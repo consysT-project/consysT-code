@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.Utils.TxMutex
+import de.tuda.stg.consys.core.ConsysUtils.TxMutex
 
 /**
 	* Created on 12.04.19.

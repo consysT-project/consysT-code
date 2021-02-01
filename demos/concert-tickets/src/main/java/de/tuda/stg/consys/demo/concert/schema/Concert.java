@@ -7,10 +7,10 @@ import java.util.Date;
 
 public class Concert implements Serializable {
     private Date date;
-    private final JRef<ConcertHall> hall;
-    private final JRef<Band> band;
-    private final JRef<Counter> soldTickets;
-    private final JRef<BuyTicket> buyer;
+    public final JRef<ConcertHall> hall;
+    public final JRef<Band> band;
+    public final JRef<Counter> soldTickets;
+    public final JRef<BuyTicket> buyer;
 
     public int getSoldTickets () {
         return soldTickets.ref().value;

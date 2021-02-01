@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.eshop;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 
 /**
  * Created on 19.11.19.
@@ -9,33 +9,33 @@ import de.tuda.stg.consys.core.ConsistencyLevel;
  */
 public class EShopLevels {
 
-	private static ConsistencyLevel weakLevel = null;
-	private static ConsistencyLevel strongLevel = null;
-	private static ConsistencyLevel causalLevel = null;
+	private static ConsistencyLabel weakLevel = null;
+	private static ConsistencyLabel strongLevel = null;
+	private static ConsistencyLabel causalLevel = null;
 
-	static void setWeak(ConsistencyLevel level) {
+	static void setWeak(ConsistencyLabel level) {
 		weakLevel = level;
 	}
 
-	static void setStrong(ConsistencyLevel level) {
+	static void setStrong(ConsistencyLabel level) {
 		strongLevel = level;
 	}
 
-	static void setCausal(ConsistencyLevel level) {
+	static void setCausal(ConsistencyLabel level) {
 		causalLevel = level;
 	}
 
-	public static ConsistencyLevel getWeakLevel() {
+	public static ConsistencyLabel getWeakLevel() {
 		if (weakLevel == null) throw new IllegalStateException("weak level has not been set yet");
 		return weakLevel;
 	}
 
-	public static ConsistencyLevel getStrongLevel() {
+	public static ConsistencyLabel getStrongLevel() {
 		if (strongLevel == null) throw new IllegalStateException("strong level has not been set yet");
 		return strongLevel;
 	}
 
-	public static ConsistencyLevel getCausalLevel() {
+	public static ConsistencyLabel getCausalLevel() {
 		if (causalLevel == null) throw new IllegalStateException("weak level has not been set yet");
 		return causalLevel;
 	}

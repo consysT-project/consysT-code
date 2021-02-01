@@ -1,8 +1,7 @@
 package de.tuda.stg.consys.core.akka
 
 
-import de.tuda.stg.consys.core.{ConsistencyLevel, Ref, ReplicatedObject}
-
+import de.tuda.stg.consys.core.{ConsistencyLabel, Ref, ReplicatedObject}
 
 import scala.concurrent.TimeoutException
 
@@ -13,19 +12,19 @@ import scala.concurrent.TimeoutException
 	*/
 private[akka] class AkkaRef[Loc, T](
 	val addr : Loc,
-	val consistencyLevel : ConsistencyLevel,
-	@transient private[akka] var replicaSystem : AkkaReplicaSystem { type Addr = Loc }
+	val label : ConsistencyLabel
 ) extends Ref[Loc, T] {
 
-	/* Only use this for emergencies */
-	def setReplicaSystem(replicaSystem  : AkkaReplicaSystem { type Addr = Loc } ) : Unit = {
-		this.replicaSystem = replicaSystem
-	}
+	type ConsistencyLevel = ConsistencyLabel
 
-	override implicit def deref : ReplicatedObject[Loc, T] = replicaSystem match {
+	private def getReplicaSystem : AkkaReplicaSystem { type Addr = Loc } =
+		AkkaReplicaSystems.system.asInstanceOf[AkkaReplicaSystem { type Addr = Loc }]
+
+
+	override implicit def deref : AkkaReplicatedObject[Loc, T] = getReplicaSystem match {
 		case null => sys.error(s"replica system has not been initialized properly. $toString")
 
-		case _ =>
+		case replicaSystem =>
 			val timeout = replicaSystem.defaultTimeout.toNanos
 			val startTime = System.nanoTime()
 
@@ -33,13 +32,13 @@ private[akka] class AkkaRef[Loc, T](
 				replicaSystem.replica.get(addr) match {
 					case None => //retry
 						if (System.nanoTime() > startTime + timeout)
-							throw new TimeoutException(s"the replicated object '$addr' with consistency level $consistencyLevel could not be found on this host.")
+							throw new TimeoutException(s"the replicated object '$addr' with consistency level $label could not be found on this host.")
 
 						Thread.sleep(200)
 
 					case Some(rob : AkkaReplicatedObject[Loc, T]) =>
 						//Check that consistency level of reference matches the referenced object
-						assert(rob.consistencyLevel == consistencyLevel, s"non-matching consistency levels. ref was $consistencyLevel and object was ${rob.consistencyLevel}")
+						assert(rob.consistencyLevel == label, s"non-matching consistency levels. ref was $label and object was ${rob.consistencyLevel}")
 						return rob
 
 					case x =>
@@ -52,16 +51,16 @@ private[akka] class AkkaRef[Loc, T](
 
 
 	override def isAvailable : Boolean =
-		replicaSystem.replica.contains(addr)
+		getReplicaSystem.replica.contains(addr)
 
 	override def await() : Unit = {
-		replicaSystem.replica.waitFor(addr)
+		getReplicaSystem.replica.waitFor(addr)
 	}
 
 	override def delete() : Unit = {
-		replicaSystem.delete(addr)
+		getReplicaSystem.delete(addr)
 	}
 
 
-	override def toString : String = s"RefImpl($addr, $consistencyLevel)"
+	override def toString : String = s"RefImpl($addr, $label)"
 }

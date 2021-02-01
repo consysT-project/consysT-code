@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
 import de.tuda.stg.consys.checker.qual.Local;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 
 /**
  * Created on 14.03.19.
@@ -10,8 +10,11 @@ import de.tuda.stg.consys.checker.qual.Local;
  */
 public interface JConsistencyLevels {
 
-	@Local ConsistencyLevel STRONG = ConsistencyLevel.Strong$.MODULE$;
-	@Local ConsistencyLevel WEAK = ConsistencyLevel.Weak$.MODULE$;
-	@Local ConsistencyLevel CAUSAL = ConsistencyLevel.Causal$.MODULE$;
+	@Local ConsistencyLabel STRONG = ConsistencyLabel.Strong$.MODULE$;
+	@Local ConsistencyLabel WEAK = ConsistencyLabel.Weak$.MODULE$;
+	@Local ConsistencyLabel CAUSAL = ConsistencyLabel.Causal$.MODULE$;
+
+	@Local ConsistencyLabel CMRDT = ConsistencyLabel.CmRDT$.MODULE$;
+	@Local ConsistencyLabel CVRDT = ConsistencyLabel.CvRDT$.MODULE$;
 
 }

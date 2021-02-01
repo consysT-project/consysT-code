@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.core.akka
 
 import akka.actor.ActorRef
-import de.tuda.stg.consys.core.ConsistencyLevel
-import de.tuda.stg.consys.core.ConsistencyLevel.High
+import de.tuda.stg.consys.core.ConsistencyLabel
+import de.tuda.stg.consys.core.ConsistencyLabel.High
 import de.tuda.stg.consys.core.akka.HighAkkaReplicaSystem.HighReplicatedObject
 import de.tuda.stg.consys.core.akka.Requests.{Request, SynchronousRequest}
 
@@ -43,7 +43,7 @@ object HighAkkaReplicaSystem {
   ) extends AkkaReplicatedObject[Loc, T] {
 		setObject(init)
 
-		override final def consistencyLevel : ConsistencyLevel = High
+		override final def consistencyLevel : ConsistencyLabel = High
 
 		private var timestamp = Long.MinValue
 

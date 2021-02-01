@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.akka
 
-import de.tuda.stg.consys.core.ConsistencyLevel.Strong
+import de.tuda.stg.consys.core.ConsistencyLabel.Strong
 import org.scalatest.fixture
 
 /**

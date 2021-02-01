@@ -1,15 +1,16 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLevel;
+import de.tuda.stg.consys.core.ConsistencyLabel;
 import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.impl.JReplicaSystems;
 
 import java.io.Serializable;
 import java.util.Optional;
 
-public class JRefAddressMap implements Serializable, JReplicated {
+public class JRefAddressMap implements Serializable {
     /*
     Basically a Hashmap with an identity crisis
      */
@@ -24,7 +25,7 @@ public class JRefAddressMap implements Serializable, JReplicated {
     private JRef<StringNode> tail;
     private JRef<StringNode> current;
 
-    ConsistencyLevel level;
+    ConsistencyLabel level;
 
     private double loadFactor;
     private int filled;
@@ -37,13 +38,9 @@ public class JRefAddressMap implements Serializable, JReplicated {
     public JRefAddressMap() {
     }
 
-    public boolean init(int initial_size, ConsistencyLevel level) throws Exception{
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+    public boolean init(int initial_size, ConsistencyLabel level) throws Exception{
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         this.level = level;
         filled = 0;
@@ -58,12 +55,8 @@ public class JRefAddressMap implements Serializable, JReplicated {
     }
 
     private boolean addNode(JRef<StringNode> previous){
-        Optional<JReplicaSystem> systemOptional = getSystem();
-        JReplicaSystem system;
-        if(systemOptional.isPresent())
-            system = systemOptional.get();
-        else
-            return false;
+        JReplicaSystem system = JReplicaSystems.getSystem();
+
 
         JRef<StringNode> newNode = system.replicate(new StringNode(previous, previous.getField("next")), level);
         if(newNode.getField("next") == null){

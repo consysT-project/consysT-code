@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="maven-antrun-" default="main"  >
+<target name="main">
+  <property environment="env"/>
+  <exec outputproperty="host.name" executable="hostname"/>
+</target>
+</project>

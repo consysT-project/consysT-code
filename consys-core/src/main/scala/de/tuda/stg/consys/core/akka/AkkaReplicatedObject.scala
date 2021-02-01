@@ -3,37 +3,26 @@ package de.tuda.stg.consys.core.akka
 import java.lang.reflect.Modifier
 
 import de.tuda.stg.consys.core.akka.Requests._
-import de.tuda.stg.consys.core.{Replicated, ReplicatedObject, typeToClassTag}
-import jdk.dynalink.linker.support.TypeUtilities
+import de.tuda.stg.consys.core.{ConsistencyLabel, ReflectiveReplicatedObject, Replicated}
 
 import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 /**
 	* Created on 18.02.19.
 	*
 	* @author Mirko Köhler
 	*/
-trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
+trait AkkaReplicatedObject[Loc, T] extends ReflectiveReplicatedObject[Loc, T] {
+
+	type ConsistencyLevel = ConsistencyLabel
 
 	protected val replicaSystem : AkkaReplicaSystem {type Addr = Loc}
 
-	protected implicit def ttt : TypeTag[T]
-
-	private var state : T = _
-
-
-	protected def setObject(newObj : T) : Unit = {
-		state = newObj
-		replicaSystem.initializeRefFields(state)
-		ReflectiveAccess.updateObj()
-
-		intitializeReplicated()
+	override protected def setObject(obj : T) : Unit = {
+		super.setObject(obj)
+//		replicaSystem.initializeRefFields(obj)
+		initializeReplicated()
 	}
-
-	protected [akka] def getObject : T = state
-
 
 	private def transaction[R](f : Transaction => R) : R = {
 		replicaSystem.newTransaction(consistencyLevel)
@@ -76,7 +65,6 @@ trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 
 	override def sync() : Unit = {
 		//require(!replicaSystem.hasCurrentTransaction)
-
 		transaction {
 			tx => internalSync()
 		}
@@ -94,9 +82,9 @@ trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 			obj match {
 				case rob : AkkaReplicatedObject[_, _] if rob.replicaSystem == replicaSystem =>
 					rob.sync()
-					syncObject(rob.state, alreadySynced + rob)
+					syncObject(rob.getObject, alreadySynced + rob)
 
-				case ref : AkkaRef[_, _] if ref.replicaSystem == replicaSystem =>
+				case ref : AkkaRef[_, _] => //if ref.replicaSystem == replicaSystem =>
 					val rob = ref.deref
 					syncObject(rob, alreadySynced + ref)
 
@@ -152,15 +140,15 @@ trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 
 
 	protected def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-		ReflectiveAccess.doInvoke[R](methodName, args)
+		super.invoke(methodName, args)
 	}
 
 	protected def internalGetField[R](tx: Transaction, fldName : String) : R = {
-		ReflectiveAccess.doGetField(fldName)
+		super.getField(fldName)
 	}
 
 	protected def internalSetField(tx: Transaction, fldName : String, newVal : Any) : Unit = {
-		ReflectiveAccess.doSetField(fldName, newVal)
+		super.setField(fldName, newVal)
 	}
 
 	protected final def internalApplyOp[R](op : Operation[R]) : R = op match {
@@ -184,16 +172,14 @@ trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 
 
 	override def toString : String =
-		s"AkkaReplicatedObject[$consistencyLevel]($state)"
+		s"AkkaReplicatedObject[$consistencyLevel]($getObject)"
 
 
 	//Initializes states that implement Replicated
-	private def intitializeReplicated() : Unit = {
-
+	private def initializeReplicated() : Unit = {
 		getObject match {
 			case obj : Replicated =>
 				//Use reflection to set the field replicaSystem in this class.
-
 				try {
 					val field = obj.getClass.getField("replicaSystem")
 					field.setAccessible(true)
@@ -204,90 +190,10 @@ trait AkkaReplicatedObject[Loc, T] extends ReplicatedObject[Loc, T] {
 				}
 			case _ =>
 		}
-
-
 	}
-
-
-	private final object ReflectiveAccess {
-
-		private implicit val ct : ClassTag[T]  = typeToClassTag[T] //used as implicit argument
-		//TODO: Define this as field and keep in sync with obj
-		private var objMirror : InstanceMirror = _
-
-		private final val rtMirror = runtimeMirror(AkkaReplicatedObject.this.getClass.getClassLoader)
-
-		private[AkkaReplicatedObject] def updateObj() : Unit = {
-			objMirror = rtMirror.reflect(state)
-		}
-
-		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
-			val mthdTerm = TermName(methodName)
-
-			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
-
-			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
-				val flattenedParams : Seq[Seq[Class[_]]] =
-					s.asMethod.paramLists.map(paramList => paramList.map(param => {
-						val classSymbol = param.typeSignature.typeSymbol.asClass
-						rtMirror.runtimeClass(classSymbol)
-					} ))
-
-				//Check whether parameters can be assigned the given arguments
-				flattenedParams.length == argClasses.length && flattenedParams.zip(argClasses).forall(t1 => {
-					val (paramList, argList) = t1
-					paramList.length == argList.length && paramList.zip(argList).forall(t2 => {
-						val (param, arg) = t2
-
-						val result = if (param.isPrimitive) {
-							//Treat boxed types correctly: primitive types are converted to boxed types and then checked.
-							TypeUtilities.getWrapperType(param).isAssignableFrom(arg)
-						} else {
-							param.isAssignableFrom(arg)
-						}
-
-						result
-					})
-				})
-//				flattenedParams == argClasses
-			}
-
-			mbMethodSym match {
-				case Some(methodSymbol: MethodSymbol) =>
-					val methodMirror = objMirror.reflectMethod(methodSymbol)
-					val result = methodMirror.apply(args.flatten : _*)
-					result.asInstanceOf[R]
-				case _ =>
-					throw new NoSuchMethodException(s"method <$methodName> with arguments $args was not found in $objMirror.")
-			}
-		}
-
-		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
-			val tpe = typeOf[T]
-			val fldTerm = TermName(fieldName)
-
-			val fieldSymbol = tpe.member(fldTerm).asTerm
-			val fieldMirror = objMirror.reflectField(fieldSymbol)
-			val result = fieldMirror.get
-			result.asInstanceOf[R]
-		}
-
-		def doSetField(fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
-			val fieldSymbol = typeOf[T].member(TermName(fieldName)).asTerm
-			val fieldMirror = objMirror.reflectField(fieldSymbol)
-			fieldMirror.set(value)
-		}
-	}
-
-
-
-
-
-
 }
 
 object AkkaReplicatedObject {
-
 	case object SetFieldAck
 	case object SyncAck
 }
