@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.japi.next;
 
 import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.core.store.utils.Address;
+import de.tuda.stg.consys.japi.next.binding.Akka;
 import de.tuda.stg.consys.japi.next.binding.Cassandra;
 import scala.Option;
 import scala.Serializable;
@@ -23,6 +25,9 @@ public class Demo {
 		}
 	}
 
+
+
+
 	public static void main(String[] args) throws Exception {
 		Cassandra.ReplicaBinding replica1 = Cassandra.newReplica(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
@@ -31,6 +36,11 @@ public class Demo {
 		Cassandra.ReplicaBinding replica2 = Cassandra.newReplica(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
+
+
+		Akka.ReplicaBinding replica1 = Akka.newReplica(
+				Address.apply("127.0.0.1", 2283)
+		)
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {

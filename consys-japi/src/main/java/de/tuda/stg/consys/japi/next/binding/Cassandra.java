@@ -76,12 +76,12 @@ public class Cassandra {
 
 		@Override
 		public <R> R getField(String fieldName) {
-			return null;
+			return handler.resolve().getField(fieldName);
 		}
 
 		@Override
-		public <R> R setField(String fieldName, R value) {
-			return null;
+		public <R> void setField(String fieldName, R value) {
+			handler.resolve().setField(fieldName, value);
 		}
 
 		@Override

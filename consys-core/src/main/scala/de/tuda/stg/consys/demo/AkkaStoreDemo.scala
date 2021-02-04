@@ -18,13 +18,13 @@ object AkkaStoreDemo extends App {
 	implicit val exec : ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
 	val future1 = Future {
-		AkkaStore.fromAddress(Address("127.0.0.1", 4121), Seq(Address("127.0.0.1", 4121), Address("127.0.0.1", 4122), Address("127.0.0.1", 4123)), Duration(60, "s"))
+		AkkaStore.fromAddress("127.0.0.1", 4121, 2181, Seq(Address("127.0.0.1", 4121), Address("127.0.0.2", 4122), Address("127.0.0.3", 4123)), Duration(60, "s"))
 	}
 	val future2 = Future {
-		AkkaStore.fromAddress(Address("127.0.0.1", 4122), Seq(Address("127.0.0.1", 4121), Address("127.0.0.1", 4122), Address("127.0.0.1", 4123)), Duration(60, "s"))
+		AkkaStore.fromAddress("127.0.0.2", 4122, 2182, Seq(Address("127.0.0.1", 4121), Address("127.0.0.2", 4122), Address("127.0.0.3", 4123)), Duration(60, "s"))
 	}
 	val future3 = Future {
-		AkkaStore.fromAddress(Address("127.0.0.1", 4123), Seq(Address("127.0.0.1", 4121), Address("127.0.0.1", 4122), Address("127.0.0.1", 4123)), Duration(60, "s"))
+		AkkaStore.fromAddress("127.0.0.3", 4123, 2183, Seq(Address("127.0.0.1", 4121), Address("127.0.0.2", 4122), Address("127.0.0.3", 4123)), Duration(60, "s"))
 	}
 
 	val store1 = Await.result(future1, Duration(60, "s"))

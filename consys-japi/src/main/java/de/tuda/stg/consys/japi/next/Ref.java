@@ -13,7 +13,7 @@ public interface Ref<T> {
 
 	<R> R getField(String fieldName);
 
-	<R> R setField(String fieldName, R value);
+	<R> void setField(String fieldName, R value);
 
 	<R> R invoke(String methodName, Object... args);
 }

@@ -3,14 +3,19 @@ package de.tuda.stg.consys.core.store.akka
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, ExtendedActorSystem, Props, RootActorPath, Address => AkkaAddr}
+import com.datastax.oss.driver.api.core.CqlSession
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
 import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
-import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, EnterBarrier, RemoveObjectReplica}
+import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, RemoveObjectReplica}
 import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
+import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.extensions.{ZookeeperLockingStoreExt, ZookeeperStoreExt}
 import de.tuda.stg.consys.core.store.utils.Address
+import java.net.InetSocketAddress
+import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.curator.retry.ExponentialBackoffRetry
 import scala.collection.mutable
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -45,9 +50,6 @@ trait AkkaStore extends DistributedStore
 
 	/*Other replicas known to this replica.*/
 	private[akka] final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
-
-	private val barriers : collection.concurrent.TrieMap[String, CountDownLatch] =
-		scala.collection.concurrent.TrieMap.empty[String, CountDownLatch]
 
 	protected[akka]	def actorSystem : ActorSystem
 
@@ -240,9 +242,6 @@ trait AkkaStore extends DistributedStore
 				val handler = new RequestHandlerImpl(requestActor, timeout)
 				sender() ! handler
 
-			case EnterBarrier(name) =>
-				val latch = barriers.getOrElseUpdate(name, new CountDownLatch(otherReplicas.size))
-				latch.countDown()
 		}
 
 		private class RequestHandlerActor extends Actor {
@@ -279,29 +278,31 @@ object AkkaStore {
 	private[AkkaStore] val defaultSystemName = "consys-replicas"
 	private[AkkaStore] val defaultActorName = "replica-base"
 
-	def fromAddress(host : Address, others : Seq[Address], timeout : Duration) : AkkaStore = {
-		require(timeout.isFinite())
+	def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, others : Seq[Address], withTimeout : FiniteDuration = Duration(30, "s")) : AkkaStore = {
 
 		//Loads the reference.conf for the akka properties
 		val config = ConfigFactory.load()
-			.withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(host.hostname))
-			.withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(host.port))
+			.withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(host))
+			.withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(akkaPort))
 			.resolve()
 
 		//Creates the actor system
 		val system = ActorSystem(defaultSystemName, config)
 		system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 
-		val finiteDuration = timeout match {
-			case x : FiniteDuration => x
-			case x => FiniteDuration(x.toMillis, "ms")
-		}
+		class AkkaStoreImpl(
+			override val actorSystem : ActorSystem,
+			override val curator : CuratorFramework,
+			override val timeout : FiniteDuration
+		) extends AkkaStore
 
-		//Creates and initializes the replica system
-		val store : AkkaStore = null //new AkkaStore {
-//			override protected[akka] def actorSystem : ActorSystem = system
-//			override def timeout : FiniteDuration = finiteDuration
-//		}
+
+		val store : AkkaStore = new AkkaStoreImpl(
+			actorSystem = system,
+			curator = CuratorFrameworkFactory
+				.newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3)),
+			timeout = withTimeout
+		)
 
 		others.foreach(address => {
 			store.addOtherReplica(address.hostname, address.port)
@@ -320,7 +321,6 @@ object AkkaStore {
 
 	case class RemoveObjectReplica[Addr](addr : Addr) extends ReplicaActorMessage
 	case class ClearObjectsReplica[Addr](except : Set[Addr]) extends ReplicaActorMessage
-	case class EnterBarrier(name : String) extends ReplicaActorMessage
 
 
 

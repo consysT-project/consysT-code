@@ -59,8 +59,12 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 			println("FOUND SET FIELD")
 		}
 
+
+
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
+
+
 
 				val expr : ExpressionTree = memberSelectTree.getExpression
 				val recvType = atypeFactory.getAnnotatedType(expr)
