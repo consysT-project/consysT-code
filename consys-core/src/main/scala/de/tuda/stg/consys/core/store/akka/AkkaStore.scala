@@ -278,7 +278,7 @@ object AkkaStore {
 	private[AkkaStore] val defaultSystemName = "consys-replicas"
 	private[AkkaStore] val defaultActorName = "replica-base"
 
-	def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, others : Seq[Address], withTimeout : FiniteDuration = Duration(30, "s")) : AkkaStore = {
+	def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, others : Iterable[Address], withTimeout : FiniteDuration = Duration(30, "s")) : AkkaStore = {
 
 		//Loads the reference.conf for the akka properties
 		val config = ConfigFactory.load()

@@ -10,6 +10,7 @@ import de.tuda.stg.consys.japi.next.Transaction;
 import de.tuda.stg.consys.japi.next.TransactionContext;
 import scala.Function1;
 import scala.Option;
+import scala.collection.JavaConverters;
 import scala.collection.immutable.Seq;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -21,8 +22,8 @@ public class Akka {
         return AkkaStores.getCurrentStore().map(AkkaStore::id);
     }
 
-    public static ReplicaBinding newReplica(Address host, Seq<Address> others, FiniteDuration withTimeout) {
-        AkkaStore store = AkkaStore.fromAddress(host, others, withTimeout);
+    public static ReplicaBinding newReplica(String host, int akkaPort, int zookeeperPort, Iterable<Address> others, FiniteDuration withTimeout) {
+        AkkaStore store = AkkaStore.fromAddress(host, akkaPort, zookeeperPort, JavaConverters.iterableAsScalaIterable(others), withTimeout);
         return new ReplicaBinding(store);
     }
 
