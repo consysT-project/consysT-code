@@ -2,7 +2,6 @@ package de.tuda.stg.consys.japi.next.binding;
 
 import de.tuda.stg.consys.core.store.StoreConsistencyLevel;
 import de.tuda.stg.consys.core.store.akka.*;
-import de.tuda.stg.consys.core.store.cassandra.*;
 import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.japi.next.Ref;
 import de.tuda.stg.consys.japi.next.Replica;
@@ -11,7 +10,6 @@ import de.tuda.stg.consys.japi.next.TransactionContext;
 import scala.Function1;
 import scala.Option;
 import scala.collection.JavaConverters;
-import scala.collection.immutable.Seq;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.io.Serializable;
