@@ -2,12 +2,15 @@ package de.tuda.stg.consys.checker;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.DefaultTypeHierarchy;
 import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.util.defaults.QualifierDefaults;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
@@ -16,8 +19,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         /*
         	Set useFlow to false if the flow analysis should be used.
          */
-		super(checker, true);
-		this.postInit();
+		super(checker, false);
+		if (this.getClass().equals(ConsistencyAnnotatedTypeFactory.class)) {
+			this.postInit();
+		}
 	}
 
 
@@ -40,6 +45,27 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			checker, getQualifierHierarchy(), checker.getBooleanOption("ignoreRawTypeArguments", true), checker.hasOption("invariantArrays"));
 
 		return new ConsistencyTypeHierarchy(hierarchy, this);
+	}
+
+	@Override
+	protected void addCheckedCodeDefaults(QualifierDefaults defs) {
+
+		// TODO: Check
+//		defs.addCheckedCodeDefault(
+//				AnnotationUtils.getAnnotationByName(
+//						 "de.tuda.stg.consys.checker.qual.Inconsistent"),
+//				TypeUseLocation.FIELD);
+
+
+
+
+		getQualifierHierarchy().findAnnotationInSameHierarchy()
+		getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
+		super.addCheckedCodeDefaults(defs);
+	}
+
+	protected void addCheckedCodeDefaultsSkip(QualifierDefaults defs) {
+		super.addCheckedCodeDefaults(defs);
 	}
 
 

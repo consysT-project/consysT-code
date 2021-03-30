@@ -1,21 +1,30 @@
 package de.tuda.stg.consys.checker
 
 import java.util
-
 import com.sun.source.tree._
-import javax.lang.model.element.AnnotationMirror
+import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
+import de.tuda.stg.consys.checker.qual.Transactional
+
+import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
+import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
+
+import javax.lang.model.`type`.{DeclaredType, NoType}
+import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
 /**
 	* Created on 05.03.19.
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](checker){
+class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
 
+	val subCheckerMap: Map[String, Class[_ <: SubConsistencyChecker]] =
+		Map("de.tuda.stg.consys.checker.qual.Strong" -> classOf[StrongSubConsistencyChecker],
+			"de.tuda.stg.consys.checker.qual.Weak" -> classOf[WeakSubConsistencyChecker])
 
 
 	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
@@ -30,7 +39,6 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
-
 		super.visitAssignment(node, p)
 	}
 
@@ -48,31 +56,32 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 	}
 
 	private def checkAssignment(lhsType : AnnotatedTypeMirror, rhsType : AnnotatedTypeMirror, tree : Tree) : Unit = {
-		if (!implicitContext.allowsUpdatesTo(lhsType, tree) || !implicitContext.allowsUpdatesFrom(rhsType, tree))
+		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree))) //|| !implicitContext.allowsUpdatesFrom(rhsType, tree)))
 			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
 	}
 
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
-
-
-		if (methodInvocationIsReplicate(node)) {
-			println("FOUND SET FIELD")
+		if (methodInvocationIsTransaction(node)) {
+			transactionContext = true
 		}
 
-
+		if (!transactionContext && methodInvocationIsReplicateOrLookup(node)) {
+			checker.reportError(node, "invocation.replicate.transaction")
+		}
+		if (!transactionContext && methodInvocationIsRefAccess(node)) {
+			checker.reportError(node, "invocation.ref.transaction")
+		}
+		if (!transactionContext && methodInvocationIsTransactional(node)) {
+			checker.reportError(node, "invocation.method.transaction")
+		}
 
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
-
-
-
 				val expr : ExpressionTree = memberSelectTree.getExpression
 				val recvType = atypeFactory.getAnnotatedType(expr)
 
-
-
-				if (expr != null)
-					checkMethodInvocationReceiver(atypeFactory.getAnnotatedType(expr), node)
+				if (expr != null && !methodInvocationIsRefOrGetField(node))
+					checkMethodInvocationReceiver(recvType, node)
 
 			case _ =>
 		}
@@ -81,41 +90,114 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 			checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
 		)
 
-		super.visitMethodInvocation(node, p)
+		if (methodInvocationIsReplicate(node)) {
+			val (isAllowed, src) = replicateIsAllowedForLevel(node)
+			if (!isAllowed) checker.reportError(node, "replicate.class", node, src)
+		}
+
+		val r = super.visitMethodInvocation(node, p)
+		if (methodInvocationIsTransaction(node)) {
+			transactionContext = false
+		}
+		r
 	}
 
-	private def methodInvocationIsReplicate(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
-		case memberSelectTree : MemberSelectTree =>
-			val expr : ExpressionTree = memberSelectTree.getExpression
-			val recvType = atypeFactory.getAnnotatedType(expr)
+	override def visitMethod(node: MethodTree, p: Void): Void = {
+		var shouldClose = false
+		if (!transactionContext && methodDeclarationIsTransactional(node)) {
+			transactionContext = true
+			shouldClose = true
+		}
+		val r = super.visitMethod(node, p)
+		if (shouldClose) {
+			transactionContext = false
+		}
+		r
+	}
 
-//			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
+	private def replicateIsAllowedForLevel(node: MethodInvocationTree): (Boolean, Object) = {
+		// match 'classType' in 'ctx.replicate(_, _, Class<classType>)'
+		val argType = atypeFactory.getAnnotatedType(node.getArguments.get(2))
+		argType match {
+			case adt: AnnotatedDeclaredType => adt.getTypeArguments.get(0) match {
+				case classType: AnnotatedDeclaredType =>
+					val qualifierName = AnnotationUtils.annotationName(classType.getAnnotationInHierarchy(getTopAnnotation))
 
-			recvType match {
-				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JReplicaSystem" =>
-					if (memberSelectTree.getIdentifier.toString == "replicate") {
-
-						val setArg = node.getArguments.get(1)
-						val setArgT = atypeFactory.getAnnotatedType(setArg)
-
-						if (!setArgT.getAnnotations.contains(localAnnotation(atypeFactory))) {
-							println("WARNING: Non-local value replicated")
-						}
-
-						val targs = node.getTypeArguments
-
-
-
-//						println(s"args = ${node.getArguments}, targs = $targs")
+					subCheckerMap.get(qualifierName) match {
+						case Some(subChecker) =>
+							val subCheckerTypeFactory: SubConsistencyAnnotatedTypeFactory = checker.getTypeFactoryOfSubchecker(subChecker)
+							// having no sub checker means we are currently in a sub checker so we don't need to test replicate
+							if (subCheckerTypeFactory == null)
+								(true, null)
+							else
+								(subCheckerTypeFactory.isAllowed(classType.getUnderlyingType),
+									subCheckerTypeFactory.getSrcForDisallowed(classType.getUnderlyingType))
+						case None => (true, null)
 					}
-				case _ =>
-			}
-
-			false
-
-		case _ =>
-			false
+				}
+				case _ => (true, null)
+			case _ => (true, null)
+		}
 	}
+
+	private def methodInvocationIsX(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
+		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
+			val methodId = memberSelectTree.getIdentifier.toString
+			methodNames.map(x => x == methodId).fold(false)(_ || _)
+		}
+		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getInterfaces.exists {
+				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
+					checkMethodName(mst)
+				case interfaceType: DeclaredType =>
+					checkReceiverNameInInterfaces(interfaceType, mst)
+				case _ => false
+			}
+			case _ => false
+		}
+		def checkReceiverNameInSuperClass(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getSuperclass match {
+				case _: NoType => false
+				case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
+					checkMethodName(mst)
+				case dt: DeclaredType =>
+					checkReceiverNameInInterfaces(dt, mst) || checkReceiverNameInSuperClass(dt, mst)
+				case _ => false
+			}
+			case _ => false
+		}
+
+		node.getMethodSelect match {
+			case memberSelectTree : MemberSelectTree =>
+				val receiverType = atypeFactory.getAnnotatedType(memberSelectTree.getExpression)
+				receiverType match {
+					// check for a direct name match
+					case adt : AnnotatedDeclaredType if getQualifiedName(adt) == receiverName =>
+						checkMethodName(memberSelectTree)
+					// check for name match in interfaces or superclass
+					case adt: AnnotatedDeclaredType =>
+						checkReceiverNameInInterfaces(adt.getUnderlyingType, memberSelectTree) ||
+							checkReceiverNameInSuperClass(adt.getUnderlyingType, memberSelectTree)
+					case _ => false
+				}
+			case _ => false
+		}
+	}
+
+	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField"))
+
+	private def methodInvocationIsRefAccess(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
+
+	private def methodInvocationIsReplicateOrLookup(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
+
+	private def methodInvocationIsReplicate(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate"))
+
+	private def methodInvocationIsTransaction(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.Replica", List("transaction"))
 
 	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
 		case memberSelectTree : MemberSelectTree =>
@@ -146,13 +228,29 @@ class ConsistencyVisitorImpl(checker : BaseTypeChecker) extends InformationFlowT
 			false
 	}
 
+	private def methodDeclarationIsTransactional(node: MethodTree) : Boolean = {
+		val annotations = node.getModifiers.getAnnotations
+		annotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
+			case adt: AnnotatedDeclaredType =>
+				getQualifiedName(adt) == s"$checkerPackageName.qual.Transactional"
+			case _ =>
+				false
+		})
+	}
+
+	private def methodInvocationIsTransactional(node: MethodInvocationTree) : Boolean = {
+		// get the correct method declaration for this invocation and check for annotation
+		val execElem = TreeUtils.elementFromUse(node)
+		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
+	}
+
 	private def checkMethodInvocationReceiver(receiverType : AnnotatedTypeMirror, tree : Tree) : Unit = {
-		if (!implicitContext.allowsAsReceiver(receiverType, tree))
-			checker.reportError(tree,"invocation.receiver.implicitflow", receiverType, implicitContext.get, tree)
+		if (transactionContext && !implicitContext.allowsAsReceiver(receiverType, tree))
+			checker.reportError(tree, "invocation.receiver.implicitflow", receiverType, implicitContext.get, tree)
 	}
 
 	private def checkMethodInvocationArgument(argType : AnnotatedTypeMirror, tree : Tree) : Unit = {
-		if (!implicitContext.allowsAsArgument(argType, tree))
+		if (transactionContext && !implicitContext.allowsAsArgument(argType, tree))
 			checker.reportError(tree, "invocation.argument.implicitflow", argType, implicitContext.get, tree)
 	}
 
