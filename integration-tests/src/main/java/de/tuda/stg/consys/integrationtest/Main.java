@@ -47,6 +47,7 @@ public class Main {
 	}
 
 	public static void main(String... args) throws Exception {
+		//example2();
 		example2Parallel();
 
 	}
