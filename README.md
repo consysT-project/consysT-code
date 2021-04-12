@@ -140,13 +140,29 @@ For further examples, refer to the testcases.
 
 ## Project overview
 
-* **consys-type-checker**: Implements the type annotations and the information flow analysis using the 
+* **consys-core**: Implementation of the middleware. Integrates Cassandra, Zookeeper, and/or Akka.
+  
+* **consys-japi**: Implementation of the frontend API for Java projects. Requires the consys-compiler Javac plugin.
+
+* **consys-compiler**: Javac plugin for preprocessing Java API.
+
+* **consys-type-checker**: Implementation of the type checker using the 
 Checker framework.
-    * **consys-type-checker-test**: Unit tests for checking information flow with the
-     consistency checker. (Has its own maven module, because
-    it needs to be compiled using the consistency checker as annotation processor). 
-* 
 
-## Students
+* **integration-tests**: Fully integrated ConSysT project for testing and playing around.
 
-This project is based on the work of Victor Schümmer and Jesper Schlegel as part of the IMPL project WS 2017-18.
+* **consys-bench**: Benchmark framework.
+
+* **demos**: Case studies and benchmarks.
+
+* **examples**: Implementation of several libraries/case studies using ConSysT.
+
+
+
+## Collaborators
+
+* Mirko Köhler
+* Nafise Eskandani
+* Victor Schümmer and Jesper Schlegel
+* Martin Edlund
+* Tobias Chen and Niklas Reiche
