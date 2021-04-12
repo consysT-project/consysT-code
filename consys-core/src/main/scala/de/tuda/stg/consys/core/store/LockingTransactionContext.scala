@@ -1,7 +1,5 @@
 package de.tuda.stg.consys.core.store
 
-import de.tuda.stg.consys.core.store.LockingTransactionContext.DistributedLock
-
 import scala.collection.mutable
 
 /**
@@ -17,7 +15,7 @@ trait LockingTransactionContext extends TransactionContext {
 
 	def acquireLock(addr : StoreType#Addr) : Unit = {
 		if (!acquiredLocks.contains(addr)) {
-			val lock : StoreType#LockType = store.retrieveLockFor(addr.asInstanceOf[store.Addr] /* TODO: Why do we need this type cast? */)
+			val lock : StoreType#LockType = store.lockFor(addr.asInstanceOf[store.Addr] /* TODO: Why do we need this type cast? */)
 			lock.acquire()
 			acquiredLocks.put(addr, lock)
 		}
@@ -34,8 +32,5 @@ trait LockingTransactionContext extends TransactionContext {
 }
 
 object LockingTransactionContext {
-	trait DistributedLock {
-		def acquire() : Unit
-		def release() : Unit
-	}
+
 }

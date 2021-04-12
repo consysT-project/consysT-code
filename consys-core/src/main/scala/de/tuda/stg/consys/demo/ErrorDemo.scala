@@ -1,11 +1,9 @@
 package de.tuda.stg.consys.demo
 
-import java.util.concurrent.Executors
-
 import akka.dispatch.ExecutionContexts
-import de.tuda.stg.consys.core.ConsistencyLabel.Strong
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory
-
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Strong
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 
 /**
@@ -25,8 +23,7 @@ object ErrorDemo extends App {
 
 
 	AkkaReplicaSystemFactory.spawn("test/consys0.conf") { system =>
-		import system.println
-		import system.Ref
+		import system.{Ref, println}
 
 		val ref : Ref[SetWrapper[Int]] = system.replicate("a", SetWrapper(Set(1,2,3)), Strong)
 		//    val ref = system.replicate[SetWrapper[Int]]("a", SetWrapper(Set(1,2,3)), Strong)  // Also causes the "type T is not a class" error
@@ -42,7 +39,7 @@ object ErrorDemo extends App {
 
 
 	AkkaReplicaSystemFactory.spawn("test/consys1.conf") { system =>
-		import system.println
+
 
 		/*val ref = system.lookup[SetWrapper[Int]]("a", Strong)
 		Thread.sleep(500)

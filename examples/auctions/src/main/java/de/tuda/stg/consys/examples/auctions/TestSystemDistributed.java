@@ -2,7 +2,7 @@ package de.tuda.stg.consys.examples.auctions;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.Address;
+import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.impl.JReplicaSystems;

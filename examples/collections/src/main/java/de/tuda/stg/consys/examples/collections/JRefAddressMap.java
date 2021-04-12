@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.examples.collections;
 
-import de.tuda.stg.consys.core.ConsistencyLabel;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
 import de.tuda.stg.consys.japi.JReplicated;

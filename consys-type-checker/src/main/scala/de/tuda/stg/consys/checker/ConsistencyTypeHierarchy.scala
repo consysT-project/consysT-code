@@ -25,7 +25,7 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 
 	private def refType(typ : AnnotatedTypeMirror) : Option[AnnotatedDeclaredType] = typ match {
 		case declared : AnnotatedDeclaredType
-			if TypesUtils.getQualifiedName(declared.getUnderlyingType) contentEquals "de.tuda.stg.consys.objects.japi.JRef" =>
+			if TypesUtils.getQualifiedName(declared.getUnderlyingType) contentEquals "de.tuda.stg.consys.japi.next.Ref" =>
 				Some(declared)
 
 		case _ => None

@@ -5,17 +5,13 @@ package de.tuda.stg.consys.bench
  *
  * @author Mirko Köhler
  */
-import java.io.{FileNotFoundException, IOException, PrintWriter}
-import java.nio.file.{Files, Paths}
-import java.text.SimpleDateFormat
-import java.util.Date
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
-import de.tuda.stg.consys.core.Address
+import de.tuda.stg.consys.core.store.utils.Address
 import de.tuda.stg.consys.japi.impl.JReplicaSystems
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem
+import java.io.{FileNotFoundException, PrintWriter}
 import scala.collection.JavaConverters
-import scala.concurrent.duration.Duration
 
 
 /**
@@ -179,11 +175,16 @@ abstract class DistributedBenchmark(
 	}
 
 
-	def runBenchmark() : Unit = JReplicaSystems.withActorSystem(
-		address,
-		JavaConverters.asJavaIterable(replicas),
-		java.time.Duration.ofSeconds(30000)
-	).use( () => { warmup(); measure() } )
+	def runBenchmark() : Unit = {
+		JReplicaSystems.withActorSystem(
+			address,
+			JavaConverters.asJavaIterable(replicas),
+			java.time.Duration.ofSeconds(30000)
+		).use(() => {
+			warmup()
+			measure()
+		})
+	}
 }
 
 object DistributedBenchmark {

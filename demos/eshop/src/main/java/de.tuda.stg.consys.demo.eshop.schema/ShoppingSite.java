@@ -2,32 +2,41 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
-import de.tuda.stg.consys.examples.collections.JRefDistList;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.JReplicated;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Optional;
 
-public class ShoppingSite implements Serializable, IShoppingSite {
+public class ShoppingSite implements Serializable, JReplicated, IShoppingSite {
 
-    public JRef<@Strong User> currentlyLoggedIn;
+    /* This field is needed for JReplicated */
+    public transient AkkaReplicaSystem replicaSystem = null;
 
-    public JRef<@Weak Cart> cartOfLoggedIn;
+    private JRef<@Strong User> currentlyLoggedIn;
 
-    public JRef<@Weak Database> database;
+    private JRef<@Weak Cart> cartOfLoggedIn;
 
-    public JRef<@Weak JRefArrayList> foundProducts;
+    private JRef<@Weak Database> database;
+
+    private JRef<@Weak JRefArrayList> foundProducts;
 
     public ShoppingSite(JRef<@Weak Database> db) {
         database = db;
     }
 
     public boolean RegisterNewUser(String UserName, String Password){
-        JReplicaSystem system = JReplicaSystems.getSystem();
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
 
         if(currentlyLoggedIn != null){
             System.out.println("Cannot register a new user, you are already logged in as ''" +
@@ -43,7 +52,12 @@ public class ShoppingSite implements Serializable, IShoppingSite {
     }
 
     public boolean login(String UserName, String Password){
-        JReplicaSystem system = JReplicaSystems.getSystem();
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
 
         if(currentlyLoggedIn != null){
             System.out.println("Cannot Log in, you are already logged in as ''" +
@@ -62,7 +76,12 @@ public class ShoppingSite implements Serializable, IShoppingSite {
     }
 
     public boolean Logout(){
-        JReplicaSystem system = JReplicaSystems.getSystem();
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
 
 
         if(currentlyLoggedIn == null){
@@ -139,7 +158,12 @@ public class ShoppingSite implements Serializable, IShoppingSite {
     }
 
     public boolean Checkout(boolean PrintReceipt){
-        JReplicaSystem system = JReplicaSystems.getSystem();
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return false;
 
         if(currentlyLoggedIn == null){
             System.out.println("Please log in first");
@@ -153,7 +177,12 @@ public class ShoppingSite implements Serializable, IShoppingSite {
     }
 
     public double addBalance(double value, boolean PrintBalance){
-        JReplicaSystem system = JReplicaSystems.getSystem();
+        Optional<JReplicaSystem> systemOptional = getSystem();
+        JReplicaSystem system;
+        if(systemOptional.isPresent())
+            system = systemOptional.get();
+        else
+            return Double.NaN;
 
         if(currentlyLoggedIn != null){
             double newBalance = currentlyLoggedIn.ref().addBalance(value, system.toString());

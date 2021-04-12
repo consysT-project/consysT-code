@@ -1,11 +1,13 @@
 package de.tuda.stg.consys.japi.impl.akka;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.core.ConsistencyLabel;
-import de.tuda.stg.consys.core.Ref;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory;
-import de.tuda.stg.consys.japi.*;
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.store.legacy.Ref;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.JReplicaSystemWithBarrier;
+import de.tuda.stg.consys.japi.JReplicaSystemWithRemove;
 import scala.collection.JavaConverters;
 
 import java.time.Duration;
@@ -21,10 +23,10 @@ public class JAkkaReplicaSystem implements JReplicaSystem,
 	JReplicaSystemWithRemove,
 	JReplicaSystemWithBarrier {
 
-	public final AkkaReplicaSystemFactory.AkkaReplicaSystemBinding replicaSystem;
+	public final AkkaReplicaSystem replicaSystem;
 
 	public JAkkaReplicaSystem(AkkaReplicaSystem replicaSystem) {
-		this.replicaSystem = (AkkaReplicaSystemFactory.AkkaReplicaSystemBinding) replicaSystem;
+		this.replicaSystem = replicaSystem;
 	}
 
 

@@ -2,7 +2,6 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
-import org.checkerframework.com.google.common.collect.Sets
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
@@ -63,64 +62,35 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
 //				println(classOf[ConsistencyTreeAnnotator],s"skipped")
 			} else {
-				val before = Sets.newCopyOnWriteArraySet(annotatedTypeMirror.getAnnotations)
+//				val before = s"$annotatedTypeMirror"
 				annotatedTypeMirror.clearAnnotations()
 
 				val annotationsOfReceiver = tf.getAnnotatedType(node.getExpression).getAnnotations
 				annotationsOfReceiver.forEach(ann => {
 					annotatedTypeMirror.addAnnotation(ann)
+
+					// Changes level of type argument of Ref<...> to weakest between receiver and field
+					// skip this step if receiver is 'this'
+					node.getExpression match {
+						case id: IdentifierTree if id.getName.toString == "this" => ()
+
+						case _ => annotatedTypeMirror match {
+							case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
+								val typeArgument = adt.getTypeArguments.get(0)
+								// get weakest type between type argument and receiver
+								val lowerBound = atypeFactory.getQualifierHierarchy.leastUpperBound(typeArgument.getAnnotations.iterator.next, ann)
+
+								typeArgument.clearAnnotations()
+								typeArgument.addAnnotation(lowerBound)
+
+							case _ => ()
+						}
+					}
 				})
-
-//				println(classOf[ConsistencyTreeAnnotator],s"changed $before to ${annotatedTypeMirror.getAnnotations}")
+//				println(s"in $node: changed $before to $annotatedTypeMirror")
 			}
-
-
 		}
 
 		super.visitMemberSelect(node, annotatedTypeMirror)
 	}
-
-	override def visitMethodInvocation(node : MethodInvocationTree, p : AnnotatedTypeMirror) : Void =  node.getMethodSelect match {
-		case memberSelectTree : MemberSelectTree =>
-
-			val receiver : ExpressionTree = memberSelectTree.getExpression
-
-			atypeFactory.getAnnotatedType(receiver) match {
-				case adt : AnnotatedDeclaredType
-					//Method is member of JReplicaSystem
-					if adt.getUnderlyingType.asElement().getSimpleName.contentEquals("JReplicaSystem") =>
-
-					//Method name is replicate
-					if (memberSelectTree.getIdentifier.contentEquals("replicate")) {
-
-
-//						//Method has 2 or 3 arguments
-//						val setArg : ExpressionTree =
-//							node.getArguments.size() match {
-//								case 3 => node.getArguments.get(1)
-//								case 2 => node.getArguments.get(0)
-//								case _ => sys.error("unknown replicate implementation")
-//							}
-//
-//						val setArgT = atypeFactory.getAnnotatedType(setArg)
-//
-//						val targs = node.getTypeArguments
-//						//TODO: Check type arguments here?
-//
-//						println(s"args = ${node.getArguments}, targs = $targs")
-
-
-
-					}
-				case _ =>
-			}
-			super.visitMethodInvocation(node, p)
-
-		case _ =>
-			super.visitMethodInvocation(node, p)
-	}
-
-
-
 }
-

@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.core.Address;
+import de.tuda.stg.consys.core.store.utils.Address;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;

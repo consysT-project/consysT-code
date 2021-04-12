@@ -43,20 +43,24 @@ If using ccm then use `ccm setdir` to set the correct Cassandra install director
 
 ## Project overview
 
-The code is structured in the following subprojects:
+* **consys-core**: Implementation of the middleware. Integrates Cassandra, Zookeeper, and/or Akka.
+  
+* **consys-japi**: Implementation of the frontend API for Java projects. Requires the consys-compiler Javac plugin.
 
-* `consys-core`: The implementation of the middleware built with (a) Akka, or (b) Cassandra and Zookeeper.
-* `consys-japi`: The Java binding of the languages syntax.
-* `consys-compiler`: Compiler plugin for the Java binding.
-* `consys-type-checker`: Compiler plugin for the consistency type checker built with the Checker framework.
-* `consys-bench`: General benchmark interface.
-* `integration-tests`: Tests and demo for the completely integrated project.
-* `demos`, `examples`, `microbenchmarks`: Benchmarks and demo applications that use consysT.
+* **consys-compiler**: Javac plugin for preprocessing Java API.
 
+* **consys-type-checker**: Implementation of the type checker using the 
+Checker framework.
 
-# About
+* **integration-tests**: Fully integrated ConSysT project for testing and playing around.
 
-This project has been developed at the Reactive Programming Technology Group of Technische Universität Darmstadt.
+* **consys-bench**: Benchmark framework.
+
+* **demos**: Case studies and benchmarks.
+
+* **examples**: Implementation of several libraries/case studies using ConSysT.
+
+## Students
 
 The main developer is Mirko Köhler under supervision of Prof. Guido Salvaneschi.
 
@@ -69,3 +73,4 @@ We thank the many developers that helped with the project:
     * Martin Edlund
     * Matthias Heinrich and Julian Hindelang
     * Pascal Osterwinter
+    * Tobias Chen and Niklas Reiche

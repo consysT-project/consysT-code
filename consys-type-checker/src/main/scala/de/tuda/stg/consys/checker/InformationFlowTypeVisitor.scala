@@ -4,7 +4,6 @@ import com.sun.source.tree._
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
-import org.checkerframework.framework.source.Result
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -13,11 +12,13 @@ import scala.collection.{JavaConverters, mutable}
 	*
 	* @author Mirko Köhler
 	*/
-abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](checker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](checker) {
+abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](baseChecker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](baseChecker) {
 
 
 	//Current context of the consistency check
 	protected val implicitContext : ImplicitContext = new ImplicitContext
+
+	protected var transactionContext: Boolean = false
 
 
 	//Returns the annotation which information flow should be checked
@@ -32,6 +33,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		Increase implicit context.
 	 */
 	override def visitIf(node : IfTree, p : Void) : Void = {
+		if (!transactionContext) return super.visitIf(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getCondition)
 		implicitContext.set(conditionAnnotation)
 		//The condition is executed under the implicit context as well .
@@ -43,6 +45,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	}
 
 	override def visitWhileLoop(node : WhileLoopTree, p : Void) : Void = {
+		if (!transactionContext) return super.visitWhileLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getCondition)
 		implicitContext.set(conditionAnnotation)
 		var r : Void = scan(node.getCondition, p)
@@ -52,6 +55,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	}
 
 	override def visitDoWhileLoop(node : DoWhileLoopTree, p : Void) : Void = {
+		if (!transactionContext) return super.visitDoWhileLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getCondition)
 		implicitContext.set(conditionAnnotation)
 		var r : Void = scan(node.getCondition, p)
@@ -61,6 +65,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	}
 
 	override def visitForLoop(node : ForLoopTree, p : Void) : Void = {
+		if (!transactionContext) return super.visitForLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getCondition)
 		var r : Void = scan(node.getInitializer, p)
 		r = reduce(scan(node.getCondition, p), r)
@@ -72,6 +77,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	}
 
 	override def visitEnhancedForLoop(node : EnhancedForLoopTree, p : Void) : Void = { //TODO: add variable to implicit context?
+		if (!transactionContext) return super.visitEnhancedForLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getExpression)
 		var r : Void = scan(node.getVariable, p)
 		r = reduce(scan(node.getExpression, p), r)
@@ -82,6 +88,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	}
 
 	override def visitSwitch(node : SwitchTree, p : Void) : Void = {
+		if (!transactionContext) return super.visitSwitch(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getExpression)
 		var r : Void = scan(node.getExpression, p)
 		implicitContext.set(conditionAnnotation)
@@ -136,10 +143,8 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 			def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror = {
 				//TODO: Fix this! There are NullPointerExceptions...
 				//println(s"lower bound $a and $b. type factory? ${atypeFactory != null} hierarchy? ${if (atypeFactory != null) atypeFactory.getQualifierHierarchy != null else false}")
-				//atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
-				a
+				atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
 			}
-
 
 			typ match {
 				case declaredType : AnnotatedTypeMirror.AnnotatedDeclaredType =>
@@ -158,7 +163,8 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 					temp
 
 				case _ =>
-					getAnnotation(typ)
+					val annotation = getAnnotation(typ)
+					if (annotation != null) annotation else getTopAnnotation
 			}
 		}
 
@@ -167,12 +173,12 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 			val typeAnnotation : AnnotationMirror = getStrongestNonLocalAnnotationIn(typ, getTopAnnotation)
 
 			if (typeAnnotation == null) {
-				checker.report(Result.warning("consistency.inferred", typ, tree), tree)
+				checker.reportWarning(tree, "consistency.inferred", typ, tree)
 				//Log.info(getClass(), String.format("consistency.inferred: consistency level of {%s} unknown and has been inferred to @Inconsistent.\nin: %s", type, tree));
 				return true
 			}
 
-			atypeFactory.getQualifierHierarchy.isSubtype(get, typeAnnotation)||
+			atypeFactory.getQualifierHierarchy.isSubtype(get, typeAnnotation) ||
 				atypeFactory.getQualifierHierarchy.getBottomAnnotations.contains(typeAnnotation)
 		}
 
@@ -188,6 +194,4 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		def allowsAsArgument(typ : AnnotatedTypeMirror, tree : Tree) : Boolean =
 			canBeAccessed(typ, tree)
 	}
-
-
 }

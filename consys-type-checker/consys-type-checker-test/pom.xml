@@ -5,18 +5,18 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>consys-type-checker-test</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0-alpha</version>
     
     <parent>
     	<groupId>de.tuda.stg.consys</groupId>
 		<artifactId>consys</artifactId>
-		<version>2.0.0</version>
-        <relativePath>/../..</relativePath>
+		<version>3.0.0-alpha</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <properties>
         <!-- Skip tests by default. This can be reenabled once the tests have been fixed. -->
-        <skipTests>true</skipTests>
+        <skipTests>false</skipTests>
     </properties>
 
     <build>
@@ -49,20 +49,18 @@
         </dependency>
         <dependency>
             <groupId>org.checkerframework</groupId>
-            <artifactId>testlib</artifactId>
-            <!-- This version differs from the Checker Framework version. -->
-            <version>2.5.4</version>
-            <scope>test</scope>
+            <artifactId>framework-test</artifactId>
+            <version>3.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0-alpha</version>
         </dependency>
     </dependencies>
     

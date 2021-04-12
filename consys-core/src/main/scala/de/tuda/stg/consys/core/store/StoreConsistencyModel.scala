@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
@@ -9,8 +10,9 @@ import scala.reflect.runtime.universe._
  */
 trait StoreConsistencyModel {
 	type StoreType <: Store
+	type Level <: StoreConsistencyLevel
 
-	def toLevel : StoreConsistencyLevel
-	def replicateRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T]
-	def lookupRaw[T <: StoreType#ObjType : TypeTag](addr : StoreType#Addr, txContext : StoreType#TxContext) : StoreType#RawType[T]
+	def toLevel : Level
+
+
 }

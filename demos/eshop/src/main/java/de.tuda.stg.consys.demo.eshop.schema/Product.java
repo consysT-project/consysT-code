@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefDistList;
 import de.tuda.stg.consys.japi.JRef;

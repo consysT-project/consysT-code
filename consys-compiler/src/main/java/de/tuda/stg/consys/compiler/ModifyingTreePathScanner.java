@@ -88,81 +88,90 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		return this.path;
 	}
 
-
-	public Void visitCompilationUnit(CompilationUnitTree var1, Modificator var2) {
-		scan(var1.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify package annotations"); }));
-		scan(var1.getPackageName(), newTree -> { throw new UnsupportedOperationException("can not modify package name"); });
-		scan(var1.getImports(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify imports"); }));
-		scan(var1.getTypeDecls(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getTypeDecls(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitCompilationUnit(CompilationUnitTree tree, Modificator modificator) {
+		scan(tree.getPackageAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify package annotations"); }));
+		scan(tree.getPackageName(), newTree -> { throw new UnsupportedOperationException("can not modify package name"); });
+		scan(tree.getImports(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getPackageAnnotations(), l -> { throw new UnsupportedOperationException("can not modify imports"); }));
+		scan(tree.getTypeDecls(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getTypeDecls(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitImport(ImportTree var1, Modificator var2) {
-		scan(var1.getQualifiedIdentifier(),  l -> { throw new UnsupportedOperationException("can not modify imports"); });
+	@Override
+	public Void visitImport(ImportTree tree, Modificator modificator) {
+		scan(tree.getQualifiedIdentifier(),  l -> { throw new UnsupportedOperationException("can not modify imports"); });
 		return null;
 	}
 
-	public Void visitClass(ClassTree var1, Modificator var2) {
-		scan(var1.getModifiers(), l -> ((JCTree.JCClassDecl) var1).mods = (JCTree.JCModifiers) l);
-		scan(var1.getTypeParameters(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getTypeParameters(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getExtendsClause(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
-		scan(var1.getImplementsClause(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getImplementsClause(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getMembers(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getMembers(), newTree -> { throw new UnsupportedOperationException("can not modify members"); }));
+	@Override
+	public Void visitClass(ClassTree tree, Modificator modificator) {
+		scan(tree.getModifiers(), l -> ((JCTree.JCClassDecl) tree).mods = (JCTree.JCModifiers) l);
+		scan(tree.getTypeParameters(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getTypeParameters(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
+		scan(tree.getExtendsClause(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+		scan(tree.getImplementsClause(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getImplementsClause(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
+		scan(tree.getMembers(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getMembers(), newTree -> { throw new UnsupportedOperationException("can not modify members"); }));
 		return null;
 	}
 
-	public Void visitMethod(MethodTree var1, Modificator var2) {
-		scan(var1.getModifiers(), l -> ((JCTree.JCMethodDecl) var1).mods = (JCTree.JCModifiers) l);
-		scan(var1.getReturnType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
-		scan(var1.getTypeParameters(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getTypeParameters(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getParameters(), ModifyingTreePathScanner.<JCTree.JCVariableDecl>getModificators(var1.getParameters(), l -> ((JCTree.JCMethodDecl) var1).params = l));
-		scan(var1.getReceiverParameter(), l -> ((JCTree.JCMethodDecl) var1).recvparam = (JCTree.JCVariableDecl) l);
-		scan(var1.getThrows(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getThrows(), l -> ((JCTree.JCMethodDecl) var1).thrown = l));
-		scan(var1.getBody(), l -> ((JCTree.JCMethodDecl) var1).body = (JCTree.JCBlock) l);
-		scan(var1.getDefaultValue(), l -> ((JCTree.JCMethodDecl) var1).defaultValue = (JCTree.JCExpression) l);
+	@Override
+	public Void visitMethod(MethodTree tree, Modificator modificator) {
+		scan(tree.getModifiers(), l -> ((JCTree.JCMethodDecl) tree).mods = (JCTree.JCModifiers) l);
+		scan(tree.getReturnType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+		scan(tree.getTypeParameters(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getTypeParameters(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
+		scan(tree.getParameters(), ModifyingTreePathScanner.<JCTree.JCVariableDecl>getModificators(tree.getParameters(), l -> ((JCTree.JCMethodDecl) tree).params = l));
+		scan(tree.getReceiverParameter(), l -> ((JCTree.JCMethodDecl) tree).recvparam = (JCTree.JCVariableDecl) l);
+		scan(tree.getThrows(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getThrows(), l -> ((JCTree.JCMethodDecl) tree).thrown = l));
+		scan(tree.getBody(), l -> ((JCTree.JCMethodDecl) tree).body = (JCTree.JCBlock) l);
+		scan(tree.getDefaultValue(), l -> ((JCTree.JCMethodDecl) tree).defaultValue = (JCTree.JCExpression) l);
 		return null;
 	}
 
-	public Void visitVariable(VariableTree var1, Modificator var2) {
-		scan(var1.getModifiers(), newTree -> ((JCTree.JCVariableDecl) var1).mods = (JCTree.JCModifiers) newTree);
-		scan(var1.getType(), newTree -> {
+	@Override
+	public Void visitVariable(VariableTree tree, Modificator modificator) {
+		scan(tree.getModifiers(), newTree -> ((JCTree.JCVariableDecl) tree).mods = (JCTree.JCModifiers) newTree);
+		scan(tree.getType(), newTree -> {
 			throw new UnsupportedOperationException("can not modify types");
-			/*((JCTree.JCVariableDecl) var1).type = (com.sun.tools.javac.code.Type) newTree */
+			/*((JCTree.JCVariableDecl) tree).type = (com.sun.tools.javac.code.Type) newTree */
 		});
-		scan(var1.getNameExpression(), newTree -> ((JCTree.JCVariableDecl) var1).nameexpr = (JCTree.JCExpression) newTree);
-		scan(var1.getInitializer(), newTree -> ((JCTree.JCVariableDecl) var1).init = (JCTree.JCExpression) newTree);
+		scan(tree.getNameExpression(), newTree -> ((JCTree.JCVariableDecl) tree).nameexpr = (JCTree.JCExpression) newTree);
+		scan(tree.getInitializer(), newTree -> ((JCTree.JCVariableDecl) tree).init = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitEmptyStatement(EmptyStatementTree var1, Modificator var2) {
+	@Override
+	public Void visitEmptyStatement(EmptyStatementTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitBlock(BlockTree var1, Modificator var2) {
+	@Override
+	public Void visitBlock(BlockTree tree, Modificator modificator) {
 		scan(
-			var1.getStatements(),
-			ModifyingTreePathScanner.<JCTree.JCStatement>getModificators(var1.getStatements(), l -> ((JCTree.JCBlock) var1).stats = l)
+			tree.getStatements(),
+			ModifyingTreePathScanner.<JCTree.JCStatement>getModificators(tree.getStatements(), l -> ((JCTree.JCBlock) tree).stats = l)
 		);
 		return null;
 	}
 
-	public Void visitDoWhileLoop(DoWhileLoopTree var1, Modificator var2) {
-		scan(var1.getStatement(), newTree -> ((JCTree.JCDoWhileLoop) var1).body = (JCTree.JCStatement) newTree);
-		scan(var1.getCondition(), newTree -> ((JCTree.JCDoWhileLoop) var1).cond = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitDoWhileLoop(DoWhileLoopTree tree, Modificator modificator) {
+		scan(tree.getStatement(), newTree -> ((JCTree.JCDoWhileLoop) tree).body = (JCTree.JCStatement) newTree);
+		scan(tree.getCondition(), newTree -> ((JCTree.JCDoWhileLoop) tree).cond = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitWhileLoop(WhileLoopTree var1, Modificator var2) {
-		scan(var1.getCondition(), newTree -> ((JCTree.JCWhileLoop) var1).cond = (JCTree.JCExpression) newTree);
-		scan(var1.getStatement(), newTree -> ((JCTree.JCDoWhileLoop) var1).body = (JCTree.JCStatement) newTree);
+	@Override
+	public Void visitWhileLoop(WhileLoopTree tree, Modificator modificator) {
+		scan(tree.getCondition(), newTree -> ((JCTree.JCWhileLoop) tree).cond = (JCTree.JCExpression) newTree);
+		scan(tree.getStatement(), newTree -> ((JCTree.JCDoWhileLoop) tree).body = (JCTree.JCStatement) newTree);
 		return null;
 	}
 
+	@Override
 	public Void visitForLoop(ForLoopTree tree, Modificator mod) {
 		scan(tree.getInitializer(), ModifyingTreePathScanner.<JCTree.JCStatement>getModificators(tree.getInitializer(), l -> ((JCTree.JCForLoop) tree).init = l));
 		scan(tree.getCondition(), newTree -> ((JCTree.JCForLoop) tree).cond = (JCTree.JCExpression) newTree);
@@ -171,122 +180,140 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		return null;
 	}
 
-	public Void visitEnhancedForLoop(EnhancedForLoopTree var1, Modificator var2) {
-		scan(var1.getVariable(), newTree -> ((JCTree.JCEnhancedForLoop) var1).var = (JCTree.JCVariableDecl) newTree);
-		scan(var1.getExpression(), newTree -> ((JCTree.JCEnhancedForLoop) var1).expr = (JCTree.JCExpression) newTree);
-		scan(var1.getStatement(), newTree -> ((JCTree.JCEnhancedForLoop) var1).body = (JCTree.JCStatement) newTree);
+	@Override
+	public Void visitEnhancedForLoop(EnhancedForLoopTree tree, Modificator modificator) {
+		scan(tree.getVariable(), newTree -> ((JCTree.JCEnhancedForLoop) tree).var = (JCTree.JCVariableDecl) newTree);
+		scan(tree.getExpression(), newTree -> ((JCTree.JCEnhancedForLoop) tree).expr = (JCTree.JCExpression) newTree);
+		scan(tree.getStatement(), newTree -> ((JCTree.JCEnhancedForLoop) tree).body = (JCTree.JCStatement) newTree);
 		return null;
 	}
 
-	public Void visitLabeledStatement(LabeledStatementTree var1, Modificator var2) {
-		return this.scan(var1.getStatement(), var2);
+	@Override
+	public Void visitLabeledStatement(LabeledStatementTree tree, Modificator modificator) {
+		return this.scan(tree.getStatement(), modificator);
 	}
 
-	public Void visitSwitch(SwitchTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCSwitch) var1).selector = (JCTree.JCExpression) newTree);
-		scan(var1.getCases(), ModifyingTreePathScanner.<JCTree.JCCase>getModificators(var1.getCases(), l -> ((JCTree.JCSwitch) var1).cases = l));
+	@Override
+	public Void visitSwitch(SwitchTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCSwitch) tree).selector = (JCTree.JCExpression) newTree);
+		scan(tree.getCases(), ModifyingTreePathScanner.<JCTree.JCCase>getModificators(tree.getCases(), l -> ((JCTree.JCSwitch) tree).cases = l));
 		return null;
 	}
 
-	public Void visitCase(CaseTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCCase) var1).pat = (JCTree.JCExpression) newTree);
-		scan(var1.getStatements(), ModifyingTreePathScanner.<JCTree.JCStatement>getModificators(var1.getStatements(), l -> ((JCTree.JCCase) var1).stats = l));
+	@Override
+	public Void visitCase(CaseTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCCase) tree).pat = (JCTree.JCExpression) newTree);
+		scan(tree.getStatements(), ModifyingTreePathScanner.<JCTree.JCStatement>getModificators(tree.getStatements(), l -> ((JCTree.JCCase) tree).stats = l));
 		return null;
 	}
 
-	public Void visitSynchronized(SynchronizedTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCSynchronized) var1).lock = (JCTree.JCExpression) newTree);
-		scan(var1.getBlock(), newTree -> ((JCTree.JCSynchronized) var1).body = (JCTree.JCBlock) newTree);
+	@Override
+	public Void visitSynchronized(SynchronizedTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCSynchronized) tree).lock = (JCTree.JCExpression) newTree);
+		scan(tree.getBlock(), newTree -> ((JCTree.JCSynchronized) tree).body = (JCTree.JCBlock) newTree);
 		return null;
 	}
 
-	public Void visitTry(TryTree var1, Modificator var2) {
-		scan(var1.getResources(), ModifyingTreePathScanner.getModificators(var1.getResources(), l -> ((JCTree.JCTry) var1).resources = l));
-		scan(var1.getBlock(), newTree -> ((JCTree.JCTry) var1).body = (JCTree.JCBlock) newTree);
-		scan(var1.getCatches(), ModifyingTreePathScanner.<JCTree.JCCatch>getModificators(var1.getCatches(), l -> ((JCTree.JCTry) var1).catchers = l));
-		scan(var1.getFinallyBlock(), newTree -> ((JCTree.JCTry) var1).finalizer = (JCTree.JCBlock) newTree);
+	@Override
+	public Void visitTry(TryTree tree, Modificator modificator) {
+		scan(tree.getResources(), ModifyingTreePathScanner.getModificators(tree.getResources(), l -> ((JCTree.JCTry) tree).resources = l));
+		scan(tree.getBlock(), newTree -> ((JCTree.JCTry) tree).body = (JCTree.JCBlock) newTree);
+		scan(tree.getCatches(), ModifyingTreePathScanner.<JCTree.JCCatch>getModificators(tree.getCatches(), l -> ((JCTree.JCTry) tree).catchers = l));
+		scan(tree.getFinallyBlock(), newTree -> ((JCTree.JCTry) tree).finalizer = (JCTree.JCBlock) newTree);
 		return null;
 	}
 
-	public Void visitCatch(CatchTree var1, Modificator var2) {
-		scan(var1.getParameter(), newTree -> ((JCTree.JCCatch) var1).param = (JCTree.JCVariableDecl) newTree);
-		scan(var1.getBlock(), newTree -> ((JCTree.JCCatch) var1).body = (JCTree.JCBlock) newTree);
+	@Override
+	public Void visitCatch(CatchTree tree, Modificator modificator) {
+		scan(tree.getParameter(), newTree -> ((JCTree.JCCatch) tree).param = (JCTree.JCVariableDecl) newTree);
+		scan(tree.getBlock(), newTree -> ((JCTree.JCCatch) tree).body = (JCTree.JCBlock) newTree);
 		return null;
 	}
 
-	public Void visitConditionalExpression(ConditionalExpressionTree var1, Modificator var2) {
-		scan(var1.getCondition(), newTree -> ((JCTree.JCConditional) var1).cond = (JCTree.JCExpression) newTree);
-		scan(var1.getTrueExpression(), newTree -> ((JCTree.JCConditional) var1).truepart = (JCTree.JCExpression) newTree);
-		scan(var1.getFalseExpression(), newTree -> ((JCTree.JCConditional) var1).falsepart = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitConditionalExpression(ConditionalExpressionTree tree, Modificator modificator) {
+		scan(tree.getCondition(), newTree -> ((JCTree.JCConditional) tree).cond = (JCTree.JCExpression) newTree);
+		scan(tree.getTrueExpression(), newTree -> ((JCTree.JCConditional) tree).truepart = (JCTree.JCExpression) newTree);
+		scan(tree.getFalseExpression(), newTree -> ((JCTree.JCConditional) tree).falsepart = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitIf(IfTree var1, Modificator var2) {
-		scan(var1.getCondition(), newTree -> ((JCTree.JCIf) var1).cond = (JCTree.JCExpression) newTree);
-		scan(var1.getThenStatement(), newTree -> ((JCTree.JCIf) var1).thenpart = (JCTree.JCBlock) newTree);
-		scan(var1.getElseStatement(), newTree -> ((JCTree.JCIf) var1).elsepart = (JCTree.JCBlock) newTree);
+	@Override
+	public Void visitIf(IfTree tree, Modificator modificator) {
+		scan(tree.getCondition(), newTree -> ((JCTree.JCIf) tree).cond = (JCTree.JCExpression) newTree);
+		scan(tree.getThenStatement(), newTree -> ((JCTree.JCIf) tree).thenpart = (JCTree.JCBlock) newTree);
+		scan(tree.getElseStatement(), newTree -> ((JCTree.JCIf) tree).elsepart = (JCTree.JCBlock) newTree);
 		return null;
 	}
 
-	public Void visitExpressionStatement(ExpressionStatementTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree ->
-			((JCTree.JCExpressionStatement) var1).expr = (JCTree.JCExpression) newTree
+	@Override
+	public Void visitExpressionStatement(ExpressionStatementTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree ->
+			((JCTree.JCExpressionStatement) tree).expr = (JCTree.JCExpression) newTree
 		);
 		return null;
 	}
 
-	public Void visitBreak(BreakTree var1, Modificator var2) {
+	@Override
+	public Void visitBreak(BreakTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitContinue(ContinueTree var1, Modificator var2) {
+	@Override
+	public Void visitContinue(ContinueTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitReturn(ReturnTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCReturn) var1).expr = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitReturn(ReturnTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCReturn) tree).expr = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitThrow(ThrowTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCThrow) var1).expr = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitThrow(ThrowTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCThrow) tree).expr = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitAssert(AssertTree var1, Modificator var2) {
-		scan(var1.getCondition(), newTree -> ((JCTree.JCAssert) var1).cond = (JCTree.JCExpression) newTree);
-		scan(var1.getDetail(), newTree -> ((JCTree.JCAssert) var1).detail = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitAssert(AssertTree tree, Modificator modificator) {
+		scan(tree.getCondition(), newTree -> ((JCTree.JCAssert) tree).cond = (JCTree.JCExpression) newTree);
+		scan(tree.getDetail(), newTree -> ((JCTree.JCAssert) tree).detail = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitMethodInvocation(MethodInvocationTree var1, Modificator var2) {
-		scan(var1.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getTypeArguments(), l -> ((JCTree.JCMethodInvocation) var1).typeargs = l));
-		scan(var1.getMethodSelect(), newTree -> ((JCTree.JCMethodInvocation) var1).meth = (JCTree.JCExpression) newTree);
-		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCMethodInvocation) var1).args = l));
+	@Override
+	public Void visitMethodInvocation(MethodInvocationTree tree, Modificator modificator) {
+		scan(tree.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getTypeArguments(), l -> ((JCTree.JCMethodInvocation) tree).typeargs = l));
+		scan(tree.getMethodSelect(), newTree -> ((JCTree.JCMethodInvocation) tree).meth = (JCTree.JCExpression) newTree);
+		scan(tree.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getArguments(), l -> ((JCTree.JCMethodInvocation) tree).args = l));
 		return null;
 	}
 
-	public Void visitNewClass(NewClassTree var1, Modificator var2) {
-		scan(var1.getEnclosingExpression(), newTree -> ((JCTree.JCNewClass) var1).encl = (JCTree.JCExpression) newTree);
-		scan(var1.getIdentifier(), newTree -> ((JCTree.JCNewClass) var1).clazz = (JCTree.JCExpression) newTree);
-		scan(var1.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
-			var1.getTypeArguments(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCNewClass) var1).args = l));
-		scan(var1.getClassBody(), newTree -> ((JCTree.JCNewClass) var1).def = (JCTree.JCClassDecl) newTree);
+	@Override
+	public Void visitNewClass(NewClassTree tree, Modificator modificator) {
+		scan(tree.getEnclosingExpression(), newTree -> ((JCTree.JCNewClass) tree).encl = (JCTree.JCExpression) newTree);
+		scan(tree.getIdentifier(), newTree -> ((JCTree.JCNewClass) tree).clazz = (JCTree.JCExpression) newTree);
+		scan(tree.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(
+			tree.getTypeArguments(), newTree -> { throw new UnsupportedOperationException("can not modify types"); }));
+		scan(tree.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getArguments(), l -> ((JCTree.JCNewClass) tree).args = l));
+		scan(tree.getClassBody(), newTree -> ((JCTree.JCNewClass) tree).def = (JCTree.JCClassDecl) newTree);
 		return null;
 	}
 
-	public Void visitNewArray(NewArrayTree var1, Modificator var2) {
-		scan(var1.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
-		scan(var1.getDimensions(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getDimensions(), l -> ((JCTree.JCNewArray) var1).dims = l));
-		scan(var1.getInitializers(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getInitializers(), l -> ((JCTree.JCNewArray) var1).elems = l));
-		scan(var1.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getAnnotations(), l -> ((JCTree.JCNewArray) var1).annotations = l));
+	@Override
+	public Void visitNewArray(NewArrayTree tree, Modificator modificator) {
+		scan(tree.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+		scan(tree.getDimensions(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getDimensions(), l -> ((JCTree.JCNewArray) tree).dims = l));
+		scan(tree.getInitializers(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getInitializers(), l -> ((JCTree.JCNewArray) tree).elems = l));
+		scan(tree.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getAnnotations(), l -> ((JCTree.JCNewArray) tree).annotations = l));
 
 
 		//TODO: Implement multi dimension array
 //		Iterable<? extends AnnotationTree> annotationTrees;
 //		for(
-//			Iterator<? extends List<? extends AnnotationTree>> treesIt = var1.getDimAnnotations().iterator();
+//			Iterator<? extends List<? extends AnnotationTree>> treesIt = tree.getDimAnnotations().iterator();
 //			treesIt.hasNext();
 //			scan(annotationTrees, ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(annotationTrees, l -> { throw new UnsupportedOperationException("can not modify inner array dims"); }))
 //		) {
@@ -296,135 +323,190 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		return null;
 	}
 
-	public Void visitLambdaExpression(LambdaExpressionTree var1, Modificator var2) {
-		scan(var1.getParameters(), ModifyingTreePathScanner.<JCTree.JCVariableDecl>getModificators(var1.getParameters(), l -> ((JCTree.JCLambda) var1).params = l));
-		scan(var1.getBody(), newTree -> ((JCTree.JCLambda) var1).body = newTree);
+	@Override
+	public Void visitLambdaExpression(LambdaExpressionTree tree, Modificator modificator) {
+		scan(tree.getParameters(), ModifyingTreePathScanner.<JCTree.JCVariableDecl>getModificators(tree.getParameters(), l -> ((JCTree.JCLambda) tree).params = l));
+		scan(tree.getBody(), newTree -> ((JCTree.JCLambda) tree).body = newTree);
 		return null;
 	}
 
-	public Void visitParenthesized(ParenthesizedTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCParens) var1).expr = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitParenthesized(ParenthesizedTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCParens) tree).expr = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitAssignment(AssignmentTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCAssign) var1).rhs = (JCTree.JCExpression) newTree);
-		scan(var1.getVariable(), newTree -> ((JCTree.JCAssign) var1).lhs = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitAssignment(AssignmentTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCAssign) tree).rhs = (JCTree.JCExpression) newTree);
+		scan(tree.getVariable(), newTree -> ((JCTree.JCAssign) tree).lhs = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitCompoundAssignment(CompoundAssignmentTree var1, Modificator var2) {
-		scan(var1.getVariable(), newTree -> ((JCTree.JCAssignOp) var1).lhs = (JCTree.JCExpression) newTree);
-		scan(var1.getExpression(), newTree -> ((JCTree.JCAssignOp) var1).rhs = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitCompoundAssignment(CompoundAssignmentTree tree, Modificator modificator) {
+		scan(tree.getVariable(), newTree -> ((JCTree.JCAssignOp) tree).lhs = (JCTree.JCExpression) newTree);
+		scan(tree.getExpression(), newTree -> ((JCTree.JCAssignOp) tree).rhs = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitUnary(UnaryTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCUnary) var1).arg = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitUnary(UnaryTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCUnary) tree).arg = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitBinary(BinaryTree var1, Modificator var2) {
-		scan(var1.getLeftOperand(), newTree -> ((JCTree.JCBinary) var1).lhs = (JCTree.JCExpression) newTree);
-		scan(var1.getRightOperand(), newTree -> ((JCTree.JCBinary) var1).rhs = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitBinary(BinaryTree tree, Modificator modificator) {
+		scan(tree.getLeftOperand(), newTree -> ((JCTree.JCBinary) tree).lhs = (JCTree.JCExpression) newTree);
+		scan(tree.getRightOperand(), newTree -> ((JCTree.JCBinary) tree).rhs = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitTypeCast(TypeCastTree var1, Modificator var2) {
-		scan(var1.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
-		scan(var1.getExpression(), newTree -> ((JCTree.JCTypeCast) var1).expr = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitTypeCast(TypeCastTree tree, Modificator modificator) {
+		scan(tree.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+		scan(tree.getExpression(), newTree -> ((JCTree.JCTypeCast) tree).expr = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitInstanceOf(InstanceOfTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCInstanceOf) var1).expr = (JCTree.JCExpression) newTree);
-		scan(var1.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+	@Override
+	public Void visitInstanceOf(InstanceOfTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCInstanceOf) tree).expr = (JCTree.JCExpression) newTree);
+		scan(tree.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
 		return null;
 	}
 
-	public Void visitArrayAccess(ArrayAccessTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCArrayAccess) var1).indexed = (JCTree.JCExpression) newTree);
-		scan(var1.getIndex(), newTree -> ((JCTree.JCArrayAccess) var1).index = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitArrayAccess(ArrayAccessTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCArrayAccess) tree).indexed = (JCTree.JCExpression) newTree);
+		scan(tree.getIndex(), newTree -> ((JCTree.JCArrayAccess) tree).index = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitMemberSelect(MemberSelectTree var1, Modificator var2) {
-		scan(var1.getExpression(), newTree -> ((JCTree.JCFieldAccess) var1).selected = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitMemberSelect(MemberSelectTree tree, Modificator modificator) {
+		scan(tree.getExpression(), newTree -> ((JCTree.JCFieldAccess) tree).selected = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitMemberReference(MemberReferenceTree var1, Modificator var2) {
-		scan(var1.getQualifierExpression(), newTree -> ((JCTree.JCMemberReference) var1).expr = (JCTree.JCExpression) newTree);
-		scan(var1.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getTypeArguments(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitMemberReference(MemberReferenceTree tree, Modificator modificator) {
+		scan(tree.getQualifierExpression(), newTree -> ((JCTree.JCMemberReference) tree).expr = (JCTree.JCExpression) newTree);
+		scan(tree.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getTypeArguments(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitIdentifier(IdentifierTree var1, Modificator var2) {
+	@Override
+	public Void visitIdentifier(IdentifierTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitLiteral(LiteralTree var1, Modificator var2) {
+	@Override
+	public Void visitLiteral(LiteralTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitPrimitiveType(PrimitiveTypeTree var1, Modificator var2) {
+	@Override
+	public Void visitPrimitiveType(PrimitiveTypeTree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitArrayType(ArrayTypeTree var1, Modificator var2) {
-		scan(var1.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+	@Override
+	public Void visitArrayType(ArrayTypeTree tree, Modificator modificator) {
+		scan(tree.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
 		return null;
 	}
 
-	public Void visitParameterizedType(ParameterizedTypeTree var1, Modificator var2) {
-		scan(var1.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
-		scan(var1.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getTypeArguments(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitParameterizedType(ParameterizedTypeTree tree, Modificator modificator) {
+		scan(tree.getType(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+		scan(tree.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getTypeArguments(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitUnionType(UnionTypeTree var1, Modificator var2) {
-		scan(var1.getTypeAlternatives(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getTypeAlternatives(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitUnionType(UnionTypeTree tree, Modificator modificator) {
+		scan(tree.getTypeAlternatives(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getTypeAlternatives(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitIntersectionType(IntersectionTypeTree var1, Modificator var2) {
-		scan(var1.getBounds(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getBounds(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitIntersectionType(IntersectionTypeTree tree, Modificator modificator) {
+		scan(tree.getBounds(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getBounds(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitTypeParameter(TypeParameterTree var1, Modificator var2) {
-		scan(var1.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getAnnotations(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
-		scan(var1.getBounds(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getBounds(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+	@Override
+	public Void visitTypeParameter(TypeParameterTree tree, Modificator modificator) {
+		scan(tree.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getAnnotations(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
+		scan(tree.getBounds(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getBounds(), l -> { throw new UnsupportedOperationException("can not modify types"); }));
 		return null;
 	}
 
-	public Void visitWildcard(WildcardTree var1, Modificator var2) {
-		scan(var1.getBound(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
+	@Override
+	public Void visitWildcard(WildcardTree tree, Modificator modificator) {
+		scan(tree.getBound(), newTree -> { throw new UnsupportedOperationException("can not modify types"); });
 		return null;
 	}
 
-	public Void visitModifiers(ModifiersTree var1, Modificator var2) {
-		scan(var1.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getAnnotations(), l -> ((JCTree.JCModifiers) var1).annotations = l));
+	@Override
+	public Void visitModifiers(ModifiersTree tree, Modificator modificator) {
+		scan(tree.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getAnnotations(), l -> ((JCTree.JCModifiers) tree).annotations = l));
 		return null;
 	}
 
-	public Void visitAnnotation(AnnotationTree var1, Modificator var2) {
-		scan(var1.getAnnotationType(), newTree -> ((JCTree.JCAnnotation) var1).annotationType = newTree);
-		scan(var1.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(var1.getArguments(), l -> ((JCTree.JCAnnotation) var1).args = l));
+	@Override
+	public Void visitAnnotation(AnnotationTree tree, Modificator modificator) {
+		scan(tree.getAnnotationType(), newTree -> ((JCTree.JCAnnotation) tree).annotationType = newTree);
+		scan(tree.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getArguments(), l -> ((JCTree.JCAnnotation) tree).args = l));
 		return null;
 	}
 
-	public Void visitAnnotatedType(AnnotatedTypeTree var1, Modificator var2) {
-		scan(var1.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(var1.getAnnotations(), l -> ((JCTree.JCAnnotatedType) var1).annotations = l));
-		scan(var1.getUnderlyingType(), newTree -> ((JCTree.JCAnnotatedType) var1).underlyingType = (JCTree.JCExpression) newTree);
+	@Override
+	public Void visitAnnotatedType(AnnotatedTypeTree tree, Modificator modificator) {
+		scan(tree.getAnnotations(), ModifyingTreePathScanner.<JCTree.JCAnnotation>getModificators(tree.getAnnotations(), l -> ((JCTree.JCAnnotatedType) tree).annotations = l));
+		scan(tree.getUnderlyingType(), newTree -> ((JCTree.JCAnnotatedType) tree).underlyingType = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
-	public Void visitOther(Tree var1, Modificator var2) {
+	@Override
+	public Void visitOther(Tree tree, Modificator modificator) {
 		return null;
 	}
 
-	public Void visitErroneous(ErroneousTree var1, Modificator var2) {
+	@Override
+	public Void visitErroneous(ErroneousTree tree, Modificator modificator) {
 		return null;
+	}
+
+	@Override
+	public Void visitModule(ModuleTree tree, Modificator modificator) {
+		return super.visitModule(tree, modificator);
+	}
+
+	@Override
+	public Void visitExports(ExportsTree tree, Modificator modificator) {
+		return super.visitExports(tree, modificator);
+	}
+
+	@Override
+	public Void visitOpens(OpensTree tree, Modificator modificator) {
+		return super.visitOpens(tree, modificator);
+	}
+
+	@Override
+	public Void visitProvides(ProvidesTree tree, Modificator modificator) {
+		return super.visitProvides(tree, modificator);
+	}
+
+	@Override
+	public Void visitRequires(RequiresTree tree, Modificator modificator) {
+		return super.visitRequires(tree, modificator);
+	}
+
+	@Override
+	public Void visitUses(UsesTree tree, Modificator modificator) {
+		return super.visitUses(tree, modificator);
 	}
 }

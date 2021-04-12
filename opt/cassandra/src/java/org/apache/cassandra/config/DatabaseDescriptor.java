@@ -51,6 +51,10 @@ import org.apache.cassandra.auth.IRoleManager;
 import org.apache.cassandra.config.Config.CommitLogSync;
 import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions.InternodeEncryption;
 import org.apache.cassandra.db.ConsistencyLevel;
+import org.apache.cassandra.db.commitlog.AbstractCommitLogSegmentManager;
+import org.apache.cassandra.db.commitlog.CommitLog;
+import org.apache.cassandra.db.commitlog.CommitLogSegmentManagerCDC;
+import org.apache.cassandra.db.commitlog.CommitLogSegmentManagerStandard;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.io.FSWriteError;
@@ -141,11 +145,15 @@ public class DatabaseDescriptor
 
     private static final int searchConcurrencyFactor = Integer.parseInt(System.getProperty(Config.PROPERTY_PREFIX + "search_concurrency_factor", "1"));
 
-    private static final boolean disableSTCSInL0 = Boolean.getBoolean(Config.PROPERTY_PREFIX + "disable_stcs_in_l0");
+    private static volatile boolean disableSTCSInL0 = Boolean.getBoolean(Config.PROPERTY_PREFIX + "disable_stcs_in_l0");
     private static final boolean unsafeSystem = Boolean.getBoolean(Config.PROPERTY_PREFIX + "unsafesystem");
 
     // turns some warnings into exceptions for testing
     private static final boolean strictRuntimeChecks = Boolean.getBoolean("cassandra.strict.runtime.checks");
+
+    private static Function<CommitLog, AbstractCommitLogSegmentManager> commitLogSegmentMgrProvider = c -> DatabaseDescriptor.isCDCEnabled()
+                                       ? new CommitLogSegmentManagerCDC(c, DatabaseDescriptor.getCommitLogLocation())
+                                       : new CommitLogSegmentManagerStandard(c, DatabaseDescriptor.getCommitLogLocation());
 
     public static void daemonInitialization() throws ConfigurationException
     {
@@ -1620,9 +1628,27 @@ public class DatabaseDescriptor
         return conf.concurrent_reads;
     }
 
+    public static void setConcurrentReaders(int concurrent_reads)
+    {
+        if (concurrent_reads < 0)
+        {
+            throw new IllegalArgumentException("Concurrent reads must be non-negative");
+        }
+        conf.concurrent_reads = concurrent_reads;
+    }
+
     public static int getConcurrentWriters()
     {
         return conf.concurrent_writes;
+    }
+
+    public static void setConcurrentWriters(int concurrent_writers)
+    {
+        if (concurrent_writers < 0)
+        {
+            throw new IllegalArgumentException("Concurrent reads must be non-negative");
+        }
+        conf.concurrent_writes = concurrent_writers;
     }
 
     public static int getConcurrentCounterWriters()
@@ -1630,9 +1656,27 @@ public class DatabaseDescriptor
         return conf.concurrent_counter_writes;
     }
 
+    public static void setConcurrentCounterWriters(int concurrent_counter_writes)
+    {
+        if (concurrent_counter_writes < 0)
+        {
+            throw new IllegalArgumentException("Concurrent reads must be non-negative");
+        }
+        conf.concurrent_counter_writes = concurrent_counter_writes;
+    }
+
     public static int getConcurrentViewWriters()
     {
         return conf.concurrent_materialized_view_writes;
+    }
+
+    public static void setConcurrentViewWriters(int concurrent_materialized_view_writes)
+    {
+        if (concurrent_materialized_view_writes < 0)
+        {
+            throw new IllegalArgumentException("Concurrent reads must be non-negative");
+        }
+        conf.concurrent_materialized_view_writes = concurrent_materialized_view_writes;
     }
 
     public static int getFlushWriters()
@@ -1691,6 +1735,11 @@ public class DatabaseDescriptor
     public static boolean getDisableSTCSInL0()
     {
         return disableSTCSInL0;
+    }
+
+    public static void setDisableSTCSInL0(boolean disabled)
+    {
+        disableSTCSInL0 = disabled;
     }
 
     public static int getStreamThroughputOutboundMegabitsPerSec()
@@ -1997,6 +2046,11 @@ public class DatabaseDescriptor
     public static int getNativeTransportMaxThreads()
     {
         return conf.native_transport_max_threads;
+    }
+
+    public static void setNativeTransportMaxThreads(int max_threads)
+    {
+        conf.native_transport_max_threads = max_threads;
     }
 
     public static int getNativeTransportMaxFrameSize()
@@ -2926,5 +2980,15 @@ public class DatabaseDescriptor
     {
         logger.info("Setting use_offheap_merkle_trees to {}", value);
         conf.use_offheap_merkle_trees = value;
+    }
+
+    public static Function<CommitLog, AbstractCommitLogSegmentManager> getCommitLogSegmentMgrProvider()
+    {
+        return commitLogSegmentMgrProvider;
+    }
+
+    public static void setCommitLogSegmentMgrProvider(Function<CommitLog, AbstractCommitLogSegmentManager> provider)
+    {
+        commitLogSegmentMgrProvider = provider;
     }
 }

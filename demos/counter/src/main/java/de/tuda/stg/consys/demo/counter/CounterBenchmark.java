@@ -5,14 +5,8 @@ import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
-import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
 import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
-
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created on 10.10.19.

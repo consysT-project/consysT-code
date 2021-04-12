@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.demo
 
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.Executors
 
 import akka.dispatch.ExecutionContexts
-import de.tuda.stg.consys.core.ConsistencyLabel.Strong
-import de.tuda.stg.consys.core.akka.{AkkaReplicaSystemFactory, AkkaReplicaSystems}
+import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Strong
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory
 
 import scala.concurrent.ExecutionContext
 
@@ -20,13 +20,13 @@ object Demo extends App {
 		def inc(a : Int) : Unit = i = i + a
 	}
 
-	val service = Executors.newFixedThreadPool(12)
-	implicit val executionContext : ExecutionContext = ExecutionContexts.fromExecutorService(service)
+	implicit val executionContext : ExecutionContext = ExecutionContexts.fromExecutorService(Executors.newFixedThreadPool(12))
 
-	AkkaReplicaSystems.spawn("test/consys0.conf") {
-		import AkkaReplicaSystems.{system => sys}
 
-		val ref = sys.replicate("a", A(3), Strong)
+	AkkaReplicaSystemFactory.spawn("test/consys0.conf") { system =>
+		import system.println
+
+		val ref = system.replicate("a", A(3), Strong)
 		println(s"ref.i = ${ref("i")}")
 		Thread.sleep(500)
 		println(s"ref.i = ${ref("i")}")
@@ -36,10 +36,10 @@ object Demo extends App {
 	}
 
 
-	AkkaReplicaSystems.spawn("test/consys1.conf") {
-		import AkkaReplicaSystems.{system => sys}
+	AkkaReplicaSystemFactory.spawn("test/consys1.conf") { system =>
+		import system.println
 
-		val ref = sys.lookup[A]("a", Strong)
+		val ref = system.lookup[A]("a", Strong)
 		println(s"ref.i = ${ref("i")}")
 		ref("i") = 55
 		println(s"ref.i = ${ref("i")}")
@@ -48,10 +48,10 @@ object Demo extends App {
 		Thread.sleep(5000)
 	}
 
-	AkkaReplicaSystems.spawn("test/consys2.conf") {
-		import AkkaReplicaSystems.{system => sys}
+	AkkaReplicaSystemFactory.spawn("test/consys2.conf") { system =>
+		import system.println
 
-		val ref = sys.lookup[A]("a", Strong)
+		val ref = system.lookup[A]("a", Strong)
 		println(s"ref.i = ${ref("i")}")
 		Thread.sleep(500)
 		println(s"ref.i = ${ref("i")}")
@@ -59,9 +59,6 @@ object Demo extends App {
 		println(s"ref.i = ${ref("i")}")
 		Thread.sleep(5000)
 	}
-
-	service.awaitTermination(10, TimeUnit.SECONDS)
-
 
 }
 

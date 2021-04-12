@@ -1,20 +1,15 @@
 package de.tuda.stg.consys.japi.impl;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.core.Address;
-import de.tuda.stg.consys.core.ReplicaSystem;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystemFactory;
-import de.tuda.stg.consys.core.akka.AkkaReplicaSystems;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory;
+import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystems;
+import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.japi.impl.akka.JAkkaReplicaSystem;
-import org.apache.tinkerpop.gremlin.structure.T;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
-import scala.util.DynamicVariable;
 
 import java.time.Duration;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -51,7 +46,7 @@ public class JReplicaSystems {
 	}
 
 	public static AkkaReplicaSystemInterface withSystem(JAkkaReplicaSystem system) {
-		return new AkkaReplicaSystemInterface(system.replicaSystem);
+		return new AkkaReplicaSystemInterface((AkkaReplicaSystemFactory.AkkaReplicaSystemBinding) system.replicaSystem);
 	}
 
 	public static AkkaReplicaSystemInterface withActorSystem(Address hostname, Iterable<Address> others, Duration timeout) {
@@ -71,7 +66,10 @@ public class JReplicaSystems {
 	}
 
 	public static AkkaReplicaSystemInterface withActorSystem(Config config) {
-		return new AkkaReplicaSystemInterface((AkkaReplicaSystemFactory.AkkaReplicaSystemBinding) AkkaReplicaSystemFactory.create(config));
+		return new AkkaReplicaSystemInterface(
+				/* TODO Fix unsafe cast */
+				(AkkaReplicaSystemFactory.AkkaReplicaSystemBinding) AkkaReplicaSystemFactory.create(config)
+		);
 	}
 
 
@@ -105,7 +103,8 @@ public class JReplicaSystems {
 
 	@Deprecated
 	public static JAkkaReplicaSystem[] fromActorSystemForTesting(Iterable<Address> hosts) {
-		Seq<AkkaReplicaSystemFactory.AkkaReplicaSystemBinding> scalaSeq = AkkaReplicaSystemFactory.createForTesting(JavaConverters.iterableAsScalaIterable(hosts).toSeq());
+		Seq<AkkaReplicaSystemFactory.AkkaReplicaSystemBinding> scalaSeq =
+				AkkaReplicaSystemFactory.createForTesting(JavaConverters.iterableAsScalaIterable(hosts).toSeq());
 
 		return JavaConverters.asJavaCollection(scalaSeq).stream()
 			.map(system -> new JAkkaReplicaSystem(system))
@@ -114,7 +113,8 @@ public class JReplicaSystems {
 
 	@Deprecated
 	public static JAkkaReplicaSystem[] fromActorSystemForTesting(int numOfReplicas) {
-		Seq<AkkaReplicaSystemFactory.AkkaReplicaSystemBinding> scalaSeq = AkkaReplicaSystemFactory.createForTesting(numOfReplicas);
+		Seq<AkkaReplicaSystemFactory.AkkaReplicaSystemBinding> scalaSeq =
+				AkkaReplicaSystemFactory.createForTesting(numOfReplicas);
 
 		return JavaConverters.asJavaCollection(scalaSeq).stream()
 			.map(system -> new JAkkaReplicaSystem(system))
