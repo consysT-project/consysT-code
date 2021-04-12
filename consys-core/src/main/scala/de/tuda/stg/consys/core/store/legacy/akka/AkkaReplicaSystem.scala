@@ -396,7 +396,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 
 			case AcquireHandler =>
 				val requestActor = context.actorOf(Props(classOf[RequestHandlerActor], this).withDispatcher("request-dispatcher"))
-				val handler = new RequestHandlerImpl(requestActor, defaultTimeout)
+				val handler = new RequestHandlerImpl(requestActor, self, defaultTimeout)
 				sender() ! handler
 
 			case EnterBarrier(name) =>
