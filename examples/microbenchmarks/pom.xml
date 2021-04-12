@@ -4,10 +4,11 @@
 
 
     <parent>
-        <artifactId>consys</artifactId>
+        <artifactId>examples</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
         <version>3.0.0-alpha</version>
     </parent>
+
     <artifactId>microbenchmarks</artifactId>
     <version>3.0.0-alpha</version>
     
