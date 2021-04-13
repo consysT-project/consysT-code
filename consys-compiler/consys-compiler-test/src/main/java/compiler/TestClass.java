@@ -1,10 +1,10 @@
 package compiler;
 
 import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.next.Ref;
+import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 import scala.concurrent.duration.Duration;
-import de.tuda.stg.consys.japi.next.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.Cassandra;
 
 
 import java.io.Serializable;

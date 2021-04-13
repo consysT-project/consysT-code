@@ -5,7 +5,7 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
- * Supertrait for all concrete implementations of replicated data stores.
+ * Trait for all concrete implementations of replicated data stores.
  * This class defines an interface for backend data stores that are
  * useable with the ConSysT API.
  *

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.examples.auctions;
 
-import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
+import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems;
 
 /**
  * Created on 15.01.20.

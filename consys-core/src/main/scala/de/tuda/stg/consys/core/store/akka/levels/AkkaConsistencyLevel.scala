@@ -10,6 +10,6 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore
  */
 trait AkkaConsistencyLevel extends StoreConsistencyLevel {
 	override type StoreType = AkkaStore
-	override type Model = AkkaConsistencyModel
+	override type Protocol = AkkaConsistencyProtocol
 
 }

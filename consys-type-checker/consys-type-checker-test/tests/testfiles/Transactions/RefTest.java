@@ -2,7 +2,7 @@ package Transactions;
 
 import de.tuda.stg.consys.checker.qual.Transactional;
 import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.japi.next.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.Cassandra;
 import de.tuda.stg.consys.japi.next.Ref;
 import scala.Option;
 import java.io.Serializable;

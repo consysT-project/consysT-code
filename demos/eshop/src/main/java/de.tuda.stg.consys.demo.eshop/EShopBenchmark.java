@@ -7,16 +7,13 @@ import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.eshop.schema.Database;
 import de.tuda.stg.consys.demo.eshop.schema.ShoppingSite;
 import de.tuda.stg.consys.demo.eshop.schema.User;
-import de.tuda.stg.consys.examples.collections.JRefArrayList;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import static de.tuda.stg.consys.bench.BenchmarkUtils.printProgress;
 
 /**
  * Created on 10.10.19.

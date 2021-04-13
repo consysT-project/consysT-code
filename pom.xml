@@ -38,7 +38,7 @@
         <akka.version>2.6.14</akka.version>
         <aeron.version>1.31.1</aeron.version>
 
-        <cassandra-driver.version>4.4.0</cassandra-driver.version>
+        <cassandra-driver.version>4.11.0</cassandra-driver.version>
 
         <zookeeper.version>3.5.6</zookeeper.version>
         <curator.version>4.2.0</curator.version>

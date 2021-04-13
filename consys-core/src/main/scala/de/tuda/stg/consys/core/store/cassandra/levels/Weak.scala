@@ -2,7 +2,7 @@ package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraStore}
-import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyModel}
+import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoreConsistencyProtocol}
 
 import scala.reflect.ClassTag
 
@@ -12,9 +12,9 @@ import scala.reflect.ClassTag
  * @author Mirko Köhler
  */
 case object Weak extends CassandraConsistencyLevel {
-	override def toModel(store : StoreType) : Model = new WeakModel(store)
+	override def toProtocol(store : StoreType) : Protocol = new WeakProtocol(store)
 
-	private class WeakModel(val store : CassandraStore) extends CassandraConsistencyModel {
+	private class WeakProtocol(val store : CassandraStore) extends CassandraConsistencyProtocol {
 		override def toLevel : Level = Weak
 
 		override def writeRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {

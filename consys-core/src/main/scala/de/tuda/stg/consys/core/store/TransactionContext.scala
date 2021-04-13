@@ -5,9 +5,11 @@ import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.reflect.ClassTag
 
 /**
- * Created on 10.12.19.
+ * Trait for transaction contexts to be used with a certain store type. Transaction
+ * contexts store information about the current transaction.
  *
- * @author Mirko Köhler
+ * Transaction contexts are provided to developers when they start a transaction, and
+ * are used for interacting with the replicated store.
  */
 trait TransactionContext {
 	type StoreType <: Store

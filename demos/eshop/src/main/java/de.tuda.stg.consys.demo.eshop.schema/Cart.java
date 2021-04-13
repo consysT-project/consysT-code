@@ -4,8 +4,8 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefDistList;
-import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
 
 import java.io.Serializable;
 import java.util.ArrayList;

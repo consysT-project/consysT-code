@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.eshop.schema;
 
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.util.ArrayList;
 import java.util.Collection;
