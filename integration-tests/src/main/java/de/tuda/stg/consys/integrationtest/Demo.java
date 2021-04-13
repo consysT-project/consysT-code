@@ -23,7 +23,7 @@ public class Demo {
 
 
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         Cassandra.ReplicaBinding replica1 = Cassandra.newReplica(
                 "127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
         );
