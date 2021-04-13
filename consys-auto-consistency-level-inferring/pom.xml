@@ -22,6 +22,13 @@
 
 
     <dependencies>
+
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+
         <dependency>
             <groupId>org.sosy-lab</groupId>
             <artifactId>java-smt</artifactId>

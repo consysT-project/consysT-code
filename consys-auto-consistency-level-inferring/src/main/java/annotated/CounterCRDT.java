@@ -1,3 +1,7 @@
+package annotated;
+
+import de.tuda.stg.consys.checker.qual.methods.WeakMethod;
+
 public class CounterCRDT {
   public static final int numOfReplicas = 10;
   public static final int replicaId = 5;
@@ -25,6 +29,7 @@ public class CounterCRDT {
   @ ensures \result ==
             (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]);
   @*/
+  @WeakMethod
   int sumIncs() { return 0; }
 
   /*@
@@ -32,11 +37,13 @@ public class CounterCRDT {
   @ ensures \result ==
             (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]);
   @*/
+  @WeakMethod
   int sumDecs(){ return 0; }
 
   /*@ ensures \result == sumIncs() - sumDecs();
   @ assignable \nothing;
   @*/
+  @WeakMethod
   int getValue() { return 0; }
 
 
@@ -47,6 +54,7 @@ public class CounterCRDT {
               incs[incI] == \old(incs[incI]));
   @ ensures decs == \old(decs);
   @*/
+  @WeakMethod
   void inc() {}
 
   /*@
@@ -56,6 +64,7 @@ public class CounterCRDT {
               decs[decI] == \old(decs[decI]));
   @ ensures incs == \old(incs);
   @*/
+  @WeakMethod
   void dec() {}
 
   /*@
