@@ -16,9 +16,9 @@ trait CassandraTransactionContextBinding extends TransactionContext {
 	override type StoreType = CassandraStore
 
 	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] =
-		level.toModel(store).writeRaw[T](addr, obj, this.asInstanceOf[StoreType#TxContext] /* TODO: Is there a better way to get a transaction context? */)
+		level.toProtocol(store).writeRaw[T](addr, obj, this.asInstanceOf[StoreType#TxContext] /* TODO: Is there a better way to get a transaction context? */)
 
 	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
-		level.toModel(store).readRaw[T](addr, this.asInstanceOf[StoreType#TxContext] /* TODO: Is there a better way to get a transaction context? */)
+		level.toProtocol(store).readRaw[T](addr, this.asInstanceOf[StoreType#TxContext] /* TODO: Is there a better way to get a transaction context? */)
 
 }

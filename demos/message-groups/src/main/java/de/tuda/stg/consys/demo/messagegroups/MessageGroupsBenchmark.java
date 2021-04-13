@@ -7,7 +7,7 @@ import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 

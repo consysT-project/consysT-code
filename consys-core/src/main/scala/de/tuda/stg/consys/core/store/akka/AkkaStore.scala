@@ -6,12 +6,12 @@ import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, ExtendedActorSystem,
 import com.datastax.oss.driver.api.core.CqlSession
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
-import de.tuda.stg.consys.core.store.{DistributedStore, LockingStore}
+import de.tuda.stg.consys.core.store.LockingStore
 import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, RemoveObjectReplica}
 import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
-import de.tuda.stg.consys.core.store.extensions.{ZookeeperLockingStoreExt, ZookeeperStoreExt}
+import de.tuda.stg.consys.core.store.extensions.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore}
 import de.tuda.stg.consys.core.store.utils.Address
 import java.net.InetSocketAddress
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
@@ -29,8 +29,8 @@ import scala.util.{Failure, Success}
  * @author Mirko Köhler
  */
 trait AkkaStore extends DistributedStore
-	with ZookeeperStoreExt
-	with ZookeeperLockingStoreExt
+	with DistributedZookeeperStore
+	with DistributedZookeeperLockingStore
 {
 	override type Id = AkkaStoreId
 
@@ -222,7 +222,7 @@ trait AkkaStore extends DistributedStore
 				require(!LocalReplica.contains(addr), s"address $addr is already defined")
 
 				//Create the replicated object on this replica and add it to the object map
-				val ref = level.toModel(AkkaStore.this).createFollowerReplica(addr, obj, masterRef, null)(
+				val ref = level.toProtocol(AkkaStore.this).createFollowerReplica(addr, obj, masterRef, null)(
 					ClassTag(obj.getClass)
 				)
 				LocalReplica.putNewReplica(ref)

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.io.Serializable;
 import java.util.Date;

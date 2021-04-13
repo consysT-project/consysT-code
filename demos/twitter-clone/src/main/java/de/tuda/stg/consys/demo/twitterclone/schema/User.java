@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.JReplicated;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.io.Serializable;
 import java.util.ArrayList;

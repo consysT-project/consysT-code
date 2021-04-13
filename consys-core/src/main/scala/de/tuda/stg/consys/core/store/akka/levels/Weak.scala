@@ -13,9 +13,9 @@ import scala.reflect.ClassTag
  * @author Mirko Köhler
  */
 case object Weak extends AkkaConsistencyLevel {
-	override def toModel(store : StoreType) : Model = new WeakModel(store)
+	override def toProtocol(store : StoreType) : Protocol = new WeakProtocol(store)
 
-	private class WeakModel(val store : AkkaStore) extends AkkaConsistencyModel {
+	private class WeakProtocol(val store : AkkaStore) extends AkkaConsistencyProtocol {
 		override def toLevel : Level = Weak
 
 		def createMasterReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {

@@ -1,16 +1,17 @@
 package de.tuda.stg.consys.core.store
 
 /**
- * Created on 14.01.20.
- *
- * @author Mirko Köhler
+ * Trait for objects that are stored in a store.
  */
 trait StoredObject[StoreType <: Store, T <: StoreType#ObjType] {
 
+	/** Invokes a method on the stored object. */
 	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R
 
+	/** Reads a field of the stored object. */
 	def getField[R](fieldName : String) : R
 
+	/** Writes a field of the stored object */
 	def setField[R](fieldName : String, value : R) : Unit
 
 	/* for Java binding */

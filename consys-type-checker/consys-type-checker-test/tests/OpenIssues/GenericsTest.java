@@ -4,7 +4,7 @@ import de.tuda.stg.consys.checker.qual.Transactional;
 import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.next.Ref;
-import de.tuda.stg.consys.japi.next.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.Cassandra;
 import scala.Option;
 import java.io.Serializable;
 

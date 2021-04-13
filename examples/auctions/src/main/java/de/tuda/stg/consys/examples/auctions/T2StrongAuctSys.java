@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.examples.auctions;
 
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;

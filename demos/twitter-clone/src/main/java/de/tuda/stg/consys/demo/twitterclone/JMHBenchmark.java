@@ -5,10 +5,10 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
-import de.tuda.stg.consys.japi.JConsistencyLevels;
-import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
+import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
+import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 

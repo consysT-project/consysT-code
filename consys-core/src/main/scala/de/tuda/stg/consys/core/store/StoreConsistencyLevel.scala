@@ -1,15 +1,22 @@
 package de.tuda.stg.consys.core.store
 
 /**
- * Created on 10.12.19.
- *
- * @author Mirko Köhler
+ * A consistency level that can be used with a store.
  */
 trait StoreConsistencyLevel extends Serializable {
 
+	/** The type of stores for which this consistency level is for. */
 	type StoreType <: Store
-	type Model <: StoreConsistencyModel {type StoreType = StoreConsistencyLevel.this.StoreType}
+	/** The consistency model for this level. */
+	type Protocol <: StoreConsistencyProtocol {type StoreType = StoreConsistencyLevel.this.StoreType}
 
-	def toModel(store : StoreType) : Model
+	/**
+	 * Produces a consistency model for this level for a concrete store.
+	 * The model implements the consistency protocol.
+	 *
+	 * @param store The store for which to create the model.
+	 * @return A model that implements this consistency level.
+	 */
+	def toProtocol(store : StoreType) : Protocol
 
 }

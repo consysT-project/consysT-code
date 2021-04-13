@@ -5,8 +5,8 @@ import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicatedObject;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
-import de.tuda.stg.consys.japi.impl.akka.JAkkaRef;
+import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.legacy.impl.akka.JAkkaRef;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
 

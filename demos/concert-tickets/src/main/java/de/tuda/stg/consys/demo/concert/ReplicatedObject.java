@@ -4,7 +4,7 @@ import akka.actor.ActorRef;
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicatedObject;
 import de.tuda.stg.consys.core.store.legacy.akka.Requests;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 import scala.collection.mutable.Buffer;
 
 

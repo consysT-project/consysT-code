@@ -1,71 +1,76 @@
 package de.tuda.stg.consys.japi;
 
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.japi.binding.Cassandra;
+import scala.Option;
+import scala.Serializable;
+import scala.concurrent.duration.Duration;
 
 /**
- * Created on 01.03.19.
+ * Created on 27.01.20.
  *
  * @author Mirko Köhler
  */
 public class Demo {
 
-
-	static class SomeObj implements JReplicated {
-		/* This field is needed for JReplicated */ public transient AkkaReplicaSystem replicaSystem = null;
-
-		public int f = 0;
-
-		SomeObj() {
-			showSystem();
+	public static class Box implements Serializable {
+		private int i = 0;
+		public void inc() {
+			i++;
 		}
-
-		public void showSystem() {
-			System.out.println("system = " + getSystem());
+		public int get() {
+			return i;
 		}
 	}
+
+
 
 
 	public static void main(String[] args) throws Exception {
-		JReplicaSystem[] replicas = JReplicaSystems.fromActorSystemForTesting(2);
+		Cassandra.ReplicaBinding replica1 = Cassandra.newReplica(
+			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
+		);
 
-		System.out.println("system1 = " + replicas[0]);
-		System.out.println("system2 = " + replicas[1]);
+		Cassandra.ReplicaBinding replica2 = Cassandra.newReplica(
+			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
+		);
 
-		try {
-			JRef<SomeObj> ref1Strong = replicas[0].replicate("os", new SomeObj(), JConsistencyLevels.STRONG);
-			JRef<SomeObj> ref2Strong = replicas[1].lookup("os", SomeObj.class, JConsistencyLevels.STRONG);
+//		Akka.ReplicaBinding replica1 = Akka.newReplica(
+//				"127.0.0.1", 4121, 2181,
+//				Arrays.asList(
+//						Address.apply("127.0.0.1", 4121),
+//						Address.apply("127.0.0.2", 4122)
+//				),
+//				Duration.apply(60, "s")
+//		);
+//
+//		Akka.ReplicaBinding replica2 = Akka.newReplica(
+//				"127.0.0.2", 4122, 2182,
+//				Arrays.asList(
+//						Address.apply("127.0.0.1", 4121),
+//						Address.apply("127.0.0.2", 4122)
+//				),
+//				Duration.apply(60, "s")
+//		);
 
-			JRef<SomeObj> ref1Weak = replicas[0].replicate("ow", new SomeObj(), JConsistencyLevels.WEAK);
-			JRef<SomeObj> ref2Weak = replicas[1].lookup("ow", SomeObj.class, JConsistencyLevels.WEAK);
+		System.out.println("transaction 1");
+		replica1.transaction(ctx -> {
+			Ref<Box> box1 = ctx.replicate("box1",CassandraConsistencyLevels.STRONG(), Box.class);
+			box1.invoke("inc"); //No compiler plugin => we have to use this syntax
+			return Option.apply(2);
+		});
 
+		System.out.println("transaction 2");
+		replica1.transaction(ctx -> {
+			Ref<Box> box1 = ctx.lookup("box1", CassandraConsistencyLevels.STRONG(), Box.class);
+			box1.invoke("inc");
+			int i = box1.invoke("get");
+			System.out.println(i);
+			return Option.empty();
+		});
 
-			ref1Strong.setField("f", 34);
-			ref1Weak.setField("f", 42);
-
-//		int i = ref1Strong.getField("f");
-
-			System.out.println("ref1Strong.f = " + ref1Strong.getField("f"));
-			System.out.println("ref2Strong.f = " + ref2Strong.getField("f"));
-
-			System.out.println("ref1Weak.f = " + ref1Weak.getField("f"));
-			System.out.println("ref2Weak.f = " + ref2Weak.getField("f"));
-
-			ref2Weak.sync();
-
-			System.out.println("ref1Weak.f = " + ref1Weak.getField("f"));
-			System.out.println("ref2Weak.f = " + ref2Weak.getField("f"));
-
-
-			ref1Strong.invoke("showSystem");
-			ref2Strong.invoke("showSystem");
-
-			ref1Strong.delete();
-			ref2Strong.getField("f");
-
-		} finally {
-			replicas[0].close();
-			replicas[1].close();
-		}
+		replica1.close();
+		replica2.close();
 	}
+
 }

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
-import de.tuda.stg.consys.japi.JReplicaSystem;
-import de.tuda.stg.consys.japi.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
+import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems;
 
 public class Replicas {
     @Deprecated

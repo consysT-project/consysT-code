@@ -5,15 +5,18 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
-import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType}
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader
+import com.datastax.oss.driver.api.core.cql.{AsyncResultSet, BatchStatement, BatchType, SimpleStatement, SimpleStatementBuilder, Statement}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
-import de.tuda.stg.consys.core.store.DistributedStore
+import de.tuda.stg.consys.core.store.LockingStore
 import de.tuda.stg.consys.core.store.cassandra.levels.CassandraConsistencyLevel
-import de.tuda.stg.consys.core.store.extensions.{ZookeeperLockingStoreExt, ZookeeperStoreExt}
+import de.tuda.stg.consys.core.store.extensions.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore}
 import io.aeron.exceptions.DriverTimeoutException
+import java.util.concurrent.CompletionStage
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
-import scala.concurrent.TimeoutException
+import scala.collection.convert.ImplicitConversions.`set asScala`
+import scala.concurrent.{Await, TimeoutException}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
@@ -25,8 +28,7 @@ import scala.reflect.runtime.universe.TypeTag
  * @author Mirko Köhler
  */
 trait CassandraStore extends DistributedStore
-	with ZookeeperStoreExt
-	with ZookeeperLockingStoreExt {
+	with LockingStore {
 	/* Force initialization of binding */
 	CassandraBinding
 
@@ -89,30 +91,44 @@ trait CassandraStore extends DistributedStore
 		if (initializing) initialize()
 		cassandraSession.execute(s"USE $keyspaceName")
 
-
 		private def initialize(): Unit = {
-			//TODO: Remove try catch once it's fixed.
 			try {
-				cassandraSession.execute(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+				cassandraSession.execute(
+					SimpleStatement.builder(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
+						.setExecutionProfileName("consys_init")
+						.build()
+				)
 			} catch {
-				//TODO: Is it a driver bug to have a timeout here?
-				case e :
-					com.datastax.oss.driver.api.core.DriverTimeoutException => println("driver timeout during init")
-					Thread.sleep(1000)
+				case e : DriverTimeoutException =>
+					e.printStackTrace()
 			}
 
 				cassandraSession.execute(
-					s"""CREATE KEYSPACE $keyspaceName
-						 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
-						.stripMargin
+					SimpleStatement.builder(
+						s"""CREATE KEYSPACE $keyspaceName
+								|WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
+								.stripMargin)
+						.setExecutionProfileName("consys_init")
+						.build()
 				)
+
+			try {
 				cassandraSession.execute(
-					s"""CREATE TABLE IF NOT EXISTS $keyspaceName.$objectTableName (
-						 |addr text primary key,
-						 |state blob
-						 |) with comment = 'stores objects as blobs'"""
-						.stripMargin
+					SimpleStatement.builder(
+						s"""CREATE TABLE $keyspaceName.$objectTableName (
+							 |addr text primary key,
+							 |state blob
+							 |) with comment = 'stores objects as blobs'"""
+							.stripMargin)
+						.setExecutionProfileName("consys_init")
+						.build()
 				)
+			} catch {
+				case e : DriverTimeoutException =>
+					e.printStackTrace()
+			}
+
+
 
 			Thread.sleep(100)
 		}
@@ -193,16 +209,19 @@ object CassandraStore {
 			override val curator : CuratorFramework,
 			override val timeout : FiniteDuration,
 			override val initializing : Boolean
-    ) extends CassandraStore
+    ) extends CassandraStore with DistributedZookeeperLockingStore
 
+		val cassandraSession = CqlSession.builder()
+			.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
+			.withLocalDatacenter("datacenter1")
+			.build()
+
+		val curator = CuratorFrameworkFactory
+			.newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
 
 		new CassandraStoreImpl(
-			cassandraSession = CqlSession.builder()
-					.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
-			    .withLocalDatacenter("datacenter1")
-					.build(),
-			curator = CuratorFrameworkFactory
-				.newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3)),
+			cassandraSession,
+			curator,
 			timeout = withTimeout,
 			initializing = withInitialize
 		)

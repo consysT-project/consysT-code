@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.concert.schema;
 
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.io.Serializable;
 import java.util.Date;

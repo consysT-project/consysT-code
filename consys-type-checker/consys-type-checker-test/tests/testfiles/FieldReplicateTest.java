@@ -2,7 +2,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Transactional;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.next.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.Cassandra;
 
 import java.io.Serializable;
 

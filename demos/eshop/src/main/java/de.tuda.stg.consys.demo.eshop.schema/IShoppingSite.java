@@ -2,8 +2,7 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
-import de.tuda.stg.consys.examples.collections.JRefDistList;
-import de.tuda.stg.consys.japi.JRef;
+import de.tuda.stg.consys.japi.legacy.JRef;
 
 import java.util.ArrayList;
 

@@ -21,7 +21,7 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] = {
 		require(!store.LocalReplica.contains(addr))
 
-		val model = level.toModel(store)
+		val model = level.toProtocol(store)
 
 		import akka.pattern.ask
 		/*create the replicated object*/

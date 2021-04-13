@@ -10,7 +10,7 @@ import de.tuda.stg.consys.core.store.cassandra.CassandraStore
  */
 trait CassandraConsistencyLevel extends StoreConsistencyLevel {
 	override type StoreType = CassandraStore
-	override type Model = CassandraConsistencyModel
+	override type Protocol = CassandraConsistencyProtocol
 
 
 }
