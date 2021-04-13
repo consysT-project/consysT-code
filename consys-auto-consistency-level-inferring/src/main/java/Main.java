@@ -29,7 +29,7 @@ public class Main {
   public static TypeDeclaration[] classDeclarations = null;
 
   private static void loadLib(String libname) {
-    Path lib = Paths.get("lib/",libname).toAbsolutePath();
+    Path lib = Paths.get("consys-auto-consistency-level-inferring/lib/",libname).toAbsolutePath();
     System.out.println("load " + libname + ": " + lib);
     Runtime.getRuntime().load(lib.toString());
   }

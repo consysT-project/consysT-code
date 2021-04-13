@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 // DYLD_LIBRARY_PATH=/Users/benyamin/WorkspacePhD/Mirko_invariant_edited/pre_and_post_conditions/lib/
+// DYLD_LIBRARY_PATH=/Users/benyamin/WorkspacePhD/ConSysT2/consysT-code/consys-auto-consistency-level-inferring/lib/
 // For environment variables
 
 public class TestOutput {

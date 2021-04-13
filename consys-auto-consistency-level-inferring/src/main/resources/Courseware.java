@@ -30,7 +30,7 @@ class Courseware {
         courses.remove(course);
     }
 
-    @PostCond("new.students == this.students ∪ other.students && new.courses = this.courses ∪ other.courses && new.enrolments = this.enrolments ∪ other.enrolments"
+    @PostCond("new.students == this.students ∪ other.students && new.courses = this.courses ∪ other.courses && new.enrolments = this.enrolments ∪ other.enrolments")
             @Merge void merge(Courseware other) {
         students.addAll(other.students);
         courses.addAll(other.courses);
