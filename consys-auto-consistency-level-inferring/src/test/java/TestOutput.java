@@ -196,6 +196,8 @@ public class TestOutput {
         System.out.println(Z3Checker.checkInvariantSufficientMerge(result));
         System.out.println(Z3Checker.checkMergeableMergedState(result));
 
+        System.out.println("Prerequisities okay?: " + Z3Checker.checkPreRequisities(result));
+
         Map<String, Z3Checker.ConsistencyLevel> weakOrStrong =
                 Z3Checker.checkWeakConsistencyForMethods(result);
 
