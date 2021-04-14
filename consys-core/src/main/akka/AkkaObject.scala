@@ -4,7 +4,7 @@ import java.lang.reflect.Modifier
 
 import de.tuda.stg.consys.core.store.akka.Requests.Request
 import de.tuda.stg.consys.core.store.utils.Reflect
-import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
+import de.tuda.stg.consys.core.store.{ConsistencyLevel, Handler}
 
 import scala.reflect.ClassTag
 
@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
  *
  * @author Mirko Köhler
  */
-private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] extends StoredObject[AkkaStore, T] {
+private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] extends Handler[AkkaStore, T] {
 
 	def addr : AkkaStore#Addr
 	def state : T
@@ -61,7 +61,7 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 					rob.sync()
 					syncObject(state, alreadySynced + rob)
 
-				case ref : AkkaHandler[_] =>
+				case ref : AkkaRef[_] =>
 					val rob = ref.resolve()
 					syncObject(rob, alreadySynced + ref)
 

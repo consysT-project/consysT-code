@@ -1,5 +1,7 @@
-package de.tuda.stg.consys.core.store
+package de.tuda.stg.consys.core.store.txext
 
+import de.tuda.stg.consys.core.store.storeext.LockingStore
+import de.tuda.stg.consys.core.store.{Store, TransactionContext}
 import scala.collection.mutable
 
 /**
@@ -7,9 +9,7 @@ import scala.collection.mutable
  *
  * @author Mirko Köhler
  */
-trait LockingTransactionContext extends TransactionContext {
-
-	type StoreType <: Store with LockingStore
+trait LockingTransactionContext[StoreType <: Store with LockingStore] extends TransactionContext[StoreType] {
 
 	private val acquiredLocks : mutable.Map[StoreType#Addr, StoreType#LockType] = mutable.HashMap.empty
 

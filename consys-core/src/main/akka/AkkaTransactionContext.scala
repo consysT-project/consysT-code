@@ -2,7 +2,8 @@ package de.tuda.stg.consys.core.store.akka
 
 import akka.util.Timeout
 import de.tuda.stg.consys.core.store.akka.AkkaStore.CreateObjectReplica
-import de.tuda.stg.consys.core.store.{CommitableTransactionContext, LockingTransactionContext, TransactionContext}
+import de.tuda.stg.consys.core.store.TransactionContext
+import de.tuda.stg.consys.core.store.txext.{CommitableTransactionContext, LockingTransactionContext}
 import scala.concurrent.Await
 import scala.reflect.ClassTag
 
@@ -18,7 +19,7 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 
 	override type StoreType = AkkaStore
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] = {
+	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#HandlerType[T] = {
 		require(!store.LocalReplica.contains(addr))
 
 		val model = level.toProtocol(store)
@@ -41,7 +42,7 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 		replicatedObject
 	}
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
+	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#HandlerType[T] =
 		store.LocalReplica.get(addr).get.asInstanceOf[AkkaObject[T]]
 
 
@@ -53,6 +54,6 @@ case class AkkaTransactionContext(override val store : AkkaStore) extends Transa
 	/**
 	 * Implicitly resolves handlers in this transaction context.
 	 */
-	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
+	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#HandlerType[T] =
 		handler.resolve(this)
 }

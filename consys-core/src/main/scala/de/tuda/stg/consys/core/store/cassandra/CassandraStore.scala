@@ -8,9 +8,8 @@ import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader
 import com.datastax.oss.driver.api.core.cql.{AsyncResultSet, BatchStatement, BatchType, SimpleStatement, SimpleStatementBuilder, Statement}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
-import de.tuda.stg.consys.core.store.LockingStore
-import de.tuda.stg.consys.core.store.cassandra.levels.CassandraConsistencyLevel
-import de.tuda.stg.consys.core.store.extensions.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore}
+import de.tuda.stg.consys.core.store.ConsistencyLevel
+import de.tuda.stg.consys.core.store.storeext.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore, LockingStore}
 import io.aeron.exceptions.DriverTimeoutException
 import java.util.concurrent.CompletionStage
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
@@ -39,11 +38,10 @@ trait CassandraStore extends DistributedStore
 
 	override final type TxContext = CassandraTransactionContext
 
-	override final type RawType[T <: ObjType] = CassandraObject[T]
-	override final type RefType[T <: ObjType] = CassandraHandler[T]
+	override final type HandlerType[T <: ObjType] = CassandraHandler[T]
+	override final type RefType[T <: ObjType] = CassandraRef[T]
 
-	override final type Level = CassandraConsistencyLevel
-
+	override final type Level = ConsistencyLevel[CassandraStore]
 
 
 	protected[store] val cassandraSession : CqlSession
@@ -53,7 +51,7 @@ trait CassandraStore extends DistributedStore
 
 	override def transaction[U](code : TxContext => Option[U]) : Option[U] = {
 		CassandraStores.currentStore.withValue(this) {
-			val tx = CassandraTransactionContext(this)
+			val tx = new CassandraTransactionContext(this)
 			CassandraStores.currentTransaction.withValue(tx) {
 				try {
 					code(tx) match {
@@ -75,9 +73,6 @@ trait CassandraStore extends DistributedStore
 	}
 
 	override def id : CassandraStoreId = CassandraStoreId(s"cassandra-store@${cassandraSession.getContext.getSessionName}")
-
-	override protected[store] def enref[T <: ObjType : ClassTag](obj : CassandraObject[T]) : CassandraHandler[T] =
-		new CassandraHandler[T](obj.addr, obj.consistencyLevel)
 
 
 	/**

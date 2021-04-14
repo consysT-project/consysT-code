@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store.akka.levels
 
-import de.tuda.stg.consys.core.store.StoreConsistencyLevel
+import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 
 /**
@@ -8,7 +8,7 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore
  *
  * @author Mirko Köhler
  */
-trait AkkaConsistencyLevel extends StoreConsistencyLevel {
+trait AkkaConsistencyLevel extends ConsistencyLevel {
 	override type StoreType = AkkaStore
 	override type Protocol = AkkaConsistencyProtocol
 

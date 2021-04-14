@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.japi.binding;
 
-import de.tuda.stg.consys.core.store.StoreConsistencyLevel;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.*;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.Replica;
@@ -28,7 +28,7 @@ public class Cassandra {
 		return new ReplicaBinding(store);
 	}
 
-	static public class ReplicaBinding implements Replica<String, Serializable, StoreConsistencyLevel, TransactionContextBinding> {
+	static public class ReplicaBinding implements Replica<String, Serializable, ConsistencyLevel, TransactionContextBinding> {
 		private final CassandraStore store;
 
 		ReplicaBinding(CassandraStore store) {
@@ -36,7 +36,7 @@ public class Cassandra {
 		}
 
 		@Override
-		public <U> Option<U> transaction(Transaction<TransactionContextBinding, U, String, Serializable, StoreConsistencyLevel> tx) {
+		public <U> Option<U> transaction(Transaction<TransactionContextBinding, U, String, Serializable, ConsistencyLevel> tx) {
 			return store.transaction((Function1<CassandraTransactionContext, Option<U>>) v1 -> tx.doTransaction(new TransactionContextBinding(v1)));
 		}
 
@@ -47,7 +47,7 @@ public class Cassandra {
 	}
 
 
-	public static class TransactionContextBinding implements TransactionContext<String, Serializable, StoreConsistencyLevel> {
+	public static class TransactionContextBinding implements TransactionContext<String, Serializable, ConsistencyLevel> {
 		private final CassandraTransactionContext ctx;
 
 		TransactionContextBinding(CassandraTransactionContext ctx) {
@@ -55,22 +55,22 @@ public class Cassandra {
 		}
 
 		@Override
-		public <T extends Serializable> Ref<T> replicate(String s, StoreConsistencyLevel level, Class<T> clazz, Object... constructorArgs) {
-			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.replicate(s, level, clazz, constructorArgs);
+		public <T extends Serializable> Ref<T> replicate(String s, ConsistencyLevel level, Class<T> clazz, Object... constructorArgs) {
+			CassandraRef<T> handler = (CassandraRef<T>) ctx.replicate(s, level, clazz, constructorArgs);
 			return new RefBinding<>(handler);
 		}
 
 		@Override
-		public <T extends Serializable> Ref<T> lookup(String s, StoreConsistencyLevel level, Class<T> clazz) {
-			CassandraHandler<T> handler = (CassandraHandler<T>) ctx.lookup(s, level, clazz);
+		public <T extends Serializable> Ref<T> lookup(String s, ConsistencyLevel level, Class<T> clazz) {
+			CassandraRef<T> handler = (CassandraRef<T>) ctx.lookup(s, level, clazz);
 			return new RefBinding<>(handler);
 		}
 	}
 
 	public static class RefBinding<T extends Serializable> implements Ref<T> {
-		private final CassandraHandler<T> handler;
+		private final CassandraRef<T> handler;
 
-		RefBinding(CassandraHandler<T> handler) {
+		RefBinding(CassandraRef<T> handler) {
 			this.handler = handler;
 		}
 

@@ -6,12 +6,11 @@ import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, ExtendedActorSystem,
 import com.datastax.oss.driver.api.core.CqlSession
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
-import de.tuda.stg.consys.core.store.LockingStore
 import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObjectsReplica, CreateObjectReplica, RemoveObjectReplica}
 import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
-import de.tuda.stg.consys.core.store.extensions.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore}
+import de.tuda.stg.consys.core.store.storeext.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore, LockingStore}
 import de.tuda.stg.consys.core.store.utils.Address
 import java.net.InetSocketAddress
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
@@ -39,8 +38,8 @@ trait AkkaStore extends DistributedStore
 
 	override type TxContext = AkkaTransactionContext
 
-	override type RawType[T <: ObjType] = AkkaObject[T]
-	override type RefType[T <: ObjType] = AkkaHandler[T]
+	override type HandlerType[T <: ObjType] = AkkaObject[T]
+	override type RefType[T <: ObjType] = AkkaRef[T]
 
 	override type Level = AkkaConsistencyLevel
 
@@ -73,8 +72,8 @@ trait AkkaStore extends DistributedStore
 
 	}
 
-	override protected[store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T] =
-		new AkkaHandler[T](obj.addr, obj.consistencyLevel)
+	override protected[store] def enref[T <: ObjType : ClassTag](obj : HandlerType[T]) : RefType[T] =
+		new AkkaRef[T](obj.addr, obj.consistencyLevel)
 
 
 	private[akka] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.japi.binding;
 
-import de.tuda.stg.consys.core.store.StoreConsistencyLevel;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.akka.*;
 import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.japi.Ref;
@@ -25,7 +25,7 @@ public class Akka {
         return new ReplicaBinding(store);
     }
 
-    public static class ReplicaBinding implements Replica<String, Serializable, StoreConsistencyLevel, TransactionContextBinding> {
+    public static class ReplicaBinding implements Replica<String, Serializable, ConsistencyLevel, TransactionContextBinding> {
         private final AkkaStore store;
 
         ReplicaBinding(AkkaStore store) {
@@ -33,7 +33,7 @@ public class Akka {
         }
 
         @Override
-        public <U> Option<U> transaction(Transaction<TransactionContextBinding, U, String, Serializable, StoreConsistencyLevel> tx) {
+        public <U> Option<U> transaction(Transaction<TransactionContextBinding, U, String, Serializable, ConsistencyLevel> tx) {
             return store.transaction((Function1<AkkaTransactionContext, Option<U>>) v1 -> tx.doTransaction(new TransactionContextBinding(v1)));
         }
 
@@ -43,7 +43,7 @@ public class Akka {
         }
     }
 
-    public static class TransactionContextBinding implements TransactionContext<String, Serializable, StoreConsistencyLevel> {
+    public static class TransactionContextBinding implements TransactionContext<String, Serializable, ConsistencyLevel> {
         private final AkkaTransactionContext ctx;
 
         TransactionContextBinding(AkkaTransactionContext ctx) {
@@ -51,22 +51,22 @@ public class Akka {
         }
 
         @Override
-        public <T extends Serializable> Ref<T> replicate(String s, StoreConsistencyLevel level, Class<T> clazz, Object... constructorArgs) {
-            AkkaHandler<T> handler = (AkkaHandler<T>) ctx.replicate(s, level, clazz, constructorArgs);
+        public <T extends Serializable> Ref<T> replicate(String s, ConsistencyLevel level, Class<T> clazz, Object... constructorArgs) {
+            AkkaRef<T> handler = (AkkaRef<T>) ctx.replicate(s, level, clazz, constructorArgs);
             return new RefBinding<>(handler);
         }
 
         @Override
-        public <T extends Serializable> Ref<T> lookup(String s, StoreConsistencyLevel level, Class<T> clazz) {
-            AkkaHandler<T> handler = (AkkaHandler<T>) ctx.lookup(s, level, clazz);
+        public <T extends Serializable> Ref<T> lookup(String s, ConsistencyLevel level, Class<T> clazz) {
+            AkkaRef<T> handler = (AkkaRef<T>) ctx.lookup(s, level, clazz);
             return new RefBinding<>(handler);
         }
     }
 
     public static class RefBinding<T extends Serializable> implements Ref<T> {
-        private final AkkaHandler<T> handler;
+        private final AkkaRef<T> handler;
 
-        RefBinding(AkkaHandler<T> handler) {
+        RefBinding(AkkaRef<T> handler) {
             this.handler = handler;
         }
 

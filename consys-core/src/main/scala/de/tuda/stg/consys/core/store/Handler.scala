@@ -1,12 +1,20 @@
 package de.tuda.stg.consys.core.store
 
-import scala.language.higherKinds
-
 /**
- * Created on 10.12.19.
- *
- * @author Mirko Köhler
+ * Trait for objects that are stored in a store.
  */
 trait Handler[StoreType <: Store, T <: StoreType#ObjType] {
-	def resolve(tx : => StoreType#TxContext) : StoreType#RawType[T]
+
+	/** Invokes a method on the stored object. */
+	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R
+
+	/** Reads a field of the stored object. */
+	def getField[R](fieldName : String) : R
+
+	/** Writes a field of the stored object */
+	def setField[R](fieldName : String, value : R) : Unit
+
+	/* for Java binding */
+	final def invoke[R](methodName : String, args : Array[Any]) : R =
+		invoke[R](methodName, Seq(args.toSeq))
 }

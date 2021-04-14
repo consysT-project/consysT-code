@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store.extensions
+package de.tuda.stg.consys.core.store.storeext
 
 import scala.concurrent.duration.Duration
 

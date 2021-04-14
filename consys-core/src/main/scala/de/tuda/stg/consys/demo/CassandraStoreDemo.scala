@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo
 import java.util.concurrent.Executors
 
 import de.tuda.stg.consys.core.store.cassandra.levels.Strong
-import de.tuda.stg.consys.core.store.cassandra.{CassandraHandler, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,6 +32,10 @@ object CassandraStoreDemo extends App {
 		println("replicated myint2")
 		val ints = replicate[MyInts]("myints", level, int1, int2)
 		println("replicated myints")
+
+		int1.invoke("inc", Seq(Seq()))
+		println(int1.invoke("get", Seq(Seq())))
+
 		Some(())
 	}
 
@@ -98,8 +102,8 @@ object CassandraStoreDemo extends App {
 
 
 	case class MyInts(
-		i : CassandraHandler[MyInt],
-		j : CassandraHandler[MyInt]
+		i : CassandraRef[MyInt],
+		j : CassandraRef[MyInt]
   ) {
 		def double() : Unit = {
 			i.resolve().invoke("double", Seq(Seq()))

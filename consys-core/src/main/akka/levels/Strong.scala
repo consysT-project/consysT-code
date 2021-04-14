@@ -18,11 +18,11 @@ case object Strong extends AkkaConsistencyLevel {
 	private class StrongProtocol(val store : AkkaStore) extends AkkaConsistencyProtocol {
 		override def toLevel : Level = Weak
 
-		def createMasterReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+		def createMasterReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, txContext : StoreType#TxContext) : StoreType#HandlerType[T] = {
 			new StrongMasterAkkaObject[T](addr, obj, store, txContext)
 		}
 
-		def createFollowerReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, masterRef : ActorRef, txContext : StoreType#TxContext) : StoreType#RawType[T] = {
+		def createFollowerReplica[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, masterRef : ActorRef, txContext : StoreType#TxContext) : StoreType#HandlerType[T] = {
 			new StrongMasterAkkaObject[T](addr, obj, store, txContext)
 		}
 	}

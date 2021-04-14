@@ -21,21 +21,19 @@ trait Store extends AutoCloseable {
 	type ObjType
 
 	/** Type of transactions contexts in the store that defines what users can do with transactions. */
-	type TxContext <: TransactionContext
+	type TxContext <: TransactionContext[_ <: Store]
 
-	/** The type of concrete objects that are stored. Handles connections of Scala objects and the store. */
-	type RawType[T <: ObjType] <: StoredObject[_ <: Store, T]
-	/** The of handlers to stored objects. */
-	type RefType[T <: ObjType] <: Handler[_ <: Store, T]
+	/** The type of handlers of stored object that handle, e.g., method calls. */
+	type HandlerType[T <: ObjType] <: Handler[_ <: Store, T]
+	/** The type of references to stored objects. */
+	type RefType[T <: ObjType] <: Ref[_ <: Store, T]
 
 	/** The type of levels that are useable in this store. */
-	type Level <: StoreConsistencyLevel
+	type Level <: ConsistencyLevel[_ <: Store]
 
 	def id : Id
 
 	def transaction[T](code : TxContext => Option[T]) : Option[T]
 
 	override def close() : Unit = { }
-
-	protected [store] def enref[T <: ObjType : ClassTag](obj : RawType[T]) : RefType[T]
 }

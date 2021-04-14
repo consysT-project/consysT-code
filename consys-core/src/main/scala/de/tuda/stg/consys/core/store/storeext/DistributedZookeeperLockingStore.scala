@@ -1,8 +1,7 @@
-package de.tuda.stg.consys.core.store.extensions
+package de.tuda.stg.consys.core.store.storeext
 
-import de.tuda.stg.consys.core.store.LockingStore.DistributedLock
-import de.tuda.stg.consys.core.store.extensions.DistributedZookeeperLockingStore.ZookeeperLock
-import de.tuda.stg.consys.core.store.LockingStore
+import de.tuda.stg.consys.core.store.storeext.DistributedZookeeperLockingStore.ZookeeperLock
+import de.tuda.stg.consys.core.store.storeext.LockingStore.DistributedLock
 import java.util.concurrent.{TimeUnit, TimeoutException}
 import org.apache.curator.framework.recipes.locks.{InterProcessLock, InterProcessMutex}
 

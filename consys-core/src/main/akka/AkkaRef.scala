@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.core.store.akka
 
-import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
+import de.tuda.stg.consys.core.store.{Ref, ConsistencyLevel}
 
 import scala.reflect.ClassTag
 
@@ -9,17 +9,17 @@ import scala.reflect.ClassTag
  *
  * @author Mirko Köhler
  */
-class AkkaHandler[T <: java.io.Serializable : ClassTag](
+class AkkaRef[T <: java.io.Serializable : ClassTag](
 	val addr : String,
 	val level : AkkaStore#Level
-) extends Handler[AkkaStore, T] with Serializable {
+) extends Ref[AkkaStore, T] with Serializable {
 
-	override def resolve(tx : => AkkaStore#TxContext) : AkkaStore#RawType[T] = {
+	override def resolve(tx : => AkkaStore#TxContext) : AkkaStore#HandlerType[T] = {
 		tx.lookupRaw[T](addr, level)
 	}
 
 	/* This method is for convenience use in transactions */
-	def resolve() : AkkaStore#RawType[T] = AkkaStores.getCurrentTransaction match {
+	def resolve() : AkkaStore#HandlerType[T] = AkkaStores.getCurrentTransaction match {
 		case None => throw new IllegalStateException(s"can not resolve handler for <$addr>. no active transaction.")
 		case Some(tx) => resolve(tx)
 	}

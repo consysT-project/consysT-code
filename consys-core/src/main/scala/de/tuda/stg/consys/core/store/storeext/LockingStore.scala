@@ -1,7 +1,6 @@
-package de.tuda.stg.consys.core.store
+package de.tuda.stg.consys.core.store.storeext
 
-import LockingStore.DistributedLock
-import de.tuda.stg.consys.core.store.extensions.DistributedStore
+import de.tuda.stg.consys.core.store.storeext.LockingStore.DistributedLock
 
 /**
  * Trait for stores that require a locking mechanism.

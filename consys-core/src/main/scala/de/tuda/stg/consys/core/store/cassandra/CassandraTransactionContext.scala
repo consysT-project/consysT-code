@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.store.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext, TransactionContext}
-
+import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol, TransactionContext}
+import de.tuda.stg.consys.core.store.txext.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
@@ -11,38 +12,63 @@ import scala.reflect.runtime.universe.TypeTag
  *
  * @author Mirko Köhler
  */
-case class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext
-	with CassandraTransactionContextBinding
-	with CommitableTransactionContext
-	with CachedTransactionContext
-	with LockingTransactionContext
-{
-	override type StoreType = CassandraStore
-	override protected type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
+class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext[CassandraStore]
+	with CommitableTransactionContext[CassandraStore]
+	with CachedTransactionContext[CassandraStore]
+	with LockingTransactionContext[CassandraStore] {
+
+	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T]
 
 	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] =
-		super.replicateRaw[T](addr, obj, level)
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
-		super.lookupRaw[T](addr, level)
+	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
+		def callConstructor[T](clazz : ClassTag[T], args : Any*) : T = {
+			val constructor = Reflect.findConstructor(clazz.runtimeClass, args : _*)
+			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[T]
+		}
 
-	//TODO: Can we make this method package private?
-	override private[store] def commit() : Unit = {
-		cache.valuesIterator.foreach(obj => obj.writeToStore(store))
-		locks.foreach(lock => lock.release())
+		// Creates a new object by calling the matching constructor
+		val obj = callConstructor(implicitly[ClassTag[T]], constructorArgs : _*)
+
+		//
+		val protocol = level.toProtocol(store)
+		val ref = protocol.replicate[T](this, addr, obj)
+		ref
+
+//		store.enref(
+//			replicateRaw[T](addr, obj, level)(implicitly[ClassTag[T]]).asInstanceOf[store.RawType[T with store.ObjType]]
+//		).asInstanceOf[StoreType#RefType[T]]
 	}
 
-	override protected def rawToCached[T <: StoreType#ObjType : ClassTag](raw : StoreType#RawType[T]) : CachedType[T] = raw
+	def lookup[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level) : CassandraStore#RefType[T] = {
+		val protocol = level.toProtocol(store)
+		val ref = protocol.lookup[T](this, addr)
+		ref
 
-	override protected def cachedToRaw[T <: StoreType#ObjType : ClassTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
+//		store.enref(
+//			lookupRaw[T](addr, level)(implicitly[ClassTag[T]]).asInstanceOf[store.RawType[T with store.ObjType]]
+//		)(implicitly[ClassTag[T]].asInstanceOf[ClassTag[T with store.ObjType]]).asInstanceOf[StoreType#RefType[T]]
+	}
+
+	override private[store] def commit() : Unit = {
+		Cache.buffer.valuesIterator.foreach(obj => {
+			val protocol = obj.consistencyLevel.toProtocol(store)
+			protocol.commit(this, obj.toRef)
+		})
+		Cache.buffer.valuesIterator.foreach(obj => {
+			val protocol = obj.consistencyLevel.toProtocol(store)
+			protocol.postCommit(this, obj.toRef)
+		})
+//		locks.foreach(lock => lock.release())
+	}
+
+	override def toString : String = s"CassandraTxContext(${store.id}//$timestamp)"
 
 	/**
 	 * Implicitly resolves handlers in this transaction context.
 	 */
-	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
-		handler.resolve(this)
-
+	implicit def resolveHandler[T <: CassandraStore#ObjType : ClassTag](ref : CassandraStore#RefType[T]) : CassandraStore#HandlerType[T] =
+		ref.resolve(this)
 
 }

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.store.utils.Reflect
-import de.tuda.stg.consys.core.store.{StoreConsistencyLevel, StoredObject}
+import de.tuda.stg.consys.core.store.{ConsistencyLevel, Handler}
 import jdk.dynalink.linker.support.TypeUtilities
 
 import scala.reflect.ClassTag
@@ -13,30 +13,27 @@ import scala.reflect.runtime.universe._
  *
  * @author Mirko Köhler
  */
-private[cassandra] abstract class CassandraObject[T <: java.io.Serializable : ClassTag] extends StoredObject[CassandraStore, T] {
+private[cassandra] abstract class CassandraObject[T <: CassandraStore#ObjType : ClassTag] {
 
 	def addr : CassandraStore#Addr
 	def state : T
 	def consistencyLevel : CassandraStore#Level
 
-	override def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
+	def getClassTag : ClassTag[T] = implicitly[ClassTag[T]]
+	def toRef : CassandraRef[T] = CassandraRef[T](addr, consistencyLevel)
+
+	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke[R](methodId, args)
 	}
 
-	override def getField[R](fieldName : String) : R = {
+	def getField[R](fieldName : String) : R = {
 		ReflectiveAccess.doGetField[R](fieldName)
 	}
 
-	override def setField[R](fieldName : String, value : R) : Unit = {
+	def setField[R](fieldName : String, value : R) : Unit = {
 		ReflectiveAccess.doSetField(fieldName, value)
 	}
 
-
-	protected[cassandra] def writeToStore(store : CassandraStore) : Unit
-
-	//This method is called for every object that was part of a transaction.
-	//It has to be used to write changes back to Cassandra and to release all locks.
-//	def commit() : Unit
 
 	/**
 	 * This private object encapsulates the reflective access to the stored state.
