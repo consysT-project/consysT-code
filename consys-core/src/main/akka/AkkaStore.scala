@@ -10,7 +10,7 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore.{AcquireHandler, ClearObject
 import de.tuda.stg.consys.core.store.akka.Requests.{AsynchronousRequest, CloseHandler, HandleRequest, InitHandler, NoAnswerRequest, RequestHandler, RequestHandlerImpl, SynchronousRequest}
 import de.tuda.stg.consys.core.store.akka.levels.AkkaConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
-import de.tuda.stg.consys.core.store.storeext.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore, LockingStore}
+import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore, LockingStore}
 import de.tuda.stg.consys.core.store.utils.Address
 import java.net.InetSocketAddress
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}

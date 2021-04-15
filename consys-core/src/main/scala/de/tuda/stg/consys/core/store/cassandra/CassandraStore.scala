@@ -1,25 +1,21 @@
 package de.tuda.stg.consys.core.store.cassandra
 
+import com.datastax.oss.driver.api.core.CqlSession
+import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
+import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType, SimpleStatement}
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder
+import de.tuda.stg.consys.core.store.ConsistencyLevel
+import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, DistributedZookeeperLockingStore, LockingStore}
+import io.aeron.exceptions.DriverTimeoutException
 import java.io._
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import com.datastax.oss.driver.api.core.CqlSession
-import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader
-import com.datastax.oss.driver.api.core.cql.{AsyncResultSet, BatchStatement, BatchType, SimpleStatement, SimpleStatementBuilder, Statement}
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder
-import de.tuda.stg.consys.core.store.ConsistencyLevel
-import de.tuda.stg.consys.core.store.storeext.{DistributedStore, DistributedZookeeperLockingStore, DistributedZookeeperStore, LockingStore}
-import io.aeron.exceptions.DriverTimeoutException
-import java.util.concurrent.CompletionStage
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
-import scala.collection.convert.ImplicitConversions.`set asScala`
-import scala.concurrent.{Await, TimeoutException}
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.TypeTag
-
+import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 
 /**
  * Created on 10.12.19.
@@ -128,7 +124,7 @@ trait CassandraStore extends DistributedStore
 			Thread.sleep(100)
 		}
 
-		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CLevel, timestamp : Long) : Unit = {
+		private[cassandra] def writeObject[T <: Serializable](addr : String, obj : T, clevel : CassandraLevel, timestamp : Long) : Unit = {
 			import QueryBuilder._
 
 			val query = insertInto(s"$objectTableName")
@@ -142,7 +138,7 @@ trait CassandraStore extends DistributedStore
 			cassandraSession.execute(query)
 		}
 
-		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CLevel, timestamp : Long) : Unit = {
+		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CassandraLevel, timestamp : Long) : Unit = {
 			import QueryBuilder._
 			val batch = BatchStatement.builder(BatchType.LOGGED)
 
@@ -162,7 +158,7 @@ trait CassandraStore extends DistributedStore
 		}
 
 
-		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CLevel) : T = {
+		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : T = {
 			import QueryBuilder._
 
 			val query = selectFrom(s"$objectTableName")

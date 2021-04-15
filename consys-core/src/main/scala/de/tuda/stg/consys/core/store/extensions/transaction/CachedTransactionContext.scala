@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store.txext
+package de.tuda.stg.consys.core.store.extensions.transaction
 
 import de.tuda.stg.consys.core.store.{Store, TransactionContext}
 import scala.collection.mutable
@@ -24,7 +24,7 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 		def get(addr : StoreType#Addr) : Option[CachedType[_ <: StoreType#ObjType]] =
 			buffer.get(addr)
 
-		def getElseUpdate[T <: StoreType#ObjType](addr : StoreType#Addr,  obj : => CachedType[T]) : CachedType[T] =
+		def getOrElseUpdate[T <: StoreType#ObjType](addr : StoreType#Addr,  obj : => CachedType[T]) : CachedType[T] =
 			buffer.getOrElseUpdate(addr, obj).asInstanceOf[CachedType[T]]
 	}
 

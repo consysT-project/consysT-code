@@ -36,8 +36,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			txContext.acquireLock(addr)
 			txContext.Cache.get(addr) match {
 				case None =>
-					val obj : T = store.CassandraBinding.readObject[T](addr, CassandraLevel.ALL)
-					val cassObj = new StrongCassandraObject[T](addr, obj)
+					val cassObj = strongRead[T](addr)
 					txContext.Cache.put(addr, cassObj)
 					cassObj.toRef
 				case Some(cached : StrongCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
@@ -47,56 +46,37 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			}
 		}
 
-		def invoke[T <: CassandraStore#ObjType : ClassTag, R](
+		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
 			receiver : CassandraStore#RefType[T],
 			methodId : String,
 			args : Seq[Seq[Any]]
 		) : R = {
 			val addr = receiver.addr
-			txContext.Cache.get(addr) match {
-				case None =>
-					throw new IllegalStateException(s"cannot invoke method on object that is not available in this tx. obj: $receiver")
-				case Some(cached : StrongCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-					val result = cached.invoke[R](methodId, args)
-					result
-				case Some(cached) =>
-					val level = receiver.level
-					throw new IllegalStateException(s"lookup with wrong consistency level. level: $level, obj: $cached")
-			}
+			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			val result = cached.invoke[R](methodId, args)
+			result
 		}
-		def getField[T <: CassandraStore#ObjType : ClassTag, R](
+
+		override def getField[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
 			receiver : CassandraStore#RefType[T],
 			fieldName : String
 		) : R = {
 			val addr = receiver.addr
-			txContext.Cache.get(addr) match {
-				case None =>
-					throw new IllegalStateException(s"cannot invoke method on object that is not available in this tx. obj: $receiver")
-				case Some(cached : StrongCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-					val result = cached.getField[R](fieldName)
-					result
-				case Some(cached) =>
-					val level = receiver.level
-					throw new IllegalStateException(s"lookup with wrong consistency level. level: $level, obj: $cached")
-			}
+			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			val result = cached.getField[R](fieldName)
+			result
 		}
-		def setField[T <: CassandraStore#ObjType : ClassTag, R](
+
+		override def setField[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
 			receiver : CassandraStore#RefType[T],
 			fieldName : String, value : R
 		) : Unit = {
 			val addr = receiver.addr
-			txContext.Cache.get(addr) match {
-				case None =>
-					throw new IllegalStateException(s"cannot invoke method on object that is not available in this tx. obj: $receiver")
-				case Some(cached : StrongCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-					cached.setField[R](fieldName, value)
-				case Some(cached) =>
-					val level = receiver.level
-					throw new IllegalStateException(s"lookup with wrong consistency level. level: $level, obj: $cached")
-			}
+			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			cached.setField[R](fieldName, value)
 		}
 
 		override def commit(
@@ -106,20 +86,22 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 			case Some(cassObj) =>
 				store.CassandraBinding.writeObject(cassObj.addr, cassObj.state, CassandraLevel.ALL, txContext.timestamp)
-				txContext.releaseLock(cassObj.addr)
 		}
 
 		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {
 			txContext.releaseLock(ref.addr)
 		}
 
+		private def strongRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : StrongCassandraObject[T] = {
+			val obj : T = store.CassandraBinding.readObject[T](addr, CassandraLevel.ALL)
+			val cassObj = new StrongCassandraObject[T](addr, obj)
+			cassObj
+		}
+
 	}
 
-	private class StrongCassandraObject[T <: CassandraStore#ObjType : ClassTag](
-		override val addr : String,
-		override val state : T
-	) extends CassandraObject[T] {
-		override def consistencyLevel : CassandraStore#Level = Strong
-	}
+	private class StrongCassandraObject[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, obj : T)
+		extends CassandraObject[T, Strong.type](addr, obj, Strong)
+
 
 }

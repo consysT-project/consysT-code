@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext
  *
  * @author Mirko Köhler
  */
-object ErrorDemo extends App {
+object LegacyErrorDemo extends App {
 
 	case class SetWrapper[T](var s: Set[T]) {
 		def add(elem: T): Unit = {

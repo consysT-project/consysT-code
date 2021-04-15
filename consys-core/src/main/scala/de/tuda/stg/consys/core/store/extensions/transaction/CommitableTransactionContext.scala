@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store.txext
+package de.tuda.stg.consys.core.store.extensions.transaction
 
 import de.tuda.stg.consys.core.store.{Store, TransactionContext}
 

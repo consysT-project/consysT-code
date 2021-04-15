@@ -1,10 +1,8 @@
 package de.tuda.stg.consys.demo
 
 import java.util.concurrent.Executors
-
-import de.tuda.stg.consys.core.store.cassandra.levels.Strong
+import de.tuda.stg.consys.core.store.cassandra.levels.{Strong, Weak}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -21,8 +19,9 @@ object CassandraStoreDemo extends App {
 	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, withTimeout = Duration(60, "s"))
 	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, withTimeout = Duration(60, "s"))
 
-	val level = Strong
+	val level = Weak
 
+	println(s"Starting demo with consistency level $level")
 	println("transaction 1")
 	store1.transaction { ctx =>
 		import ctx._

@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.store.akka
 import akka.util.Timeout
 import de.tuda.stg.consys.core.store.akka.AkkaStore.CreateObjectReplica
 import de.tuda.stg.consys.core.store.TransactionContext
-import de.tuda.stg.consys.core.store.txext.{CommitableTransactionContext, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.transaction.{CommitableTransactionContext, LockingTransactionContext}
 import scala.concurrent.Await
 import scala.reflect.ClassTag
 

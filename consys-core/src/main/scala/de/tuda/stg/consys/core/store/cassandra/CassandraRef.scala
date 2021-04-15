@@ -13,8 +13,6 @@ case class CassandraRef[T <: CassandraStore#ObjType : ClassTag](
 	addr : CassandraStore#Addr,
 	level : CassandraStore#Level
 ) extends Ref[CassandraStore, T] with Serializable {
-	System.out.println(s"created ref for $this")
-
 
 	override def resolve(tx : CassandraStore#TxContext) : CassandraStore#HandlerType[T] = {
 		new CassandraHandler(tx, this)

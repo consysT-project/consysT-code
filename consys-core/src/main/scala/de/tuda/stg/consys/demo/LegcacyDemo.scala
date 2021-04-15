@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
 	*
 	* @author Mirko Köhler
 	*/
-object Demo extends App {
+object LegcacyDemo extends App {
 
 	case class A(var i : Int) {
 		@deprecated def inc() : Unit = i = i + 1

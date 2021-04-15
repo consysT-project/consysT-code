@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol, TransactionContext}
-import de.tuda.stg.consys.core.store.txext.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -17,7 +17,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	with CachedTransactionContext[CassandraStore]
 	with LockingTransactionContext[CassandraStore] {
 
-	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T]
+	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]
 
 	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
 
