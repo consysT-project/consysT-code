@@ -16,10 +16,12 @@
         <module>consys-core</module>
         <module>integration-tests</module>
         <module>consys-japi</module>
+        <module>consys-auto-consistency-level-inferring</module>
         <module>consys-compiler</module>
         <module>consys-compiler/consys-compiler-test</module>
         <module>consys-bench</module>
         <module>examples</module>
+        <module>consys-annotations</module>
     </modules>
 
 
@@ -83,7 +85,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.4.0</version>
+                    <version>4.4.1</version>
                     <executions>
                         <execution>
                             <id>scala-compile-first</id>

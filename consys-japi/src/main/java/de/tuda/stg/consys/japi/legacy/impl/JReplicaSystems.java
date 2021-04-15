@@ -1,9 +1,9 @@
 package de.tuda.stg.consys.japi.legacy.impl;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory;
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystems;
+import de.tuda.stg.consys.core.legacy.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.legacy.akka.AkkaReplicaSystemFactory;
+import de.tuda.stg.consys.core.legacy.akka.AkkaReplicaSystems;
 import de.tuda.stg.consys.core.store.utils.Address;
 import de.tuda.stg.consys.japi.legacy.impl.akka.JAkkaReplicaSystem;
 import scala.collection.JavaConverters;

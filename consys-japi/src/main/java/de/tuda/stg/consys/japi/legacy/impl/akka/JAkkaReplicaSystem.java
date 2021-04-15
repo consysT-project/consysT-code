@@ -1,9 +1,9 @@
 package de.tuda.stg.consys.japi.legacy.impl.akka;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
-import de.tuda.stg.consys.core.store.legacy.Ref;
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem;
+import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.legacy.Ref;
+import de.tuda.stg.consys.core.legacy.akka.AkkaReplicaSystem;
 import de.tuda.stg.consys.japi.legacy.JRef;
 import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
 import de.tuda.stg.consys.japi.legacy.JReplicaSystemWithBarrier;

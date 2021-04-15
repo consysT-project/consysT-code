@@ -20,6 +20,14 @@
     </properties>
 
     <build>
+
+        <!-- Adds the test files to the resources -->
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/tests</directory>
+            </testResource>
+        </testResources>
+
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>

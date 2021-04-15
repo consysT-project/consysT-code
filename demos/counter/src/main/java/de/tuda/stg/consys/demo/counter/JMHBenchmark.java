@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.counter;
 
-import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
 import de.tuda.stg.consys.japi.legacy.JRef;

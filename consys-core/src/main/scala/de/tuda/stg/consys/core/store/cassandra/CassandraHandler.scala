@@ -1,27 +1,25 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.store.{Handler, StoreConsistencyLevel}
-
+import de.tuda.stg.consys.core.store.Handler
 import scala.reflect.ClassTag
 
-/**
- * Created on 10.12.19.
- *
- * @author Mirko Köhler
- */
-class CassandraHandler[T <: java.io.Serializable : ClassTag](
-	val addr : String,
-	val level : CassandraStore#Level
-) extends Handler[CassandraStore, T] with Serializable {
+class CassandraHandler[T <: CassandraStore#ObjType : ClassTag](
+	val txContext : CassandraStore#TxContext,
+	val ref : CassandraRef[T]
+)	extends Handler[CassandraStore, T] {
+	def store : CassandraStore = txContext.store
+	def addr : CassandraStore#Addr = ref.addr
+	def level : CassandraStore#Level = ref.level
 
-	override def resolve(tx : => CassandraStore#TxContext) : CassandraStore#RawType[T] = {
-		tx.lookupRaw[T](addr, level)
+	override def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
+		level.toProtocol(store).invoke[T, R](txContext, ref, methodId, args)
 	}
 
-	/* This method is for convenience use in transactions */
-	def resolve() : CassandraStore#RawType[T] = CassandraStores.getCurrentTransaction match {
-		case None => throw new IllegalStateException(s"can not resolve handler for <$addr>. no active transaction.")
-		case Some(tx) => resolve(tx)
+	override def getField[R](fieldName : String) : R = {
+		level.toProtocol(store).getField[T, R](txContext, ref, fieldName)
 	}
 
+	override def setField[R](fieldName : String, value : R) : Unit = {
+		level.toProtocol(store).setField[T, R](txContext, ref, fieldName, value)
+	}
 }

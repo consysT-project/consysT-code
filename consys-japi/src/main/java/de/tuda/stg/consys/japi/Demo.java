@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.japi;
 
-import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
 import scala.Option;
 import scala.Serializable;
 import scala.concurrent.duration.Duration;
@@ -23,15 +24,12 @@ public class Demo {
 		}
 	}
 
-
-
-
 	public static void main(String[] args) throws Exception {
-		Cassandra.ReplicaBinding replica1 = Cassandra.newReplica(
+		CassandraReplicaBinding replica1 = Cassandra.newReplica(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
 		);
 
-		Cassandra.ReplicaBinding replica2 = Cassandra.newReplica(
+		CassandraReplicaBinding replica2 = Cassandra.newReplica(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
 
@@ -55,14 +53,14 @@ public class Demo {
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.replicate("box1",CassandraConsistencyLevels.STRONG(), Box.class);
+			Ref<Box> box1 = ctx.replicate("box1", CassandraConsistencyLevels.STRONG, Box.class);
 			box1.invoke("inc"); //No compiler plugin => we have to use this syntax
 			return Option.apply(2);
 		});
 
 		System.out.println("transaction 2");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.lookup("box1", CassandraConsistencyLevels.STRONG(), Box.class);
+			Ref<Box> box1 = ctx.lookup("box1", CassandraConsistencyLevels.STRONG, Box.class);
 			box1.invoke("inc");
 			int i = box1.invoke("get");
 			System.out.println(i);

@@ -1,48 +1,90 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.store.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext, TransactionContext}
-
+import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
+import de.tuda.stg.consys.core.store.TransactionContext
+import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.TypeTag
 
 /**
  * Created on 10.12.19.
  *
  * @author Mirko Köhler
  */
-case class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext
-	with CassandraTransactionContextBinding
-	with CommitableTransactionContext
-	with CachedTransactionContext
-	with LockingTransactionContext
-{
-	override type StoreType = CassandraStore
-	override protected type CachedType[T <: StoreType#ObjType] = CassandraObject[T]
+class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext[CassandraStore]
+	with CommitableTransactionContext[CassandraStore]
+	with CachedTransactionContext[CassandraStore]
+	with LockingTransactionContext[CassandraStore] {
 
-	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
+	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]
 
-	override private[store] def replicateRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, obj : T, level : StoreType#Level) : StoreType#RawType[T] =
-		super.replicateRaw[T](addr, obj, level)
+	/** The timestamp of this transaction. It uses the start time of the transaction. */
+	//TODO: Is there a better way to generate timestamps for cassandra?
+	//TODO: Should we use the commit time instead?
+	val timestamp : Long = System.currentTimeMillis()
 
-	override private[store] def lookupRaw[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RawType[T] =
-		super.lookupRaw[T](addr, level)
+	/** This builder is used for building the commit statement. */
+	private var commitStatementBuilder : BatchStatementBuilder = null
 
-	//TODO: Can we make this method package private?
-	override private[store] def commit() : Unit = {
-		cache.valuesIterator.foreach(obj => obj.writeToStore(store))
-		locks.foreach(lock => lock.release())
+	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
+		def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
+			val constructor = Reflect.findConstructor(clazz.runtimeClass, args : _*)
+			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]
+		}
+
+		// Creates a new object by calling the matching constructor
+		val obj = callConstructor[T](implicitly[ClassTag[T]], constructorArgs : _*)
+
+		// Get the matching protocol and execute replicate
+		val protocol = level.toProtocol(store)
+		val ref = protocol.replicate[T](this, addr, obj)
+		ref
 	}
 
-	override protected def rawToCached[T <: StoreType#ObjType : ClassTag](raw : StoreType#RawType[T]) : CachedType[T] = raw
+	def lookup[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level) : CassandraStore#RefType[T] = {
+		val protocol = level.toProtocol(store)
+		val ref = protocol.lookup[T](this, addr)
+		ref
+	}
 
-	override protected def cachedToRaw[T <: StoreType#ObjType : ClassTag](cached : CachedType[T]) : StoreType#RawType[T] = cached
+	private[store] def getCommitStatementBuilder : BatchStatementBuilder = {
+		if (commitStatementBuilder == null)
+			throw new IllegalStateException(s"commit statement builder has not been initialized.")
+		commitStatementBuilder
+	}
+
+	override private[store] def commit() : Unit = {
+		try {
+			/* Execute the commit */
+			//Create a batch statement to batch all the writes
+			commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
+			//Commit every object and gather the writes
+			Cache.buffer.valuesIterator.foreach(obj => {
+				val protocol = obj.consistencyLevel.toProtocol(store)
+				protocol.commit(this, obj.toRef)
+			})
+			//Execute the batch statement
+			store.CassandraBinding.executeStatement(commitStatementBuilder.build())
+			commitStatementBuilder = null
+		} finally {
+			/* Execute the post commits */
+			Cache.buffer.valuesIterator.foreach(obj => {
+				val protocol = obj.consistencyLevel.toProtocol(store)
+				protocol.postCommit(this, obj.toRef)
+			})
+		}
+
+
+//		locks.foreach(lock => lock.release())
+	}
+
+	override def toString : String = s"CassandraTxContext(${store.id}//$timestamp)"
 
 	/**
 	 * Implicitly resolves handlers in this transaction context.
 	 */
-	implicit def resolveHandler[T <: StoreType#ObjType : ClassTag](handler : StoreType#RefType[T]) : StoreType#RawType[T] =
-		handler.resolve(this)
-
+	implicit def resolveHandler[T <: CassandraStore#ObjType : ClassTag](ref : CassandraStore#RefType[T]) : CassandraStore#HandlerType[T] =
+		ref.resolve(this)
 
 }
