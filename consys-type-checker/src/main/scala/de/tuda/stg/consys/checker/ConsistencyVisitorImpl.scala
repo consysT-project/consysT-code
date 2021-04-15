@@ -3,14 +3,12 @@ package de.tuda.stg.consys.checker
 import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
-import de.tuda.stg.consys.checker.qual.Transactional
-
+import de.tuda.stg.consys.annotations.Transactional
 import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
-
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 

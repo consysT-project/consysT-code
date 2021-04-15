@@ -5,7 +5,3 @@ package de.tuda.stg.consys.core.store.cassandra
  *
  * @author Mirko Köhler
  */
-case class CassandraStoreId(name : String) {
-
-
-}

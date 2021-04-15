@@ -1,18 +1,23 @@
 package de.tuda.stg.consys.core.store.utils
 
-import java.lang.reflect.{Constructor, Method}
-
 import akka.util.BoxedType
-
+import java.lang.reflect.{Constructor, Method}
 import scala.util.Try
 
 /**
- * Created on 20.02.20.
- *
- * @author Mirko Köhler
+ * Utility methods for reflection.
  */
 object Reflect {
 
+	/**
+	 * Returns the constructor for a given class that takes the specified arguments as
+	 * parameters.
+	 *
+	 * @param clazz The class for which to return the constructor.
+	 * @param args The arguments that are passed to the constructor.
+	 * @tparam T The type of the class.
+	 * @return A constructor of ´clazz´ that can be applied to the given arguments.
+	 */
 	def findConstructor[T](clazz: Class[T], args: Any*): Constructor[T] = {
 		def error(msg: String): Nothing = {
 			val argClasses = args.map(safeGetClass).mkString(", ")
@@ -44,6 +49,17 @@ object Reflect {
 		else constructor
 	}
 
+	/**
+	 * Returns a method for a given class with the given name
+	 * that takes the specified arguments as parameters.
+	 * The method is also searched in superclasses of the specified class.
+	 *
+	 * @param clazz The class in which the method is defined.
+	 * @param methodName The name of the method.
+	 * @param args The arguments that are passed to the method.
+	 * @tparam T The type of the class.
+	 * @return The method of ´clazz´ with the given name that can be applied to the given arguments.
+	 */
 	def findMethod[T](clazz: Class[T], methodName : String, args: Any*): Method = {
 		def error(msg: String): Nothing = {
 			val argClasses = args.map(safeGetClass).mkString(", ")
@@ -72,11 +88,13 @@ object Reflect {
 				} else null
 			}
 
+
+
 		if (method == null) error("no matching method")
 		else method
 	}
 
 	private def safeGetClass(a: Any): Class[_] =
-		if (a == null) classOf[AnyRef] else a.getClass
+		if (a == null) classOf[Null] else a.getClass
 
 }

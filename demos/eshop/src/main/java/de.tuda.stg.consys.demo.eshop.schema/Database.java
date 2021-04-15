@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.eshop.schema;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
 import de.tuda.stg.consys.demo.eshop.EShopLevels;
 import de.tuda.stg.consys.examples.collections.JRefArrayList;
 import de.tuda.stg.consys.examples.collections.JRefArrayMap;

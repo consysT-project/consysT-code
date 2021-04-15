@@ -1,6 +1,6 @@
 package annotated;
 
-import de.tuda.stg.consys.checker.qual.methods.WeakMethod;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 public class CounterCRDT {
   public static final int numOfReplicas = 10;
@@ -29,7 +29,7 @@ public class CounterCRDT {
   @ ensures \result ==
             (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]);
   @*/
-  @WeakMethod
+  @WeakOp
   int sumIncs() { return 0; }
 
   /*@
@@ -37,13 +37,13 @@ public class CounterCRDT {
   @ ensures \result ==
             (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]);
   @*/
-  @WeakMethod
+  @WeakOp
   int sumDecs(){ return 0; }
 
   /*@ ensures \result == sumIncs() - sumDecs();
   @ assignable \nothing;
   @*/
-  @WeakMethod
+  @WeakOp
   int getValue() { return 0; }
 
 
@@ -54,7 +54,7 @@ public class CounterCRDT {
               incs[incI] == \old(incs[incI]));
   @ ensures decs == \old(decs);
   @*/
-  @WeakMethod
+  @WeakOp
   void inc() {}
 
   /*@
@@ -64,7 +64,7 @@ public class CounterCRDT {
               decs[decI] == \old(decs[decI]));
   @ ensures incs == \old(incs);
   @*/
-  @WeakMethod
+  @WeakOp
   void dec() {}
 
   /*@

@@ -1,8 +1,10 @@
+package de.tuda.stg.consys.checker.testfiles.testfiles;
+
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.japi.JConsistencyLevels;
-import de.tuda.stg.consys.japi.JRef;
-import de.tuda.stg.consys.japi.JReplicaSystem;
+import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
+import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
 
 /**
  * Created on 27.05.19.

@@ -1,7 +1,9 @@
-import de.tuda.stg.consys.checker.qual.Transactional;
+package de.tuda.stg.consys.checker.testfiles.testfiles;
+
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.japi.next.Ref;
+import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 
