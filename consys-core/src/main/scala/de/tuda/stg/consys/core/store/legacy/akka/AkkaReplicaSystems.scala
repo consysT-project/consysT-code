@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.core.store.legacy.akka
 
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.DynamicVariable
 

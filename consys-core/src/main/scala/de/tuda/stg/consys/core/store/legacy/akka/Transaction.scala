@@ -2,7 +2,6 @@ package de.tuda.stg.consys.core.store.legacy.akka
 
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.akka.Transaction.NestedTransaction
-
 import scala.collection.mutable
 
 /**

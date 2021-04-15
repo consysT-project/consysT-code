@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.core.store
 
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 /**
  * A consistency model implements a protocol that is used in combination

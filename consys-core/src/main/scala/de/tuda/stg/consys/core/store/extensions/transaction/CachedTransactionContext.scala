@@ -21,6 +21,9 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
 		}
 
+		def putOrOverwrite(addr : StoreType#Addr, obj : CachedType[_ <: StoreType#ObjType]) : Option[CachedType[_ <: StoreType#ObjType]]  =
+			buffer.put(addr, obj)
+
 		def get(addr : StoreType#Addr) : Option[CachedType[_ <: StoreType#ObjType]] =
 			buffer.get(addr)
 

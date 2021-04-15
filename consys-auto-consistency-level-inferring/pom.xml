@@ -25,7 +25,7 @@
 
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-type-checker</artifactId>
+            <artifactId>consys-annotations</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
 
@@ -65,6 +65,7 @@
             <version>5.8.0-M1</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
 

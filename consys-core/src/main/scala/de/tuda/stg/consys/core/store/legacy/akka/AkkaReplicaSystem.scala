@@ -1,7 +1,5 @@
 package de.tuda.stg.consys.core.store.legacy.akka
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Address, ExtendedActorSystem, Props, RootActorPath}
 import akka.event.LoggingAdapter
 import akka.util.Timeout
@@ -10,6 +8,8 @@ import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystem._
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
 import de.tuda.stg.consys.core.store.legacy.akka.Requests._
 import de.tuda.stg.consys.core.store.legacy.{BarrierReplicaSystem, ConsistencyLabel, ConsysUtils, DeletableReplicaSystem, LockServiceReplicaSystem, ReplicaSystem, ReplicaSystemJavaBinding}
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.locks.{LockSupport, ReentrantLock}
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}

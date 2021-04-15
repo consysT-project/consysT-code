@@ -5,7 +5,6 @@ import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Strong
 import de.tuda.stg.consys.core.store.legacy.akka.Requests._
 import de.tuda.stg.consys.core.store.legacy.akka.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
-
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.util.DynamicVariable

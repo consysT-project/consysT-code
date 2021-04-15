@@ -1,11 +1,9 @@
-package de.tuda.stg.consys.demo
-
-import java.util.concurrent.Executors
+package de.tuda.stg.consys.core.demo
 
 import akka.dispatch.ExecutionContexts
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Strong
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory
-
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 
 /**

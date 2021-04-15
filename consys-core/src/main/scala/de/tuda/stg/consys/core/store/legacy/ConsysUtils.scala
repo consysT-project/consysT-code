@@ -3,7 +3,6 @@ package de.tuda.stg.consys.core.store.legacy
 import java.util
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.locks.{LockSupport, ReentrantLock}
-
 import scala.reflect.ClassTag
 import scala.reflect.api.{TypeCreator, Universe}
 import scala.reflect.runtime.universe._

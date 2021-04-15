@@ -1,10 +1,8 @@
 package de.tuda.stg.consys.core.store.legacy.akka
 
-import java.lang.reflect.Modifier
-
 import de.tuda.stg.consys.core.store.legacy.akka.Requests._
 import de.tuda.stg.consys.core.store.legacy.{ConsistencyLabel, ReflectiveReplicatedObject, Replicated}
-
+import java.lang.reflect.Modifier
 import scala.language.postfixOps
 
 /**

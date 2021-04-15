@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.core.store.legacy
 
 import jdk.dynalink.linker.support.TypeUtilities
-
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 

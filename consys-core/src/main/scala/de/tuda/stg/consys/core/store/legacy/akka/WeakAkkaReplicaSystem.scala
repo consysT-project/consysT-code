@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Weak
 import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicaSystemFactory.AkkaReplicaSystemBinding
-import de.tuda.stg.consys.core.store.legacy.akka.Requests.{InvokeOp, Operation, Request, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.store.legacy.akka.Requests._
 import de.tuda.stg.consys.core.store.legacy.akka.WeakAkkaReplicaSystem.WeakReplicatedObject.{WeakFollowerReplicatedObject, WeakMasterReplicatedObject}
 import scala.collection.mutable
 import scala.language.postfixOps

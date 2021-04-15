@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.core.store.legacy
 
-import java.util.Objects
-
 import de.tuda.stg.consys.core.store.legacy
-
+import java.util.Objects
 import scala.language.higherKinds
 import scala.reflect.runtime.universe._
 

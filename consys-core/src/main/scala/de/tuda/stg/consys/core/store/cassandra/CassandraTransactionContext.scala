@@ -1,11 +1,10 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol, TransactionContext}
+import de.tuda.stg.consys.core.store.TransactionContext
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.TypeTag
 
 /**
  * Created on 10.12.19.

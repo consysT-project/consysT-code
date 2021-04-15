@@ -1,16 +1,13 @@
 package de.tuda.stg.consys.core.store.legacy.akka
 
-import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch}
-
 import akka.actor.ActorRef
 import akka.dispatch.ExecutionContexts
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Cassandra
 import de.tuda.stg.consys.core.store.legacy.akka.Requests.{AsynchronousRequest, Operation, Request}
-
+import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch}
 import scala.collection.{JavaConverters, mutable}
 import scala.language.postfixOps
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success}
 

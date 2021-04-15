@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.core.store.cassandra
 
-import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchType, SimpleStatement}
+import com.datastax.oss.driver.api.core.{CqlSession, ConsistencyLevel => CassandraLevel}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, DistributedZookeeperLockingStore, LockingStore}
@@ -15,7 +15,6 @@ import org.apache.curator.retry.ExponentialBackoffRetry
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
-import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 
 /**
  * Created on 10.12.19.
@@ -45,12 +44,12 @@ trait CassandraStore extends DistributedStore
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
 
-	override def transaction[U](code : TxContext => Option[U]) : Option[U] = {
+	override def transaction[U](body : TxContext => Option[U]) : Option[U] = this.synchronized {
 		CassandraStores.currentStore.withValue(this) {
 			val tx = new CassandraTransactionContext(this)
 			CassandraStores.currentTransaction.withValue(tx) {
 				try {
-					code(tx) match {
+					body(tx) match {
 						case None => None
 						case res@Some(_) =>
 							res

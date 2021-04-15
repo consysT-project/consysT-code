@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.core.store.legacy.akka
 
-import de.tuda.stg.consys.core.store.legacy.{ConsistencyLabel, Ref, ReplicatedObject}
-
+import de.tuda.stg.consys.core.store.legacy.{ConsistencyLabel, Ref}
 import scala.concurrent.TimeoutException
 
 /**

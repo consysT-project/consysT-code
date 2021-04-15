@@ -4,7 +4,6 @@ import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.legacy.ReplicaSystemFactory
 import de.tuda.stg.consys.core.store.utils.Address
-
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.runtime.universe._
 import scala.util.Random

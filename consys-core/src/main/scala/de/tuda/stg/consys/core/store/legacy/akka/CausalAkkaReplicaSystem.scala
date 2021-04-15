@@ -5,7 +5,6 @@ import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel.Causal
 import de.tuda.stg.consys.core.store.legacy.akka.CausalAkkaReplicaSystem.CausalReplicatedObject.CausalMasterReplicatedObject
 import de.tuda.stg.consys.core.store.legacy.akka.Requests._
-
 import scala.collection.mutable
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._

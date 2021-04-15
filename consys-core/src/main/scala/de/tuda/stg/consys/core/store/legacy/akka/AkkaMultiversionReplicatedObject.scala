@@ -2,7 +2,6 @@ package de.tuda.stg.consys.core.store.legacy.akka
 
 
 import de.tuda.stg.consys.core.store.legacy.akka.Requests.{GetFieldOp, InvokeOp, Operation, SetFieldOp}
-
 import scala.collection.mutable
 
 /**

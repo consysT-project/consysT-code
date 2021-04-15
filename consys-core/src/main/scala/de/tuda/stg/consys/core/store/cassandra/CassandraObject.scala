@@ -1,11 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
-import de.tuda.stg.consys.core.store.utils.Reflect
-import de.tuda.stg.consys.core.store.{ConsistencyLevel, Handler}
-import jdk.dynalink.linker.support.TypeUtilities
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 
 /**

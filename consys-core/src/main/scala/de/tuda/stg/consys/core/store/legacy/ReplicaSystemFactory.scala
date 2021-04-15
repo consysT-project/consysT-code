@@ -2,7 +2,6 @@ package de.tuda.stg.consys.core.store.legacy
 
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.core.store.utils.Address
-
 import scala.collection.{JavaConverters, mutable}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}

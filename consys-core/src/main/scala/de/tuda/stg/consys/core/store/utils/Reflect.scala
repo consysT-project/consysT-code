@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.core.store.utils
 
-import java.lang.reflect.{Constructor, Method}
-
 import akka.util.BoxedType
-
+import java.lang.reflect.{Constructor, Method}
 import scala.util.Try
 
 /**
@@ -89,6 +87,8 @@ object Reflect {
 					else mthdResult
 				} else null
 			}
+
+
 
 		if (method == null) error("no matching method")
 		else method
