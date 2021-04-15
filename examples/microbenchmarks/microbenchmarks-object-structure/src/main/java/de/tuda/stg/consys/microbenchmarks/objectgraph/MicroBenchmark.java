@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.microbenchmarks.objectgraph;
 
-import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
-import de.tuda.stg.consys.core.store.legacy.akka.AkkaReplicatedObject;
+import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.legacy.akka.AkkaReplicatedObject;
 import de.tuda.stg.consys.japi.JConsistencyLevels;
 import de.tuda.stg.consys.japi.JRef;
 import de.tuda.stg.consys.japi.JReplicaSystem;

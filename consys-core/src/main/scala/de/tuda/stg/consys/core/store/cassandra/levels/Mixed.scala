@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.core.store.cassandra.levels.Mixed.MixedCassandraObject
-import de.tuda.stg.consys.core.store.cassandra.levels.Weak.WeakCassandraObject
+import de.tuda.stg.consys.annotations.methods.StrongOp
 import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
@@ -35,19 +33,20 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			txContext : CassandraStore#TxContext,
 			addr : CassandraStore#Addr
 		) : CassandraStore#RefType[T] = {
+			new CassandraRef[T](addr, Mixed)
 
-			txContext.Cache.get(addr) match {
-				case None =>
-					val cassObj = weakRead[T](addr)
-					txContext.Cache.put(addr, cassObj)
-					cassObj.toRef
-
-				case Some(cached : MixedCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-					new CassandraRef[T](addr, Mixed)
-
-				case Some(cached) =>
-					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
-			}
+//			txContext.Cache.get(addr) match {
+//				case None =>
+//					val cassObj = weakRead[T](addr)
+//					txContext.Cache.put(addr, cassObj)
+//					cassObj.toRef
+//
+//				case Some(cached : MixedCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
+//
+//
+//				case Some(cached) =>
+//					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
+//			}
 		}
 
 		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
@@ -133,9 +132,11 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 				case Some(cached : MixedCassandraObject[_]) if cached.ml == MixedStrong =>
-					store.CassandraBinding.writeObject(cached.addr, cached.state, CassandraLevel.ALL, txContext.timestamp)
+					val builder = txContext.getCommitStatementBuilder
+					builder.addStatement(store.CassandraBinding.writeObjectStatement(cached.addr, cached.state, CassandraLevel.ALL))
 				case Some(cached : MixedCassandraObject[_]) if cached.ml == MixedWeak =>
-					store.CassandraBinding.writeObject(cached.addr, cached.state, CassandraLevel.ONE, txContext.timestamp)
+					val builder = txContext.getCommitStatementBuilder
+					builder.addStatement(store.CassandraBinding.writeObjectStatement(cached.addr, cached.state, CassandraLevel.ONE))
 				case cached =>
 					throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 			}

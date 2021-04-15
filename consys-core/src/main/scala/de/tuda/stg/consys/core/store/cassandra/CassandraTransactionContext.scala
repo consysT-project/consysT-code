@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
+import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
 import de.tuda.stg.consys.core.store.TransactionContext
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
@@ -18,47 +19,63 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 
 	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]
 
-	private[cassandra] val timestamp : Long = System.currentTimeMillis() //TODO: Is there a better way to generate timestamps for cassandra?
+	/** The timestamp of this transaction. It uses the start time of the transaction. */
+	//TODO: Is there a better way to generate timestamps for cassandra?
+	//TODO: Should we use the commit time instead?
+	val timestamp : Long = System.currentTimeMillis()
 
+	/** This builder is used for building the commit statement. */
+	private var commitStatementBuilder : BatchStatementBuilder = null
 
 	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
-		def callConstructor[T](clazz : ClassTag[T], args : Any*) : T = {
+		def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
 			val constructor = Reflect.findConstructor(clazz.runtimeClass, args : _*)
-			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[T]
+			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]
 		}
 
 		// Creates a new object by calling the matching constructor
-		val obj = callConstructor(implicitly[ClassTag[T]], constructorArgs : _*)
+		val obj = callConstructor[T](implicitly[ClassTag[T]], constructorArgs : _*)
 
-		//
+		// Get the matching protocol and execute replicate
 		val protocol = level.toProtocol(store)
 		val ref = protocol.replicate[T](this, addr, obj)
 		ref
-
-//		store.enref(
-//			replicateRaw[T](addr, obj, level)(implicitly[ClassTag[T]]).asInstanceOf[store.RawType[T with store.ObjType]]
-//		).asInstanceOf[StoreType#RefType[T]]
 	}
 
 	def lookup[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level) : CassandraStore#RefType[T] = {
 		val protocol = level.toProtocol(store)
 		val ref = protocol.lookup[T](this, addr)
 		ref
+	}
 
-//		store.enref(
-//			lookupRaw[T](addr, level)(implicitly[ClassTag[T]]).asInstanceOf[store.RawType[T with store.ObjType]]
-//		)(implicitly[ClassTag[T]].asInstanceOf[ClassTag[T with store.ObjType]]).asInstanceOf[StoreType#RefType[T]]
+	private[store] def getCommitStatementBuilder : BatchStatementBuilder = {
+		if (commitStatementBuilder == null)
+			throw new IllegalStateException(s"commit statement builder has not been initialized.")
+		commitStatementBuilder
 	}
 
 	override private[store] def commit() : Unit = {
-		Cache.buffer.valuesIterator.foreach(obj => {
-			val protocol = obj.consistencyLevel.toProtocol(store)
-			protocol.commit(this, obj.toRef)
-		})
-		Cache.buffer.valuesIterator.foreach(obj => {
-			val protocol = obj.consistencyLevel.toProtocol(store)
-			protocol.postCommit(this, obj.toRef)
-		})
+		try {
+			/* Execute the commit */
+			//Create a batch statement to batch all the writes
+			commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
+			//Commit every object and gather the writes
+			Cache.buffer.valuesIterator.foreach(obj => {
+				val protocol = obj.consistencyLevel.toProtocol(store)
+				protocol.commit(this, obj.toRef)
+			})
+			//Execute the batch statement
+			store.CassandraBinding.executeStatement(commitStatementBuilder.build())
+			commitStatementBuilder = null
+		} finally {
+			/* Execute the post commits */
+			Cache.buffer.valuesIterator.foreach(obj => {
+				val protocol = obj.consistencyLevel.toProtocol(store)
+				protocol.postCommit(this, obj.toRef)
+			})
+		}
+
+
 //		locks.foreach(lock => lock.release())
 	}
 

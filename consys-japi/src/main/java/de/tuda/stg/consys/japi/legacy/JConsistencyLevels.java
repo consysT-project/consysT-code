@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.japi.legacy;
 
 import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.core.store.legacy.ConsistencyLabel;
+import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
 
 /**
  * Created on 14.03.19.

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.demo
 
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.core.store.cassandra.levels.Mixed
+import de.tuda.stg.consys.core.store.cassandra.levels.{Mixed, Strong}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import java.util.concurrent.Executors
 import scala.concurrent.duration.Duration
@@ -112,11 +112,11 @@ object CassandraStoreDemo extends App {
 	}
 
 	case class MyInt(var i : Int = 0) {
-		@WeakOp def double() : Unit = {
+		@StrongOp def double() : Unit = {
 			i = 2 * i
 		}
 
-		@WeakOp def half() : Unit = {
+		@StrongOp def half() : Unit = {
 			i = i / 2
 		}
 

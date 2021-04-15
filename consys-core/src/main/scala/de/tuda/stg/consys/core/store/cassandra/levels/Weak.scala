@@ -6,11 +6,7 @@ import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 import scala.reflect.ClassTag
 
 
-/**
- * Created on 11.12.19.
- *
- * @author Mirko Köhler
- */
+/** Consistency level for weak, eventual consistency with last-writer-wins conflict resolution. */
 case object Weak extends ConsistencyLevel[CassandraStore] {
 	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Weak.type] =
 		new WeakProtocol(store)
@@ -25,23 +21,24 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		) : CassandraStore#RefType[T] = {
 			val cassObj = new WeakCassandraObject[T](addr, obj)
 			txContext.Cache.put(addr, cassObj)
-			new CassandraRef[T](addr, Strong)
+			new CassandraRef[T](addr, Weak)
 		}
 
 		override def lookup[T <: CassandraStore#ObjType : ClassTag](
 			txContext : CassandraStore#TxContext,
 			addr : CassandraStore#Addr
 		) : CassandraStore#RefType[T] = {
-			txContext.Cache.get(addr) match {
-				case None =>
-					val cassObj = weakRead[T](addr)
-					txContext.Cache.put(addr, cassObj)
-					cassObj.toRef
-				case Some(cached : WeakCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-					new CassandraRef[T](addr, Strong)
-				case Some(cached) =>
-					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Strong, obj: $cached")
-			}
+			new CassandraRef[T](addr, Weak)
+//			txContext.Cache.get(addr) match {
+//				case None =>
+//					val cassObj = weakRead[T](addr)
+//					txContext.Cache.put(addr, cassObj)
+//					cassObj.toRef
+//				case Some(cached : WeakCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
+//					new CassandraRef[T](addr, Weak)
+//				case Some(cached) =>
+//					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Strong, obj: $cached")
+//			}
 		}
 
 		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
@@ -84,7 +81,8 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		) : Unit = txContext.Cache.get(ref.addr) match {
 			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 			case Some(cassObj : WeakCassandraObject[_]) =>
-				store.CassandraBinding.writeObject(cassObj.addr, cassObj.state, CassandraLevel.ONE, txContext.timestamp)
+				val builder = txContext.getCommitStatementBuilder
+				builder.addStatement(store.CassandraBinding.writeObjectStatement(cassObj.addr, cassObj.state, CassandraLevel.ONE))
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
