@@ -3,13 +3,13 @@ package de.tuda.stg.consys.checker.testfiles.openissues;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 
 import java.io.Serializable;
 
 public class GenericsTest {
-    CassandraReplicaBinding replica;
+    CassandraStoreBinding replica;
     Ref<@Strong A> obj;
     Ref<@Strong B> objB;
 

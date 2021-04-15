@@ -2,14 +2,13 @@ package de.tuda.stg.consys.integrationtest;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.core.store.Store;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.Replica;
+import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Option;
 import scala.concurrent.duration.Duration;
@@ -30,10 +29,10 @@ public class Demo {
 
 
     static abstract class DemoRunner<
-            Stor extends Store,
+            Stor extends de.tuda.stg.consys.core.store.Store,
             Level extends ConsistencyLevel<Stor>,
             Tx extends  TransactionContext<String, Serializable, Level>,
-            ReplicaBinding extends Replica<String, Serializable, Level, Tx>
+            ReplicaBinding extends Store<String, Serializable, Level, Tx>
             > implements Runnable {
 
         final ReplicaBinding replica1;
@@ -75,7 +74,7 @@ public class Demo {
     }
 
     static class CassandraRunner
-            extends DemoRunner<CassandraStore, ConsistencyLevel<CassandraStore>, CassandraTransactionContextBinding, CassandraReplicaBinding> {
+            extends DemoRunner<CassandraStore, ConsistencyLevel<CassandraStore>, CassandraTransactionContextBinding, CassandraStoreBinding> {
 
         CassandraRunner() {
             super(

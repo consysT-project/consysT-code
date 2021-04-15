@@ -3,17 +3,17 @@ package de.tuda.stg.consys.japi.binding.cassandra;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.core.store.cassandra.CassandraTransactionContext;
-import de.tuda.stg.consys.japi.Replica;
+import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.Transaction;
 import scala.Function1;
 import scala.Option;
 
 import java.io.Serializable;
 
-public class CassandraReplicaBinding implements Replica<String, Serializable, ConsistencyLevel<CassandraStore>, CassandraTransactionContextBinding> {
+public class CassandraStoreBinding implements Store<String, Serializable, ConsistencyLevel<CassandraStore>, CassandraTransactionContextBinding> {
     private final CassandraStore store;
 
-    CassandraReplicaBinding(CassandraStore store) {
+    CassandraStoreBinding(CassandraStore store) {
         this.store = store;
     }
 

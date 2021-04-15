@@ -27,7 +27,7 @@ public class SubConsistencyAnnotatedTypeFactory extends ConsistencyAnnotatedType
     @Override
     protected void addCheckedCodeDefaults(QualifierDefaults defs) {
         // TODO: Check
-        getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
+//        getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
 
 //        defs.addCheckedCodeDefault(
 //                AnnotationUtils.getAnnotationByName(

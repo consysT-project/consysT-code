@@ -2,7 +2,7 @@ package de.tuda.stg.consys.japi;
 
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 import scala.Serializable;
 import scala.concurrent.duration.Duration;
@@ -25,11 +25,11 @@ public class Demo {
 	}
 
 	public static void main(String[] args) throws Exception {
-		CassandraReplicaBinding replica1 = Cassandra.newReplica(
+		CassandraStoreBinding replica1 = Cassandra.newReplica(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
 		);
 
-		CassandraReplicaBinding replica2 = Cassandra.newReplica(
+		CassandraStoreBinding replica2 = Cassandra.newReplica(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
 

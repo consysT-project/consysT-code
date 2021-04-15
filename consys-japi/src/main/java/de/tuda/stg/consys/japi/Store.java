@@ -7,7 +7,7 @@ import scala.Option;
  *
  * @author Mirko Köhler
  */
-public interface Replica<Addr, Obj, Consistency, TxContext extends TransactionContext<Addr, Obj, Consistency>> {
+public interface Store<Addr, Obj, Consistency, TxContext extends TransactionContext<Addr, Obj, Consistency>> {
 
 	<U> Option<U> transaction(Transaction<TxContext, U, Addr, Obj, Consistency> tx);
 

@@ -56,7 +56,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 //						 "de.tuda.stg.consys.checker.qual.Inconsistent"),
 //				TypeUseLocation.FIELD);
 
-		getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
+//		getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
 		super.addCheckedCodeDefaults(defs);
 	}
 
