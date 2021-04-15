@@ -8,11 +8,11 @@
     <version>3.0.0-alpha</version>
 
     <packaging>jar</packaging>
-    
+
     <parent>
-    	<groupId>de.tuda.stg.consys</groupId>
-		<artifactId>consys</artifactId>
-		<version>3.0.0-alpha</version>
+        <groupId>de.tuda.stg.consys</groupId>
+        <artifactId>consys</artifactId>
+        <version>3.0.0-alpha</version>
     </parent>
 
 
@@ -27,20 +27,26 @@
 
 
     <dependencies>
-      <dependency>
-		  <groupId>org.checkerframework</groupId>
-		  <artifactId>checker-qual</artifactId>
-		  <version>${checkerframework.version}</version>
-		</dependency>
-		<dependency>
-		  <groupId>org.checkerframework</groupId>
-		  <artifactId>checker</artifactId>
-		  <version>${checkerframework.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-annotations</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>${checkerframework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker</artifactId>
+            <version>${checkerframework.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
     </dependencies>
-    
+
 </project>

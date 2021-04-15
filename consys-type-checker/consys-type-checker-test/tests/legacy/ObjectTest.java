@@ -1,3 +1,5 @@
+package de.tuda.stg.consys.checker.testfiles.legacy;
+
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 

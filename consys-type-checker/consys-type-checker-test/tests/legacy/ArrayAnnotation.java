@@ -1,23 +1,25 @@
-import com.github.allprojects.consistencyTypes.qual.High;
-import com.github.allprojects.consistencyTypes.qual.Low;
+package de.tuda.stg.consys.checker.testfiles.legacy;
+
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
 
 public class ArrayAnnotation {
 
-    @High int[] higharr = {1,2,3};
-    @Low int[] lowarr = {1,2,3};
+    @Weak int[] higharr = {1,2,3};
+    @Strong int[] lowarr = {1,2,3};
 
-    @High int a = 1;
-    @Low int b = 2;
-    @High int c = 3;
+    @Weak int a = 1;
+    @Strong int b = 2;
+    @Weak int c = 3;
 
     // :: error: (array.initializer.type.incompatible) :: error: (assignment.type.incompatible)
-    @High int[] highmixed = {a,b,c};
-    @Low int[] lowmixed = {a,b,c};
+    @Weak int[] highmixed = {a,b,c};
+    @Strong int[] lowmixed = {a,b,c};
 
     int[] mixed = {a,b,c};
 
     void testIterating() {
-        @High int high;
+        @Weak int high;
         for (int i: mixed) {
             // :: error: (assignment.type.incompatible)
             high = i;
@@ -29,11 +31,11 @@ public class ArrayAnnotation {
             // :: error: (assignment.type.incompatible)
             high = i;
         }
-        for (@High int i: higharr) {
+        for (@Weak int i: higharr) {
             high = i;
         }
         // :: error: (enhancedfor.type.incompatible)
-        for (@High int i: lowmixed) { }
+        for (@Weak int i: lowmixed) { }
     }
 
     void testArrayAssignment(){

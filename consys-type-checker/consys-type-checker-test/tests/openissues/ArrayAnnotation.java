@@ -1,4 +1,4 @@
-package OpenIssues;
+package de.tuda.stg.consys.checker.testfiles.openissues;
 
 import de.tuda.stg.consys.checker.qual.*;
 

@@ -1,15 +1,15 @@
-package OpenIssues;
+package de.tuda.stg.consys.checker.testfiles.openissues;
 
-import de.tuda.stg.consys.checker.qual.Transactional;
-import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.japi.next.Ref;
-import de.tuda.stg.consys.japi.binding.Cassandra;
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
 import scala.Option;
+
 import java.io.Serializable;
 
 public class GenericsTest {
-    Cassandra.ReplicaBinding replica;
+    CassandraReplicaBinding replica;
     Ref<@Strong A> obj;
     Ref<@Strong B> objB;
 

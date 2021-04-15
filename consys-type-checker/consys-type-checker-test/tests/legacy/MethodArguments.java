@@ -1,11 +1,16 @@
+package de.tuda.stg.consys.checker.testfiles.legacy;
+
+import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.checker.qual.Weak;
+
 class MethodArguments {
-    void wantsHigh(@High int a) { }
-    void wantsLow(@Low int a) { }
+    void wantsHigh(@Weak int a) { }
+    void wantsLow(@Strong int a) { }
     void wantsAnything(int a) { }
 
     void methodArguments() {
-        @High int high = 42;
-        @Low int low = 21;
+        @Weak int high = 42;
+        @Strong int low = 21;
 
         wantsHigh(high);
         // :: error: (argument.type.incompatible)

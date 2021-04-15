@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  *
  * The name is used for local *values*, local variables are by default inconsistent (everything can be assigned to them).
  */
-@SubtypeOf({Strong.class})
+@SubtypeOf({Strong.class, Mixed.class})
 @Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 @QualifierForLiterals

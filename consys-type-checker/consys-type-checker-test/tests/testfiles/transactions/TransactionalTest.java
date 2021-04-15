@@ -1,8 +1,8 @@
-package Transactions;
+package de.tuda.stg.consys.checker.testfiles.testfiles.transactions;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Transactional;
-import de.tuda.stg.consys.japi.binding.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
 import scala.Option;
 
 /**
@@ -93,7 +93,7 @@ class TransactionalTest {
     }
 
 
-    void testTransactionalInvocation_InsideTransaction(Base base, Derived derived, Cassandra.ReplicaBinding replica) {
+    void testTransactionalInvocation_InsideTransaction(Base base, Derived derived, CassandraReplicaBinding replica) {
         replica.transaction(ctx -> {
             base.f1();
             base.f2();
