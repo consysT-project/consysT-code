@@ -14,6 +14,8 @@ import java.io.Serializable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
+
 public class MixedExample {
 
     public static class Register implements Serializable {
@@ -53,27 +55,27 @@ public class MixedExample {
             try {
                 System.out.println("Start Process 1");
                 store.transaction(ctx -> {
-                    ctx.replicate("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class, 42);
+                    ctx.replicate("register1", MIXED, (Class<@Mixed Register>) Register.class, 42);
                     return Option.apply(0);
                 });
 
                 store.transaction(ctx -> {
-                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
-                    Ref<@Mixed Register> reg2 = ctx.lookup("register2", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
+                    Ref<@Mixed Register> reg2 = ctx.lookup("register2", MIXED, (Class<@Mixed Register>) Register.class);
                     reg2.ref().set(33);
                     var value = reg1.ref().get();
                     return Option.apply(0);
                 });
 
                 store.transaction(ctx -> {
-                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
                     reg1.ref().reset();
                     return Option.apply(0);
                 });
 
                 store.transaction(ctx -> {
-                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
-                    Ref<@Mixed Register> reg2 = ctx.lookup("register2", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                    Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
+                    Ref<@Mixed Register> reg2 = ctx.lookup("register2", MIXED, (Class<@Mixed Register>) Register.class);
                     var value1 = reg1.ref().get();
                     var value2 = reg2.ref().get();
                     System.out.println("Process1: " + value1 + " / " + value2);
@@ -93,12 +95,12 @@ public class MixedExample {
         public void run() {
             System.out.println("Start Process 2");
             store.transaction(ctx -> {
-                ctx.replicate("register2", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class, 0);
+                ctx.replicate("register2", MIXED, (Class<@Mixed Register>) Register.class, 0);
                 return Option.apply(0);
             });
 
             store.transaction(ctx -> {
-                Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
                 reg1.ref().dbl();
                 var value = reg1.ref().get();
                 System.out.println(value);
@@ -106,21 +108,21 @@ public class MixedExample {
             });
 
             store.transaction(ctx -> {
-                Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
                 reg1.ref().set(-1);
                 reg1.ref().dbl();
                 return Option.apply(0);
             });
 
             store.transaction(ctx -> {
-                Ref<@Mixed Register> reg2 = ctx.lookup("register2", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                Ref<@Mixed Register> reg2 = ctx.lookup("register2", MIXED, (Class<@Mixed Register>) Register.class);
                 reg2.ref().set(123456);
                 return Option.apply(0);
             });
 
             store.transaction(ctx -> {
-                Ref<@Mixed Register> reg1 = ctx.lookup("register1", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
-                Ref<@Mixed Register> reg2 = ctx.lookup("register2", CassandraConsistencyLevels.MIXED, (Class<@Mixed Register>) Register.class);
+                Ref<@Mixed Register> reg1 = ctx.lookup("register1", MIXED, (Class<@Mixed Register>) Register.class);
+                Ref<@Mixed Register> reg2 = ctx.lookup("register2", MIXED, (Class<@Mixed Register>) Register.class);
                 var value1 = reg1.ref().get();
                 var value2 = reg2.ref().get();
                 System.out.println("Process2: " + value1 + " / " + value2);
