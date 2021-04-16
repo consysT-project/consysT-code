@@ -1,11 +1,9 @@
 package de.tuda.stg.consys.checker;
 
 import org.checkerframework.framework.qual.TypeUseLocation;
-import org.checkerframework.framework.util.AnnotationMirrorSet;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
-import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.AnnotationBuilder;
 
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.DeclaredType;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,14 +24,10 @@ public class SubConsistencyAnnotatedTypeFactory extends ConsistencyAnnotatedType
 
     @Override
     protected void addCheckedCodeDefaults(QualifierDefaults defs) {
-        // TODO: Check
-//        getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
+        defs.addCheckedCodeDefault(
+                AnnotationBuilder.fromName(getElementUtils(), ((SubConsistencyChecker) checker).getQualifier()),
+                TypeUseLocation.FIELD);
 
-//        defs.addCheckedCodeDefault(
-//                AnnotationUtils.getAnnotationByName(
-//                        .getTypeQualifiers(),
-//                        ((SubConsistencyChecker) checker).getQualifier()),
-//                TypeUseLocation.FIELD);
         super.addCheckedCodeDefaultsSkip(defs);
     }
 

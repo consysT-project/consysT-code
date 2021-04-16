@@ -13,14 +13,12 @@ public class SubConsistencyChecker extends BaseTypeChecker {
     private Object src;
 
     @Override
-    public void report(Object src, DiagMessage diag) {
+    public void reportError(Object src, String messageKey, Object... args) {
         if (internalReporting) {
-            failure = diag.getKind() == Diagnostic.Kind.ERROR &&
-                    (diag.getMessageKey().contains("implicitflow") ||
-                        diag.getMessageKey().contains("type.incompatible"));
+            failure = (messageKey.contains("implicitflow") || messageKey.contains("type.incompatible"));
             this.src = src;
         } else {
-            super.report(src, diag);
+            super.reportError(src, messageKey, args);
         }
     }
 
