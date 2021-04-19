@@ -5,6 +5,7 @@ import com.datastax.oss.driver.api.core.cql.{ResultSet, SimpleStatement, Stateme
 import com.datastax.oss.driver.api.core.{CqlSession, ConsistencyLevel => CassandraLevel}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
+import com.datastax.oss.driver.api.querybuilder.select.Selector
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore.CassandraStoreId
 import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, DistributedZookeeperLockingStore, LockingStore}
@@ -140,32 +141,11 @@ trait CassandraStore extends DistributedStore
 		}
 
 
-//		private[cassandra] def writeObjects(objs : Iterable[(String, _)], clevel : CassandraLevel, timestamp : Long) : Unit = {
-//			import QueryBuilder._
-//			val batch = BatchStatement.builder(BatchType.LOGGED)
-//
-//			for (obj <- objs) {
-//				val query = insertInto(s"$objectTableName")
-//					.value("addr", literal(obj._1))
-//					.value("state", literal(CassandraStore.serializeObject(obj._2.asInstanceOf[Serializable])))
-//  				.usingTimestamp(timestamp)
-//					.build()
-//					.setConsistencyLevel(clevel)
-//
-//				batch.addStatement(query)
-//			}
-//
-//			//TODO: Add failure handling
-//			cassandraSession.execute(batch.build().setConsistencyLevel(clevel))
-//		}
-
-
-		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : T = {
-			import QueryBuilder._
-
-			val query = selectFrom(s"$objectTableName")
-				.all()
-				.whereColumn("addr").isEqualTo(literal(addr))
+		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : (T, Long) = {
+			val query = QueryBuilder.selectFrom(s"$objectTableName")
+				.columns("addr", "state")
+				.function("WRITETIME", Selector.column("state")).as("writetime")
+				.whereColumn("addr").isEqualTo(QueryBuilder.literal(addr))
 				.build()
 				.setConsistencyLevel(clevel)
 
@@ -177,7 +157,9 @@ trait CassandraStore extends DistributedStore
 				response.one() match {
 					case null =>  //the address has not been found. retry.
 					case row =>
-						return CassandraStore.deserializeObject[T](row.get("state", TypeCodecs.BLOB))
+						val obj = CassandraStore.deserializeObject[T](row.get("state", TypeCodecs.BLOB))
+						val time = row.get("writetime", TypeCodecs.BIGINT)
+						return (obj, time)
 				}
 				Thread.sleep(10)
 			}

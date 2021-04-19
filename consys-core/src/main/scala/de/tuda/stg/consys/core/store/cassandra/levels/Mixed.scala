@@ -24,7 +24,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr,
 			obj : T
 		) : CassandraStore#RefType[T] = {
-			val cassObj = new MixedCassandraObject[T](addr, obj, MixedWeak)
+			val cassObj = new MixedCassandraObject[T](addr, obj, -1, MixedWeak)
 			txContext.Cache.put(addr, cassObj)
 			new CassandraRef[T](addr, Mixed)
 		}
@@ -128,6 +128,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = {
+
 			txContext.Cache.get(ref.addr) match {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
@@ -147,14 +148,14 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 		}
 
 		private def strongRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : MixedCassandraObject[T] = {
-			val obj : T = store.CassandraBinding.readObject[T](addr, CassandraLevel.ALL)
-			val cassObj = new MixedCassandraObject[T](addr, obj, MixedStrong)
+			val (obj, time) = store.CassandraBinding.readObject[T](addr, CassandraLevel.ALL)
+			val cassObj = new MixedCassandraObject[T](addr, obj, time, MixedStrong)
 			cassObj
 		}
 
 		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : MixedCassandraObject[T] = {
-			val obj : T = store.CassandraBinding.readObject[T](addr, CassandraLevel.ONE)
-			val cassObj = new MixedCassandraObject[T](addr, obj, MixedWeak)
+			val (obj, time) = store.CassandraBinding.readObject[T](addr, CassandraLevel.ONE)
+			val cassObj = new MixedCassandraObject[T](addr, obj, time, MixedWeak)
 			cassObj
 		}
 	}
@@ -162,12 +163,13 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 	private class MixedCassandraObject[T <: CassandraStore#ObjType : ClassTag](
 		addr : CassandraStore#Addr,
 		obj : T,
-		var ml : MixedLevel
-	)	extends CassandraObject[T, Mixed.type](addr, obj, Mixed) {
+		readTime : Long,
+		val ml : MixedLevel
+	)	extends CassandraObject[T, Mixed.type](addr, obj, Mixed, readTime) {
 
 	}
 
-	sealed trait MixedLevel
+	private sealed trait MixedLevel
 	private case object MixedWeak extends MixedLevel
 	private case object MixedStrong extends MixedLevel
 

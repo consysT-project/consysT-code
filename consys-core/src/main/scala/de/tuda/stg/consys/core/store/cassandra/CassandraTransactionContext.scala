@@ -22,7 +22,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	/** The timestamp of this transaction. It uses the start time of the transaction. */
 	//TODO: Is there a better way to generate timestamps for cassandra?
 	//TODO: Should we use the commit time instead?
-	val timestamp : Long = System.currentTimeMillis()
+	val startTimestamp : Long = System.currentTimeMillis()
 
 	/** This builder is used for building the commit statement. */
 	private var commitStatementBuilder : BatchStatementBuilder = null
@@ -56,7 +56,14 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 
 	override private[store] def commit() : Unit = {
 		try {
-			/* Execute the commit */
+			/* Compute the timestamp for the batch.
+			* 1. Ensure that it is newer than all read timestamps of objects in the buffer.
+			* 2. Use the start timestamp of the transaction if it is newer
+			*/
+			val timestamp = Cache.buffer.valuesIterator.foldLeft(startTimestamp)(
+				(timestamp, cassObj) => if (timestamp > cassObj.timestamp) timestamp else cassObj.timestamp + 1
+			)
+
 			//Create a batch statement to batch all the writes
 			commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
 			//Commit every object and gather the writes
@@ -64,6 +71,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 				val protocol = obj.consistencyLevel.toProtocol(store)
 				protocol.commit(this, obj.toRef)
 			})
+
 			//Execute the batch statement
 			store.CassandraBinding.executeStatement(
 				commitStatementBuilder
@@ -72,6 +80,8 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 					// This avoids "storing" values in weak transactions
 					.setQueryTimestamp(timestamp)
 			)
+
+			// Reset the batch statement builder
 			commitStatementBuilder = null
 		} finally {
 			/* Execute the post commits */
@@ -80,12 +90,9 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 				protocol.postCommit(this, obj.toRef)
 			})
 		}
-
-
-//		locks.foreach(lock => lock.release())
 	}
 
-	override def toString : String = s"CassandraTxContext(${store.id}//$timestamp)"
+	override def toString : String = s"CassandraTxContext(${store.id}//$startTimestamp)"
 
 	/**
 	 * Implicitly resolves handlers in this transaction context.

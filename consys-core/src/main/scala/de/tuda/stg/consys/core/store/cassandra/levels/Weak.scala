@@ -19,7 +19,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr,
 			obj : T
 		) : CassandraStore#RefType[T] = {
-			val cassObj = new WeakCassandraObject[T](addr, obj)
+			val cassObj = new CassandraObject[T, Weak.type](addr, obj, Weak,-1)
 			txContext.Cache.put(addr, cassObj)
 			new CassandraRef[T](addr, Weak)
 		}
@@ -80,7 +80,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = txContext.Cache.get(ref.addr) match {
 			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-			case Some(cassObj : WeakCassandraObject[_]) =>
+			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
 				val builder = txContext.getCommitStatementBuilder
 				builder.addStatement(store.CassandraBinding.writeObjectStatement(cassObj.addr, cassObj.state, CassandraLevel.ONE))
 			case cached =>
@@ -92,14 +92,10 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		}
 
 
-		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : WeakCassandraObject[T] = {
-			val obj : T = store.CassandraBinding.readObject[T](addr, CassandraLevel.ONE)
-			val cassObj = new WeakCassandraObject[T](addr, obj)
+		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : CassandraObject[T, Weak.type] = {
+			val (obj, time) = store.CassandraBinding.readObject[T](addr, CassandraLevel.ONE)
+			val cassObj = new CassandraObject[T, Weak.type](addr, obj, Weak, time)
 			cassObj
 		}
 	}
-
-
-	private class WeakCassandraObject[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, obj : T)
-		extends CassandraObject[T, Weak.type](addr, obj, Weak)
 }
