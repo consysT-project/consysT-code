@@ -3,7 +3,7 @@ package de.tuda.stg.consys.checker.testfiles.testfiles.transactions;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 
 import java.io.Serializable;
@@ -12,7 +12,7 @@ import java.io.Serializable;
  * Tests the invocation of ref operations inside and outside of transaction contexts.
  */
 public class RefTest {
-    CassandraReplicaBinding replica;
+    CassandraStoreBinding replica;
     Ref<@Strong A> obj;
 
     static class A implements Serializable {

@@ -3,14 +3,14 @@ package de.tuda.stg.consys.checker.testfiles.openissues;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 
 import java.io.Serializable;
 
 
 public class ReplicateReturnTest {
-    CassandraReplicaBinding replica;
+    CassandraStoreBinding replica;
 
     static class A implements Serializable { }
 

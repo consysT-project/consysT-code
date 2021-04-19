@@ -4,7 +4,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplicaBinding;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Option;
 
@@ -14,7 +14,7 @@ import java.io.Serializable;
  * Tests the invocation of replicate and lookup operations inside and outside of transaction contexts.
  */
 public class ReplicateTest {
-    CassandraReplicaBinding replica;
+    CassandraStoreBinding replica;
     CassandraTransactionContextBinding transaction;
 
     static class A implements Serializable { }

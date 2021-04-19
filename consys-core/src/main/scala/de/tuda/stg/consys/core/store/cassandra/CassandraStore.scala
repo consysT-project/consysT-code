@@ -179,8 +179,7 @@ trait CassandraStore extends DistributedStore
 					case row =>
 						return CassandraStore.deserializeObject[T](row.get("state", TypeCodecs.BLOB))
 				}
-
-				Thread.sleep(200)
+				Thread.sleep(10)
 			}
 
 			throw new TimeoutException(s"the object with address $addr has not been found on this replica")

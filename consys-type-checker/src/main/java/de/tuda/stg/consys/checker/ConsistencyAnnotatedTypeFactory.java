@@ -10,7 +10,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
-import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.AnnotationBuilder;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
@@ -49,14 +49,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	@Override
 	protected void addCheckedCodeDefaults(QualifierDefaults defs) {
+		defs.addCheckedCodeDefault(
+				AnnotationBuilder.fromName(getElementUtils(), "de.tuda.stg.consys.checker.qual.Inconsistent"),
+				TypeUseLocation.FIELD);
 
-		// TODO: Check
-//		defs.addCheckedCodeDefault(
-//				AnnotationUtils.getAnnotationByName(
-//						 "de.tuda.stg.consys.checker.qual.Inconsistent"),
-//				TypeUseLocation.FIELD);
-
-		getSupportedTypeQualifiers().forEach(clz -> System.out.println(clz.toString()));
 		super.addCheckedCodeDefaults(defs);
 	}
 

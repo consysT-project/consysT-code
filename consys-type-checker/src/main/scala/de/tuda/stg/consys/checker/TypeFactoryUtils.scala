@@ -24,7 +24,7 @@ object TypeFactoryUtils {
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
 	val checkerPackageName = s"de.tuda.stg.consys.checker"
-	val japiPackageName = s"de.tuda.stg.consys.japi.next"
+	val japiPackageName = s"de.tuda.stg.consys.japi"
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
 }

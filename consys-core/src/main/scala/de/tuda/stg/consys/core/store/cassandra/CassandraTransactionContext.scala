@@ -65,7 +65,13 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 				protocol.commit(this, obj.toRef)
 			})
 			//Execute the batch statement
-			store.CassandraBinding.executeStatement(commitStatementBuilder.build())
+			store.CassandraBinding.executeStatement(
+				commitStatementBuilder
+					.build()
+					// Set the timestamp to the creation timestamp of the transactions
+					// This avoids "storing" values in weak transactions
+					.setQueryTimestamp(timestamp)
+			)
 			commitStatementBuilder = null
 		} finally {
 			/* Execute the post commits */
