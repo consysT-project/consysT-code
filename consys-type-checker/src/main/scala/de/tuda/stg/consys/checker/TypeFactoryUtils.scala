@@ -1,9 +1,11 @@
 package de.tuda.stg.consys.checker
 
+import com.sun.source.tree.{ClassTree, Tree}
+
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeFactory
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
 import javax.lang.model.`type`.DeclaredType
 
@@ -27,4 +29,5 @@ object TypeFactoryUtils {
 	val japiPackageName = s"de.tuda.stg.consys.japi"
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
+	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
 }

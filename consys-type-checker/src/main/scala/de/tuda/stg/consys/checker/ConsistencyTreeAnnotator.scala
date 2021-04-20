@@ -6,6 +6,10 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDecla
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
+import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+
+import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import scala.collection.mutable
 
 /**
 	* Created on 06.03.19.
@@ -18,6 +22,9 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
 
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
+
+	private var classContext = ""
+	//private var classTable = mutable.Map[String, mutable.Map[String, mutable.Set[String]]]
 
 
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
@@ -63,6 +70,12 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 //				println(classOf[ConsistencyTreeAnnotator],s"skipped")
 			} else {
 //				val before = s"$annotatedTypeMirror"
+
+				node.getExpression match {
+					case id: IdentifierTree if id.getName.toString == "this" => return null
+					case _ =>
+				}
+
 				annotatedTypeMirror.clearAnnotations()
 
 				val annotationsOfReceiver = tf.getAnnotatedType(node.getExpression).getAnnotations
