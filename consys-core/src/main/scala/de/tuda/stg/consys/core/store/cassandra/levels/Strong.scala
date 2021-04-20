@@ -10,6 +10,22 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Strong.type] =
 		new StrongProtocol(store)
 
+	/**
+	 * Protocol that implements sequential consistency on top of Cassandra. The protocol uses the following
+	 * mechanisms to ensure sequential consistency.
+	 *
+	 * <ol>
+	 * 	<li>Once an object is accessed for the first time in a transaction, i.e., <i>before</i> being read from Cassandra,
+	 * a global distributed lock is acquired. </li>
+	 * 	<li>When the transaction commits
+	 * 		<ol>
+	 * 		 <li>All objects that have been accessed are written back to Cassandra.
+	 * 		 The protocol uses a batch commit with common timestamp for all objects of a transaction to
+	 * 		 ensure atomicity of the transaction. </li>
+	 * 		 <li>The lock is released (Two-Phase-Locking).</li>
+	 * 		</ol>
+	 * </ol>
+	 */
 	private class StrongProtocol(val store : CassandraStore) extends ConsistencyProtocol[CassandraStore, Strong.type] {
 		override def toLevel : Strong.type = Strong
 
@@ -29,17 +45,6 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr
 		) : CassandraStore#RefType[T] = {
 			CassandraRef(addr, Strong)
-//			txContext.acquireLock(addr)
-//			txContext.Cache.get(addr) match {
-//				case None =>
-//					val cassObj = strongRead[T](addr)
-//					txContext.Cache.put(addr, cassObj)
-//					cassObj.toRef
-//				case Some(cached : StrongCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-//					new CassandraRef[T](addr, Strong)
-//				case Some(cached) =>
-//					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Strong, obj: $cached")
-//			}
 		}
 
 		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](

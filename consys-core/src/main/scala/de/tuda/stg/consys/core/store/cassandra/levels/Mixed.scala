@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.annotations.methods.StrongOp
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
@@ -34,19 +34,6 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr
 		) : CassandraStore#RefType[T] = {
 			new CassandraRef[T](addr, Mixed)
-
-//			txContext.Cache.get(addr) match {
-//				case None =>
-//					val cassObj = weakRead[T](addr)
-//					txContext.Cache.put(addr, cassObj)
-//					cassObj.toRef
-//
-//				case Some(cached : MixedCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-//
-//
-//				case Some(cached) =>
-//					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
-//			}
 		}
 
 		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
@@ -87,6 +74,9 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 						throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
 				}
 			} else /* if (method.getAnnotation(classOf[WeakOp]) != null) */ {
+				if (method.getAnnotation(classOf[WeakOp]) == null) {
+					println(s"Warning: Method [${method.toString}] executed with Weak consistency because it was not annotated.")
+				}
 				//If the annotation is weak, or if there was no annotation at all...
 				//Lookup the object in the cache
 				val addr = receiver.addr

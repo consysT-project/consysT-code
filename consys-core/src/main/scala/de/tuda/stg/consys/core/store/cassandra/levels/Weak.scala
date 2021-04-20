@@ -29,16 +29,6 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr
 		) : CassandraStore#RefType[T] = {
 			new CassandraRef[T](addr, Weak)
-//			txContext.Cache.get(addr) match {
-//				case None =>
-//					val cassObj = weakRead[T](addr)
-//					txContext.Cache.put(addr, cassObj)
-//					cassObj.toRef
-//				case Some(cached : WeakCassandraObject[T]) if cached.getClassTag == implicitly[ClassTag[T]] =>
-//					new CassandraRef[T](addr, Weak)
-//				case Some(cached) =>
-//					throw new IllegalStateException(s"lookup with wrong consistency level. level: $Strong, obj: $cached")
-//			}
 		}
 
 		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
@@ -67,7 +57,8 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		override def setField[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
 			receiver : CassandraStore#RefType[T],
-			fieldName : String, value : R
+			fieldName : String,
+			value : R
 		) : Unit = {
 			val addr = receiver.addr
 			val cached = txContext.Cache.getOrElseUpdate(addr, weakRead[T](addr))

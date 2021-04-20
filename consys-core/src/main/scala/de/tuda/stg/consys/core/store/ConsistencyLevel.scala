@@ -5,10 +5,6 @@ package de.tuda.stg.consys.core.store
  */
 trait ConsistencyLevel[StoreType <: Store] extends Serializable {
 
-	/** The type of stores for which this consistency level is for. */
-
-	/** The consistency model for this level. */
-
 	/**
 	 * Produces a consistency model for this level for a concrete store.
 	 * The model implements the consistency protocol.
@@ -16,6 +12,6 @@ trait ConsistencyLevel[StoreType <: Store] extends Serializable {
 	 * @param store The store for which to create the model.
 	 * @return A model that implements this consistency level.
 	 */
-	def toProtocol(store : StoreType) : ConsistencyProtocol[StoreType, ConsistencyLevel.this.type]
+	def toProtocol(store : StoreType) : ConsistencyProtocol[StoreType, this.type]
 
 }
