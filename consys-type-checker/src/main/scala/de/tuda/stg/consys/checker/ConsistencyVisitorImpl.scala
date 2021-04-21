@@ -64,13 +64,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		}
 
 		if (!transactionContext && methodInvocationIsReplicateOrLookup(node)) {
-			checker.reportError(node, "invocation.replicate.transaction")
+			checker.reportError(node, "invocation.replicate.transaction", node)
 		}
 		if (!transactionContext && methodInvocationIsRefAccess(node)) {
-			checker.reportError(node, "invocation.ref.transaction")
+			checker.reportError(node, "invocation.ref.transaction", node)
 		}
 		if (!transactionContext && methodInvocationIsTransactional(node)) {
-			checker.reportError(node, "invocation.method.transaction")
+			checker.reportError(node, "invocation.method.transaction", node)
 		}
 
 		node.getMethodSelect match {
@@ -195,7 +195,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate"))
 
 	private def methodInvocationIsTransaction(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Replica", List("transaction"))
+		methodInvocationIsX(node, s"$japiPackageName.Store", List("transaction"))
 
 	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
 		case memberSelectTree : MemberSelectTree =>
@@ -230,7 +230,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		val annotations = node.getModifiers.getAnnotations
 		annotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
 			case adt: AnnotatedDeclaredType =>
-				getQualifiedName(adt) == s"$checkerPackageName.qual.Transactional"
+				getQualifiedName(adt) == s"de.tuda.stg.consys.annotations.Transactional"
 			case _ =>
 				false
 		})

@@ -3,10 +3,11 @@ package de.tuda.stg.consys.checker;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.DiagMessage;
+import org.checkerframework.framework.source.SuppressWarningsPrefix;
 
 import javax.tools.Diagnostic;
 
-
+@SuppressWarningsPrefix({"consistency"})
 public class SubConsistencyChecker extends BaseTypeChecker {
     private boolean internalReporting;
     private boolean failure;

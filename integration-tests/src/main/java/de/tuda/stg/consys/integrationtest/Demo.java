@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.integrationtest;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
@@ -46,6 +47,7 @@ public class Demo {
         abstract Level level();
 
         @Override
+        @SuppressWarnings("consistency") /* Turn off type checker */
         public void run() {
             System.out.println("transaction 1");
             replica1.transaction(ctx -> {

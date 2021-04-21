@@ -2,10 +2,11 @@ package de.tuda.stg.consys.checker;
 
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SuppressWarningsKeys;
+import org.checkerframework.framework.source.SuppressWarningsPrefix;
 
 import java.util.LinkedHashSet;
 
-@SuppressWarningsKeys({"consistency"})
+@SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
 
     public ConsistencyChecker(){
