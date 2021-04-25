@@ -24,7 +24,7 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
 
 
     override def visitClass(node: ClassTree, p: Void): Void = {
-        val replicated = hasAnnotation(node.getModifiers, s"$checkerPackageName.qual.Replicated")
+        val replicated = hasAnnotation(node.getModifiers, s"$checkerPackageName.qual.Mixed")
         //AnnotationUtils.containsSameByName(p.getUnderlyingType.getAnnotationMirrors, s"$checkerPackageName.qual.Replicated")
 
         if (replicated) {
