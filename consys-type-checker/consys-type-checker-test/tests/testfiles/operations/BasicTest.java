@@ -12,6 +12,8 @@ import java.io.Serializable;
 public class BasicTest {
     static @Mixed
     class A implements Serializable {
+        static class B {int k;}
+
         int i;
         int j;
 
@@ -25,6 +27,12 @@ public class BasicTest {
         void bla() {
             // :: error: assignment.type.incompatible
             this.j = i;
+        }
+
+        @StrongOp
+        void bla2(@Weak B o) {
+            // :: error: assignment.type.incompatible
+            this.j = o.k;
         }
     }
 

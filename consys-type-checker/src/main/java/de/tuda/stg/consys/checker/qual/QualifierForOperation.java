@@ -4,6 +4,6 @@ import java.lang.annotation.*;
 
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface OperationForConsistency {
+public @interface QualifierForOperation {
     Class<? extends Annotation> value();
 }

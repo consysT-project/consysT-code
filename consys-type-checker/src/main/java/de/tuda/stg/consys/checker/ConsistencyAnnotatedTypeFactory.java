@@ -4,6 +4,7 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import de.tuda.stg.consys.checker.qual.Inconsistent;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -27,7 +28,7 @@ import java.util.Objects;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
-	private InferenceVisitor inferenceVisitor;
+	private final InferenceVisitor inferenceVisitor;
 
 	public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
@@ -66,7 +67,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	@Override
 	protected void addCheckedCodeDefaults(QualifierDefaults defs) {
 		defs.addCheckedCodeDefault(
-				AnnotationBuilder.fromName(getElementUtils(), "de.tuda.stg.consys.checker.qual.Inconsistent"),
+				AnnotationBuilder.fromClass(getElementUtils(), Inconsistent.class),
 				TypeUseLocation.FIELD);
 
 		super.addCheckedCodeDefaults(defs);
@@ -102,24 +103,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	private void annotateField(VariableElement elt, AnnotatedTypeMirror type) {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
-		var fieldName = ElementUtils.getQualifiedName(elt);
-		var annotation = inferenceVisitor.fieldTable().get(fieldName);
+		var annotation = inferenceVisitor.fieldTable().get(elt);
 		if (annotation.isDefined()) {
 			type.clearAnnotations();
-			type.addAnnotation(AnnotationBuilder.fromName(getElementUtils(), annotation.get()));
+			type.addAnnotation(annotation.get());
 		}
 	}
-
-	//    @Override
-//    //Trees: check bodies of methods
-//    protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
-//        super.addComputedTypeAnnotations(tree, type, iUseFlow);
-//    }
-//
-//    @Override
-//    //Elements: packages, classes, or methods
-//    public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
-//        super.addComputedTypeAnnotations(elt, type);
-//    }
-
 }

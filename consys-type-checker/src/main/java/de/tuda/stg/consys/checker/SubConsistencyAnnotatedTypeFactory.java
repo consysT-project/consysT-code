@@ -10,13 +10,11 @@ import java.util.Map;
 
 
 public class SubConsistencyAnnotatedTypeFactory extends ConsistencyAnnotatedTypeFactory {
-    String defaultFieldQualifier;
     Map<DeclaredType, Object> disallowedReplications;
 
     SubConsistencyAnnotatedTypeFactory(SubConsistencyChecker checker) {
         super(checker);
 
-        this.defaultFieldQualifier = checker.getQualifier();
         this.disallowedReplications = new HashMap<>();
 
         this.postInit();
@@ -25,7 +23,7 @@ public class SubConsistencyAnnotatedTypeFactory extends ConsistencyAnnotatedType
     @Override
     protected void addCheckedCodeDefaults(QualifierDefaults defs) {
         defs.addCheckedCodeDefault(
-                AnnotationBuilder.fromName(getElementUtils(), ((SubConsistencyChecker) checker).getQualifier()),
+                AnnotationBuilder.fromClass(getElementUtils(), ((SubConsistencyChecker) checker).getQualifier()),
                 TypeUseLocation.FIELD);
 
         super.addCheckedCodeDefaultsSkip(defs);
