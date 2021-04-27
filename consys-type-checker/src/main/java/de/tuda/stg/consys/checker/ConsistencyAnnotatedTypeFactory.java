@@ -100,12 +100,14 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	}
 
 	private void annotateField(VariableElement elt, AnnotatedTypeMirror type) {
-		if (elt.getSimpleName().toString().equals("this"))
+		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
 		var fieldName = ElementUtils.getQualifiedName(elt);
-		var annotation = inferenceVisitor.fieldTable().apply(fieldName);
-		type.clearAnnotations();
-		type.addAnnotation(AnnotationBuilder.fromName(getElementUtils(), annotation));
+		var annotation = inferenceVisitor.fieldTable().get(fieldName);
+		if (annotation.isDefined()) {
+			type.clearAnnotations();
+			type.addAnnotation(AnnotationBuilder.fromName(getElementUtils(), annotation.get()));
+		}
 	}
 
 	//    @Override

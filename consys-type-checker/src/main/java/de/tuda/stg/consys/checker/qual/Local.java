@@ -18,5 +18,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 @QualifierForLiterals
-@DefaultFor(value = {TypeUseLocation.LOWER_BOUND}, types = {Object.class})
+@DefaultFor(value = {TypeUseLocation.LOWER_BOUND, TypeUseLocation.CONSTRUCTOR_RESULT})
 public @interface Local {}

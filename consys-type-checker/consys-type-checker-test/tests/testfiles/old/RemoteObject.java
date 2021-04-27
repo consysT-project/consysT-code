@@ -11,6 +11,7 @@ import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
  *
  * @author Mirko Köhler
  */
+//@skip-test
 public class RemoteObject {
 
 	JReplicaSystem replicaSystem;

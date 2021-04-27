@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.checker.testfiles.testfiles;
+package testfiles;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;

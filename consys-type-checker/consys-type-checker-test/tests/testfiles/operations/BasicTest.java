@@ -1,9 +1,11 @@
+package testfiles.operations;
+
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.annotations.methods.*;
 import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.core.store.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.core.store.cassandra.levels.CassandraConsistencyLevel;
-import de.tuda.stg.consys.japi.next.Ref;
-import de.tuda.stg.consys.japi.next.TransactionContext;
-import de.tuda.stg.consys.japi.next.binding.Cassandra;
+import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 
 import java.io.Serializable;
 
@@ -21,12 +23,13 @@ public class BasicTest {
 
         @StrongOp
         void bla() {
+            // :: error: assignment.type.incompatible
             this.j = i;
         }
     }
 
     @Transactional
-    void transaction(Cassandra.TransactionContextBinding ctx) {
-        Ref<A> o = ctx.replicate("bla", CassandraConsistencyLevels.STRONG(), A.class);
+    void transaction(CassandraTransactionContextBinding ctx) {
+        Ref<A> o = ctx.replicate("o", CassandraConsistencyLevels.MIXED, A.class);
     }
 }

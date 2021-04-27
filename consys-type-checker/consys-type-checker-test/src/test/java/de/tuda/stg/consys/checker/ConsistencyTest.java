@@ -15,7 +15,8 @@ public class ConsistencyTest extends CheckerFrameworkPerFileTest {
                 //Mandated by the checker framework
 				"-Anomsgtext",
 				//Disable warnings, so that the tests do not fail when there is the warning about using the unannotated jdk
-				"-nowarn");
+				"-nowarn",
+				"-AsuppressWarnings=inconsistent.constructor.type");
     }
 
 	@Parameters

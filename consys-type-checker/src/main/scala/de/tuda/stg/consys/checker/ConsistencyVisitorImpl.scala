@@ -21,8 +21,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	import TypeFactoryUtils._
 
 	val subCheckerMap: Map[String, Class[_ <: SubConsistencyChecker]] =
-		Map("de.tuda.stg.consys.checker.qual.Strong" -> classOf[StrongSubConsistencyChecker],
-			"de.tuda.stg.consys.checker.qual.Weak" -> classOf[WeakSubConsistencyChecker])
+		Map(s"$checkerPackageName.qual.Strong" -> classOf[StrongSubConsistencyChecker],
+			s"$checkerPackageName.qual.Weak" -> classOf[WeakSubConsistencyChecker])
 
 
 	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
@@ -36,8 +36,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		Check that implicit contexts are correct.
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
-		println("####### Var assign:\n  " + node)
-		println("  " + node.getVariable + " -> " + atypeFactory.getAnnotatedType(node.getVariable))
+		//println("####### Var assign:\n  " + node + "\n  " + node.getVariable + " -> " + atypeFactory.getAnnotatedType(node.getVariable))
+
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
 	}
@@ -50,7 +50,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
-		println("####### Var decl:\n  " + node + " -> " + atypeFactory.getAnnotatedType(node))
+		//println("####### Var decl:\n  " + node + " -> " + atypeFactory.getAnnotatedType(node))
+
 		val initializer : ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)
 		super.visitVariable(node, p)
@@ -233,7 +234,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		val annotations = node.getModifiers.getAnnotations
 		annotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
 			case adt: AnnotatedDeclaredType =>
-				getQualifiedName(adt) == s"de.tuda.stg.consys.annotations.Transactional"
+				getQualifiedName(adt) == s"$annoPackageName.Transactional"
 			case _ =>
 				false
 		})

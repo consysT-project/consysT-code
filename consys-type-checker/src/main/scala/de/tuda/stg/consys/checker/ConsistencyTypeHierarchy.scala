@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.checker
 
+import de.tuda.stg.consys.checker.TypeFactoryUtils.japiPackageName
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils
@@ -25,7 +26,7 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 
 	private def refType(typ : AnnotatedTypeMirror) : Option[AnnotatedDeclaredType] = typ match {
 		case declared : AnnotatedDeclaredType
-			if TypesUtils.getQualifiedName(declared.getUnderlyingType) contentEquals "de.tuda.stg.consys.japi.next.Ref" =>
+			if TypesUtils.getQualifiedName(declared.getUnderlyingType) contentEquals s"$japiPackageName.Ref" =>
 				Some(declared)
 
 		case _ => None

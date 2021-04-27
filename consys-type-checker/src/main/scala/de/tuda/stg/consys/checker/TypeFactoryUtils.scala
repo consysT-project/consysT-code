@@ -18,15 +18,16 @@ object TypeFactoryUtils {
 	/*
 		Annotation definitions
 	 */
-	def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror = {
+	def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations,"de.tuda.stg.consys.checker.qual.Local")
-	}
 
 	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
 	val checkerPackageName = s"de.tuda.stg.consys.checker"
 	val japiPackageName = s"de.tuda.stg.consys.japi"
+	val annoPackageName = s"de.tuda.stg.consys.annotations"
+
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString

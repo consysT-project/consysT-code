@@ -16,7 +16,7 @@ public class OperationTest extends CheckerFrameworkPerFileTest {
                 "-Anomsgtext",
                 //Disable warnings, so that the tests do not fail when there is the warning about using the unannotated jdk
                 "-nowarn",
-                "-Alint=disableSubChecker");
+                "-AsuppressWarnings=inconsistent.constructor.type");
     }
 
     @Parameterized.Parameters

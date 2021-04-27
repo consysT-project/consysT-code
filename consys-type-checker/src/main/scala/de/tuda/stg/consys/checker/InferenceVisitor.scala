@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, IdentifierTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{checkerPackageName, getQualifiedName}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{checkerPackageName, annoPackageName, getQualifiedName}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.GenericAnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
@@ -19,8 +19,8 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
     private var classContext = ""
     private var methodContext = ""
 
-    private val annnoMapping = Map(s"$checkerPackageName.qual.WeakOp" -> s"$checkerPackageName.qual.Weak",
-        s"$checkerPackageName.qual.StrongOp" -> s"$checkerPackageName.qual.Strong")
+    private val annnoMapping = Map(s"$annoPackageName.methods.WeakOp" -> s"$checkerPackageName.qual.Weak",
+        s"$annoPackageName.methods.StrongOp" -> s"$checkerPackageName.qual.Strong")
 
 
     override def visitClass(node: ClassTree, p: Void): Void = {

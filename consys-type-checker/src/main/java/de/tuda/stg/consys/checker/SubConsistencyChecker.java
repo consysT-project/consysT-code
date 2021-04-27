@@ -2,10 +2,7 @@ package de.tuda.stg.consys.checker;
 
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.framework.source.DiagMessage;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
-
-import javax.tools.Diagnostic;
 
 @SuppressWarningsPrefix({"consistency"})
 public class SubConsistencyChecker extends BaseTypeChecker {
@@ -52,7 +49,7 @@ public class SubConsistencyChecker extends BaseTypeChecker {
 
         @Override
         public String getQualifier() {
-            return "de.tuda.stg.consys.checker.qual.Strong";
+            return TypeFactoryUtils.checkerPackageName() + ".qual.Strong";
         }
     }
 
@@ -64,7 +61,7 @@ public class SubConsistencyChecker extends BaseTypeChecker {
 
         @Override
         public String getQualifier() {
-            return "de.tuda.stg.consys.checker.qual.Weak";
+            return TypeFactoryUtils.checkerPackageName() + ".qual.Weak";
         }
     }
 }
