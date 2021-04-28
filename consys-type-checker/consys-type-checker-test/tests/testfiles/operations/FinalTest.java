@@ -9,22 +9,32 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBind
 
 import java.io.Serializable;
 
-public class BasicTest {
+/**
+ * Checks that fields that are never written are @Local
+ */
+public class FinalTest {
     static @Mixed
     class A implements Serializable {
-        static class B {int k;}
+        final int a;
+        final int b = 0;
+        int c;
 
-        int j;
+        A() {
+            a = 0;
+        }
+
+        @WeakOp
+        int weak() { return c; }
 
         @StrongOp
-        void bla2(@Weak B o) {
-            // :: error: assignment.type.incompatible
-            this.j = o.k;
-        }
-    }
+        int strong() { return c; }
 
-    @Transactional
-    void transaction(CassandraTransactionContextBinding ctx) {
-        Ref<A> o = ctx.replicate("o", CassandraConsistencyLevels.MIXED, A.class);
+        @StrongOp
+        void bla(@Local int l) {
+            // checks that a, b, c are all @Local
+            l = a;
+            l = b;
+            l = c;
+        }
     }
 }
