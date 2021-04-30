@@ -45,12 +45,12 @@ trait AkkaStore extends DistributedStore
 
 
 	/*The actor that is used to communicate with this replica.*/
-	private[akka] final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaStore.defaultActorName)
+	private final val replicaActor : ActorRef = actorSystem.actorOf(Props(classOf[ReplicaActor], this),	AkkaStore.defaultActorName)
 
 	/*Other replicas known to this replica.*/
-	private[akka] final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
+	private final val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
-	protected[akka]	def actorSystem : ActorSystem
+	protected	def actorSystem : ActorSystem
 
 	override def id : Id = AkkaStoreId(s"akka-store@${actorSystem.name}")
 
@@ -72,8 +72,6 @@ trait AkkaStore extends DistributedStore
 
 	}
 
-	override protected[store] def enref[T <: ObjType : ClassTag](obj : HandlerType[T]) : RefType[T] =
-		new AkkaRef[T](obj.addr, obj.consistencyLevel)
 
 
 	private[akka] def handlerFor(replicaRef : ActorRef) : RequestHandler[Addr] = {
@@ -150,9 +148,10 @@ trait AkkaStore extends DistributedStore
 
 
 
+
+
 	protected[akka] object LocalReplica {
-		/*The replicated objects stored by this replica*/
-		private final val localObjects : mutable.Map[Addr, AkkaObject[_]] = mutable.HashMap.empty
+
 
 		private final val waiters : mutable.MultiMap[Addr, Thread] = new mutable.HashMap[Addr, mutable.Set[Thread]] with mutable.MultiMap[Addr, Thread]
 		private final val waitersLock : ReentrantLock = new ReentrantLock()
@@ -274,6 +273,10 @@ trait AkkaStore extends DistributedStore
 
 object AkkaStore {
 
+	
+
+
+
 	private[AkkaStore] val defaultSystemName = "consys-replicas"
 	private[AkkaStore] val defaultActorName = "replica-base"
 
@@ -326,3 +329,5 @@ object AkkaStore {
 	case object AcquireHandler extends ReplicaActorMessage
 
 }
+
+
