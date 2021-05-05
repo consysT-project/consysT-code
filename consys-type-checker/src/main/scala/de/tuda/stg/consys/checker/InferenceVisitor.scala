@@ -3,11 +3,12 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{annoPackageName, checkerPackageName, getQualifiedName}
-import de.tuda.stg.consys.checker.qual.{Local, QualifierForOperation}
+import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.GenericAnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
+import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
 import javax.lang.model.element.{AnnotationMirror, AnnotationValue, ElementKind, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
@@ -20,18 +21,26 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
 
     var inferenceTable: InferenceTable = mutable.Map.empty
 
-    private var annnoMapping: Map[String, String] = Map.empty
+    private var annoMapping: Map[String, String] = Map.empty
 
     private var classContext: Option[TypeElement] = Option.empty
+    private var defaultOpLevel: Option[String] = Option.empty
     private var methodContext: Option[AnnotationMirror] = Option.empty
 
 
     override def visitClass(node: ClassTree, p: Boolean): Void = {
-        if (annnoMapping.isEmpty)
-            annnoMapping = buildQualifierMap()
+        if (annoMapping.isEmpty)
+            annoMapping = buildQualifierMap()
 
-        val mixed = hasAnnotation(node.getModifiers, s"$checkerPackageName.qual.Mixed")
-        if (mixed) {
+        if (classContext.isDefined && classContext.get.equals(TreeUtils.elementFromDeclaration(node)))
+            return null
+
+        val prev = (classContext, defaultOpLevel)
+        classContext = Option(TreeUtils.elementFromDeclaration(node))
+
+        val adt = atypeFactory.getAnnotatedType(node)
+        val mixed = adt.getAnnotation(classOf[Mixed])
+        if (mixed != null) {
             TreeUtils.elementFromDeclaration(node).getSuperclass match {
                 case dt: DeclaredType =>
                     val superclassTree = atypeFactory.getTreeUtils.getTree(dt.asElement().asInstanceOf[TypeElement])
@@ -42,24 +51,34 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
                 case _ =>
             }
 
-            val prev = classContext
-            classContext = Option(TreeUtils.elementFromDeclaration(node))
+            val a = atypeFactory.getAnnotatedType(node).getAnnotation(classOf[Mixed])
+            //defaultOpLevel = Some(AnnotationBuilder.fromClass(
+            //    atypeFactory.getElementUtils, a.getElementValues.values().head.getValue.asInstanceOf[Class[_ <: Annotation]]))
+            defaultOpLevel = Some(AnnotationUtils.getElementValuesWithDefaults(a).values().head.getValue.toString)
+
             val r = super.visitClass(node, p)
-            classContext = prev
+            classContext = prev._1
+            defaultOpLevel = prev._2
             r
         } else {
+            classContext = prev._1
+            defaultOpLevel = prev._2
             null
         }
     }
 
     override def visitMethod(node: MethodTree, isLHS: Boolean): Void = {
         if (classContext.nonEmpty) {
-            annnoMapping.foreach(mapping => {
+            annoMapping.foreach(mapping => {
                 val (operation, qualifier) = mapping
                 if (hasAnnotation(node.getModifiers, operation)) {
                     methodContext = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
+                    // TODO: handle case if more than one annotation given
                 }
             })
+            if (methodContext.isEmpty) {
+                methodContext = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, annoMapping.apply(defaultOpLevel.get)))
+            }
 
             val r = super.visitMethod(node, isLHS)
             methodContext = Option.empty
@@ -147,4 +166,6 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
                         map + (value.getValue.toString -> elt.toString)
                 }
             })
+
+    def getClassContext: Option[TypeElement] = classContext
 }

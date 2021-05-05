@@ -18,8 +18,8 @@ public class ConsistencyChecker extends BaseTypeChecker {
     @Override
     protected LinkedHashSet<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
         var checkers = super.getImmediateSubcheckerClasses();
-        checkers.add(SubConsistencyChecker.WeakSubConsistencyChecker.class);
-        checkers.add(SubConsistencyChecker.StrongSubConsistencyChecker.class);
+        //checkers.add(SubConsistencyChecker.WeakSubConsistencyChecker.class);
+        //checkers.add(SubConsistencyChecker.StrongSubConsistencyChecker.class);
         return checkers;
     }
 
