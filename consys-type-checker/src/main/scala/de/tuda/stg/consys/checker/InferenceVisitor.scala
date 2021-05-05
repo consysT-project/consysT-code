@@ -8,8 +8,6 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclar
 import org.checkerframework.framework.`type`.GenericAnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
-import java.lang.Class
-import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
 import javax.lang.model.element.{AnnotationMirror, AnnotationValue, ElementKind, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
@@ -17,23 +15,35 @@ import scala.collection.mutable
 
 class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) extends TreeScanner[Void, Boolean] {
 
-    var fieldTable: mutable.Map[VariableElement, AnnotationMirror] = mutable.Map[VariableElement, AnnotationMirror]()
+    // TODO: switch the keys to strings for performance
+    type InferenceTable = mutable.Map[(TypeElement, VariableElement), AnnotationMirror]
 
-    private var classContext = ""
+    var inferenceTable: InferenceTable = mutable.Map.empty
+
+    private var annnoMapping: Map[String, String] = Map.empty
+
+    private var classContext: Option[TypeElement] = Option.empty
     private var methodContext: Option[AnnotationMirror] = Option.empty
 
-    //private val annnoMapping = mutable.Map(s"$annoPackageName.methods.WeakOp" -> s"$checkerPackageName.qual.Weak",
-    //    s"$annoPackageName.methods.StrongOp" -> s"$checkerPackageName.qual.Strong")
-    private var annnoMapping: Map[String, String] = Map.empty
-    //buildQualifierMap()
 
     override def visitClass(node: ClassTree, p: Boolean): Void = {
         if (annnoMapping.isEmpty)
             annnoMapping = buildQualifierMap()
+
         val mixed = hasAnnotation(node.getModifiers, s"$checkerPackageName.qual.Mixed")
         if (mixed) {
+            TreeUtils.elementFromDeclaration(node).getSuperclass match {
+                case dt: DeclaredType =>
+                    val superclassTree = atypeFactory.getTreeUtils.getTree(dt.asElement().asInstanceOf[TypeElement])
+                    // TODO: null when superclass not found -> possible causes?
+                    if (superclassTree != null) {
+                        visitClass(superclassTree, p)
+                    }
+                case _ =>
+            }
+
             val prev = classContext
-            classContext = getQualifiedName(node)
+            classContext = Option(TreeUtils.elementFromDeclaration(node))
             val r = super.visitClass(node, p)
             classContext = prev
             r
@@ -42,7 +52,7 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
         }
     }
 
-    override def visitMethod(node: MethodTree, p: Boolean): Void = {
+    override def visitMethod(node: MethodTree, isLHS: Boolean): Void = {
         if (classContext.nonEmpty) {
             annnoMapping.foreach(mapping => {
                 val (operation, qualifier) = mapping
@@ -51,7 +61,7 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
                 }
             })
 
-            val r = super.visitMethod(node, p)
+            val r = super.visitMethod(node, isLHS)
             methodContext = Option.empty
             r
         } else {
@@ -59,42 +69,42 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
         }
     }
 
-    override def visitAssignment(node: AssignmentTree, p: Boolean): Void = {
+    override def visitAssignment(node: AssignmentTree, isLhs: Boolean): Void = {
         var r = scan(node.getVariable, true)
         r = reduce(scan(node.getExpression, false), r)
         r
     }
 
-    override def visitCompoundAssignment(node: CompoundAssignmentTree, p: Boolean): Void = {
+    override def visitCompoundAssignment(node: CompoundAssignmentTree, isLhs: Boolean): Void = {
         var r = scan(node.getVariable, true)
         r = reduce(scan(node.getExpression, false), r)
         r
     }
 
     // TODO: are there more tree types for field use other than IdentifierTree and MemberSelect?
-    override def visitMemberSelect(node: MemberSelectTree, p: Boolean): Void = {
-        processField(node, p)
-        super.visitMemberSelect(node, p)
+    override def visitMemberSelect(node: MemberSelectTree, isLhs: Boolean): Void = {
+        processField(node, isLhs)
+        super.visitMemberSelect(node, isLhs)
     }
 
-    override def visitIdentifier(node: IdentifierTree, p: Boolean): Void = {
-        processField(node, p)
-        super.visitIdentifier(node, p)
+    override def visitIdentifier(node: IdentifierTree, isLhs: Boolean): Void = {
+        processField(node, isLhs)
+        super.visitIdentifier(node, isLhs)
     }
 
-    private def processField(node: ExpressionTree, p: Boolean): Unit = {
+    private def processField(node: ExpressionTree, isLhs: Boolean): Unit = {
         // TODO: check if ID belongs to this class
         methodContext match {
-            case Some(methodLevel) => (TreeUtils.elementFromUse(node), p) match {
-                case (field: VariableElement, true) if field.getKind == ElementKind.FIELD => fieldTable.get(field) match {
+            case Some(methodLevel) => (TreeUtils.elementFromUse(node), isLhs) match {
+                case (field: VariableElement, true) if field.getKind == ElementKind.FIELD => getInferredFieldOrFromSuperclass(field, classContext.get) match {
                     case Some(fieldLevel) =>
                         val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, methodLevel)
-                        fieldTable.update(field, lup)
+                        inferenceTable.update((classContext.get, field), lup)
                     case None =>
-                        fieldTable.update(field, methodLevel)
+                        inferenceTable.update((classContext.get, field), methodLevel)
                 }
-                case (field: VariableElement, false) if field.getKind == ElementKind.FIELD => fieldTable.get(field) match {
-                    case None => fieldTable.update(field, AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
+                case (field: VariableElement, false) if field.getKind == ElementKind.FIELD => getInferredFieldOrFromSuperclass(field, classContext.get) match {
+                    case None => inferenceTable.update((classContext.get, field), AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
                     case _ =>
                 }
                 case _ =>
@@ -102,6 +112,16 @@ class InferenceVisitor(atypeFactory: GenericAnnotatedTypeFactory[_, _, _, _]) ex
             case _ =>
         }
     }
+
+    def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement): Option[AnnotationMirror] =
+        inferenceTable.get(clazz, field) match {
+            case value: Some[AnnotationMirror] => value
+            case None => clazz.getSuperclass match {
+                case superclass: DeclaredType =>
+                    getInferredFieldOrFromSuperclass(field, superclass.asElement().asInstanceOf[TypeElement])
+                case _ => None
+            }
+        }
 
     private def hasAnnotation(modifiers: ModifiersTree, annotation: String): Boolean = {
         modifiers.getAnnotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {

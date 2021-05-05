@@ -28,5 +28,6 @@ public class SubConsistencyVisitor extends ConsistencyVisitorImpl {
         }
 
         classChecker.disableInternalReporting();
+        System.out.println("-----------------------------");
     }
 }

@@ -32,11 +32,19 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	}
 
+	override def processClassTree(classTree: ClassTree): Unit = {
+		println(">Class decl:  " + getQualifiedName(classTree))
+		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree))
+		super.processClassTree(classTree)
+		atypeFactory.resetMixedClassContext()
+	}
+
 	/*
 		Check that implicit contexts are correct.
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
-		//println("####### Var assign:\n  " + node + "\n  " + node.getVariable + " -> " + atypeFactory.getAnnotatedType(node.getVariable))
+		println(s"  >Var assign:\n" +
+				s"   <$node> where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}")
 
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
@@ -50,7 +58,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
-		//println("####### Var decl:\n  " + node + " -> " + atypeFactory.getAnnotatedType(node))
+		println(s"  >Var decl:\n" +
+				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
 
 		val initializer : ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)

@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.checker;
 
 import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -17,18 +15,19 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
-import java.util.Objects;
+import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	private final InferenceVisitor inferenceVisitor;
+
+	private final Stack<TypeElement> mixedClassContext;
 
 	public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
@@ -40,6 +39,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		}
 
 		this.inferenceVisitor = new InferenceVisitor(this);
+		this.mixedClassContext = new Stack<>();
 	}
 
 
@@ -103,10 +103,19 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	private void annotateField(VariableElement elt, AnnotatedTypeMirror type) {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
-		var annotation = inferenceVisitor.fieldTable().get(elt);
+
+		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek());
 		if (annotation.isDefined()) {
 			type.clearAnnotations();
 			type.addAnnotation(annotation.get());
 		}
+	}
+
+	public void setMixedClassContext(TypeElement mixedClassContext) {
+		this.mixedClassContext.push(mixedClassContext);
+	}
+
+	public void resetMixedClassContext() {
+		this.mixedClassContext.pop();
 	}
 }

@@ -8,7 +8,7 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 
 import java.io.Serializable;
-
+// @skip-test
 public class BasicTest {
     static @Mixed
     class A implements Serializable {

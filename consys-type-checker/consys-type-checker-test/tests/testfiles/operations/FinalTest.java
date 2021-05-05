@@ -8,7 +8,7 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 
 import java.io.Serializable;
-
+// @skip-test
 /**
  * Checks that fields that are never written are @Local
  */
