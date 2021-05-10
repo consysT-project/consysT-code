@@ -33,8 +33,9 @@ public class BankAccount {
 
     @ ensures (\old(timestamp) > other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
-    @ ensures (\old(timestamp) == other.timestamp && replicaId <= other.replicaId ) ==> (value == \old(value)) && (timestamp == \old(timestamp));
-    @ ensures (\old(timestamp) == other.timestamp && replicaId >= other.replicaId ) ==> (value == other.value) && (timestamp == other.timestamp);
+    @ ensures (\old(timestamp) == other.timestamp && replicaId < other.replicaId ) ==> (value == \old(value)) && (timestamp == \old(timestamp));
+    @ ensures (\old(timestamp) == other.timestamp && replicaId > other.replicaId ) ==> (value == other.value) && (timestamp == other.timestamp);
+    @ ensures (\old(timestamp) == other.timestamp && replicaId == other.replicaId ) ==> (value == \old(value)) && (timestamp == \old(timestamp)) && (value == other.value) && (timestamp == other.timestamp);
 
     @*/
     public void merge(BankAccount other) {}

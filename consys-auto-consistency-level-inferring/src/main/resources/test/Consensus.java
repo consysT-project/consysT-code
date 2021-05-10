@@ -31,8 +31,9 @@ class Consensus {
 
   /*@
   @ requires \old(conjunctValues());
-  @ ensures flag && (b == \old(b));
-  @*/
+  @ ensures flag && (\forall int index; index>=0 && index<numOfReplicas;
+                      b[index] == \old(b[index]));
+@*/
   void agree() {}
 
   /*@
