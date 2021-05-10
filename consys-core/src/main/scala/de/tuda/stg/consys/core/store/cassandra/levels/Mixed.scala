@@ -62,6 +62,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 						result
 					case Some(cached : MixedCassandraObject[T]) if cached.ml == MixedWeak =>
 						// If the object was read with weak consistency, then do the same as in case None
+						// TODO: Merge weak object with newly read strong object.
 						val obj = strongRead[T](addr)
 						txContext.Cache.putOrOverwrite(addr, obj)
 						val result = obj.invoke[R](methodId, args)

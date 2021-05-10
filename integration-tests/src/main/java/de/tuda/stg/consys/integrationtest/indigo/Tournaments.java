@@ -3,8 +3,6 @@ package de.tuda.stg.consys.integrationtest.indigo;
 import com.google.inject.internal.util.Sets;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.integrationtest.indigo.Player;
-import de.tuda.stg.consys.integrationtest.indigo.Tournament;
 
 import java.util.Set;
 
