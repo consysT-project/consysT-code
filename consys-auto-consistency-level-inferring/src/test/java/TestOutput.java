@@ -31,7 +31,8 @@ public class TestOutput {
     String[] distributedLock = {"src/main/resources/test/DistributedLock.java"};
     String[] resettableCounter = {"src/main/resources/test/ResettableCounter.java"};
     String[] resettableCounterWithRound = {"src/main/resources/test/ResettableCounterWithRound.java"};
-    String[] any = {"src/main/resources/test/BankAccount.java"};
+    //String[] any = {"src/main/resources/test/BankAccount.java"};
+    String[] any = {"LWWMergeFuncExamples/BankAccount/BankAccount.java"};
 
     ModelGenerator visitor = new ModelGenerator();
 
