@@ -5,12 +5,11 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 
-@Mixed
 public class BankAccount implements Serializable {
 
     private int value = 0;
     private int timestamp = 0;
-    private final Ref<@Mixed User> user;
+    private Ref<@Mixed User> user;
 
     //@ public invariant value >= 0;
 
@@ -19,7 +18,7 @@ public class BankAccount implements Serializable {
     @ ensures timestamp == 0;
     @ ensures user == u;
     @*/
-    public BankAccount(Ref<@Mixed User> u) {
+    public BankAccount(@Mixed Ref<@Mixed User> u) {
         this.user = u;
     }
 

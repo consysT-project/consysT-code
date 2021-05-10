@@ -18,23 +18,28 @@ public class Bank2 {
 	}
 
 	public Ref<@Mixed User> newUser(int userId, String name) {
-		Option<Ref<@Mixed User>> user = store.transaction(tx ->
-			Option.apply(tx.replicate(user(userId), MIXED, User.class, name)));
+		Option<Ref<@Mixed User>> result =
+			store.<Ref<@Mixed User>>transaction(tx -> {
+				Ref<@Mixed User> user = tx.replicate(user(userId), MIXED, (Class<@Mixed User>) User.class, name);
+				return Option.apply(user);
+			});
 
-		return user.getOrElse(() -> null);
+		return result.<Ref<@Mixed User>>getOrElse(() -> null);
 	}
 
 	public Ref<@Mixed BankAccount> newAccount(int accId, Ref<@Mixed User> user) {
-		var account = store.transaction(tx ->
-				Option.apply(tx.replicate(account(accId), MIXED, BankAccount.class, user)));
+		Option<Ref<@Mixed BankAccount>> result = store.<Ref<@Mixed BankAccount>>transaction(tx -> {
+			Ref<@Mixed BankAccount> account = tx.replicate(account(accId), MIXED, (Class<@Mixed BankAccount>)BankAccount.class, user);
+			return Option.apply(account);
+		});
 
-		return account.getOrElse(() -> null);
+		return result.<Ref<@Mixed BankAccount>>getOrElse(() -> null);
 	}
 
 
 	public int getBalance(int accId) {
 		var balance = store.transaction(tx -> {
-			var account = tx.lookup(account(accId), MIXED, BankAccount.class);
+			Ref<@Mixed BankAccount> account = tx.lookup(account(accId), MIXED, (Class<@Mixed BankAccount>)BankAccount.class);
 			return Option.apply(account.ref().getBalance());
 		});
 
@@ -44,8 +49,8 @@ public class Bank2 {
 
 	public void transfer(int accId1, int accId2, int amount) {
 		store.transaction(tx -> {
-			var account1 = tx.lookup(account(accId1), MIXED, BankAccount.class);
-			var account2 = tx.lookup(account(accId2), MIXED, BankAccount.class);
+			Ref<@Mixed BankAccount> account1 = tx.lookup(account(accId1), MIXED, (Class<@Mixed BankAccount>)BankAccount.class);
+			Ref<@Mixed BankAccount> account2 = tx.lookup(account(accId2), MIXED, (Class<@Mixed BankAccount>)BankAccount.class);
 			account1.ref().withdraw(amount);
 			account2.ref().deposit(amount);
 			return Option.empty();

@@ -1,8 +1,10 @@
 package de.tuda.stg.consys.integrationtest.bank;
 
+import de.tuda.stg.consys.checker.qual.Mixed;
+
 import java.io.Serializable;
 
-public class User implements Serializable {
+public class User extends Object implements Serializable {
 
 	private String name;
 	private int timestamp = 0;
@@ -10,7 +12,7 @@ public class User implements Serializable {
 	/*@
    @ ensures name == n;
    @*/
-	public User(String n) {
+	public User(@Mixed String n) {
 		this.name = n;
 	}
 
