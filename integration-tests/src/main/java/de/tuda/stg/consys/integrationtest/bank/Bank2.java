@@ -18,7 +18,7 @@ public class Bank2 {
 	}
 
 	public Ref<@Mixed User> newUser(int userId, String name) {
-		var user = store.transaction(tx ->
+		Option<Ref<@Mixed User>> user = store.transaction(tx ->
 			Option.apply(tx.replicate(user(userId), MIXED, User.class, name)));
 
 		return user.getOrElse(() -> null);

@@ -5,6 +5,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 
+@Mixed
 public class BankAccount implements Serializable {
 
     private int value = 0;
