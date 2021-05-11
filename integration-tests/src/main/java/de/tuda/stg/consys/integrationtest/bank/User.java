@@ -7,13 +7,17 @@ import java.io.Serializable;
 public class User extends Object implements Serializable {
 
 	private String name;
+
+	//TODO: These two entries should be internal only.
 	private int timestamp = 0;
+	private final int replicaId;
 
 	/*@
    @ ensures name == n;
    @*/
-	public User(@Mixed String n) {
+	public User(@Mixed String n, int replicaId) {
 		this.name = n;
+		this.replicaId = replicaId;
 	}
 
 	public String getName() {
@@ -28,23 +32,24 @@ public class User extends Object implements Serializable {
 	}
 
 	/*@
-   @ requires \old(value) >= 0;
-   @ requires other.value >= 0;
-   @ requires \old(timestamp) == other.timestamp ==> \old(value) == other.value; //TODO: This seems to be unnecessary?
-   @ ensures (\old(timestamp) > other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
-   @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
-   @ ensures (\old(timestamp) == other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp)) &&
-													  (value == other.value) && (timestamp == other.timestamp); //TODO: This seems wrong
+   @ ensures (\old(timestamp) == other.timestamp && replicaId < other.replicaId ) ==> (name == \old(name)) && (timestamp == \old(timestamp));
+   @ ensures (\old(timestamp) == other.timestamp && replicaId > other.replicaId ) ==> (name == other.name) && (timestamp == other.timestamp);
+   @ ensures (\old(timestamp) == other.timestamp && replicaId == other.replicaId ) ==> (name == \old(name)) && (timestamp == \old(timestamp)) && (name == other.name) && (timestamp == other.timestamp);
    @*/
+	//TODO: The merge function should be internal only.
 	public void merge(User other) {
 		if (timestamp > other.timestamp) {
 			//Do nothing
-		} else if (timestamp < other.timestamp) {
+		} else if (timestamp < other.timestamp || replicaId > other.replicaId) {
 			name = other.name;
 			timestamp = other.timestamp;
-		} else {
-			//TODO: Deterministically choose one value
-		}
+		} else if (replicaId < other.replicaId) {
 
+		} else {
+			//replicaId == other.replicaId && timestamp == other.timestamp
+			//This case *should* never happen. One replica should always have increasing timestamps.
+			throw new IllegalArgumentException("cannot merge two values with same timestamp from same replica.");
+		}
 	}
+
 }

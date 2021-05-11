@@ -20,7 +20,7 @@ public class Bank2 {
 	public Ref<@Mixed User> newUser(int userId, String name) {
 		Option<Ref<@Mixed User>> result =
 			store.<Ref<@Mixed User>>transaction(tx -> {
-				Ref<@Mixed User> user = tx.replicate(user(userId), MIXED, (Class<@Mixed User>) User.class, name);
+				Ref<@Mixed User> user = tx.replicate(user(userId), MIXED, (Class<@Mixed User>) User.class, name, replicaId());
 				return Option.apply(user);
 			});
 
@@ -29,7 +29,7 @@ public class Bank2 {
 
 	public Ref<@Mixed BankAccount> newAccount(int accId, Ref<@Mixed User> user) {
 		Option<Ref<@Mixed BankAccount>> result = store.<Ref<@Mixed BankAccount>>transaction(tx -> {
-			Ref<@Mixed BankAccount> account = tx.replicate(account(accId), MIXED, (Class<@Mixed BankAccount>)BankAccount.class, user);
+			Ref<@Mixed BankAccount> account = tx.replicate(account(accId), MIXED, (Class<@Mixed BankAccount>)BankAccount.class, user, replicaId());
 			return Option.apply(account);
 		});
 
@@ -63,6 +63,10 @@ public class Bank2 {
 
 	private String account(int id) {
 		return "account$" + id;
+	}
+
+	private int replicaId() {
+		return store.getId().name().hashCode();
 	}
 
 }
