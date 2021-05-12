@@ -32,7 +32,7 @@ public class TestOutput {
     String[] resettableCounter = {"src/main/resources/test/ResettableCounter.java"};
     String[] resettableCounterWithRound = {"src/main/resources/test/ResettableCounterWithRound.java"};
     //String[] any = {"src/main/resources/test/BankAccount.java"};
-    String[] any = {"LWWMergeFuncExamples/BankAccount/BankAccount.java"};
+    String[] any = {"InvariantExamples/cards/JointBankAccount/JointBankAccount.java"};
 
     ModelGenerator visitor = new ModelGenerator();
 
