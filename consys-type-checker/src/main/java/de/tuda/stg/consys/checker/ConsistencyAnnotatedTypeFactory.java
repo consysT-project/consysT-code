@@ -14,7 +14,9 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import scala.Tuple2;
 
 import javax.lang.model.element.*;
 import java.util.Stack;
@@ -23,7 +25,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	private final InferenceVisitor inferenceVisitor;
 
-	private final Stack<TypeElement> mixedClassContext;
+	private final Stack<Tuple2<TypeElement, String>> mixedClassContext;
 
 	public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
@@ -105,15 +107,15 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
 
-		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek());
+		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2);
 		if (annotation.isDefined()) {
 			type.clearAnnotations();
 			type.addAnnotation(annotation.get());
 		}
 	}
 
-	public void setMixedClassContext(TypeElement mixedClassContext) {
-		this.mixedClassContext.push(mixedClassContext);
+	public void setMixedClassContext(TypeElement mixedClassContext, String defaultOpLevel) {
+		this.mixedClassContext.push(new Tuple2<>(mixedClassContext, defaultOpLevel));
 	}
 
 	public void resetMixedClassContext() {
@@ -123,5 +125,13 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public String qualifierForOperation(String operation) {
 		// TODO: recomputing
 		return inferenceVisitor.buildQualifierMap().get(operation).get();
+	}
+
+	public void processClassWithoutCache(ClassTree node, String opLevel) {
+		shouldCache = false;
+
+		((ConsistencyVisitorImpl)checker.getVisitor()).processClassTree(node, opLevel);
+
+		shouldCache = true;
 	}
 }

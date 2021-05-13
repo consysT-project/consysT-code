@@ -31,4 +31,7 @@ object TypeFactoryUtils {
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
+
+	def getDefaultOp(annotation: AnnotationMirror): String =
+		AnnotationUtils.getElementValue(annotation, "withDefault", classOf[Object], true).toString
 }

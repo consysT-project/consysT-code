@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.checker
 
+import de.tuda.stg.consys.checker.TypeFactoryUtils.getDefaultOp
+import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, MostlyNoElementQualifierHierarchy, TypeHierarchy}
 import org.checkerframework.framework.util.QualifierKind
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
@@ -12,23 +14,34 @@ import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <: Annotation]], elements: Elements, val atypeFactory: ConsistencyAnnotatedTypeFactory) extends MostlyNoElementQualifierHierarchy(qualifierClasses, elements) {
     override def isSubtypeWithElements(subAnno: AnnotationMirror, subKind: QualifierKind, superAnno: AnnotationMirror, superKind: QualifierKind): Boolean = {
-        if (subKind.compareTo(superKind) != 0) { // TODO: correct comparison?
-            return false
-        }
-
-        (annotationClassFromElement(subAnno), annotationClassFromElement(superAnno)) match {
-            case (sub, sup) => super.isSubtype(sub, sup)
-            case _ => false
+        subKind.compareTo(superKind) match {
+            case 0 if subKind.getAnnotationClass.equals(classOf[Mixed]) =>
+                super.isSubtype(getDefaultOpElement(subAnno), getDefaultOpElement(superAnno))
+            case _ => subKind.isSubtypeOf(superKind)
         }
     }
 
-    override def leastUpperBoundWithElements(a1: AnnotationMirror, qualifierKind1: QualifierKind, a2: AnnotationMirror, qualifierKind2: QualifierKind, lubKind: QualifierKind): AnnotationMirror = ???
+    override def leastUpperBoundWithElements(a1: AnnotationMirror, qualifierKind1: QualifierKind, a2: AnnotationMirror, qualifierKind2: QualifierKind, lubKind: QualifierKind): AnnotationMirror = {
+        qualifierKind1.compareTo(qualifierKind2) match {
+            case 0 if qualifierKind1.getAnnotationClass.equals(classOf[Mixed]) =>
+                super.leastUpperBound(getDefaultOpElement(a1), getDefaultOpElement(a2))
+            case _ =>
+                if (qualifierKind1.compareTo(lubKind) == 0) a1 else a2
+        }
+    }
 
-    override def greatestLowerBoundWithElements(a1: AnnotationMirror, qualifierKind1: QualifierKind, a2: AnnotationMirror, qualifierKind2: QualifierKind, glbKind: QualifierKind): AnnotationMirror = ???
+    override def greatestLowerBoundWithElements(a1: AnnotationMirror, qualifierKind1: QualifierKind, a2: AnnotationMirror, qualifierKind2: QualifierKind, glbKind: QualifierKind): AnnotationMirror = {
+        qualifierKind1.compareTo(qualifierKind2) match {
+            case 0 if qualifierKind1.getAnnotationClass.equals(classOf[Mixed]) =>
+                super.greatestLowerBound(getDefaultOpElement(a1), getDefaultOpElement(a2))
+            case _ =>
+                if (qualifierKind1.compareTo(glbKind) == 0) a1 else a2
+        }
+    }
 
-    private def annotationClassFromElement(anno: AnnotationMirror) = {
-        val op = AnnotationUtils.getElementValuesWithDefaults(anno).values.head.getValue
-        val qual = atypeFactory.qualifierForOperation(op.toString)
-        AnnotationBuilder.fromName(atypeFactory.getElementUtils, qual)
+    private def getDefaultOpElement(anno: AnnotationMirror): AnnotationMirror = {
+        val operationLevel = getDefaultOp(anno)
+        val qualifier = atypeFactory.qualifierForOperation(operationLevel)
+        AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
     }
 }

@@ -4,11 +4,14 @@ import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
 import de.tuda.stg.consys.annotations.Transactional
+import de.tuda.stg.consys.checker.qual.Mixed
+
 import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
+
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
@@ -34,7 +37,16 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		println(">Class decl:  " + getQualifiedName(classTree))
-		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree))
+		val mixed = atypeFactory.getAnnotatedType(classTree).getAnnotation(classOf[Mixed])
+		val defaultOpLevel = if (mixed != null) AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString else ""
+		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
+		super.processClassTree(classTree)
+		atypeFactory.resetMixedClassContext()
+	}
+
+	def processClassTree(classTree: ClassTree, defaultOpLevel: String): Unit = {
+		println(">Class decl (noCache):  " + getQualifiedName(classTree))
+		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
 		super.processClassTree(classTree)
 		atypeFactory.resetMixedClassContext()
 	}

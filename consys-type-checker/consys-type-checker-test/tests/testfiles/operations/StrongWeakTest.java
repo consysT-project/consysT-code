@@ -6,7 +6,7 @@ import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 
 import java.io.Serializable;
-// @skip-test
+
 public class StrongWeakTest {
     static @Mixed
     class A implements Serializable {
