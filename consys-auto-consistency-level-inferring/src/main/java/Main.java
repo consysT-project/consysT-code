@@ -29,18 +29,12 @@ public class Main {
   public static TypeDeclaration[] classDeclarations = null;
 
   private static void loadLib(String libname) {
-    Path lib = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
+    Path lib = Paths.get("lib",libname).toAbsolutePath();
     System.out.println("load " + libname + ": " + lib);
     Runtime.getRuntime().load(lib.toString());
   }
 
-  /**
-   * Starting point of program
-   *
-   * @param args used provide the path to the java file
-   */
-  public static void main(String[] args) {
-
+  public static void loadLibs() {
     // Load z3 libraries from lib folder
     String osname = System.getProperty("os.name").toLowerCase();
     // Load the correct libs depending on OS
@@ -53,6 +47,15 @@ public class Main {
     } else {
       throw new RuntimeException("Unsupported OS: " + osname);
     }
+  }
+
+  /**
+   * Starting point of program
+   *
+   * @param args used provide the path to the java file
+   */
+  public static void main(String[] args) {
+    loadLibs();
 
     // Set the source file
     Path sourcePath = Paths.get("consys-auto-consistency-level-inferring", "src", "main", "resources", "test", "Counter.java");

@@ -9,7 +9,6 @@ public class CounterCRDT {
     @ public invariant (\forall int inv2; inv2>=0 && inv2<numOfReplicas;
                           decs[inv2] >=0);
     @*/
-
   int[] incs = new int[numOfReplicas];
   int[] decs = new int[numOfReplicas];
 

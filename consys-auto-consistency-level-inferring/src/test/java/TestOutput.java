@@ -1,3 +1,4 @@
+import org.checkerframework.checker.signature.qual.DotSeparatedIdentifiersOrPrimitiveType;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
@@ -15,6 +16,9 @@ import java.util.Map;
 // For environment variables
 
 public class TestOutput {
+    static {
+        Main.loadLibs();
+    }
 
     org.eclipse.jdt.internal.compiler.batch.Main compilerStarter =
             new org.eclipse.jdt.internal.compiler.batch.Main(
@@ -35,6 +39,7 @@ public class TestOutput {
     String[] any = {"InvariantExamples/cards/JointBankAccount/JointBankAccount.java"};
 
     ModelGenerator visitor = new ModelGenerator();
+
 
 
 
