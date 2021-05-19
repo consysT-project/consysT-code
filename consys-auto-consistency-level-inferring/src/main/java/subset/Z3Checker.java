@@ -717,6 +717,8 @@ public class Z3Checker {
                     .substitute(clazz.getOldState(), clazz.getNewState()));
 
     solver.reset();
+    //if(method.getName().equals("withdraw"))
+    //  System.out.println("The pre condition of the merge is: " + clazz.getMergeFunction().getPreConditions().toString());
     Status status = solver.check(context.mkNot(mergeableOperationState));
 
     switch (status) {

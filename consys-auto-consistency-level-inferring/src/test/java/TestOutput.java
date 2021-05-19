@@ -36,7 +36,8 @@ public class TestOutput {
     String[] resettableCounter = {"src/main/resources/test/ResettableCounter.java"};
     String[] resettableCounterWithRound = {"src/main/resources/test/ResettableCounterWithRound.java"};
     //String[] any = {"src/main/resources/test/BankAccount.java"};
-    String[] any = {"InvariantExamples/cards/JointBankAccount/JointBankAccount.java"};
+    String[] any = {"InvariantExamples/BankAccountCRDT/BankAccountCRDT.java"};
+    //String[] any = {"InvariantExamples/BankAccount/BankAccount.java"};
 
     ModelGenerator visitor = new ModelGenerator();
 
