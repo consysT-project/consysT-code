@@ -8,6 +8,8 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
+import java.util.LinkedList;
+
 // TODO: If we limit default ops to extends expressions, we can skip checking the base class (all fields get same level) -> if a class has an op level specified, it must be annotated with Mixed
 // TODO: also consider that we cannot check the base class if the source is not available
 
@@ -59,5 +61,18 @@ public class DefaultTest {
 
     static @Mixed(withDefault = StrongOp.class) class Derived extends Base {
         // since the base class methods are now @StrongOp, there is an error at setI()
+    }
+
+    // ------------------------------------------------------------------------------------------------------
+
+    static @Mixed class Der extends LinkedList<String> {
+        @Strong int i;
+
+        @StrongOp
+        void test() {
+            i = 0;
+            // :: error: assignment.type.incompatible
+            i = modCount;
+        }
     }
 }

@@ -18,16 +18,13 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
     // TODO: switch the keys to strings for performance?
     type InferenceTable = mutable.Map[(TypeElement, String, VariableElement), AnnotationMirror]
-    type ExtendsTable = mutable.Map[(TypeElement, String), (TypeElement, String)]
 
     var inferenceTable: InferenceTable = mutable.Map.empty
-    var extendsTable: ExtendsTable = mutable.Map.empty
 
     private var annoMapping: Map[String, String] = Map.empty
 
     private var classContext: Option[TypeElement] = Option.empty
     private var defaultOpLevel: Option[String] = Option.empty
-    //private var extendsDefaultOpLevel: Option[String] = Option.empty
     private var methodContext: Option[AnnotationMirror] = Option.empty
 
 
@@ -51,12 +48,12 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                         if (superclassTree != null) {
                             visitClass(superclassTree, isLHS)
                             atypeFactory.processClassWithoutCache(superclassTree, defaultOpLevel.get)
+                        } else {
+                            visitClass(elt, isLHS)
                         }
-
-                        r = super.visitClass(node, isLHS)
-
                     case None =>
                 }
+                r = super.visitClass(node, isLHS)
 
             case (None, Some(_)) =>
                 getSuperclassElement(node) match {
@@ -65,12 +62,12 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                         if (superclassTree != null) {
                             visitClass(superclassTree, isLHS)
                             atypeFactory.processClassWithoutCache(superclassTree, defaultOpLevel.get)
+                        } else {
+                            visitClass(elt, isLHS)
                         }
-
-                        r = super.visitClass(node, isLHS)
-
                     case None =>
                 }
+                r = super.visitClass(node, isLHS)
 
             case (None, None) =>
         }
@@ -78,49 +75,56 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
         classContext = prev._1
         defaultOpLevel = prev._2
         r
+    }
 
-        /*
-        val mixed = getAnnotationMirror(node, classOf[Mixed])
-        if (mixed.isDefined) {
-            defaultOpLevel = Some(AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString)
+    // TODO: combine duplicate code
+    def visitClass(decl: TypeElement, isLHS: Boolean): Void = {
+        if (annoMapping.isEmpty)
+            annoMapping = buildQualifierMap()
 
-            TreeUtils.elementFromDeclaration(node).getSuperclass match {
-                case dt: DeclaredType =>
-                    val superclassTree = atypeFactory.getTreeUtils.getTree(dt.asElement().asInstanceOf[TypeElement])
-                    // TODO: null when superclass not found -> possible causes?
-                    if (superclassTree != null) {
-                        val extendsMixed = atypeFactory.getAnnotatedType(node.getExtendsClause).getAnnotation(classOf[Mixed])
-                        if (extendsMixed == null) {
-                            atypeFactory.getChecker.reportError(node.getExtendsClause, "Mixed must extends Mixed")
-                            return null
+        if (classContext.isDefined && classContext.get.equals(decl))
+            return null
+
+        val prev = (classContext, defaultOpLevel)
+        var r: Void = null
+        classContext = Option(decl)
+
+        (getAnnotationMirror(decl, classOf[Mixed]), defaultOpLevel) match {
+            case (Some(annotation), _) =>
+                defaultOpLevel = Some(getDefaultOp(annotation))
+                getSuperclassElement(decl) match {
+                    case Some(elt) =>
+                        val superclassTree = getSourceOfElement(elt)
+                        if (superclassTree != null) {
+                            visitClass(superclassTree, isLHS)
+                            atypeFactory.processClassWithoutCache(superclassTree, defaultOpLevel.get)
+                        } else {
+                            visitClass(elt, isLHS)
                         }
+                    case None =>
+                }
+                processClassDeclaration(decl)
 
-                        extendsDefaultOpLevel = Some(AnnotationUtils.getElementValuesWithDefaults(extendsMixed).values().head.getValue.toString)
-                        extendsTable.update((classContext.get, defaultOpLevel.get), (dt.asElement().asInstanceOf[TypeElement], extendsDefaultOpLevel.get))
-                        visitClass(superclassTree, isLHS, extendsDefaultOpLevel.get)
-                        atypeFactory.processClassWithoutCache(superclassTree, extendsDefaultOpLevel.get)
-                    }
-                case _ =>
-            }
+            case (None, Some(_)) =>
+                getSuperclassElement(decl) match {
+                    case Some(elt) =>
+                        val superclassTree = getSourceOfElement(elt)
+                        if (superclassTree != null) {
+                            visitClass(superclassTree, isLHS)
+                            atypeFactory.processClassWithoutCache(superclassTree, defaultOpLevel.get)
+                        } else {
+                            visitClass(elt, isLHS)
+                        }
+                    case None =>
+                }
+                processClassDeclaration(decl)
 
-            val r = super.visitClass(node, isLHS)
-            classContext = prev._1
-            defaultOpLevel = prev._2
-            extendsDefaultOpLevel = prev._3
-            r
-        } else if (defaultOpLevel.isDefined) {
-            val r = super.visitClass(node, isLHS)
-            classContext = prev._1
-            defaultOpLevel = prev._2
-            extendsDefaultOpLevel = prev._3
-            r
-        } else {
-            classContext = prev._1
-            defaultOpLevel = prev._2
-            extendsDefaultOpLevel = prev._3
-            null
+            case (None, None) =>
         }
-        */
+
+        classContext = prev._1
+        defaultOpLevel = prev._2
+        r
     }
 
     override def visitMethod(node: MethodTree, isLHS: Boolean): Void = {
@@ -169,23 +173,36 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
     private def processField(node: ExpressionTree, isLhs: Boolean): Unit = {
         // TODO: check if ID belongs to this class
-        methodContext match {
-            case Some(methodLevel) => (TreeUtils.elementFromUse(node), isLhs) match {
-                case (field: VariableElement, true) if field.getKind == ElementKind.FIELD => getInferredFieldOrFromSuperclass(field, classContext.get, defaultOpLevel.get) match {
-                    case Some(fieldLevel) =>
-                        val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, methodLevel)
-                        inferenceTable.update((classContext.get, defaultOpLevel.get, field), lup)
-                    case None =>
-                        inferenceTable.update((classContext.get, defaultOpLevel.get, field), methodLevel)
-                }
-                case (field: VariableElement, false) if field.getKind == ElementKind.FIELD => getInferredFieldOrFromSuperclass(field, classContext.get, defaultOpLevel.get) match {
-                    case None => inferenceTable.update((classContext.get, defaultOpLevel.get, field), AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
-                    case _ =>
-                }
-                case _ =>
-            }
+        (methodContext, TreeUtils.elementFromUse(node)) match {
+            case (Some(methodLevel), field: VariableElement) if field.getKind == ElementKind.FIELD =>
+                updateField(classContext.get, defaultOpLevel.get, field, methodLevel, isLhs)
             case _ =>
         }
+    }
+
+    private def updateField(clazz: TypeElement, defaultOp: String, field: VariableElement, annotation: AnnotationMirror, isLHS: Boolean): Unit = {
+        if (field.getKind != ElementKind.FIELD)
+            return
+
+        (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), isLHS) match {
+            case (Some(fieldLevel), true) =>
+                val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
+                inferenceTable.update((clazz, defaultOp, field), lup)
+            case (None, true) =>
+                inferenceTable.update((clazz, defaultOp, field), annotation)
+            case (None, false) =>
+                inferenceTable.update((clazz, defaultOp, field), AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
+            case _ =>
+        }
+    }
+
+    private def processClassDeclaration(elt: TypeElement): Unit = {
+        val fields = elt.getEnclosedElements.filter({
+            case _: VariableElement => true
+            case _ => false
+        })
+        val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, annoMapping.apply(defaultOpLevel.get))
+        fields.foreach(f => updateField(classContext.get, defaultOpLevel.get, f.asInstanceOf[VariableElement], level, isLHS = true))
     }
 
     def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): Option[AnnotationMirror] =
@@ -195,13 +212,6 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                 case Some(superclass) => getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
                 case None => None
             }
-            /*
-            extendsTable.get(clazz, defaultOpLevel) match {
-                case Some((superclass, superclassDefaultOpLevel)) =>
-                    getInferredFieldOrFromSuperclass(field, superclass, superclassDefaultOpLevel)
-                case _ => None
-            }
-            */
         }
 
     private def hasAnnotation(modifiers: ModifiersTree, annotation: String): Boolean = {
@@ -215,6 +225,12 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
     private def getAnnotationMirror(tree: Tree, annotation: Class[_ <: Annotation]): Option[AnnotationMirror] =
         atypeFactory.getAnnotatedType(tree).getAnnotation(annotation) match {
+            case null => None
+            case value => Some(value)
+        }
+
+    private def getAnnotationMirror(element: TypeElement, annotation: Class[_ <: Annotation]): Option[AnnotationMirror] =
+        atypeFactory.getAnnotatedType(element).getAnnotation(annotation) match {
             case null => None
             case value => Some(value)
         }
