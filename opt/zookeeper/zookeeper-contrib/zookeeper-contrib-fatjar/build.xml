@@ -30,7 +30,7 @@
     <echo message="contrib: ${name}"/>
     <jar jarfile="${jarname}">
       <manifest>
-        <attribute name="Main-Class" value="org.apache.zookeeper.util.FatJarMain" />
+        <attribute name="de.tuda.stg.consys.invariants.Main-Class" value="org.apache.zookeeper.util.FatJarMain" />
         <attribute name="Built-By" value="${user.name}"/>
         <attribute name="Built-At" value="${build.time}"/>
         <attribute name="Built-On" value="${host.name}" />

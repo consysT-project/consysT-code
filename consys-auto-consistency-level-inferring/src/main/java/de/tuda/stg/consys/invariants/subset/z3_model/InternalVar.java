@@ -1,9 +1,9 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
-import subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
 
 /**
  * Class capturing relevant properties of class variables in {@link InternalClass}. The relevant

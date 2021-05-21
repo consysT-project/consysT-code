@@ -249,7 +249,7 @@ zoo.cfg. When TTL Nodes are enabled, the max Server ID changes from
 * [ZOOKEEPER-2852](https://issues.apache.org/jira/browse/ZOOKEEPER-2852) - Snapshot size factor is not read from system property
 * [ZOOKEEPER-2853](https://issues.apache.org/jira/browse/ZOOKEEPER-2853) - The lastZxidSeen in FileTxnLog.java is never being assigned
 * [ZOOKEEPER-2859](https://issues.apache.org/jira/browse/ZOOKEEPER-2859) - CMake build doesn&#39;t support OS X
-* [ZOOKEEPER-2861](https://issues.apache.org/jira/browse/ZOOKEEPER-2861) - Main-Class JAR manifest attribute is incorrect
+* [ZOOKEEPER-2861](https://issues.apache.org/jira/browse/ZOOKEEPER-2861) - de.tuda.stg.consys.invariants.Main-Class JAR manifest attribute is incorrect
 * [ZOOKEEPER-2862](https://issues.apache.org/jira/browse/ZOOKEEPER-2862) - Incorrect javadoc syntax for web links in StaticHostProvider.java
 * [ZOOKEEPER-2874](https://issues.apache.org/jira/browse/ZOOKEEPER-2874) - Windows Debug builds don&#39;t link with `/MTd`
 * [ZOOKEEPER-2890](https://issues.apache.org/jira/browse/ZOOKEEPER-2890) - Local automatic variable is left uninitialized and then freed.

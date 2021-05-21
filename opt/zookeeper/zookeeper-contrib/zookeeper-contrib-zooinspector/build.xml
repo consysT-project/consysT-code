@@ -56,7 +56,7 @@
 
 		<jar jarfile="${jarname}">
 			<manifest>
-				<attribute name="Main-Class" value="org.apache.zookeeper.inspector.ZooInspector" />
+				<attribute name="de.tuda.stg.consys.invariants.Main-Class" value="org.apache.zookeeper.inspector.ZooInspector" />
 				<attribute name="Built-By" value="${user.name}" />
 				<attribute name="Built-At" value="${build.time}" />
 				<attribute name="Built-On" value="${host.name}" />

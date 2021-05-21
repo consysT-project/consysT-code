@@ -1,10 +1,10 @@
-package subset;
+package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.*;
-import subset.z3_model.InternalArray;
-import subset.z3_model.InternalClass;
-import subset.z3_model.InternalMethod;
-import subset.z3_model.InternalVar;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalArray;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalClass;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalMethod;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalVar;
 
 import java.util.ArrayList;
 import java.util.HashMap;

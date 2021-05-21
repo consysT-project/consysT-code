@@ -1,9 +1,9 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 import com.microsoft.z3.*;
 import com.microsoft.z3.enumerations.Z3_sort_kind;
-import subset.Z3Checker;
-import subset.visitors.IntegerValueVisitor;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.visitors.IntegerValueVisitor;
 
 /**
  * This class provides an intermediate representation of arrays.

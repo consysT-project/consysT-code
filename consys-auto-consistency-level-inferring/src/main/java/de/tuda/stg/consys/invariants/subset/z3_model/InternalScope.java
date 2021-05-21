@@ -1,6 +1,8 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.visitors.FormulaGenerator;
+import de.tuda.stg.consys.invariants.subset.visitors.ModelGenerator;
 import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
 import org.eclipse.jdt.internal.compiler.lookup.ClassScope;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
@@ -25,14 +27,14 @@ public class InternalScope {
 
   /**
    * used to support return values of currently visited methods and use them in the specification.
-   * See {@link subset.visitors.ModelGenerator#visit(JmlMethodDeclaration, ClassScope)}.
+   * See {@link ModelGenerator#visit(JmlMethodDeclaration, ClassScope)}.
    */
   private Expr currentReturnVariable;
 
   /**
    * used to build up a return expression for a currently visited method in order to use them in
    * other parts of the specification See {@link
-   * subset.visitors.FormulaGenerator#visitBinaryExpression(BinaryExpression, InternalScope)}.
+   * FormulaGenerator#visitBinaryExpression(BinaryExpression, InternalScope)}.
    */
   private Expr currentReturnExpression;
 

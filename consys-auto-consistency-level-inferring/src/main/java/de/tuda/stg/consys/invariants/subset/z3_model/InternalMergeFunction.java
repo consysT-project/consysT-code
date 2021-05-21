@@ -1,4 +1,4 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 /**
  * Internal representation of merge functions. They are also methods but need to be considered

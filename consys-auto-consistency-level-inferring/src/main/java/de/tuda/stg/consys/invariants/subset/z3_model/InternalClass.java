@@ -1,9 +1,9 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
-import subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
 
 import java.util.ArrayList;
 import java.util.List;

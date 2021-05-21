@@ -1,8 +1,8 @@
 <FindBugsFilter>
-  <!-- Allow command line utilities, which follow pattern *Main.java, to call
+  <!-- Allow command line utilities, which follow pattern *de.tuda.stg.consys.invariants.Main.java, to call
        system exit -->
   <Match>
-    <Class name="~org\.apache\.zookeeper\..*Main" />
+    <Class name="~org\.apache\.zookeeper\..*de.tuda.stg.consys.invariants.Main" />
     <Bug pattern="DM_EXIT" />
   </Match>
 

@@ -1,19 +1,19 @@
-package subset.visitors;
+package de.tuda.stg.consys.invariants.subset.visitors;
 
 import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.z3_model.*;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.eclipse.jdt.internal.compiler.lookup.ClassScope;
 import org.eclipse.jdt.internal.compiler.lookup.MethodScope;
 import org.jmlspecs.jml4.ast.*;
-import subset.z3_model.*;
 
 /**
  * This class visits a {@link org.jmlspecs.jml4.ast.JmlTypeDeclaration} and generates internal data
- * structures with {@link subset.z3_model.InternalClass} being the top definition that contain the
+ * structures with {@link InternalClass} being the top definition that contain the
  * invariants, pre- and post-conditions in Z3 readable format.
  */
 public class ModelGenerator extends ASTVisitor {

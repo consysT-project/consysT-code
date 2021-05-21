@@ -1,9 +1,9 @@
-package subset.visitors;
+package de.tuda.stg.consys.invariants.subset.visitors;
 
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
 import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.IntLiteral;
-import subset.z3_model.InternalScope;
 
 /**
  * This visitor is used to calculate integer values from the specification. This is for example used to determine

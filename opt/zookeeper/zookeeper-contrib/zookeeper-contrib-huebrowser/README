@@ -49,7 +49,7 @@ What is Hue?
 ------------
 
 Wiki: http://wiki.github.com/cloudera/hue/
-Main Repo: http://github.com/cloudera/hue 
+de.tuda.stg.consys.invariants.Main Repo: http://github.com/cloudera/hue
 
 Hue is both a web UI for Hadoop and a framework to create interactive web applications. It features a FileBrowser for accessing HDFS, JobSub and JobBrowser applications for submitting and viewing MapReduce jobs, a Beeswax application for interacting with Hive. On top of that, the web frontend is mostly built from declarative widgets that require no JavaScript and are easy to learn.
 

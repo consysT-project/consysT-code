@@ -1,4 +1,4 @@
-package subset.z3_model;
+package de.tuda.stg.consys.invariants.subset.z3_model;
 
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;

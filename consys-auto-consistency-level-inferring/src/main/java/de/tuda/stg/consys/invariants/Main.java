@@ -1,9 +1,11 @@
+package de.tuda.stg.consys.invariants;
+
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
-import subset.Z3Checker;
-import subset.visitors.ModelGenerator;
-import subset.z3_model.InternalClass;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.visitors.ModelGenerator;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalClass;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -58,7 +60,7 @@ public class Main {
     loadLibs();
 
     // Set the source file
-    Path sourcePath = Paths.get("InvariantExamples/BankAccountCRDT/BankAccountCRDT.java");
+    Path sourcePath = Paths.get("consys-auto-consistency-level-inferring/InvariantExamples/BankAccountCRDT/BankAccountCRDT.java");
     System.out.println("compiling: " + sourcePath.toString());
 
 

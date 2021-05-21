@@ -1,17 +1,18 @@
-package subset.visitors;
+package de.tuda.stg.consys.invariants.subset.visitors;
 
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.z3_model.InternalVar;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
 import org.eclipse.jdt.internal.compiler.lookup.ArrayBinding;
 import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlArrayTypeReference;
 import org.jmlspecs.jml4.ast.JmlSingleTypeReference;
-import subset.Z3Checker;
 
 /**
  * This visitor is used to translate Java type references to Z3 Sorts. For example, in order to create an
- * {@link subset.z3_model.InternalVar} object, the type of the variable is determined using this class.
+ * {@link InternalVar} object, the type of the variable is determined using this class.
  * Note that Java types are usually described using {@link TypeReference} objects. However, the actual
  * type information lies within their {@link TypeBinding}. That's why type references are first resolved and
  * then the resulting type binding visited again.
