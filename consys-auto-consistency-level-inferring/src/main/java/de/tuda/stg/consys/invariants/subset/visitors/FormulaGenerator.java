@@ -420,9 +420,8 @@ public class FormulaGenerator {
     if (quantifier.equals(JmlQuantifier.SUM)) {
       if (rangeExpr instanceof BoolExpr && bodyExpr instanceof ArithExpr) {
 
-
+        // whole array expressions as of now
         // \sum int b; b>=0 && b<10; \old(incs[b])
-        // only support whole array expressions as of now
         // get array and internalArray instance and call combine with ADD
         if (bodyExpr.isSelect()) {
           ArrayExpr selectedArray = (ArrayExpr) bodyExpr.getArgs()[0];
@@ -431,12 +430,73 @@ public class FormulaGenerator {
                   selectedArray.toString().substring(selectedArray.toString().lastIndexOf("_") + 1);
           if (scope.getClassVariable(name) instanceof InternalArray) {
             InternalArray arr = (InternalArray) scope.getClassVariable(name);
+
             return arr.combineValues(
                     InternalArray.Combiner.ADDITION,
                     selectedArray,
                     ((ArraySort) arr.getSort()).getRange().getSortKind());
           }
+        } else {
+          //The general case for summation
+          // NOTE: Summation always (!) start at i = 0, and increase i in every step by 1.
+          System.err.println("Warning! \\sum only supports sums starting at 0.");
+
+//          ctx = Context()
+//          symSum = RecFunction('symSum', IntSort(ctx), IntSort(ctx), IntSort(ctx))
+//          a = Int('a',ctx)
+//          b = Int('b',ctx)
+//          RecAddDefinition(symSum, [a,b], If(a > b, 0, a + symSum(a+1,b)))
+//          x = Int('x',ctx)
+//
+//          s = Solver(ctx=ctx)
+//          s.add(symSum(1,5) == x)
+//          print(s.check())
+//          print(s.model())
+
+          if (jmlQuantifiedExpression.boundVariables.length != 1) {
+            throw new WrongJMLArgumentsExpression(jmlQuantifiedExpression);
+          }
+
+
+          FuncDecl sumFunc = context.mkRecFuncDecl(
+                  context.mkSymbol("$SUM_" + quantifierCounter),
+                  new Sort[] { context.getIntSort() },
+                  bodyExpr.getSort()
+          );
+
+
+          // increment for future quantifiers
+          quantifierCounter++;
+
+          Expr indexVar = boundConstants[0];
+
+          /* Build body. Example:
+            \sum int i; i >= 0 && i <= size; arr[i] * 2
+            -->
+            sumFunc(int i) { if (i >= 0 && i <= size) then (arr[i] * 2) + sumFunc(i + 1) else 0 }
+           */
+          Expr sumBody =
+                  context.mkITE(rangeExpr, // if (i in range)
+                          // then
+                          context.mkAdd(
+                                  // body + sumFunc(i + 1)
+                                  bodyExpr,
+                                  context.mkApp(sumFunc, context.mkAdd(indexVar, context.mkInt(1)))
+                          ),
+                          // else
+                          context.mkInt(0)
+                          );
+
+          // Create the func def
+          context.AddRecDef(sumFunc, boundConstants, sumBody);
+
+          // Apply sumFunc to 0 and return as expression
+          Expr result = context.mkApp(sumFunc, context.mkInt(0));
+
+          return result;
         }
+
+
       }
 
       throw new WrongJMLArgumentsExpression(jmlQuantifiedExpression);
