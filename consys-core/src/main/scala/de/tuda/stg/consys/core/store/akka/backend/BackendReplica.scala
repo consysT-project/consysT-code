@@ -15,13 +15,28 @@ class BackendReplica {
 	type Level
 
 
-	/*Other replicas known to this replica.*/
-	private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
-	class MyActor extends Actor {
+
+
+
+
+}
+
+object BackendReplica {
+	case class LocalObject[Addr, ObjType, Level](addr : Addr, state : ObjType, level : Level)
+
+	case class WriteObjectsOp[Addr, ObjType, Level](objects : Map[Addr, (ObjType, Level)], waitFor : Int)
+	case class SyncWrite[Addr, ObjType, Level](objects : Map[Addr, (ObjType, Level)])
+
+
+
+	class MyActor[Addr, ObjType, Level] extends Actor {
+
+		/*Other replicas known to this replica.*/
+		private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 		/*The replicated objects stored by this replica*/
-		private val localObjects : mutable.HashMap[Addr, LocalObject] = mutable.HashMap.empty
+		private val localObjects : mutable.HashMap[Addr, LocalObject[Addr, ObjType, Level]] = mutable.HashMap.empty
 
 
 		protected override def receive : Receive = {
@@ -36,6 +51,7 @@ class BackendReplica {
 
 				val sent = new CountDownLatch(localObjects.size)
 				val acked = new CountDownLatch(waitFor)
+
 
 				otherReplicas.foreach { ref =>
 					ask(ref, SyncWrite(objects)).andThen({
@@ -56,12 +72,6 @@ class BackendReplica {
 		}
 	}
 
-	case class LocalObject(addr : Addr, state : ObjType, level : Level)
 
 
-}
-
-object BackendReplica {
-	case class WriteObjectsOp[Addr, ObjType, Level](objects : Map[Addr, (ObjType, Level)], waitFor : Int)
-	case class SyncWrite[Addr, ObjType, Level](objects : Map[Addr, (ObjType, Level)])
 }
