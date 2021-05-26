@@ -50,6 +50,7 @@ class Case1 {
     static @Mixed class Derived extends Base {
         @WeakOp
         void g() {
+            // :: error: inheritance.incorrect.lup
             i = 0; // base class field is weakened in derived class
         }
     }
@@ -74,7 +75,8 @@ class Case2 {
         @Override
         @WeakOp
         void f() {
-            i = 0; // base class field is weakened in derived class
+            // :: error: inheritance.incorrect.lup
+            i = 0; // base class field is weakened in override
         }
     }
 }

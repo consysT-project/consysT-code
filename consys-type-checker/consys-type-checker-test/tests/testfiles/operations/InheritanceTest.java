@@ -8,11 +8,8 @@ import de.tuda.stg.consys.checker.qual.Weak;
 
 import java.io.Serializable;
 
-// TODO: Find a way to get using class (not declaring class) from an identifier expression -> allows overriding with different level. Also needs to keep track of which methods are overridden and which are inherited
+// @skip-test
 
-// TODO: Find a way to infer when source of base class not available (maybe from TypeElement?) -> is this even possible? if not this would break
-// TODO:    -> actually, if Base is not Mixed, we can apply a specified default level to all inherited fields (same as if all operations have a default level)
-// TODO:       and if Base is Mixed then the .class file should have annotations on the field declarations
 public class InheritanceTest {
     static @Mixed class Base implements Serializable {
         int k;

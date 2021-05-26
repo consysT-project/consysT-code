@@ -175,22 +175,26 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
         // TODO: check if ID belongs to this class
         (methodContext, TreeUtils.elementFromUse(node)) match {
             case (Some(methodLevel), field: VariableElement) if field.getKind == ElementKind.FIELD =>
-                updateField(classContext.get, defaultOpLevel.get, field, methodLevel, isLhs)
+                updateField(classContext.get, defaultOpLevel.get, field, methodLevel, isLhs, node)
             case _ =>
         }
     }
 
-    private def updateField(clazz: TypeElement, defaultOp: String, field: VariableElement, annotation: AnnotationMirror, isLHS: Boolean): Unit = {
+    private def updateField(clazz: TypeElement, defaultOp: String, field: VariableElement, annotation: AnnotationMirror, isLHS: Boolean, source: AnyRef): Unit = {
         if (field.getKind != ElementKind.FIELD)
             return
 
         (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), isLHS) match {
-            case (Some(fieldLevel), true) =>
+            case ((Some(fieldLevel), d), true) if d == 0 =>
                 val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
                 inferenceTable.update((clazz, defaultOp, field), lup)
-            case (None, true) =>
+            case ((Some(fieldLevel), d), true) if d > 0 =>
+                val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
+                if (atypeFactory.getQualifierHierarchy.isSubtype(annotation, lup))
+                    atypeFactory.getChecker.reportError(source, "inheritance.incorrect.lup")
+            case ((None, _), true) =>
                 inferenceTable.update((clazz, defaultOp, field), annotation)
-            case (None, false) =>
+            case ((None, _), false) =>
                 inferenceTable.update((clazz, defaultOp, field), AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
             case _ =>
         }
@@ -202,15 +206,17 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
             case _ => false
         })
         val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, annoMapping.apply(defaultOpLevel.get))
-        fields.foreach(f => updateField(classContext.get, defaultOpLevel.get, f.asInstanceOf[VariableElement], level, isLHS = true))
+        fields.foreach(f => updateField(classContext.get, defaultOpLevel.get, f.asInstanceOf[VariableElement], level, isLHS = true, f))
     }
 
-    def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): Option[AnnotationMirror] =
+    def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): (Option[AnnotationMirror], Int) =
         inferenceTable.get(clazz, defaultOpLevel, field) match {
-            case value: Some[AnnotationMirror] => value
+            case value: Some[AnnotationMirror] => (value, 0)
             case None => getSuperclassElement(clazz) match {
-                case Some(superclass) => getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
-                case None => None
+                case Some(superclass) =>
+                    val (result, depth) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
+                    (result, depth + 1)
+                case None => (None, 0)
             }
         }
 

@@ -107,7 +107,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
 
-		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2);
+		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
 		if (annotation.isDefined()) {
 			type.clearAnnotations();
 			type.addAnnotation(annotation.get());
