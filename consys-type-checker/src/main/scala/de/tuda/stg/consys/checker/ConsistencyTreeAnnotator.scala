@@ -2,6 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
+import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
@@ -68,13 +69,17 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 			//In these cases, the annotations can not be changed.
 			if (annotatedTypeMirror.isInstanceOf[AnnotatedExecutableType]) {
 //				println(classOf[ConsistencyTreeAnnotator],s"skipped")
-			} else {
+			} else if (!tf.getAnnotatedType(node.getExpression).hasAnnotation(classOf[Mixed])) {
 //				val before = s"$annotatedTypeMirror"
 
-				node.getExpression match {
+				/*node.getExpression match {
 					case id: IdentifierTree if id.getName.toString == "this" => return null
 					case _ =>
 				}
+				val recvType = tf.getAnnotatedType(node.getExpression)
+				if (recvType.hasAnnotation(classOf[Mixed])) {
+					return super.visitMemberSelect(node, annotatedTypeMirror)
+				}*/
 
 				annotatedTypeMirror.clearAnnotations()
 

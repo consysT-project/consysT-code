@@ -29,10 +29,17 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
-		node.getIdentifier
+		val recvType = atypeFactory.getAnnotatedType(node.getExpression)
+		if (recvType.hasAnnotation(classOf[Mixed])
+			&& TreeUtils.isFieldAccess(node)
+			&& !TreeUtils.isExplicitThisDereference(node.getExpression)
+			// class literals are treated as fields
+			&& !TreeUtils.isClassLiteral(node)) {
+
+			checker.reportError(node, "mixed.field.access")
+		}
 
 		super.visitMemberSelect(node, p)
-
 	}
 
 	override def processClassTree(classTree: ClassTree): Unit = {
@@ -56,7 +63,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
 		println(s"  >Var assign:\n" +
-				s"   <$node> where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}")
+				s"   <$node>\n" +
+				s"      where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}\n" +
+				s"      where ${node.getExpression} -> ${atypeFactory.getAnnotatedType(node.getExpression)}")
 
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
@@ -105,6 +114,10 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 				if (expr != null && !methodInvocationIsRefOrGetField(node))
 					checkMethodInvocationReceiver(recvType, node)
+
+				if (recvType.getAnnotation(classOf[Mixed]) != null && methodInvocationIsRefFieldAccess(node)) {
+					checker.reportError(node, "mixed.field.access")
+				}
 
 			case _ =>
 		}
@@ -221,6 +234,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	private def methodInvocationIsTransaction(node: MethodInvocationTree): Boolean =
 		methodInvocationIsX(node, s"$japiPackageName.Store", List("transaction"))
+
+	private def methodInvocationIsRefFieldAccess(node: MethodInvocationTree): Boolean =
+		methodInvocationIsX(node, s"$japiPackageName.Ref", List("setField", "getField"))
 
 	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
 		case memberSelectTree : MemberSelectTree =>
