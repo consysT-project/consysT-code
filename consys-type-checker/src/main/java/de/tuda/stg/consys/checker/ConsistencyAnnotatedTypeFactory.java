@@ -106,6 +106,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	private void annotateField(VariableElement elt, AnnotatedTypeMirror type) {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
 			return;
+		if (mixedClassContext.empty())
+			return;
 
 		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
 		if (annotation.isDefined()) {
