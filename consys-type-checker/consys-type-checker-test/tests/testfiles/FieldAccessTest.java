@@ -20,7 +20,8 @@ public class FieldAccessTest {
     }
 
     void testObjectField(@Strong A obj) {
-        @Weak int i = obj.i;
+        @Weak int i;
+        i = obj.i;
         // :: error: (assignment.type.incompatible)
         obj.i = i;
     }

@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 public class FieldAccessTest {
     static @Mixed class A implements Serializable {
-        int i;
+        public int i;
 
         @Transactional
         void test(Ref<A> other) {
@@ -42,7 +42,7 @@ public class FieldAccessTest {
     @Transactional
     void test(Ref<A> o) {
         // :: error: mixed.field.access
-        o.ref().i = 0; // TODO: o.ref().i <- Inconsistent ?
+        o.ref().i = 0; // TODO: o.ref().i <- Why is this Inconsistent ?
 
         // :: error: mixed.field.access
         int i = o.ref().i;

@@ -43,7 +43,8 @@ public class ImplicitFlowRefTest {
             @Strong int i1 = w.ref().n;
 
             // weak <- strong, pure read: allowed
-            @Weak int j0 = s.ref().n;
+            @Weak int j0;
+            j0 = s.ref().n;
             // strong <- strong, pure read: not allowed
             // :: error: (assignment.type.implicitflow)
             @Strong int j1 = s.ref().n;
@@ -60,8 +61,9 @@ public class ImplicitFlowRefTest {
             // weak <- weak, side-effect read: allowed
             @Weak int k0 = w.ref().gw();
             // weak <- strong, side-effect read: not allowed
+            @Weak int k1;
             // :: error: (invocation.receiver.implicitflow)
-            @Weak int k1 = s.ref().gs();
+            k1 = s.ref().gs();
         }
 
         // mixed condition - weak context

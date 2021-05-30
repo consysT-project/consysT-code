@@ -72,14 +72,18 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 			} else if (!tf.getAnnotatedType(node.getExpression).hasAnnotation(classOf[Mixed])) {
 //				val before = s"$annotatedTypeMirror"
 
-				/*node.getExpression match {
+
+				node.getExpression match {
 					case id: IdentifierTree if id.getName.toString == "this" => return null
 					case _ =>
 				}
+
+				/*
 				val recvType = tf.getAnnotatedType(node.getExpression)
 				if (recvType.hasAnnotation(classOf[Mixed])) {
 					return super.visitMemberSelect(node, annotatedTypeMirror)
-				}*/
+				}
+				*/
 
 				annotatedTypeMirror.clearAnnotations()
 
