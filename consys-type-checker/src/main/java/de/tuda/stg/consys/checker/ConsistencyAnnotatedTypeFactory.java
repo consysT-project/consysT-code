@@ -88,9 +88,15 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			inferenceVisitor.visitClass((ClassTree)tree, null);
 		}
 
-		if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.VARIABLE) &&
+		if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.VARIABLE || tree.getKind() == Tree.Kind.MEMBER_SELECT) &&
 				TreeUtils.elementFromTree(tree).getKind() == ElementKind.FIELD) {
-			annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
+			var annotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
+
+			if (annotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
+				var opLevel = inferenceVisitor.refinementTable().get(tree).get();
+				type.removeAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+				type.addAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, annotation));
+			}
 		}
 	}
 
@@ -103,17 +109,19 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		}
 	}
 
-	private void annotateField(VariableElement elt, AnnotatedTypeMirror type) {
+	private AnnotationMirror annotateField(VariableElement elt, AnnotatedTypeMirror type) {
 		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
-			return;
+			return null;
 		if (mixedClassContext.empty())
-			return;
+			return null;
 
 		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
 		if (annotation.isDefined()) {
 			type.clearAnnotations();
 			type.addAnnotation(annotation.get());
+			return annotation.get();
 		}
+		return null;
 	}
 
 	public void setMixedClassContext(TypeElement mixedClassContext, String defaultOpLevel) {

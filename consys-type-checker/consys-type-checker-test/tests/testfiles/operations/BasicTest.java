@@ -21,13 +21,19 @@ public class BasicTest {
             // :: error: assignment.type.incompatible
             this.j = o.k;
         }
+
+        @WeakOp
+        void blabla() {
+            @Strong int a;
+            // :: error: assignment.type.incompatible
+            a = j;
+        }
     }
 
     static @Mixed class B extends A {}
 
     @Transactional
     void transaction(CassandraTransactionContextBinding ctx) {
-        // TODO: is this possible?
         ctx.replicate("o", CassandraConsistencyLevels.MIXED, B.class);
         Ref<A> o = ctx.lookup("o", CassandraConsistencyLevels.MIXED, A.class);
     }
