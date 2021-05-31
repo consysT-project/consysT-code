@@ -38,6 +38,10 @@ public class FormulaGenerator {
    */
   public Expr visitExpression(Expression expression, InternalScope scope) {
 
+    if (expression == null)
+      throw new NullPointerException("expression was null");
+
+
     // literal expression: 10, -5.6, true, ...
     if (expression instanceof Literal) {
       return visitLiteralExpression((Literal) expression, scope);
