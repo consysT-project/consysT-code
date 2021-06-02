@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{annoPackageName, checkerPackageName, getDefaultOp, getQualifiedName}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{annoPackageName, checkerPackageName, getDefaultOp, getExplicitAnnotation, getQualifiedName, inconsistentAnnotation}
 import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.GenericAnnotatedTypeFactory
@@ -182,7 +182,18 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                 if field.getKind == ElementKind.FIELD
                     && ElementUtils.getAllFieldsIn(classContext.get, atypeFactory.getElementUtils).contains(field) =>
 
-                updateField(classContext.get, defaultOpLevel.get, field, methodLevel, isLhs, node)
+                getExplicitAnnotation(atypeFactory, field) match {
+                    case Some(explicitAnnotation) if isLhs && !atypeFactory.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
+                        atypeFactory.getChecker.reportError(node, "mixed.field.incompatible",
+                            explicitAnnotation.getAnnotationType.asElement().getSimpleName,
+                            methodLevel.getAnnotationType.asElement().getSimpleName)
+
+                    case None =>
+                        updateField(classContext.get, defaultOpLevel.get, field, methodLevel, isLhs, node)
+
+                    case _ =>
+                }
+
                 if (!isLhs) {
                     refinementTable.update(node, methodLevel)
                 }

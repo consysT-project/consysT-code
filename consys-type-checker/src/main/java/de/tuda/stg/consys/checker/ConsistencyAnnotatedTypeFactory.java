@@ -90,12 +90,18 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.VARIABLE || tree.getKind() == Tree.Kind.MEMBER_SELECT) &&
 				TreeUtils.elementFromTree(tree).getKind() == ElementKind.FIELD) {
-			var annotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
 
-			if (annotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
+			var definedAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+			var inferredAnnotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
+
+			if (type.hasExplicitAnnotation(definedAnnotation) && inferenceVisitor.refinementTable().get(tree).isDefined()) {
 				var opLevel = inferenceVisitor.refinementTable().get(tree).get();
-				type.removeAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				type.addAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, annotation));
+				type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, definedAnnotation));
+			} else if (inferredAnnotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
+				var opLevel = inferenceVisitor.refinementTable().get(tree).get();
+				type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, inferredAnnotation));
+			} else if (inferredAnnotation != null) {
+				type.replaceAnnotation(inferredAnnotation);
 			}
 		}
 	}
@@ -104,8 +110,15 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
 		super.addComputedTypeAnnotations(elt, type);
 
+		if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))
+			return;
+
 		if (elt.getKind() == ElementKind.FIELD) {
-			annotateField((VariableElement) elt, type);
+			var anno = annotateField((VariableElement) elt, type);
+			if (anno != null) {
+				type.clearAnnotations();
+				type.addAnnotation(anno);
+			}
 		}
 	}
 
@@ -117,8 +130,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
 		if (annotation.isDefined()) {
-			type.clearAnnotations();
-			type.addAnnotation(annotation.get());
 			return annotation.get();
 		}
 		return null;

@@ -2,8 +2,8 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{ClassTree, Tree}
 
-import javax.lang.model.element.AnnotationMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeFactory
+import javax.lang.model.element.{AnnotationMirror, Element}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
@@ -34,4 +34,11 @@ object TypeFactoryUtils {
 
 	def getDefaultOp(annotation: AnnotationMirror): String =
 		AnnotationUtils.getElementValue(annotation, "withDefault", classOf[Object], true).toString
+
+	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, elt: Element): Option[AnnotationMirror] = {
+		val atype = atypeFactory.getAnnotatedType(elt)
+		val definedAnnotation = atype.getAnnotationInHierarchy(inconsistentAnnotation(atypeFactory))
+
+		Some(definedAnnotation).filter(atype.hasExplicitAnnotation)
+	}
 }
