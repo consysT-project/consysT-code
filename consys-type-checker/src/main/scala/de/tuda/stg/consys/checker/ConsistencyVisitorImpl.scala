@@ -10,7 +10,7 @@ import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils}
 
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
@@ -44,6 +44,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		println(">Class decl:  " + getQualifiedName(classTree))
+		// TODO: clean up + we should explicitly run the inference here before moving on
 		val mixed = atypeFactory.getAnnotatedType(classTree).getAnnotation(classOf[Mixed])
 		val defaultOpLevel = if (mixed != null) AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString else ""
 		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)

@@ -11,10 +11,8 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import scala.Tuple2;
 
@@ -110,10 +108,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
 		super.addComputedTypeAnnotations(elt, type);
 
-		if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))
-			return;
-
 		if (elt.getKind() == ElementKind.FIELD) {
+			if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))
+				return;
+
 			var anno = annotateField((VariableElement) elt, type);
 			if (anno != null) {
 				type.clearAnnotations();

@@ -2,15 +2,14 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{annoPackageName, checkerPackageName, getDefaultOp, getExplicitAnnotation, getQualifiedName, inconsistentAnnotation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getDefaultOp, getExplicitAnnotation, getQualifiedName}
 import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.framework.`type`.GenericAnnotatedTypeFactory
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
-import javax.lang.model.element.{AnnotationMirror, AnnotationValue, ElementKind, TypeElement, VariableElement}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
 
