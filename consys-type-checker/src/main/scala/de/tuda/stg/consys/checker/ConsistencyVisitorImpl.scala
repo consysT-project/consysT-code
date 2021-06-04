@@ -116,7 +116,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				if (expr != null && !methodInvocationIsRefOrGetField(node))
 					checkMethodInvocationReceiver(recvType, node)
 
-				if (recvType.getAnnotation(classOf[Mixed]) != null && methodInvocationIsRefFieldAccess(node)) {
+				if (recvType.hasAnnotation(classOf[Mixed]) && methodInvocationIsRefFieldAccess(node)) {
 					checker.reportError(node, "mixed.field.access")
 				}
 
@@ -133,6 +133,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		}
 
 		val r = super.visitMethodInvocation(node, p)
+
 		if (methodInvocationIsTransaction(node)) {
 			transactionContext = false
 		}

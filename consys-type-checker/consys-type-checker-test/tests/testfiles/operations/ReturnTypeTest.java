@@ -10,6 +10,17 @@ import de.tuda.stg.consys.japi.Ref;
 import java.io.Serializable;
 
 public class ReturnTypeTest {
+    @Transactional
+    void test(Ref<A> o) {
+        @Strong int a;
+        a = o.ref().f();
+
+        // :: error: assignment.type.incompatible
+        a = o.ref().g(true);
+        @Weak int b;
+        b = o.ref().g(true);
+    }
+
     static @Mixed class A implements Serializable {
         int i;
         @Weak int j;
@@ -26,16 +37,5 @@ public class ReturnTypeTest {
             else
                 return j;
         }
-    }
-
-    @Transactional
-    void test(Ref<A> o) {
-        @Strong int a;
-        a = o.ref().f();
-
-        // :: error: assignment.type.incompatible
-        a = o.ref().g(true);
-        @Weak int b;
-        b = o.ref().g(true);
     }
 }

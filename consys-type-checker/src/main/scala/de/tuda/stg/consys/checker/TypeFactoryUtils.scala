@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{ClassTree, Tree}
+import com.sun.source.tree.ClassTree
 
 import javax.lang.model.element.{AnnotationMirror, Element}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
 import javax.lang.model.`type`.DeclaredType
 
@@ -35,10 +35,9 @@ object TypeFactoryUtils {
 	def getDefaultOp(annotation: AnnotationMirror): String =
 		AnnotationUtils.getElementValue(annotation, "withDefault", classOf[Object], true).toString
 
-	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, elt: Element): Option[AnnotationMirror] = {
-		val atype = atypeFactory.getAnnotatedType(elt)
-		val definedAnnotation = atype.getAnnotationInHierarchy(inconsistentAnnotation(atypeFactory))
+	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, atype: AnnotatedTypeMirror): Option[AnnotationMirror] =
+		Some(atype.getAnnotationInHierarchy(inconsistentAnnotation)).filter(atype.hasExplicitAnnotation)
 
-		Some(definedAnnotation).filter(atype.hasExplicitAnnotation)
-	}
+	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, elt: Element): Option[AnnotationMirror] =
+		getExplicitAnnotation(atypeFactory, atypeFactory.getAnnotatedType(elt))
 }

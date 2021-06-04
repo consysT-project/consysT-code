@@ -53,7 +53,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	@Override
 	protected TypeHierarchy createTypeHierarchy() {
-
 		DefaultTypeHierarchy hierarchy = new DefaultTypeHierarchy(
 			checker, getQualifierHierarchy(), checker.getBooleanOption("ignoreRawTypeArguments", true), checker.hasOption("invariantArrays"));
 
@@ -106,6 +105,18 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	@Override
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
+		// When encountering a method invocation on a class that was not yet visited,
+		// run the inference first in order to get inferred return type levels
+		if (elt.getKind() == ElementKind.METHOD) {
+			var classElement = elt.getEnclosingElement();
+			var classTree = getTreeUtils().getTree(classElement);
+			if (classTree != null && classTree.getKind() == Tree.Kind.CLASS) {
+				inferenceVisitor.visitClass((ClassTree)classTree, false);
+			} else if (classElement.getKind() == ElementKind.CLASS) {
+				inferenceVisitor.visitClass((TypeElement)classElement, false);
+			}
+		}
+
 		super.addComputedTypeAnnotations(elt, type);
 
 		if (elt.getKind() == ElementKind.FIELD) {
@@ -114,8 +125,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 			var anno = annotateField((VariableElement) elt, type);
 			if (anno != null) {
-				type.clearAnnotations();
-				type.addAnnotation(anno);
+				type.replaceAnnotation(anno);
 			}
 		}
 	}
