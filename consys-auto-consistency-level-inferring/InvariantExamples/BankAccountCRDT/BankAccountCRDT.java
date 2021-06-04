@@ -15,20 +15,22 @@ public class BankAccountCRDT {
 
 
     //@ assignable replicaId;
+    //@ assignable incs;
+    //@ assignable decs;
     //@ requires id >= 0 && id < numOfReplicas;
     //@ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0 && decs[init] == 0);
     //@ ensures replicaId == id;
     public BankAccountCRDT(int id) {
+        super();
         this.replicaId = id;
     }
 
 
     /*@
     @ assignable \nothing;
-    @ ensures \result ==
-              (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]);
+    @ ensures \result == (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]);
     @*/
-    public /*@ pure @*/ int sumIncs() {
+    public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
             res += inc;
@@ -38,10 +40,9 @@ public class BankAccountCRDT {
 
     /*@
     @ assignable \nothing;
-    @ ensures \result ==
-              (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]);
+    @ ensures \result == (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]);
     @*/
-    public /*@ pure @*/ int sumDecs() {
+    public int sumDecs() {
         int result = 0;
         for (int dec : decs) {
             result += dec;
@@ -49,10 +50,10 @@ public class BankAccountCRDT {
         return result;
     }
 
-    /*@ ensures \result == sumIncs() - sumDecs();
+    /*@ ensures \result == (\sum int valueIncInd; incInd>=0 && valueIncInd < numOfReplicas; incs[valueIncInd]) - (\sum int valueDecInd; valueDecInd >= 0 && valueDecInd < numOfReplicas; decs[valueDecInd]);
     @ assignable \nothing;
     @*/
-    public /*@ pure @*/ int getValue() {
+    public int getValue() {
         return sumIncs() - sumDecs();
     }
 
@@ -74,8 +75,8 @@ public class BankAccountCRDT {
     /*@
     @ assignable decs[replicaId];
     @ requires val >= 0;
-    @ requires getValue() >= val;
-    @ requires  (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]) - (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]) >= val;
+    // requires getValue() >= val;
+    @ requires  (\sum int withdrawIncInd; incInd>=0 && withdrawIncInd < numOfReplicas; incs[withdrawIncInd]) - (\sum int withdrawDecInd; withdrawDecInd >= 0 && withdrawDecInd<numOfReplicas; decs[withdrawDecInd]) >= val;
     @ ensures decs[replicaId] == \old(decs[replicaId]) + val;
     @ ensures (\forall int decI; decI>=0 && decI<numOfReplicas && decI != replicaId;
                 decs[decI] == \old(decs[decI]));
@@ -100,8 +101,8 @@ public class BankAccountCRDT {
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {
-            incs[i] = Math.max(incs[i], other.incs[i]);
-            decs[i] = Math.max(decs[i], other.decs[i]);
+            incs[i] = incs[i] > other.incs[i] ? incs[i] : other.incs[i];
+            decs[i] = decs[i] > other.decs[i] ? decs[i] : other.decs[i];
         }
 
     }
