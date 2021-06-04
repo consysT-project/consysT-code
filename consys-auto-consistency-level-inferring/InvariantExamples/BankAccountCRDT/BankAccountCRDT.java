@@ -9,19 +9,23 @@ public class BankAccountCRDT {
 
 
     /* Invariants */
-    //@ public invariant (\sum int inv0a; inv0a >= 0 && inv0a < numOfReplicas; incs[inv0a]) - (\sum int inv0b; inv0b >= 0 && inv0b < numOfReplicas; decs[inv0b]) >= 0;
-    //@ public invariant (\forall int inv1; inv1 >= 0 && inv1 < numOfReplicas; incs[inv1] >=0);
-    //@ public invariant (\forall int inv2; inv2 >= 0 && inv2 < numOfReplicas; decs[inv2] >=0);
+    /*@
+    @ public invariant (\sum int inv0a; inv0a >= 0 && inv0a < numOfReplicas; incs[inv0a]) - (\sum int inv0b; inv0b >= 0 && inv0b < numOfReplicas; decs[inv0b]) >= 0;
+    @ public invariant (\forall int inv1; inv1 >= 0 && inv1 < numOfReplicas; incs[inv1] >=0);
+    @ public invariant (\forall int inv2; inv2 >= 0 && inv2 < numOfReplicas; decs[inv2] >=0);
+    @*/
 
 
-    //@ assignable replicaId;
-    //@ assignable incs;
-    //@ assignable decs;
-    //@ requires id >= 0 && id < numOfReplicas;
-    //@ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0 && decs[init] == 0);
-    //@ ensures replicaId == id;
+    /*@
+    @ requires id >= 0 && id < numOfReplicas;
+    @ assignable replicaId;
+    @ assignable incs;
+    @ assignable decs;
+    @ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0 && decs[init] == 0);
+    @ ensures replicaId == id;
+    @*/
     public BankAccountCRDT(int id) {
-        super();
+        //super();
         this.replicaId = id;
     }
 
@@ -50,7 +54,7 @@ public class BankAccountCRDT {
         return result;
     }
 
-    /*@ ensures \result == (\sum int valueIncInd; incInd>=0 && valueIncInd < numOfReplicas; incs[valueIncInd]) - (\sum int valueDecInd; valueDecInd >= 0 && valueDecInd < numOfReplicas; decs[valueDecInd]);
+    /*@ ensures \result == (\sum int valueIncInd; valueIncInd>=0 && valueIncInd < numOfReplicas; incs[valueIncInd]) - (\sum int valueDecInd; valueDecInd >= 0 && valueDecInd < numOfReplicas; decs[valueDecInd]);
     @ assignable \nothing;
     @*/
     public int getValue() {
@@ -60,8 +64,8 @@ public class BankAccountCRDT {
 
 
     /*@
-    @ assignable incs[replicaId];
     @ requires val >= 0;
+    @ assignable incs[replicaId];
     @ ensures incs[replicaId] == \old(incs[replicaId]) + val;
     @ ensures (\forall int incI; incI>=0 && incI<numOfReplicas && incI != replicaId;
                 incs[incI] == \old(incs[incI]));
@@ -73,10 +77,10 @@ public class BankAccountCRDT {
     }
 
     /*@
-    @ assignable decs[replicaId];
     @ requires val >= 0;
     // requires getValue() >= val;
-    @ requires  (\sum int withdrawIncInd; incInd>=0 && withdrawIncInd < numOfReplicas; incs[withdrawIncInd]) - (\sum int withdrawDecInd; withdrawDecInd >= 0 && withdrawDecInd<numOfReplicas; decs[withdrawDecInd]) >= val;
+    @ requires  (\sum int withdrawIncInd; withdrawIncInd>=0 && withdrawIncInd < numOfReplicas; incs[withdrawIncInd]) - (\sum int withdrawDecInd; withdrawDecInd >= 0 && withdrawDecInd<numOfReplicas; decs[withdrawDecInd]) >= val;
+    @ assignable decs[replicaId];
     @ ensures decs[replicaId] == \old(decs[replicaId]) + val;
     @ ensures (\forall int decI; decI>=0 && decI<numOfReplicas && decI != replicaId;
                 decs[decI] == \old(decs[decI]));
