@@ -299,7 +299,7 @@ public class TestOutput {
         InternalClass result = visitor.getResult();
         visitor.reset();
 
-        Z3Checker.modelPrint = false;
+        //Z3Checker.modelPrint = false;
         System.out.println("initial state: " + Z3Checker.checkInitialState(result));
         System.out.println("merge idempotency: " + Z3Checker.checkMergeIdempotency(result));
         System.out.println("merge commutativity: " + Z3Checker.checkMergeCommutativity(result));

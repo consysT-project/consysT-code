@@ -36,7 +36,16 @@ public class Main {
   public static TypeDeclaration[] classDeclarations = null;
 
   private static void loadLib(String libname) {
-    Path lib = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
+    Path lib; // = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
+
+    String osname = System.getProperty("os.name").toLowerCase();
+    if (osname.contains("mac"))
+      lib = Paths.get("lib", libname).toAbsolutePath();
+    else if (osname.contains("linux"))
+      lib = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
+    else
+      throw new RuntimeException("Unsupported OS: " + osname);
+
     System.out.println("load " + libname + ": " + lib);
     Runtime.getRuntime().load(lib.toString());
   }
