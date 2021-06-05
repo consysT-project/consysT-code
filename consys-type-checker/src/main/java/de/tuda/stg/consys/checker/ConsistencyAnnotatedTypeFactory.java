@@ -14,6 +14,8 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
+import scala.None;
+import scala.Option;
 import scala.Tuple2;
 
 import javax.lang.model.element.*;
@@ -82,7 +84,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		super.addComputedTypeAnnotations(tree, type, iUseFlow);
 
 		if (tree instanceof ClassTree) {
-			inferenceVisitor.visitClass((ClassTree)tree, null);
+			inferenceVisitor.visitClass((ClassTree)tree);
 		}
 
 		if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.VARIABLE || tree.getKind() == Tree.Kind.MEMBER_SELECT) &&
@@ -111,9 +113,9 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			var classElement = elt.getEnclosingElement();
 			var classTree = getTreeUtils().getTree(classElement);
 			if (classTree != null && classTree.getKind() == Tree.Kind.CLASS) {
-				inferenceVisitor.visitClass((ClassTree)classTree, false);
+				inferenceVisitor.visitClass((ClassTree)classTree);
 			} else if (classElement.getKind() == ElementKind.CLASS) {
-				inferenceVisitor.visitClass((TypeElement)classElement, false);
+				inferenceVisitor.visitClass((TypeElement)classElement);
 			}
 		}
 
@@ -136,7 +138,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		if (mixedClassContext.empty())
 			return null;
 
-		var annotation = inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
+		var annotation =
+				inferenceVisitor.getInferredFieldOrFromSuperclass(elt, mixedClassContext.peek()._1, mixedClassContext.peek()._2)._1;
 		if (annotation.isDefined()) {
 			return annotation.get();
 		}
