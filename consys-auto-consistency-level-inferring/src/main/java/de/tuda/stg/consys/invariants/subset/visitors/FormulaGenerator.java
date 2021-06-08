@@ -244,7 +244,7 @@ public class FormulaGenerator {
       return scope.getClassVariable(variableName).getNewValue();
     else if (scope.getLocalVariables().containsKey(variableName))
       return scope.getLocalVariable(variableName);
-
+    
     throw new WrongJMLArgumentsExpression(jmlSingleNameReference);
   }
 

@@ -89,6 +89,17 @@ public class ModelGenerator extends ASTVisitor {
       return false;
     }
 
+    // arguments: get name and type of each argument and add them to method
+    if (jmlConstructorDeclaration.arguments != null) {
+      for (Argument arg : jmlConstructorDeclaration.arguments) {
+        String name = String.valueOf(arg.name);
+        Sort type = typeGenerator.visitTypeBinding(arg.type.resolveType(scope));
+        method.addArgument(name, type);
+        // add method argument to local scope
+        internalScope.addLocalVariable(name, method.getArgument(name));
+      }
+    }
+
     // translate postcondition
     Expr initExpr =
         formulaGenerator.visitExpression(
