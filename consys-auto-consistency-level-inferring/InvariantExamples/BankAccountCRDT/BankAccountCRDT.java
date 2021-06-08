@@ -3,9 +3,10 @@ public class BankAccountCRDT {
 
 
     /* Fields */
-    public int[] incs = new int[numOfReplicas];
-    public int[] decs = new int[numOfReplicas];
+    public final int[] incs = new int[numOfReplicas];
+    public final int[] decs = new int[numOfReplicas];
     public int replicaId;
+
 
 
     /* Invariants */
@@ -92,16 +93,17 @@ public class BankAccountCRDT {
     }
 
     /*@
-    @ requires ((\sum int mergeI; mergeI>=0 && mergeI<numOfReplicas;
-                    \old(incs[mergeI])>other.incs[mergeI] ? \old(incs[mergeI]) : other.incs[mergeI] )
-               - (\sum int mergeI2; mergeI2>=0 && mergeI2<numOfReplicas;
-                    \old(decs[mergeI2])>other.decs[mergeI2] ? \old(decs[mergeI2]) : other.decs[mergeI2] )) >= 0;
-    @ ensures (\forall int mergeIncsI; mergeIncsI>=0 && mergeIncsI<numOfReplicas;
-                    (\old(incs[mergeIncsI]) > other.incs[mergeIncsI] ==> incs[mergeIncsI] == \old(incs[mergeIncsI]))
-                &&  (\old(incs[mergeIncsI]) <= other.incs[mergeIncsI] ==> incs[mergeIncsI] == other.incs[mergeIncsI]) );
-    @ ensures (\forall int mergeDecsI; mergeDecsI>=0 && mergeDecsI<numOfReplicas;
-                    (\old(decs[mergeDecsI]) > other.decs[mergeDecsI] ==> decs[mergeDecsI] == \old(decs[mergeDecsI]))
-                &&  (\old(decs[mergeDecsI]) <= other.decs[mergeDecsI] ==> decs[mergeDecsI] == other.decs[mergeDecsI]) );
+    @ requires ((\sum int mergeI; mergeI >= 0 && mergeI < numOfReplicas;
+            \old(incs[mergeI]) >= other.incs[mergeI] ? \old(incs[mergeI]) : other.incs[mergeI] )
+             - (\sum int mergeI2; mergeI2>=0 && mergeI2<numOfReplicas;
+                    \old(decs[mergeI2]) >= other.decs[mergeI2] ? \old(decs[mergeI2]) : other.decs[mergeI2] )) >= 0;
+
+    @ ensures (\forall int mergeIncsI; mergeIncsI >= 0 && mergeIncsI < numOfReplicas;
+                   (\old(incs[mergeIncsI]) >= other.incs[mergeIncsI] ==> incs[mergeIncsI] == \old(incs[mergeIncsI]))
+                && (\old(incs[mergeIncsI]) <= other.incs[mergeIncsI] ==> incs[mergeIncsI] == other.incs[mergeIncsI])
+                && (\old(decs[mergeIncsI]) >= other.decs[mergeIncsI] ==> decs[mergeIncsI] == \old(decs[mergeIncsI]))
+                && (\old(decs[mergeIncsI]) <= other.decs[mergeIncsI] ==> decs[mergeIncsI] == other.decs[mergeIncsI])
+               );
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {
@@ -110,4 +112,7 @@ public class BankAccountCRDT {
         }
 
     }
+
+
+
 }

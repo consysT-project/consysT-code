@@ -89,6 +89,8 @@ public class ModelGenerator extends ASTVisitor {
       return false;
     }
 
+    InternalMethod method = new InternalMethod("$init");
+
     // arguments: get name and type of each argument and add them to method
     if (jmlConstructorDeclaration.arguments != null) {
       for (Argument arg : jmlConstructorDeclaration.arguments) {

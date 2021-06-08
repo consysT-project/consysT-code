@@ -49,9 +49,9 @@ object BackendReplica {
 
 
 				otherReplicas.foreach { ref =>
-					ask(ref, SyncWrite(objects)).andThen({
-						case Success(any) =>
-					})
+//					ask(ref, SyncWrite(objects)).andThen({
+//						case Success(any) =>
+//					})
 				}
 
 
@@ -60,8 +60,8 @@ object BackendReplica {
 
 
 
-			case ReadObjects() =>
-			case SyncRead() =>
+//			case ReadObjects() =>
+//			case SyncRead() =>
 
 
 		}
