@@ -366,12 +366,15 @@ public class FormulaGenerator {
     // boundVariables declaration: introduce new local scope
     Map<String, Expr> newLocalVars = new HashMap<>(scope.getLocalVariables());
     Expr[] boundConstants = new Expr[jmlQuantifiedExpression.boundVariables.length];
-    int i = 0;
-    for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
-      Expr localVar = visitLocalDeclaration(localDeclaration, scope);
-      newLocalVars.put(String.valueOf(localDeclaration.name), localVar);
-      boundConstants[i] = localVar;
-      i++;
+
+    {
+      int i = 0;
+      for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
+        Expr localVar = visitLocalDeclaration(localDeclaration, scope);
+        newLocalVars.put(String.valueOf(localDeclaration.name), localVar);
+        boundConstants[i] = localVar;
+        i++;
+      }
     }
 
     // new scope for inside the quantifier
@@ -461,43 +464,61 @@ public class FormulaGenerator {
             throw new WrongJMLArgumentsExpression(jmlQuantifiedExpression);
           }
 
-
-          FuncDecl sumFunc = context.mkRecFuncDecl(
-                  context.mkSymbol("$SUM_" + quantifierCounter),
-                  new Sort[] { context.getIntSort() },
-                  bodyExpr.getSort()
-          );
-
-
           // increment for future quantifiers
           quantifierCounter++;
 
-          Expr indexVar = boundConstants[0];
+          if (bodyExpr instanceof IntExpr) {
+            Expr<IntSort> forBodyExpr = context.mkITE(rangeExpr, (IntExpr) bodyExpr, context.mkInt(0));
+            IntExpr ret = context.mkInt(0);
+            for (int i = 0; i < 20; i++) {
 
-          /* Build body. Example:
-            \sum int i; i >= 0 && i <= size; arr[i] * 2
-            -->
-            sumFunc(int i) { if (i >= 0 && i <= size) then (arr[i] * 2) + sumFunc(i + 1) else 0 }
-           */
-          Expr sumBody =
-                  context.mkITE(rangeExpr, // if (i in range)
-                          // then
-                          context.mkAdd(
-                                  // body + sumFunc(i + 1)
-                                  bodyExpr,
-                                  context.mkApp(sumFunc, context.mkAdd(indexVar, context.mkInt(1)))
-                          ),
-                          // else
-                          context.mkInt(0)
-                          );
+              ret = (IntExpr) context.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], context.mkInt(i)));
+            }
+            return ret;
+          } else if (bodyExpr instanceof RealExpr) {
+            Expr<RealSort> forBodyExpr = context.mkITE(rangeExpr, (RealExpr) bodyExpr, context.mkReal(0));
+            RealExpr ret = context.mkReal(0);
+            for (int i = 0; i < 20; i++) {
+              ret = (RealExpr) context.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], context.mkInt(i)));
+            }
+            return ret;
+          }
 
-          // Create the func def
-          context.AddRecDef(sumFunc, boundConstants, sumBody);
-
-          // Apply sumFunc to 0 and return as expression
-          Expr result = context.mkApp(sumFunc, context.mkInt(0));
-
-          return result;
+//          FuncDecl sumFunc = context.mkRecFuncDecl(
+//                  context.mkSymbol("$SUM_" + quantifierCounter),
+//                  new Sort[] { context.getIntSort() },
+//                  bodyExpr.getSort()
+//          );
+//
+//
+//
+//
+//          Expr indexVar = boundConstants[0];
+//
+//          /* Build body. Example:
+//            \sum int i; i >= 0 && i <= size; arr[i] * 2
+//            -->
+//            sumFunc(int i) { if (i >= 0 && i <= size) then (arr[i] * 2) + sumFunc(i + 1) else 0 }
+//           */
+//          Expr sumBody =
+//                  context.mkITE(rangeExpr, // if (i in range)
+//                          // then
+//                          context.mkAdd(
+//                                  // body + sumFunc(i + 1)
+//                                  bodyExpr,
+//                                  context.mkApp(sumFunc, context.mkAdd(indexVar, context.mkInt(1)))
+//                          ),
+//                          // else
+//                          context.mkInt(0)
+//                          );
+//
+//          // Create the func def
+//          context.AddRecDef(sumFunc, boundConstants, sumBody);
+//
+//          // Apply sumFunc to 0 and return as expression
+//          Expr result = context.mkApp(sumFunc, context.mkInt(0));
+//
+//          return result;
         }
 
 

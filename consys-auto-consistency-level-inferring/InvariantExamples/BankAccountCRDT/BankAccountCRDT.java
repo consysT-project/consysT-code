@@ -14,14 +14,13 @@ public class BankAccountCRDT {
     @ public invariant (\sum int inv0a; inv0a >= 0 && inv0a < numOfReplicas; incs[inv0a]) - (\sum int inv0b; inv0b >= 0 && inv0b < numOfReplicas; decs[inv0b]) >= 0;
     @ public invariant (\forall int inv1; inv1 >= 0 && inv1 < numOfReplicas; incs[inv1] >=0);
     @ public invariant (\forall int inv2; inv2 >= 0 && inv2 < numOfReplicas; decs[inv2] >=0);
+    @ public invariant incs.length == numOfReplicas;
+    @ public invariant decs.length == numOfReplicas;
     @*/
 
 
     /*@
     @ requires id >= 0 && id < numOfReplicas;
-    @ assignable replicaId;
-    @ assignable incs;
-    @ assignable decs;
     @ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0 && decs[init] == 0);
     @ ensures replicaId == id;
     @*/
@@ -94,9 +93,9 @@ public class BankAccountCRDT {
 
     /*@
     @ requires ((\sum int mergeI; mergeI >= 0 && mergeI < numOfReplicas;
-            \old(incs[mergeI]) >= other.incs[mergeI] ? \old(incs[mergeI]) : other.incs[mergeI] )
+            incs[mergeI] >= other.incs[mergeI] ? incs[mergeI] : other.incs[mergeI] )
              - (\sum int mergeI2; mergeI2>=0 && mergeI2<numOfReplicas;
-                    \old(decs[mergeI2]) >= other.decs[mergeI2] ? \old(decs[mergeI2]) : other.decs[mergeI2] )) >= 0;
+                    decs[mergeI2] >= other.decs[mergeI2] ? decs[mergeI2] : other.decs[mergeI2] )) >= 0;
 
     @ ensures (\forall int mergeIncsI; mergeIncsI >= 0 && mergeIncsI < numOfReplicas;
                    (\old(incs[mergeIncsI]) >= other.incs[mergeIncsI] ==> incs[mergeIncsI] == \old(incs[mergeIncsI]))
