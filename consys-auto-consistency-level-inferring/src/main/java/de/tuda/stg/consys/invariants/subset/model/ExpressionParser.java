@@ -1,21 +1,17 @@
-package de.tuda.stg.consys.invariants.subset.visitors;
+package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
-import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.visitors.IntegerValueVisitor;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalArray;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalVar;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
 
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -23,13 +19,19 @@ import java.util.stream.Collectors;
  * assignable clauses to Z3 expressions
  */
 @SuppressWarnings("rawtypes")
-public class FormulaGenerator {
-  Context context = Z3Checker.context;
-  /**
-   * The counter is increased every time a quantifier has been instantiated so that the SMT solver
-   * does not mix up the quantifiers
-   */
+public class ExpressionParser {
+
+  private final Context ctx;
+
+  /** A model of the class in which this expression is placed. Null, if the expression is not in a class. */
+  private final ClassModel classModel;
+
   private int quantifierCounter = 0;
+
+  public ExpressionParser(Context ctx, ClassModel classModel) {
+    this.ctx = ctx;
+    this.classModel = classModel;
+  }
 
   /**
    * This method calls the correct visitXYZ(...) method for a given JML expression
@@ -37,21 +39,23 @@ public class FormulaGenerator {
    * @param expression the expression to be visited
    * @return the corresponding Z3 expression
    */
-  public Expr visitExpression(Expression expression, InternalScope scope) {
+  public Expr parseExpression(Expression expression, InternalScope scope) {
 
     if (expression == null)
       throw new NullPointerException("expression was null");
 
-
     // literal expression: 10, -5.6, true, ...
     if (expression instanceof Literal) {
-      return visitLiteralExpression((Literal) expression, scope);
+      return parseLiteral((Literal) expression, scope);
     }
-
 
     // one reference of a variable: "a"
     if (expression instanceof JmlSingleNameReference) {
-      return visitJmlSingleReference((JmlSingleNameReference) expression, scope);
+      return parseJmlSingleReference((JmlSingleNameReference) expression, scope);
+    }
+
+    if (expression instanceof ThisReference) {
+      return parseThisReference((ThisReference) expression, scope);
     }
 
     // \result is the result reference
@@ -84,51 +88,55 @@ public class FormulaGenerator {
 
     // expressions with operators: a + b, a ? b : c, !a ...
     if (expression instanceof OperatorExpression) {
-      return visitOperatorExpression((OperatorExpression) expression, scope);
+      return parseOperatorExpression((OperatorExpression) expression, scope);
     }
 
     throw new UnsupportedJMLExpression(expression);
   }
 
-  public Expr visitLiteralExpression(org.eclipse.jdt.internal.compiler.ast.Literal literalExpression, InternalScope scope) {
+  private Expr parseThisReference(ThisReference thisExpression, InternalScope scope) {
+    throw new UnsupportedJMLExpression(thisExpression);
+  }
+
+  public Expr parseLiteral(Literal literalExpression, InternalScope scope) {
     // literals can be translated directly
     if (literalExpression instanceof IntLiteral)
-      return context.mkInt(((IntLiteral) literalExpression).value);
+      return ctx.mkInt(((IntLiteral) literalExpression).value);
 
     if (literalExpression instanceof DoubleLiteral) {
       double value = ((DoubleLiteral) literalExpression).constant.doubleValue();
-      return context.mkFPToReal(context.mkFP(value, context.mkFPSortDouble()));
+      return ctx.mkFPToReal(ctx.mkFP(value, ctx.mkFPSortDouble()));
     }
 
     if (literalExpression instanceof TrueLiteral)
-      return context.mkTrue();
+      return ctx.mkTrue();
 
     if (literalExpression instanceof FalseLiteral)
-      return context.mkFalse();
+      return ctx.mkFalse();
 
     throw new UnsupportedJMLExpression(literalExpression);
   }
 
-  public Expr visitOperatorExpression(OperatorExpression operatorExpression, InternalScope scope) {
+  public Expr parseOperatorExpression(OperatorExpression operatorExpression, InternalScope scope) {
     // !a ...
     if (operatorExpression instanceof UnaryExpression) {
-      return visitUnaryExpression((UnaryExpression) operatorExpression, scope);
+      return parseUnaryExpression((UnaryExpression) operatorExpression, scope);
     }
 
     // expressions like addition, modulo, and, or, ...
     if (operatorExpression instanceof BinaryExpression) {
-      return visitBinaryExpression((BinaryExpression) operatorExpression, scope);
+      return parseBinaryExpression((BinaryExpression) operatorExpression, scope);
     }
 
     if (operatorExpression instanceof ConditionalExpression) {
-      return visitConditionalExpression((ConditionalExpression) operatorExpression, scope);
+      return parseConditionalExpression((ConditionalExpression) operatorExpression, scope);
     }
 
     throw new UnsupportedJMLExpression(operatorExpression);
   }
 
-  public Expr visitUnaryExpression(UnaryExpression unaryExpression, InternalScope scope) {
-    Expr expr = visitExpression(unaryExpression.expression, scope);
+  public Expr parseUnaryExpression(UnaryExpression unaryExpression, InternalScope scope) {
+    Expr expr = parseExpression(unaryExpression.expression, scope);
 
     throw new UnsupportedJMLExpression(unaryExpression);
   }
@@ -139,10 +147,10 @@ public class FormulaGenerator {
    *
    * @return e Z3 expression that uses the correct operator
    */
-  public Expr visitBinaryExpression(BinaryExpression binaryExpression, InternalScope scope) {
+  public Expr parseBinaryExpression(BinaryExpression binaryExpression, InternalScope scope) {
     // translate expressions from both operands
-    Expr left = visitExpression(binaryExpression.left, scope);
-    Expr right = visitExpression(binaryExpression.right, scope);
+    Expr left = parseExpression(binaryExpression.left, scope);
+    Expr right = parseExpression(binaryExpression.right, scope);
 
     // get operator value and construct corresponding Z3 expression
     String s = binaryExpression.operatorToString();
@@ -151,48 +159,48 @@ public class FormulaGenerator {
 
     if (s.equals("&&") || s.equals("&")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
-        return context.mkAnd((BoolExpr) left, (BoolExpr) right);
+        return ctx.mkAnd((BoolExpr) left, (BoolExpr) right);
       }
       throw new WrongJMLArgumentsExpression(binaryExpression);
     }
 
     if (s.equals("||") || s.equals("|")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
-        return context.mkOr((BoolExpr) left, (BoolExpr) right);
+        return ctx.mkOr((BoolExpr) left, (BoolExpr) right);
       }
       throw new WrongJMLArgumentsExpression(binaryExpression);
     }
 
     //TODO: Add WrongJMLArgumentsExpression to all cases
     if (s.equals("<") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkLt((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkLt((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("<=") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkLe((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkLe((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals(">") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkGt((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkGt((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals(">=") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkGe((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkGe((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("^") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return context.mkXor((BoolExpr) left, (BoolExpr) right);
+      return ctx.mkXor((BoolExpr) left, (BoolExpr) right);
     }
     if (s.equals("/") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkDiv((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkDiv((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("-") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkSub((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkSub((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("+") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkAdd((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkAdd((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("*") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return context.mkMul((ArithExpr) left, (ArithExpr) right);
+      return ctx.mkMul((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("%") && left instanceof IntExpr && right instanceof IntExpr) {
-      return context.mkMod((IntExpr) left, (IntExpr) right);
+      return ctx.mkMod((IntExpr) left, (IntExpr) right);
     }
 
     /* if values need to be set, this point is used as not all equality operators are only used
@@ -206,25 +214,26 @@ public class FormulaGenerator {
 
       // set array size
       else if (left instanceof SeqExpr && right instanceof IntExpr) {
+        //TODO: check this
         InternalVar arr = scope.getClassVariable(left.getString());
         if (arr instanceof InternalArray) {
           ((InternalArray) arr)
               .setSize(new IntegerValueVisitor().visitExpression(binaryExpression.right, scope));
-          return context.mkTrue();
+          return ctx.mkTrue();
         }
       }
-      return context.mkEq(left, right);
+      return ctx.mkEq(left, right);
     }
 
     if (s.equals("==>") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return context.mkImplies((BoolExpr) left, (BoolExpr) right);
+      return ctx.mkImplies((BoolExpr) left, (BoolExpr) right);
     }
     if (s.equals("<==") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return context.mkImplies((BoolExpr) right, (BoolExpr) left);
+      return ctx.mkImplies((BoolExpr) right, (BoolExpr) left);
     }
 
     if (left != null && right != null && (s.equals("<=!=>") || s.equals("!=")))
-      return context.mkNot(context.mkEq(left, right));
+      return ctx.mkNot(ctx.mkEq(left, right));
 
     throw new UnsupportedJMLExpression(binaryExpression);
   }
@@ -237,7 +246,7 @@ public class FormulaGenerator {
    * @return the Z3 variable used for the new state or {@code null} if no variable with the
    *     referenced name could be found
    */
-  public Expr visitJmlSingleReference(
+  public Expr parseJmlSingleReference(
       JmlSingleNameReference jmlSingleNameReference, InternalScope scope) {
     String variableName = String.valueOf(jmlSingleNameReference.token);
     // get either new value from class variables or expression from scope
@@ -258,7 +267,7 @@ public class FormulaGenerator {
    */
   public Expr visitOldExpression(JmlOldExpression jmlOldExpression, InternalScope scope) {
     // translate the whole expression inside \old(...)
-    Expr subExpr = visitExpression(jmlOldExpression.expression, scope);
+    Expr subExpr = parseExpression(jmlOldExpression.expression, scope);
 
     /*
     Gather both prestate and poststate constants
@@ -283,15 +292,15 @@ public class FormulaGenerator {
     return subExpr.substitute(newVars, oldVars);
   }
 
-  public Expr visitConditionalExpression(ConditionalExpression conditionalExpression, InternalScope scope) {
-    Expr cond = visitExpression(conditionalExpression.condition, scope);
-    Expr thenBranch = visitExpression(conditionalExpression.valueIfTrue, scope);
-    Expr elseBranch = visitExpression(conditionalExpression.valueIfFalse, scope);
+  public Expr parseConditionalExpression(ConditionalExpression conditionalExpression, InternalScope scope) {
+    Expr cond = parseExpression(conditionalExpression.condition, scope);
+    Expr thenBranch = parseExpression(conditionalExpression.valueIfTrue, scope);
+    Expr elseBranch = parseExpression(conditionalExpression.valueIfFalse, scope);
 
     if (cond instanceof BoolExpr) {
       BoolExpr condBool = (BoolExpr) cond;
 
-      return context.mkITE(condBool, thenBranch, elseBranch);
+      return ctx.mkITE(condBool, thenBranch, elseBranch);
     }
 
     throw new WrongJMLArgumentsExpression(conditionalExpression);
@@ -330,7 +339,7 @@ public class FormulaGenerator {
 
       // array.length expected in constructor
       else if (scope.hasClassVariable(className) && varName.equals("length")) {
-        return context.mkString(className);
+        return ctx.mkString(className);
       }
     }
 
@@ -343,12 +352,12 @@ public class FormulaGenerator {
    * @return a Z3 select expressions or {@code null} if the translation did not succeed
    */
   public Expr visitJmlArrayReference(JmlArrayReference jmlArrayReference, InternalScope scope) {
-    Expr array = visitExpression(jmlArrayReference.receiver, scope);
+    Expr array = parseExpression(jmlArrayReference.receiver, scope);
 
     if (array instanceof ArrayExpr) {
       // get index expression
-      Expr index = visitExpression(jmlArrayReference.position, scope);
-      return context.mkSelect((ArrayExpr) array, index);
+      Expr index = parseExpression(jmlArrayReference.position, scope);
+      return ctx.mkSelect((ArrayExpr) array, index);
     }
 
     throw new WrongJMLArgumentsExpression(jmlArrayReference);
@@ -388,8 +397,8 @@ public class FormulaGenerator {
             scope.insideMergeFunction);
 
     // get range and body expression
-    Expr rangeExpr = visitExpression(jmlQuantifiedExpression.range, newLocalScope);
-    Expr bodyExpr = visitExpression(jmlQuantifiedExpression.body, newLocalScope);
+    Expr rangeExpr = parseExpression(jmlQuantifiedExpression.range, newLocalScope);
+    Expr bodyExpr = parseExpression(jmlQuantifiedExpression.body, newLocalScope);
 
     //quantifier operator as string
     String quantifier = jmlQuantifiedExpression.quantifier.lexeme;
@@ -399,21 +408,21 @@ public class FormulaGenerator {
 
       if (rangeExpr instanceof  BoolExpr && bodyExpr instanceof BoolExpr) {
         // range ==> body
-        BoolExpr finalBodyExpr = context.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+        BoolExpr finalBodyExpr = ctx.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
 
         boolean isForall = quantifier.equals(JmlQuantifier.FORALL);
 
         // quantifier: forall or exists
         Expr quantifiedExpr =
-                context.mkQuantifier(
+                ctx.mkQuantifier(
                         isForall, //decide whether to create forall or exists quantifier
                         boundConstants,
                         finalBodyExpr,
                         1,
                         null,
                         null,
-                        context.mkSymbol("Q_" + quantifierCounter),
-                        context.mkSymbol("Sk_" + quantifierCounter));
+                        ctx.mkSymbol("Q_" + quantifierCounter),
+                        ctx.mkSymbol("Sk_" + quantifierCounter));
 
         // increment for future quantifiers
         quantifierCounter++;
@@ -469,18 +478,18 @@ public class FormulaGenerator {
           quantifierCounter++;
 
           if (bodyExpr instanceof IntExpr) {
-            Expr<IntSort> forBodyExpr = context.mkITE(rangeExpr, (IntExpr) bodyExpr, context.mkInt(0));
-            IntExpr ret = context.mkInt(0);
+            Expr<IntSort> forBodyExpr = ctx.mkITE(rangeExpr, (IntExpr) bodyExpr, ctx.mkInt(0));
+            IntExpr ret = ctx.mkInt(0);
             for (int i = 0; i < 20; i++) {
 
-              ret = (IntExpr) context.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], context.mkInt(i)));
+              ret = (IntExpr) ctx.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], ctx.mkInt(i)));
             }
             return ret;
           } else if (bodyExpr instanceof RealExpr) {
-            Expr<RealSort> forBodyExpr = context.mkITE(rangeExpr, (RealExpr) bodyExpr, context.mkReal(0));
-            RealExpr ret = context.mkReal(0);
+            Expr<RealSort> forBodyExpr = ctx.mkITE(rangeExpr, (RealExpr) bodyExpr, ctx.mkReal(0));
+            RealExpr ret = ctx.mkReal(0);
             for (int i = 0; i < 20; i++) {
-              ret = (RealExpr) context.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], context.mkInt(i)));
+              ret = (RealExpr) ctx.mkAdd(ret, forBodyExpr.substitute(boundConstants[0], ctx.mkInt(i)));
             }
             return ret;
           }
@@ -578,11 +587,11 @@ public class FormulaGenerator {
    */
   public Expr visitLocalDeclaration(LocalDeclaration localDeclaration, InternalScope scope) {
     // type
-    Sort type = Z3Utils.typeReferenceToSort(Z3Checker.context, localDeclaration.type);
+    Sort type = Z3Utils.typeReferenceToSort(ctx, localDeclaration.type);
 
     // return new constant
     if (type != null) {
-      return context.mkConst(String.valueOf(localDeclaration.name) + quantifierCounter, type);
+      return ctx.mkConst(String.valueOf(localDeclaration.name) + quantifierCounter, type);
     }
 
     throw new IllegalArgumentException(localDeclaration.toString());
@@ -605,7 +614,7 @@ public class FormulaGenerator {
       if (jmlAssignableClause.expr.equals(JmlKeywordExpression.NOTHING)) {
 
         // get all prestate and poststate variables
-        BoolExpr res = context.mkTrue();
+        BoolExpr res = ctx.mkTrue();
         Expr[] newVars = new Expr[scope.getClassVariables().size()];
         Expr[] oldVars = new Expr[scope.getClassVariables().size()];
 
@@ -622,7 +631,7 @@ public class FormulaGenerator {
 
         // set all prestate vars == poststate vars
         for (int i = 0; i < scope.getClassVariables().size(); i++) {
-          res = context.mkAnd(res, context.mkEq(newVars[i], oldVars[i]));
+          res = ctx.mkAnd(res, ctx.mkEq(newVars[i], oldVars[i]));
         }
         return res;
       }
@@ -634,7 +643,7 @@ public class FormulaGenerator {
     else if (jmlAssignableClause.expr instanceof JmlStoreRefListExpression) {
       // collect all java variable references from the assignable clause
       Expression[] references = ((JmlStoreRefListExpression) jmlAssignableClause.expr).exprList;
-      BoolExpr resultingPostCondition = context.mkTrue();
+      BoolExpr resultingPostCondition = ctx.mkTrue();
 
       // collect all names of the variables that are mentioned
       List<String> mentionedVariables = new ArrayList<>();
@@ -661,7 +670,7 @@ public class FormulaGenerator {
 
           // add resulting postcondition
           resultingPostCondition =
-              context.mkAnd(
+              ctx.mkAnd(
                   resultingPostCondition,
                   InternalArray.oneFieldChanged(
                       array.getOldValue(), array.getNewValue(), changedIndex, array.getSize()));
@@ -681,7 +690,7 @@ public class FormulaGenerator {
       for (InternalVar notChanging : notMentioned) {
         if (notChanging instanceof InternalArray) {
           resultingPostCondition =
-              context.mkAnd(
+              ctx.mkAnd(
                   resultingPostCondition,
                   InternalArray.sameFields(
                       ((InternalArray) notChanging).getOldValue(),
@@ -689,9 +698,9 @@ public class FormulaGenerator {
                       ((InternalArray) notChanging).getSize()));
         } else {
           resultingPostCondition =
-              context.mkAnd(
+              ctx.mkAnd(
                   resultingPostCondition,
-                  context.mkEq(notChanging.getOldValue(), notChanging.getNewValue()));
+                  ctx.mkEq(notChanging.getOldValue(), notChanging.getNewValue()));
         }
       }
 

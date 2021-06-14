@@ -22,8 +22,8 @@ public class InternalMethod {
   private Expr returnVariable;
   private Expr returnExpression;
 
-  private BoolExpr preConditions = context.mkTrue();
-  private BoolExpr postConditions = context.mkTrue();
+  private BoolExpr preCondition = context.mkTrue();
+  private BoolExpr postCondition = context.mkTrue();
 
   public InternalMethod(String name) {
     this.name = name;
@@ -34,23 +34,25 @@ public class InternalMethod {
   }
 
   public void setPreCondition(BoolExpr pre) {
-    preConditions = pre;
+    preCondition = pre;
   }
 
   public void setPostCondition(BoolExpr post) {
-    postConditions = post;
+    postCondition = post;
   }
 
   public void addPostCondition(BoolExpr post) {
-    postConditions = context.mkAnd(postConditions, post);
+    postCondition = context.mkAnd(postCondition, post);
   }
 
-  public BoolExpr getPreConditions() {
-    return preConditions;
+  public BoolExpr getPreCondition() {
+    //TODO: There seems to be a bug with parsing preconditions?
+    return preCondition;
   }
 
-  public BoolExpr getPostConditions() {
-    return postConditions;
+
+  public BoolExpr getPostCondition() {
+    return postCondition;
   }
 
   /**

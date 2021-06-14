@@ -110,8 +110,8 @@ public class Z3Checker {
                               (BoolExpr)
                                       // substitute new to old for the I(old) part
                                       clazz.getInvariant().substitute(clazz.getNewState(), clazz.getOldState()),
-                              m.getPreConditions(),
-                              m.getPostConditions()),
+                              m.getPreCondition(),
+                              m.getPostCondition()),
                       // substitute old to new for the I(new) part
                       (BoolExpr) clazz.getInvariant().substitute(clazz.getOldState(), clazz.getNewState()));
 
@@ -205,8 +205,8 @@ public class Z3Checker {
                   (BoolExpr)
                       // substitute new to old for the I(old) part
                       clazz.getInvariant().substitute(clazz.getNewState(), clazz.getOldState()),
-                  m.getPreConditions(),
-                  m.getPostConditions()),
+                  m.getPreCondition(),
+                  m.getPostCondition()),
               // substitute old to new for the I(new) part
               (BoolExpr) clazz.getInvariant().substitute(clazz.getOldState(), clazz.getNewState()));
 
@@ -272,7 +272,7 @@ public class Z3Checker {
             (BoolExpr)
                 clazz
                     .getMergeFunction()
-                    .getPostConditions()
+                    .getPostCondition()
                     .substitute(clazz.getOtherState(), clazz.getOldState()),
             newEqualsOldState);
 
@@ -341,7 +341,7 @@ public class Z3Checker {
         (BoolExpr)
             clazz
                 .getMergeFunction()
-                .getPostConditions()
+                .getPostCondition()
                 .substitute(clazz.getOtherState(), old2) // other --> old2
                 .substitute(clazz.getNewState(), new2) // new --> new2
                 .substitute(clazz.getOldState(), clazz.getOtherState()); // old --> other
@@ -349,7 +349,7 @@ public class Z3Checker {
     BoolExpr mergeCommutativity =
         context.mkImplies(
             context.mkAnd(
-                clazz.getMergeFunction().getPostConditions(), substitutedPostMerge, oldEqOld2),
+                clazz.getMergeFunction().getPostCondition(), substitutedPostMerge, oldEqOld2),
             newEqNew2);
 
     solver.reset();
@@ -475,7 +475,7 @@ public class Z3Checker {
         (BoolExpr)
             clazz
                 .getMergeFunction()
-                .getPostConditions()
+                .getPostCondition()
                 .substitute(clazz.getOldState(), left1)
                 .substitute(clazz.getOtherState(), left2)
                 .substitute(clazz.getNewState(), leftInner);
@@ -483,7 +483,7 @@ public class Z3Checker {
         (BoolExpr)
             clazz
                 .getMergeFunction()
-                .getPostConditions()
+                .getPostCondition()
                 .substitute(clazz.getOldState(), leftInner)
                 .substitute(clazz.getOtherState(), left3)
                 .substitute(clazz.getNewState(), leftOuter);
@@ -491,7 +491,7 @@ public class Z3Checker {
         (BoolExpr)
             clazz
                 .getMergeFunction()
-                .getPostConditions()
+                .getPostCondition()
                 .substitute(clazz.getOldState(), right1)
                 .substitute(clazz.getOtherState(), rightInner)
                 .substitute(clazz.getNewState(), rightOuter);
@@ -499,7 +499,7 @@ public class Z3Checker {
         (BoolExpr)
             clazz
                 .getMergeFunction()
-                .getPostConditions()
+                .getPostCondition()
                 .substitute(clazz.getOldState(), right2)
                 .substitute(clazz.getOtherState(), right3)
                 .substitute(clazz.getNewState(), rightInner);
@@ -547,7 +547,7 @@ public class Z3Checker {
             (BoolExpr)
                 clazz
                     .getMergeFunction()
-                    .getPreConditions()
+                    .getPreCondition()
                     // pre_merge(old, other) --> pre_merge(old, old)
                     .substitute(clazz.getOtherState(), clazz.getOldState()));
 
@@ -590,8 +590,8 @@ public class Z3Checker {
                         .getInvariant()
                         .substitute(clazz.getOldState(), clazz.getOtherState())
                         .substitute(clazz.getNewState(), clazz.getOtherState()),
-                clazz.getMergeFunction().getPreConditions(),
-                clazz.getMergeFunction().getPostConditions()),
+                clazz.getMergeFunction().getPreCondition(),
+                clazz.getMergeFunction().getPostCondition()),
             // I(new)
             (BoolExpr) clazz.getInvariant().substitute(clazz.getOldState(), clazz.getNewState()));
 
@@ -636,8 +636,8 @@ public class Z3Checker {
                         .getInvariant()
                         .substitute(clazz.getOldState(), clazz.getOtherState())
                         .substitute(clazz.getNewState(), clazz.getOtherState()),
-                clazz.getMergeFunction().getPreConditions(),
-                clazz.getMergeFunction().getPostConditions()),
+                clazz.getMergeFunction().getPreCondition(),
+                clazz.getMergeFunction().getPostCondition()),
             context.mkAnd(
                 (BoolExpr)
                     // I(new)
@@ -652,13 +652,13 @@ public class Z3Checker {
                     // pre_merge(new, other)
                     clazz
                         .getMergeFunction()
-                        .getPreConditions()
+                        .getPreCondition()
                         .substitute(clazz.getOldState(), clazz.getNewState()),
                 (BoolExpr)
                     // pre_merge(new, old)
                     clazz
                         .getMergeFunction()
-                        .getPreConditions()
+                        .getPreCondition()
                         .substitute(clazz.getOldState(), clazz.getNewState())
                         .substitute(clazz.getOtherState(), clazz.getNewState())));
 
@@ -703,17 +703,17 @@ public class Z3Checker {
                         .substitute(clazz.getOldState(), clazz.getOtherState())
                         .substitute(clazz.getNewState(), clazz.getOtherState()),
                 // pre_m(old)
-                method.getPreConditions(),
+                method.getPreCondition(),
                 // pre_merge(old, other)
-                clazz.getMergeFunction().getPreConditions(),
+                clazz.getMergeFunction().getPreCondition(),
                 // post_m(old, new)
-                method.getPostConditions()),
+                method.getPostCondition()),
 
             // pre_merge(new, other)
             (BoolExpr)
                 clazz
                     .getMergeFunction()
-                    .getPreConditions()
+                    .getPreCondition()
                     .substitute(clazz.getOldState(), clazz.getNewState()));
 
     solver.reset();
@@ -739,6 +739,57 @@ public class Z3Checker {
                   + method.getName()
                   + " can be executed under weak consistency: "
                   + solver.getReasonUnknown());
+      default:
+        return false;
+    }
+  }
+
+
+  /**
+   *
+   * forall s0, s1. I(s0) & pre_op(s0) & post_op(s0, s1) => pre_merge(s0, s1)
+   */
+  public static boolean checkConcurrentStateMerge(InternalClass clazz, InternalMethod op) {
+
+    Expr[] s0 = clazz.getFreshState("_s0");
+    Expr[] s1 = clazz.getFreshState("_s1");
+
+    Expr implyExpr = context.mkImplies(
+      context.mkAnd(
+              // I(s0)
+              clazz.getInvariant(s0),
+              // pre_op(s0)
+              op.getPreCondition().substitute(clazz.getOldState(), s0),
+              // post_op(s0, s1)
+              op.getPostCondition().substitute(clazz.getOldState(), s0).substitute(clazz.getNewState(), s1)
+      ),
+      clazz.getMergeFunction().getPreCondition()
+            .substitute(clazz.getOldState(), s0)
+            .substitute(clazz.getOtherState(), s1)
+    );
+
+
+    solver.reset();
+    Status status = solver.check(context.mkNot(null));
+
+    switch (status) {
+      case UNSATISFIABLE:
+        return true;
+      case SATISFIABLE:
+        if (modelPrint)
+          System.out.println(
+                  "Method "
+                          + op.getName()
+                          + " violates the invariant under weak consistency: "
+                          + solver.getModel());
+        return false;
+      case UNKNOWN:
+        if (modelPrint)
+          System.out.println(
+                  "Something went wrong trying to prove that method "
+                          + op.getName()
+                          + " can be executed under weak consistency: "
+                          + solver.getReasonUnknown());
       default:
         return false;
     }
@@ -779,13 +830,13 @@ public class Z3Checker {
                 (BoolExpr)
                     // I(old)
                     clazz.getInvariant().substitute(clazz.getNewState(), clazz.getOldState()),
-                method.getPreConditions(),
-                method.getPostConditions(),
+                method.getPreCondition(),
+                method.getPostCondition(),
                 (BoolExpr)
                     // post_merge(old, other, new) --> post_merge(old, new, postMerge)
                     clazz
                         .getMergeFunction()
-                        .getPostConditions()
+                        .getPostCondition()
                         .substitute(clazz.getNewState(), postMerge)
                         .substitute(clazz.getOtherState(), clazz.getNewState())),
             newEqPostMerge);
@@ -830,25 +881,25 @@ public class Z3Checker {
             context.mkAnd(
                 (BoolExpr)
                     clazz.getInvariant().substitute(clazz.getNewState(), clazz.getOldState()),
-                m1.getPreConditions(),
-                m1.getPostConditions(),
+                m1.getPreCondition(),
+                m1.getPostCondition(),
                 (BoolExpr)
                     clazz
                         .getInvariant()
                         .substitute(clazz.getNewState(), clazz.getOldState())
                         .substitute(clazz.getOldState(), oldM2),
                 (BoolExpr)
-                    m2.getPreConditions()
+                    m2.getPreCondition()
                         .substitute(clazz.getOldState(), oldM2)
                         .substitute(clazz.getNewState(), newM2),
                 (BoolExpr)
-                    m2.getPostConditions()
+                    m2.getPostCondition()
                         .substitute(clazz.getOldState(), oldM2)
                         .substitute(clazz.getNewState(), newM2),
                 (BoolExpr)
                     clazz
                         .getMergeFunction()
-                        .getPostConditions()
+                        .getPostCondition()
                         .substitute(clazz.getNewState(), afterMerge)
                         .substitute(clazz.getOtherState(), newM2)
                         .substitute(clazz.getOldState(), clazz.getNewState())),

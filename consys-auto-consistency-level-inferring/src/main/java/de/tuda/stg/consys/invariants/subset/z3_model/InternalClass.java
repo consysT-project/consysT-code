@@ -71,6 +71,10 @@ public class InternalClass {
     return invariant;
   }
 
+  public BoolExpr getInvariant(Expr[] state) {
+    return (BoolExpr) invariant.substitute(getNewState(), state);
+  }
+
   public List<InternalVar> getVariables() {
     return variables;
   }

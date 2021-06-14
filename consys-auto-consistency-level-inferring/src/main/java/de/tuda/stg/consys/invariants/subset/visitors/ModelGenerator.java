@@ -4,6 +4,8 @@ import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.z3_model.*;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.ast.*;
@@ -20,7 +22,6 @@ public class ModelGenerator extends ASTVisitor {
   private InternalClass result = new InternalClass();
   private InternalScope internalScope = new InternalScope();
   private FormulaGenerator formulaGenerator = new FormulaGenerator();
-  private TypeGenerator typeGenerator = new TypeGenerator();
   private IntegerValueVisitor integerValueVisitor = new IntegerValueVisitor();
 
 
@@ -34,7 +35,7 @@ public class ModelGenerator extends ASTVisitor {
   public boolean visit(FieldDeclaration fieldDeclaration, MethodScope scope) {
     // name and sort are needed for variable object
     String name = String.valueOf(fieldDeclaration.name);
-    Sort sort = typeGenerator.visitTypeReference(fieldDeclaration.type);
+    Sort sort = Z3Utils.typeReferenceToSort(Z3Checker.context, fieldDeclaration.type);
     InternalVar variable;
 
     if (sort instanceof ArraySort) {
@@ -95,7 +96,7 @@ public class ModelGenerator extends ASTVisitor {
     if (jmlConstructorDeclaration.arguments != null) {
       for (Argument arg : jmlConstructorDeclaration.arguments) {
         String name = String.valueOf(arg.name);
-        Sort type = typeGenerator.visitTypeBinding(arg.type.resolveType(scope));
+        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope));
         method.addArgument(name, type);
         // add method argument to local scope
         internalScope.addLocalVariable(name, method.getArgument(name));
@@ -137,7 +138,7 @@ public class ModelGenerator extends ASTVisitor {
     if (methodDeclaration.arguments != null) {
       for (Argument arg : methodDeclaration.arguments) {
         String name = String.valueOf(arg.name);
-        Sort type = typeGenerator.visitTypeBinding(arg.type.resolveType(scope));
+        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope));
         method.addArgument(name, type);
         // add method argument to local scope
         internalScope.addLocalVariable(name, method.getArgument(name));
@@ -146,7 +147,7 @@ public class ModelGenerator extends ASTVisitor {
 
     // return type
     Sort returnType =
-        typeGenerator.visitTypeBinding(methodDeclaration.returnType.resolveType(scope));
+        Z3Utils.typeBindingToSort(Z3Checker.context, methodDeclaration.returnType.resolveType(scope));
     if (returnType != null) {
       method.setReturnType(returnType);
       internalScope.setCurrentReturnVariable(method.getReturnVariable());

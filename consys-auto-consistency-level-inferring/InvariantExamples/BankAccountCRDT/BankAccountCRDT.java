@@ -3,8 +3,8 @@ public class BankAccountCRDT {
 
 
     /* Fields */
-    public final int[] incs = new int[numOfReplicas];
-    public final int[] decs = new int[numOfReplicas];
+    public final int[] incs = new int[10];
+    public final int[] decs = new int[10];
     public int replicaId;
 
 
