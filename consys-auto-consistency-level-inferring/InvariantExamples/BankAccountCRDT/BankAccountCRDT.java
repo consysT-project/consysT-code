@@ -11,11 +11,9 @@ public class BankAccountCRDT {
 
     /* Invariants */
     /*@
-    @ public invariant (\sum int inv0a; inv0a >= 0 && inv0a < numOfReplicas; incs[inv0a]) - (\sum int inv0b; inv0b >= 0 && inv0b < numOfReplicas; decs[inv0b]) >= 0;
-    @ public invariant (\forall int inv1; inv1 >= 0 && inv1 < numOfReplicas; incs[inv1] >=0);
-    @ public invariant (\forall int inv2; inv2 >= 0 && inv2 < numOfReplicas; decs[inv2] >=0);
-    @ public invariant incs.length == numOfReplicas;
-    @ public invariant decs.length == numOfReplicas;
+    @ public invariant (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]) >= 0;
+    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; this.incs[i] >=0);
+    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; this.decs[i] >=0);
     @*/
 
 
@@ -109,9 +107,5 @@ public class BankAccountCRDT {
             incs[i] = incs[i] > other.incs[i] ? incs[i] : other.incs[i];
             decs[i] = decs[i] > other.decs[i] ? decs[i] : other.decs[i];
         }
-
     }
-
-
-
 }

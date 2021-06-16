@@ -14,4 +14,8 @@ public class ConstantModel<S extends Sort> {
 		this.sort = sort;
 		this.value = value;
 	}
+
+	public Expr<S> getValue() {
+		return value;
+	}
 }

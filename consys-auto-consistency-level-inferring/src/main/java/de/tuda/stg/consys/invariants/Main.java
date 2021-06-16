@@ -1,12 +1,12 @@
 package de.tuda.stg.consys.invariants;
 
+import com.microsoft.z3.Context;
+import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.ClassScope;
+import de.tuda.stg.consys.invariants.subset.model.ClassExpressionParser;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
-import org.eclipse.jdt.core.compiler.batch.BatchCompiler;
-import org.eclipse.jdt.internal.compiler.Compiler;
-import org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
-import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
-import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
 import de.tuda.stg.consys.invariants.subset.visitors.ModelGenerator;
@@ -102,24 +102,36 @@ public class Main {
       /* Visit compiled class definition and build internal data structure with translation of JML
       formulas to SMT formulas */
       ModelGenerator generator = new ModelGenerator();
+      Context ctx = Z3Checker.context;
+
       for (TypeDeclaration clazz : classDeclarations) {
         if (clazz instanceof JmlTypeDeclaration) {
-          clazz.traverse(generator, clazz.scope);
-          // visit class as JmlTypeDeclaration explicitly to get the invariant
-          // otherwise, only fields and methods would be added without getting the invariant
-          generator.visit((JmlTypeDeclaration) clazz, clazz.scope);
-          InternalClass result = generator.getResult();
+          JmlTypeDeclaration jmlClass = (JmlTypeDeclaration) clazz;
 
-          // check if sequential execution and the must have properties of the merge function hold
-          System.out.println("Prerequisities okay?: " + Z3Checker.checkPreRequisities(result));
+          ClassScope scope = ClassScope.parseJMLDeclaration(ctx, jmlClass);
+          ClassModel model = new ClassModel(ctx, scope);
 
-          // check if weak consistency is applicable to all methods
-          System.out.println(
-              "Weak consistency possible for all methods?: "
-                  + Z3Checker.checkWeakConsistencyForMethods(result));
+          System.out.println("invariant: " + model.getInvariant());
 
-          // reset visitor to prepare for the next class
-          generator.reset();
+          //TODO: Reset context
+
+
+//          clazz.traverse(generator, clazz.scope);
+//          // visit class as JmlTypeDeclaration explicitly to get the invariant
+//          // otherwise, only fields and methods would be added without getting the invariant
+//          generator.visit((JmlTypeDeclaration) clazz, clazz.scope);
+//          InternalClass result = generator.getResult();
+//
+//          // check if sequential execution and the must have properties of the merge function hold
+//          System.out.println("Prerequisities okay?: " + Z3Checker.checkPreRequisities(result));
+//
+//          // check if weak consistency is applicable to all methods
+//          System.out.println(
+//              "Weak consistency possible for all methods?: "
+//                  + Z3Checker.checkWeakConsistencyForMethods(result));
+//
+//          // reset visitor to prepare for the next class
+//          generator.reset();
         } else {
           System.out.println(
               "Type " + Arrays.toString(clazz.name) + " does not contain JML annotations");
