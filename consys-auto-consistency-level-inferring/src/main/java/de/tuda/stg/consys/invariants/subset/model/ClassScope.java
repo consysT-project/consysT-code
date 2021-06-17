@@ -2,10 +2,13 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
+import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
+import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -20,17 +23,20 @@ public class ClassScope {
 	// Stores all static final fields as constants for usage in formulas
 	private final Map<String, ConstantModel> classConstants;
 
+	// Methods
+	private final MethodModel[] classMethods;
 
 	// Z3 Sort to represent states of this class.
 	private final TupleSort classSort;
 	// Z3 functions to access the fields of the tuple
 	private final Map<String, FuncDecl> fieldAccessors = Maps.newHashMap();
 
-	private ClassScope(Context ctx, JmlTypeDeclaration jmlType, FieldModel[] classFields, Map<String, ConstantModel> classConstants) {
+	private ClassScope(Context ctx, JmlTypeDeclaration jmlType, FieldModel[] classFields, Map<String, ConstantModel> classConstants, MethodModel[] classMethods) {
 		this.ctx = ctx;
 		this.jmlType = jmlType;
 		this.classFields = classFields;
 		this.classConstants = classConstants;
+		this.classMethods = classMethods;
 
 		// Create a new type for states of this class.
 		String[] fieldNames = new String[classFields.length];
@@ -71,11 +77,11 @@ public class ClassScope {
 				String fieldName = String.valueOf(field.name);
 				Sort sort = Z3Utils.typeReferenceToSort(ctx, field.type);
 
-				//TODO: Handle constants
-				Expr initialValue = ctx.mkInt(10);
-
-				if (initialValue == null)
+				if (field.initialization == null)
 					throw new IllegalStateException("Constant value must be initialized directly for field " + field);
+
+				ExpressionParser parser = new BaseExpressionParser(ctx);
+				Expr initialValue = parser.parseExpression(field.initialization);
 
 				ConstantModel<Sort> constant = new ConstantModel<>(fieldName, sort, initialValue);
 				classConstants.put(fieldName, constant);
@@ -84,18 +90,33 @@ public class ClassScope {
 				// Static fields are not supported
 				throw new IllegalStateException("Non-final static fields are unsupported.");
 			} else {
-				// virtual fields
-				// name of the field
-				String fieldName = String.valueOf(field.name);
-				// sort of the field
-				Sort sort = Z3Utils.typeReferenceToSort(ctx, field.type);
-
-				classFields.add(new FieldModel<>(fieldName, sort));
+				classFields.add(new FieldModel(ctx, field));
 			}
 		}
 
+		/* Parse methods */
+		List<MethodModel> classMethods = new ArrayList(jmlType.methods.length);
+
+		for (int i = 0; i < jmlType.methods.length; i++) {
+			AbstractMethodDeclaration method = jmlType.methods[i];
+
+			if (method.isStatic() || method.isAbstract()) {
+				throw new IllegalStateException("Static and abstract methods are unsupported.");
+			} else if (method instanceof JmlMethodDeclaration) {
+				classMethods.add(new MethodModel(ctx, (JmlMethodDeclaration) method));
+			} else {
+				//TODO: change to sensible defaults.
+				throw new IllegalStateException("Only jml method declarations are supported.");
+			}
+		}
+
+		/* Create the class scope */
 		FieldModel[] classFieldsArr = new FieldModel[classFields.size()];
-		return new ClassScope(ctx, jmlType, classFields.toArray(classFieldsArr), classConstants);
+		MethodModel[] classMethodsArr = new MethodModel[classMethods.size()];
+		return new ClassScope(ctx, jmlType,
+				classFields.toArray(classFieldsArr),
+				classConstants,
+				classMethods.toArray(classMethodsArr));
 	}
 
 	public String getClassName() {
@@ -124,6 +145,10 @@ public class ClassScope {
 		}
 
 		return result.getValue();
+	}
+
+	public Iterable<MethodModel> getMethods() {
+		return Arrays.asList(classMethods);
 	}
 
 	public JmlTypeDeclaration getJmlType() {

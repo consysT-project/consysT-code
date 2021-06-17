@@ -7,8 +7,12 @@ import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
 import org.jmlspecs.jml4.ast.JmlMessageSend;
+
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
+/**
+ * Parser for parsing expression inside of classes.
+ */
 public class ClassExpressionParser extends BaseExpressionParser {
 
 	// The scope of the class in which this expression is parsed. Used to resolve field names.

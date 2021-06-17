@@ -1,22 +1,32 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
+import com.microsoft.z3.Context;
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.Lazy;
+import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
+import scala.runtime.LazyRef;
 
-public class FieldModel<S extends Sort> {
+public class FieldModel {
 
-	private final String name;
-	private final S sort;
+	private final Context ctx;
+	private final FieldDeclaration field;
 
-	public FieldModel(String name, S sort) {
-		this.name = name;
-		this.sort = sort;
+	private final Lazy<String> name;
+	private final Lazy<Sort> sort;
+
+
+	public FieldModel(Context ctx, FieldDeclaration field) {
+		this.ctx = ctx;
+		this.field = field;
+		this.name = Lazy.make(() -> String.valueOf(field.name));
+		this.sort = Lazy.make(() -> Z3Utils.typeReferenceToSort(ctx, field.type));
 	}
 
 	public String getName() {
-		return name;
+		return name.get();
 	}
 
-	public S getSort() {
-		return sort;
+	public Sort getSort() {
+		return sort.get();
 	}
 }
