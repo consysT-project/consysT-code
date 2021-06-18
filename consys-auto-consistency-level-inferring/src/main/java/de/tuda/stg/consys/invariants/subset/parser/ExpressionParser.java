@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.subset.model;
+package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;

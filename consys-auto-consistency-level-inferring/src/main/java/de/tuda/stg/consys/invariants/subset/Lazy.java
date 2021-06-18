@@ -26,4 +26,12 @@ public class Lazy<T> {
 	public static <T> Lazy<T> make(Supplier<T> supplier) {
 		return new Lazy<T>(supplier);
 	}
+
+	@Override
+	public String toString() {
+		if (cached == null)
+			return "lazy val";
+		else
+			return cached.toString();
+	}
 }

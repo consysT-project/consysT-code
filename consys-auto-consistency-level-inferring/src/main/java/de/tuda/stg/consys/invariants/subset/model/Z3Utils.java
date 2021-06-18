@@ -4,13 +4,16 @@ import com.microsoft.z3.Context;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.Symbol;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import org.eclipse.jdt.internal.compiler.ast.FieldReference;
+import org.eclipse.jdt.internal.compiler.ast.NameReference;
+import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
-import org.eclipse.jdt.internal.compiler.lookup.ArrayBinding;
-import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
-import org.eclipse.jdt.internal.compiler.lookup.ClassScope;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.eclipse.jdt.internal.compiler.lookup.*;
 import org.jmlspecs.jml4.ast.JmlArrayTypeReference;
 import org.jmlspecs.jml4.ast.JmlSingleTypeReference;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 public class Z3Utils {
 
@@ -72,5 +75,32 @@ public class Z3Utils {
 			return symbols;
 		}
 	}
+
+	public static <T> Optional<T> findReferenceInArray(T[] arr, Reference ref, Function<T, Binding> getBinding) {
+		Binding binding = null;
+		if (ref instanceof NameReference) {
+			NameReference nameReference = (NameReference) ref;
+			if (nameReference.binding instanceof FieldBinding) {
+				binding = nameReference.fieldBinding();
+			} else if (nameReference.binding instanceof LocalVariableBinding) {
+				binding =nameReference.localVariableBinding();
+			}
+		} else if (ref instanceof FieldReference) {
+			binding = ref.fieldBinding();
+		}
+
+		if (binding == null) {
+			throw new IllegalArgumentException("unsupported reference: "+ ref);
+		}
+
+		for (T elem : arr) {
+			if (binding.equals(getBinding.apply(elem)))	return Optional.of(elem);
+		}
+		return Optional.empty();
+
+
+	}
+
+
 
 }

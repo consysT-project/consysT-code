@@ -1,49 +1,158 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Maps;
-import com.microsoft.z3.Context;
-import com.microsoft.z3.Expr;
-import org.eclipse.jdt.internal.compiler.ast.MethodDeclaration;
+import com.microsoft.z3.*;
+import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
+import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
+import org.eclipse.jdt.internal.compiler.ast.*;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
+import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
-import java.util.Map;
+import java.util.*;
 
 public class ClassModel {
 
 	private final Context ctx;
-	private final ClassScope scope;
+	// The underlying jml type for this declaration
+	private final JmlTypeDeclaration jmlType;
 
-	private final InvariantModel invariant;
+	// Stores all virtual fields of the class
+	private final FieldModel[] classFields;
+	// Stores all static final fields as constants for usage in formulas
+	private final ConstantModel[] classConstants;
 
-	private final Map<MethodDeclaration, PreconditionModel> preconditions;
-	private final Map<MethodDeclaration, PostconditionModel> postconditions;
+	// Methods
+	private final MethodModel[] classMethods;
+	//
+	private final MergeMethodModel mergeMethod;
 
-	public ClassModel(Context ctx, ClassScope scope) {
+	// Z3 Sort to represent states of this class.
+	private final TupleSort classSort;
+
+
+	public ClassModel(Context ctx, JmlTypeDeclaration jmlType) {
 		this.ctx = ctx;
-		this.scope = scope;
+		this.jmlType = jmlType;
 
-		JmlTypeDeclaration typ = scope.getJmlType();
+		/* Parse fields and constants */
+		List<FieldModel> classFieldsTemp = new ArrayList(jmlType.fields.length);
+		List<ConstantModel> classConstantsTemp = new ArrayList(jmlType.fields.length);
 
-		// Setup the invariant
-		Expr invariantVar = ctx.mkFreshConst("s0", scope.getClassSort());
-		ClassExpressionParser parser = new ClassExpressionParser(ctx, scope, invariantVar);
-		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
-		invariant = new InvariantModel(invariantVar, invariantExpr);
+		for (int i = 0; i < jmlType.fields.length; i++) {
+			FieldDeclaration field = jmlType.fields[i];
 
-		// Setup the pre/postconditions
-		preconditions = Maps.newHashMap();
-		postconditions = Maps.newHashMap();
+			//Decide whether field is constant or class field
+			if (field.isStatic() && field.binding.isFinal()) {
+				// Handle constants
+				if (field.initialization == null)
+					throw new IllegalStateException("Constant value must be initialized directly for field " + field);
 
-		Expr preconditionVar = ctx.mkFreshConst("s0", scope.getClassSort());
-		for(MethodModel method : scope.getMethods()) {
-			MethodExpressionParser methodPreParser = new MethodExpressionParser(ctx, scope, method, preconditionVar);
-//			method.getMethod().getSpecification().getPrecondition()
+				ExpressionParser parser = new BaseExpressionParser(ctx);
+				Expr initialValue = parser.parseExpression(field.initialization);
+
+				classConstantsTemp.add(new ConstantModel(ctx, field, initialValue));
+
+			} else if (field.isStatic()) {
+				// Static fields are not supported
+				throw new IllegalStateException("Non-final static fields are unsupported.");
+			} else {
+				classFieldsTemp.add(new FieldModel(ctx, field, null /* accessor is initialized later. */));
+			}
 		}
+		FieldModel[] classFieldsArr = new FieldModel[classFieldsTemp.size()];
+		ConstantModel[] classConstantsArr = new ConstantModel[classConstantsTemp.size()];
+		this.classFields = classFieldsTemp.toArray(classFieldsArr);
+		this.classConstants = classConstantsTemp.toArray(classConstantsArr);
+
+		/* Create the z3 sort for states of this class. */
+		String[] fieldNames = new String[this.classFields.length];
+		Sort[] fieldSorts =  new Sort[this.classFields.length];
+
+		for (int i = 0; i < this.classFields.length; i++) {
+			FieldModel field = this.classFields[i];
+			fieldNames[i] = field.getName();
+			fieldSorts[i] = field.getSort();
+		}
+
+		this.classSort = ctx.mkTupleSort(
+				ctx.mkSymbol("state_" + getClassName()),
+				Z3Utils.mkSymbols(ctx, fieldNames), fieldSorts);
+
+		FuncDecl<?>[] accessors = classSort.getFieldDecls();
+		for (int i = 0; i < this.classFields.length; i++) {
+			this.classFields[i].initAccessor(accessors[i]);
+		}
+
+
+		/* Parse methods */
+		List<MethodModel> classMethods = new ArrayList(jmlType.methods.length);
+		MergeMethodModel mergeMethodTemp = null;
+
+		for (int i = 0; i < jmlType.methods.length; i++) {
+			AbstractMethodDeclaration method = jmlType.methods[i];
+
+			if (method.isClinit()) {
+				// TODO: Handle clinit
+			} else if (method.isConstructor()) {
+				// TODO: handle constructor
+			} else if (method.isStatic() || method.isAbstract()) {
+				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
+			} else if (method instanceof JmlMethodDeclaration) {
+				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
+				if ("merge".equals(String.valueOf(jmlMethod.selector))) {
+					if (jmlMethod.arguments.length == 1 && jmlMethod.arguments[0].binding.type.equals(jmlType.binding)
+							&& jmlMethod.binding.returnType.equals(TypeBinding.VOID)) {
+						if (mergeMethodTemp != null)
+							throw new IllegalArgumentException("double merge method: " + jmlMethod);
+
+						mergeMethodTemp = new MergeMethodModel(ctx, jmlMethod);
+					} else {
+						System.err.println("WARNING! Method with name `merge` is not a valid merge method.");
+						classMethods.add(new MethodModel(ctx, jmlMethod));
+					}
+				} else {
+					classMethods.add(new MethodModel(ctx, jmlMethod));
+				}
+			} else {
+				//TODO: change to sensible defaults.
+				throw new IllegalStateException("Only jml method declarations are supported.");
+			}
+		}
+
+		if (mergeMethodTemp == null) {
+			throw new IllegalArgumentException("no merge method found.");
+		}
+
+		MethodModel[] classMethodsArr = new MethodModel[classMethods.size()];
+		this.mergeMethod = mergeMethodTemp;
+		this.classMethods = classMethods.toArray(classMethodsArr);
 
 	}
 
 
-	public InvariantModel getInvariant() {
-		return invariant;
+	public String getClassName() {
+		return String.valueOf(jmlType.name);
+	}
+
+	public TupleSort getClassSort() {
+		return classSort;
+	}
+
+	public Optional<FieldModel> getField(Reference fieldRef) {
+		return Z3Utils.findReferenceInArray(classFields, fieldRef, (field) -> field.getDecl().binding);
+	}
+
+	public Optional<ConstantModel> getConstant(Reference constantRef) {
+		return Z3Utils.findReferenceInArray(classConstants, constantRef, (constant) -> constant.getDecl().binding);
+	}
+
+	public Iterable<MethodModel> getMethods() {
+		return Arrays.asList(classMethods);
+	}
+
+	public JmlTypeDeclaration getJmlType() {
+		return jmlType;
 	}
 }

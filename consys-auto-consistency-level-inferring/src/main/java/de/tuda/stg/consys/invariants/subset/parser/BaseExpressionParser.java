@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.invariants.subset.model;
+package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
-import de.tuda.stg.consys.invariants.subset.Z3Checker;
+import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.visitors.IntegerValueVisitor;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalArray;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
@@ -252,13 +252,6 @@ public class BaseExpressionParser extends ExpressionParser {
    *     referenced name could be found
    */
   public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
-//
-//    // get either new value from class variables or expression from scope
-//    if (scope.getClassVariables().containsKey(variableName))
-//      return scope.getClassVariable(variableName).getNewValue();
-//    else if (scope.getLocalVariables().containsKey(variableName))
-//      return scope.getLocalVariable(variableName);
-
     String variableName = String.valueOf(jmlSingleNameReference.token);
     Expr cons = localVariables.get(variableName);
 
@@ -397,7 +390,7 @@ public class BaseExpressionParser extends ExpressionParser {
     Expr[] consts = new Expr[jmlQuantifiedExpression.boundVariables.length];
     for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
       names[index] = String.valueOf(localDeclaration.name);
-      consts[index] = ctx.mkConst(names[index] + getFreshId(), Z3Utils.typeReferenceToSort(ctx, localDeclaration.type));
+      consts[index] = ctx.mkFreshConst(names[index], Z3Utils.typeReferenceToSort(ctx, localDeclaration.type));
       index++;
     }
 
@@ -517,22 +510,6 @@ public class BaseExpressionParser extends ExpressionParser {
    ***************************************************************************************************************
    */
 
-  /**
-   * This visit method is called inside quantifier expressions in order to handle bound variables
-   *
-   * @return Z3 variable representing the bound variable
-   */
-  public Expr visitLocalDeclaration(LocalDeclaration localDeclaration) {
-    // type
-    Sort type = Z3Utils.typeReferenceToSort(ctx, localDeclaration.type);
-
-    // return new constant
-    if (type != null) {
-      return ctx.mkConst(String.valueOf(localDeclaration.name) + getFreshId(), type);
-    }
-
-    throw new IllegalArgumentException(localDeclaration.toString());
-  }
 
   /**
    * This visit method translates an assignable clause into a postcondition. {@code assignable

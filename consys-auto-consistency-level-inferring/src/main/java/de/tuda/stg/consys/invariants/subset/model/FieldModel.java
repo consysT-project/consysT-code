@@ -1,32 +1,26 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Context;
-import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.Lazy;
+import com.microsoft.z3.FuncDecl;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
-import scala.runtime.LazyRef;
 
-public class FieldModel {
+public class FieldModel extends VariableModel<FieldDeclaration>{
 
-	private final Context ctx;
-	private final FieldDeclaration field;
+	private FuncDecl<?> accessor;
 
-	private final Lazy<String> name;
-	private final Lazy<Sort> sort;
-
-
-	public FieldModel(Context ctx, FieldDeclaration field) {
-		this.ctx = ctx;
-		this.field = field;
-		this.name = Lazy.make(() -> String.valueOf(field.name));
-		this.sort = Lazy.make(() -> Z3Utils.typeReferenceToSort(ctx, field.type));
+	public FieldModel(Context ctx, FieldDeclaration fieldDeclaration, FuncDecl<?> accessor) {
+		super(ctx, fieldDeclaration);
+		this.accessor = accessor;
 	}
 
-	public String getName() {
-		return name.get();
+	void initAccessor(FuncDecl<?> accessor) {
+		if (this.accessor != null)
+			throw new IllegalStateException("accessor was already initialized.");
+
+		this.accessor = accessor;
 	}
 
-	public Sort getSort() {
-		return sort.get();
+	public FuncDecl<?> getAccessor() {
+		return accessor;
 	}
 }

@@ -1,8 +1,11 @@
 public class BankAccountCRDT {
+    /* Constants */
+    // Constants have to be declared with static final.
     public static final int numOfReplicas = 10;
 
 
     /* Fields */
+    // Virtual fields that can be accessed in constraints with `this`.
     public final int[] incs = new int[10];
     public final int[] decs = new int[10];
     public int replicaId;
@@ -19,7 +22,7 @@ public class BankAccountCRDT {
 
     /*@
     @ requires id >= 0 && id < numOfReplicas;
-    @ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0 && decs[init] == 0);
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas; this.incs[i] == 0 && this.decs[i] == 0);
     @ ensures replicaId == id;
     @*/
     public BankAccountCRDT(int id) {
@@ -30,7 +33,7 @@ public class BankAccountCRDT {
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]);
     @*/
     public int sumIncs() {
         int res = 0;
@@ -42,7 +45,7 @@ public class BankAccountCRDT {
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int decInd; decInd>=0 && decInd<numOfReplicas; decs[decInd]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]);
     @*/
     public int sumDecs() {
         int result = 0;
@@ -52,7 +55,7 @@ public class BankAccountCRDT {
         return result;
     }
 
-    /*@ ensures \result == (\sum int valueIncInd; valueIncInd>=0 && valueIncInd < numOfReplicas; incs[valueIncInd]) - (\sum int valueDecInd; valueDecInd >= 0 && valueDecInd < numOfReplicas; decs[valueDecInd]);
+    /*@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]);
     @ assignable \nothing;
     @*/
     public int getValue() {

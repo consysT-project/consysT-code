@@ -1,21 +1,19 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
+import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
-import com.microsoft.z3.Sort;
+import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
 
-public class ConstantModel<S extends Sort> {
+public class ConstantModel extends VariableModel<FieldDeclaration> {
 
-	private final String name;
-	private final S sort;
-	private final Expr<S> value;
+	private final Expr value;
 
-	public ConstantModel(String name, S sort, Expr<S> value) {
-		this.name = name;
-		this.sort = sort;
+	public ConstantModel(Context ctx, FieldDeclaration fieldDeclaration, Expr value) {
+		super(ctx, fieldDeclaration);
 		this.value = value;
 	}
 
-	public Expr<S> getValue() {
+	public Expr getValue() {
 		return value;
 	}
 }

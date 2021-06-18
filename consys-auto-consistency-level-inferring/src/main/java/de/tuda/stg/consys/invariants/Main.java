@@ -1,16 +1,13 @@
 package de.tuda.stg.consys.invariants;
 
 import com.microsoft.z3.Context;
-import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.model.ParsedClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ClassScope;
-import de.tuda.stg.consys.invariants.subset.model.ClassExpressionParser;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
 import de.tuda.stg.consys.invariants.subset.visitors.ModelGenerator;
-import de.tuda.stg.consys.invariants.subset.z3_model.InternalClass;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -108,10 +105,10 @@ public class Main {
         if (clazz instanceof JmlTypeDeclaration) {
           JmlTypeDeclaration jmlClass = (JmlTypeDeclaration) clazz;
 
-          ClassScope scope = ClassScope.parseJMLDeclaration(ctx, jmlClass);
-          ClassModel model = new ClassModel(ctx, scope);
+          ClassModel scope = new ClassModel(ctx, jmlClass);
+          ParsedClassModel model = new ParsedClassModel(ctx, scope);
 
-          System.out.println("invariant: " + model.getInvariant());
+          System.out.println(model);
 
           //TODO: Reset context
 

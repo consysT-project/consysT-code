@@ -12,4 +12,9 @@ public class PreconditionModel {
 		this.arg = arg;
 		this.expr = expr;
 	}
+
+	@Override
+	public String toString() {
+		return "pre(" + arg + ") = " + expr;
+	}
 }
