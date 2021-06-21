@@ -61,16 +61,6 @@ public class BaseExpressionParser extends ExpressionParser {
       return parseJmlSingleReference((JmlSingleNameReference) expression);
     }
 
-
-
-    // \result is the result reference
-//    if (expression instanceof JmlResultReference) return scope.getCurrentReturnVariable();
-
-    // "\old(...)"
-    if (expression instanceof JmlOldExpression) {
-      return visitOldExpression((JmlOldExpression) expression);
-    }
-
     // "some.other"
     if (expression instanceof JmlQualifiedNameReference) {
       return visitJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
@@ -390,7 +380,7 @@ public class BaseExpressionParser extends ExpressionParser {
     Expr[] consts = new Expr[jmlQuantifiedExpression.boundVariables.length];
     for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
       names[index] = String.valueOf(localDeclaration.name);
-      consts[index] = ctx.mkFreshConst(names[index], Z3Utils.typeReferenceToSort(ctx, localDeclaration.type));
+      consts[index] = ctx.mkFreshConst(names[index], Z3Utils.typeReferenceToSort(ctx, localDeclaration.type).orElseThrow());
       index++;
     }
 

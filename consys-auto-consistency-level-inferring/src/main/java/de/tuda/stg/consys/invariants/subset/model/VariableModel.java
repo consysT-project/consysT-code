@@ -18,7 +18,7 @@ public class VariableModel<VarDecl extends AbstractVariableDeclaration> {
 		this.ctx = ctx;
 		this.varDecl = varDecl;
 		this.name = Lazy.make(() -> String.valueOf(varDecl.name));
-		this.sort = Lazy.make(() -> Z3Utils.typeReferenceToSort(ctx, varDecl.type));
+		this.sort = Lazy.make(() -> Z3Utils.typeReferenceToSort(ctx, varDecl.type).orElseThrow());
 	}
 
 

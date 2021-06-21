@@ -578,7 +578,7 @@ public class FormulaGenerator {
    */
   public Expr visitLocalDeclaration(LocalDeclaration localDeclaration, InternalScope scope) {
     // type
-    Sort type = Z3Utils.typeReferenceToSort(Z3Checker.context, localDeclaration.type);
+    Sort type = Z3Utils.typeReferenceToSort(Z3Checker.context, localDeclaration.type).orElseThrow();
 
     // return new constant
     if (type != null) {

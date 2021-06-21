@@ -1,9 +1,12 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Context;
+import com.microsoft.z3.Expr;
+import com.microsoft.z3.Sort;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
+import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
 import java.util.Arrays;
@@ -36,5 +39,14 @@ public class MethodModel {
 
 	public Optional<ArgumentModel> getArgument(Reference arg) {
 		return Z3Utils.findReferenceInArray(args, arg, model -> model.getDecl().binding);
+	}
+
+	/**
+	 * Returns a fresh const with sort as the return type of this method, or
+	 * None if the return type is void.
+	 */
+	public Optional<Expr> getFreshResultConst() {
+		return Z3Utils.typeBindingToSort(ctx, method.binding.returnType)
+				.map(sort -> ctx.mkFreshConst("res", sort));
 	}
 }

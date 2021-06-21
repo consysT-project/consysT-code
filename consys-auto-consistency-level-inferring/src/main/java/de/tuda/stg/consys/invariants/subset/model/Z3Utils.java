@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 public class Z3Utils {
 
-	public static Sort typeReferenceToSort(Context ctx, TypeReference typeReference) {
+	public static Optional<Sort> typeReferenceToSort(Context ctx, TypeReference typeReference) {
 		return typeBindingToSort(ctx, typeReference.resolvedType);
 	}
 
@@ -27,7 +27,7 @@ public class Z3Utils {
 	 * @param typeBinding the type binding to translate
 	 * @return the translated Z3 Sort, or null if the typeBinding is void.
 	 */
-	public static Sort typeBindingToSort(Context ctx, TypeBinding typeBinding) {
+	public static Optional<Sort> typeBindingToSort(Context ctx, TypeBinding typeBinding) {
 		if (typeBinding instanceof BaseTypeBinding) {
 			BaseTypeBinding binding = (BaseTypeBinding) typeBinding;
 
@@ -37,27 +37,28 @@ public class Z3Utils {
 				case 4: // short
 				case 7: // long
 				case 10: // int
-					return ctx.getIntSort();
+					return Optional.of(ctx.getIntSort());
 				case 8: // double
 				case 9: // float
-					return ctx.getRealSort();
+					return Optional.of(ctx.getRealSort());
 				case 5: // boolean
-					return ctx.getBoolSort();
+					return Optional.of(ctx.getBoolSort());
 				case 6: // void
-					return null;
+					return Optional.empty();
 				default:
 					throw new IllegalArgumentException("incompatible base type " + typeBinding);
 			}
 		} else if (typeBinding instanceof ArrayBinding) {
 			ArrayBinding arrayBinding = (ArrayBinding) typeBinding;
 			// translate element type
-			Sort elementType = typeBindingToSort(ctx, arrayBinding.leafComponentType);
+			Sort elementType = typeBindingToSort(ctx, arrayBinding.leafComponentType)
+					.orElseThrow(() -> new IllegalArgumentException("incompatible array element type in " + typeBinding));
 
 			// index type assumed to be integer
 			Sort indexType = Z3Checker.context.getIntSort();
 
 			// build array sort from index and element type
-			return Z3Checker.context.mkArraySort(indexType, elementType);
+			return Optional.of(Z3Checker.context.mkArraySort(indexType, elementType));
 		} else {
 			throw new IllegalArgumentException("incompatible type " + typeBinding);
 		}

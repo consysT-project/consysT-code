@@ -35,7 +35,7 @@ public class ModelGenerator extends ASTVisitor {
   public boolean visit(FieldDeclaration fieldDeclaration, MethodScope scope) {
     // name and sort are needed for variable object
     String name = String.valueOf(fieldDeclaration.name);
-    Sort sort = Z3Utils.typeReferenceToSort(Z3Checker.context, fieldDeclaration.type);
+    Sort sort = Z3Utils.typeReferenceToSort(Z3Checker.context, fieldDeclaration.type).orElseThrow();
     InternalVar variable;
 
     if (sort instanceof ArraySort) {
@@ -96,7 +96,7 @@ public class ModelGenerator extends ASTVisitor {
     if (jmlConstructorDeclaration.arguments != null) {
       for (Argument arg : jmlConstructorDeclaration.arguments) {
         String name = String.valueOf(arg.name);
-        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope));
+        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope)).get();
         method.addArgument(name, type);
         // add method argument to local scope
         internalScope.addLocalVariable(name, method.getArgument(name));
@@ -138,7 +138,7 @@ public class ModelGenerator extends ASTVisitor {
     if (methodDeclaration.arguments != null) {
       for (Argument arg : methodDeclaration.arguments) {
         String name = String.valueOf(arg.name);
-        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope));
+        Sort type = Z3Utils.typeBindingToSort(Z3Checker.context, arg.type.resolveType(scope)).get();
         method.addArgument(name, type);
         // add method argument to local scope
         internalScope.addLocalVariable(name, method.getArgument(name));
@@ -147,7 +147,7 @@ public class ModelGenerator extends ASTVisitor {
 
     // return type
     Sort returnType =
-        Z3Utils.typeBindingToSort(Z3Checker.context, methodDeclaration.returnType.resolveType(scope));
+        Z3Utils.typeBindingToSort(Z3Checker.context, methodDeclaration.returnType.resolveType(scope)).get();
     if (returnType != null) {
       method.setReturnType(returnType);
       internalScope.setCurrentReturnVariable(method.getReturnVariable());

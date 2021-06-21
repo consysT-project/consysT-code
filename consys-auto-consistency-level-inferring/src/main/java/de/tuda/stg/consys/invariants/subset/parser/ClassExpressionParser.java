@@ -22,7 +22,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	// The scope of the class in which this expression is parsed. Used to resolve field names.
 	private final ClassModel classModel;
 	// A const definition for substituting this references. The sort has to be the sort of the class.
-	private final Expr thisConst;
+	protected Expr thisConst;
 
 	/**
 	 *
