@@ -6,20 +6,37 @@ import java.util.Optional;
 
 public class PostconditionModel {
 
-	private final Expr oldArg;
-	private final Expr newArg;
-	private final Expr expr;
-	private final Expr result;
+	protected final Expr oldConst;
+	protected final Expr thisConst;
+	protected final Expr resultConst;
+
+	protected final Expr bodyExpr;
 
 
-	public PostconditionModel(Expr oldArg, Expr newArg, Expr expr, Optional<Expr> result) {
-		this.oldArg = oldArg;
-		this.newArg = newArg;
-		this.expr = expr;
-		this.result = result.orElse(null);
+	public PostconditionModel(Expr oldConst, Expr thisConst, Optional<Expr> resultConst, Expr bodyExpr) {
+		this.oldConst = oldConst;
+		this.thisConst = thisConst;
+		this.bodyExpr = bodyExpr.simplify();
+		this.resultConst = resultConst.orElse(null);
+	}
+
+	public Expr apply(Expr oldArg, Expr thisArg, Expr resultArg) {
+		if (resultArg == null) {
+			return bodyExpr.substitute(
+					new Expr[] {oldConst, thisConst},
+					new Expr[] {oldArg, thisArg});
+		} else {
+			return bodyExpr.substitute(
+					new Expr[] {oldConst, thisConst, resultConst},
+					new Expr[] {oldArg, thisArg, resultArg});
+		}
+	}
+
+	public Expr apply(Expr oldArg, Expr thisArg) {
+		return apply(oldArg, thisArg, null);
 	}
 
 	public String toString() {
-		return "post(" + oldArg + ", " + newArg + ", " + result + ") = " + expr;
+		return "post(" + oldConst + ", " + thisConst + ", " + resultConst + ") = " + bodyExpr;
 	}
 }

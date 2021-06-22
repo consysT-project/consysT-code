@@ -33,4 +33,6 @@ public class VariableModel<VarDecl extends AbstractVariableDeclaration> {
 	public VarDecl getDecl() {
 		return varDecl;
 	}
+
+
 }

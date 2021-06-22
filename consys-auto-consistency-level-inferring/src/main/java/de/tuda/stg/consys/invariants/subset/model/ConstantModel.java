@@ -10,7 +10,7 @@ public class ConstantModel extends VariableModel<FieldDeclaration> {
 
 	public ConstantModel(Context ctx, FieldDeclaration fieldDeclaration, Expr value) {
 		super(ctx, fieldDeclaration);
-		this.value = value;
+		this.value = value.simplify();
 	}
 
 	public Expr getValue() {

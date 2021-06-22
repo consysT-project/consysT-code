@@ -20,7 +20,16 @@ public class FieldModel extends VariableModel<FieldDeclaration>{
 		this.accessor = accessor;
 	}
 
-	public FuncDecl<?> getAccessor() {
+	public FuncDecl getAccessor() {
 		return accessor;
+	}
+
+	@Override
+	public String toString() {
+		return "FieldModel[" + getDecl() + "]";
+	}
+
+	public boolean isArray() {
+		return varDecl.binding.type.isArrayType();
 	}
 }

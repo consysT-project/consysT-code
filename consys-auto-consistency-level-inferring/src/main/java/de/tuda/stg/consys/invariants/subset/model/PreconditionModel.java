@@ -4,17 +4,20 @@ import com.microsoft.z3.Expr;
 
 public class PreconditionModel {
 
-	private final Expr arg;
-	private final Expr expr;
+	protected final Expr thisConst;
+	protected final Expr bodyExpr;
 
+	public PreconditionModel(Expr thisConst, Expr bodyExpr) {
+		this.thisConst = thisConst;
+		this.bodyExpr = bodyExpr.simplify();
+	}
 
-	public PreconditionModel(Expr arg, Expr expr) {
-		this.arg = arg;
-		this.expr = expr;
+	public Expr apply(Expr thisArg) {
+		return bodyExpr.substitute(thisConst, thisArg);
 	}
 
 	@Override
 	public String toString() {
-		return "pre(" + arg + ") = " + expr;
+		return "pre(" + thisConst + ") = " + bodyExpr;
 	}
 }

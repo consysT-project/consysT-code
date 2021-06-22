@@ -13,6 +13,7 @@ import org.jmlspecs.jml4.ast.JmlMessageSend;
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Parser for parsing expression inside of classes.
@@ -22,7 +23,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	// The scope of the class in which this expression is parsed. Used to resolve field names.
 	private final ClassModel classModel;
 	// A const definition for substituting this references. The sort has to be the sort of the class.
-	protected Expr thisConst;
+	private Expr thisConst;
 
 	/**
 	 *
@@ -130,6 +131,29 @@ public class ClassExpressionParser extends BaseExpressionParser {
 //		}
 
 		throw new WrongJMLArgumentsExpression(jmlMessageSend);
+	}
+
+
+	protected <T> T withThisReference(Expr otherConst, Supplier<T> f) {
+		Expr prev = this.thisConst;
+		thisConst = otherConst;
+
+		T result = null;
+		try {
+			result = f.get();
+		} finally {
+			thisConst = prev;
+		}
+
+		return result;
+	}
+
+	protected Expr getThisConst() {
+		return thisConst;
+	}
+
+	protected ClassModel getClassModel() {
+		return classModel;
 	}
 
 

@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.invariants;
 
 import com.microsoft.z3.Context;
-import de.tuda.stg.consys.invariants.subset.model.ParsedClassModel;
+import de.tuda.stg.consys.invariants.subset.PropertyModel;
+import de.tuda.stg.consys.invariants.subset.model.ConstraintModel;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
@@ -105,12 +106,28 @@ public class Main {
         if (clazz instanceof JmlTypeDeclaration) {
           JmlTypeDeclaration jmlClass = (JmlTypeDeclaration) clazz;
 
+          // Parse the z3 model from AST.
           ClassModel scope = new ClassModel(ctx, jmlClass);
-          ParsedClassModel model = new ParsedClassModel(ctx, scope);
+          ConstraintModel model = new ConstraintModel(ctx, scope);
 
           System.out.println(model);
 
-          //TODO: Reset context
+
+          // Check the properties
+          PropertyModel property = new PropertyModel(ctx, model);
+          scope.getMethods().forEach(m -> {
+            boolean r1 = property.checkInvariantSufficiency(m.getBinding());
+            System.out.println("[InvSuff] " + m + ": " + r1);
+
+            boolean r3 = property.checkConcurrentStateMerge(m.getBinding());
+            System.out.println("[Concurrent] " + m + ": " + r3);
+          });
+
+          boolean r2 = property.checkInvariantSufficientMerge();
+          System.out.println("[MergeSuff] " + r2);
+
+//          boolean r2 = property.checkMergeIdempotency();
+//          System.out.println("[MergeIdem] " + r2);
 
 
 //          clazz.traverse(generator, clazz.scope);

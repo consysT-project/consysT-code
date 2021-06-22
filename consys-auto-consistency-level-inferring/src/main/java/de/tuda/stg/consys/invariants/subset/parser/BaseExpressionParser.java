@@ -5,16 +5,15 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
 import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
-import de.tuda.stg.consys.invariants.subset.visitors.IntegerValueVisitor;
-import de.tuda.stg.consys.invariants.subset.z3_model.InternalArray;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
-import de.tuda.stg.consys.invariants.subset.z3_model.InternalVar;
 import org.eclipse.jdt.internal.compiler.ast.*;
-import org.jmlspecs.jml4.ast.*;
+import org.jmlspecs.jml4.ast.JmlArrayReference;
+import org.jmlspecs.jml4.ast.JmlQuantifiedExpression;
+import org.jmlspecs.jml4.ast.JmlQuantifier;
+import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
-import java.util.*;
+import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * This visitor class is used to translate JML expressions, local variable declarations and
@@ -61,12 +60,7 @@ public class BaseExpressionParser extends ExpressionParser {
       return parseJmlSingleReference((JmlSingleNameReference) expression);
     }
 
-    // "some.other"
-    if (expression instanceof JmlQualifiedNameReference) {
-      return visitJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
-    }
-
-    // "array[index]"
+      // "array[index]"
     if (expression instanceof JmlArrayReference) {
       return visitJmlArrayReference((JmlArrayReference) expression);
     }
@@ -76,21 +70,12 @@ public class BaseExpressionParser extends ExpressionParser {
       return visitJmlQuantifiedExpression((JmlQuantifiedExpression) expression);
     }
 
-    // "method()", "other.method()"
-    if (expression instanceof JmlMessageSend) {
-      return visitJmlMessageSend((JmlMessageSend) expression);
-    }
-
     // expressions with operators: a + b, a ? b : c, !a ...
     if (expression instanceof OperatorExpression) {
       return parseOperatorExpression((OperatorExpression) expression);
     }
 
     return super.parseExpression(expression);
-  }
-
-  private Expr parseThisReference(ThisReference thisExpression) {
-    throw new UnsupportedJMLExpression(thisExpression);
   }
 
   public Expr parseLiteral(Literal literalExpression) {
@@ -151,7 +136,6 @@ public class BaseExpressionParser extends ExpressionParser {
     String s = binaryExpression.operatorToString();
 
 
-
     if (s.equals("&&") || s.equals("&")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
         return ctx.mkAnd((BoolExpr) left, (BoolExpr) right);
@@ -166,7 +150,6 @@ public class BaseExpressionParser extends ExpressionParser {
       throw new WrongJMLArgumentsExpression(binaryExpression);
     }
 
-    //TODO: Add WrongJMLArgumentsExpression to all cases
     if (s.equals("<") && left instanceof ArithExpr && right instanceof ArithExpr) {
       return ctx.mkLt((ArithExpr) left, (ArithExpr) right);
     }
@@ -202,21 +185,6 @@ public class BaseExpressionParser extends ExpressionParser {
     for equality constraints
     */
     if (left != null && right != null && (s.equals("<==>") || s.equals("=") || s.equals("=="))) {
-      // set result expression for current scope
-//      if (binaryExpression.left instanceof JmlResultReference) {
-//        scope.setCurrentReturnExpression(right);
-//      }
-//
-//      // set array size
-//      else if (left instanceof SeqExpr && right instanceof IntExpr) {
-//        //TODO: check this
-//        InternalVar arr = scope.getClassVariable(left.getString());
-//        if (arr instanceof InternalArray) {
-//          ((InternalArray) arr)
-//              .setSize(new IntegerValueVisitor().visitExpression(binaryExpression.right, scope));
-//          return ctx.mkTrue();
-//        }
-//      }
       return ctx.mkEq(left, right);
     }
 
@@ -252,40 +220,6 @@ public class BaseExpressionParser extends ExpressionParser {
     return cons;
   }
 
-  /**
-   * Visits {@code \old(...)} expressions and substitutes every occurring variable with its prestate
-   * Z3 constant.
-   *
-   * @return expression where every occurrence of a state variable is substituted with the variable
-   *     depicting the old state
-   */
-  public Expr visitOldExpression(JmlOldExpression jmlOldExpression) {
-//    // translate the whole expression inside \old(...)
-//    Expr subExpr = parseExpression(jmlOldExpression.expression);
-//
-//    /*
-//    Gather both prestate and poststate constants
-//     */
-//    int varSize = scope.getClassVariables().size();
-//    Expr[] newVars = new Expr[varSize];
-//    Expr[] oldVars = new Expr[varSize];
-//
-//    newVars =
-//        scope.getClassVariables().values().stream()
-//            .map(InternalVar::getNewValue)
-//            .collect(Collectors.toList())
-//            .toArray(newVars);
-//
-//    oldVars =
-//        scope.getClassVariables().values().stream()
-//            .map(InternalVar::getOldValue)
-//            .collect(Collectors.toList())
-//            .toArray(oldVars);
-//
-//    // substitute all occurrences of poststate variables with the prestate ones
-//    return subExpr.substitute(newVars, oldVars);
-    return null;
-  }
 
   public Expr parseConditionalExpression(ConditionalExpression conditionalExpression) {
     Expr cond = parseExpression(conditionalExpression.condition);
@@ -300,47 +234,6 @@ public class BaseExpressionParser extends ExpressionParser {
 
     throw new WrongJMLArgumentsExpression(conditionalExpression);
 
-  }
-
-  /**
-   * Visits expressions like {@code something.other} Assumes that the qualified name reference
-   * refers to expressions of the form class.variable, concatenation is currently not supported.
-   *
-   * @return result of evaluating className.varName
-   */
-  public Expr visitJmlQualifiedNameReference(
-      JmlQualifiedNameReference jmlQualifiedNameReference) {
-
-//    // in this case, it is class.variableName
-//    if (jmlQualifiedNameReference.tokens.length == 2) {
-//      String className = String.valueOf(jmlQualifiedNameReference.tokens[0]);
-//      String varName = String.valueOf(jmlQualifiedNameReference.tokens[1]);
-//
-//      // the "other" variable needs to be used to depict the state relation of a merge constraint
-//      if (className.equals("other") && scope.insideMergeFunction) {
-//        return scope.getClassVariable(varName).getOtherValue();
-//      }
-//
-//      // Get variable from scope -> in this case return new value or argument value
-//      else if (className.equals("this")) {
-//        // variable is some class variable
-//        if (scope.getClassVariables().containsKey(varName)) {
-//          return scope.getClassVariable(varName).getNewValue();
-//        }
-//        // variable is local variable
-//        else if (scope.getLocalVariables().containsKey(varName)) {
-//          return scope.getLocalVariable(varName);
-//        }
-//      }
-//
-      // array.length expected in constructor
-//      else
-//    if (scope.hasClassVariable(className) && varName.equals("length")) {
-//        return ctx.mkString(className);
-//    }
-
-
-    throw new WrongJMLArgumentsExpression(jmlQualifiedNameReference);
   }
 
   /**
@@ -409,8 +302,9 @@ public class BaseExpressionParser extends ExpressionParser {
                           1,
                           null,
                           null,
-                          ctx.mkSymbol("Q_" + getFreshId()),
-                          ctx.mkSymbol("Sk_" + getFreshId()));
+                          null, //ctx.mkSymbol("Q_" + getFreshId()),
+                          null //ctx.mkSymbol("Sk_" + getFreshId())
+                  );
 
           return quantifiedExpr;
         }
@@ -421,7 +315,7 @@ public class BaseExpressionParser extends ExpressionParser {
       // this applies to \sum expressions
       if (quantifier.equals(JmlQuantifier.SUM)) {
         // NOTE: Summation always (!) start at i = 0, and increase i in every step by 1.
-        System.err.println("Warning! \\sum only supports sums starting at 0.");
+        System.err.println("Warning! \\sum only supports sums in range from -2000 to 2000.");
 
         if (jmlQuantifiedExpression.boundVariables.length != 1) {
           throw new WrongJMLArgumentsExpression(jmlQuantifiedExpression);
@@ -430,8 +324,7 @@ public class BaseExpressionParser extends ExpressionParser {
         if (bodyExpr instanceof IntExpr) {
           Expr<IntSort> forBodyExpr = ctx.mkITE(rangeExpr, (IntExpr) bodyExpr, ctx.mkInt(0));
           IntExpr ret = ctx.mkInt(0);
-          for (int i = 0; i < 20; i++) {
-
+          for (int i = -2000; i <= 2000; i++) {
             ret = (IntExpr) ctx.mkAdd(ret, forBodyExpr.substitute(consts[0], ctx.mkInt(i)));
           }
           return ret;
@@ -455,164 +348,7 @@ public class BaseExpressionParser extends ExpressionParser {
   }
 
 
-  public Expr visitJmlFieldReference(JmlFieldReference fieldReference) {
-    throw new UnsupportedJMLExpression(fieldReference);
-  }
 
-  /**
-   * Visits method call like {@code getValue()} or {@code other.getValue()}.
-   *
-   * @return the result expression of the called method if it has one, {@code null} otherwise
-   */
-  public Expr visitJmlMessageSend(JmlMessageSend jmlMessageSend) {
-//
-//    Expr methodReturnValue = scope.getReturnValue(String.valueOf(jmlMessageSend.selector));
-//
-//    if (methodReturnValue != null) {
-//      // now distinguish between this and other -> check if its a this reference
-//      if (jmlMessageSend.receiver instanceof ThisReference) {
-//        return methodReturnValue;
-//      } else {
-//        // only method calls within the same class supported
-//        int varSize = scope.getClassVariables().size();
-//        Expr[] newVars = new Expr[varSize];
-//        Expr[] otherVars = new Expr[varSize];
-//        newVars =
-//            scope.getClassVariables().values().stream()
-//                .map(InternalVar::getNewValue)
-//                .collect(Collectors.toList())
-//                .toArray(newVars);
-//        otherVars =
-//            scope.getClassVariables().values().stream()
-//                .map(InternalVar::getOtherValue)
-//                .collect(Collectors.toList())
-//                .toArray(otherVars);
-//        return methodReturnValue.substitute(newVars, otherVars);
-//      }
-//    }
-
-    throw new WrongJMLArgumentsExpression(jmlMessageSend);
-  }
-
-  /*
-   ***************************************************************************************************************
-   **************************************** Statements, called separately ****************************************
-   ***************************************************************************************************************
-   */
-
-
-  /**
-   * This visit method translates an assignable clause into a postcondition. {@code assignable
-   * \nothing} translates to setting all prestate constants equal to the poststate constants. {@code
-   * assignable a} does the same but leaves {@code a} out, also {@code assignable a[3]} but for
-   * a[3].
-   *
-   * @return the created postcondition from the assignable clause
-   */
-  public BoolExpr visitJmlAssignableClause(
-      JmlAssignableClause jmlAssignableClause, InternalScope scope) {
-    /*
-     *************************** assignable \nothing ***************************
-     */
-    if (jmlAssignableClause.expr instanceof JmlKeywordExpression) {
-      if (jmlAssignableClause.expr.equals(JmlKeywordExpression.NOTHING)) {
-
-        // get all prestate and poststate variables
-        BoolExpr res = ctx.mkTrue();
-        Expr[] newVars = new Expr[scope.getClassVariables().size()];
-        Expr[] oldVars = new Expr[scope.getClassVariables().size()];
-
-        newVars =
-            scope.getClassVariables().values().stream()
-                .map(InternalVar::getNewValue)
-                .collect(Collectors.toList())
-                .toArray(newVars);
-        oldVars =
-            scope.getClassVariables().values().stream()
-                .map(InternalVar::getOldValue)
-                .collect(Collectors.toList())
-                .toArray(oldVars);
-
-        // set all prestate vars == poststate vars
-        for (int i = 0; i < scope.getClassVariables().size(); i++) {
-          res = ctx.mkAnd(res, ctx.mkEq(newVars[i], oldVars[i]));
-        }
-        return res;
-      }
-    }
-
-    /*
-     ************************** assignable (a | a[n]) **************************
-     */
-    else if (jmlAssignableClause.expr instanceof JmlStoreRefListExpression) {
-      // collect all java variable references from the assignable clause
-      Expression[] references = ((JmlStoreRefListExpression) jmlAssignableClause.expr).exprList;
-      BoolExpr resultingPostCondition = ctx.mkTrue();
-
-      // collect all names of the variables that are mentioned
-      List<String> mentionedVariables = new ArrayList<>();
-      for (Expression ref : references) {
-        // a, b, c -> JmlSingleNameReference
-        if (ref instanceof JmlSingleNameReference) {
-          mentionedVariables.add(String.valueOf(((JmlSingleNameReference) ref).token));
-        }
-
-        // c[3] -> JmlArrayReference
-        // jml array reference: receiver is single name ref, position is number
-        else if (ref instanceof JmlArrayReference
-            && ((JmlArrayReference) ref).receiver instanceof JmlSingleNameReference) {
-          String arrayName =
-              String.valueOf(((JmlSingleNameReference) ((JmlArrayReference) ref).receiver).token);
-          mentionedVariables.add(arrayName);
-
-          // get array from scope
-          InternalArray array = (InternalArray) scope.getClassVariable(arrayName);
-
-          // get position
-          int changedIndex =
-              new IntegerValueVisitor().visitExpression(((JmlArrayReference) ref).position, scope);
-
-          // add resulting postcondition
-          resultingPostCondition =
-              ctx.mkAnd(
-                  resultingPostCondition,
-                  InternalArray.oneFieldChanged(
-                      array.getOldValue(), array.getNewValue(), changedIndex, array.getSize()));
-        }
-      }
-
-      /*
-       * for the rest of the variables, prestate == poststate remains
-       */
-
-      List<InternalVar> notMentioned =
-          scope.getClassVariables().entrySet().stream()
-              .filter(x -> !mentionedVariables.contains(x.getKey()))
-              .map(Map.Entry::getValue)
-              .collect(Collectors.toList());
-
-      for (InternalVar notChanging : notMentioned) {
-        if (notChanging instanceof InternalArray) {
-          resultingPostCondition =
-              ctx.mkAnd(
-                  resultingPostCondition,
-                  InternalArray.sameFields(
-                      ((InternalArray) notChanging).getOldValue(),
-                      ((InternalArray) notChanging).getNewValue(),
-                      ((InternalArray) notChanging).getSize()));
-        } else {
-          resultingPostCondition =
-              ctx.mkAnd(
-                  resultingPostCondition,
-                  ctx.mkEq(notChanging.getOldValue(), notChanging.getNewValue()));
-        }
-      }
-
-      return resultingPostCondition;
-    }
-
-    throw new IllegalArgumentException(jmlAssignableClause.toString());
-  }
 
   protected <T> T withLocalVariable(String varName, Expr varExpr, Supplier<T> f) {
     Expr prev = localVariables.put(varName, varExpr);

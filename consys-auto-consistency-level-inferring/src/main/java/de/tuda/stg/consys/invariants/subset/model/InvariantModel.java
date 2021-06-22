@@ -12,13 +12,13 @@ public class InvariantModel {
 
 	public InvariantModel(Expr arg, Expr expr) {
 		this.arg = arg;
-		this.expr = expr;
+		this.expr = expr.simplify();
 	}
 
 	public Expr apply(Expr parameter) {
-		if (parameter.getSort() != arg.getSort()) {
-			throw new IllegalArgumentException("parameter " + parameter + " does not have the correct sort. was: " + parameter.getSort() + ", required: " + arg.getSort());
-		}
+//		if (parameter.getSort() != arg.getSort()) {
+//			throw new IllegalArgumentException("parameter " + parameter + " does not have the correct sort. was: " + parameter.getSort() + ", required: " + arg.getSort());
+//		}
 
 		return expr.substitute(arg, parameter);
 	}

@@ -1,28 +1,28 @@
 public class BankAccountCRDT {
     /* Constants */
     // Constants have to be declared with static final.
-    public static final int numOfReplicas = 10;
+    public static final int numOfReplicas = 3;
 
 
     /* Fields */
     // Virtual fields that can be accessed in constraints with `this`.
-    public final int[] incs = new int[10];
-    public final int[] decs = new int[10];
+    public final int[] incs = new int[numOfReplicas];
+    public final int[] decs = new int[numOfReplicas];
     public int replicaId;
 
 
 
     /* Invariants */
     /*@
-    @ public invariant (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]) >= 0;
-    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; this.incs[i] >=0);
-    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; this.decs[i] >=0);
+    @ public invariant (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 0;
+    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; incs[i] >= 0);
+    @ public invariant (\forall int i; i >= 0 && i < numOfReplicas; decs[i] >= 0);
     @*/
 
 
     /*@
     @ requires id >= 0 && id < numOfReplicas;
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas; this.incs[i] == 0 && this.decs[i] == 0);
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0 && decs[i] == 0);
     @ ensures replicaId == id;
     @*/
     public BankAccountCRDT(int id) {
@@ -30,10 +30,23 @@ public class BankAccountCRDT {
         this.replicaId = id;
     }
 
+    //@ assignable replicaId;
+    //@ ensures replicaId == id;
+    public void setReplicaId(int id) {
+        this.replicaId = id;
+    }
+
+    //@ assignable incs;
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0);
+    public void resetIncs() {
+        for (int i = 0; i < incs.length; i++) {
+            incs[i] = 0;
+        }
+    }
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]);
     @*/
     public int sumIncs() {
         int res = 0;
@@ -45,7 +58,7 @@ public class BankAccountCRDT {
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
     @*/
     public int sumDecs() {
         int result = 0;
@@ -55,7 +68,7 @@ public class BankAccountCRDT {
         return result;
     }
 
-    /*@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; this.incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; this.decs[i]);
+    /*@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
     @ assignable \nothing;
     @*/
     public int getValue() {
@@ -68,10 +81,8 @@ public class BankAccountCRDT {
     @ requires val >= 0;
     @ assignable incs[replicaId];
     @ ensures incs[replicaId] == \old(incs[replicaId]) + val;
-    @ ensures (\forall int incI; incI>=0 && incI<numOfReplicas && incI != replicaId;
-                incs[incI] == \old(incs[incI]));
-    @ ensures (\forall int tempI; tempI>=0 && tempI<numOfReplicas;
-                decs[tempI] == \old(decs[tempI]));
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas && i != replicaId; incs[i] == \old(incs[i]));
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas; decs[i] == \old(decs[i]));
     @*/
     public void deposit(int val) {
         incs[replicaId] = incs[replicaId] + val;
@@ -79,30 +90,23 @@ public class BankAccountCRDT {
 
     /*@
     @ requires val >= 0;
-    // requires getValue() >= val;
-    @ requires  (\sum int withdrawIncInd; withdrawIncInd>=0 && withdrawIncInd < numOfReplicas; incs[withdrawIncInd]) - (\sum int withdrawDecInd; withdrawDecInd >= 0 && withdrawDecInd<numOfReplicas; decs[withdrawDecInd]) >= val;
+    @ requires  (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= val;
     @ assignable decs[replicaId];
     @ ensures decs[replicaId] == \old(decs[replicaId]) + val;
-    @ ensures (\forall int decI; decI>=0 && decI<numOfReplicas && decI != replicaId;
-                decs[decI] == \old(decs[decI]));
-    @ ensures (\forall int tempI2; tempI2>=0 && tempI2<numOfReplicas;
-                incs[tempI2] == \old(incs[tempI2]));
     @*/
     public void withdraw(int val) {
         decs[replicaId] = decs[replicaId] + val;
     }
 
     /*@
-    @ requires ((\sum int mergeI; mergeI >= 0 && mergeI < numOfReplicas;
-            incs[mergeI] >= other.incs[mergeI] ? incs[mergeI] : other.incs[mergeI] )
-             - (\sum int mergeI2; mergeI2>=0 && mergeI2<numOfReplicas;
-                    decs[mergeI2] >= other.decs[mergeI2] ? decs[mergeI2] : other.decs[mergeI2] )) >= 0;
+    @ requires ((\sum int i; i >= 0 && i < numOfReplicas; incs[i] >= other.incs[i] ? incs[i] : other.incs[i] )
+             - (\sum int i; i >= 0 && i < numOfReplicas; decs[i] >= other.decs[i] ? decs[i] : other.decs[i] )) >= 0;
 
-    @ ensures (\forall int mergeIncsI; mergeIncsI >= 0 && mergeIncsI < numOfReplicas;
-                   (\old(incs[mergeIncsI]) >= other.incs[mergeIncsI] ==> incs[mergeIncsI] == \old(incs[mergeIncsI]))
-                && (\old(incs[mergeIncsI]) <= other.incs[mergeIncsI] ==> incs[mergeIncsI] == other.incs[mergeIncsI])
-                && (\old(decs[mergeIncsI]) >= other.decs[mergeIncsI] ==> decs[mergeIncsI] == \old(decs[mergeIncsI]))
-                && (\old(decs[mergeIncsI]) <= other.decs[mergeIncsI] ==> decs[mergeIncsI] == other.decs[mergeIncsI])
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
+                   (\old(incs[i]) >= other.incs[i] ==> incs[i] == \old(incs[i]))
+                && (\old(incs[i]) <= other.incs[i] ==> incs[i] == other.incs[i])
+                && (\old(decs[i]) >= other.decs[i] ==> decs[i] == \old(decs[i]))
+                && (\old(decs[i]) <= other.decs[i] ==> decs[i] == other.decs[i])
                );
     @*/
     public void merge(BankAccountCRDT other) {

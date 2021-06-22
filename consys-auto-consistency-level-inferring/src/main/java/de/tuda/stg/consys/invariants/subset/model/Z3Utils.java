@@ -77,6 +77,18 @@ public class Z3Utils {
 		}
 	}
 
+	public static <T> Optional<T> findBindingInArray(T[] arr, Binding binding, Function<T, Binding> getBinding) {
+		if (binding == null) {
+			throw new IllegalArgumentException("binding was null");
+		}
+
+		for (T elem : arr) {
+			if (binding.equals(getBinding.apply(elem)))	return Optional.of(elem);
+		}
+		return Optional.empty();
+	}
+
+
 	public static <T> Optional<T> findReferenceInArray(T[] arr, Reference ref, Function<T, Binding> getBinding) {
 		Binding binding = null;
 		if (ref instanceof NameReference) {
@@ -90,16 +102,7 @@ public class Z3Utils {
 			binding = ref.fieldBinding();
 		}
 
-		if (binding == null) {
-			throw new IllegalArgumentException("unsupported reference: "+ ref);
-		}
-
-		for (T elem : arr) {
-			if (binding.equals(getBinding.apply(elem)))	return Optional.of(elem);
-		}
-		return Optional.empty();
-
-
+		return findBindingInArray(arr, binding, getBinding);
 	}
 
 

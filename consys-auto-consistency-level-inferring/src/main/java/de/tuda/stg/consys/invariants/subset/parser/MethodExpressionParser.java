@@ -13,7 +13,7 @@ import org.jmlspecs.jml4.ast.JmlSingleNameReference;
  */
 public class MethodExpressionParser extends ClassExpressionParser {
 
-	private final MethodModel methodModel;
+	protected final MethodModel methodModel;
 
 
 	/**

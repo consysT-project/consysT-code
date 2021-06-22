@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
+import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
@@ -144,6 +144,14 @@ public class ClassModel {
 		return Z3Utils.findReferenceInArray(classFields, fieldRef, (field) -> field.getDecl().binding);
 	}
 
+	public Optional<FieldModel> getField(FieldBinding binding) {
+		return Z3Utils.findBindingInArray(classFields, binding, (field) -> field.getDecl().binding);
+	}
+
+	public Optional<MethodModel> getMethod(MethodBinding binding) {
+		return Z3Utils.findBindingInArray(classMethods, binding, method -> method.getDecl().binding);
+	}
+
 	public Optional<ConstantModel> getConstant(Reference constantRef) {
 		return Z3Utils.findReferenceInArray(classConstants, constantRef, (constant) -> constant.getDecl().binding);
 	}
@@ -152,7 +160,20 @@ public class ClassModel {
 		return Arrays.asList(classMethods);
 	}
 
+	public Iterable<FieldModel> getFields() {
+		return Arrays.asList(classFields);
+	}
+
 	public JmlTypeDeclaration getJmlType() {
 		return jmlType;
+	}
+
+	public MergeMethodModel getMergeMethod() {
+		return mergeMethod;
+	}
+
+
+	public Expr getFreshConst(String name) {
+		return ctx.mkFreshConst(name, getClassSort());
 	}
 }
