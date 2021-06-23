@@ -1,3 +1,4 @@
+import de.tuda.stg.consys.invariants.CheckerBinding;
 import de.tuda.stg.consys.invariants.Main;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
@@ -17,7 +18,8 @@ import java.util.Map;
 
 public class TestOutput {
     static {
-        Main.loadLibs();
+        // Run static initializer for CheckerBinding
+        new CheckerBinding();
     }
 
     org.eclipse.jdt.internal.compiler.batch.Main compilerStarter =
