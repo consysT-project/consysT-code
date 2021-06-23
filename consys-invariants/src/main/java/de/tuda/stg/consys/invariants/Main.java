@@ -72,7 +72,7 @@ public class Main {
     loadLibs();
 
     // Set the source file
-    Path sourcePath = Paths.get("consys-auto-consistency-level-inferring/InvariantExamples/BankAccountCRDT/BankAccountCRDT.java");
+    Path sourcePath = Paths.get("consys-invariants/InvariantExamples/BankAccountCRDT/BankAccountCRDT.java");
 //    Path sourcePath = Paths.get("consys-auto-consistency-level-inferring/InvariantExamples/cards/BankAccount/BankAccount.java");
     System.out.println("compiling: " + sourcePath.toString());
 
