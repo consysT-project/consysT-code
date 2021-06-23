@@ -38,7 +38,7 @@ public class Main {
 
     String osname = System.getProperty("os.name").toLowerCase();
     if (osname.contains("mac"))
-      lib = Paths.get("lib", libname).toAbsolutePath();
+      lib = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
     else if (osname.contains("linux"))
       lib = Paths.get("consys-auto-consistency-level-inferring","lib",libname).toAbsolutePath();
     else
