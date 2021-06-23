@@ -34,7 +34,7 @@ object BackendReplica {
 		private val localObjects : mutable.HashMap[Addr, LocalObject[Addr, ObjType, Level]] = mutable.HashMap.empty
 
 
-		protected override def receive : Receive = {
+		override def receive : Receive = {
 
 			case WriteObjectsOp(objects, waitFor) =>
 				objects.foreach(entry => {

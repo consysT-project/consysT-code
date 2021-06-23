@@ -25,6 +25,7 @@ public class StateMachine<State> {
     }
 
     @WeakOp
+    @SuppressWarnings("consistency") //TODO: Fix the type system here
     public void weakTransition(Transition<State> transition) {
         if (!transitions.contains(transition))
             throw new IllegalArgumentException("transtion has not been defined.");
@@ -37,6 +38,7 @@ public class StateMachine<State> {
     }
 
     @StrongOp
+    @SuppressWarnings("consistency") //TODO: Fix the type system here
     public void criticalTransition(Transition<State> transition) {
         if (!transitions.contains(transition))
             throw new IllegalArgumentException("transtion has not been defined.");
@@ -59,13 +61,4 @@ public class StateMachine<State> {
         return currentState;
     }
 
-    public static class Transition<T> {
-        private final T from;
-        private final T to;
-
-        private Transition(T from, T to) {
-            this.from = from;
-            this.to = to;
-        }
-    }
 }
