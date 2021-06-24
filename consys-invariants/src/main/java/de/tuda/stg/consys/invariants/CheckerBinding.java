@@ -25,7 +25,7 @@ public class CheckerBinding {
         this.ctx = new Context();
     }
 
-    public static void loadLib(Path lib) {
+    private static void loadLib(Path lib) {
         Path libAbsolute = lib.toAbsolutePath();
         System.out.println("load lib: " + libAbsolute);
         System.load(libAbsolute.toString());
@@ -54,8 +54,6 @@ public class CheckerBinding {
         // Parse the z3 model from AST.
         ClassModel model = new ClassModel(ctx, jmlClass);
         ClassConstraints constraints = new ClassConstraints(ctx, model);
-
-        System.out.println(constraints);
 
         // Check the properties
         ClassProperties properties = new ClassProperties(ctx, constraints);

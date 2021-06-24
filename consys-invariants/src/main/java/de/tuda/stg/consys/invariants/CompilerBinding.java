@@ -33,10 +33,9 @@ public class CompilerBinding {
 
         String[] sourceFileStrings = Arrays.stream(sourceFiles)
                 .map(Path::toString)
-                .peek(s -> System.out.println("[Compiler] preparing " + s))
                 .toArray(String[]::new);
 
-
+        System.out.println("Compiling files: " + Arrays.toString(sourceFileStrings));
         compilerStarter.compile(sourceFileStrings);
 
         // ensure that compilation was successful -> types array contains class definitions

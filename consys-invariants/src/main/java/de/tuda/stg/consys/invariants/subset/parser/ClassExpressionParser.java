@@ -23,7 +23,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	// The scope of the class in which this expression is parsed. Used to resolve field names.
 	private final ClassModel classModel;
 	// A const definition for substituting this references. The sort has to be the sort of the class.
-	private Expr thisConst;
+	private Expr thisConst; // Can be null.
 
 	/**
 	 *
@@ -35,7 +35,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	public ClassExpressionParser(Context ctx, ClassModel classModel, Expr thisConst) {
 		super(ctx);
 
-		if (!thisConst.getSort().equals(classModel.getClassSort()))
+		if (thisConst != null && !thisConst.getSort().equals(classModel.getClassSort()))
 			throw new IllegalArgumentException("the sort for `this` has to match the sort of the class");
 
 		this.classModel = classModel;

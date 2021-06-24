@@ -115,11 +115,13 @@ public class ClassConstraints {
 
 		List<Expr> initialConditions = Lists.newLinkedList();
 		for (var constructor : classModel.getConstructors()) {
-			var preParser = new MethodPreconditionExpressionParser(ctx, classModel, constructor, thisConst);
+			var preParser = new ConstructorPreconditionExpressionParser(ctx, classModel, constructor);
 			var preExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPrecondition());
-			var postExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPostcondition());
 
-			initialConditions.add(ctx.mkImplies(preExpr, postExpr));
+			var postParser = new ConstructorPostconditionExpressionParser(ctx, classModel, constructor, thisConst);
+			var postExpr = postParser.parseExpression(constructor.getDecl().getSpecification().getPostcondition());
+
+			initialConditions.add(ctx.mkITE(preExpr, postExpr, ctx.mkFalse()));
 		}
 
 		var initialCondition = ctx.mkAnd(initialConditions.toArray(Expr[]::new));
