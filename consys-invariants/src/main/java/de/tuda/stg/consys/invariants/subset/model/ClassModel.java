@@ -1,12 +1,14 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.*;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.jmlspecs.jml4.ast.JmlConstructorDeclaration;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
@@ -25,8 +27,10 @@ public class ClassModel {
 
 	// Methods
 	private final MethodModel[] classMethods;
-	//
+	// Merge Method
 	private final MergeMethodModel mergeMethod;
+	// Constructors
+	private final ConstructorModel[] classConstructors;
 
 	// Z3 Sort to represent states of this class.
 	private final TupleSort classSort;
@@ -61,10 +65,8 @@ public class ClassModel {
 				classFieldsTemp.add(new FieldModel(ctx, field, null /* accessor is initialized later. */));
 			}
 		}
-		FieldModel[] classFieldsArr = new FieldModel[classFieldsTemp.size()];
-		ConstantModel[] classConstantsArr = new ConstantModel[classConstantsTemp.size()];
-		this.classFields = classFieldsTemp.toArray(classFieldsArr);
-		this.classConstants = classConstantsTemp.toArray(classConstantsArr);
+		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
+		this.classConstants = classConstantsTemp.toArray(ConstantModel[]::new);
 
 		/* Create the z3 sort for states of this class. */
 		String[] fieldNames = new String[this.classFields.length];
@@ -87,7 +89,8 @@ public class ClassModel {
 
 
 		/* Parse methods */
-		List<MethodModel> classMethods = new ArrayList(jmlType.methods.length);
+		List<MethodModel> classMethods = new ArrayList<>(jmlType.methods.length);
+		List<ConstructorModel> classConstructors = new ArrayList<>(jmlType.methods.length);
 		MergeMethodModel mergeMethodTemp = null;
 
 		for (int i = 0; i < jmlType.methods.length; i++) {
@@ -96,7 +99,7 @@ public class ClassModel {
 			if (method.isClinit()) {
 				// TODO: Handle clinit
 			} else if (method.isConstructor()) {
-				// TODO: handle constructor
+				classConstructors.add(new ConstructorModel(ctx, (JmlConstructorDeclaration) method));
 			} else if (method.isStatic() || method.isAbstract()) {
 				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
 			} else if (method instanceof JmlMethodDeclaration) {
@@ -125,9 +128,9 @@ public class ClassModel {
 			throw new IllegalArgumentException("no merge method found.");
 		}
 
-		MethodModel[] classMethodsArr = new MethodModel[classMethods.size()];
 		this.mergeMethod = mergeMethodTemp;
-		this.classMethods = classMethods.toArray(classMethodsArr);
+		this.classMethods = classMethods.toArray(MethodModel[]::new);
+		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
 
 	}
 
@@ -158,6 +161,10 @@ public class ClassModel {
 
 	public Iterable<MethodModel> getMethods() {
 		return Arrays.asList(classMethods);
+	}
+
+	public Iterable<ConstructorModel> getConstructors() {
+		return Arrays.asList(classConstructors);
 	}
 
 	public Iterable<FieldModel> getFields() {

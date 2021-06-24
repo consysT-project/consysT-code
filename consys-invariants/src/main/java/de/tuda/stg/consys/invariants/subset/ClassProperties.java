@@ -3,270 +3,137 @@ package de.tuda.stg.consys.invariants.subset;
 import com.google.common.collect.Lists;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
-import de.tuda.stg.consys.invariants.subset.model.ConstraintModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
-import de.tuda.stg.consys.invariants.subset.z3_model.InternalClass;
-import de.tuda.stg.consys.invariants.subset.z3_model.InternalMethod;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 import java.util.List;
 
-public class PropertyModel {
+public class ClassProperties {
 
 	private final Context ctx;
-	private final ConstraintModel model;
+	private final ClassConstraints model;
 
-	public static boolean modelPrint = true;
 
-	public PropertyModel(Context ctx, ConstraintModel model) {
+	public ClassProperties(Context ctx, ClassConstraints model) {
 		this.ctx = ctx;
 		this.model = model;
 	}
 
-	public enum ConsistencyLevel {
-		WEAK,
-		STRONG
-	}
-
-	public enum Monotonicity {
-		MONOTONE, NOT_MONOTONE
-	}
-
-	public enum InvariantSufficiency {
-		INVARIANT_SUFFICIENT, NOT_INVARIANT_SUFFICIENT
-	}
 
 
-	/**
-	 * Check that the initial state satisfies the class invariant
-	 *
-	 * <p>Initial(old) ==> I(old)
-	 */
-//	public static boolean checkInitialState() {
-//		BoolExpr initialStatePreservesInvariant =
-//				context.mkImplies(
-//            /*
-//            here, we want to make statements about the old state, that's why if the initial value constraints
-//            and the invariant have been described in terms of the new state, we have to substitute them
-//             */
-//						(BoolExpr) clazz.getInitialValue().substitute(clazz.getNewState(), clazz.getOldState()),
-//						(BoolExpr) clazz.getInvariant().substitute(clazz.getNewState(), clazz.getOldState()));
-//
-//		solver.reset();
-//
-//
-//		private static Solver solver = context.mkSolver();
-//
-//		Status status = solver.check(context.mkNot(initialStatePreservesInvariant));
-//
-//
-//
-//		switch (status) {
-//			case UNSATISFIABLE:
-//				return true;
-//			case SATISFIABLE:
-//			{
-//				if (modelPrint)
-//					System.out.println("Initial state breaks invariant: " + solver.getModel());
-//				return false;
-//			}
-//			case UNKNOWN:
-//			{
-//				if (modelPrint)
-//					System.out.println(
-//							"Something went wrong trying to prove that the initial state is invariant preserving: "
-//									+ solver.getReasonUnknown());
-//				return false;
-//			}
-//			default:
-//				return false;
-//		}
-//	}
+	/* Sequential properties */
 
-	/**
-	 * Check that every method preserves the invariant in sequential execution
-	 *
-	 * <p>I(s0) && pre_m(s0) && post_m(s0, s1, res) => I(s1)
-	 */
-	public boolean checkInvariantSufficiency(MethodBinding binding) {
-		MethodModel method = model.getClassModel().getMethod(binding)
-				.orElseThrow(() -> new IllegalArgumentException("method not in class: "+ binding));
-
+	// The initial state has to satisfy the invariant.
+	// init(s0) ==> I(s0)
+	public boolean checkInitialSatisfiesInvariant() {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
-		Expr s1 = model.getClassModel().getFreshConst("s1");
-		Expr res = method.getFreshResultConst().orElse(null);
 
-		Expr[] quantified = res == null ? new Expr[] { s0, s1 } : new Expr[] { s0, s1, res };
+		BoolExpr property =
+				ctx.mkImplies(
+						model.getInitialCondition().apply(s0),
+						model.getInvariant().apply(s0)
+				);
 
-		BoolExpr inner =
+		return checkValidity(property);
+	}
+
+	// Applying a method sequentially cannot violate the invariant.
+	// I(s0) && pre_m(s0) && post_m(s0, s0_new, _) => I(s0_new)
+	public boolean checkMethodSatisfiesInvariant(MethodBinding binding) {
+		Expr s0 = model.getClassModel().getFreshConst("s0");
+		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
+
+		BoolExpr property =
 				ctx.mkImplies(
 						ctx.mkAnd(
 								model.getInvariant().apply(s0),
 								model.getPrecondition(binding).apply(s0),
-								model.getPostcondition(binding).apply(s0, s1, res)
+								model.getPostcondition(binding).apply(s0, s0_new, null)
 						),
-						model.getInvariant().apply(s1)
+						model.getInvariant().apply(s0_new)
 				);
 
-		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
-
-		boolean result = checkValidity(formula);
-		return result;
+		return checkValidity(property);
 	}
 
-
-	/**
-	 * Check that the initial state is mergeable with itself
-	 *
-	 * <p>initial(old) => pre_merge(old, old)
-	 */
-//	public static boolean checkSelfMergeable(InternalClass clazz) {
-//		BoolExpr selfMergeable =
-//				context.mkImplies(
-//						(BoolExpr) clazz.getInitialValue().substitute(clazz.getNewState(), clazz.getOldState()),
-//						(BoolExpr)
-//								clazz
-//										.getMergeFunction()
-//										.getPreCondition()
-//										// pre_merge(old, other) --> pre_merge(old, old)
-//										.substitute(clazz.getOtherState(), clazz.getOldState()));
-//
-//		solver.reset();
-//		Status status = solver.check(context.mkNot(selfMergeable));
-//
-//		switch (status) {
-//			case UNSATISFIABLE:
-//				return true;
-//			case SATISFIABLE:
-//				if (modelPrint)
-//					System.out.println(
-//							"The initial state cannot be merged with itself!: " + solver.getModel());
-//				return false;
-//			case UNKNOWN:
-//				if (modelPrint)
-//					System.out.println(
-//							"Something went wrong trying to prove that the initial state can be merged with itself: "
-//									+ solver.getReasonUnknown());
-//			default:
-//				return false;
-//		}
-//	}
-
-
-	/**
-	 * Check that the state resulting from a merge satisfies the invariant
-	 *
-	 * <p>I(s0) && I(s1) && pre_merge(s0, s1) && post_merge(s0, s1, s2) => I(s2)
-	 */
-	public boolean checkInvariantSufficientMerge() {
-		MergeMethodModel method = model.getClassModel().getMergeMethod();
-
+	// Applying merge sequentially cannot violate the invariant.
+	// I(s0) && I(s1) && pre_merge(s0, s1) && post_merge(s0, s1, s0_new) => I(s0_new)
+	public boolean checkMergeSatisfiesInvariant() {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 		Expr s1 = model.getClassModel().getFreshConst("s1");
-		Expr s2 = model.getClassModel().getFreshConst("s2");
+		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
 
-		Expr[] quantified = new Expr[] { s0, s1, s2 };
-
-		BoolExpr inner =
+		BoolExpr property =
 				ctx.mkImplies(
 						ctx.mkAnd(
 								model.getInvariant().apply(s0),
 								model.getInvariant().apply(s1),
 								model.getMergePrecondition().apply(s0, s1),
-								model.getMergePostcondition().apply(s0, s1, s2)
+								model.getMergePostcondition().apply(s0, s1, s0_new)
 						),
-						model.getInvariant().apply(s2)
+						model.getInvariant().apply(s0_new)
 				);
 
-		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
-
-		boolean result = checkValidity(formula);
-		return result;
+		return checkValidity(property);
 	}
 
+	/* Concurrent properties (i.e. predicates for mergability) */
 
-	/**
-	 *
-	 * I(s0) & pre_m(s0) & post_m(s0, s1, res) => pre_merge(s0, s1)
-	 */
-	public boolean checkConcurrentStateMerge(MethodBinding binding) {
-		MethodModel method = model.getClassModel().getMethod(binding)
-				.orElseThrow(() -> new IllegalArgumentException("method not in class: "+ binding));
-
-		List<Expr> quantifiedVars = Lists.newLinkedList();
-
+	// The initial state has to be mergable.
+	// init(s0) ==> pre_merge(s0, s0)
+	public boolean checkInitialSatisfiesMergability() {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
-		Expr s1 = model.getClassModel().getFreshConst("s1");
-		Expr res = method.getFreshResultConst().orElse(null);
 
-		quantifiedVars.add(s0);
-		quantifiedVars.add(s1);
-		if (res != null) quantifiedVars.add(res);
-		for(ArgumentModel arg : method.getArguments()) {
-			quantifiedVars.add(arg.getConst());
-		}
-
-		Expr[] quantified = new Expr[quantifiedVars.size()];
-		quantifiedVars.toArray(quantified);
-
-		BoolExpr inner =
+		BoolExpr property =
 				ctx.mkImplies(
-						ctx.mkAnd(
-								model.getInvariant().apply(s0),
-								model.getPrecondition(binding).apply(s0),
-								model.getPostcondition(binding).apply(s0, s1, res)
-						),
-						model.getMergePrecondition().apply(s0, s1)
+						model.getInitialCondition().apply(s0),
+						model.getMergePrecondition().apply(s0 ,s0)
 				);
 
-		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
-
-		boolean result = checkValidity(formula);
-		return result;
+		return checkValidity(property);
 	}
 
 
-	/**
-	 *
-	 * pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, res) => pre_merge(s0_new, s1)
-	 */
-	public boolean checkConcurrentStateMerge2(MethodBinding binding) {
-		MethodModel method = model.getClassModel().getMethod(binding)
-				.orElseThrow(() -> new IllegalArgumentException("method not in class: "+ binding));
 
-		List<Expr> quantifiedVars = Lists.newLinkedList();
-
+	// Applying a method does not violate the mergability.
+	// If this property is violated then the method can not be executed concurrently.
+	// pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, res) => pre_merge(s0_new, s1)
+	public boolean checkMethodSatisfiesMergability(MethodBinding binding) {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 		Expr s1 = model.getClassModel().getFreshConst("s1");
 		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
-		Expr res = method.getFreshResultConst().orElse(null);
 
-		quantifiedVars.add(s0);
-		quantifiedVars.add(s1);
-		quantifiedVars.add(s0_new);
-		if (res != null) quantifiedVars.add(res);
-		for(ArgumentModel arg : method.getArguments()) {
-			quantifiedVars.add(arg.getConst());
-		}
-
-		Expr[] quantified = new Expr[quantifiedVars.size()];
-		quantifiedVars.toArray(quantified);
-
-		BoolExpr inner =
+		BoolExpr property =
 				ctx.mkImplies(
 						ctx.mkAnd(
 								model.getPrecondition(binding).apply(s0),
 								model.getMergePrecondition().apply(s0, s1),
-								model.getPostcondition(binding).apply(s0, s0_new, res)
+								model.getPostcondition(binding).apply(s0, s0_new, null)
 						),
 						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
-		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
+		return checkValidity(property);
+	}
 
-		boolean result = checkValidity(formula);
-		return result;
+	// Applying merge does not violate the mergability.
+	// pre_merge(s0, s1) & post_merge(s0, s1, s0_new) => pre_merge(s0_new, s1)
+	public boolean checkMergeSatisfiesMergability() {
+		Expr s0 = model.getClassModel().getFreshConst("s0");
+		Expr s1 = model.getClassModel().getFreshConst("s1");
+		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
+
+		BoolExpr property =
+				ctx.mkImplies(
+						ctx.mkAnd(
+								model.getMergePrecondition().apply(s0, s1),
+								model.getMergePostcondition().apply(s0, s1, s0_new)
+						),
+						model.getMergePrecondition().apply(s0_new, s1)
+				);
+
+		return checkValidity(property);
 	}
 
 

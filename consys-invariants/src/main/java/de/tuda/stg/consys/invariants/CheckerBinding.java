@@ -1,9 +1,9 @@
 package de.tuda.stg.consys.invariants;
 
 import com.microsoft.z3.Context;
-import de.tuda.stg.consys.invariants.subset.PropertyModel;
+import de.tuda.stg.consys.invariants.subset.ClassProperties;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ConstraintModel;
+import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
@@ -15,13 +15,11 @@ import java.nio.file.Paths;
  * @author Mirko Köhler
  */
 public class CheckerBinding {
-
     static {
         loadZ3Libs();
     }
 
     private final Context ctx;
-
 
     public CheckerBinding() {
         this.ctx = new Context();
@@ -53,48 +51,29 @@ public class CheckerBinding {
 
 
     public void check(JmlTypeDeclaration jmlClass) {
-
         // Parse the z3 model from AST.
-        ClassModel scope = new ClassModel(ctx, jmlClass);
-        ConstraintModel model = new ConstraintModel(ctx, scope);
+        ClassModel model = new ClassModel(ctx, jmlClass);
+        ClassConstraints constraints = new ClassConstraints(ctx, model);
 
-        System.out.println(model);
+        System.out.println(constraints);
 
         // Check the properties
-        PropertyModel property = new PropertyModel(ctx, model);
-        scope.getMethods().forEach(m -> {
-            boolean r1 = property.checkInvariantSufficiency(m.getBinding());
-            System.out.println("[InvSuff] " + m + ": " + r1);
+        ClassProperties properties = new ClassProperties(ctx, constraints);
+        System.out.println("--- Class properties for " + model.getClassName());
+        System.out.println("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
+        System.out.println("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());
+        System.out.println("---");
+        System.out.println("merge satisfies invariant: " + properties.checkMergeSatisfiesInvariant());
+        System.out.println("merge satisfies mergability: " + properties.checkMergeSatisfiesMergability());
+        System.out.println("---");
+        model.getMethods().forEach(m -> {
+            System.out.println("- for method " + m);
 
-            boolean r3 = property.checkConcurrentStateMerge(m.getBinding());
-            System.out.println("[Concurrent] " + m + ": " + r3);
+            boolean r1 = properties.checkMethodSatisfiesInvariant(m.getBinding());
+            System.out.println("  satisfies invariant: " + r1);
 
-            boolean r4 = property.checkConcurrentStateMerge2(m.getBinding());
-            System.out.println("[Concurrent2] " + m + ": " + r4);
+            boolean r2 = properties.checkMethodSatisfiesMergability(m.getBinding());
+            System.out.println("  satisfies mergability: " + r2);
         });
-
-        boolean r2 = property.checkInvariantSufficientMerge();
-        System.out.println("[MergeSuff] " + r2);
-
-//          boolean r2 = property.checkMergeIdempotency();
-//          System.out.println("[MergeIdem] " + r2);
-
-
-//          clazz.traverse(generator, clazz.scope);
-//          // visit class as JmlTypeDeclaration explicitly to get the invariant
-//          // otherwise, only fields and methods would be added without getting the invariant
-//          generator.visit((JmlTypeDeclaration) clazz, clazz.scope);
-//          InternalClass result = generator.getResult();
-//
-//          // check if sequential execution and the must have properties of the merge function hold
-//          System.out.println("Prerequisities okay?: " + Z3Checker.checkPreRequisities(result));
-//
-//          // check if weak consistency is applicable to all methods
-//          System.out.println(
-//              "Weak consistency possible for all methods?: "
-//                  + Z3Checker.checkWeakConsistencyForMethods(result));
-//
-//          // reset visitor to prepare for the next class
-//          generator.reset();
     }
 }

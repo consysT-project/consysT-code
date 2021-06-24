@@ -5,7 +5,7 @@ import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
-import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.z3_model.*;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.ast.*;

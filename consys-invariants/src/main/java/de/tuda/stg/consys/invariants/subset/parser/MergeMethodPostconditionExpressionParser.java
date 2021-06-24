@@ -25,7 +25,7 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 	 * @param thisConst   Substitute all `this` references with the given const. The const needs to have
 	 */
 	public MergeMethodPostconditionExpressionParser(Context ctx, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
-		super(ctx, classModel, methodModel, thisConst, oldConst, Optional.empty());
+		super(ctx, classModel, methodModel, thisConst, oldConst, null);
 		this.otherConst = otherConst;
 	}
 

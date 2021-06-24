@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
@@ -13,15 +14,14 @@ import org.jmlspecs.jml4.ast.JmlSingleNameReference;
  */
 public class MethodExpressionParser extends ClassExpressionParser {
 
-	protected final MethodModel methodModel;
-
+	protected final AbstractMethodModel<?> methodModel;
 
 	/**
 	 * @param ctx
 	 * @param classModel
 	 * @param thisConst  Substitute all `this` references with the given const. The const needs to have
 	 */
-	public MethodExpressionParser(Context ctx, ClassModel classModel, MethodModel methodModel, Expr thisConst) {
+	public MethodExpressionParser(Context ctx, ClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst) {
 		super(ctx, classModel, thisConst);
 		this.methodModel = methodModel;
 	}
@@ -32,10 +32,4 @@ public class MethodExpressionParser extends ClassExpressionParser {
 				.map(ArgumentModel::getConst)
 				.orElseGet(() -> super.parseJmlSingleReference(jmlSingleNameReference));
 	}
-
-
-
-
-
-
 }

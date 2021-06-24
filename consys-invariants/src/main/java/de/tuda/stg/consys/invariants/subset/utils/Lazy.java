@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.subset;
+package de.tuda.stg.consys.invariants.subset.utils;
 
 import java.util.function.Supplier;
 

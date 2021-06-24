@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.Lazy;
+import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 
 public class ArgumentModel extends VariableModel<Argument> {

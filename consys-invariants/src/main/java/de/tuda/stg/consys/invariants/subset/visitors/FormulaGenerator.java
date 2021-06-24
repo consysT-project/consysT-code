@@ -4,7 +4,7 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
 import de.tuda.stg.consys.invariants.subset.Z3Checker;
-import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalArray;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalVar;

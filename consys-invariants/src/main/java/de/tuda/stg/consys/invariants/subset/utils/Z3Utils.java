@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.subset.model;
+package de.tuda.stg.consys.invariants.subset.utils;
 
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Sort;
@@ -25,7 +25,7 @@ public class Z3Utils {
 	 * Calls the correct visit method for the concrete type binding and returns the resulting Z3 Sort that describes
 	 * the same type.
 	 * @param typeBinding the type binding to translate
-	 * @return the translated Z3 Sort, or null if the typeBinding is void.
+	 * @return the translated Z3 Sort, or empty if the typeBinding is void.
 	 */
 	public static Optional<Sort> typeBindingToSort(Context ctx, TypeBinding typeBinding) {
 		if (typeBinding instanceof BaseTypeBinding) {

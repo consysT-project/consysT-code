@@ -5,29 +5,38 @@ public class BankAccountCRDT {
 
 
     /* Fields */
-    // Virtual fields that can be accessed in constraints with `this`.
-    public final int[] incs = new int[numOfReplicas];
-    public final int[] decs = new int[numOfReplicas];
+    // Virtual fields that can be accessed in constraints with `this` or using normal field references.
+    public final int[] incs;
+    public final int[] decs;
     public int replicaId;
 
 
-
     /* Invariants */
-    /*@
-    @ public invariant (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 0;
-    @ public invariant (replicaId >= 0) && (replicaId < numOfReplicas);
-    @*/
+    // Invariant definitions can use constants and fields.
+    //@ public invariant (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 0;
 
 
-    /*@
-    @ requires id >= 0 && id < numOfReplicas;
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0 && decs[i] == 0);
-    @ ensures replicaId == id;
-    @*/
+    /* Constructors */
+    // Constructors define the initial state of an object.
+    //@ requires id >= 0 && id < numOfReplicas;
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0 && decs[i] == 0);
+    //@ ensures replicaId == id;
     public BankAccountCRDT(int id) {
-        //super();
+        if (!(id >= 0 && id < numOfReplicas))
+            throw new IllegalArgumentException("id not in range.");
+
+        this.incs = new int[numOfReplicas];
+        this.decs = new int[numOfReplicas];
         this.replicaId = id;
     }
+
+
+    /* Methods */
+    // Methods define the interface for a replicated object.
+    // Constraints on methods can use fields, constants, and method parameters.
+    // Methods need an @assignable clause which specifies the fields that can change.
+    // \old in postconditions defines the state before the method call.
+    // \result in postconditions defines the return value of the method.
 
     //@ assignable replicaId;
     //@ ensures replicaId == id;
@@ -43,10 +52,8 @@ public class BankAccountCRDT {
         }
     }
 
-    /*@
-    @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]);
-    @*/
+    //@ assignable \nothing;
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]);
     public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
@@ -55,10 +62,8 @@ public class BankAccountCRDT {
         return res;
     }
 
-    /*@
-    @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
-    @*/
+    //@ assignable \nothing;
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
     public int sumDecs() {
         int result = 0;
         for (int dec : decs) {
@@ -67,34 +72,36 @@ public class BankAccountCRDT {
         return result;
     }
 
-    /*@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
-    @ assignable \nothing;
-    @*/
+    //@ assignable \nothing;
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
     public int getValue() {
         return sumIncs() - sumDecs();
     }
 
 
-
-    /*@
-    @ requires val >= 0;
-    @ assignable incs[replicaId];
-    @ ensures incs[replicaId] == \old(incs[replicaId]) + val;
-    @*/
+    //@ requires val >= 0;
+    //@ assignable incs[replicaId];
+    //@ ensures incs[replicaId] == \old(incs[replicaId]) + val;
     public void deposit(int val) {
         incs[replicaId] = incs[replicaId] + val;
     }
 
-    /*@
-    @ requires val >= 0;
-    @ requires  (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= val;
-    @ assignable decs[replicaId];
-    @ ensures decs[replicaId] == \old(decs[replicaId]) + val;
-    @*/
+
+    //@ requires val >= 0;
+    //@ requires  (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= val;
+    //@ assignable decs[replicaId];
+    //@ ensures decs[replicaId] == \old(decs[replicaId]) + val;
     public void withdraw(int val) {
+        if (val > getValue())
+            throw new IllegalArgumentException("not enough balance to withdraw");
+
         decs[replicaId] = decs[replicaId] + val;
     }
 
+
+    /* Merge method */
+    // Merge defines the conflict resolution of replicated objects.
+    // Constraints can use fields, constants, and the other parameter.
     /*@
     @ requires ((\sum int i; i >= 0 && i < numOfReplicas; incs[i] >= other.incs[i] ? incs[i] : other.incs[i] )
              - (\sum int i; i >= 0 && i < numOfReplicas; decs[i] >= other.decs[i] ? decs[i] : other.decs[i] )) >= 0;
@@ -105,8 +112,8 @@ public class BankAccountCRDT {
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {
-            incs[i] = incs[i] > other.incs[i] ? incs[i] : other.incs[i];
-            decs[i] = decs[i] > other.decs[i] ? decs[i] : other.decs[i];
+            incs[i] = Math.max(incs[i], other.incs[i]);
+            decs[i] = Math.max(decs[i], other.decs[i]);
         }
     }
 }

@@ -1,32 +1,85 @@
-package de.tuda.stg.consys.invariants.subset.model;
+package de.tuda.stg.consys.invariants.subset;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.model.*;
 import de.tuda.stg.consys.invariants.subset.parser.*;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.jmlspecs.jml4.ast.JmlMethodSpecification;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class ConstraintModel {
+public class ClassConstraints {
 
 	private final Context ctx;
 	private final ClassModel classModel;
 
+	/** The invariant of the class */
 	private final InvariantModel invariant;
+	/** The initial predicate of the class */
+	private final InitialConditionModel initial;
 
+	/** Method preconditions */
 	private final Map<MethodBinding, PreconditionModel> preconditions;
+	/** Method postconditions */
 	private final Map<MethodBinding, PostconditionModel> postconditions;
 
+	/** Merge precondtion */
 	private final MergePreconditionModel mergePrecondition;
+	/** Merge postcondition */
 	private final MergePostconditionModel mergePostcondition;
 
-	public ConstraintModel(Context ctx, ClassModel classModel) {
+
+	/* Helper classes for predicate models. */
+	public static class InvariantModel extends Z3Predicate1 {
+		InvariantModel(Expr thisConst, Expr body) {
+			super("I", thisConst, body);
+		}
+	}
+
+	public static class InitialConditionModel extends Z3Predicate1 {
+		InitialConditionModel(Expr thisConst, Expr body) {
+			super("init", thisConst, body);
+		}
+	}
+
+	public static class PreconditionModel extends Z3Predicate1 {
+		PreconditionModel(Expr thisConst, Expr body) {
+			super("pre", thisConst, body);
+		}
+	}
+
+	public static class PostconditionModel extends Z3Predicate3 {
+		PostconditionModel(Expr oldConst, Expr thisConst, Expr resultConst, Expr body) {
+			super("post", oldConst, thisConst, resultConst, body);
+		}
+	}
+
+	public static class MergePreconditionModel extends Z3Predicate2 {
+		MergePreconditionModel(Expr thisConst, Expr otherConst, Expr body) {
+			super("pre_merge", thisConst, otherConst, body);
+		}
+	}
+
+	public static class MergePostconditionModel extends Z3Predicate3 {
+		MergePostconditionModel(Expr oldConst, Expr otherConst, Expr thisConst, Expr body) {
+			super("post_merge", oldConst, otherConst, thisConst, body);
+		}
+	}
+
+
+
+
+	public ClassConstraints(Context ctx, ClassModel classModel) {
 		this.ctx = ctx;
 		this.classModel = classModel;
 
@@ -38,7 +91,10 @@ public class ConstraintModel {
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
 		invariant = new InvariantModel(invariantVar, invariantExpr);
 
-		// Setup the pre/postconditions
+		// Setup the initial condition
+		initial = handleInitialConditions(classModel);
+
+		// Setup the method pre/postconditions
 		preconditions = Maps.newHashMap();
 		postconditions = Maps.newHashMap();
 
@@ -54,8 +110,24 @@ public class ConstraintModel {
 
 	}
 
+	private InitialConditionModel handleInitialConditions(ClassModel classModel) {
+		Expr thisConst = ctx.mkFreshConst("s", classModel.getClassSort());
+
+		List<Expr> initialConditions = Lists.newLinkedList();
+		for (var constructor : classModel.getConstructors()) {
+			var preParser = new MethodPreconditionExpressionParser(ctx, classModel, constructor, thisConst);
+			var preExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPrecondition());
+			var postExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPostcondition());
+
+			initialConditions.add(ctx.mkImplies(preExpr, postExpr));
+		}
+
+		var initialCondition = ctx.mkAnd(initialConditions.toArray(Expr[]::new));
+		return new InitialConditionModel(thisConst, initialCondition);
+	}
+
 	private void handlePrecondition(MethodModel methodModel) {
-		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
+		var specification = methodModel.getDecl().getSpecification();
 
 		Expr thisConst = ctx.mkFreshConst("s", classModel.getClassSort());
 		var parser = new MethodPreconditionExpressionParser(ctx, classModel, methodModel, thisConst);
@@ -94,7 +166,7 @@ public class ConstraintModel {
 		// Var for `this` references
 		Expr thisConst = ctx.mkFreshConst("s_new", classModel.getClassSort());
 		// Var for \result references
-		Optional<Expr> resultConst = methodModel.getFreshResultConst();
+		Expr resultConst = methodModel.getFreshResultConst();
 
 		// Parse the postcondition from JML @ensures specification
 		var parser = new MethodPostconditionExpressionParser(ctx, classModel, methodModel, thisConst, oldConst, resultConst);
@@ -115,6 +187,8 @@ public class ConstraintModel {
 	public InvariantModel getInvariant() {
 		return invariant;
 	}
+
+	public InitialConditionModel getInitialCondition() { return initial; }
 
 	public MergePreconditionModel getMergePrecondition() {
 		return mergePrecondition;
@@ -140,6 +214,7 @@ public class ConstraintModel {
 	public String toString() {
 		return "Class" + classModel.getClassName() + "====\n"
 				+ "Invariant ====\n" + getInvariant() + "\n"
+				+ "Initial ====\n" + getInitialCondition() + "\n"
 				+ "Preconditions ====\n" + preconditions.entrySet().stream().map(entry -> String.valueOf(entry.getKey().selector) + ": " + entry.getValue() + "\n").collect(Collectors.joining())
 				+ "Postconditions ====\n" + postconditions.entrySet().stream().map(entry -> String.valueOf(entry.getKey().selector) + ": " + entry.getValue() + "\n").collect(Collectors.joining())
 				+ "Merge Precondition ====\n" +  getMergePrecondition()  + "\n"

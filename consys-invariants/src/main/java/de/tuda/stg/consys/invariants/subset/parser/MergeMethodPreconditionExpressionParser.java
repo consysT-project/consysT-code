@@ -38,6 +38,7 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 		return super.parseExpression(expression);
 	}
 
+	@Override
 	public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
 		Argument mergeArg = getMergeMethod().getArgument();
 
@@ -65,6 +66,4 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 	public MergeMethodModel getMergeMethod() {
 		return (MergeMethodModel) methodModel;
 	}
-
-
 }

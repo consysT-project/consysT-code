@@ -6,6 +6,7 @@ import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
+import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
@@ -22,7 +23,7 @@ import java.util.Optional;
 public class MethodPostconditionExpressionParser extends MethodExpressionParser {
 
 	private Expr oldConst;
-	private Expr resultConst; // Can be null.
+	private Expr resultConst; // Can be null, if method has no result.
 
 	/**
 	 * @param ctx
@@ -30,11 +31,11 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	 * @param methodModel
 	 * @param thisConst   Substitute all `this` references with the given const. The const needs to have
 	 */
-	public MethodPostconditionExpressionParser(Context ctx, ClassModel classModel, MethodModel methodModel, Expr thisConst, Expr oldConst, Optional<Expr> resultConst) {
+	public MethodPostconditionExpressionParser(Context ctx, ClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst, Expr oldConst, Expr resultConst) {
 		super(ctx, classModel, methodModel, thisConst);
 
 		this.oldConst = oldConst;
-		this.resultConst = resultConst.orElse(null);
+		this.resultConst = resultConst;
 	}
 
 	@Override
@@ -61,7 +62,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	}
 
 	public Expr parseJmlResultReference(JmlResultReference jmlResultReference) {
-		if (resultConst == null)
+		if (resultConst == null || methodModel.returnsVoid())
 			throw new IllegalArgumentException("\\result can not be used when method does return void.");
 
 		return resultConst;

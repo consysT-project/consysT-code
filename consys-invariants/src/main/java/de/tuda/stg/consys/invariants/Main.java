@@ -1,20 +1,10 @@
 package de.tuda.stg.consys.invariants;
 
-import com.microsoft.z3.Context;
-import de.tuda.stg.consys.invariants.subset.PropertyModel;
-import de.tuda.stg.consys.invariants.subset.model.ConstraintModel;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
-import de.tuda.stg.consys.invariants.subset.Z3Checker;
-import de.tuda.stg.consys.invariants.subset.visitors.ModelGenerator;
 
-import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Map;
 
 /**
  * This class represents the starting point of the whole analysis. The analysis consists of the
@@ -34,6 +24,10 @@ public class Main {
             Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java")
     };
 
+    runChecker(sources);
+  }
+
+  public static void runChecker(Path[] sources) {
     // Compile the file to ASTs
     CompilerBinding compiler = new CompilerBinding();
     TypeDeclaration[] declarations = compiler.compile(sources);

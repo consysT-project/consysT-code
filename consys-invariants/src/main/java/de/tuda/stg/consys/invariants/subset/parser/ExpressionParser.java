@@ -5,6 +5,9 @@ import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 
+/**
+ * Super class of parsers for JML constraints.
+ */
 public abstract class ExpressionParser {
 
 	public Expr parseExpression(Expression expression) {

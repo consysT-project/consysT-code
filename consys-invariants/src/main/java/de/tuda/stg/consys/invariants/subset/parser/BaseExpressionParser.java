@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
-import de.tuda.stg.consys.invariants.subset.model.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalScope;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.JmlArrayReference;
