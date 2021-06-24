@@ -1,12 +1,16 @@
 package de.tuda.stg.consys.invariants.subset;
 
+import com.google.common.collect.Lists;
 import com.microsoft.z3.*;
+import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
 import de.tuda.stg.consys.invariants.subset.model.ConstraintModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalClass;
 import de.tuda.stg.consys.invariants.subset.z3_model.InternalMethod;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
+
+import java.util.List;
 
 public class PropertyModel {
 
@@ -190,11 +194,21 @@ public class PropertyModel {
 		MethodModel method = model.getClassModel().getMethod(binding)
 				.orElseThrow(() -> new IllegalArgumentException("method not in class: "+ binding));
 
+		List<Expr> quantifiedVars = Lists.newLinkedList();
+
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 		Expr s1 = model.getClassModel().getFreshConst("s1");
 		Expr res = method.getFreshResultConst().orElse(null);
 
-		Expr[] quantified = res == null ? new Expr[] { s0, s1 } : new Expr[] { s0, s1, res };
+		quantifiedVars.add(s0);
+		quantifiedVars.add(s1);
+		if (res != null) quantifiedVars.add(res);
+		for(ArgumentModel arg : method.getArguments()) {
+			quantifiedVars.add(arg.getConst());
+		}
+
+		Expr[] quantified = new Expr[quantifiedVars.size()];
+		quantifiedVars.toArray(quantified);
 
 		BoolExpr inner =
 				ctx.mkImplies(
@@ -204,6 +218,49 @@ public class PropertyModel {
 								model.getPostcondition(binding).apply(s0, s1, res)
 						),
 						model.getMergePrecondition().apply(s0, s1)
+				);
+
+		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
+
+		boolean result = checkValidity(formula);
+		return result;
+	}
+
+
+	/**
+	 *
+	 * pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, res) => pre_merge(s0_new, s1)
+	 */
+	public boolean checkConcurrentStateMerge2(MethodBinding binding) {
+		MethodModel method = model.getClassModel().getMethod(binding)
+				.orElseThrow(() -> new IllegalArgumentException("method not in class: "+ binding));
+
+		List<Expr> quantifiedVars = Lists.newLinkedList();
+
+		Expr s0 = model.getClassModel().getFreshConst("s0");
+		Expr s1 = model.getClassModel().getFreshConst("s1");
+		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
+		Expr res = method.getFreshResultConst().orElse(null);
+
+		quantifiedVars.add(s0);
+		quantifiedVars.add(s1);
+		quantifiedVars.add(s0_new);
+		if (res != null) quantifiedVars.add(res);
+		for(ArgumentModel arg : method.getArguments()) {
+			quantifiedVars.add(arg.getConst());
+		}
+
+		Expr[] quantified = new Expr[quantifiedVars.size()];
+		quantifiedVars.toArray(quantified);
+
+		BoolExpr inner =
+				ctx.mkImplies(
+						ctx.mkAnd(
+								model.getPrecondition(binding).apply(s0),
+								model.getMergePrecondition().apply(s0, s1),
+								model.getPostcondition(binding).apply(s0, s0_new, res)
+						),
+						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
 		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);

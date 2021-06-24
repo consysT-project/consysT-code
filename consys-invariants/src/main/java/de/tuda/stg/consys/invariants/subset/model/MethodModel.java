@@ -41,6 +41,10 @@ public class MethodModel {
 		return Z3Utils.findReferenceInArray(args, arg, model -> model.getDecl().binding);
 	}
 
+	public Iterable<ArgumentModel> getArguments() {
+		return Arrays.asList(args);
+	}
+
 	/**
 	 * Returns a fresh const with sort as the return type of this method, or
 	 * None if the return type is void.

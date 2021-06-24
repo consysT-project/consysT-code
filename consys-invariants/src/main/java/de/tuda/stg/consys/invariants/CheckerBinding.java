@@ -68,6 +68,9 @@ public class CheckerBinding {
 
             boolean r3 = property.checkConcurrentStateMerge(m.getBinding());
             System.out.println("[Concurrent] " + m + ": " + r3);
+
+            boolean r4 = property.checkConcurrentStateMerge2(m.getBinding());
+            System.out.println("[Concurrent2] " + m + ": " + r4);
         });
 
         boolean r2 = property.checkInvariantSufficientMerge();

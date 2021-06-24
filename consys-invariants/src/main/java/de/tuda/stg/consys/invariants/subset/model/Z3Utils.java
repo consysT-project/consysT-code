@@ -55,10 +55,10 @@ public class Z3Utils {
 					.orElseThrow(() -> new IllegalArgumentException("incompatible array element type in " + typeBinding));
 
 			// index type assumed to be integer
-			Sort indexType = Z3Checker.context.getIntSort();
+			Sort indexType = ctx.getIntSort();
 
 			// build array sort from index and element type
-			return Optional.of(Z3Checker.context.mkArraySort(indexType, elementType));
+			return Optional.of(ctx.mkArraySort(indexType, elementType));
 		} else {
 			throw new IllegalArgumentException("incompatible type " + typeBinding);
 		}
