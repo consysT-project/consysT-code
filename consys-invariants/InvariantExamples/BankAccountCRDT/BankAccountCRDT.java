@@ -74,7 +74,7 @@ public class BankAccountCRDT {
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
-    public int getValue() {
+    public /*@ pure */int getValue() {
         return sumIncs() - sumDecs();
     }
 

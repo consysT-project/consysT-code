@@ -3,14 +3,11 @@ package de.tuda.stg.consys.invariants.subset.utils;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.Symbol;
-import de.tuda.stg.consys.invariants.subset.Z3Checker;
 import org.eclipse.jdt.internal.compiler.ast.FieldReference;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
 import org.eclipse.jdt.internal.compiler.lookup.*;
-import org.jmlspecs.jml4.ast.JmlArrayTypeReference;
-import org.jmlspecs.jml4.ast.JmlSingleTypeReference;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -46,21 +43,31 @@ public class Z3Utils {
 				case 6: // void
 					return Optional.empty();
 				default:
-					throw new IllegalArgumentException("incompatible base type " + typeBinding);
+					//throw new IllegalArgumentException("incompatible base type " + typeBinding);
+					System.err.println("incompatible base type " + typeBinding);
+					return Optional.empty();
 			}
 		} else if (typeBinding instanceof ArrayBinding) {
 			ArrayBinding arrayBinding = (ArrayBinding) typeBinding;
 			// translate element type
-			Sort elementType = typeBindingToSort(ctx, arrayBinding.leafComponentType)
-					.orElseThrow(() -> new IllegalArgumentException("incompatible array element type in " + typeBinding));
+			Optional<Sort> elementType = typeBindingToSort(ctx, arrayBinding.leafComponentType);
 
-			// index type assumed to be integer
-			Sort indexType = ctx.getIntSort();
 
-			// build array sort from index and element type
-			return Optional.of(ctx.mkArraySort(indexType, elementType));
+			if (elementType.isEmpty()) {
+//				throw new IllegalArgumentException("incompatible array element type in " + typeBinding);
+				System.err.println("incompatible array element type in " + typeBinding);
+				return Optional.empty();
+			} else {
+				// index type assumed to be integer
+				Sort indexType = ctx.getIntSort();
+				// build array sort from index and element type
+				return Optional.of(ctx.mkArraySort(indexType, elementType.get()));
+			}
+
 		} else {
-			throw new IllegalArgumentException("incompatible type " + typeBinding);
+//			throw new IllegalArgumentException("incompatible type " + typeBinding);
+			System.err.println("incompatible type " + typeBinding);
+			return Optional.empty();
 		}
 	}
 

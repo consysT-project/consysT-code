@@ -1,22 +1,18 @@
 package de.tuda.stg.consys.invariants.subset;
 
-import com.google.common.collect.Lists;
-import com.microsoft.z3.*;
-import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
-import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
-import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import com.microsoft.z3.BoolExpr;
+import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-
-import java.util.List;
 
 public class ClassProperties {
 
-	private final Context ctx;
+	private final Z3Binding smt;
 	private final ClassConstraints model;
 
 
-	public ClassProperties(Context ctx, ClassConstraints model) {
-		this.ctx = ctx;
+	public ClassProperties(Z3Binding smt, ClassConstraints model) {
+		this.smt = smt;
 		this.model = model;
 	}
 
@@ -30,12 +26,12 @@ public class ClassProperties {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 
 		BoolExpr property =
-				ctx.mkImplies(
+				smt.ctx.mkImplies(
 						model.getInitialCondition().apply(s0),
 						model.getInvariant().apply(s0)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 	// Applying a method sequentially cannot violate the invariant.
@@ -45,8 +41,8 @@ public class ClassProperties {
 		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
 
 		BoolExpr property =
-				ctx.mkImplies(
-						ctx.mkAnd(
+				smt.ctx.mkImplies(
+						smt.ctx.mkAnd(
 								model.getInvariant().apply(s0),
 								model.getPrecondition(binding).apply(s0),
 								model.getPostcondition(binding).apply(s0, s0_new, null)
@@ -54,7 +50,7 @@ public class ClassProperties {
 						model.getInvariant().apply(s0_new)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 	// Applying merge sequentially cannot violate the invariant.
@@ -65,8 +61,8 @@ public class ClassProperties {
 		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
 
 		BoolExpr property =
-				ctx.mkImplies(
-						ctx.mkAnd(
+				smt.ctx.mkImplies(
+						smt.ctx.mkAnd(
 								model.getInvariant().apply(s0),
 								model.getInvariant().apply(s1),
 								model.getMergePrecondition().apply(s0, s1),
@@ -75,7 +71,7 @@ public class ClassProperties {
 						model.getInvariant().apply(s0_new)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 	/* Concurrent properties (i.e. predicates for mergability) */
@@ -86,12 +82,12 @@ public class ClassProperties {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 
 		BoolExpr property =
-				ctx.mkImplies(
+				smt.ctx.mkImplies(
 						model.getInitialCondition().apply(s0),
 						model.getMergePrecondition().apply(s0 ,s0)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 
@@ -105,8 +101,8 @@ public class ClassProperties {
 		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
 
 		BoolExpr property =
-				ctx.mkImplies(
-						ctx.mkAnd(
+				smt.ctx.mkImplies(
+						smt.ctx.mkAnd(
 								model.getPrecondition(binding).apply(s0),
 								model.getMergePrecondition().apply(s0, s1),
 								model.getPostcondition(binding).apply(s0, s0_new, null)
@@ -114,7 +110,7 @@ public class ClassProperties {
 						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 	// Applying merge does not violate the mergability.
@@ -125,15 +121,15 @@ public class ClassProperties {
 		Expr s0_new = model.getClassModel().getFreshConst("s0_new");
 
 		BoolExpr property =
-				ctx.mkImplies(
-						ctx.mkAnd(
+				smt.ctx.mkImplies(
+						smt.ctx.mkAnd(
 								model.getMergePrecondition().apply(s0, s1),
 								model.getMergePostcondition().apply(s0, s1, s0_new)
 						),
 						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
-		return checkValidity(property);
+		return smt.isValid(property);
 	}
 
 
@@ -155,15 +151,15 @@ public class ClassProperties {
 //		Expr[] quantified = new Expr[] { s0, s1 };
 //
 //		BoolExpr inner =
-//				ctx.mkImplies(
-//						ctx.mkAnd(
+//				smt.ctx.mkImplies(
+//						smt.ctx.mkAnd(
 //								model.getInvariant().apply(s0),
 //								model.getMergePostcondition().apply(s0, s0, s1)
 //						),
-//						ctx.mkEq(s0, s1)
+//						smt.ctx.mkEq(s0, s1)
 //				);
 //
-//		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
+//		Expr formula = smt.ctx.mkForall(quantified, inner, 1, null, null, null, null);
 //
 //		boolean result = checkValidity(formula);
 //		return result;
@@ -187,15 +183,15 @@ public class ClassProperties {
 //		Expr[] quantified = new Expr[] { s0, s1 };
 //
 //		BoolExpr inner =
-//				ctx.mkImplies(
-//						ctx.mkAnd(
+//				smt.ctx.mkImplies(
+//						smt.ctx.mkAnd(
 //								model.getInvariant().apply(s0),
 //								model.getMergePostcondition().apply(s0, s1, s0)
 //						),
-//						ctx.mkEq(s0, s1)
+//						smt.ctx.mkEq(s0, s1)
 //				);
 //
-//		Expr formula = ctx.mkForall(quantified, inner, 1, null, null, null, null);
+//		Expr formula = smt.ctx.mkForall(quantified, inner, 1, null, null, null, null);
 //
 //		boolean result = checkValidity(formula);
 //		return result;
@@ -367,25 +363,7 @@ public class ClassProperties {
 
 
 
-	private boolean checkValidity(Expr<BoolSort> expr) {
 
-		Solver solver = ctx.mkSolver();
-		Status status = solver.check(ctx.mkNot(expr));
-
-		switch (status) {
-			case UNSATISFIABLE:
-				return true;
-			case SATISFIABLE:
-				return false;
-			case UNKNOWN:
-				//throw new IllegalStateException("solving expression lead to an error: " + expr);
-				System.err.println("Error solving " + expr);
-				return false;
-			default:
-				//Does not exist
-				throw new RuntimeException();
-		}
-	}
 
 
 }

@@ -1,15 +1,15 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
-import com.microsoft.z3.*;
+import com.microsoft.z3.ArraySort;
+import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
+import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ConstantModel;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
 import org.jmlspecs.jml4.ast.JmlMessageSend;
-
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 import java.util.Optional;
@@ -27,13 +27,11 @@ public class ClassExpressionParser extends BaseExpressionParser {
 
 	/**
 	 *
-	 * @param ctx
-	 * @param classModel
 	 * @param thisConst Substitute all `this` references with the given const. The const needs to have
 	 *                  the same sort as the class that is parsed.
 	 */
-	public ClassExpressionParser(Context ctx, ClassModel classModel, Expr thisConst) {
-		super(ctx);
+	public ClassExpressionParser(Z3Binding smt, ClassModel classModel, Expr thisConst) {
+		super(smt);
 
 		if (thisConst != null && !thisConst.getSort().equals(classModel.getClassSort()))
 			throw new IllegalArgumentException("the sort for `this` has to match the sort of the class");
@@ -85,7 +83,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		if (receiver.getSort().equals(classModel.getClassSort())) {
 			return classModel.getField(fieldReference)
 					.map(field -> field.getAccessor().apply(receiver))
-					.orElseThrow(() -> new WrongJMLArgumentsExpression(fieldReference));
+					.orElseThrow(() -> new WrongJMLArguments(fieldReference));
 		} else if (receiver.getSort() instanceof ArraySort) {
 			if ("length".equals(fieldName)) {
 				//TODO: How to handle array lengths?
@@ -130,7 +128,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 //			}
 //		}
 
-		throw new WrongJMLArgumentsExpression(jmlMessageSend);
+		throw new WrongJMLArguments(jmlMessageSend);
 	}
 
 

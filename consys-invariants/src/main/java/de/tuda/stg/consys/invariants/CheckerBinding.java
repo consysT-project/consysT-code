@@ -1,9 +1,9 @@
 package de.tuda.stg.consys.invariants;
 
-import com.microsoft.z3.Context;
+import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.ClassConstraints;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
@@ -19,10 +19,10 @@ public class CheckerBinding {
         loadZ3Libs();
     }
 
-    private final Context ctx;
+    private final Z3Binding smt;
 
     public CheckerBinding() {
-        this.ctx = new Context();
+        this.smt = new Z3Binding();
     }
 
     private static void loadLib(Path lib) {
@@ -52,11 +52,11 @@ public class CheckerBinding {
 
     public void check(JmlTypeDeclaration jmlClass) {
         // Parse the z3 model from AST.
-        ClassModel model = new ClassModel(ctx, jmlClass);
-        ClassConstraints constraints = new ClassConstraints(ctx, model);
+        ClassModel model = new ClassModel(smt, jmlClass);
+        ClassConstraints constraints = new ClassConstraints(smt, model);
 
         // Check the properties
-        ClassProperties properties = new ClassProperties(ctx, constraints);
+        ClassProperties properties = new ClassProperties(smt, constraints);
         System.out.println("--- Class properties for " + model.getClassName());
         System.out.println("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
         System.out.println("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());

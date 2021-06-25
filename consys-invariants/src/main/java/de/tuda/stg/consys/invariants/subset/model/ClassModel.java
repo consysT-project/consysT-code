@@ -1,10 +1,16 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.*;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
+import com.microsoft.z3.Expr;
+import com.microsoft.z3.FuncDecl;
+import com.microsoft.z3.Sort;
+import com.microsoft.z3.TupleSort;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
-import org.eclipse.jdt.internal.compiler.ast.*;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
+import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
+import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
+import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
@@ -12,11 +18,14 @@ import org.jmlspecs.jml4.ast.JmlConstructorDeclaration;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 public class ClassModel {
 
-	private final Context ctx;
+	private final Z3Binding smt;
 	// The underlying jml type for this declaration
 	private final JmlTypeDeclaration jmlType;
 
@@ -36,8 +45,8 @@ public class ClassModel {
 	private final TupleSort classSort;
 
 
-	public ClassModel(Context ctx, JmlTypeDeclaration jmlType) {
-		this.ctx = ctx;
+	public ClassModel(Z3Binding smt, JmlTypeDeclaration jmlType) {
+		this.smt = smt;
 		this.jmlType = jmlType;
 
 		/* Parse fields and constants */
@@ -53,16 +62,16 @@ public class ClassModel {
 				if (field.initialization == null)
 					throw new IllegalStateException("Constant value must be initialized directly for field " + field);
 
-				ExpressionParser parser = new BaseExpressionParser(ctx);
+				ExpressionParser parser = new BaseExpressionParser(smt);
 				Expr initialValue = parser.parseExpression(field.initialization);
 
-				classConstantsTemp.add(new ConstantModel(ctx, field, initialValue));
+				classConstantsTemp.add(new ConstantModel(smt, field, initialValue));
 
 			} else if (field.isStatic()) {
 				// Static fields are not supported
 				throw new IllegalStateException("Non-final static fields are unsupported.");
 			} else {
-				classFieldsTemp.add(new FieldModel(ctx, field, null /* accessor is initialized later. */));
+				classFieldsTemp.add(new FieldModel(smt, field, null /* accessor is initialized later. */));
 			}
 		}
 		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
@@ -75,12 +84,12 @@ public class ClassModel {
 		for (int i = 0; i < this.classFields.length; i++) {
 			FieldModel field = this.classFields[i];
 			fieldNames[i] = field.getName();
-			fieldSorts[i] = field.getSort();
+			fieldSorts[i] = field.getSort().orElseThrow(() -> new IllegalArgumentException("field type cannot be translated to z3: " + field));
 		}
 
-		this.classSort = ctx.mkTupleSort(
-				ctx.mkSymbol("state_" + getClassName()),
-				Z3Utils.mkSymbols(ctx, fieldNames), fieldSorts);
+		this.classSort = smt.ctx.mkTupleSort(
+				smt.ctx.mkSymbol("state_" + getClassName()),
+				Z3Utils.mkSymbols(smt.ctx, fieldNames), fieldSorts);
 
 		FuncDecl<?>[] accessors = classSort.getFieldDecls();
 		for (int i = 0; i < this.classFields.length; i++) {
@@ -99,7 +108,7 @@ public class ClassModel {
 			if (method.isClinit()) {
 				// TODO: Handle clinit
 			} else if (method.isConstructor()) {
-				classConstructors.add(new ConstructorModel(ctx, (JmlConstructorDeclaration) method));
+				classConstructors.add(new ConstructorModel(smt, this, (JmlConstructorDeclaration) method));
 			} else if (method.isStatic() || method.isAbstract()) {
 				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
 			} else if (method instanceof JmlMethodDeclaration) {
@@ -110,13 +119,13 @@ public class ClassModel {
 						if (mergeMethodTemp != null)
 							throw new IllegalArgumentException("double merge method: " + jmlMethod);
 
-						mergeMethodTemp = new MergeMethodModel(ctx, jmlMethod);
+						mergeMethodTemp = new MergeMethodModel(smt, this, jmlMethod);
 					} else {
 						System.err.println("WARNING! Method with name `merge` is not a valid merge method.");
-						classMethods.add(new MethodModel(ctx, jmlMethod));
+						classMethods.add(new MethodModel(smt, this, jmlMethod));
 					}
 				} else {
-					classMethods.add(new MethodModel(ctx, jmlMethod));
+					classMethods.add(new MethodModel(smt, this, jmlMethod));
 				}
 			} else {
 				//TODO: change to sensible defaults.
@@ -181,6 +190,6 @@ public class ClassModel {
 
 
 	public Expr getFreshConst(String name) {
-		return ctx.mkFreshConst(name, getClassSort());
+		return smt.ctx.mkFreshConst(name, getClassSort());
 	}
 }

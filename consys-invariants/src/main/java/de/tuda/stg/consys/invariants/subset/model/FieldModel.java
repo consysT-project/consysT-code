@@ -1,15 +1,15 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.Context;
 import com.microsoft.z3.FuncDecl;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
 
 public class FieldModel extends VariableModel<FieldDeclaration>{
 
 	private FuncDecl<?> accessor;
 
-	public FieldModel(Context ctx, FieldDeclaration fieldDeclaration, FuncDecl<?> accessor) {
-		super(ctx, fieldDeclaration);
+	public FieldModel(Z3Binding smt, FieldDeclaration fieldDeclaration, FuncDecl<?> accessor) {
+		super(smt, fieldDeclaration);
 		this.accessor = accessor;
 	}
 

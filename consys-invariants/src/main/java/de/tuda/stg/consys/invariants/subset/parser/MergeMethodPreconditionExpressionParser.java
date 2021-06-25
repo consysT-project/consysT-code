@@ -1,31 +1,23 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
-import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArgumentsExpression;
+import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
-import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.jmlspecs.jml4.ast.JmlQualifiedNameReference;
-import org.jmlspecs.jml4.ast.JmlQuantifiedExpression;
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 public class MergeMethodPreconditionExpressionParser extends MethodExpressionParser {
 
 	private final Expr otherConst;
 
-	/**
-	 * @param ctx
-	 * @param classModel
-	 * @param methodModel
-	 * @param thisConst   Substitute all `this` references with the given const. The const needs to have
-	 */
-	public MergeMethodPreconditionExpressionParser(Context ctx, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
-		super(ctx, classModel, methodModel, thisConst);
+	public MergeMethodPreconditionExpressionParser(Z3Binding smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
+		super(smt, classModel, methodModel, thisConst);
 		this.otherConst = otherConst;
 	}
 
@@ -57,7 +49,7 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 
 			return getClassModel().getField(fieldBinding)
 					.map(field -> field.getAccessor().apply(otherConst))
-					.orElseThrow(() -> new WrongJMLArgumentsExpression(jmlQualifiedNameReference));
+					.orElseThrow(() -> new WrongJMLArguments(jmlQualifiedNameReference));
 		}
 
 		throw new UnsupportedJMLExpression(jmlQualifiedNameReference);

@@ -2,11 +2,9 @@ package de.tuda.stg.consys.invariants;
 
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
-import org.eclipse.jdt.internal.compiler.batch.Main;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 

@@ -1,14 +1,31 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.Context;
+import com.microsoft.z3.FuncDecl;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.jmlspecs.jml4.ast.*;
 
 import java.util.Optional;
 
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
-	public MethodModel(Context ctx, JmlMethodDeclaration method) {
-		super(ctx, method);
+	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
+	private final FuncDecl<?> func;
+
+	public MethodModel(Z3Binding smt, ClassModel clazz, JmlMethodDeclaration method) {
+		super(smt, clazz, method);
+
+		var argSorts = getArgumentSorts();
+		var retSort = getReturnSort();
+
+		if (argSorts.isPresent() && retSort.isPresent()) {
+			func = smt.ctx.mkFreshFuncDecl(getName(), argSorts.get(), retSort.get());
+		} else {
+			func = null;
+		}
+	}
+
+	public Optional<FuncDecl<?>> getZ3FuncDecl() {
+		return Optional.ofNullable(func);
 	}
 
 	public Optional<JmlAssignableClause> getAssignableClause() {

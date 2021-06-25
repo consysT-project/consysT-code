@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.Context;
-import com.microsoft.z3.Expr;
+import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -13,26 +13,32 @@ import java.util.Optional;
 
 public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration> {
 
-	protected final Context ctx;
+	protected final Z3Binding smt;
+	protected final ClassModel clazz;
 	protected final Decl method;
 
 	protected final ArgumentModel[] args;
 
-	public AbstractMethodModel(Context ctx, Decl method) {
-		this.ctx = ctx;
+	public AbstractMethodModel(Z3Binding smt, ClassModel clazz, Decl method) {
+		this.smt = smt;
+		this.clazz = clazz;
 		this.method = method;
 
 		if (method.arguments == null) {
 			this.args = new ArgumentModel[0];
 		} else {
 			this.args = Arrays.stream(method.arguments)
-					.map(arg -> new ArgumentModel(ctx, arg))
+					.map(arg -> new ArgumentModel(smt, arg))
 					.toArray(ArgumentModel[]::new);
 		}
 	}
 
 	public Decl getDecl() {
 		return method;
+	}
+
+	public String getName() {
+		return String.valueOf(method.selector);
 	}
 
 	public MethodBinding getBinding() {
@@ -51,14 +57,20 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		return Arrays.asList(args);
 	}
 
-	/**
-	 * Returns a fresh const with sort as the return type of this method, or
-	 * None if the return type is void.
-	 */
-	public Expr getFreshResultConst() {
-		return Z3Utils.typeBindingToSort(ctx, method.binding.returnType)
-				.map(sort -> ctx.mkFreshConst("res", sort))
-				.orElseGet(() -> ctx.mkFreshConst("res", ctx.getIntSort()));
+
+	public Optional<Sort> getReturnSort() {
+		return Z3Utils.typeBindingToSort(smt.ctx, method.binding.returnType);
+	}
+
+	public Optional<Sort[]> getArgumentSorts() {
+		var sorts = new Sort[args.length];
+		for (int i = 0; i < args.length; i++) {
+			var sort = args[i].getSort();
+			if (sort.isEmpty()) return Optional.empty();
+			sorts[i] = sort.get();
+		}
+
+		return Optional.of(sorts);
 	}
 
 	@Override

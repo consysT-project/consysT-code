@@ -1,18 +1,14 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.Context;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
-import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 public class MergeMethodModel extends MethodModel {
 
-	public MergeMethodModel(Context ctx, JmlMethodDeclaration method) {
-		super(ctx, method);
+	public MergeMethodModel(Z3Binding smt, ClassModel clazz, JmlMethodDeclaration method) {
+		super(smt, clazz, method);
 
 		if (args.length != 1) {
 			throw new IllegalArgumentException("merge methods needs exactly one argument, was: " + args.length);

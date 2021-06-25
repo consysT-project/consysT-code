@@ -1,14 +1,13 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
-import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 
 public class MethodPreconditionExpressionParser extends MethodExpressionParser {
 
-	public MethodPreconditionExpressionParser(Context ctx, ClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst) {
-		super(ctx, classModel, methodModel, thisConst);
+	public MethodPreconditionExpressionParser(Z3Binding smt, ClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst) {
+		super(smt, classModel, methodModel, thisConst);
 	}
 }
