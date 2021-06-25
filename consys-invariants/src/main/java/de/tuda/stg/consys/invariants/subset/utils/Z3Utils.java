@@ -102,6 +102,9 @@ public class Z3Utils {
 			binding = ref.fieldBinding();
 		}
 
+		if (binding == null)
+			return Optional.empty();
+
 		return findBindingInArray(arr, binding, getBinding);
 	}
 
