@@ -33,16 +33,19 @@ public class BankAccount {
     @ ensures timestamp == \old(timestamp) + 1;
     @*/
     public void withdraw(int w) {
+        if (value - w < 0)
+            throw new IllegalArgumentException("not enough money on account");
+
         value = value - w;
         timestamp = timestamp + 1;
     }
 
     /*@
-    @ requires id != other.id;
     @ ensures (\old(timestamp) > other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
     @ ensures (\old(timestamp) == other.timestamp) && (id < other.id) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) == other.timestamp) && (id > other.id) ==> (value == other.value) && (timestamp == other.timestamp);
+    ensures (\old(timestamp) == other.timestamp) && (id == other.id) ==> (value == other.value) && (timestamp == other.timestamp) && (value == \old(value)) && (timestamp == \old(timestamp));
     @*/
     public void merge(BankAccount other) {
         if (timestamp > other.timestamp || (timestamp == other.timestamp && id < other.id)) {
