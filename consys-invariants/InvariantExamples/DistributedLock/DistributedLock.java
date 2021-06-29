@@ -7,7 +7,7 @@ class DistributedLock {
      @ public invariant (\exists int k; k>=0 && k<numOfReplicas; lock[k]);
      @*/
 
-    final int numOfReplicas = 10;
+    public static final int numOfReplicas = 4;
     final int replicaId = 3;
 
     boolean[] lock;
@@ -15,24 +15,36 @@ class DistributedLock {
 
     /*@
     @ ensures lock[0];
-    @ ensures lock.length == 10;
     @ ensures (\forall int init; init>=1 && init<numOfReplicas; lock[init] == false);
     @ ensures timestamp == 0;
     @*/
-    DistributedLock() {}
+    DistributedLock() {
+        lock = new boolean[numOfReplicas];
+        lock[0] = true;
+        for(int i = 0; i < numOfReplicas; ++i)
+            lock[i] = false;
+        timestamp = 0;
+    }
 
     /*@
     @ requires lock[replicaId] == true;
+    @ assignable timestamp, lock[replicaId], lock[otherReplica];
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures lock[replicaId] == false;
     @ ensures lock[otherReplica] == true;
     @ ensures (\forall int transInd; transInd>=0 && transInd<numOfReplicas &&
                 transInd!=replicaId && transInd!=otherReplica; lock[transInd] == \old(lock[transInd]));
     @*/
-    void transfer(int otherReplica) {}
+    void transfer(int otherReplica) {
+        if (!(lock[replicaId]))
+            throw new Exception("The lock is not set to this object.");
+        lock[replicaId] = false;
+        lock[otherReplica] = true;
+        timestamp += 1;
+    }
 
     /*@
-    @ requires (\old(timestamp) == other.timestamp) ==> (\forall int m0; m0>=0 && m0<NumOfReplicas; \old(lock[m0])==other.lock[m0]);
+    @ requires (\old(timestamp) == other.timestamp) ==> (\forall int m0; m0>=0 && m0<numOfReplicas; \old(lock[m0])==other.lock[m0]);
     @ requires \old(lock[replicaId]) ==> (\old(timestamp) >= other.timestamp);
 
     @ ensures (other.timestamp < \old(timestamp)) ==> 
@@ -43,5 +55,11 @@ class DistributedLock {
                 (timestamp == other.timestamp) && (timestamp == \old(timestamp)) &&
                 (\forall int m3; m3>=0 && m3<numOfReplicas; lock[m3] == \old(lock[m3]) && lock[m3] == other.lock[m3]);
     @*/
-    void merge(DistributedLock other) {}
+    void merge(DistributedLock other) {
+        if(this.timestamp < other.timestamp) {
+            timestamp = other.timestamp;
+            for(int i= 0; i < numOfReplicas; ++i)
+                lock[i] = other.lock[i];
+        }
+    }
 }
