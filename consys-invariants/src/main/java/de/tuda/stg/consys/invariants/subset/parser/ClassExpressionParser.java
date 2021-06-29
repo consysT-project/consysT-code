@@ -12,6 +12,7 @@ import org.jmlspecs.jml4.ast.JmlFieldReference;
 import org.jmlspecs.jml4.ast.JmlMessageSend;
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -48,6 +49,10 @@ public class ClassExpressionParser extends BaseExpressionParser {
 
 		if (expression instanceof JmlFieldReference) {
 			return parseJmlFieldReference((JmlFieldReference) expression);
+		}
+
+		if (expression instanceof JmlMessageSend) {
+			return parseJmlMessageSend((JmlMessageSend) expression);
 		}
 
 		return super.parseExpression(expression);
@@ -99,9 +104,29 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 *
 	 * @return the result expression of the called method if it has one, {@code null} otherwise
 	 */
-	public Expr visitJmlMessageSend(JmlMessageSend jmlMessageSend) {
+	public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
+
+		var methodModel = classModel.getMethod(jmlMessageSend.binding)
+				.orElseThrow(() -> new WrongJMLArguments(jmlMessageSend));
+
+		if (!methodModel.isZ3Usable()) {
+			throw new WrongJMLArguments(jmlMessageSend);
+		}
 
 
+		final Expr[] argExprs;
+		if (jmlMessageSend.arguments == null) {
+			argExprs = new Expr[0];
+		} else {
+			argExprs = Arrays.stream(jmlMessageSend.arguments)
+					.map(this::parseExpression)
+					.toArray(Expr[]::new);
+		}
+
+		var z3Func = methodModel.getZ3FuncDecl()
+				.orElseThrow(() -> new WrongJMLArguments(jmlMessageSend));
+
+		return smt.ctx.mkApp(z3Func, argExprs);
 
 //		Expr methodReturnValue = scope.getReturnValue(String.valueOf(jmlMessageSend.selector));
 //
@@ -127,8 +152,6 @@ public class ClassExpressionParser extends BaseExpressionParser {
 //				return methodReturnValue.substitute(newVars, otherVars);
 //			}
 //		}
-
-		throw new WrongJMLArguments(jmlMessageSend);
 	}
 
 

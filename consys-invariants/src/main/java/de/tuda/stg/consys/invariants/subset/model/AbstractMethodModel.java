@@ -9,6 +9,7 @@ import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration> {
@@ -53,7 +54,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		return TypeBinding.VOID.equals(method.binding.returnType);
 	}
 
-	public Iterable<ArgumentModel> getArguments() {
+	public List<ArgumentModel> getArguments() {
 		return Arrays.asList(args);
 	}
 

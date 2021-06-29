@@ -1,9 +1,18 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
+import com.google.common.collect.Lists;
+import com.microsoft.z3.BoolExpr;
+import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
+import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import org.eclipse.jdt.internal.compiler.ast.Expression;
+import org.eclipse.jdt.internal.compiler.ast.NameReference;
+import org.eclipse.jdt.internal.compiler.ast.Reference;
+import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.jmlspecs.jml4.ast.*;
 
+import java.util.List;
 import java.util.Optional;
 
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
@@ -49,5 +58,20 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		}
 
 		return Optional.ofNullable(result);
+	}
+
+	/** Checks whether the method has an @assignable \nothing clause */
+	public boolean isPure() {
+		var maybeClause = getAssignableClause();
+		if (maybeClause.isEmpty()) {
+			// There is no assignable clause, so we have to assume that the method is not pure.
+			return false;
+		}
+		// The assignable clause is \nothing.
+		return maybeClause.get().expr.equals(JmlKeywordExpression.NOTHING);
+	}
+
+	public boolean isZ3Usable() {
+		return isPure() && getZ3FuncDecl().isPresent();
 	}
 }

@@ -21,10 +21,10 @@ public class Main {
   public static void main(String[] args) {
     // Set the source file
     Path[] sources = new Path[] {
-            // Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
+            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
            // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
           //  Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
-            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
+//            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
     };
 
     runChecker(sources);

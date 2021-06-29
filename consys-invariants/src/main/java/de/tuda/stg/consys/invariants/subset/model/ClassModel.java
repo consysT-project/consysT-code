@@ -113,6 +113,8 @@ public class ClassModel {
 				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
 			} else if (method instanceof JmlMethodDeclaration) {
 				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
+
+				//Check if the method is a merge method.
 				if ("merge".equals(String.valueOf(jmlMethod.selector))) {
 					if (jmlMethod.arguments.length == 1 && jmlMethod.arguments[0].binding.type.equals(jmlType.binding)
 							&& jmlMethod.binding.returnType.equals(TypeBinding.VOID)) {
@@ -120,13 +122,17 @@ public class ClassModel {
 							throw new IllegalArgumentException("double merge method: " + jmlMethod);
 
 						mergeMethodTemp = new MergeMethodModel(smt, this, jmlMethod);
+						continue;
 					} else {
 						System.err.println("WARNING! Method with name `merge` is not a valid merge method.");
-						classMethods.add(new MethodModel(smt, this, jmlMethod));
 					}
-				} else {
-					classMethods.add(new MethodModel(smt, this, jmlMethod));
 				}
+
+				// If the method is a normal method.
+				MethodModel methodModel = new MethodModel(smt, this, jmlMethod);
+				// Creating the method model also creates a function declaration for z3.
+				classMethods.add(methodModel);
+
 			} else {
 				//TODO: change to sensible defaults.
 				throw new IllegalStateException("Only jml method declarations are supported.");

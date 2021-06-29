@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
@@ -12,9 +14,12 @@ import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
+import org.eclipse.jdt.internal.compiler.ast.Expression;
+import org.eclipse.jdt.internal.compiler.ast.NameReference;
+import org.eclipse.jdt.internal.compiler.ast.Reference;
+import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import org.jmlspecs.jml4.ast.JmlMethodSpecification;
-import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
+import org.jmlspecs.jml4.ast.*;
 
 import java.util.List;
 import java.util.Map;
@@ -101,7 +106,24 @@ public class ClassConstraints {
 		postconditions = Maps.newHashMap();
 		for(MethodModel methodModel : classModel.getMethods()) {
 			preconditions.put(methodModel.getDecl().binding, handlePrecondition(methodModel));
-			postconditions.put(methodModel.getDecl().binding, handlePostcondition(methodModel));
+			var postCondition = handlePostcondition(methodModel);
+			postconditions.put(methodModel.getDecl().binding, postCondition);
+
+			// If the method is pure.
+			if (methodModel.isZ3Usable()) {
+				Expr[] args = methodModel.getArguments().stream()
+						.map(argModel -> argModel.getConst().orElseThrow())
+						.toArray(Expr[]::new);
+
+				var assertion = postCondition.apply(
+						classModel.getFreshConst("s_old"),
+						classModel.getFreshConst("s_new"),
+						smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
+				);
+
+				smt.solver.add(assertion);
+			}
+
 		}
 
 		// Setup the merge pre/postcondition.

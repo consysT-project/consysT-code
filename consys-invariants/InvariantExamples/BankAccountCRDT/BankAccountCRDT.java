@@ -13,7 +13,8 @@ public class BankAccountCRDT {
 
     /* Invariants */
     // Invariant definitions can use constants and fields.
-    //@ public invariant (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 0;
+    // Pure methods (i.e. methods that do not change the object state) that only use Z3 types can be used in constraints.
+    //@ public invariant getValue() >= 0;
 
 
     /* Constructors */
@@ -73,8 +74,8 @@ public class BankAccountCRDT {
     }
 
     //@ assignable \nothing;
-    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
-    public /*@ pure */int getValue() {
+    //@ ensures \result == sumIncs() - sumDecs();
+    public int getValue() {
         return sumIncs() - sumDecs();
     }
 
@@ -88,7 +89,7 @@ public class BankAccountCRDT {
 
 
     //@ requires val >= 0;
-    //@ requires  (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= val;
+    //@ requires  getValue() >= val;
     //@ assignable decs[replicaId];
     //@ ensures decs[replicaId] == \old(decs[replicaId]) + val;
     public void withdraw(int val) {
@@ -108,7 +109,6 @@ public class BankAccountCRDT {
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
                    (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i])
                 && (\old(decs[i]) >= other.decs[i] ? decs[i] == \old(decs[i]) : decs[i] == other.decs[i]));
-    @ ensures replicaId == \old(replicaId);
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {
