@@ -44,8 +44,8 @@ class DistributedLock {
     }
 
     /*@
-    @ requires (\old(timestamp) == other.timestamp) ==> (\forall int m0; m0>=0 && m0<numOfReplicas; \old(lock[m0])==other.lock[m0]);
-    @ requires \old(lock[replicaId]) ==> (\old(timestamp) >= other.timestamp);
+    @ requires (timestamp == other.timestamp) ==> (\forall int m0; m0>=0 && m0<numOfReplicas; lock[m0] == other.lock[m0]);
+    @ requires lock[replicaId] ==> (timestamp >= other.timestamp);
 
     @ ensures (other.timestamp < \old(timestamp)) ==> 
                 (timestamp == \old(timestamp)) && (\forall int m1; m1>=0 && m1<numOfReplicas; lock[m1] == \old(lock[m1]));
