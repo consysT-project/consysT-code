@@ -85,7 +85,6 @@ public class ClassConstraints {
 
 
 
-
 	public ClassConstraints(Z3Binding smt, ClassModel classModel) {
 		this.smt = smt;
 		this.classModel = classModel;
@@ -115,11 +114,28 @@ public class ClassConstraints {
 						.map(argModel -> argModel.getConst().orElseThrow())
 						.toArray(Expr[]::new);
 
-				var assertion = postCondition.apply(
-						classModel.getFreshConst("s_old"),
-						classModel.getFreshConst("s_new"),
-						smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
-				);
+				var sOld = classModel.getFreshConst("s_old");
+				var sNew = classModel.getFreshConst("s_new");
+
+//				var assertion =
+//						smt.ctx.mkForall(new Expr[] {sOld, sNew},
+//								postCondition.apply(
+//										sOld,
+//										sNew,
+//										smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
+//								),
+//								1,
+//								null,
+//								null,
+//								null,
+//								null);
+
+				var assertion =
+						postCondition.apply(
+								sOld,
+								sNew,
+								smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
+						);
 
 				smt.solver.add(assertion);
 			}

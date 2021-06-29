@@ -53,7 +53,8 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 					}
 				}
 			} else {
-				throw new IllegalStateException("jml spec case not supported: " + rest);
+				System.err.println("jml spec case not supported: " + rest);
+				return Optional.empty();
 			}
 		}
 

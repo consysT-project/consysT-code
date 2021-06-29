@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 public class BankAccountCRDT {
     /* Constants */
     // Constants have to be declared with static final.
@@ -48,9 +50,7 @@ public class BankAccountCRDT {
     //@ assignable incs;
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0);
     public void resetIncs() {
-        for (int i = 0; i < incs.length; i++) {
-            incs[i] = 0;
-        }
+        Arrays.fill(incs, 0);
     }
 
     //@ assignable \nothing;
