@@ -2,10 +2,12 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.Expr;
+import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
@@ -126,7 +128,9 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		var z3Func = methodModel.getZ3FuncDecl()
 				.orElseThrow(() -> new WrongJMLArguments(jmlMessageSend));
 
-		return smt.ctx.mkApp(z3Func, argExprs);
+
+		Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisConst, thisConst);
+		return smt.ctx.mkApp(z3Func, argExprsAndThis);
 
 //		Expr methodReturnValue = scope.getReturnValue(String.valueOf(jmlMessageSend.selector));
 //

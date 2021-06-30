@@ -4,14 +4,18 @@ import com.google.common.collect.Lists;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
+import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
+import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
 import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.jmlspecs.jml4.ast.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,14 +30,20 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		var argSorts = getArgumentSorts();
 		var retSort = getReturnSort();
 
-		if (argSorts.isPresent() && retSort.isPresent()) {
-			func = smt.ctx.mkFreshFuncDecl(getName(), argSorts.get(), retSort.get());
+
+
+		if (argSorts.isPresent() && retSort.isPresent() && isPure() && !hasPrecondition()) {
+			// Add `this` and `\old this` to the arguments of the z3 function.
+			Sort[] argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts.get(), clazz.getClassSort(), clazz.getClassSort());
+			func = smt.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, retSort.get());
 		} else {
 			func = null;
 		}
 	}
 
 	public Optional<FuncDecl<?>> getZ3FuncDecl() {
+		if (!isZ3Usable()) return Optional.empty();
+
 		return Optional.ofNullable(func);
 	}
 
@@ -72,7 +82,11 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		return maybeClause.get().expr.equals(JmlKeywordExpression.NOTHING);
 	}
 
+	public boolean hasPrecondition() {
+		return !(getDecl().getSpecification().getPrecondition() instanceof TrueLiteral);
+	}
+
 	public boolean isZ3Usable() {
-		return isPure() && getZ3FuncDecl().isPresent();
+		return isPure() && !hasPrecondition() && func != null;
 	}
 }

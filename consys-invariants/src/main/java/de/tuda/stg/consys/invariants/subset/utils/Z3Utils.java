@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.utils;
 
 import com.microsoft.z3.Context;
+import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.Symbol;
 import org.eclipse.jdt.internal.compiler.ast.FieldReference;
@@ -11,6 +12,7 @@ import org.eclipse.jdt.internal.compiler.lookup.*;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 public class Z3Utils {
 
@@ -113,6 +115,14 @@ public class Z3Utils {
 			return Optional.empty();
 
 		return findBindingInArray(arr, binding, getBinding);
+	}
+
+	public static <T> T[] arrayPrepend(IntFunction<T[]> arrSupplier, T[] src, T... elems) {
+		T[] newArr = arrSupplier.apply(src.length + elems.length);
+		System.arraycopy(src, 0, newArr, elems.length, src.length);
+		System.arraycopy(elems, 0, newArr, 0, elems.length);
+
+		return newArr;
 	}
 
 

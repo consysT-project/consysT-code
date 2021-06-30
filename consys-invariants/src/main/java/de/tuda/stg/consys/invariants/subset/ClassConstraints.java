@@ -10,10 +10,7 @@ import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
+import de.tuda.stg.consys.invariants.subset.utils.*;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -117,24 +114,13 @@ public class ClassConstraints {
 				var sOld = classModel.getFreshConst("s_old");
 				var sNew = classModel.getFreshConst("s_new");
 
-//				var assertion =
-//						smt.ctx.mkForall(new Expr[] {sOld, sNew},
-//								postCondition.apply(
-//										sOld,
-//										sNew,
-//										smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
-//								),
-//								1,
-//								null,
-//								null,
-//								null,
-//								null);
+				Expr[] argsAndState = Z3Utils.arrayPrepend(Expr[]::new, args, sOld, sNew);
 
 				var assertion =
 						postCondition.apply(
 								sOld,
 								sNew,
-								smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), args)
+								smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), argsAndState)
 						);
 
 				smt.solver.add(assertion);

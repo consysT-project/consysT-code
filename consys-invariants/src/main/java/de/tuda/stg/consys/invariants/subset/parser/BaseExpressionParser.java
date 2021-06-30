@@ -274,8 +274,16 @@ public class BaseExpressionParser extends ExpressionParser {
       // this applies to \forall and \exists expressions
       if (quantifier.equals(JmlQuantifier.EXISTS) || quantifier.equals(JmlQuantifier.FORALL)) {
         if (rangeExpr instanceof  BoolExpr && bodyExpr instanceof BoolExpr) {
-          // range ==> body
-          BoolExpr finalBodyExpr = smt.ctx.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+
+          final BoolExpr finalBodyExpr;
+          if (quantifier.equals(JmlQuantifier.FORALL)) {
+            // \forall x. range ==> body
+            finalBodyExpr = smt.ctx.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+          } else {
+            // \exists x. range && body
+            finalBodyExpr = smt.ctx.mkAnd((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+          }
+
 
           boolean isForall = quantifier.equals(JmlQuantifier.FORALL);
 
