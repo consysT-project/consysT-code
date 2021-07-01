@@ -1,42 +1,56 @@
 class ResettableCounter {
 
     //@ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas; incs[inv] >= 0);
-    final int numOfReplicas = 10;
-    final int replicaId = 5;
+    public static final int numOfReplicas = 4;
+    final int replicaId = 3;
 
-    int[] incs = new int[10];
+    int[] incs;
 
     /*@
     @ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0);
     @*/
-    public ResettableCounter() {}
+    public ResettableCounter() {
+        incs = new int[numOfReplicas];
+        for(int i = 0; i < numOfReplicas; ++i)
+            incs[i] = 0;
+    }
 
     /*@
+    @ assignable incs[replicaId];
     @ ensures incs[replicaId] == (\old(incs[replicaId]) + 1);
     @ ensures (\forall int incInd; incInd>=0 && incInd<numOfReplicas && incInd!=replicaId; incs[incInd] == \old(incs[incInd]));
     @*/
-    void inc() {}
+    void inc() {incs[replicaId] = incs[replicaId] + 1;}
 
     /*@
+    @ assignable incs;
     @ ensures (\forall int a; 0<=a && a<numOfReplicas; incs[a] == 0);
     @*/
-    void reset() {}
+    void reset() {
+        for(int i = 0; i < numOfReplicas; ++i)
+            incs[i] = 0;
+    }
 
 
-    //@ ensures \result == (\sum int b; b>=0 && b<numOfReplicas; incs[b]);
     //@ assignable \nothing;
-    int getValue() { return 0; }
+    //@ ensures \result == (\sum int b; b>=0 && b<numOfReplicas; incs[b]);
+    int getValue() {
+        int val = 0;
+        for(int i = 0; i < numOfReplicas; ++i)
+            val += incs[i];
+        return val;
+    }
 
 
     /*@
-    @ requires (\forall int m1; m1>=0 && m1<numOfReplicas; \old(incs[m1]) >= 0);
-    @ requires (\forall int m2; m2>=0 && m2<numOfReplicas; other.incs[m2] >= 0);
-
-    @ ensures \old(getValue()) > other.getValue() ==> (incs == \old(incs));
-    @ ensures \old(getValue()) < other.getValue() ==> (incs == other.incs);
-    @ ensures \old(getValue()) == other.getValue() ==> (incs == other.incs) && (incs == \old(incs));
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
+                   (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]));
+    @ ensures replicaId == \old(replicaId);
     @*/
     void merge(ResettableCounter other) {
-        //incs = max(incs, other.incs);
+        for (int i = 0; i < numOfReplicas; i++) {
+            incs[i] = Math.max(incs[i], other.incs[i]);
+            decs[i] = Math.max(decs[i], other.decs[i]);
+        }
     }
 }

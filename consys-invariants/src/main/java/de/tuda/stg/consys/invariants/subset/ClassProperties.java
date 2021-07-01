@@ -49,7 +49,7 @@ public class ClassProperties {
 						),
 						model.getInvariant().apply(s0_new)
 				);
-
+		//System.out.println(model.getPostcondition(binding).apply(s0, s0_new, null).toString());
 		return smt.isValid(property);
 	}
 
