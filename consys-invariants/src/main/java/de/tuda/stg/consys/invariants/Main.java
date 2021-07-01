@@ -26,7 +26,8 @@ public class Main {
           //  Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
           //  Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
-            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
+           // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
+            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
     };
 
     runChecker(sources);

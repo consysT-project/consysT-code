@@ -32,8 +32,6 @@ class DistributedLock {
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures lock[replicaId] == false;
     @ ensures lock[otherReplica] == true;
-    @ ensures (\forall int transInd; transInd>=0 && transInd<numOfReplicas &&
-                transInd!=replicaId && transInd!=otherReplica; lock[transInd] == \old(lock[transInd]));
     @*/
     void transfer(int otherReplica) {
         if (!(lock[replicaId]))

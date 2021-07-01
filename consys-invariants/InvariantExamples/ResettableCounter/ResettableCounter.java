@@ -48,9 +48,7 @@ class ResettableCounter {
     @ ensures replicaId == \old(replicaId);
     @*/
     void merge(ResettableCounter other) {
-        for (int i = 0; i < numOfReplicas; i++) {
+        for (int i = 0; i < numOfReplicas; i++)
             incs[i] = Math.max(incs[i], other.incs[i]);
-            decs[i] = Math.max(decs[i], other.decs[i]);
-        }
     }
 }
