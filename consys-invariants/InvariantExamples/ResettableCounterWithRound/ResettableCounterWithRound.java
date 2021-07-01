@@ -23,13 +23,12 @@ class ResettableCounterWithRound {
     @ assignable incs[replicaId];
     @ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
     @ ensures (\forall int b; b>=0 && b<numOfReplicas && b!=replicaId; incs[b] == \old(incs[b]));
-    @ ensures round == \old(round);
     @*/
     void inc() { incs[replicaId] = incs[replicaId] + 1;}
 
 
     /*@
-    @ assingable round, incs;
+    @ assignable round, incs;
     @ ensures round == \old(round) + 1;
     @ ensures (\forall int a; a>=0 && a<numOfReplicas; incs[a] == 0);
     @*/
@@ -52,7 +51,7 @@ class ResettableCounterWithRound {
 
 
     /*@
-    @ requires (\old(round) == other.round) ==> (\sum int res; res>=0 && res<numOfReplicas; \old(incs[res])) == (\sum int res; res>=0 && res<numOfReplicas; other.incs[res]);
+    @ requires (round == other.round) ==> (\sum int res; res>=0 && res<numOfReplicas; incs[res]) == (\sum int res; res>=0 && res<numOfReplicas; other.incs[res]);
     @ ensures (\old(round) < other.round) ==> (round == other.round) && (\forall int i; i >= 0 && i<numOfReplicas; incs[i] == other.incs[i]);
     @ ensures (\old(round) > other.round) ==> (round == \old(round)) && (\forall int i; i >= 0 && i<numOfReplicas; incs[i] == \old(incs[i]));
     @ ensures (\old(round) == other.round) ==> ((round == \old(round)) && (round == other.round)) && (\forall int i; i >= 0 && i < numOfReplicas;
