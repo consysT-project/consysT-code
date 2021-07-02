@@ -6,7 +6,7 @@ class Consensus {
   boolean flag;
   /* Indicates the votes from all replicas */
   boolean[] b;
-  int replicaId = 4;
+  int replicaId;
 
   //@ public invariant flag ==> (\forall int i; i >= 0 && i < numOfReplicas; b[i]);
 
@@ -15,17 +15,29 @@ class Consensus {
   @ requires id >= 0 && id < numOfReplicas;
   @ ensures flag == false;
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas; b[i] == false);
+  @ ensures replicaId == id;
   @*/
   public Consensus(int id) {
+    if (!(id >= 0 && id < numOfReplicas))
+      throw new IllegalArgumentException("id not in range.");
     flag = false;
+    replicaId = id;
     b = new boolean[numOfReplicas];
+    for(int i = 0; i < numOfReplicas; ++i)
+      b[i] = false;
   }
 
   /*@
   @ assignable \nothing;
   @ ensures \result == (\forall int i; i >= 0 && i < numOfReplicas; b[i]);
   @*/
-  boolean conjunctValues() { return false;}
+  boolean conjunctValues() {
+    for(int i = 0; i < numOfReplicas; ++i) {
+      if (!b[i])
+        return false;
+    }
+    return true;
+  }
 
   /*@
   @ assignable b[replicaId];
@@ -33,19 +45,29 @@ class Consensus {
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas && i != replicaId;
               b[i] == \old(b[i]));
   @*/
-  void mark() {}
+  void mark() {
+    b[replicaId] = true;
+  }
 
   /*@
   @ requires (\forall int i; i >= 0 && i < numOfReplicas; b[i]);
   @ assignable flag;
   @ ensures flag;
   @*/
-  void agree() {}
+  void agree() {
+    if (!conjunctValues())
+      throw new Exception("There is still a false element.");
+    flag = true;
+  }
 
   /*@
-  @ ensures flag == (\old(flag) || other.flag);
+  @ ensures flag == (\old(flag) | other.flag);
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
-              b[i] == (\old(b[i]) || other.b[i]));
+              b[i] == (\old(b[i]) | other.b[i]));
   @*/
-  void merge(Consensus other) {}
+  void merge(Consensus other) {
+    for(int i = 0; i < numOfReplicas; ++i)
+      b[i] = b[i] | other.b[i];
+    flag = flag | other.flag;
+  }
 }
