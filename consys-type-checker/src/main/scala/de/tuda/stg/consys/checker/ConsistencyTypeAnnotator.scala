@@ -7,7 +7,7 @@ import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.javacutil.AnnotationUtils
 
 import javax.lang.model.`type`.NoType
-import javax.lang.model.element.TypeElement
+import javax.lang.model.element.{Modifier, TypeElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
@@ -30,14 +30,18 @@ class ConsistencyTypeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Typ
 		val recvType = method.getReceiverType
 		val returnType = method.getReturnType
 		val mixed = if (recvType != null) recvType.getAnnotation(classOf[Mixed]) else null
+		val methodTree = tf.getTreeUtils.getTree(method.getElement)
 
-		if (mixed != null && getExplicitAnnotation(tf, returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]) {
+		// currently only run on mixed classes
+		if (mixed != null && getExplicitAnnotation(tf, returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]
+			&& methodTree != null && !methodTree.getModifiers.getFlags.contains(Modifier.ABSTRACT)) {
+
 			val defaultOpLevel = if (mixed != null)
 				AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString else ""
 			tf.setMixedClassContext(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement], defaultOpLevel)
 
 			val visitor = new ReturnTypeVisitor(tf)
-			val lup = visitor.visitMethod(tf.getTreeUtils.getTree(method.getElement))
+			val lup = visitor.visitMethod(methodTree)
 			method.getReturnType.replaceAnnotation(lup)
 
 			tf.resetMixedClassContext()

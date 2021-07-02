@@ -19,9 +19,12 @@ public class ReturnTypeTest {
         a = o.ref().g(true);
         @Weak int b;
         b = o.ref().g(true);
+
+        // :: error: assignment.type.incompatible
+        b = o.ref().h2();
     }
 
-    static @Mixed class A implements Serializable {
+    static abstract @Mixed class A {
         int i;
         @Weak int j;
 
@@ -37,5 +40,9 @@ public class ReturnTypeTest {
             else
                 return j;
         }
+
+        void h() { }
+        abstract void h1();
+        abstract int h2(); // this stays Inconsistent
     }
 }
