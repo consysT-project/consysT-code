@@ -198,9 +198,11 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                 val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
                 inferenceTable.apply(clazz, defaultOp).update(field, lup)
             case ((Some(fieldLevel), depth), Some(LHS)) if depth > 0 =>
-                val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
-                if (atypeFactory.getQualifierHierarchy.isSubtype(annotation, lup))
-                    atypeFactory.getChecker.reportError(source, "inheritance.incorrect.lup")
+                // TODO: Do we need extra considerations for Mixed objects here?
+                // checks if field level is a (non-reflexive) subtype of method level, i.e. if field would be weakened
+                if (!atypeFactory.getQualifierHierarchy.isSubtype(annotation, fieldLevel))
+                    atypeFactory.getChecker.reportError(source, "mixed.inheritance.field.overwrite",
+                        fieldLevel, field.getSimpleName, annotation, source)
             case ((None, _), Some(LHS)) =>
                 inferenceTable.apply(clazz, defaultOp).update(field, annotation)
             case ((None, _), Some(RHS)) =>
