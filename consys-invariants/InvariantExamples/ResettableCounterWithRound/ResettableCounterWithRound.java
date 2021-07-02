@@ -51,7 +51,6 @@ class ResettableCounterWithRound {
 
 
     /*@
-    @ requires (round == other.round) ==> (\sum int res; res>=0 && res<numOfReplicas; incs[res]) == (\sum int res; res>=0 && res<numOfReplicas; other.incs[res]);
     @ ensures (\old(round) < other.round) ==> (round == other.round) && (\forall int i; i >= 0 && i<numOfReplicas; incs[i] == other.incs[i]);
     @ ensures (\old(round) > other.round) ==> (round == \old(round)) && (\forall int i; i >= 0 && i<numOfReplicas; incs[i] == \old(incs[i]));
     @ ensures (\old(round) == other.round) ==> ((round == \old(round)) && (round == other.round)) && (\forall int i; i >= 0 && i < numOfReplicas;
