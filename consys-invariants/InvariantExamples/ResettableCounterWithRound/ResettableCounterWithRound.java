@@ -1,22 +1,22 @@
 class ResettableCounterWithRound {
+    public static final int numOfReplicas = 10;
+    public final int replicaId = 3;
+
+    public int[] incs;
+    public int round;
 
     /*@
     @ public invariant round >= 0;
     @ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas; incs[inv] >= 0);
     @*/
-    public static final int numOfReplicas = 10;
-    final int replicaId = 3;
-
-    int[] incs;
-    int round;
 
     /*@
     @ ensures round == 0;
     @ ensures (\forall int init; init>=0 && init<numOfReplicas; incs[init] == 0);
     @*/
     public ResettableCounterWithRound() {
-        incs = new int[numOfReplicas];
-        round = 0;
+        this.incs = new int[numOfReplicas];
+        this.round = 0;
     }
 
     /*@
@@ -24,7 +24,7 @@ class ResettableCounterWithRound {
     @ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
     @ ensures (\forall int b; b>=0 && b<numOfReplicas && b!=replicaId; incs[b] == \old(incs[b]));
     @*/
-    void inc() { incs[replicaId] = incs[replicaId] + 1;}
+    public void inc() { incs[replicaId] = incs[replicaId] + 1;}
 
 
     /*@
@@ -32,7 +32,7 @@ class ResettableCounterWithRound {
     @ ensures round == \old(round) + 1;
     @ ensures (\forall int a; a>=0 && a<numOfReplicas; incs[a] == 0);
     @*/
-    void reset() {
+    public void reset() {
         round += 1;
         for(int i = 0; i < numOfReplicas; ++i)
             incs[i] = 0;
@@ -42,7 +42,7 @@ class ResettableCounterWithRound {
     @ assignable \nothing;
     @ ensures \result == (\sum int res; res>=0 && res<numOfReplicas; incs[res]);
     @*/
-    int getValue() {
+    public int getValue() {
         int val = 0;
         for(int i = 0; i < numOfReplicas; ++i)
             val += incs[i];
@@ -56,7 +56,7 @@ class ResettableCounterWithRound {
     @ ensures (\old(round) == other.round) ==> ((round == \old(round)) && (round == other.round)) && (\forall int i; i >= 0 && i < numOfReplicas;
                                                                                    (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]));
     @*/
-    void merge(ResettableCounterWithRound other) {
+    public void merge(ResettableCounterWithRound other) {
         if(round < other.round) {
             round = other.round;
             for (int i = 0; i < numOfReplicas; i++)

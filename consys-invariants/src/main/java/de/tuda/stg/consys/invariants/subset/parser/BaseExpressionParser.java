@@ -7,11 +7,9 @@ import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.*;
-import org.jmlspecs.jml4.ast.JmlArrayReference;
-import org.jmlspecs.jml4.ast.JmlQuantifiedExpression;
-import org.jmlspecs.jml4.ast.JmlQuantifier;
-import org.jmlspecs.jml4.ast.JmlSingleNameReference;
+import org.jmlspecs.jml4.ast.*;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -67,6 +65,11 @@ public class BaseExpressionParser extends ExpressionParser {
     // expressions with operators: a + b, a ? b : c, !a ...
     if (expression instanceof OperatorExpression) {
       return parseOperatorExpression((OperatorExpression) expression);
+    }
+
+    // method calls
+    if (expression instanceof JmlMessageSend) {
+      return parseJmlMessageSend((JmlMessageSend) expression);
     }
 
     return super.parseExpression(expression);
@@ -237,6 +240,26 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     throw new WrongJMLArguments(jmlArrayReference);
+  }
+
+  public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
+    // Resolve some basic functions for convenient usage in constraints
+    var methodName = String.valueOf(jmlMessageSend.selector);
+    if ("max".equals(methodName) && jmlMessageSend.arguments.length == 2) {
+      var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
+      return smt.ctx.mkITE(
+              smt.ctx.mkGe(argExprs[0], argExprs[1]),
+              argExprs[0], argExprs[1]
+      );
+    } else if ("min".equals(methodName) && jmlMessageSend.arguments.length == 2) {
+      var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
+      return smt.ctx.mkITE(
+              smt.ctx.mkLe(argExprs[0], argExprs[1]),
+              argExprs[0], argExprs[1]
+      );
+    }
+
+    throw new UnsupportedJMLExpression(jmlMessageSend);
   }
 
   /**

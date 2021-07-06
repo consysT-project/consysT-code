@@ -53,10 +53,6 @@ public class ClassExpressionParser extends BaseExpressionParser {
 			return parseJmlFieldReference((JmlFieldReference) expression);
 		}
 
-		if (expression instanceof JmlMessageSend) {
-			return parseJmlMessageSend((JmlMessageSend) expression);
-		}
-
 		return super.parseExpression(expression);
 	}
 
@@ -106,10 +102,16 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 *
 	 * @return the result expression of the called method if it has one, {@code null} otherwise
 	 */
+	@Override
 	public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
 
-		var methodModel = classModel.getMethod(jmlMessageSend.binding)
-				.orElseThrow(() -> new WrongJMLArguments(jmlMessageSend));
+		var mbMethodModel = classModel.getMethod(jmlMessageSend.binding);
+
+		if (mbMethodModel.isEmpty()) {
+			return super.parseJmlMessageSend(jmlMessageSend);
+		}
+
+		var methodModel = mbMethodModel.get();
 
 		if (!methodModel.isZ3Usable()) {
 			throw new WrongJMLArguments(jmlMessageSend);
