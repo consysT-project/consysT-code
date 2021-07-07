@@ -5,29 +5,38 @@ class DistributedLock {
      @ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas && i<numOfReplicas;
      @                   lock[i] && lock[j] ==> i == j);
      @ public invariant (\exists int k; k>=0 && k<numOfReplicas; lock[k]);
+     @ public invariant timestamp >= 0;
      @*/
 
     public static final int numOfReplicas = 4;
-    final int replicaId = 3;
+    public int replicaId;
 
     boolean[] lock;
     int timestamp;
 
     /*@
+    @ requires id >= 0 && id < numOfReplicas;
     @ ensures lock[0];
     @ ensures (\forall int init; init>=1 && init<numOfReplicas; lock[init] == false);
     @ ensures timestamp == 0;
+    @ ensures replicaId == id;
     @*/
-    DistributedLock() {
-        lock = new boolean[numOfReplicas];
-        lock[0] = true;
+    DistributedLock(int id) {
+        if (!(id >= 0 && id < numOfReplicas))
+            throw new IllegalArgumentException("id not in range.");
+        this.replicaId = id;
+        this.lock = new boolean[numOfReplicas];
+        this.lock[0] = true;
         for(int i = 0; i < numOfReplicas; ++i)
-            lock[i] = false;
-        timestamp = 0;
+            this.lock[i] = false;
+        this.timestamp = 0;
     }
 
     /*@
+    @ requires replicaId >= 0;
+    @ requires replicaId < numOfReplicas;
     @ requires lock[replicaId] == true;
+    @ requires otherReplica >= 0 && otherReplica < numOfReplicas && otherReplica != replicaId;
     @ assignable timestamp, lock[replicaId], lock[otherReplica];
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures lock[replicaId] == false;

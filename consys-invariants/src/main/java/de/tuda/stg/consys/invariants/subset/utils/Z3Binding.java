@@ -23,6 +23,8 @@ public class Z3Binding {
 			case UNSATISFIABLE:
 				return true;
 			case SATISFIABLE:
+				//System.out.println(expr);
+				//System.out.println(solver.getModel());
 				return false;
 			case UNKNOWN:
 				//throw new IllegalStateException("solving expression lead to an error: " + expr);
