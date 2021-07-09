@@ -94,7 +94,7 @@ public class ClassProperties {
 
 	// Applying a method does not violate the mergability.
 	// If this property is violated then the method can not be executed concurrently.
-	// pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, res) => pre_merge(s0_new, s1)
+	// inv(s0) & inv(s1) & pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, _) => pre_merge(s0_new, s1)
 	public boolean checkMethodSatisfiesMergability(MethodBinding binding) {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 		Expr s1 = model.getClassModel().getFreshConst("s1");
@@ -103,6 +103,8 @@ public class ClassProperties {
 		BoolExpr property =
 				smt.ctx.mkImplies(
 						smt.ctx.mkAnd(
+								model.getInvariant().apply(s0),
+								model.getInvariant().apply(s1),
 								model.getPrecondition(binding).apply(s0),
 								model.getMergePrecondition().apply(s0, s1),
 								model.getPostcondition(binding).apply(s0, s0_new, null)
@@ -114,7 +116,7 @@ public class ClassProperties {
 	}
 
 	// Applying merge does not violate the mergability.
-	// pre_merge(s0, s1) & post_merge(s0, s1, s0_new) => pre_merge(s0_new, s1)
+	// inv(s0) & inv(s1) & pre_merge(s0, s1) & post_merge(s0, s1, s0_new) => pre_merge(s0_new, s1)
 	public boolean checkMergeSatisfiesMergability() {
 		Expr s0 = model.getClassModel().getFreshConst("s0");
 		Expr s1 = model.getClassModel().getFreshConst("s1");
@@ -123,6 +125,8 @@ public class ClassProperties {
 		BoolExpr property =
 				smt.ctx.mkImplies(
 						smt.ctx.mkAnd(
+								model.getInvariant().apply(s0),
+								model.getInvariant().apply(s1),
 								model.getMergePrecondition().apply(s0, s1),
 								model.getMergePostcondition().apply(s0, s1, s0_new)
 						),
