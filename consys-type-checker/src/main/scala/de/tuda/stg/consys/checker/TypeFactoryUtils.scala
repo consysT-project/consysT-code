@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.ClassTree
+import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
 
 import javax.lang.model.element.{AnnotationMirror, Element}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
@@ -8,6 +8,7 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclar
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
 import javax.lang.model.`type`.DeclaredType
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
 	* Created on 06.03.19.
@@ -40,4 +41,13 @@ object TypeFactoryUtils {
 
 	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, elt: Element): Option[AnnotationMirror] =
 		getExplicitAnnotation(atypeFactory, atypeFactory.getAnnotatedType(elt))
+
+	def hasAnnotation(implicit atypeFactory : AnnotatedTypeFactory, modifiers: ModifiersTree, annotation: String): Boolean = {
+		modifiers.getAnnotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
+			case adt: AnnotatedDeclaredType =>
+				getQualifiedName(adt) == annotation
+			case _ =>
+				false
+		})
+	}
 }

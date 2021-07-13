@@ -38,13 +38,13 @@ class ConsistencyTypeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Typ
 
 			val defaultOpLevel = if (mixed != null)
 				AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString else ""
-			tf.setMixedClassContext(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement], defaultOpLevel)
+			tf.pushMixedClassContext(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement], defaultOpLevel)
 
 			val visitor = new ReturnTypeVisitor(tf)
 			val lup = visitor.visitMethod(methodTree)
 			method.getReturnType.replaceAnnotation(lup)
 
-			tf.resetMixedClassContext()
+			tf.popMixedClassContext()
 		}
 
 		currentMethod = prevMethod

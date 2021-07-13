@@ -1,8 +1,10 @@
 package de.tuda.stg.consys.checker;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.Tree;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
+import de.tuda.stg.consys.checker.qual.Mixed;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -14,16 +16,17 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
-import scala.None;
+import org.checkerframework.javacutil.TypesUtils;
 import scala.Option;
 import scala.Tuple2;
+import scala.Tuple4;
 
 import javax.lang.model.element.*;
 import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
-	private final InferenceVisitor inferenceVisitor;
+	public final InferenceVisitor inferenceVisitor;
 
 	private final Stack<Tuple2<TypeElement, String>> mixedClassContext;
 
@@ -83,25 +86,54 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
 		super.addComputedTypeAnnotations(tree, type, iUseFlow);
 
-		if (tree instanceof ClassTree) {
-			inferenceVisitor.visitClass((ClassTree)tree);
-		}
+		switch (tree.getKind()) {
+			case CLASS:
+				if (TypeFactoryUtils.hasAnnotation(this, ((ClassTree)tree).getModifiers(), TypeFactoryUtils.checkerPackageName() + ".qual.Mixed"))
+					inferenceVisitor.visitClass((ClassTree)tree);
+				break;
 
-		if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.VARIABLE || tree.getKind() == Tree.Kind.MEMBER_SELECT) &&
-				TreeUtils.elementFromTree(tree).getKind() == ElementKind.FIELD) {
+			case IDENTIFIER:
+			case VARIABLE:
+			case MEMBER_SELECT:
+				if (TreeUtils.elementFromTree(tree).getKind() != ElementKind.FIELD)
+					return;
 
-			var definedAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-			var inferredAnnotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
+				AnnotationMirror mixed = null;
+				if (tree.getKind() == Tree.Kind.MEMBER_SELECT) {
+					var recvType = getAnnotatedType(((MemberSelectTree)tree).getExpression());
+					var classElement = TypesUtils.getTypeElement(recvType.getUnderlyingType());
+					var classTree = getTreeUtils().getTree(classElement);
 
-			if (type.hasExplicitAnnotation(definedAnnotation) && inferenceVisitor.refinementTable().get(tree).isDefined()) {
-				var opLevel = inferenceVisitor.refinementTable().get(tree).get();
-				type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, definedAnnotation));
-			} else if (inferredAnnotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
-				var opLevel = inferenceVisitor.refinementTable().get(tree).get();
-				type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, inferredAnnotation));
-			} else if (inferredAnnotation != null) {
-				type.replaceAnnotation(inferredAnnotation);
-			}
+					mixed = recvType.getAnnotation(Mixed.class);
+					var defaultOpLevel = (mixed != null) ? TypeFactoryUtils.getDefaultOp(mixed) : "";
+					if (classTree != null && mixed != null) {
+						pushMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel);
+						inferenceVisitor.visitClass(classTree, new Tuple4<>(Option.empty(), Option.apply(defaultOpLevel), Option.empty(), Option.empty()));
+					} else if (mixed != null) {
+						pushMixedClassContext(classElement, defaultOpLevel);
+						inferenceVisitor.visitClass(classElement, new Tuple4<>(Option.empty(), Option.apply(defaultOpLevel), Option.empty(), Option.empty()));
+					}
+				}
+
+				if (mixedClassContext.empty())
+					return;
+
+				var definedAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+				var inferredAnnotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
+
+				if (type.hasExplicitAnnotation(definedAnnotation) && inferenceVisitor.refinementTable().get(tree).isDefined()) {
+					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
+					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, definedAnnotation));
+				} else if (inferredAnnotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
+					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
+					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, inferredAnnotation));
+				} else if (inferredAnnotation != null) {
+					type.replaceAnnotation(inferredAnnotation);
+				}
+
+				if (mixed != null) {
+					popMixedClassContext();
+				}
 		}
 	}
 
@@ -146,11 +178,11 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		return null;
 	}
 
-	public void setMixedClassContext(TypeElement mixedClassContext, String defaultOpLevel) {
+	public void pushMixedClassContext(TypeElement mixedClassContext, String defaultOpLevel) {
 		this.mixedClassContext.push(new Tuple2<>(mixedClassContext, defaultOpLevel));
 	}
 
-	public void resetMixedClassContext() {
+	public void popMixedClassContext() {
 		this.mixedClassContext.pop();
 	}
 
@@ -162,7 +194,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public void processClassWithoutCache(ClassTree node, String opLevel) {
 		shouldCache = false;
 
-		((ConsistencyVisitorImpl)checker.getVisitor()).processClassTree(node, opLevel);
+		((ConsistencyVisitorImpl)checker.getVisitor()).processMixedClassTree(node, opLevel);
 
 		shouldCache = true;
 	}

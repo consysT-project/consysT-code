@@ -52,14 +52,17 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
         (getAnnotationMirror(node, classOf[Mixed]), defaultOpLevel) match {
             case (None, None) =>
+                currentClass = None
                 return null
             case (Some(annotation), _) =>
                 defaultOpLevel = Some(getDefaultOp(annotation))
             case (None, Some(_)) =>
         }
 
-        if (inferenceTable.contains((classDecl, defaultOpLevel.get)))
+        if (inferenceTable.contains((classDecl, defaultOpLevel.get))) {
+            currentClass = None
             return null
+        }
 
         inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
@@ -83,14 +86,17 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
         (getAnnotationMirror(classDecl, classOf[Mixed]), defaultOpLevel) match {
             case (None, None) =>
+                currentClass = None
                 return null
             case (Some(annotation), _) =>
                 defaultOpLevel = Some(getDefaultOp(annotation))
             case (None, Some(_)) =>
         }
 
-        if (inferenceTable.contains((classDecl, defaultOpLevel.get)))
+        if (inferenceTable.contains((classDecl, defaultOpLevel.get))) {
+            currentClass = None
             return null
+        }
 
         inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
@@ -122,7 +128,7 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
         annoMapping.foreach(mapping => {
             val (operation, qualifier) = mapping
-            if (hasAnnotation(node.getModifiers, operation)) {
+            if (TypeFactoryUtils.hasAnnotation(atypeFactory, node.getModifiers, operation)) {
                 methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
                 // TODO: handle case if more than one annotation given
             }
@@ -241,15 +247,6 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
             }
             case None => (None, 0)
         }
-    }
-
-    private def hasAnnotation(modifiers: ModifiersTree, annotation: String): Boolean = {
-        modifiers.getAnnotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
-            case adt: AnnotatedDeclaredType =>
-                getQualifiedName(adt) == annotation
-            case _ =>
-                false
-        })
     }
 
     private def getAnnotationMirror(tree: Tree, annotation: Class[_ <: Annotation]): Option[AnnotationMirror] =
