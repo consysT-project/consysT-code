@@ -111,16 +111,24 @@ public class ClassConstraints {
 						.map(argModel -> argModel.getConst().orElseThrow())
 						.toArray(Expr[]::new);
 
-				var sOld = classModel.getFreshConst("s_old");
-				var sNew = classModel.getFreshConst("s_new");
+				var s0 = classModel.getFreshConst("s0");
 
-				Expr[] argsAndState = Z3Utils.arrayPrepend(Expr[]::new, args, sOld, sNew);
+				Expr[] applyArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s0);
+				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
 
 				var assertion =
-						postCondition.apply(
-								sOld,
-								sNew,
-								smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), argsAndState)
+						smt.ctx.mkForall(
+								forallArguments,
+								postCondition.apply(
+										s0,
+										s0,
+										smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
+								),
+								1,
+								null,
+								null,
+								null,
+								null
 						);
 
 				smt.solver.add(assertion);

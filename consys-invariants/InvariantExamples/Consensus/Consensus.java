@@ -56,7 +56,7 @@ class Consensus {
   @*/
   void agree() {
     if (!conjunctValues())
-      throw new Exception("There is still a false element.");
+      throw new RuntimeException("There is still a false element.");
     flag = true;
   }
 

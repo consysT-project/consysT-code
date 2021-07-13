@@ -30,8 +30,6 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		var argSorts = getArgumentSorts();
 		var retSort = getReturnSort();
 
-
-
 		if (argSorts.isPresent() && retSort.isPresent() && isPure() && !hasPrecondition()) {
 			// Add `this` and `\old this` to the arguments of the z3 function.
 			Sort[] argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts.get(), clazz.getClassSort(), clazz.getClassSort());
