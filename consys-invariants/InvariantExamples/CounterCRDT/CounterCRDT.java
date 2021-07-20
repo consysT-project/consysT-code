@@ -2,7 +2,7 @@ public class CounterCRDT {
   public static final int numOfReplicas = 3;
 
     /*@
-    @ public invariant (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 0;
+    @ public invariant getValue() >= 0;
     @ public invariant (\forall int inv1; inv1>=0 && inv1<numOfReplicas;
                           incs[inv1] >=0);
     @ public invariant (\forall int inv2; inv2>=0 && inv2<numOfReplicas;
@@ -54,7 +54,7 @@ public class CounterCRDT {
   }
 
   /*@ assignable \nothing;
-  @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
+  @ ensures \result == sumIncs() - sumDecs();
   @*/
   int getValue() { return sumIncs() - sumDecs(); }
 
@@ -69,14 +69,35 @@ public class CounterCRDT {
   }
 
   /*@
-  @ requires (\sum int i; i >= 0 && i < numOfReplicas; incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas; decs[i]) >= 1;
+  @ requires n >= 0;
+  @ assignable incs[replicaId];
+  @ ensures incs[replicaId] == \old(incs[replicaId]) + n;
+  @*/
+  void inc(int n) {
+    incs[replicaId] = incs[replicaId] + n;
+  }
+
+  /*@
+  @ requires getValue() >= 1;
   @ assignable decs[replicaId];
   @ ensures decs[replicaId] == \old(decs[replicaId]) + 1;
   @*/
   void dec() {
-    if (val > getValue())
+    if (1 > getValue())
       throw new IllegalArgumentException("not enough balance to withdraw");
     decs[replicaId] = decs[replicaId] + 1;
+  }
+
+  /*@
+  @ requires n >= 0;
+  @ requires getValue() >= n;
+  @ assignable decs[replicaId];
+  @ ensures decs[replicaId] == \old(decs[replicaId]) + n;
+  @*/
+  void dec(int n) {
+    if (n > getValue())
+      throw new IllegalArgumentException("not enough balance to withdraw");
+    decs[replicaId] = decs[replicaId] + n;
   }
 
   /*@
