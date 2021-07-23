@@ -20,6 +20,11 @@ import com.readytalk.crdt.inject.ClientId;
  *
  */
 public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CRDTCounter<BigInteger, PNCounter> {
+	// Can we say when we are sure about GCounter, we can omit GCounter related conditions?
+	/*@
+    @ public invariant value().compareTo(BigInteger.ZERO) != -1;
+    @*/
+
 	private static final TypeReference<Map<String, JsonNode>> REF = new TypeReference<Map<String, JsonNode>>() {
 		
 	};
@@ -33,6 +38,10 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 
 	private final String clientId;
 
+	// Any need to check GCounters are zero?
+	/*@
+	@ ensures clientId.equals(client);
+	@*/
 	@Inject
 	public PNCounter(final ObjectMapper mapper, @ClientId final String client) {
 		super(mapper);
@@ -71,11 +80,19 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 		this.clientId = client;
 	}
 
+	/*@
+	@ ensures positive.equals(\old(positive).merge(other.positive))
+	@ ensures negative.equals(\old(negative).merge(other.negative))
+	@ ensures clientId.equals(\old(clientId));
+	@*/
 	@Override
 	public PNCounter merge(final PNCounter other) {
 		return new PNCounter(serializer(), clientId, positive.merge(other.positive), negative.merge(other.negative));
 	}
-
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(positive.value().subtract(negative.value()));
+	@*/
 	@Override
 	public BigInteger value() {
 		return this.positive.value().subtract(this.negative.value());
@@ -94,14 +111,23 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 			throw new IllegalStateException("Could not serialize.", ioe);
 		}
 	}
-	
+
+	/*@
+	@ assignable positive;
+	@ ensures positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(1)));
+	@*/
 	@Override
 	public BigInteger increment() {
 		this.positive.increment();
 
 		return this.value();
 	}
-	
+
+	/*@
+	@ requires n >= 0;
+	@ assignable positive;
+	@ ensures positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(n)));
+	@*/
 	@Override
 	public BigInteger increment(@Nonnegative final int n) {
 		Preconditions.checkArgument(n >= 0);
@@ -111,13 +137,22 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 		return this.value();
 	}
 
+	/*@
+	@ assignable negative;
+	@ ensures negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(1)));
+	@*/
 	@Override
 	public BigInteger decrement() {
 		this.negative.increment();
 
 		return this.value();
 	}
-	
+
+	/*@
+	@ requires n >= 0;
+	@ assignable negative;
+	@ ensures negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(n)));
+	@*/
 	@Override
 	public BigInteger decrement(@Nonnegative final int n) {
 		Preconditions.checkArgument(n >= 0);
@@ -127,6 +162,10 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 		return this.value();
 	}
 
+	/*@
+	@ assignable nothing;
+	@ ensures \result == o.value().equals(value());
+	@*/
 	@Override
 	public boolean equals(final Object o) {
 		if (!(o instanceof PNCounter)) {
@@ -142,6 +181,10 @@ public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CR
 		}
 	}
 
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == value().hashCode();
+	@*/
 	@Override
 	public int hashCode() {
 		return this.value().hashCode();
