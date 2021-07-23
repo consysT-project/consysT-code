@@ -4,17 +4,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.*;
-import org.eclipse.jdt.internal.compiler.ast.Expression;
-import org.eclipse.jdt.internal.compiler.ast.NameReference;
-import org.eclipse.jdt.internal.compiler.ast.Reference;
-import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.jmlspecs.jml4.ast.*;
 
@@ -24,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class ClassConstraints {
 
-	private final Z3Binding smt;
+	private final ProgramModel smt;
 	private final ClassModel classModel;
 
 	/** The invariant of the class */
@@ -82,7 +77,7 @@ public class ClassConstraints {
 
 
 
-	public ClassConstraints(Z3Binding smt, ClassModel classModel) {
+	public ClassConstraints(ProgramModel smt, ClassModel classModel) {
 		this.smt = smt;
 		this.classModel = classModel;
 

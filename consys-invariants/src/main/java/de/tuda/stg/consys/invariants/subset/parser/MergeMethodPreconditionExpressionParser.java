@@ -5,7 +5,7 @@ import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
@@ -16,7 +16,7 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 
 	private final Expr otherConst;
 
-	public MergeMethodPreconditionExpressionParser(Z3Binding smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
+	public MergeMethodPreconditionExpressionParser(ProgramModel smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst);
 		this.otherConst = otherConst;
 	}

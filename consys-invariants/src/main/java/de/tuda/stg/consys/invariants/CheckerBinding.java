@@ -3,7 +3,7 @@ package de.tuda.stg.consys.invariants;
 import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
@@ -19,10 +19,10 @@ public class CheckerBinding {
         loadZ3Libs();
     }
 
-    private final Z3Binding smt;
+    private final ProgramModel model;
 
     public CheckerBinding() {
-        this.smt = new Z3Binding();
+        this.model = new ProgramModel();
     }
 
     private static void loadLib(Path lib) {
@@ -52,19 +52,19 @@ public class CheckerBinding {
 
     public void check(JmlTypeDeclaration jmlClass) {
         // Parse the z3 model from AST.
-        ClassModel model = new ClassModel(smt, jmlClass);
-        ClassConstraints constraints = new ClassConstraints(smt, model);
+        ClassModel clazzModel = new ClassModel(model, jmlClass);
+        ClassConstraints constraints = new ClassConstraints(model, clazzModel);
 
         // Check the properties
-        ClassProperties properties = new ClassProperties(smt, constraints);
-        System.out.println("--- Class properties for " + model.getClassName());
+        ClassProperties properties = new ClassProperties(model, constraints);
+        System.out.println("--- Class properties for " + clazzModel.getClassName());
         System.out.println("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
         System.out.println("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());
         System.out.println("---");
         System.out.println("merge satisfies invariant: " + properties.checkMergeSatisfiesInvariant());
         System.out.println("merge satisfies mergability: " + properties.checkMergeSatisfiesMergability());
         System.out.println("---");
-        model.getMethods().forEach(m -> {
+        clazzModel.getMethods().forEach(m -> {
             System.out.println("- for method " + m);
 
             boolean r1 = properties.checkMethodSatisfiesInvariant(m.getBinding());

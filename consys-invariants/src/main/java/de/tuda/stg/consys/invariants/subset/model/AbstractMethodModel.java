@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -14,13 +13,13 @@ import java.util.Optional;
 
 public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration> {
 
-	protected final Z3Binding smt;
+	protected final ProgramModel smt;
 	protected final ClassModel clazz;
 	protected final Decl method;
 
 	protected final ArgumentModel[] args;
 
-	public AbstractMethodModel(Z3Binding smt, ClassModel clazz, Decl method) {
+	public AbstractMethodModel(ProgramModel smt, ClassModel clazz, Decl method) {
 		this.smt = smt;
 		this.clazz = clazz;
 		this.method = method;
@@ -66,9 +65,9 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 	public Optional<Sort[]> getArgumentSorts() {
 		var sorts = new Sort[args.length];
 		for (int i = 0; i < args.length; i++) {
-			var sort = args[i].getSort();
-			if (sort.isEmpty()) return Optional.empty();
-			sorts[i] = sort.get();
+			var type = args[i].getType();
+			if (!type.hasSort()) return Optional.empty();
+			sorts[i] = type.toSort();
 		}
 
 		return Optional.of(sorts);

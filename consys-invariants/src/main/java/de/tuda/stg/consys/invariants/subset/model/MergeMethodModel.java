@@ -1,13 +1,12 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
 public class MergeMethodModel extends MethodModel {
 
-	public MergeMethodModel(Z3Binding smt, ClassModel clazz, JmlMethodDeclaration method) {
+	public MergeMethodModel(ProgramModel smt, ClassModel clazz, JmlMethodDeclaration method) {
 		super(smt, clazz, method);
 
 		if (args.length != 1) {

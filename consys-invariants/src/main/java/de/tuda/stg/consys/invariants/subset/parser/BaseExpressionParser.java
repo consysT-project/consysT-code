@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
@@ -21,12 +21,12 @@ import java.util.function.Supplier;
 public class BaseExpressionParser extends ExpressionParser {
 
   // The z3 context used for creating expressions
-  protected final Z3Binding smt;
+  protected final ProgramModel smt;
   // Local variables from jml quantifiers.
   private final Map<String, Expr> localVariables = Maps.newHashMap();
 
 
-  public BaseExpressionParser(Z3Binding smt) {
+  public BaseExpressionParser(ProgramModel smt) {
     this.smt = smt;
   }
 
@@ -114,7 +114,6 @@ public class BaseExpressionParser extends ExpressionParser {
 
   public Expr parseUnaryExpression(UnaryExpression unaryExpression) {
     Expr expr = parseExpression(unaryExpression.expression);
-
     throw new UnsupportedJMLExpression(unaryExpression);
   }
 
@@ -217,7 +216,6 @@ public class BaseExpressionParser extends ExpressionParser {
 
     if (cond instanceof BoolExpr) {
       BoolExpr condBool = (BoolExpr) cond;
-
       return smt.ctx.mkITE(condBool, thenBranch, elseBranch);
     }
 
@@ -258,6 +256,7 @@ public class BaseExpressionParser extends ExpressionParser {
               argExprs[0], argExprs[1]
       );
     }
+
 
     throw new UnsupportedJMLExpression(jmlMessageSend);
   }

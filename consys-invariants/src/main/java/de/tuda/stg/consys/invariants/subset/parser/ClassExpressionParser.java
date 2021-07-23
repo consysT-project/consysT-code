@@ -2,11 +2,10 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.Expr;
-import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
@@ -33,7 +32,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 * @param thisConst Substitute all `this` references with the given const. The const needs to have
 	 *                  the same sort as the class that is parsed.
 	 */
-	public ClassExpressionParser(Z3Binding smt, ClassModel classModel, Expr thisConst) {
+	public ClassExpressionParser(ProgramModel smt, ClassModel classModel, Expr thisConst) {
 		super(smt);
 
 		if (thisConst != null && !thisConst.getSort().equals(classModel.getClassSort()))
