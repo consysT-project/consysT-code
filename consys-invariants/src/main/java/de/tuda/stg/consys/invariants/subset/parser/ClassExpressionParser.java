@@ -131,7 +131,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 
 
 		Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisConst, thisConst);
-		return smt.ctx.mkApp(z3Func, argExprsAndThis);
+		return model.ctx.mkApp(z3Func, argExprsAndThis);
 
 //		Expr methodReturnValue = scope.getReturnValue(String.valueOf(jmlMessageSend.selector));
 //

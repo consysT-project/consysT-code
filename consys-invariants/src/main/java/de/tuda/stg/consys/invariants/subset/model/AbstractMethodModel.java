@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -10,17 +11,18 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration> {
 
-	protected final ProgramModel smt;
+	protected final ProgramModel model;
 	protected final ClassModel clazz;
 	protected final Decl method;
 
 	protected final ArgumentModel[] args;
 
-	public AbstractMethodModel(ProgramModel smt, ClassModel clazz, Decl method) {
-		this.smt = smt;
+	public AbstractMethodModel(ProgramModel model, ClassModel clazz, Decl method) {
+		this.model = model;
 		this.clazz = clazz;
 		this.method = method;
 
@@ -28,7 +30,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 			this.args = new ArgumentModel[0];
 		} else {
 			this.args = Arrays.stream(method.arguments)
-					.map(arg -> new ArgumentModel(smt, arg))
+					.map(arg -> new ArgumentModel(model, arg))
 					.toArray(ArgumentModel[]::new);
 		}
 	}
@@ -57,20 +59,12 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		return Arrays.asList(args);
 	}
 
-
-	public Optional<Sort> getReturnSort() {
-		return Z3Utils.typeBindingToSort(smt.ctx, method.binding.returnType);
+	public TypeModel<?> getReturnType() {
+		return model.types.typeFor(method.binding.returnType);
 	}
 
-	public Optional<Sort[]> getArgumentSorts() {
-		var sorts = new Sort[args.length];
-		for (int i = 0; i < args.length; i++) {
-			var type = args[i].getType();
-			if (!type.hasSort()) return Optional.empty();
-			sorts[i] = type.toSort();
-		}
-
-		return Optional.of(sorts);
+	public List<TypeModel<?>> getArgumentTypes() {
+		return getArguments().stream().map(VariableModel::getType).collect(Collectors.toList());
 	}
 
 	@Override

@@ -16,63 +16,6 @@ import java.util.function.IntFunction;
 
 public class Z3Utils {
 
-	public static Optional<Sort> typeReferenceToSort(Context ctx, TypeReference typeReference) {
-		return typeBindingToSort(ctx, typeReference.resolvedType);
-	}
-
-	/**
-	 * Calls the correct visit method for the concrete type binding and returns the resulting Z3 Sort that describes
-	 * the same type.
-	 * @param typeBinding the type binding to translate
-	 * @return the translated Z3 Sort, or empty if the typeBinding is void.
-	 */
-	public static Optional<Sort> typeBindingToSort(Context ctx, TypeBinding typeBinding) {
-		if (typeBinding instanceof BaseTypeBinding) {
-			BaseTypeBinding binding = (BaseTypeBinding) typeBinding;
-
-			switch (binding.id) {
-				case 2: // char
-				case 3: // byte
-				case 4: // short
-				case 7: // long
-				case 10: // int
-					return Optional.of(ctx.getIntSort());
-				case 8: // double
-				case 9: // float
-					return Optional.of(ctx.getRealSort());
-				case 5: // boolean
-					return Optional.of(ctx.getBoolSort());
-				case 6: // void
-					return Optional.empty();
-				default:
-					//throw new IllegalArgumentException("incompatible base type " + typeBinding);
-					System.err.println("incompatible base type " + typeBinding);
-					return Optional.empty();
-			}
-		} else if (typeBinding instanceof ArrayBinding) {
-			ArrayBinding arrayBinding = (ArrayBinding) typeBinding;
-			// translate element type
-			Optional<Sort> elementType = typeBindingToSort(ctx, arrayBinding.leafComponentType);
-
-
-			if (elementType.isEmpty()) {
-//				throw new IllegalArgumentException("incompatible array element type in " + typeBinding);
-				System.err.println("incompatible array element type in " + typeBinding);
-				return Optional.empty();
-			} else {
-				// index type assumed to be integer
-				Sort indexType = ctx.getIntSort();
-				// build array sort from index and element type
-				return Optional.of(ctx.mkArraySort(indexType, elementType.get()));
-			}
-
-		} else {
-//			throw new IllegalArgumentException("incompatible type " + typeBinding);
-			System.err.println("incompatible type " + typeBinding);
-			return Optional.empty();
-		}
-	}
-
 	public static Symbol[] mkSymbols(Context ctx, String[] strings) {
 		if (strings == null) {
 			return null;

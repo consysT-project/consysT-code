@@ -72,13 +72,13 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 
 		if (jmlAssignableClause.expr.equals(JmlKeywordExpression.NOTHING)) {
 			// assignable \nothing ==> \old(this) == this
-			return smt.ctx.mkEq(oldConst, getThisConst());
+			return model.ctx.mkEq(oldConst, getThisConst());
 		} else if (jmlAssignableClause.expr instanceof JmlStoreRefListExpression) {
 			// assignable (a | a[n])
 
 			// collect all java variable references from the assignable clause
 			Expression[] references = ((JmlStoreRefListExpression) jmlAssignableClause.expr).exprList;
-			BoolExpr result = smt.ctx.mkTrue();
+			BoolExpr result = model.ctx.mkTrue();
 
 			// collect all names of the variables that are mentioned
 			for (FieldModel field : getClassModel().getFields()) {
@@ -132,28 +132,28 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 						// Only some indices are assigned.
 
 						// index of the forall expression
-						Expr forIndex = smt.ctx.mkFreshConst("i", smt.ctx.getIntSort());
+						Expr forIndex = model.ctx.mkFreshConst("i", model.ctx.getIntSort());
 
 						// i != index1, i != index2, ...
 						Expr[] assignmentExprs = assignedIndices.stream()
-								.map(index -> smt.ctx.mkNot(smt.ctx.mkEq(forIndex, index)))
+								.map(index -> model.ctx.mkNot(model.ctx.mkEq(forIndex, index)))
 								.toArray(length -> new Expr[length]);
 
 						//(i != index1 & i != index2) => arr[i] == \old(arr[i])
-						Expr forBody = smt.ctx.mkImplies(
-								smt.ctx.mkAnd(assignmentExprs),
-								smt.ctx.mkEq(
-										smt.ctx.mkSelect(field.getAccessor().apply(getThisConst()), forIndex),
-										smt.ctx.mkSelect(field.getAccessor().apply(oldConst), forIndex)
+						Expr forBody = model.ctx.mkImplies(
+								model.ctx.mkAnd(assignmentExprs),
+								model.ctx.mkEq(
+										model.ctx.mkSelect(field.getAccessor().apply(getThisConst()), forIndex),
+										model.ctx.mkSelect(field.getAccessor().apply(oldConst), forIndex)
 								)
 						);
 
-						Expr forall = smt.ctx.mkForall(new Expr[] {forIndex}, forBody, 1, null, null, null, null);
-						result = smt.ctx.mkAnd(result, forall);
+						Expr forall = model.ctx.mkForall(new Expr[] {forIndex}, forBody, 1, null, null, null, null);
+						result = model.ctx.mkAnd(result, forall);
 
 					} else if (!allIndicesAssigned) {
 						//if the field is not assigned then we add an equality expression.
-						result = smt.ctx.mkAnd(result, smt.ctx.mkEq(
+						result = model.ctx.mkAnd(result, model.ctx.mkEq(
 								field.getAccessor().apply(oldConst),
 								field.getAccessor().apply(getThisConst()))
 						);
@@ -176,7 +176,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 
 					if (!isAssigned) {
 						//if the field is not assigned then we add an equality expression.
-						result = smt.ctx.mkAnd(result, smt.ctx.mkEq(
+						result = model.ctx.mkAnd(result, model.ctx.mkEq(
 								field.getAccessor().apply(oldConst),
 								field.getAccessor().apply(getThisConst()))
 						);

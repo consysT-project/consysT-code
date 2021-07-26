@@ -5,7 +5,6 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
 
@@ -21,13 +20,13 @@ import java.util.function.Supplier;
 public class BaseExpressionParser extends ExpressionParser {
 
   // The z3 context used for creating expressions
-  protected final ProgramModel smt;
+  protected final ProgramModel model;
   // Local variables from jml quantifiers.
   private final Map<String, Expr> localVariables = Maps.newHashMap();
 
 
-  public BaseExpressionParser(ProgramModel smt) {
-    this.smt = smt;
+  public BaseExpressionParser(ProgramModel model) {
+    this.model = model;
   }
 
   /**
@@ -78,18 +77,18 @@ public class BaseExpressionParser extends ExpressionParser {
   public Expr parseLiteral(Literal literalExpression) {
     // literals can be translated directly
     if (literalExpression instanceof IntLiteral)
-      return smt.ctx.mkInt(((IntLiteral) literalExpression).value);
+      return model.ctx.mkInt(((IntLiteral) literalExpression).value);
 
     if (literalExpression instanceof DoubleLiteral) {
       double value = ((DoubleLiteral) literalExpression).constant.doubleValue();
-      return smt.ctx.mkFPToReal(smt.ctx.mkFP(value, smt.ctx.mkFPSortDouble()));
+      return model.ctx.mkFPToReal(model.ctx.mkFP(value, model.ctx.mkFPSortDouble()));
     }
 
     if (literalExpression instanceof TrueLiteral)
-      return smt.ctx.mkTrue();
+      return model.ctx.mkTrue();
 
     if (literalExpression instanceof FalseLiteral)
-      return smt.ctx.mkFalse();
+      return model.ctx.mkFalse();
 
     throw new UnsupportedJMLExpression(literalExpression);
   }
@@ -134,65 +133,65 @@ public class BaseExpressionParser extends ExpressionParser {
 
     if (s.equals("&&") || s.equals("&")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
-        return smt.ctx.mkAnd((BoolExpr) left, (BoolExpr) right);
+        return model.ctx.mkAnd((BoolExpr) left, (BoolExpr) right);
       }
       throw new WrongJMLArguments(binaryExpression);
     }
 
     if (s.equals("||") || s.equals("|")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
-        return smt.ctx.mkOr((BoolExpr) left, (BoolExpr) right);
+        return model.ctx.mkOr((BoolExpr) left, (BoolExpr) right);
       }
       throw new WrongJMLArguments(binaryExpression);
     }
 
     if (s.equals("<") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkLt((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkLt((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("<=") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkLe((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkLe((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals(">") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkGt((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkGt((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals(">=") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkGe((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkGe((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("^") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return smt.ctx.mkXor((BoolExpr) left, (BoolExpr) right);
+      return model.ctx.mkXor((BoolExpr) left, (BoolExpr) right);
     }
     if (s.equals("/") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkDiv((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkDiv((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("-") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkSub((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkSub((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("+") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkAdd((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkAdd((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("*") && left instanceof ArithExpr && right instanceof ArithExpr) {
-      return smt.ctx.mkMul((ArithExpr) left, (ArithExpr) right);
+      return model.ctx.mkMul((ArithExpr) left, (ArithExpr) right);
     }
     if (s.equals("%") && left instanceof IntExpr && right instanceof IntExpr) {
-      return smt.ctx.mkMod((IntExpr) left, (IntExpr) right);
+      return model.ctx.mkMod((IntExpr) left, (IntExpr) right);
     }
 
     /* if values need to be set, this point is used as not all equality operators are only used
     for equality constraints
     */
     if (left != null && right != null && (s.equals("<==>") || s.equals("=") || s.equals("=="))) {
-      return smt.ctx.mkEq(left, right);
+      return model.ctx.mkEq(left, right);
     }
 
     if (s.equals("==>") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return smt.ctx.mkImplies((BoolExpr) left, (BoolExpr) right);
+      return model.ctx.mkImplies((BoolExpr) left, (BoolExpr) right);
     }
     if (s.equals("<==") && left instanceof BoolExpr && right instanceof BoolExpr) {
-      return smt.ctx.mkImplies((BoolExpr) right, (BoolExpr) left);
+      return model.ctx.mkImplies((BoolExpr) right, (BoolExpr) left);
     }
 
     if (left != null && right != null && (s.equals("<=!=>") || s.equals("!=")))
-      return smt.ctx.mkNot(smt.ctx.mkEq(left, right));
+      return model.ctx.mkNot(model.ctx.mkEq(left, right));
 
     throw new UnsupportedJMLExpression(binaryExpression);
   }
@@ -216,7 +215,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
     if (cond instanceof BoolExpr) {
       BoolExpr condBool = (BoolExpr) cond;
-      return smt.ctx.mkITE(condBool, thenBranch, elseBranch);
+      return model.ctx.mkITE(condBool, thenBranch, elseBranch);
     }
 
     throw new WrongJMLArguments(conditionalExpression);
@@ -234,7 +233,7 @@ public class BaseExpressionParser extends ExpressionParser {
     if (array instanceof ArrayExpr) {
       // get index expression
       Expr index = parseExpression(jmlArrayReference.position);
-      return smt.ctx.mkSelect((ArrayExpr) array, index);
+      return model.ctx.mkSelect((ArrayExpr) array, index);
     }
 
     throw new WrongJMLArguments(jmlArrayReference);
@@ -245,14 +244,14 @@ public class BaseExpressionParser extends ExpressionParser {
     var methodName = String.valueOf(jmlMessageSend.selector);
     if ("max".equals(methodName) && jmlMessageSend.arguments.length == 2) {
       var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
-      return smt.ctx.mkITE(
-              smt.ctx.mkGe(argExprs[0], argExprs[1]),
+      return model.ctx.mkITE(
+              model.ctx.mkGe(argExprs[0], argExprs[1]),
               argExprs[0], argExprs[1]
       );
     } else if ("min".equals(methodName) && jmlMessageSend.arguments.length == 2) {
       var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
-      return smt.ctx.mkITE(
-              smt.ctx.mkLe(argExprs[0], argExprs[1]),
+      return model.ctx.mkITE(
+              model.ctx.mkLe(argExprs[0], argExprs[1]),
               argExprs[0], argExprs[1]
       );
     }
@@ -281,7 +280,7 @@ public class BaseExpressionParser extends ExpressionParser {
     Expr[] consts = new Expr[jmlQuantifiedExpression.boundVariables.length];
     for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
       names[index] = String.valueOf(localDeclaration.name);
-      consts[index] = smt.ctx.mkFreshConst(names[index], Z3Utils.typeReferenceToSort(smt.ctx, localDeclaration.type).orElseThrow());
+      consts[index] = model.ctx.mkFreshConst(names[index], model.types.typeFor(localDeclaration.type).toSort());
       index++;
     }
 
@@ -300,10 +299,10 @@ public class BaseExpressionParser extends ExpressionParser {
           final BoolExpr finalBodyExpr;
           if (quantifier.equals(JmlQuantifier.FORALL)) {
             // \forall x. range ==> body
-            finalBodyExpr = smt.ctx.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+            finalBodyExpr = model.ctx.mkImplies((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
           } else {
             // \exists x. range && body
-            finalBodyExpr = smt.ctx.mkAnd((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
+            finalBodyExpr = model.ctx.mkAnd((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
           }
 
 
@@ -311,7 +310,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
           // quantifier: forall or exists
           Expr quantifiedExpr =
-                  smt.ctx.mkQuantifier(
+                  model.ctx.mkQuantifier(
                           isForall, //decide whether to create forall or exists quantifier
                           consts,
                           finalBodyExpr,
@@ -338,17 +337,17 @@ public class BaseExpressionParser extends ExpressionParser {
         }
 
         if (bodyExpr instanceof IntExpr) {
-          Expr<IntSort> forBodyExpr = smt.ctx.mkITE(rangeExpr, (IntExpr) bodyExpr, smt.ctx.mkInt(0));
-          IntExpr ret = smt.ctx.mkInt(0);
+          Expr<IntSort> forBodyExpr = model.ctx.mkITE(rangeExpr, (IntExpr) bodyExpr, model.ctx.mkInt(0));
+          IntExpr ret = model.ctx.mkInt(0);
           for (int i = -2000; i <= 2000; i++) {
-            ret = (IntExpr) smt.ctx.mkAdd(ret, forBodyExpr.substitute(consts[0], smt.ctx.mkInt(i)));
+            ret = (IntExpr) model.ctx.mkAdd(ret, forBodyExpr.substitute(consts[0], model.ctx.mkInt(i)));
           }
           return ret;
         } else if (bodyExpr instanceof RealExpr) {
-          Expr<RealSort> forBodyExpr = smt.ctx.mkITE(rangeExpr, (RealExpr) bodyExpr, smt.ctx.mkReal(0));
-          RealExpr ret = smt.ctx.mkReal(0);
+          Expr<RealSort> forBodyExpr = model.ctx.mkITE(rangeExpr, (RealExpr) bodyExpr, model.ctx.mkReal(0));
+          RealExpr ret = model.ctx.mkReal(0);
           for (int i = 0; i < 20; i++) {
-            ret = (RealExpr) smt.ctx.mkAdd(ret, forBodyExpr.substitute(consts[0], smt.ctx.mkInt(i)));
+            ret = (RealExpr) model.ctx.mkAdd(ret, forBodyExpr.substitute(consts[0], model.ctx.mkInt(i)));
           }
           return ret;
         }

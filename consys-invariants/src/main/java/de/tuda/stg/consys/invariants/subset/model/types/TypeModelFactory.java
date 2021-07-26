@@ -4,10 +4,10 @@ import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
-import org.eclipse.jdt.internal.compiler.lookup.ArrayBinding;
-import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.eclipse.jdt.internal.compiler.lookup.*;
 
+import javax.xml.transform.Source;
+import java.util.Arrays;
 import java.util.Optional;
 
 public class TypeModelFactory {
@@ -18,6 +18,10 @@ public class TypeModelFactory {
 	private final Lazy<BoolModel> boolModel;
 	private final Lazy<RealModel> realModel;
 	private final Lazy<VoidModel> emptyModel;
+	private final Lazy<RefModel> refModel;
+	private final Lazy<StringModel> stringModel;
+
+
 
 	public TypeModelFactory(ProgramModel model) {
 		this.model = model;
@@ -25,6 +29,8 @@ public class TypeModelFactory {
 		this.boolModel = Lazy.make(() -> new BoolModel(model));
 		this.realModel = Lazy.make(() -> new RealModel(model));
 		this.emptyModel = Lazy.make(() -> new VoidModel(model));
+		this.refModel = Lazy.make(() -> new RefModel(model, "T_Ref"));
+		this.stringModel = Lazy.make(() -> new StringModel(model));
 	}
 
 	public TypeModel<?> typeFor(TypeBinding typeBinding) {
@@ -62,6 +68,20 @@ public class TypeModelFactory {
 				return new EmptyModel(model, "incompatible array element type in " + typeBinding);
 			}
 
+		} else if (typeBinding.isClass()) {
+			typeBinding.sourceName();
+
+			if (typeBinding instanceof SourceTypeBinding) {
+				// Bindings for which the source is available.
+				// TODO: Change this to something more meaningful.
+				return refModel.get();
+			} else if (bindingIsType(typeBinding, "java.lang.String")) {
+				return stringModel.get();
+			} else if (typeBinding instanceof MissingTypeBinding) {
+				System.err.println("missing type binding: " + typeBinding);
+				return refModel.get();
+			}
+			throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 		} else {
 			return new EmptyModel(model, "incompatible type " + typeBinding);
 		}
@@ -69,5 +89,23 @@ public class TypeModelFactory {
 
 	public TypeModel<?> typeFor(TypeReference typeReference) {
 		return typeFor(typeReference.resolvedType);
+	}
+
+	/**
+	 *
+	 * @param binding
+	 * @param typeName A name of the form "java.lang.Object"
+	 * @return
+	 */
+	private boolean bindingIsType(TypeBinding binding, String typeName) {
+		if (binding instanceof MissingTypeBinding) {
+			MissingTypeBinding mtb = (MissingTypeBinding) binding;
+			return typeName.equals(String.valueOf(mtb.readableName()/* ~ "java.lang.Object" */));
+		} else if (binding instanceof SourceTypeBinding) {
+			SourceTypeBinding stb = (SourceTypeBinding) binding;
+			return typeName.equals(String.valueOf(stb.readableName()));
+		}
+
+		throw new IllegalArgumentException("TODO: Implement bindingIsType for: " + binding);
 	}
 }
