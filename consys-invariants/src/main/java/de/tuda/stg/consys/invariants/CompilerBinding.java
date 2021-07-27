@@ -39,8 +39,16 @@ public class CompilerBinding {
         System.out.println("Java Home: " + compilerStarter.getJavaHome());
 
 
-        System.out.println("Compiling files: " + Arrays.toString(sourceFileStrings));
-        compilerStarter.compile(sourceFileStrings);
+        String[] compilerOpts = new String[] {
+                "-cp", "consys-invariants/src/main/resources/rt.jar"
+        };
+
+        String[] argv = new String[sourceFileStrings.length + compilerOpts.length];
+        System.arraycopy(sourceFileStrings, 0, argv, 0, sourceFileStrings.length);
+        System.arraycopy(compilerOpts, 0, argv, sourceFileStrings.length, compilerOpts.length);
+
+        System.out.println("Compile: " + Arrays.toString(argv));
+        compilerStarter.compile(argv);
 
         // ensure that compilation was successful -> types array contains class definitions
         if(compilerStarter.batchCompiler.parser.compilationUnit.types == null) {

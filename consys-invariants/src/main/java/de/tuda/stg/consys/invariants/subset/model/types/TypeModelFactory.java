@@ -68,20 +68,17 @@ public class TypeModelFactory {
 				return new EmptyModel(model, "incompatible array element type in " + typeBinding);
 			}
 
-		} else if (typeBinding.isClass()) {
-			typeBinding.sourceName();
+		} else if (typeBinding instanceof ReferenceBinding) {
+			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
-			if (typeBinding instanceof SourceTypeBinding) {
-				// Bindings for which the source is available.
-				// TODO: Change this to something more meaningful.
-				return refModel.get();
-			} else if (bindingIsType(typeBinding, "java.lang.String")) {
+			if (bindingIsType(refBinding, "java.lang.String")) {
 				return stringModel.get();
 			} else if (typeBinding instanceof MissingTypeBinding) {
 				System.err.println("missing type binding: " + typeBinding);
-				return refModel.get();
+				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 			}
-			throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
+
+			return refModel.get();
 		} else {
 			return new EmptyModel(model, "incompatible type " + typeBinding);
 		}
@@ -97,15 +94,7 @@ public class TypeModelFactory {
 	 * @param typeName A name of the form "java.lang.Object"
 	 * @return
 	 */
-	private boolean bindingIsType(TypeBinding binding, String typeName) {
-		if (binding instanceof MissingTypeBinding) {
-			MissingTypeBinding mtb = (MissingTypeBinding) binding;
-			return typeName.equals(String.valueOf(mtb.readableName()/* ~ "java.lang.Object" */));
-		} else if (binding instanceof SourceTypeBinding) {
-			SourceTypeBinding stb = (SourceTypeBinding) binding;
-			return typeName.equals(String.valueOf(stb.readableName()));
-		}
-
-		throw new IllegalArgumentException("TODO: Implement bindingIsType for: " + binding);
+	private boolean bindingIsType(ReferenceBinding binding, String typeName) {
+		return typeName.equals(String.valueOf(binding.readableName()/* ~ "java.lang.Object" */));
 	}
 }
