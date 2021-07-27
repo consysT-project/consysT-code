@@ -25,6 +25,7 @@ public class GSetCRDT{
     /*@
     @ assignable set;
     @ ensures set.contains(val);
+    @ ensures \forall Integer num; set.contains(num) && num.equals(val) == false; \old(set.contains(num));
     @*/
     void add(int val) {
         set.add(val);

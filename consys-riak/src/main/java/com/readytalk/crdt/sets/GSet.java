@@ -22,6 +22,7 @@ import com.google.common.collect.Sets;
  * Grow-only Sets. Do not implement the remove operations.
  * 
  */
+
 public class GSet<E> extends ForwardingSet<E> implements
 		CRDTSet<E, ImmutableSet<E>, GSet<E>> {
 
@@ -33,6 +34,7 @@ public class GSet<E> extends ForwardingSet<E> implements
 
 	};
 
+	//@ ensures delegate.size() == 0;
 	@Inject
 	public GSet(final ObjectMapper mapper) {
 		serializer = mapper;
@@ -56,37 +58,51 @@ public class GSet<E> extends ForwardingSet<E> implements
 		delegate.addAll(set);
 	}
 
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(delegate);
+	@*/
 	@Override
 	protected Set<E> delegate() {
 		return delegate;
 	}
 
+	//@ requires false;
 	@Override
 	public void clear() {
 		throw new UnsupportedOperationException();
 
 	}
 
+
+	// No annotations I think...
 	@Override
 	public Iterator<E> iterator() {
 		return Iterators.unmodifiableIterator(super.iterator());
 	}
 
+	//@ requires false;
 	@Override
 	public boolean remove(final Object o) {
 		throw new UnsupportedOperationException();
 	}
 
+	//@ requires false;
 	@Override
 	public boolean removeAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	//@ requires false;
 	@Override
 	public boolean retainAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	/*@
+	@ ensures (\forall E val; \old(delegate.contains(val)) || other.delegate.contains(val); delegate.contains(val));
+	@ ensures (\forall E val; delegate.contains(val); \old(delegate.contains(val)) || other.delegate.contains(val));
+	@*/
 	@Override
 	public GSet<E> merge(final GSet<E> other) {
 		Set<E> retval = Sets.newLinkedHashSet();
@@ -97,11 +113,16 @@ public class GSet<E> extends ForwardingSet<E> implements
 		return new GSet<E>(serializer, retval);
 	}
 
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(ImmutableSet.copyOf(delegate));
+	@*/
 	@Override
 	public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(delegate);
 	}
 
+	// No annotations needed
 	@Override
 	public byte[] payload() {
 		try {
@@ -111,6 +132,11 @@ public class GSet<E> extends ForwardingSet<E> implements
 		}
 	}
 
+	// How about using super in the annotations?
+	/*@
+	@ assignable \nothing;
+	@ ensures \result== delegate.contains(object);
+	@*/
 	@Override
 	public boolean contains(final Object object) {
 		checkNotNull(object);
@@ -118,13 +144,21 @@ public class GSet<E> extends ForwardingSet<E> implements
 		return super.contains(object);
 	}
 
+	/*@
+	@ assignable delegate;
+	@ ensures delegate.contains(element);
+    @ ensures (\forall E elem; delegate.contains(elem) && elem.equals(element) == false; \old(delegate.contains(elem)));
+	@*/
 	@Override
 	public boolean add(final E element) {
 		checkNotNull(element);
 
 		return super.add(element);
 	}
-
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == !(\exists E elem; collection.contains(elem); delegate.contains(elem) == false);
+	@*/
 	@Override
 	public boolean containsAll(final Collection<?> collection) {
 		checkCollectionDoesNotContainNull(collection);
@@ -132,6 +166,11 @@ public class GSet<E> extends ForwardingSet<E> implements
 		return super.containsAll(collection);
 	}
 
+	/*@
+	@ assignable delegate;
+	@ ensures (\forall E elem; collection.contains(elem); delegate.contains(elem));
+	@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
+	@*/
 	@Override
 	public boolean addAll(final Collection<? extends E> collection) {
 		checkCollectionDoesNotContainNull(collection);
