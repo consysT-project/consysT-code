@@ -4,17 +4,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.*;
-import org.eclipse.jdt.internal.compiler.ast.Expression;
-import org.eclipse.jdt.internal.compiler.ast.NameReference;
-import org.eclipse.jdt.internal.compiler.ast.Reference;
-import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.jmlspecs.jml4.ast.*;
 
@@ -24,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class ClassConstraints {
 
-	private final Z3Binding smt;
+	private final ProgramModel model;
 	private final ClassModel classModel;
 
 	/** The invariant of the class */
@@ -82,15 +77,15 @@ public class ClassConstraints {
 
 
 
-	public ClassConstraints(Z3Binding smt, ClassModel classModel) {
-		this.smt = smt;
+	public ClassConstraints(ProgramModel model, ClassModel classModel) {
+		this.model = model;
 		this.classModel = classModel;
 
 		JmlTypeDeclaration typ = classModel.getJmlType();
 
 		// Setup the invariant
-		Expr invariantVar = smt.ctx.mkFreshConst("s", classModel.getClassSort());
-		ClassExpressionParser parser = new ClassExpressionParser(smt, classModel, invariantVar);
+		Expr invariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
+		ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
 		invariant = new InvariantModel(invariantVar, invariantExpr);
 
@@ -117,12 +112,12 @@ public class ClassConstraints {
 				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
 
 				var assertion =
-						smt.ctx.mkForall(
+						model.ctx.mkForall(
 								forallArguments,
 								postCondition.apply(
 										s0,
 										s0,
-										smt.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
+										model.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
 								),
 								1,
 								null,
@@ -131,7 +126,7 @@ public class ClassConstraints {
 								null
 						);
 
-				smt.solver.add(assertion);
+				model.solver.add(assertion);
 			}
 
 		}
@@ -144,28 +139,28 @@ public class ClassConstraints {
 	}
 
 	private InitialConditionModel handleInitialConditions(ClassModel classModel) {
-		Expr thisConst = smt.ctx.mkFreshConst("s", classModel.getClassSort());
+		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 
 		List<Expr> initialConditions = Lists.newLinkedList();
 		for (var constructor : classModel.getConstructors()) {
-			var preParser = new ConstructorPreconditionExpressionParser(smt, classModel, constructor);
+			var preParser = new ConstructorPreconditionExpressionParser(model, classModel, constructor);
 			var preExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPrecondition());
 
-			var postParser = new ConstructorPostconditionExpressionParser(smt, classModel, constructor, thisConst);
+			var postParser = new ConstructorPostconditionExpressionParser(model, classModel, constructor, thisConst);
 			var postExpr = postParser.parseExpression(constructor.getDecl().getSpecification().getPostcondition());
 
-			initialConditions.add(smt.ctx.mkITE(preExpr, postExpr, smt.ctx.mkFalse()));
+			initialConditions.add(model.ctx.mkITE(preExpr, postExpr, model.ctx.mkFalse()));
 		}
 
-		var initialCondition = smt.ctx.mkAnd(initialConditions.toArray(Expr[]::new));
+		var initialCondition = model.ctx.mkAnd(initialConditions.toArray(Expr[]::new));
 		return new InitialConditionModel(thisConst, initialCondition);
 	}
 
 	private PreconditionModel handlePrecondition(MethodModel methodModel) {
 		var specification = methodModel.getDecl().getSpecification();
 
-		Expr thisConst = smt.ctx.mkFreshConst("s", classModel.getClassSort());
-		var parser = new MethodPreconditionExpressionParser(smt, classModel, methodModel, thisConst);
+		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
+		var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
 		Expr expr = parser.parseExpression(specification.getPrecondition());
 		return new PreconditionModel(thisConst, expr);
 	}
@@ -173,9 +168,9 @@ public class ClassConstraints {
 	private MergePreconditionModel handleMergePrecondition(MergeMethodModel methodModel) {
 		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
 
-		Expr thisConst = smt.ctx.mkFreshConst("s", classModel.getClassSort());
-		Expr otherConst = smt.ctx.mkFreshConst("s_other", classModel.getClassSort());
-		var parser = new MergeMethodPreconditionExpressionParser(smt, classModel, methodModel, thisConst, otherConst);
+		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
+		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
+		var parser = new MergeMethodPreconditionExpressionParser(model, classModel, methodModel, thisConst, otherConst);
 		Expr expr = parser.parseExpression(specification.getPrecondition());
 		return new MergePreconditionModel(thisConst, otherConst, expr);
 	}
@@ -183,11 +178,11 @@ public class ClassConstraints {
 	private MergePostconditionModel handleMergePostcondition(MergeMethodModel methodModel) {
 		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
 
-		Expr oldConst = smt.ctx.mkFreshConst("s_old", classModel.getClassSort());
-		Expr thisConst = smt.ctx.mkFreshConst("s_new", classModel.getClassSort());
-		Expr otherConst = smt.ctx.mkFreshConst("s_other", classModel.getClassSort());
+		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
+		Expr thisConst = model.ctx.mkFreshConst("s_new", classModel.getClassSort());
+		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
 
-		var parser = new MergeMethodPostconditionExpressionParser(smt, classModel, methodModel, thisConst, oldConst, otherConst);
+		var parser = new MergeMethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, otherConst);
 		Expr expr = parser.parseExpression(specification.getPostcondition());
 		return new MergePostconditionModel(oldConst, otherConst, thisConst, expr);
 	}
@@ -197,16 +192,16 @@ public class ClassConstraints {
 		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
 
 		// Var for `\old(this)` references
-		Expr oldConst = smt.ctx.mkFreshConst("s_old", classModel.getClassSort());
+		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
 		// Var for `this` references
-		Expr thisConst = smt.ctx.mkFreshConst("s_new", classModel.getClassSort());
+		Expr thisConst = model.ctx.mkFreshConst("s_new", classModel.getClassSort());
 		// Var for \result references
-		Expr resultConst = methodModel.getReturnSort()
-			.map(sort -> smt.ctx.mkFreshConst("res", sort))
+		Expr resultConst = methodModel.getReturnType().getSort()
+			.map(sort -> model.ctx.mkFreshConst("res", sort))
 			.orElse(null);
 
 		// Parse the postcondition from JML @ensures specification
-		var parser = new MethodPostconditionExpressionParser(smt, classModel, methodModel, thisConst, oldConst, resultConst);
+		var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
 		Expr expr = parser.parseExpression(specification.getPostcondition());
 		// Parse the assignable clause
 		BoolExpr assignable;
@@ -217,7 +212,7 @@ public class ClassConstraints {
 			assignable = parser.parseJmlAssignableClause(maybeClause.get());
 		}
 		// Combine the exprs for the postcondition
-		Expr postcondition = smt.ctx.mkAnd(expr, assignable);
+		Expr postcondition = model.ctx.mkAnd(expr, assignable);
 		return new PostconditionModel(oldConst, thisConst, resultConst, postcondition);
 	}
 

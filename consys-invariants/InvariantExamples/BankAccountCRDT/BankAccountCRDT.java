@@ -11,6 +11,9 @@ public class BankAccountCRDT {
     public final int[] incs, decs;
     public int replicaId;
 
+    public Object object;
+    public String string;
+
 
     /* Invariants */
     // Invariant definitions can use constants and fields.

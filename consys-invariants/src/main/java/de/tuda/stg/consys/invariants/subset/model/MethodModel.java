@@ -1,22 +1,12 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.google.common.collect.Lists;
-import com.microsoft.z3.BoolExpr;
-import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
-import org.eclipse.jdt.internal.compiler.ast.Expression;
-import org.eclipse.jdt.internal.compiler.ast.NameReference;
-import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
-import org.eclipse.jdt.internal.compiler.lookup.Binding;
 import org.jmlspecs.jml4.ast.*;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
@@ -24,16 +14,18 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
 	private final FuncDecl<?> func;
 
-	public MethodModel(Z3Binding smt, ClassModel clazz, JmlMethodDeclaration method) {
+	public MethodModel(ProgramModel smt, ClassModel clazz, JmlMethodDeclaration method) {
 		super(smt, clazz, method);
 
-		var argSorts = getArgumentSorts();
-		var retSort = getReturnSort();
+		var argTypes = getArgumentTypes();
+		var retType = getReturnType();
 
-		if (argSorts.isPresent() && retSort.isPresent() && isPure() && !hasPrecondition()) {
+		if (argTypes.stream().allMatch(TypeModel::hasSort) && retType.hasSort() && isPure() && !hasPrecondition()) {
 			// Add `this` and `\old this` to the arguments of the z3 function.
-			Sort[] argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts.get(), clazz.getClassSort(), clazz.getClassSort());
-			func = smt.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, retSort.get());
+			var argSorts = argTypes.stream().map(TypeModel::toSort).toArray(Sort[]::new);
+			var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort(), clazz.getClassSort());
+
+			func = smt.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, retType.toSort());
 		} else {
 			func = null;
 		}

@@ -5,7 +5,7 @@ import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
@@ -16,7 +16,7 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 
 	private final Expr otherConst;
 
-	public MergeMethodPostconditionExpressionParser(Z3Binding smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
+	public MergeMethodPostconditionExpressionParser(ProgramModel smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst, oldConst, null);
 		this.otherConst = otherConst;
 	}

@@ -6,7 +6,6 @@ import com.microsoft.z3.Sort;
 import com.microsoft.z3.TupleSort;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
@@ -25,7 +24,7 @@ import java.util.Optional;
 
 public class ClassModel {
 
-	private final Z3Binding smt;
+	private final ProgramModel model;
 	// The underlying jml type for this declaration
 	private final JmlTypeDeclaration jmlType;
 
@@ -45,8 +44,8 @@ public class ClassModel {
 	private final TupleSort classSort;
 
 
-	public ClassModel(Z3Binding smt, JmlTypeDeclaration jmlType) {
-		this.smt = smt;
+	public ClassModel(ProgramModel model, JmlTypeDeclaration jmlType) {
+		this.model = model;
 		this.jmlType = jmlType;
 
 		/* Parse fields and constants */
@@ -62,16 +61,16 @@ public class ClassModel {
 				if (field.initialization == null)
 					throw new IllegalStateException("Constant value must be initialized directly for field " + field);
 
-				ExpressionParser parser = new BaseExpressionParser(smt);
+				ExpressionParser parser = new BaseExpressionParser(this.model);
 				Expr initialValue = parser.parseExpression(field.initialization);
 
-				classConstantsTemp.add(new ConstantModel(smt, field, initialValue));
+				classConstantsTemp.add(new ConstantModel(this.model, field, initialValue));
 
 			} else if (field.isStatic()) {
 				// Static fields are not supported
 				throw new IllegalStateException("Non-final static fields are unsupported.");
 			} else {
-				classFieldsTemp.add(new FieldModel(smt, field, null /* accessor is initialized later. */));
+				classFieldsTemp.add(new FieldModel(this.model, field, null /* accessor is initialized later. */));
 			}
 		}
 		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
@@ -84,12 +83,12 @@ public class ClassModel {
 		for (int i = 0; i < this.classFields.length; i++) {
 			FieldModel field = this.classFields[i];
 			fieldNames[i] = field.getName();
-			fieldSorts[i] = field.getSort().orElseThrow(() -> new IllegalArgumentException("field type cannot be translated to z3: " + field));
+			fieldSorts[i] = field.getType().getSort().orElseThrow(() -> new IllegalArgumentException("field type cannot be translated to z3: " + field));
 		}
 
-		this.classSort = smt.ctx.mkTupleSort(
-				smt.ctx.mkSymbol("state_" + getClassName()),
-				Z3Utils.mkSymbols(smt.ctx, fieldNames), fieldSorts);
+		this.classSort = this.model.ctx.mkTupleSort(
+				this.model.ctx.mkSymbol("state_" + getClassName()),
+				Z3Utils.mkSymbols(this.model.ctx, fieldNames), fieldSorts);
 
 		FuncDecl<?>[] accessors = classSort.getFieldDecls();
 		for (int i = 0; i < this.classFields.length; i++) {
@@ -108,7 +107,7 @@ public class ClassModel {
 			if (method.isClinit()) {
 				// TODO: Handle clinit
 			} else if (method.isConstructor()) {
-				classConstructors.add(new ConstructorModel(smt, this, (JmlConstructorDeclaration) method));
+				classConstructors.add(new ConstructorModel(this.model, this, (JmlConstructorDeclaration) method));
 			} else if (method.isStatic() || method.isAbstract()) {
 				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
 			} else if (method instanceof JmlMethodDeclaration) {
@@ -121,7 +120,7 @@ public class ClassModel {
 						if (mergeMethodTemp != null)
 							throw new IllegalArgumentException("double merge method: " + jmlMethod);
 
-						mergeMethodTemp = new MergeMethodModel(smt, this, jmlMethod);
+						mergeMethodTemp = new MergeMethodModel(this.model, this, jmlMethod);
 						continue;
 					} else {
 						System.err.println("WARNING! Method with name `merge` is not a valid merge method.");
@@ -129,7 +128,7 @@ public class ClassModel {
 				}
 
 				// If the method is a normal method.
-				MethodModel methodModel = new MethodModel(smt, this, jmlMethod);
+				MethodModel methodModel = new MethodModel(this.model, this, jmlMethod);
 				// Creating the method model also creates a function declaration for z3.
 				classMethods.add(methodModel);
 
@@ -196,6 +195,6 @@ public class ClassModel {
 
 
 	public Expr getFreshConst(String name) {
-		return smt.ctx.mkFreshConst(name, getClassSort());
+		return model.ctx.mkFreshConst(name, getClassSort());
 	}
 }

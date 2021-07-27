@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants;
 
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 
@@ -32,6 +33,11 @@ public class CompilerBinding {
         String[] sourceFileStrings = Arrays.stream(sourceFiles)
                 .map(Path::toString)
                 .toArray(String[]::new);
+
+        //TODO: How to add the java base library to the compiler?
+
+        System.out.println("Java Home: " + compilerStarter.getJavaHome());
+
 
         System.out.println("Compiling files: " + Arrays.toString(sourceFileStrings));
         compilerStarter.compile(sourceFileStrings);

@@ -2,16 +2,16 @@ package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Binding;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 public class ClassProperties {
 
-	private final Z3Binding smt;
+	private final ProgramModel smt;
 	private final ClassConstraints model;
 
 
-	public ClassProperties(Z3Binding smt, ClassConstraints model) {
+	public ClassProperties(ProgramModel smt, ClassConstraints model) {
 		this.smt = smt;
 		this.model = model;
 	}
