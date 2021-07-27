@@ -145,7 +145,6 @@ public class ClassModel {
 		this.mergeMethod = mergeMethodTemp;
 		this.classMethods = classMethods.toArray(MethodModel[]::new);
 		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
-
 	}
 
 

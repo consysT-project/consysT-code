@@ -5,6 +5,7 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
 
@@ -242,6 +243,24 @@ public class BaseExpressionParser extends ExpressionParser {
   public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
     // Resolve some basic functions for convenient usage in constraints
     var methodName = String.valueOf(jmlMessageSend.selector);
+
+    var binding = jmlMessageSend.binding;
+
+    // The cases are categorized by the classes in which they are defined:
+    // java.lang.Object
+    if (JDTUtils.methodMatchesSignature(binding, "java.lang.Object", "equals", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      return model.ctx.mkEq(receiverExpr, argExpr);
+    }
+    // java.util.Map
+    else if (JDTUtils.methodMatchesSignature(binding, "java.util.Map", "get", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      return model.ctx.mkSelect(receiverExpr, argExpr);
+    }
+
+    //TODO: Change these to Math.max, Math.min respectively.
     if ("max".equals(methodName) && jmlMessageSend.arguments.length == 2) {
       var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
       return model.ctx.mkITE(

@@ -1,14 +1,10 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
-import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
 import org.eclipse.jdt.internal.compiler.lookup.*;
-
-import javax.xml.transform.Source;
-import java.util.Arrays;
-import java.util.Optional;
 
 public class TypeModelFactory {
 
@@ -60,7 +56,6 @@ public class TypeModelFactory {
 			// translate element type
 			TypeModel elementType = typeFor(arrayBinding.leafComponentType);
 
-
 			if (elementType.hasSort()) {
 				// build array sort from index and element type
 				return new ArrayModel(model, elementType);//
@@ -71,8 +66,20 @@ public class TypeModelFactory {
 		} else if (typeBinding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
-			if (bindingIsType(refBinding, "java.lang.String")) {
+			if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.String")) {
 				return stringModel.get();
+			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Map")) {
+				// Map<String, BigInteger>
+				if (refBinding instanceof ParameterizedTypeBinding) {
+					//Map has type parameters -> use them
+					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
+					return new MapModel(model, typeFor(parBinding.arguments[0]), typeFor(parBinding.arguments[1]));
+				} else {
+					//not type parameters -> Map<Object, Object>
+					return new MapModel(model, refModel.get(), refModel.get());
+				}
+			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.math.BigInteger")) {
+				return intModel.get();
 			} else if (typeBinding instanceof MissingTypeBinding) {
 				System.err.println("missing type binding: " + typeBinding);
 				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
@@ -88,13 +95,8 @@ public class TypeModelFactory {
 		return typeFor(typeReference.resolvedType);
 	}
 
-	/**
-	 *
-	 * @param binding
-	 * @param typeName A name of the form "java.lang.Object"
-	 * @return
-	 */
-	private boolean bindingIsType(ReferenceBinding binding, String typeName) {
-		return typeName.equals(String.valueOf(binding.readableName()/* ~ "java.lang.Object" */));
-	}
+
+
+
+
 }

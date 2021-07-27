@@ -1,4 +1,6 @@
+import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Map;
 
 public class BankAccountCRDT {
     /* Constants */
@@ -12,7 +14,21 @@ public class BankAccountCRDT {
     public int replicaId;
 
     public Object object;
-    public String string;
+    public String id;
+
+    public Map<String, BigInteger> counters;
+
+
+    /*@
+	@ requires n >= 0;
+	@ assignable counters.get(id);
+	@ ensures counters.get(id).equals(\old(counters.get(id).add(BigInteger.valueOf(n))));
+	@*/
+    public void increment(final int n) {
+        BigInteger retval = counters.get(id).add(BigInteger.valueOf(n));
+
+        counters.put(id, retval);
+    }
 
 
     /* Invariants */
