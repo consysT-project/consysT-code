@@ -1,6 +1,7 @@
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
+import java.lang.Math;
 
 public class BankAccountCRDT {
     /* Constants */
@@ -122,11 +123,11 @@ public class BankAccountCRDT {
     // Merge defines the conflict resolution of replicated objects.
     // Constraints can use fields, constants, and the other parameter.
     /*@
-    @ requires (\sum int i; i >= 0 && i < numOfReplicas; max(incs[i], other.incs[i]))
-      - (\sum int i; i >= 0 && i < numOfReplicas; max(decs[i], other.decs[i])) >= 0;
+    @ requires (\sum int i; i >= 0 && i < numOfReplicas; Math.max(incs[i], other.incs[i]))
+      - (\sum int i; i >= 0 && i < numOfReplicas; Math.max(decs[i], other.decs[i])) >= 0;
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
-                   incs[i] == max(\old(incs[i]), other.incs[i])
-                    && decs[i] == max(\old(decs[i]),other.decs[i]));
+                   incs[i] == Math.max(\old(incs[i]), other.incs[i])
+                    && decs[i] == Math.max(\old(decs[i]),other.decs[i]));
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {

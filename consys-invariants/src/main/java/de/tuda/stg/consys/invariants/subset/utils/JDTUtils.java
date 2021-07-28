@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.utils;
 
+import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
@@ -20,6 +21,9 @@ public class JDTUtils {
 		if (binding instanceof ReferenceBinding) {
 			var compundName = Arrays.stream(((ReferenceBinding) binding).compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
 			return compundName.equals(typeName/* ~ "java.lang.Object" */);
+		} else if (binding instanceof BaseTypeBinding) {
+			BaseTypeBinding baseBinding = (BaseTypeBinding) binding;
+			return String.valueOf(baseBinding.simpleName/* ~ "long" */).equals(typeName);
 		}
 
 		throw new UnsupportedOperationException("binding type not supported: " + binding);
@@ -55,7 +59,11 @@ public class JDTUtils {
 		}
 	}
 
-	public static boolean methodMatchesSignature(MethodBinding binding, String declaringClassName, String methodName, String... argumentTypeNames) {
+	public static boolean methodMatchesSignature(MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
+		if (binding.isStatic() != isStatic) {
+			return false;
+		}
+
 		if (!typeIsSubtypeOfName(binding.declaringClass, declaringClassName)) {
 			return false;
 		}

@@ -248,30 +248,43 @@ public class BaseExpressionParser extends ExpressionParser {
 
     // The cases are categorized by the classes in which they are defined:
     // java.lang.Object
-    if (JDTUtils.methodMatchesSignature(binding, "java.lang.Object", "equals", "java.lang.Object")) {
+    if (JDTUtils.methodMatchesSignature(binding, false,"java.lang.Object", "equals", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return model.ctx.mkEq(receiverExpr, argExpr);
     }
     // java.util.Map
-    else if (JDTUtils.methodMatchesSignature(binding, "java.util.Map", "get", "java.lang.Object")) {
+    else if (JDTUtils.methodMatchesSignature(binding, false, "java.util.Map", "get", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
+    // java.math.BigInteger
+    else if (JDTUtils.methodMatchesSignature(binding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
 
-    //TODO: Change these to Math.max, Math.min respectively.
-    if ("max".equals(methodName) && jmlMessageSend.arguments.length == 2) {
-      var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
+      return model.ctx.mkAdd(receiverExpr, argExpr);
+    }  else if (JDTUtils.methodMatchesSignature(binding, true, "java.math.BigInteger", "valueOf", "long")) {
+      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      return argExpr;
+    }
+    // java
+    else if (JDTUtils.methodMatchesSignature(binding, true, "java.lang.Math", "max", "int", "int")) {
+      var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
+      var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
+
       return model.ctx.mkITE(
-              model.ctx.mkGe(argExprs[0], argExprs[1]),
-              argExprs[0], argExprs[1]
+              model.ctx.mkGe(arg1Expr, arg2Expr),
+              arg1Expr, arg2Expr
       );
-    } else if ("min".equals(methodName) && jmlMessageSend.arguments.length == 2) {
-      var argExprs = Arrays.stream(jmlMessageSend.arguments).map(this::parseExpression).toArray(Expr[]::new);
+    } else if (JDTUtils.methodMatchesSignature(binding, true, "java.lang.Math", "min", "int", "int")) {
+      var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
+      var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
+
       return model.ctx.mkITE(
-              model.ctx.mkLe(argExprs[0], argExprs[1]),
-              argExprs[0], argExprs[1]
+              model.ctx.mkLe(arg1Expr, arg2Expr),
+              arg1Expr, arg2Expr
       );
     }
 
