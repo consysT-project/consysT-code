@@ -4,6 +4,7 @@ import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
 import de.tuda.stg.consys.annotations.Transactional
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.InferenceVisitor.State
 import de.tuda.stg.consys.checker.qual.Mixed
 
@@ -11,8 +12,9 @@ import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils, TypesUtils}
 
+import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
@@ -23,6 +25,7 @@ import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 	*/
 class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
+	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
 
 	val subCheckerMap: Map[String, Class[_ <: SubConsistencyChecker]] =
 		Map(s"$checkerPackageName.qual.Strong" -> classOf[StrongSubConsistencyChecker],
@@ -47,7 +50,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		println(">Class decl:  " + getQualifiedName(classTree))
 		// TODO: clean up + we should explicitly run the inference here before moving on
 		val mixed = atypeFactory.getAnnotatedType(classTree).getAnnotation(classOf[Mixed])
-		val defaultOpLevel = if (mixed != null) TypeFactoryUtils.getDefaultOp(mixed) else ""
+		val defaultOpLevel = if (mixed != null) TypeFactoryUtils.getMixedDefaultOp(mixed) else ""
 		if (mixed != null) {
 			atypeFactory.pushMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
 			atypeFactory.inferenceVisitor.visitClass(classTree)
@@ -118,11 +121,16 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				val expr : ExpressionTree = memberSelectTree.getExpression
 				val recvType = atypeFactory.getAnnotatedType(expr)
 
-				if (expr != null && !methodInvocationIsRefOrGetField(node))
+				if (expr != null && !methodInvocationIsRefOrGetField(node) && !recvType.hasAnnotation(classOf[Mixed]))
 					checkMethodInvocationReceiver(recvType, node)
 
 				if (recvType.hasAnnotation(classOf[Mixed]) && methodInvocationIsRefFieldAccess(node)) {
 					//checker.reportError(node, "mixed.field.access")
+				}
+
+				// check implicit context on mixed method invocation
+				if (recvType.hasAnnotation(classOf[Mixed])) {
+					checkMethodInvocationOpLevel(recvType, node)
 				}
 
 			case _ =>
@@ -300,7 +308,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			checker.reportError(tree, "invocation.argument.implicitflow", argType, implicitContext.get, tree)
 	}
 
-
+	private def checkMethodInvocationOpLevel(recvType: AnnotatedTypeMirror, tree: MethodInvocationTree): Unit = {
+		if (transactionContext && recvType.hasAnnotation(classOf[Mixed]) && !implicitContext.allowsAsMixedInvocation(recvType, tree))
+			checker.reportError(tree, "invocation.operation.implicitflow",
+				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getMixedDefaultOp(recvType.getAnnotation(classOf[Mixed]))),
+				implicitContext.get, tree)
+	}
 
 
 

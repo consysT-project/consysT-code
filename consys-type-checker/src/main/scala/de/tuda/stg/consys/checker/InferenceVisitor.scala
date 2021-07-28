@@ -3,7 +3,7 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getDefaultOp, getExplicitAnnotation, getQualifiedName}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap}
 import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
@@ -23,7 +23,7 @@ object InferenceVisitor {
     type State = (Option[TypeElement], Option[DefaultOpLevel], Option[AnnotationMirror], Option[AssignmentSide])
 }
 
-class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
+class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
 
     // TODO: switch the keys to strings for performance?
     type InferenceTable = mutable.Map[(TypeElement, String), mutable.Map[VariableElement, AnnotationMirror]]
@@ -33,16 +33,12 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
      * Stores each field read tree and the operation level of the method it occurs in
      */
     var refinementTable: mutable.Map[Tree, AnnotationMirror] = mutable.Map.empty
-    private var annoMapping: Map[String, String] = Map.empty
     private var currentClass: Option[TypeElement] = None
 
     def visitClass(node: ClassTree): Unit = visitClass(node, (None, None, None, None))
     def visitClass(decl: TypeElement): Unit = visitClass(decl, (None, None, None, None))
 
     override def visitClass(node: ClassTree, state: State): Void = {
-        if (annoMapping.isEmpty)
-            annoMapping = buildQualifierMap()
-
         val classDecl = TreeUtils.elementFromDeclaration(node)
         if (currentClass.isDefined && classDecl == currentClass.get)
             return null
@@ -55,7 +51,7 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                 currentClass = None
                 return null
             case (Some(annotation), _) =>
-                defaultOpLevel = Some(getDefaultOp(annotation))
+                defaultOpLevel = Some(getMixedDefaultOp(annotation))
             case (None, Some(_)) =>
         }
 
@@ -75,9 +71,6 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
 
     // TODO: combine duplicate code
     def visitClass(classDecl: TypeElement, state: State): Void = {
-        if (annoMapping.isEmpty)
-            annoMapping = buildQualifierMap()
-
         if (currentClass.isDefined && classDecl == currentClass.get)
             return null
         currentClass = Some(classDecl)
@@ -89,7 +82,7 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
                 currentClass = None
                 return null
             case (Some(annotation), _) =>
-                defaultOpLevel = Some(getDefaultOp(annotation))
+                defaultOpLevel = Some(getMixedDefaultOp(annotation))
             case (None, Some(_)) =>
         }
 
@@ -126,15 +119,24 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
         val (classContext, Some(defaultOpLevel), _, _) = state
         var methodLevel: Option[AnnotationMirror] = None
 
-        annoMapping.foreach(mapping => {
+        // try to find an explicit supported op level on the method
+        getQualifierForOpMap.foreach(mapping => {
             val (operation, qualifier) = mapping
             if (TypeFactoryUtils.hasAnnotation(atypeFactory, node.getModifiers, operation)) {
-                methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
-                // TODO: handle case if more than one annotation given
+                methodLevel match {
+                    case None =>
+                        methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
+                    case _ => // TODO: handle case if more than one annotation given
+                }
             }
         })
+
         if (methodLevel.isEmpty) {
-            methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, annoMapping.apply(defaultOpLevel)))
+            getQualifierForOp(defaultOpLevel) match {
+                case Some(qualifier) =>
+                    methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
+                case None => // TODO: handle case where given default operation level is not valid
+            }
         }
 
         super.visitMethod(node, (classContext, Some(defaultOpLevel), methodLevel, None))
@@ -225,11 +227,15 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
         })
 
         val (_, defaultOpLevel, _, _) = state
-        val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, annoMapping.apply(defaultOpLevel.get))
+        getQualifierForOp(defaultOpLevel.get) match {
+            case Some(qualifier) =>
+                val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
+                fields.foreach(f => {
+                    updateField(f.asInstanceOf[VariableElement], (Some(elt), defaultOpLevel, Some(level), Some(LHS)), f)
+                })
 
-        fields.foreach(f => {
-            updateField(f.asInstanceOf[VariableElement], (Some(elt), defaultOpLevel, Some(level), Some(LHS)), f)
-        })
+            case None => // TODO: handle case where given default operation level is not valid
+        }
     }
 
     def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): (Option[AnnotationMirror], Int) = {
@@ -274,20 +280,4 @@ class InferenceVisitor(atypeFactory: ConsistencyAnnotatedTypeFactory) extends Tr
         getSuperclassElement(TreeUtils.elementFromDeclaration(classTree))
 
     private def getSourceOfElement(elt: TypeElement): ClassTree = atypeFactory.getTreeUtils.getTree(elt)
-
-    def buildQualifierMap(): Map[String, String] =
-        atypeFactory.getSupportedTypeQualifiers.
-            map(q => atypeFactory.getAnnotatedType(q) match {
-                case adt: AnnotatedDeclaredType => adt.getUnderlyingType.asElement
-                case _ => null
-            }).
-            filter(x => x != null).
-            foldLeft(Map.empty[String, String])((map, elt) => {
-                atypeFactory.getAnnotationByClass(elt.getAnnotationMirrors, classOf[QualifierForOperation]) match {
-                    case null => map
-                    case annotation =>
-                        val value = annotation.getElementValues.values().head
-                        map + (value.getValue.toString -> elt.toString)
-                }
-            })
 }

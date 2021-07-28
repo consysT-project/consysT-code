@@ -6,7 +6,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
-
+//@skip-test
 public class FieldAccessTest {
     static @Mixed class A implements Serializable {
         public int i;

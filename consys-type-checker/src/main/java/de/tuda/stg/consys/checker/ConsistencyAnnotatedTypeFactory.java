@@ -105,7 +105,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 					var classTree = getTreeUtils().getTree(classElement);
 
 					mixed = recvType.getAnnotation(Mixed.class);
-					var defaultOpLevel = (mixed != null) ? TypeFactoryUtils.getDefaultOp(mixed) : "";
+					var defaultOpLevel = (mixed != null) ? TypeFactoryUtils.getMixedDefaultOp(mixed) : "";
 					if (classTree != null && mixed != null) {
 						pushMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel);
 						inferenceVisitor.visitClass(classTree, new Tuple4<>(Option.empty(), Option.apply(defaultOpLevel), Option.empty(), Option.empty()));
@@ -184,11 +184,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	public void popMixedClassContext() {
 		this.mixedClassContext.pop();
-	}
-
-	public String qualifierForOperation(String operation) {
-		// TODO: recomputing
-		return inferenceVisitor.buildQualifierMap().get(operation).get();
 	}
 
 	public void processClassWithoutCache(ClassTree node, String opLevel) {

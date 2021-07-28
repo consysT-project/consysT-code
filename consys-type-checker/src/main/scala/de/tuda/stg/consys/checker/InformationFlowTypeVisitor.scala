@@ -1,9 +1,12 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
+import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
+
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
-import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -13,7 +16,8 @@ import scala.collection.{JavaConverters, mutable}
 	* @author Mirko Köhler
 	*/
 abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](baseChecker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](baseChecker) {
-
+	import TypeFactoryUtils._
+	private implicit val tf: AnnotatedTypeFactory = atypeFactory
 
 	//Current context of the consistency check
 	protected val implicitContext : ImplicitContext = new ImplicitContext
@@ -114,7 +118,9 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 				 equals(s1, s2) --> weak
 					*/
 		//Retrieve the (inferred) annotated type
-		getAnnotation(atypeFactory.getAnnotatedType(node))
+		val typ = atypeFactory.getAnnotatedType(node)
+		if (typ.hasAnnotation(classOf[Mixed])) AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
+		else getAnnotation(typ)
 	}
 
 
@@ -193,5 +199,32 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 		def allowsAsArgument(typ : AnnotatedTypeMirror, tree : Tree) : Boolean =
 			canBeAccessed(typ, tree)
+
+		def allowsAsMixedInvocation(typ : AnnotatedTypeMirror, tree : MethodInvocationTree): Boolean = {
+			val method = TreeUtils.elementFromUse(tree)
+
+			var methodLevel: Option[AnnotationMirror] = None
+			getQualifierForOpMap.foreach(mapping => {
+				val (operation, qualifier) = mapping
+				if (ElementUtils.hasAnnotation(method, operation)) {
+					methodLevel match {
+						case None =>
+							methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
+						case _ => // TODO: handle case if more than one annotation given
+					}
+				}
+			})
+
+			if (methodLevel.isEmpty) {
+				getQualifierForOp(getMixedDefaultOp(typ.getAnnotation(classOf[Mixed]))) match {
+					case Some(qualifier) =>
+						methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
+					case None => // TODO: handle case where given default operation level is not valid
+				}
+			}
+
+			atypeFactory.getQualifierHierarchy.isSubtype(get, methodLevel.get) ||
+				atypeFactory.getQualifierHierarchy.getBottomAnnotations.contains(methodLevel.get)
+		}
 	}
 }

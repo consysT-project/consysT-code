@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.checker
 
-import de.tuda.stg.consys.checker.TypeFactoryUtils.getDefaultOp
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, MostlyNoElementQualifierHierarchy, TypeHierarchy}
 import org.checkerframework.framework.util.QualifierKind
@@ -13,6 +12,9 @@ import javax.lang.model.util.Elements
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <: Annotation]], elements: Elements, val atypeFactory: ConsistencyAnnotatedTypeFactory) extends MostlyNoElementQualifierHierarchy(qualifierClasses, elements) {
+    import TypeFactoryUtils._
+    implicit val tf: AnnotatedTypeFactory = atypeFactory
+
     override def isSubtypeWithElements(subAnno: AnnotationMirror, subKind: QualifierKind, superAnno: AnnotationMirror, superKind: QualifierKind): Boolean = {
         subKind.compareTo(superKind) match {
             case 0 if subKind.getAnnotationClass.equals(classOf[Mixed]) =>
@@ -40,8 +42,12 @@ class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <:
     }
 
     private def getDefaultOpElement(anno: AnnotationMirror): AnnotationMirror = {
-        val operationLevel = getDefaultOp(anno)
-        val qualifier = atypeFactory.qualifierForOperation(operationLevel)
-        AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
+        val operationLevel = getMixedDefaultOp(anno)
+        getQualifierForOp(operationLevel) match {
+            case Some(qualifier) =>
+                AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
+
+            case None => sys.error("invalid default operation on mixed") // TODO: handle case where given default operation level is not valid
+        }
     }
 }
