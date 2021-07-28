@@ -135,7 +135,7 @@ public class GSet<E> extends ForwardingSet<E> implements
 	// How about using super in the annotations?
 	/*@
 	@ assignable \nothing;
-	@ ensures \result== delegate.contains(object);
+	@ ensures \result == delegate.contains(object);
 	@*/
 	@Override
 	public boolean contains(final Object object) {
@@ -148,6 +148,7 @@ public class GSet<E> extends ForwardingSet<E> implements
 	@ assignable delegate;
 	@ ensures delegate.contains(element);
     @ ensures (\forall E elem; delegate.contains(elem) && elem.equals(element) == false; \old(delegate.contains(elem)));
+    @ ensures \result == !(\old(delegate.contains(element)));
 	@*/
 	@Override
 	public boolean add(final E element) {
@@ -157,7 +158,7 @@ public class GSet<E> extends ForwardingSet<E> implements
 	}
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == !(\exists E elem; collection.contains(elem); delegate.contains(elem) == false);
+	@ ensures \result == (\forall E elem; collection.contains(elem); delegate.contains(elem));
 	@*/
 	@Override
 	public boolean containsAll(final Collection<?> collection) {
@@ -170,6 +171,7 @@ public class GSet<E> extends ForwardingSet<E> implements
 	@ assignable delegate;
 	@ ensures (\forall E elem; collection.contains(elem); delegate.contains(elem));
 	@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
+	@ ensures \result == !(\forall E elem; collection.contains(elem); \old(delegate.contains(elem)));
 	@*/
 	@Override
 	public boolean addAll(final Collection<? extends E> collection) {
