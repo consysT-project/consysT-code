@@ -141,13 +141,13 @@ public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDT
 		}
 	}
 
-	// @ requires false;
+	//@ requires false;
 	@Override
 	public BigInteger decrement() {
 		throw new UnsupportedOperationException();
 	}
 
-	// @ requires false;
+	//@ requires false;
 	@Override
 	public BigInteger decrement(@Nonnegative final int n) {
 		throw new UnsupportedOperationException();
@@ -155,7 +155,7 @@ public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDT
 
 	// Should we have annotations for equals method? - should we care about Object o?
 	/*@
-	@ assignable nothing;
+	@ assignable \nothing;
 	@ ensures \result == o.value().equals(value());
 	@*/
 	@Override

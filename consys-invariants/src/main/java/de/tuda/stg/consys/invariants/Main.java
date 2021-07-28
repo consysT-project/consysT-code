@@ -21,7 +21,7 @@ public class Main {
   public static void main(String[] args) {
     // Set the source file
     Path[] sources = new Path[] {
-            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
+            //Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
            // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
         //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
@@ -31,6 +31,7 @@ public class Main {
            // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
          //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
+               Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
     };
 
     runChecker(sources);
