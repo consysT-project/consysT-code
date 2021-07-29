@@ -41,7 +41,6 @@ public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDT
 	@ ensures clientId.equals(client);
 	@*/
 	@Inject
-	 */
 	public GCounter(final ObjectMapper mapper, @ClientId final String client) {
 		super(mapper);
 

@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants;
 
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
@@ -31,6 +32,7 @@ public class Main {
            // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
          //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
+           Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
     };
 
     runChecker(sources);
@@ -42,13 +44,16 @@ public class Main {
     TypeDeclaration[] declarations = compiler.compile(sources);
 
     // Run the property checker given the class ASTs
-    CheckerBinding checker = new CheckerBinding();
+    ProgramModel model = new ProgramModel();
+
     for (TypeDeclaration clazz : declarations) {
       if (!(clazz instanceof JmlTypeDeclaration)) {
         throw new IllegalArgumentException("class is not a Jml type.");
       }
-      checker.check((JmlTypeDeclaration) clazz);
+      model.addClass((JmlTypeDeclaration) clazz);
     }
+
+    model.checkAll();
   }
 
 

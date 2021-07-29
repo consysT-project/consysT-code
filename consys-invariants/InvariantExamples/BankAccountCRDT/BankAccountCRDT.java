@@ -14,24 +14,6 @@ public class BankAccountCRDT {
     public final int[] incs, decs;
     public int replicaId;
 
-    public Object object;
-    public String id;
-
-    public Map<String, BigInteger> counters;
-
-
-    /*@
-	@ requires n >= 0;
-	@ assignable counters.get(id);
-	@ ensures counters.get(id).equals(\old(counters.get(id).add(BigInteger.valueOf(n))));
-	@*/
-    public void increment(final int n) {
-        BigInteger retval = counters.get(id).add(BigInteger.valueOf(n));
-
-        counters.put(id, retval);
-    }
-
-
     /* Invariants */
     // Invariant definitions can use constants and fields.
     // Pure methods (i.e. methods that do not change the object state) that only use Z3 types can be used in constraints.

@@ -58,13 +58,15 @@ public class ClassModel {
 			//Decide whether field is constant or class field
 			if (field.isStatic() && field.binding.isFinal()) {
 				// Handle constants
-				if (field.initialization == null)
-					throw new IllegalStateException("Constant value must be initialized directly for field " + field);
+				if (field.initialization == null) {
+					// throw new IllegalStateException("Constant value must be initialized directly for field " + field);
+					System.err.println("not possible to use static final field " +  String.valueOf(field.name) +  " as constant. Reason: field was not initialized. Field: " + field);
+				} else {
+					ExpressionParser parser = new BaseExpressionParser(this.model);
+					Expr initialValue = parser.parseExpression(field.initialization);
 
-				ExpressionParser parser = new BaseExpressionParser(this.model);
-				Expr initialValue = parser.parseExpression(field.initialization);
-
-				classConstantsTemp.add(new ConstantModel(this.model, field, initialValue));
+					classConstantsTemp.add(new ConstantModel(this.model, field, initialValue));
+				}
 
 			} else if (field.isStatic()) {
 				// Static fields are not supported
@@ -83,7 +85,10 @@ public class ClassModel {
 		for (int i = 0; i < this.classFields.length; i++) {
 			FieldModel field = this.classFields[i];
 			fieldNames[i] = field.getName();
-			fieldSorts[i] = field.getType().getSort().orElseThrow(() -> new IllegalArgumentException("field type cannot be translated to z3: " + field));
+			fieldSorts[i] = field.getType().getSort()
+					.orElseThrow(
+							() -> new IllegalArgumentException("field type cannot be translated to z3: " + field)
+					);
 		}
 
 		this.classSort = this.model.ctx.mkTupleSort(
