@@ -30,6 +30,8 @@ public class TypeModelFactory {
 	}
 
 	public TypeModel<?> typeFor(TypeBinding typeBinding) {
+
+
 		if (typeBinding instanceof BaseTypeBinding) {
 			BaseTypeBinding binding = (BaseTypeBinding) typeBinding;
 

@@ -293,7 +293,7 @@ public class TwoPhaseSet<E> implements
 	// I think we need some type casting supports for this use case.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == value().equals(o));
+	@ ensures \result == value().equals(o.value()));
 	@*/
 	@Override
 	public final boolean equals(@Nullable final Object o) {

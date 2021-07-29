@@ -1,7 +1,9 @@
 package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.BoolExpr;
+import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
+import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
@@ -10,13 +12,10 @@ public class ClassProperties {
 	private final ProgramModel smt;
 	private final ClassConstraints model;
 
-
 	public ClassProperties(ProgramModel smt, ClassConstraints model) {
 		this.smt = smt;
 		this.model = model;
 	}
-
-
 
 	/* Sequential properties */
 
@@ -31,7 +30,7 @@ public class ClassProperties {
 						model.getInvariant().apply(s0)
 				);
 
-		return smt.isValid(property);
+		return isValid(property);
 	}
 
 	// Applying a method sequentially cannot violate the invariant.
@@ -50,7 +49,7 @@ public class ClassProperties {
 						model.getInvariant().apply(s0_new)
 				);
 		//System.out.println(model.getPostcondition(binding).apply(s0, s0_new, null).toString());
-		return smt.isValid(property);
+		return isValid(property);
 	}
 
 	// Applying merge sequentially cannot violate the invariant.
@@ -71,7 +70,7 @@ public class ClassProperties {
 						model.getInvariant().apply(s0_new)
 				);
 
-		return smt.isValid(property);
+		return isValid(property);
 	}
 
 	/* Concurrent properties (i.e. predicates for mergability) */
@@ -87,7 +86,7 @@ public class ClassProperties {
 						model.getMergePrecondition().apply(s0 ,s0)
 				);
 
-		return smt.isValid(property);
+		return isValid(property);
 	}
 
 
@@ -112,7 +111,7 @@ public class ClassProperties {
 						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
-		return smt.isValid(property);
+		return isValid(property);
 	}
 
 	// Applying merge does not violate the mergability.
@@ -133,7 +132,27 @@ public class ClassProperties {
 						model.getMergePrecondition().apply(s0_new, s1)
 				);
 
-		return smt.isValid(property);
+		return isValid(property);
+	}
+
+
+	boolean isValid(Expr<BoolSort> expr) {
+		Status status = smt.solver.check(smt.ctx.mkNot(expr));
+		switch (status) {
+			case UNSATISFIABLE:
+				return true;
+			case SATISFIABLE:
+				//System.out.println(expr);
+				//System.out.println(solver.getModel());
+				return false;
+			case UNKNOWN:
+				//throw new IllegalStateException("solving expression lead to an error: " + expr);
+				System.err.println("Error solving " + expr);
+				return false;
+			default:
+				//Does not exist
+				throw new RuntimeException();
+		}
 	}
 
 
