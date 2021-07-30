@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodTree, ModifiersTree, Tree, VariableTree}
+import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodInvocationTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
+import de.tuda.stg.consys.annotations.ReadOnly
 import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap}
 import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
@@ -154,6 +155,15 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         var r = scan(node.getVariable, (clazz, defaultOpLevel, methodLevel, Some(LHS)))
         r = reduce(scan(node.getExpression, (clazz, defaultOpLevel, methodLevel, Some(RHS))), r)
         r
+    }
+
+    override def visitMethodInvocation(node: MethodInvocationTree, state:State): Void = {
+        val (clazz, defaultOpLevel, methodLevel, _) = state
+        val method = TreeUtils.elementFromUse(node)
+        if (method.getAnnotation(classOf[ReadOnly]) != null)
+            super.visitMethodInvocation(node, (clazz, defaultOpLevel, methodLevel, Some(RHS)))
+        else
+            super.visitMethodInvocation(node, (clazz, defaultOpLevel, methodLevel, Some(LHS)))
     }
 
     // TODO: are there more tree types for field use other than IdentifierTree and MemberSelect?
