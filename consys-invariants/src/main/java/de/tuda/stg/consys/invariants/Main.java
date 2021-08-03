@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants;
 
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
+import org.eclipse.jdt.internal.compiler.parser.Parser;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ public class Main {
   public static void main(String[] args) {
     // Set the source file
     Path[] sources = new Path[] {
-            //Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
+            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
             // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
             //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
@@ -32,7 +33,7 @@ public class Main {
             // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
 //            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
             //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
+//            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
     };
 
     runChecker(sources);
@@ -41,18 +42,12 @@ public class Main {
   public static void runChecker(Path[] sources) {
     // Compile the file to ASTs
     CompilerBinding compiler = new CompilerBinding();
-    TypeDeclaration[] declarations = compiler.compile(sources);
+    Parser compiledParser = compiler.compile(sources);
 
-    // Run the property checker given the class ASTs
-    ProgramModel model = new ProgramModel();
-
-    for (TypeDeclaration clazz : declarations) {
-      if (!(clazz instanceof JmlTypeDeclaration)) {
-        throw new IllegalArgumentException("class is not a Jml type.");
-      }
-      model.addClass((JmlTypeDeclaration) clazz);
-    }
-
+    // Create the program model
+    ProgramModel model = new ProgramModel(compiledParser);
+    model.loadParsedClasses();
+    // Check the classes
     model.checkAll();
   }
 
