@@ -2,14 +2,18 @@ package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.utils.Lazy;
+import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
 public class RefModel extends BaseTypeModel<Sort> {
 
-	private Sort refSort;
+	private final Lazy<Sort> backUpSort;
+	private final ReferenceBinding refBinding;
 
-	RefModel(ProgramModel model, String sortName) {
+	RefModel(ProgramModel model, ReferenceBinding refBinding) {
 		super(model);
-		refSort = model.ctx.mkUninterpretedSort(sortName);
+		this.refBinding = refBinding;
+		this.backUpSort = Lazy.make(() -> model.ctx.mkUninterpretedSort("T_UN_" + String.valueOf(refBinding.shortReadableName())));
 	}
 
 	@Override
@@ -19,7 +23,13 @@ public class RefModel extends BaseTypeModel<Sort> {
 
 	@Override
 	public Sort toSort() {
-		return refSort;
+		var maybeModel = model.getModelForClass(refBinding);
+
+		if (maybeModel.isPresent()) {
+			return maybeModel.get().getClassSort();
+		}
+
+		return backUpSort.get();
 	}
 
 

@@ -8,6 +8,7 @@ import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
+import scala.NotImplementedError;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -287,6 +288,16 @@ public class BaseExpressionParser extends ExpressionParser {
               arg1Expr, arg2Expr
       );
     }
+
+    var maybeDeclaringModel = model.getModelForClass(binding.declaringClass);
+    if (maybeDeclaringModel.isPresent()) {
+      var declaringModel = maybeDeclaringModel.get();
+
+      //TODO: Check whether its possible to use a method here...
+
+      throw new NotImplementedError();
+    }
+
 
 
     throw new UnsupportedJMLExpression(jmlMessageSend);

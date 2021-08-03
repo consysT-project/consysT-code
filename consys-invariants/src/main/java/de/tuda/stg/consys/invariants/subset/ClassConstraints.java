@@ -242,6 +242,16 @@ public class ClassConstraints {
 		return classModel;
 	}
 
+//	private Expr getForallInvariant(InvariantModel inv) {
+//		var forallVar = model.ctx.mkFreshConst("s_inv", classModel.getClassSort());
+//		model.ctx.mkForall(
+//				new Expr[] {forallVar},
+//				model.ctx.mkTrue(),
+//
+//
+//		)
+//	}
+
 	@Override
 	public String toString() {
 		return "Class" + classModel.getClassName() + "====\n"

@@ -6,13 +6,18 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
+import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
+import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
+import org.eclipse.jdt.internal.compiler.lookup.Scope;
+import org.eclipse.jdt.internal.compiler.parser.Parser;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class ProgramModel {
 	static {
@@ -47,22 +52,25 @@ public class ProgramModel {
 
 	public final TypeModelFactory types;
 
+	public final Parser parser;
+
 	// Stores all class models
 	private final Map<ReferenceBinding, ClassModel> models;
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
-	public ProgramModel(Context ctx) {
+	public ProgramModel(Context ctx, Parser parser) {
 		this.ctx = ctx;
 		this.solver = ctx.mkSolver();
+		this.parser = parser;
 		this.types = new TypeModelFactory(this);
 
 		this.models = Maps.newHashMap();
 		this.modelSequence = Lists.newLinkedList();
 	}
 
-	public ProgramModel() {
-		this(new Context());
+	public ProgramModel(Parser parser) {
+		this(new Context(), parser);
 	}
 
 	public void addClass(JmlTypeDeclaration jmlClass) {
@@ -71,7 +79,13 @@ public class ProgramModel {
 		modelSequence.add(jmlClass.binding);
 	}
 
+	public Optional<ClassModel> getModelForClass(ReferenceBinding refBinding) {
+		return Optional.ofNullable(models.getOrDefault(refBinding, null));
+	}
+
 	public void checkAll() {
+		System.out.println("Checking " + modelSequence);
+
 		for (var binding : modelSequence) {
 			// Parse the z3 model from AST.
 			ClassModel classModel = models.get(binding);
@@ -96,5 +110,18 @@ public class ProgramModel {
 		}
 	}
 
+	// Loads the parsed classes into this program model.
+	public void loadParsedClasses() {
+		TypeDeclaration[] declarations = parser.compilationUnit.types;
+		for (TypeDeclaration clazz : declarations) {
+			if (!(clazz instanceof JmlTypeDeclaration)) {
+				throw new IllegalArgumentException("class is not a Jml type.");
+			}
+			addClass((JmlTypeDeclaration) clazz);
+		}
+	}
 
+	public CompilationUnitScope getParserScope() {
+		return parser.compilationUnit.scope;
+	}
 }

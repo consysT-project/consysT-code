@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
+import org.eclipse.jdt.internal.compiler.parser.Parser;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -28,7 +29,7 @@ public class CompilerBinding {
     }
 
 
-    public TypeDeclaration[] compile(Path... sourceFiles) {
+    public Parser compile(Path... sourceFiles) {
 
         String[] sourceFileStrings = Arrays.stream(sourceFiles)
                 .map(Path::toString)
@@ -55,7 +56,7 @@ public class CompilerBinding {
             throw new IllegalStateException("compiler was not able to generate types from the given source files.");
         }
 
-        return compilerStarter.batchCompiler.parser.compilationUnit.types;
+        return compilerStarter.batchCompiler.parser;
     }
 
 

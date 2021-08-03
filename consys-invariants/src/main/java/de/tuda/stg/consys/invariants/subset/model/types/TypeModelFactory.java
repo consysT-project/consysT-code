@@ -1,10 +1,14 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
+import com.google.common.collect.Maps;
+import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
 import org.eclipse.jdt.internal.compiler.lookup.*;
+
+import java.util.HashMap;
 
 public class TypeModelFactory {
 
@@ -14,10 +18,9 @@ public class TypeModelFactory {
 	private final Lazy<BoolModel> boolModel;
 	private final Lazy<RealModel> realModel;
 	private final Lazy<VoidModel> emptyModel;
-	private final Lazy<RefModel> refModel;
 	private final Lazy<StringModel> stringModel;
 
-
+	private final HashMap<ReferenceBinding, RefModel> refModels;
 
 	public TypeModelFactory(ProgramModel model) {
 		this.model = model;
@@ -25,12 +28,22 @@ public class TypeModelFactory {
 		this.boolModel = Lazy.make(() -> new BoolModel(model));
 		this.realModel = Lazy.make(() -> new RealModel(model));
 		this.emptyModel = Lazy.make(() -> new VoidModel(model));
-		this.refModel = Lazy.make(() -> new RefModel(model, "T_Ref"));
+		this.refModels = Maps.newHashMap();
 		this.stringModel = Lazy.make(() -> new StringModel(model));
 	}
 
-	public TypeModel<?> typeFor(TypeBinding typeBinding) {
+	private RefModel modelForRef(ReferenceBinding refBinding) {
+		if (refModels.containsKey(refBinding)) {
+			return refModels.get(refBinding);
+		} else {
+			var refModel = new RefModel(model, refBinding);
+			refModels.put(refBinding, refModel);
+			return refModel;
+		}
+	}
 
+
+	public TypeModel<?> typeFor(TypeBinding typeBinding) {
 
 		if (typeBinding instanceof BaseTypeBinding) {
 			BaseTypeBinding binding = (BaseTypeBinding) typeBinding;
@@ -78,7 +91,8 @@ public class TypeModelFactory {
 					return new MapModel(model, typeFor(parBinding.arguments[0]), typeFor(parBinding.arguments[1]));
 				} else {
 					//not type parameters -> Map<Object, Object>
-					return new MapModel(model, refModel.get(), refModel.get());
+					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					return new MapModel(model, objectModel, objectModel);
 				}
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.math.BigInteger")) {
 				return intModel.get();
@@ -86,8 +100,7 @@ public class TypeModelFactory {
 				System.err.println("missing type binding: " + typeBinding);
 				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 			}
-
-			return refModel.get();
+			return modelForRef(refBinding);
 		} else {
 			return new EmptyModel(model, "incompatible type " + typeBinding);
 		}
