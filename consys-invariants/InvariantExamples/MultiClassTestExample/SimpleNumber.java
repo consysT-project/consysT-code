@@ -1,5 +1,7 @@
-public class SimpleNumber{
+import de.tuda.stg.consys.annotations.invariants.DataModel;
 
+@DataModel
+public class SimpleNumber{
 
     private int value;
 
@@ -19,8 +21,15 @@ public class SimpleNumber{
         value += change;
     }
 
-    boolean equals(int n) {
-        return (n == value);
+    boolean hasValue(int n) {
+        return n == value;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof SimpleNumber && ((SimpleNumber) o).value == value;
+    }
+
+
 
 }

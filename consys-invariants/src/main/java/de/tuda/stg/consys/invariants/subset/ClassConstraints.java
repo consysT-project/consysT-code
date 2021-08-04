@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
-import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
@@ -17,10 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ClassConstraints {
+public class ClassConstraints<CModel extends ClassModel> {
 
-	private final ProgramModel model;
-	private final ClassModel classModel;
+	final ProgramModel model;
+	final CModel classModel;
 
 	/** The invariant of the class */
 	private final InvariantModel invariant;
@@ -31,11 +30,6 @@ public class ClassConstraints {
 	private final Map<MethodBinding, PreconditionModel> preconditions;
 	/** Method postconditions */
 	private final Map<MethodBinding, PostconditionModel> postconditions;
-
-	/** Merge precondtion */
-	private final MergePreconditionModel mergePrecondition;
-	/** Merge postcondition */
-	private final MergePostconditionModel mergePostcondition;
 
 
 	/* Helper classes for predicate models. */
@@ -63,21 +57,8 @@ public class ClassConstraints {
 		}
 	}
 
-	public static class MergePreconditionModel extends Z3Predicate2 {
-		MergePreconditionModel(Expr thisConst, Expr otherConst, Expr body) {
-			super("pre_merge", thisConst, otherConst, body);
-		}
-	}
 
-	public static class MergePostconditionModel extends Z3Predicate3 {
-		MergePostconditionModel(Expr oldConst, Expr otherConst, Expr thisConst, Expr body) {
-			super("post_merge", oldConst, otherConst, thisConst, body);
-		}
-	}
-
-
-
-	public ClassConstraints(ProgramModel model, ClassModel classModel) {
+	public ClassConstraints(ProgramModel model, CModel classModel) {
 		this.model = model;
 		this.classModel = classModel;
 
@@ -96,9 +77,9 @@ public class ClassConstraints {
 		preconditions = Maps.newHashMap();
 		postconditions = Maps.newHashMap();
 		for(MethodModel methodModel : classModel.getMethods()) {
-			preconditions.put(methodModel.getDecl().binding, handlePrecondition(methodModel));
+			preconditions.put(methodModel.getBinding(), handlePrecondition(methodModel));
 			var postCondition = handlePostcondition(methodModel);
-			postconditions.put(methodModel.getDecl().binding, postCondition);
+			postconditions.put(methodModel.getBinding(), postCondition);
 
 			// If the method is pure.
 			if (methodModel.isZ3Usable()) {
@@ -130,12 +111,6 @@ public class ClassConstraints {
 			}
 
 		}
-
-		// Setup the merge pre/postcondition.
-		MergeMethodModel mergeModel = classModel.getMergeMethod();
-		mergePrecondition = handleMergePrecondition(mergeModel);
-		mergePostcondition = handleMergePostcondition(mergeModel);
-
 	}
 
 	private InitialConditionModel handleInitialConditions(ClassModel classModel) {
@@ -144,10 +119,10 @@ public class ClassConstraints {
 		List<Expr> initialConditions = Lists.newLinkedList();
 		for (var constructor : classModel.getConstructors()) {
 			var preParser = new ConstructorPreconditionExpressionParser(model, classModel, constructor);
-			var preExpr = preParser.parseExpression(constructor.getDecl().getSpecification().getPrecondition());
+			var preExpr = preParser.parseExpression(constructor.getJPrecondition().orElse(null));
 
 			var postParser = new ConstructorPostconditionExpressionParser(model, classModel, constructor, thisConst);
-			var postExpr = postParser.parseExpression(constructor.getDecl().getSpecification().getPostcondition());
+			var postExpr = postParser.parseExpression(constructor.getJPostcondition().orElse(null));
 
 			initialConditions.add(model.ctx.mkITE(preExpr, postExpr, model.ctx.mkFalse()));
 		}
@@ -157,40 +132,15 @@ public class ClassConstraints {
 	}
 
 	private PreconditionModel handlePrecondition(MethodModel methodModel) {
-		var specification = methodModel.getDecl().getSpecification();
-
 		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 		var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
-		Expr expr = parser.parseExpression(specification.getPrecondition());
+		Expr expr = parser.parseExpression(methodModel.getJPrecondition().orElse(null));
 		return new PreconditionModel(thisConst, expr);
 	}
 
-	private MergePreconditionModel handleMergePrecondition(MergeMethodModel methodModel) {
-		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
-
-		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
-		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
-		var parser = new MergeMethodPreconditionExpressionParser(model, classModel, methodModel, thisConst, otherConst);
-		Expr expr = parser.parseExpression(specification.getPrecondition());
-		return new MergePreconditionModel(thisConst, otherConst, expr);
-	}
-
-	private MergePostconditionModel handleMergePostcondition(MergeMethodModel methodModel) {
-		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
-
-		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
-		Expr thisConst = model.ctx.mkFreshConst("s_new", classModel.getClassSort());
-		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
-
-		var parser = new MergeMethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, otherConst);
-		Expr expr = parser.parseExpression(specification.getPostcondition());
-		return new MergePostconditionModel(oldConst, otherConst, thisConst, expr);
-	}
 
 
 	private PostconditionModel handlePostcondition(MethodModel methodModel) {
-		JmlMethodSpecification specification = methodModel.getDecl().getSpecification();
-
 		// Var for `\old(this)` references
 		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
 		// Var for `this` references
@@ -202,12 +152,13 @@ public class ClassConstraints {
 
 		// Parse the postcondition from JML @ensures specification
 		var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
-		Expr expr = parser.parseExpression(specification.getPostcondition());
+		Expr expr = parser.parseExpression(methodModel.getJPostcondition().orElse(null));
 		// Parse the assignable clause
 		BoolExpr assignable;
 		var maybeClause = methodModel.getAssignableClause();
 		if (maybeClause.isEmpty()) {
-			throw new IllegalArgumentException("no assignable clause for " + methodModel.getDecl());
+			Logger.warn("no assignable clause found, defaulting to assignable \\nothing: " + methodModel);
+			assignable = parser.parseJmlAssignableClause(null);
 		} else {
 			assignable = parser.parseJmlAssignableClause(maybeClause.get());
 		}
@@ -221,14 +172,6 @@ public class ClassConstraints {
 	}
 
 	public InitialConditionModel getInitialCondition() { return initial; }
-
-	public MergePreconditionModel getMergePrecondition() {
-		return mergePrecondition;
-	}
-
-	public MergePostconditionModel getMergePostcondition() {
-		return mergePostcondition;
-	}
 
 	public PreconditionModel getPrecondition(MethodBinding method) {
 		return preconditions.get(method);
@@ -258,9 +201,7 @@ public class ClassConstraints {
 				+ "Invariant ====\n" + getInvariant() + "\n"
 				+ "Initial ====\n" + getInitialCondition() + "\n"
 				+ "Preconditions ====\n" + preconditions.entrySet().stream().map(entry -> String.valueOf(entry.getKey().selector) + ": " + entry.getValue() + "\n").collect(Collectors.joining())
-				+ "Postconditions ====\n" + postconditions.entrySet().stream().map(entry -> String.valueOf(entry.getKey().selector) + ": " + entry.getValue() + "\n").collect(Collectors.joining())
-				+ "Merge Precondition ====\n" +  getMergePrecondition()  + "\n"
-				+ "Merge Postcondition ====\n" +  getMergePostcondition();
+				+ "Postconditions ====\n" + postconditions.entrySet().stream().map(entry -> String.valueOf(entry.getKey().selector) + ": " + entry.getValue() + "\n").collect(Collectors.joining());
 	}
 
 

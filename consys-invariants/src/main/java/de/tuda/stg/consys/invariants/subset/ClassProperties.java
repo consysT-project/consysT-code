@@ -5,14 +5,15 @@ import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 public class ClassProperties {
 
 	private final ProgramModel smt;
-	private final ClassConstraints model;
+	private final ReplicatedClassConstraints<ReplicatedClassModel> model;
 
-	public ClassProperties(ProgramModel smt, ClassConstraints model) {
+	public ClassProperties(ProgramModel smt, ReplicatedClassConstraints<ReplicatedClassModel> model) {
 		this.smt = smt;
 		this.model = model;
 	}
@@ -147,7 +148,7 @@ public class ClassProperties {
 				return false;
 			case UNKNOWN:
 				//throw new IllegalStateException("solving expression lead to an error: " + expr);
-				System.err.println("Error solving " + expr);
+				Logger.err("Error solving " + expr);
 				return false;
 			default:
 				//Does not exist

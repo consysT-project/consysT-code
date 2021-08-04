@@ -4,15 +4,18 @@ import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.TupleSort;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
+import org.eclipse.jdt.internal.compiler.lookup.SourceTypeBinding;
 import org.jmlspecs.jml4.ast.JmlConstructorDeclaration;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
@@ -24,21 +27,19 @@ import java.util.Optional;
 
 public class ClassModel {
 
-	private final ProgramModel model;
+	final ProgramModel model;
 	// The underlying jml type for this declaration
-	private final JmlTypeDeclaration jmlType;
+	final JmlTypeDeclaration jmlType;
 
 	// Stores all virtual fields of the class
-	private final FieldModel[] classFields;
+	final FieldModel[] classFields;
 	// Stores all static final fields as constants for usage in formulas
-	private final ConstantModel[] classConstants;
+	final ConstantModel[] classConstants;
 
 	// Methods
-	private final MethodModel[] classMethods;
-	// Merge Method
-	private final MergeMethodModel mergeMethod;
+	final MethodModel[] classMethods;
 	// Constructors
-	private final ConstructorModel[] classConstructors;
+	final ConstructorModel[] classConstructors;
 
 	// Z3 Sort to represent states of this class.
 	private final TupleSort classSort;
@@ -55,12 +56,17 @@ public class ClassModel {
 		for (int i = 0; i < jmlType.fields.length; i++) {
 			FieldDeclaration field = jmlType.fields[i];
 
+			if (field.binding == null) {
+				Logger.warn("no binding for field. Skip parsing it: " +  String.valueOf(field.name));
+				continue;
+			}
+
 			//Decide whether field is constant or class field
 			if (field.isStatic() && field.binding.isFinal()) {
 				// Handle constants
 				if (field.initialization == null) {
 					// throw new IllegalStateException("Constant value must be initialized directly for field " + field);
-					System.err.println("not possible to use static final field " +  String.valueOf(field.name) +  " as constant. Reason: field was not initialized. Field: " + field);
+					Logger.warn("not possible to use static final field " +  String.valueOf(field.name) +  " as constant. Reason: field was not initialized. Field: " + field);
 				} else {
 					ExpressionParser parser = new BaseExpressionParser(this.model);
 					Expr initialValue = parser.parseExpression(field.initialization);
@@ -77,6 +83,7 @@ public class ClassModel {
 		}
 		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
 		this.classConstants = classConstantsTemp.toArray(ConstantModel[]::new);
+
 
 		/* Create the z3 sort for states of this class. */
 		String[] fieldNames = new String[this.classFields.length];
@@ -100,11 +107,9 @@ public class ClassModel {
 			this.classFields[i].initAccessor(accessors[i]);
 		}
 
-
 		/* Parse methods */
 		List<MethodModel> classMethods = new ArrayList<>(jmlType.methods.length);
 		List<ConstructorModel> classConstructors = new ArrayList<>(jmlType.methods.length);
-		MergeMethodModel mergeMethodTemp = null;
 
 		for (int i = 0; i < jmlType.methods.length; i++) {
 			AbstractMethodDeclaration method = jmlType.methods[i];
@@ -118,20 +123,6 @@ public class ClassModel {
 			} else if (method instanceof JmlMethodDeclaration) {
 				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
 
-				//Check if the method is a merge method.
-				if ("merge".equals(String.valueOf(jmlMethod.selector))) {
-					if (jmlMethod.arguments.length == 1 && jmlMethod.arguments[0].binding.type.equals(jmlType.binding)
-							&& jmlMethod.binding.returnType.equals(TypeBinding.VOID)) {
-						if (mergeMethodTemp != null)
-							throw new IllegalArgumentException("double merge method: " + jmlMethod);
-
-						mergeMethodTemp = new MergeMethodModel(this.model, this, jmlMethod);
-						continue;
-					} else {
-						System.err.println("WARNING! Method with name `merge` is not a valid merge method.");
-					}
-				}
-
 				// If the method is a normal method.
 				MethodModel methodModel = new MethodModel(this.model, this, jmlMethod);
 				// Creating the method model also creates a function declaration for z3.
@@ -143,22 +134,16 @@ public class ClassModel {
 			}
 		}
 
-		if (mergeMethodTemp == null) {
-			throw new IllegalArgumentException("no merge method found.");
-		}
-
-		this.mergeMethod = mergeMethodTemp;
 		this.classMethods = classMethods.toArray(MethodModel[]::new);
 		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
 	}
 
-
-	public String getClassName() {
-		return String.valueOf(jmlType.name);
+	public SourceTypeBinding getBinding() {
+		return jmlType.binding;
 	}
 
-	public TupleSort getClassSort() {
-		return classSort;
+	public String getClassName() {
+		return JDTUtils.nameOfClass(jmlType.binding);
 	}
 
 	public Optional<FieldModel> getField(Reference fieldRef) {
@@ -170,7 +155,7 @@ public class ClassModel {
 	}
 
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
-		return Z3Utils.findBindingInArray(classMethods, binding, method -> method.getDecl().binding);
+		return Z3Utils.findBindingInArray(classMethods, binding, AbstractMethodModel::getBinding);
 	}
 
 	public Optional<ConstantModel> getConstant(Reference constantRef) {
@@ -193,12 +178,14 @@ public class ClassModel {
 		return jmlType;
 	}
 
-	public MergeMethodModel getMergeMethod() {
-		return mergeMethod;
-	}
 
+	public TupleSort getClassSort() {
+		return classSort;
+	}
 
 	public Expr getFreshConst(String name) {
 		return model.ctx.mkFreshConst(name, getClassSort());
 	}
+
+
 }

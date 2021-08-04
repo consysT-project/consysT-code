@@ -82,15 +82,10 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		Expr receiver = parseExpression(fieldReference.receiver);
 		String fieldName = String.valueOf(fieldReference.token);
 
-		if (receiver.getSort().equals(classModel.getClassSort())) {
+		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {
 			return classModel.getField(fieldReference)
 					.map(field -> field.getAccessor().apply(receiver))
 					.orElseThrow(() -> new WrongJMLArguments(fieldReference));
-		} else if (receiver.getSort() instanceof ArraySort) {
-			if ("length".equals(fieldName)) {
-				//TODO: How to handle array lengths?
-				throw new UnsupportedJMLExpression(fieldReference);
-			}
 		}
 
 		throw new UnsupportedJMLExpression(fieldReference);

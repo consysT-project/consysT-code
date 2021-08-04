@@ -4,16 +4,19 @@ import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
+import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
+import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.jmlspecs.jml4.ast.JmlAbstractMethodDeclaration;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration> {
+public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration & JmlAbstractMethodDeclaration> {
 
 	protected final ProgramModel model;
 	protected final ClassModel clazz;
@@ -35,8 +38,14 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		}
 	}
 
-	public Decl getDecl() {
-		return method;
+	public Optional<Expression> getJPrecondition() {
+		if (method.getSpecification() == null) return Optional.empty();
+		return Optional.of(method.getSpecification().getPrecondition());
+	}
+
+	public Optional<Expression> getJPostcondition() {
+		if (method.getSpecification() == null) return Optional.empty();
+		return Optional.of(method.getSpecification().getPrecondition());
 	}
 
 	public String getName() {

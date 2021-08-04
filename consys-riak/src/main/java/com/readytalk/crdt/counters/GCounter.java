@@ -15,6 +15,8 @@ import com.google.common.collect.Maps;
 import com.readytalk.crdt.AbstractCRDT;
 import com.readytalk.crdt.inject.ClientId;
 
+import java.lang.String;
+
 /**
  * Grow-only counter.  Does not support decrementing.
  *

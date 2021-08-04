@@ -5,6 +5,8 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;
+import de.tuda.stg.consys.invariants.subset.Logger;
+import de.tuda.stg.consys.invariants.subset.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
@@ -18,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ProgramModel {
 	static {
@@ -26,7 +29,7 @@ public class ProgramModel {
 
 	private static void loadLib(Path lib) {
 		Path libAbsolute = lib.toAbsolutePath();
-		System.out.println("load lib: " + libAbsolute);
+		Logger.info("load lib: " + libAbsolute);
 		System.load(libAbsolute.toString());
 	}
 
@@ -50,6 +53,8 @@ public class ProgramModel {
 	public final Context ctx;
 	public final Solver solver;
 
+	public final ClassModelFactory classes;
+
 	public final TypeModelFactory types;
 
 	public final Parser parser;
@@ -64,6 +69,7 @@ public class ProgramModel {
 		this.solver = ctx.mkSolver();
 		this.parser = parser;
 		this.types = new TypeModelFactory(this);
+		this.classes = new ClassModelFactory(this);
 
 		this.models = Maps.newHashMap();
 		this.modelSequence = Lists.newLinkedList();
@@ -74,9 +80,10 @@ public class ProgramModel {
 	}
 
 	public void addClass(JmlTypeDeclaration jmlClass) {
-		ClassModel clazzModel = new ClassModel(this, jmlClass);
-		models.put(jmlClass.binding, clazzModel);
-		modelSequence.add(jmlClass.binding);
+		classes.generateModelFor(jmlClass).ifPresent(clazzModel -> {
+			models.put(jmlClass.binding, clazzModel);
+			modelSequence.add(jmlClass.binding);
+		});
 	}
 
 	public Optional<ClassModel> getModelForClass(ReferenceBinding refBinding) {
@@ -84,29 +91,37 @@ public class ProgramModel {
 	}
 
 	public void checkAll() {
-		System.out.println("Checking " + modelSequence);
+		Logger.info("Checking " + modelSequence.stream().map(binding -> String.valueOf(binding.shortReadableName())).collect(Collectors.toUnmodifiableList()));
 
 		for (var binding : modelSequence) {
 			// Parse the z3 model from AST.
 			ClassModel classModel = models.get(binding);
-			ClassConstraints constraints = new ClassConstraints(this, classModel);
 
-			// Check the properties
-			ClassProperties properties = new ClassProperties(this, constraints);
-			System.out.println("--- Class properties for " + classModel.getClassName());
-			System.out.println("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
-			System.out.println("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());
-			System.out.println("---");
-			System.out.println("merge satisfies invariant: " + properties.checkMergeSatisfiesInvariant());
-			System.out.println("merge satisfies mergability: " + properties.checkMergeSatisfiesMergability());
-			System.out.println("---");
-			classModel.getMethods().forEach(m -> {
-				System.out.println("- for method " + m);
-				boolean r1 = properties.checkMethodSatisfiesInvariant(m.getBinding());
-				System.out.println("  satisfies invariant: " + r1);
-				boolean r2 = properties.checkMethodSatisfiesMergability(m.getBinding());
-				System.out.println("  satisfies mergability: " + r2);
-			});
+			if (classModel instanceof ReplicatedClassModel) {
+				var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
+
+				// Check the properties
+				ClassProperties properties = new ClassProperties(this, constraints);
+				Logger.info("--- Checking properties for " + classModel.getClassName());
+				Logger.info("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
+				Logger.info("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());
+				Logger.info("---");
+				Logger.info("merge satisfies invariant: " + properties.checkMergeSatisfiesInvariant());
+				Logger.info("merge satisfies mergability: " + properties.checkMergeSatisfiesMergability());
+				Logger.info("---");
+				classModel.getMethods().forEach(m -> {
+					Logger.info("- for method " + m);
+					boolean r1 = properties.checkMethodSatisfiesInvariant(m.getBinding());
+					Logger.info("  satisfies invariant: " + r1);
+					boolean r2 = properties.checkMethodSatisfiesMergability(m.getBinding());
+					Logger.info("  satisfies mergability: " + r2);
+				});
+			} else {
+
+				var constraints = new ClassConstraints<>(this, classModel);
+				Logger.info("--- Generated data model for " + classModel.getClassName());
+			}
+
 		}
 	}
 

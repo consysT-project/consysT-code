@@ -70,7 +70,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	 */
 	public BoolExpr parseJmlAssignableClause(JmlAssignableClause jmlAssignableClause) {
 
-		if (jmlAssignableClause.expr.equals(JmlKeywordExpression.NOTHING)) {
+		if (jmlAssignableClause == null || jmlAssignableClause.expr.equals(JmlKeywordExpression.NOTHING)) {
 			// assignable \nothing ==> \old(this) == this
 			return model.ctx.mkEq(oldConst, getThisConst());
 		} else if (jmlAssignableClause.expr instanceof JmlStoreRefListExpression) {

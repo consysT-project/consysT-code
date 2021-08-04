@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.utils;
 
+import de.tuda.stg.consys.invariants.subset.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
@@ -19,8 +20,7 @@ public class JDTUtils {
 	public static boolean typeIsTypeOfName(TypeBinding binding, String typeName) {
 
 		if (binding instanceof ReferenceBinding) {
-			var compundName = Arrays.stream(((ReferenceBinding) binding).compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
-			return compundName.equals(typeName/* ~ "java.lang.Object" */);
+			return nameOfClass((ReferenceBinding) binding).equals(typeName/* ~ "java.lang.Object" */);
 		} else if (binding instanceof BaseTypeBinding) {
 			BaseTypeBinding baseBinding = (BaseTypeBinding) binding;
 			return String.valueOf(baseBinding.simpleName/* ~ "long" */).equals(typeName);
@@ -29,9 +29,13 @@ public class JDTUtils {
 		throw new UnsupportedOperationException("binding type not supported: " + binding);
 	}
 
+	public static String nameOfClass(ReferenceBinding refBinding) {
+		return Arrays.stream(refBinding.compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
+	}
+
 	public static boolean typeIsSubtypeOfName(TypeBinding binding, String typeName) {
 		if (binding == null)
-			throw new NullPointerException("binding was null.");
+			throw new NullPointerException("binding was null");
 
 		if (typeIsTypeOfName(binding, typeName)) {
 			return true;
@@ -43,7 +47,7 @@ public class JDTUtils {
 				parent = ((ReferenceBinding) binding).superclass();
 			} catch (NullPointerException e) {
 				//TODO: There is a null pointerexception sometimes in this code?
-				System.err.println("there was a null pointerexception while getting the superclass for: " + binding.readableName());
+				Logger.err("there was a null pointer exception while getting the superclass for: " + binding.readableName());
 				e.printStackTrace();
 				return false;
 			}
@@ -54,7 +58,7 @@ public class JDTUtils {
 				return typeIsSubtypeOfName(parent, typeName);
 			}
 		} else {
-			System.err.println("unsupported binding: " + binding);
+			Logger.warn("unsupported binding: " + binding);
 			return false;
 		}
 	}

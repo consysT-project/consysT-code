@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;
@@ -40,8 +41,10 @@ public class BaseExpressionParser extends ExpressionParser {
   @Override
   public Expr parseExpression(Expression expression) {
 
-    if (expression == null)
-      throw new NullPointerException("expression was null");
+    if (expression == null) {
+      Logger.warn("expression was null and was converted to `true`");
+      return model.ctx.mkTrue();
+    }
 
     // literal expression: 10, -5.6, true, ...
     if (expression instanceof Literal) {
@@ -56,6 +59,10 @@ public class BaseExpressionParser extends ExpressionParser {
       // "array[index]"
     if (expression instanceof JmlArrayReference) {
       return visitJmlArrayReference((JmlArrayReference) expression);
+    }
+
+    if (expression instanceof JmlQualifiedNameReference) {
+      return visitJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
     }
 
     // "({\forall | \exists | \sum} boundVarDeclarations; rangeExpression; body)"
@@ -74,6 +81,11 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     return super.parseExpression(expression);
+  }
+
+  private Expr visitJmlQualifiedNameReference(JmlQualifiedNameReference expression) {
+    throw new NotImplementedError(); //TODO: Implement this
+//    return null;
   }
 
   public Expr parseLiteral(Literal literalExpression) {
@@ -373,7 +385,7 @@ public class BaseExpressionParser extends ExpressionParser {
       // this applies to \sum expressions
       if (quantifier.equals(JmlQuantifier.SUM)) {
         // NOTE: Summation always (!) start at i = 0, and increase i in every step by 1.
-        System.err.println("Warning! \\sum only supports sums in range from -2000 to 2000.");
+        Logger.warn("\\sum only supports sums in range from -2000 to 2000");
 
         if (jmlQuantifiedExpression.boundVariables.length != 1) {
           throw new WrongJMLArguments(jmlQuantifiedExpression);

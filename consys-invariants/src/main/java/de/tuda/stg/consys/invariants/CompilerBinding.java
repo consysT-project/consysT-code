@@ -1,12 +1,13 @@
 package de.tuda.stg.consys.invariants;
 
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
-import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.parser.Parser;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -35,20 +36,23 @@ public class CompilerBinding {
                 .map(Path::toString)
                 .toArray(String[]::new);
 
-        //TODO: How to add the java base library to the compiler?
-
-        System.out.println("Java Home: " + compilerStarter.getJavaHome());
+        Path[] classPath = new Path[] {
+                // The java library
+                Paths.get("consys-invariants","src", "main", "resources", "rt.jar"),
+                // ConSysT annotations
+                Paths.get("consys-annotations", "target", "consys-annotations-3.0.0-alpha.jar")
+        };
 
 
         String[] compilerOpts = new String[] {
-                "-cp", "consys-invariants/src/main/resources/rt.jar"
+                "-cp", Arrays.stream(classPath).map(Path::toString).reduce( (acc, e) -> acc + File.pathSeparator + e).orElse(".")
         };
 
         String[] argv = new String[sourceFileStrings.length + compilerOpts.length];
         System.arraycopy(sourceFileStrings, 0, argv, 0, sourceFileStrings.length);
         System.arraycopy(compilerOpts, 0, argv, sourceFileStrings.length, compilerOpts.length);
 
-        System.out.println("Compile: " + Arrays.toString(argv));
+        Logger.info("exec javac with argv: " + Arrays.toString(argv));
         compilerStarter.compile(argv);
 
         // ensure that compilation was successful -> types array contains class definitions

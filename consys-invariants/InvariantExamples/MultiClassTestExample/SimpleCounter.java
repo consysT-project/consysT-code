@@ -1,3 +1,6 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel
 public class SimpleCounter {
 
     public static final int numOfReplicas = 3;
@@ -8,14 +11,14 @@ public class SimpleCounter {
     /* Constructors */
     // Constructors define the initial state of an object.
     //@ requires id >= 0 && id < numOfReplicas;
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i].equals(0));
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i].hasValue(0));
     //@ ensures replicaId == id;
     public SimpleCounter(int id) {
         if (!(id >= 0 && id < numOfReplicas))
         throw new IllegalArgumentException("id not in range.");
         this.incs = new SimpleNumber[numOfReplicas];
         for(int i = 0; i < numOfReplicas; ++i)
-            incs.setValue(0);
+            incs[i].setValue(0);
     }
 
     /*@
@@ -40,7 +43,7 @@ public class SimpleCounter {
 
     /*@
     @ assignable incs[replicaId];
-    @ ensures incs[replicaId].equals(\old(incs[replicaId].getValue())) + 1;
+    @ ensures incs[replicaId].hasValue(\old(incs[replicaId].getValue()) + 1);
     @*/
     void inc() {
         incs[replicaId].modify(1);
@@ -50,7 +53,7 @@ public class SimpleCounter {
     /*@
     @ requires n >= 0;
     @ assignable incs[replicaId];
-    @ ensures incs[replicaId].equals(\old(incs[replicaId]).modify(n));
+    @ ensures incs[replicaId].hasValue(\old(incs[replicaId]).modify(n));
     @*/
     void inc(int n) {
         incs[replicaId].modify(n);
@@ -62,9 +65,9 @@ public class SimpleCounter {
                      (\old(incs[i].getValue()) >= other.incs[i].getValue() ? incs[i].setValue(\old(incs[i].getValue())) : incs[i].setValue(other.incs[i].getValue()) ) );
     @ ensures replicaId == \old(replicaId);
     @*/
-    void merge(GCounterCRDT other) {
+    void merge(SimpleCounter other) {
         for (int i = 0; i < numOfReplicas; i++) {
-            incs[i].setValue(Math.max(incs[i].getValue(), other.incs[i]).getValue());
+            incs[i].setValue(Math.max(incs[i].getValue(), other.incs[i].getValue()));
         }
     }
 

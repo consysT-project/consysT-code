@@ -1,9 +1,11 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
 import java.lang.Math;
 
-public class BankAccountCRDT {
+@ReplicatedModel public class BankAccountCRDT {
     /* Constants */
     // Constants have to be declared with static final.
     public static final int numOfReplicas = 3;
@@ -109,7 +111,7 @@ public class BankAccountCRDT {
       - (\sum int i; i >= 0 && i < numOfReplicas; Math.max(decs[i], other.decs[i])) >= 0;
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
                    incs[i] == Math.max(\old(incs[i]), other.incs[i])
-                    && decs[i] == Math.max(\old(decs[i]),other.decs[i]));
+                    && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {

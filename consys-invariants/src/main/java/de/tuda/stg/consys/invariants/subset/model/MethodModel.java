@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
@@ -40,7 +41,12 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	public Optional<JmlAssignableClause> getAssignableClause() {
 		JmlAssignableClause result = null;
 
-		for (JmlSpecCase jmlSpecCase : getDecl().getSpecification().getSpecCases()) {
+		// If there is no JML specification
+		if (method.getSpecification() == null) {
+			return Optional.empty();
+		}
+
+		for (JmlSpecCase jmlSpecCase : method.getSpecification().getSpecCases()) {
 			var rest = jmlSpecCase.body.rest;
 
 			if (rest instanceof JmlSpecCaseRestAsClauseSeq) {
@@ -53,7 +59,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 					}
 				}
 			} else {
-				System.err.println("jml spec case not supported: " + rest);
+				Logger.warn("jml spec case not supported: " + rest);
 				return Optional.empty();
 			}
 		}
@@ -73,7 +79,8 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	}
 
 	public boolean hasPrecondition() {
-		return !(getDecl().getSpecification().getPrecondition() instanceof TrueLiteral);
+		var maybePrecond = getJPrecondition();
+		return maybePrecond.isPresent() && !maybePrecond.stream().anyMatch(cond -> cond instanceof TrueLiteral);
 	}
 
 	public boolean isZ3Usable() {

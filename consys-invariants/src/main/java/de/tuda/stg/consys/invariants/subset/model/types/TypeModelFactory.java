@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.google.common.collect.Maps;
 import com.microsoft.z3.Sort;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
@@ -97,7 +98,7 @@ public class TypeModelFactory {
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.math.BigInteger")) {
 				return intModel.get();
 			} else if (typeBinding instanceof MissingTypeBinding) {
-				System.err.println("missing type binding: " + typeBinding);
+				Logger.err("missing type binding: " + typeBinding);
 				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 			}
 			return modelForRef(refBinding);
