@@ -1,5 +1,7 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 /* There is always a replica who holds the lock */
-class DistributedLock {
+@ReplicatedModel class DistributedLock {
 
     /*@
      @ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas && i<numOfReplicas;

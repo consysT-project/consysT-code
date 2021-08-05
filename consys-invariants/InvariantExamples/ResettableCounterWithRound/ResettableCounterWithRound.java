@@ -1,4 +1,6 @@
-class ResettableCounterWithRound {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel class ResettableCounterWithRound {
     public static final int numOfReplicas = 10;
     public final int replicaId = 3;
 

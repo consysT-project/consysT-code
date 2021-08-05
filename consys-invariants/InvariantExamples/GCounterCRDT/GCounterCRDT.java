@@ -1,5 +1,7 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 // Grow-only Counter CRDT
-public class GCounterCRDT {
+@ReplicatedModel public class GCounterCRDT {
     public static final int numOfReplicas = 3;
 
     /*@

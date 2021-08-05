@@ -1,3 +1,4 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import com.google.inject.internal.util.Sets;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
@@ -11,7 +12,7 @@ import java.util.Set;
 // 3 Done: Invariant("forall(T:t):− nrPlayers(t)<=Capacity")
 // 4 Done: Invariant("forall(T:t):− active(t) => nrPlayers(t) >= 1")
 // 5 Kinda implemented in general but not sure where exactly we can say: Invariant("forall(T:t,P:p):− active(t) and enrolled(p,t)=>participant(p,t)")
-public abstract class Tournaments {
+@ReplicatedModel public abstract class Tournaments {
 
     private final Set<Player> players = Sets.newHashSet();
     private final Set<Tournament> tournaments = Sets.newHashSet();

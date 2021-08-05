@@ -1,4 +1,6 @@
-public class BankAccount {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel public class BankAccount {
 
     int value = 0;
     int timestamp = 0;

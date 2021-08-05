@@ -1,4 +1,6 @@
-class ResettableCounter {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel class ResettableCounter {
 
     //@ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas; incs[inv] >= 0);
     public static final int numOfReplicas = 4;

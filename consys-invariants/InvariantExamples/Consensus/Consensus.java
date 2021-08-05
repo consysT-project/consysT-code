@@ -1,4 +1,6 @@
-class Consensus {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel class Consensus {
 
   public static final int numOfReplicas = 10;
 

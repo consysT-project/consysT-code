@@ -1,4 +1,6 @@
-public class CounterCRDT {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel public class CounterCRDT {
   public static final int numOfReplicas = 3;
 
     /*@

@@ -1,4 +1,6 @@
-public class Player {
+import de.tuda.stg.consys.annotations.invariants.DataModel;
+
+@DataModel public class Player {
 
     private final String name;
     private int budget = 0;

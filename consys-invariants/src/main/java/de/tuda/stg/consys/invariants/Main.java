@@ -23,20 +23,20 @@ public class Main {
   public static void main(String[] args) {
     // Set the source file
     Path[] sources = new Path[] {
-            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
+            //Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
             // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
             //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
-//            Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
-            //Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
+            //Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
+            Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
             //  Paths.get("consys-invariants", "InvariantExamples", "GSetCRDT", "GSetCRDT.java")
-            //  Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
+              //Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
             // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
-//            Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
+           // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
             //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
 //            Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java")
 //            Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java")
             //  Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-//            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
+           // Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
     };
 
     runChecker(sources);

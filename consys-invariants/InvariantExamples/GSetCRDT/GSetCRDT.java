@@ -1,8 +1,10 @@
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 // Grow-only Set CRDT
 import java.util.HashSet;
 import java.util.Set;
 
-public class GSetCRDT{
+@ReplicatedModel public class GSetCRDT{
     public static final int numOfReplicas = 3;
 
     public Set<Integer> set;

@@ -1,8 +1,10 @@
+import de.tuda.stg.consys.annotations.invariants.DataModel;
+
 import com.google.inject.internal.util.Sets;
 
 import java.util.Set;
 
-public class Tournament {
+@DataModel public class Tournament {
     private final Set<Player> enrolled = Sets.newHashSet();
     private int capacity = 10;
     private boolean active = false;
