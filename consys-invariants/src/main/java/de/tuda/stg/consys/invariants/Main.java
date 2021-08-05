@@ -44,11 +44,10 @@ public class Main {
 
   public static void runChecker(Path[] sources) {
     // Compile the file to ASTs
-    CompilerBinding compiler = new CompilerBinding();
-    Parser compiledParser = compiler.compile(sources);
+    CompilerBinding.CompileResult compileResult = CompilerBinding.compile(sources);
 
     // Create the program model
-    ProgramModel model = new ProgramModel(compiledParser);
+    ProgramModel model = new ProgramModel(compileResult);
     model.loadParsedClasses();
     // Check the classes
     model.checkAll();
