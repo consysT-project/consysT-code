@@ -23,11 +23,11 @@ public class Main {
   public static void main(String[] args) {
     // Set the source file
     Path[] sources = new Path[] {
-            //Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
+            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
             // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
             //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
             //Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
-            Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
+//            Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
             //  Paths.get("consys-invariants", "InvariantExamples", "GSetCRDT", "GSetCRDT.java")
               //Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
             // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")

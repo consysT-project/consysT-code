@@ -45,7 +45,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 
 	public Optional<Expression> getJPostcondition() {
 		if (method.getSpecification() == null) return Optional.empty();
-		return Optional.of(method.getSpecification().getPrecondition());
+		return Optional.of(method.getSpecification().getPostcondition());
 	}
 
 	public String getName() {
