@@ -1,5 +1,6 @@
 package com.readytalk.crdt.counters;
 
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
@@ -19,7 +20,7 @@ import com.readytalk.crdt.inject.ClientId;
  * Counter that supports both positive and negative operations.
  *
  */
-public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CRDTCounter<BigInteger, PNCounter> {
+@ReplicatedModel public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CRDTCounter<BigInteger, PNCounter> {
 	// Can we say when we are sure about GCounter, we can omit GCounter related conditions?
 	/*@
     @ public invariant value().compareTo(BigInteger.ZERO) != -1;

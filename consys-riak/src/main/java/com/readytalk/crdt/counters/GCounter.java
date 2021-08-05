@@ -1,5 +1,6 @@
 package com.readytalk.crdt.counters;
 
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.lang.String;
  * Grow-only counter.  Does not support decrementing.
  *
  */
-public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
+@ReplicatedModel public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
 
 	/*@
 	@ public invariant value().compareTo(BigInteger.ZERO) != -1;

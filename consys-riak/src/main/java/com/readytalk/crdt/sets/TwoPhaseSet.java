@@ -1,5 +1,7 @@
 package com.readytalk.crdt.sets;
 
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.readytalk.crdt.util.CollectionUtils.checkCollectionDoesNotContainNull;
 
@@ -23,7 +25,7 @@ import com.google.common.collect.Sets;
  * Supports both add and remove operations, but only allows for a single remove.
  * 
  */
-public class TwoPhaseSet<E> implements
+@ReplicatedModel public class TwoPhaseSet<E> implements
 		CRDTSet<E, ImmutableSet<E>, TwoPhaseSet<E>> {
 
 	private static final String ADD_TOKEN = "a";

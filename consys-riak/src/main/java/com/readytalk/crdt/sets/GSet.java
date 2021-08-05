@@ -1,5 +1,6 @@
 package com.readytalk.crdt.sets;
 
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.readytalk.crdt.util.CollectionUtils.checkCollectionDoesNotContainNull;
 
@@ -23,7 +24,7 @@ import com.google.common.collect.Sets;
  * 
  */
 
-public class GSet<E> extends ForwardingSet<E> implements
+@ReplicatedModel public class GSet<E> extends ForwardingSet<E> implements
 		CRDTSet<E, ImmutableSet<E>, GSet<E>> {
 
 	private final Set<E> delegate = Sets.newLinkedHashSet();
