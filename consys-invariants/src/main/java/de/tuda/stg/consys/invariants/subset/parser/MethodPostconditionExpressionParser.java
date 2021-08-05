@@ -104,8 +104,9 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 								break;
 							}
 						} else if (expr instanceof JmlArrayRangeStoreRef) {
-							// Only handle a[*] expressions for now.
-							// TODO: How to handle different array ranges?
+							// TODO: How to handle array ranges, e.g., a[*]?
+//							var arrayExpr = ((JmlArrayRangeStoreRef) expr).delegate; //<- this thing is private
+
 							throw new UnsupportedJMLExpression(expr);
 						} else if (expr instanceof JmlArrayReference) {
 							JmlArrayReference arrayRef = (JmlArrayReference) expr;

@@ -1,8 +1,5 @@
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Map;
 import java.lang.Math;
 
 @ReplicatedModel public class BankAccountCRDT {
@@ -53,7 +50,15 @@ import java.lang.Math;
     //@ assignable incs;
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0);
     public void resetIncs() {
-        Arrays.fill(incs, 0);
+        for (int i = 0; i < incs.length; i++) incs[i] = 0;
+    }
+
+    //@ assignable incs, decs;
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0);
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; decs[i] == 0);
+    public void reset() {
+        for (int i = 0; i < incs.length; i++) incs[i] = 0;
+        for (int i = 0; i < decs.length; i++) decs[i] = 0;
     }
 
     //@ assignable \nothing;

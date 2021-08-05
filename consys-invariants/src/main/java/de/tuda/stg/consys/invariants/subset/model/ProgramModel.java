@@ -3,16 +3,14 @@ package de.tuda.stg.consys.invariants.subset.model;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
+import de.tuda.stg.consys.invariants.CompilerBinding;
 import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
-import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
-import org.eclipse.jdt.internal.compiler.lookup.Scope;
-import org.eclipse.jdt.internal.compiler.parser.Parser;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
@@ -57,17 +55,17 @@ public class ProgramModel {
 
 	public final TypeModelFactory types;
 
-	public final Parser parser;
+	private final CompilerBinding.CompileResult compileResult;
 
 	// Stores all class models
 	private final Map<ReferenceBinding, ClassModel> models;
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
-	public ProgramModel(Context ctx, Parser parser) {
+	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult) {
 		this.ctx = ctx;
 		this.solver = ctx.mkSolver();
-		this.parser = parser;
+		this.compileResult = compileResult;
 		this.types = new TypeModelFactory(this);
 		this.classes = new ClassModelFactory(this);
 
@@ -75,8 +73,8 @@ public class ProgramModel {
 		this.modelSequence = Lists.newLinkedList();
 	}
 
-	public ProgramModel(Parser parser) {
-		this(new Context(), parser);
+	public ProgramModel(CompilerBinding.CompileResult compileResult) {
+		this(new Context(), compileResult);
 	}
 
 	public void addClass(JmlTypeDeclaration jmlClass) {
@@ -127,16 +125,13 @@ public class ProgramModel {
 
 	// Loads the parsed classes into this program model.
 	public void loadParsedClasses() {
-		TypeDeclaration[] declarations = parser.compilationUnit.types;
-		for (TypeDeclaration clazz : declarations) {
-			if (!(clazz instanceof JmlTypeDeclaration)) {
-				throw new IllegalArgumentException("class is not a Jml type.");
-			}
-			addClass((JmlTypeDeclaration) clazz);
+		List<JmlTypeDeclaration> declarations = compileResult.getTypes();
+		for (var clazz : declarations) {
+			addClass(clazz);
 		}
 	}
 
 	public CompilationUnitScope getParserScope() {
-		return parser.compilationUnit.scope;
+		return compileResult.getParser().compilationUnit.scope;
 	}
 }
