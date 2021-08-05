@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ConstructorModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
@@ -10,7 +10,7 @@ import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
  */
 public class ConstructorPostconditionExpressionParser extends MethodExpressionParser {
 
-	public ConstructorPostconditionExpressionParser(ProgramModel smt, ClassModel classModel, ConstructorModel constructorModel, Expr thisConst) {
+	public ConstructorPostconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, ConstructorModel constructorModel, Expr thisConst) {
 		super(smt, classModel, constructorModel, thisConst);
 	}
 

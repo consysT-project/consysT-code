@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ClassConstraints<CModel extends ClassModel> {
+public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	final ProgramModel model;
 	final CModel classModel;
@@ -60,7 +60,7 @@ public class ClassConstraints<CModel extends ClassModel> {
 	}
 
 
-	public ClassConstraints(ProgramModel model, CModel classModel) {
+	public BaseClassConstraints(ProgramModel model, CModel classModel) {
 		this.model = model;
 		this.classModel = classModel;
 
@@ -115,7 +115,7 @@ public class ClassConstraints<CModel extends ClassModel> {
 		}
 	}
 
-	private InitialConditionModel handleInitialConditions(ClassModel classModel) {
+	private InitialConditionModel handleInitialConditions(BaseClassModel classModel) {
 		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 
 		List<Expr> initialConditions = Lists.newLinkedList();
@@ -183,7 +183,7 @@ public class ClassConstraints<CModel extends ClassModel> {
 		return postconditions.get(method);
 	}
 
-	public ClassModel getClassModel() {
+	public BaseClassModel getClassModel() {
 		return classModel;
 	}
 

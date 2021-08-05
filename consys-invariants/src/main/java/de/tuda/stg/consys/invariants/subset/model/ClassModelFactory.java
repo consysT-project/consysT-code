@@ -15,7 +15,7 @@ public class ClassModelFactory {
 		this.model = model;
 	}
 
-	public Optional<ClassModel> generateModelFor(JmlTypeDeclaration jmlType) {
+	public Optional<BaseClassModel> generateModelFor(JmlTypeDeclaration jmlType) {
 		if (jmlType.annotations != null) {
 
 			var hasDataModelAnnotation = Arrays.stream(jmlType.annotations)
@@ -24,7 +24,7 @@ public class ClassModelFactory {
 					.anyMatch(anno -> JDTUtils.typeIsTypeOfName(anno.resolvedType, "de.tuda.stg.consys.annotations.invariants.ReplicatedModel"));
 
 			if (hasDataModelAnnotation) {
-				return Optional.of(new ClassModel(model, jmlType));
+				return Optional.of(new BaseClassModel(model, jmlType));
 			} else if (hasReplicatedModelAnnotation) {
 				return Optional.of(new ReplicatedClassModel(model, jmlType));
 			}

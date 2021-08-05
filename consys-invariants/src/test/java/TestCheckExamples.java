@@ -14,4 +14,12 @@ public class TestCheckExamples {
 				Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java")
 		});
 	}
+
+	@Test
+	public void testSimpleCounter() {
+		Main.runChecker(new Path[] {
+				Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
+				Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java")
+		});
+	}
 }

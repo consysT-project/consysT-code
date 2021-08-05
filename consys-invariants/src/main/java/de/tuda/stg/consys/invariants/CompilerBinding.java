@@ -40,8 +40,8 @@ public class CompilerBinding {
     public static CompileResult compile(Path... sourceFiles) {
 
         var compilerStarter = new ConsysCompilerStarter(
-                new PrintWriter(System.out),
-                new PrintWriter(System.err),
+                Logger.info,
+                Logger.warn,
                 false,
                 (Map) null,
                 (CompilationProgress) null);
@@ -68,11 +68,6 @@ public class CompilerBinding {
 
         Logger.info("exec javac with argv: " + Arrays.toString(argv));
         compilerStarter.compile(argv);
-
-        // ensure that compilation was successful -> types array contains class definitions
-        if(compilerStarter.batchCompiler.parser.compilationUnit.types == null) {
-            throw new IllegalStateException("compiler was not able to generate types from the given source files.");
-        }
 
         return compilerStarter.getResult();
     }

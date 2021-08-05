@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 public class ClassExpressionParser extends BaseExpressionParser {
 
 	// The scope of the class in which this expression is parsed. Used to resolve field names.
-	private final ClassModel classModel;
+	private final BaseClassModel classModel;
 	// A const definition for substituting this references. The sort has to be the sort of the class.
 	private Expr thisConst; // Can be null.
 
@@ -27,7 +27,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 * @param thisConst Substitute all `this` references with the given const. The const needs to have
 	 *                  the same sort as the class that is parsed.
 	 */
-	public ClassExpressionParser(ProgramModel smt, ClassModel classModel, Expr thisConst) {
+	public ClassExpressionParser(ProgramModel smt, BaseClassModel classModel, Expr thisConst) {
 		super(smt);
 
 		if (thisConst != null && !thisConst.getSort().equals(classModel.getClassSort()))
@@ -147,7 +147,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return thisConst;
 	}
 
-	protected ClassModel getClassModel() {
+	protected BaseClassModel getClassModel() {
 		return classModel;
 	}
 

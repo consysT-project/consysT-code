@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
@@ -15,7 +15,7 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 
 	private final Expr otherConst;
 
-	public MergeMethodPostconditionExpressionParser(ProgramModel smt, ClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
+	public MergeMethodPostconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst, oldConst, null);
 		this.otherConst = otherConst;
 	}

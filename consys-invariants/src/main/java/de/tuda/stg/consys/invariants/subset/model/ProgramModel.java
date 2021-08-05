@@ -2,13 +2,9 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.microsoft.z3.Context;
-import com.microsoft.z3.Solver;
+import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.CompilerBinding;
-import de.tuda.stg.consys.invariants.subset.ClassConstraints;
-import de.tuda.stg.consys.invariants.subset.ClassProperties;
-import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.ReplicatedClassConstraints;
+import de.tuda.stg.consys.invariants.subset.*;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
@@ -59,7 +55,7 @@ public class ProgramModel {
 	private final CompilerBinding.CompileResult compileResult;
 
 	// Stores all class models
-	private final Map<ReferenceBinding, ClassModel> models;
+	private final Map<ReferenceBinding, BaseClassModel> models;
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
@@ -85,41 +81,33 @@ public class ProgramModel {
 		});
 	}
 
-	public Optional<ClassModel> getModelForClass(ReferenceBinding refBinding) {
+	public Optional<BaseClassModel> getModelForClass(ReferenceBinding refBinding) {
 		return Optional.ofNullable(models.getOrDefault(refBinding, null));
 	}
 
 	public void checkAll() {
-		Logger.info("Checking " + modelSequence.stream().map(binding -> String.valueOf(binding.shortReadableName())).collect(Collectors.toUnmodifiableList()));
+		Logger.info("checking data model " + modelSequence.stream().map(binding -> String.valueOf(binding.shortReadableName())).collect(Collectors.toUnmodifiableList()));
 
 		for (var binding : modelSequence) {
-			// Parse the z3 model from AST.
-			ClassModel classModel = models.get(binding);
+			Logger.info("class " + String.valueOf(binding.shortReadableName()));
+			Logger.withIdentation(() -> {
+				// Parse the z3 model from AST.
+				BaseClassModel classModel = models.get(binding);
 
-			if (classModel instanceof ReplicatedClassModel) {
-				var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
-
-				// Check the properties
-				ClassProperties properties = new ClassProperties(this, constraints);
-				Logger.info("--- Checking properties for " + classModel.getClassName());
-				Logger.info("initial satisfies invariant: " + properties.checkInitialSatisfiesInvariant());
-				Logger.info("initial satisfies mergability: " + properties.checkInitialSatisfiesMergability());
-				Logger.info("---");
-				Logger.info("merge satisfies invariant: " + properties.checkMergeSatisfiesInvariant());
-				Logger.info("merge satisfies mergability: " + properties.checkMergeSatisfiesMergability());
-				Logger.info("---");
-				classModel.getMethods().forEach(m -> {
-					Logger.info("- for method " + m);
-					boolean r1 = properties.checkMethodSatisfiesInvariant(m.getBinding());
-					Logger.info("  satisfies invariant: " + r1);
-					boolean r2 = properties.checkMethodSatisfiesMergability(m.getBinding());
-					Logger.info("  satisfies mergability: " + r2);
-				});
-			} else {
-
-				var constraints = new ClassConstraints<>(this, classModel);
-				Logger.info("--- Generated data model for " + classModel.getClassName());
-			}
+				if (classModel instanceof ReplicatedClassModel) {
+					Logger.info("@ReplicatedModel");
+					var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
+					var properties = new ReplicatedClassProperties<>(this, constraints);
+					var result = properties.check();
+					Logger.info(result.toString());
+				} else {
+					Logger.info("@DataModel");
+					var constraints = new BaseClassConstraints<>(this, classModel);
+					var properties = new BaseClassProperties<>(this, constraints);
+					var result = properties.check();
+					Logger.info(result.toString());
+				}
+			});
 
 		}
 	}
@@ -134,5 +122,24 @@ public class ProgramModel {
 
 	public CompilationUnitScope getParserScope() {
 		return compileResult.getParser().compilationUnit.scope;
+	}
+
+	public boolean isValid(Expr<BoolSort> expr) {
+		Status status = solver.check(ctx.mkNot(expr));
+		switch (status) {
+			case UNSATISFIABLE:
+				return true;
+			case SATISFIABLE:
+				//System.out.println(expr);
+				//System.out.println(solver.getModel());
+				return false;
+			case UNKNOWN:
+				//throw new IllegalStateException("solving expression lead to an error: " + expr);
+				Logger.err("Error solving " + expr);
+				return false;
+			default:
+				//Does not exist
+				throw new RuntimeException();
+		}
 	}
 }

@@ -13,6 +13,8 @@ public class SimpleNumber{
         value = n;
     }
 
+    //@ assignable \nothing;
+    //@ ensures \result == value;
     int getValue() {
         return value;
     }
@@ -21,6 +23,8 @@ public class SimpleNumber{
         value += change;
     }
 
+    //@ assignable \nothing;
+    //@ ensures \result == (n == value);
     boolean hasValue(int n) {
         return n == value;
     }

@@ -5,7 +5,7 @@ import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
-import de.tuda.stg.consys.invariants.subset.model.ClassModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
@@ -21,7 +21,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	private Expr oldConst;
 	private Expr resultConst; // Can be null, if method has no result.
 
-	public MethodPostconditionExpressionParser(ProgramModel smt, ClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst, Expr oldConst, Expr resultConst) {
+	public MethodPostconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst, Expr oldConst, Expr resultConst) {
 		super(smt, classModel, methodModel, thisConst);
 
 		this.oldConst = oldConst;

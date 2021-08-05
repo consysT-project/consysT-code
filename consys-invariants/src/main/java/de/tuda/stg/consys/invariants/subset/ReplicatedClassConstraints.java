@@ -10,7 +10,7 @@ import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
-public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends ClassConstraints<CModel> {
+public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends BaseClassConstraints<CModel> {
 
 	/** Merge precondtion */
 	private final MergePreconditionModel mergePrecondition;

@@ -15,7 +15,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
 	private final FuncDecl<?> func;
 
-	public MethodModel(ProgramModel smt, ClassModel clazz, JmlMethodDeclaration method) {
+	public MethodModel(ProgramModel smt, BaseClassModel clazz, JmlMethodDeclaration method) {
 		super(smt, clazz, method);
 
 		var argTypes = getArgumentTypes();

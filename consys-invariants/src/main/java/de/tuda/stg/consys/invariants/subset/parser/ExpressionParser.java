@@ -10,6 +10,6 @@ import org.eclipse.jdt.internal.compiler.ast.Expression;
 public abstract class ExpressionParser {
 
 	public Expr parseExpression(Expression expression) {
-		throw new UnsupportedJMLExpression(expression);
+		throw new UnsupportedJMLExpression(expression, "expression type not supported");
 	}
 }

@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-public class ClassModel {
+public class BaseClassModel {
 
 	final ProgramModel model;
 	// The underlying jml type for this declaration
@@ -44,7 +44,7 @@ public class ClassModel {
 	private final TupleSort classSort;
 
 
-	public ClassModel(ProgramModel model, JmlTypeDeclaration jmlType) {
+	public BaseClassModel(ProgramModel model, JmlTypeDeclaration jmlType) {
 		this.model = model;
 		this.jmlType = jmlType;
 

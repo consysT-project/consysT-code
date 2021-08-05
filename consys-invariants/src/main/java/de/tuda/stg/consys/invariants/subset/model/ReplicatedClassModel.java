@@ -6,7 +6,7 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
-public class ReplicatedClassModel extends ClassModel {
+public class ReplicatedClassModel extends BaseClassModel {
 
 
 

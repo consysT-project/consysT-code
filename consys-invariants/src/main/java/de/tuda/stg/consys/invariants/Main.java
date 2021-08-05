@@ -1,7 +1,10 @@
 package de.tuda.stg.consys.invariants;
 
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -17,7 +20,10 @@ import java.nio.file.Paths;
  */
 public class Main {
 
-  public static void main(String[] args) {
+
+
+  public static void main(String[] args) throws IOException {
+
     // Set the source file
     Path[] sources = new Path[] {
 //            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),

@@ -23,8 +23,7 @@ public class SimpleCounter {
 
     /*@
     @ assignable \nothing;
-    @ ensures \result ==
-              (\sum int incInd; incInd>=0 && incInd<numOfReplicas; incs[incInd].getValue());
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i].getValue());
     @*/
     int sumIncs() {
         int res = 0;
@@ -50,14 +49,14 @@ public class SimpleCounter {
     }
 
     // I use different approach here for testing another thing: \old(something).something()
-    /*@
-    @ requires n >= 0;
-    @ assignable incs[replicaId];
-    @ ensures incs[replicaId].hasValue(\old(incs[replicaId]).modify(n));
-    @*/
-    void inc(int n) {
-        incs[replicaId].modify(n);
-    }
+//    /*@
+//    @ requires n >= 0;
+//    @ assignable incs[replicaId];
+//    @ ensures incs[replicaId].hasValue(\old(incs[replicaId]).modify(n));
+//    @*/
+//    void inc(int n) {
+//        incs[replicaId].modify(n);
+//    }
 
 
     /*@

@@ -6,7 +6,7 @@ import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
 public class MergeMethodModel extends MethodModel {
 
-	public MergeMethodModel(ProgramModel smt, ClassModel clazz, JmlMethodDeclaration method) {
+	public MergeMethodModel(ProgramModel smt, BaseClassModel clazz, JmlMethodDeclaration method) {
 		super(smt, clazz, method);
 
 		if (args.length != 1) {

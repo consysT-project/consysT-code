@@ -17,12 +17,12 @@ import java.util.stream.Collectors;
 public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration & JmlAbstractMethodDeclaration> {
 
 	protected final ProgramModel model;
-	protected final ClassModel clazz;
+	protected final BaseClassModel clazz;
 	protected final Decl method;
 
 	protected final ArgumentModel[] args;
 
-	public AbstractMethodModel(ProgramModel model, ClassModel clazz, Decl method) {
+	public AbstractMethodModel(ProgramModel model, BaseClassModel clazz, Decl method) {
 		this.model = model;
 		this.clazz = clazz;
 		this.method = method;
