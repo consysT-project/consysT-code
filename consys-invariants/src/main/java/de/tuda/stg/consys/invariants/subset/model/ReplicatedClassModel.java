@@ -51,11 +51,8 @@ public class ReplicatedClassModel extends ClassModel {
 			} else if (method instanceof JmlMethodDeclaration) {
 				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
 
-				//Check if the method is a merge method.
-				if (JDTUtils.methodMatchesSignature(method.binding, false,
-						JDTUtils.nameOfClass(jmlType.binding),
-						"merge",
-						JDTUtils.nameOfClass(jmlType.binding))) {
+				// Handle merge methods here.
+				if (methodIsMerge(method.binding)) {
 					if (jmlMethod.arguments.length == 1 && jmlMethod.arguments[0].binding.type.equals(jmlType.binding)
 							&& jmlMethod.binding.returnType.equals(TypeBinding.VOID)) {
 						if (mergeMethodTemp != null)

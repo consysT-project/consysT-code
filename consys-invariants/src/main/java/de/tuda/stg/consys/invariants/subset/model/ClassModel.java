@@ -123,6 +123,10 @@ public class ClassModel {
 			} else if (method instanceof JmlMethodDeclaration) {
 				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
 
+				if (methodIsMerge(method.binding))
+					//Do not handle merge methods here.
+					continue;
+
 				// If the method is a normal method.
 				MethodModel methodModel = new MethodModel(this.model, this, jmlMethod);
 				// Creating the method model also creates a function declaration for z3.
@@ -187,5 +191,12 @@ public class ClassModel {
 		return model.ctx.mkFreshConst(name, getClassSort());
 	}
 
+
+	boolean methodIsMerge(MethodBinding binding) {
+		return JDTUtils.methodMatchesSignature(binding, false,
+				JDTUtils.nameOfClass(jmlType.binding),
+				"merge",
+				JDTUtils.nameOfClass(jmlType.binding));
+	}
 
 }

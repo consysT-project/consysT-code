@@ -5,9 +5,11 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.Logger;
+import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;
+import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.*;
 import scala.NotImplementedError;
 
@@ -61,10 +63,6 @@ public class BaseExpressionParser extends ExpressionParser {
       return visitJmlArrayReference((JmlArrayReference) expression);
     }
 
-    if (expression instanceof JmlQualifiedNameReference) {
-      return visitJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
-    }
-
     // "({\forall | \exists | \sum} boundVarDeclarations; rangeExpression; body)"
     if (expression instanceof JmlQuantifiedExpression) {
       return visitJmlQuantifiedExpression((JmlQuantifiedExpression) expression);
@@ -81,11 +79,6 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     return super.parseExpression(expression);
-  }
-
-  private Expr visitJmlQualifiedNameReference(JmlQualifiedNameReference expression) {
-    throw new NotImplementedError(); //TODO: Implement this
-//    return null;
   }
 
   public Expr parseLiteral(Literal literalExpression) {
