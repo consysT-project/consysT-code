@@ -6,7 +6,6 @@ import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 
 public class JDTUtils {

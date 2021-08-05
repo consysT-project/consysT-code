@@ -8,9 +8,11 @@ import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
-import de.tuda.stg.consys.invariants.subset.utils.*;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import org.jmlspecs.jml4.ast.*;
+import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.util.List;
 import java.util.Map;

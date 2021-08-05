@@ -1,11 +1,13 @@
 package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.model.*;
-import de.tuda.stg.consys.invariants.subset.parser.*;
+import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
+import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPostconditionExpressionParser;
+import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPreconditionExpressionParser;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
-import org.jmlspecs.jml4.ast.JmlMethodSpecification;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends ClassConstraints<CModel> {

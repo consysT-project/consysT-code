@@ -3,15 +3,12 @@ package de.tuda.stg.consys.invariants.subset.parser;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.*;
-import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.*;
-import scala.NotImplementedError;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -142,14 +139,14 @@ public class BaseExpressionParser extends ExpressionParser {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
         return model.ctx.mkAnd((BoolExpr) left, (BoolExpr) right);
       }
-      throw new WrongJMLArguments(binaryExpression);
+      throw new UnsupportedJMLExpression(binaryExpression);
     }
 
     if (s.equals("||") || s.equals("|")) {
       if (left instanceof BoolExpr && right instanceof BoolExpr) {
         return model.ctx.mkOr((BoolExpr) left, (BoolExpr) right);
       }
-      throw new WrongJMLArguments(binaryExpression);
+      throw new UnsupportedJMLExpression(binaryExpression);
     }
 
     if (s.equals("<") && left instanceof ArithExpr && right instanceof ArithExpr) {
@@ -208,7 +205,7 @@ public class BaseExpressionParser extends ExpressionParser {
     Expr cons = localVariables.get(variableName);
 
     if (cons == null) {
-      throw new WrongJMLArguments(jmlSingleNameReference);
+      throw new UnsupportedJMLExpression(jmlSingleNameReference);
     }
 
     return cons;
@@ -225,7 +222,7 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkITE(condBool, thenBranch, elseBranch);
     }
 
-    throw new WrongJMLArguments(conditionalExpression);
+    throw new UnsupportedJMLExpression(conditionalExpression);
 
   }
 
@@ -243,40 +240,40 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkSelect((ArrayExpr) array, index);
     }
 
-    throw new WrongJMLArguments(jmlArrayReference);
+    throw new UnsupportedJMLExpression(jmlArrayReference);
   }
 
   public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
     // Resolve some basic functions for convenient usage in constraints
     var methodName = String.valueOf(jmlMessageSend.selector);
 
-    var binding = jmlMessageSend.binding;
+    var methodBinding = jmlMessageSend.binding;
 
     // The cases are categorized by the classes in which they are defined:
     // java.lang.Object
-    if (JDTUtils.methodMatchesSignature(binding, false,"java.lang.Object", "equals", "java.lang.Object")) {
+    if (JDTUtils.methodMatchesSignature(methodBinding, false,"java.lang.Object", "equals", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return model.ctx.mkEq(receiverExpr, argExpr);
     }
     // java.util.Map
-    else if (JDTUtils.methodMatchesSignature(binding, false, "java.util.Map", "get", "java.lang.Object")) {
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Map", "get", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
     // java.math.BigInteger
-    else if (JDTUtils.methodMatchesSignature(binding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
 
       return model.ctx.mkAdd(receiverExpr, argExpr);
-    }  else if (JDTUtils.methodMatchesSignature(binding, true, "java.math.BigInteger", "valueOf", "long")) {
+    }  else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return argExpr;
     }
     // java
-    else if (JDTUtils.methodMatchesSignature(binding, true, "java.lang.Math", "max", "int", "int")) {
+    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "max", "int", "int")) {
       var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
       var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
 
@@ -284,7 +281,7 @@ public class BaseExpressionParser extends ExpressionParser {
               model.ctx.mkGe(arg1Expr, arg2Expr),
               arg1Expr, arg2Expr
       );
-    } else if (JDTUtils.methodMatchesSignature(binding, true, "java.lang.Math", "min", "int", "int")) {
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "min", "int", "int")) {
       var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
       var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
 
@@ -294,18 +291,32 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
 
-    var maybeDeclaringModel = model.getModelForClass(binding.declaringClass);
-    if (maybeDeclaringModel.isPresent()) {
-      var declaringModel = maybeDeclaringModel.get();
+    /* Handle call to method from a class in the data model */
+    var receiverExpr = parseExpression(jmlMessageSend.receiver);
+    var declaringClassModel = model.getModelForClass(methodBinding.declaringClass)
+            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model"));
 
-      //TODO: Check whether its possible to use a method here...
+    var methodModel = declaringClassModel.getMethod(methodBinding)
+            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "method not available in " + declaringClassModel.getClassName()));
 
-      throw new NotImplementedError();
+    if (!methodModel.isZ3Usable())
+      throw new UnsupportedJMLExpression(jmlMessageSend, "method is not usable in Z3");
+
+    final Expr[] argExprs;
+    if (jmlMessageSend.arguments == null) {
+      argExprs = new Expr[0];
+    } else {
+      argExprs = Arrays.stream(jmlMessageSend.arguments)
+              .map(this::parseExpression)
+              .toArray(Expr[]::new);
     }
 
+    var mbZ3Func = methodModel.getZ3FuncDecl();
 
+    if (mbZ3Func.isEmpty()) throw new UnsupportedJMLExpression(jmlMessageSend);
 
-    throw new UnsupportedJMLExpression(jmlMessageSend);
+    Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, receiverExpr, receiverExpr);
+    return model.ctx.mkApp(mbZ3Func.get(), argExprsAndThis);
   }
 
   /**
@@ -381,7 +392,7 @@ public class BaseExpressionParser extends ExpressionParser {
         Logger.warn("\\sum only supports sums in range from -2000 to 2000");
 
         if (jmlQuantifiedExpression.boundVariables.length != 1) {
-          throw new WrongJMLArguments(jmlQuantifiedExpression);
+          throw new UnsupportedJMLExpression(jmlQuantifiedExpression);
         }
 
         if (bodyExpr instanceof IntExpr) {

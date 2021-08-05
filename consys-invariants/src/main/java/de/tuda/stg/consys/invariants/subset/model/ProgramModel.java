@@ -2,7 +2,8 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.microsoft.z3.*;
+import com.microsoft.z3.Context;
+import com.microsoft.z3.Solver;
 import de.tuda.stg.consys.invariants.CompilerBinding;
 import de.tuda.stg.consys.invariants.subset.ClassConstraints;
 import de.tuda.stg.consys.invariants.subset.ClassProperties;

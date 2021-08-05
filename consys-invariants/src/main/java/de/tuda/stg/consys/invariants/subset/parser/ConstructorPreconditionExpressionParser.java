@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
+import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ConstructorModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
@@ -20,13 +20,13 @@ public class ConstructorPreconditionExpressionParser extends MethodExpressionPar
 	@Override
 	public Expr parseThisReference(ThisReference thisReference) {
 		// `this` cannot be referenced in constructor precondition.
-		throw new WrongJMLArguments(thisReference);
+		throw new UnsupportedJMLExpression(thisReference);
 	}
 
 	@Override
 	public Expr parseJmlFieldReference(JmlFieldReference fieldReference) {
 		// fields cannot be referenced in constructor precondition.
-		throw new WrongJMLArguments(fieldReference);
+		throw new UnsupportedJMLExpression(fieldReference);
 	}
 
 

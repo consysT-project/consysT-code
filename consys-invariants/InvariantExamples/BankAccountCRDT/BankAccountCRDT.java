@@ -10,7 +10,7 @@ import java.lang.Math;
 
     /* Fields */
     // Virtual fields that can be accessed in constraints with `this` or using normal field references.
-    public final int[] incs, decs;
+    public final int[] incs = new int[numOfReplicas], decs = new int[numOfReplicas];
     public int replicaId;
 
     /* Invariants */
@@ -27,9 +27,6 @@ import java.lang.Math;
     public BankAccountCRDT(int id) {
         if (!(id >= 0 && id < numOfReplicas))
             throw new IllegalArgumentException("id not in range.");
-
-        this.incs = new int[numOfReplicas];
-        this.decs = new int[numOfReplicas];
         this.replicaId = id;
     }
 

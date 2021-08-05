@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.invariants.subset;
 
-import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 

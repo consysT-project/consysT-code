@@ -1,19 +1,14 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
-import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
-import org.jmlspecs.jml4.ast.JmlMessageSend;
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -85,7 +80,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {
 			return classModel.getField(fieldReference)
 					.map(field -> field.getAccessor().apply(receiver))
-					.orElseThrow(() -> new WrongJMLArguments(fieldReference));
+					.orElseThrow(() -> new UnsupportedJMLExpression(fieldReference));
 		}
 
 		throw new UnsupportedJMLExpression(fieldReference);
@@ -96,63 +91,42 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 *
 	 * @return the result expression of the called method if it has one, {@code null} otherwise
 	 */
-	@Override
-	public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
-
-		var mbMethodModel = classModel.getMethod(jmlMessageSend.binding);
-
-		if (mbMethodModel.isEmpty()) {
-			return super.parseJmlMessageSend(jmlMessageSend);
-		}
-
-		var methodModel = mbMethodModel.get();
-
-		if (!methodModel.isZ3Usable()) {
-			throw new WrongJMLArguments(jmlMessageSend);
-		}
-
-
-		final Expr[] argExprs;
-		if (jmlMessageSend.arguments == null) {
-			argExprs = new Expr[0];
-		} else {
-			argExprs = Arrays.stream(jmlMessageSend.arguments)
-					.map(this::parseExpression)
-					.toArray(Expr[]::new);
-		}
-
-		var z3Func = methodModel.getZ3FuncDecl()
-				.orElseThrow(() -> new WrongJMLArguments(jmlMessageSend));
-
-
-		Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisConst, thisConst);
-		return model.ctx.mkApp(z3Func, argExprsAndThis);
-
-//		Expr methodReturnValue = scope.getReturnValue(String.valueOf(jmlMessageSend.selector));
+//	@Override
+//	public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
 //
-//		if (methodReturnValue != null) {
-//			// now distinguish between this and other -> check if its a this reference
-//			if (jmlMessageSend.receiver instanceof ThisReference) {
-//				return methodReturnValue;
-//			} else {
-//				// only method calls within the same class supported
-//				int varSize = scope.getClassVariables().size();
-//				Expr[] newVars = new Expr[varSize];
-//				Expr[] otherVars = new Expr[varSize];
-//				newVars =
-//						scope.getClassVariables().values().stream()
-//								.map(InternalVar::getNewValue)
-//								.collect(Collectors.toList())
-//								.toArray(newVars);
-//				otherVars =
-//						scope.getClassVariables().values().stream()
-//								.map(InternalVar::getOtherValue)
-//								.collect(Collectors.toList())
-//								.toArray(otherVars);
-//				return methodReturnValue.substitute(newVars, otherVars);
-//			}
-//		}
-	}
+//
+//		return handleMethodCall(thisConst, classModel, jmlMessageSend.binding, jmlMessageSend.arguments)
+//				.orElseGet(() -> super.parseJmlMessageSend(jmlMessageSend));
+//
+////		var mbMethodModel = classModel.getMethod(jmlMessageSend.binding);
+////
+////		if (mbMethodModel.isEmpty()) {
+////			return super.parseJmlMessageSend(jmlMessageSend);
+////		}
+////
+////		var methodModel = mbMethodModel.get();
+////
+////		if (!methodModel.isZ3Usable()) {
+////			throw new UnsupportedJMLExpression(jmlMessageSend);
+////		}
+////
+////
+////		final Expr[] argExprs;
+////		if (jmlMessageSend.arguments == null) {
+////			argExprs = new Expr[0];
+////		} else {
+////			argExprs = Arrays.stream(jmlMessageSend.arguments)
+////					.map(this::parseExpression)
+////					.toArray(Expr[]::new);
+////		}
+////
+////		var z3Func = methodModel.getZ3FuncDecl()
+////				.orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+////
+////
+////		Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisConst, thisConst);
+////		return model.ctx.mkApp(z3Func, argExprsAndThis);
+//	}
 
 
 	protected <T> T withThisReference(Expr otherConst, Supplier<T> f) {

@@ -1,11 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractVariableDeclaration;
-
-import java.util.Optional;
 
 public class VariableModel<VarDecl extends AbstractVariableDeclaration> {
 

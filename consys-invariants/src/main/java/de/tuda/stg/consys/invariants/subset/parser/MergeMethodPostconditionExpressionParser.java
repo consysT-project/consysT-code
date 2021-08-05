@@ -2,7 +2,6 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.exceptions.WrongJMLArguments;
 import de.tuda.stg.consys.invariants.subset.model.ClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
@@ -48,7 +47,7 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 
 			return getClassModel().getField(fieldBinding)
 					.map(field -> field.getAccessor().apply(otherConst))
-					.orElseThrow(() -> new WrongJMLArguments(jmlQualifiedNameReference));
+					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
 		}
 
 		throw new UnsupportedJMLExpression(jmlQualifiedNameReference);
