@@ -56,7 +56,7 @@ public class BaseClassModel {
 			FieldDeclaration field = jmlType.fields[i];
 
 			if (field.binding == null) {
-				Logger.warn("no binding for field. Skip parsing it: " +  String.valueOf(field.name));
+				Logger.warn("field will not be available. no binding for field: " +  String.valueOf(field.name));
 				continue;
 			}
 
@@ -186,12 +186,12 @@ public class BaseClassModel {
 		return classSort;
 	}
 
-	public Expr getFreshConst(String name) {
+	public Expr toFreshConst(String name) {
 		return model.ctx.mkFreshConst(name, getClassSort());
 	}
 
 
-	boolean methodIsMerge(MethodBinding binding) {
+	protected boolean methodIsMerge(MethodBinding binding) {
 		return JDTUtils.methodMatchesSignature(binding, false,
 				JDTUtils.nameOfClass(jmlType.binding),
 				"merge",

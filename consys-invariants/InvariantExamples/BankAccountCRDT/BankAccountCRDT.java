@@ -59,7 +59,7 @@ import java.lang.Math;
     }
 
     //@ assignable \nothing;
-    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; incs[i]);
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; \old(incs[i]));
     public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
@@ -69,7 +69,7 @@ import java.lang.Math;
     }
 
     //@ assignable \nothing;
-    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; decs[i]);
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas; \old(decs[i]));
     public int sumDecs() {
         int result = 0;
         for (int dec : decs) {
@@ -79,7 +79,7 @@ import java.lang.Math;
     }
 
     //@ assignable \nothing;
-    //@ ensures \result == sumIncs() - sumDecs();
+    //@ ensures \result == \old(sumIncs()) - \old(sumDecs());
     public int getValue() {
         return sumIncs() - sumDecs();
     }
@@ -97,12 +97,21 @@ import java.lang.Math;
     //@ requires  getValue() >= val;
     //@ assignable decs[replicaId];
     //@ ensures decs[replicaId] == \old(decs[replicaId]) + val;
-    public void withdraw(int val) {
+    //@ ensures \result == this;
+    public BankAccountCRDT withdraw(int val) {
         if (val > getValue())
             throw new IllegalArgumentException("not enough balance to withdraw");
 
         decs[replicaId] = decs[replicaId] + val;
+        return this;
     }
+
+//    //@ requires  getValue() >= 1;
+//    //@ assignable decs[replicaId];
+//    //@ ensures this == withdraw(1);
+//    public void withdrawOne() {
+//        withdraw(1);
+//    }
 
 
     /* Merge method */

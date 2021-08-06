@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
+import com.microsoft.z3.Tactic;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
@@ -79,7 +80,8 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		preconditions = Maps.newHashMap();
 		postconditions = Maps.newHashMap();
 		for(MethodModel methodModel : classModel.getMethods()) {
-			preconditions.put(methodModel.getBinding(), handlePrecondition(methodModel));
+			var preCondition = handlePrecondition(methodModel);
+			preconditions.put(methodModel.getBinding(), preCondition);
 			var postCondition = handlePostcondition(methodModel);
 			postconditions.put(methodModel.getBinding(), postCondition);
 
@@ -89,18 +91,54 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 						.map(argModel -> argModel.getConst().orElseThrow())
 						.toArray(Expr[]::new);
 
-				var s0 = classModel.getFreshConst("s0");
+				var returnSort = methodModel.getReturnType().getSort().orElseThrow();
 
-				Expr[] applyArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s0);
-				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
+				var s0 = classModel.toFreshConst("s0");
+				var s1 = classModel.toFreshConst("s1");
+				var res = model.ctx.mkFreshConst("res", returnSort);
 
+				var application = methodModel.makeApplyWithTupledResult(s0, args).orElseThrow();
+				var result = methodModel.makeReturnTuple(s1, res).orElseThrow();
+
+				var appToState = methodModel.makeApplyWithStateResult(s0, args).orElseThrow();
+				var appToValue = methodModel.makeApplyWithValueResult(s0, args).orElseThrow();
+
+				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1, res);
 				var assertion =
+						model.ctx.mkForall(
+								forallArguments,
+								model.ctx.mkImplies(
+									model.ctx.mkAnd(
+										preCondition.apply(s0),
+										model.ctx.mkEq(
+												appToState,
+												s1
+										),
+										model.ctx.mkEq(
+												appToValue,
+												res
+										)
+									),
+									postCondition.apply(s0, s1, res)
+								)
+								,
+								1,
+								null,
+								null,
+								null,
+								null
+						);
+
+
+
+
+				var assertion2 =
 						model.ctx.mkForall(
 								forallArguments,
 								postCondition.apply(
 										s0,
-										s0,
-										model.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
+										appToState,
+										appToValue
 								),
 								1,
 								null,
@@ -108,6 +146,22 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 								null,
 								null
 						);
+
+
+//				var assertion =
+//						model.ctx.mkForall(
+//								forallArguments,
+//								postCondition.apply(
+//										s0,
+//										s0,
+//										model.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
+//								),
+//								1,
+//								null,
+//								null,
+//								null,
+//								null
+//						);
 
 				model.solver.add(assertion);
 			}

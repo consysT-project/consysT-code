@@ -1,11 +1,9 @@
 package de.tuda.stg.consys.invariants.subset;
 
-import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import scala.sys.Prop;
 
 import java.util.List;
 
@@ -28,7 +26,7 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 	// The initial state has to satisfy the invariant.
 	// init(s0) ==> I(s0)
 	private Property initialSatisfiesInvariant() {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		return new ClassProperty("invariant/initial",
 				model.ctx.mkImplies(
 						constraints.getInitialCondition().apply(s0),
@@ -40,8 +38,8 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 	// Applying a method sequentially cannot violate the invariant.
 	// I(s0) && pre_m(s0) && post_m(s0, s0_new, _) => I(s0_new)
 	private Property methodSatisfiesInvariant(MethodBinding binding) {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
-		Expr s0_new = constraints.getClassModel().getFreshConst("s0_new");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new MethodProperty("invariant/method",
 				binding,

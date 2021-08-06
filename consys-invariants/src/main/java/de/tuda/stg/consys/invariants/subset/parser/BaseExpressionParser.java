@@ -311,12 +311,11 @@ public class BaseExpressionParser extends ExpressionParser {
               .toArray(Expr[]::new);
     }
 
-    var mbZ3Func = methodModel.getZ3FuncDecl();
+    var mbApply = methodModel.makeApply(receiverExpr, argExprs);
 
-    if (mbZ3Func.isEmpty()) throw new UnsupportedJMLExpression(jmlMessageSend);
+    if (mbApply.isEmpty()) throw new UnsupportedJMLExpression(jmlMessageSend);
 
-    Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, receiverExpr, receiverExpr);
-    return model.ctx.mkApp(mbZ3Func.get(), argExprsAndThis);
+    return mbApply.get();
   }
 
   /**

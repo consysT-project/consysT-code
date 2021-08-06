@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import com.microsoft.z3.FuncDecl;
-import com.microsoft.z3.Sort;
+import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
@@ -13,29 +12,77 @@ import java.util.Optional;
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
 	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
+	// f(thisState, args...) => (newState, return)
 	private final FuncDecl<?> func;
+	private final TupleSort returnSort;
 
-	public MethodModel(ProgramModel smt, BaseClassModel clazz, JmlMethodDeclaration method) {
-		super(smt, clazz, method);
+	public MethodModel(ProgramModel model, BaseClassModel clazz, JmlMethodDeclaration method) {
+		super(model, clazz, method);
 
 		var argTypes = getArgumentTypes();
 		var retType = getReturnType();
 
-		if (argTypes.stream().allMatch(TypeModel::hasSort) && retType.hasSort() && isPure() && !hasPrecondition()) {
+		if (argTypes.stream().allMatch(TypeModel::hasSort) && retType.hasSort() /* && isPure() && !hasPrecondition() */) {
 			// Add `this` and `\old this` to the arguments of the z3 function.
 			var argSorts = argTypes.stream().map(TypeModel::toSort).toArray(Sort[]::new);
-			var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort(), clazz.getClassSort());
+			var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort());
 
-			func = smt.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, retType.toSort());
+			returnSort = model.ctx.mkTupleSort(
+					model.ctx.mkSymbol("T_RET_" + getName()),
+					new Symbol[] { model.ctx.mkSymbol("get_state"), model.ctx.mkSymbol("get_result") },
+					new Sort[] { clazz.getClassSort(), retType.toSort() }
+			);
+
+			func = model.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, returnSort);
 		} else {
 			func = null;
+			returnSort = null;
 		}
 	}
 
-	public Optional<FuncDecl<?>> getZ3FuncDecl() {
+	private Optional<FuncDecl<?>> toFuncDecl() {
 		if (!isZ3Usable()) return Optional.empty();
 
 		return Optional.ofNullable(func);
+	}
+
+	public Optional<Expr> makeApply(Expr thisExpr, Expr[] argExprs) {
+		return makeApplyWithValueResult(thisExpr, argExprs);
+	}
+
+	public Optional<Expr> makeApplyWithTupledResult(Expr thisExpr, Expr[] argExprs) {
+		return toFuncDecl().map(funcDecl -> {
+			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+			return model.ctx.mkApp(funcDecl, thisAndArgsExprs);
+		});
+	}
+
+	public Optional<Expr> makeApplyWithStateResult(Expr thisExpr, Expr[] argExprs) {
+		return toFuncDecl().map(funcDecl -> {
+			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+			return
+					// Select the second field of the return sort
+					model.ctx.mkApp(returnSort.getFieldDecls()[0],
+							// Apply the method
+							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
+					);
+		});
+	}
+
+	public Optional<Expr> makeApplyWithValueResult(Expr thisExpr, Expr[] argExprs) {
+		return toFuncDecl().map(funcDecl -> {
+			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+			return
+					// Select the second field of the return sort
+					model.ctx.mkApp(returnSort.getFieldDecls()[1],
+							// Apply the method
+							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
+					);
+		});
+	}
+
+	public Optional<Expr> makeReturnTuple(Expr state, Expr result) {
+		return Optional.ofNullable(returnSort).map(sort -> model.ctx.mkApp(sort.mkDecl(), state, result));
 	}
 
 	public Optional<JmlAssignableClause> getAssignableClause() {

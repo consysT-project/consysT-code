@@ -134,9 +134,7 @@ public class ProgramModel {
 				//System.out.println(solver.getModel());
 				return false;
 			case UNKNOWN:
-				//throw new IllegalStateException("solving expression lead to an error: " + expr);
-				Logger.err("Error solving " + expr);
-				return false;
+				throw new RuntimeException("z3 was not able to solve the following expression:\n" + expr);
 			default:
 				//Does not exist
 				throw new RuntimeException();

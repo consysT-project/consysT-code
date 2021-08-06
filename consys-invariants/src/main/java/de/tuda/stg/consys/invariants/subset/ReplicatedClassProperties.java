@@ -1,10 +1,6 @@
 package de.tuda.stg.consys.invariants.subset;
 
-import com.microsoft.z3.BoolExpr;
-import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
-import com.microsoft.z3.Status;
-import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -34,9 +30,9 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// Applying merge sequentially cannot violate the invariant.
 	// I(s0) && I(s1) && pre_merge(s0, s1) && post_merge(s0, s1, s0_new) => I(s0_new)
 	public Property mergeSatisfiesInvariant() {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
-		Expr s1 = constraints.getClassModel().getFreshConst("s1");
-		Expr s0_new = constraints.getClassModel().getFreshConst("s0_new");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new ClassProperty("invariant/merge",
 				model.ctx.mkImplies(
@@ -56,7 +52,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// The initial state has to be mergable.
 	// init(s0) ==> pre_merge(s0, s0)
 	public Property initialSatisfiesMergability() {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 
 		return new ClassProperty("mergability/initial",
 				model.ctx.mkImplies(
@@ -72,9 +68,9 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// If this property is violated then the method can not be executed concurrently.
 	// inv(s0) & inv(s1) & pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, _) => pre_merge(s0_new, s1)
 	public Property methodSatisfiesMergability(MethodBinding binding) {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
-		Expr s1 = constraints.getClassModel().getFreshConst("s1");
-		Expr s0_new = constraints.getClassModel().getFreshConst("s0_new");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new MethodProperty("mergability/method",
 				binding,
@@ -96,9 +92,9 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// Applying merge does not violate the mergability.
 	// inv(s0) & inv(s1) & pre_merge(s0, s1) & post_merge(s0, s1, s0_new) => pre_merge(s0_new, s1)
 	public Property mergeSatisfiesMergability() {
-		Expr s0 = constraints.getClassModel().getFreshConst("s0");
-		Expr s1 = constraints.getClassModel().getFreshConst("s1");
-		Expr s0_new = constraints.getClassModel().getFreshConst("s0_new");
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new ClassProperty("mergability/merge",
 				model.ctx.mkImplies(
