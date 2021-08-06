@@ -25,13 +25,13 @@ import java.lang.String;
 @ReplicatedModel public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
 
 	/*@
-	@ public invariant value().compareTo(BigInteger.ZERO) != -1;
+	@ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
 	@ public invariant (\forall String s; payload.get(s) != null; payload.get(s).compareTo(BigInteger.ZERO) != -1);
 	@*/
 
-	private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {
+	//private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {
 
-	};
+	//};
 	
 	private final String clientId;
 
@@ -53,6 +53,7 @@ import java.lang.String;
 	}
 
 	// Another constructor
+
 	@SuppressWarnings("unchecked")
 	public GCounter(final ObjectMapper mapper, @ClientId final String client, final byte[] value) {
 		this(mapper, client);
@@ -93,10 +94,9 @@ import java.lang.String;
 		return new GCounter(serializer(), clientId, retmap);
 	}
 
-	// Not correct one. There might be no support for \sum BigInteger.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == (\sum BigInteger o : payload.values(); o);
+	@ ensures \result.intValue() == (\sum int i; i >= 0 && i < payload.values().toArray().length; payload.values().toArray(new BigInteger[0])[i].intValue());
 	@*/
 	@Override
 	public BigInteger value() {
@@ -112,6 +112,7 @@ import java.lang.String;
 	/*@
 	@ assignable payload.get(clientId);
 	@ ensures payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
+	@ ensures \result.equals(this.value());
 	@*/
 	public BigInteger increment() {
 		return this.increment(1);
@@ -121,6 +122,7 @@ import java.lang.String;
 	@ requires n >= 0;
 	@ assignable payload.get(clientId);
 	@ ensures payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
+	@ ensures \result.equals(this.value());
 	@*/
 	@Override
 	public BigInteger increment(@Nonnegative final int n) {
@@ -158,7 +160,7 @@ import java.lang.String;
 	// Should we have annotations for equals method? - should we care about Object o?
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == o.value().equals(value());
+	@ ensures \result == this.value().equals(o.value());
 	@*/
 	@Override
 	public boolean equals(final Object o) {
@@ -177,7 +179,7 @@ import java.lang.String;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == value().hashCode();
+	@ ensures \result == this.value().hashCode();
 	@*/
 	@Override
 	public int hashCode() {
