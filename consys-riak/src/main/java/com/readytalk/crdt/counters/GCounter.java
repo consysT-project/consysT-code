@@ -2,6 +2,7 @@ package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.util.Map;
 
@@ -29,10 +30,10 @@ import java.lang.String;
 	@ public invariant (\forall String s; payload.get(s) != null; payload.get(s).compareTo(BigInteger.ZERO) != -1);
 	@*/
 
+	// Change from the origin: We had this field:
 	//private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {
-
 	//};
-	
+
 	private final String clientId;
 
 	private final Map<String, BigInteger> payload = Maps.newHashMap();
@@ -53,8 +54,8 @@ import java.lang.String;
 	}
 
 	// Another constructor
-
-	@SuppressWarnings("unchecked")
+	/* Change from the origin: We had this constructor:
+	//@SuppressWarnings("unchecked")
 	public GCounter(final ObjectMapper mapper, @ClientId final String client, final byte[] value) {
 		this(mapper, client);
 
@@ -66,6 +67,7 @@ import java.lang.String;
 			throw new IllegalArgumentException("Unable to deserialize payload.", ioe);
 		}
 	}
+	End change from the origin */
 
 	// Another constructor
 	private GCounter(final ObjectMapper mapper, @ClientId final String client, final Map<String, BigInteger> value) {
@@ -80,7 +82,7 @@ import java.lang.String;
 	@ ensures clientId.equals(\old(clientId));
 	@*/
 	@Override
-	public GCounter merge(final GCounter other) {
+	public void merge(final GCounter other) { // Change from the origin: void <- GCounter
 		Map<String, BigInteger> retmap = Maps
 				.newHashMapWithExpectedSize(Math.max(payload.size(), other.payload.size()));
 		retmap.putAll(payload);
@@ -90,9 +92,10 @@ import java.lang.String;
 
 			retmap.put(o.getKey(), o.getValue().max(value));
 		}
-
-		return new GCounter(serializer(), clientId, retmap);
+		// this merge function had GCounter output type.
+		//return new GCounter(serializer(), clientId, retmap);
 	}
+
 
 	/*@
 	@ assignable \nothing;
