@@ -29,7 +29,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
 			returnSort = model.ctx.mkTupleSort(
 					model.ctx.mkSymbol("T_RET_" + getName()),
-					new Symbol[] { model.ctx.mkSymbol("get_state"), model.ctx.mkSymbol("get_result") },
+					new Symbol[] { model.ctx.mkSymbol("get_state_" + getName()), model.ctx.mkSymbol("get_result_" + getName()) },
 					new Sort[] { clazz.getClassSort(), retType.toSort() }
 			);
 
@@ -131,6 +131,6 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	}
 
 	public boolean isZ3Usable() {
-		return isPure() && !hasPrecondition() && func != null;
+		return func != null;
 	}
 }

@@ -83,7 +83,17 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		}
 
 		public boolean check() {
-			return model.isValid(expr);
+			try {
+				return model.isValid(expr);
+			} catch (RuntimeException e) {
+				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
+//				Logger.err("exception during solving for property <" + description() + ">\n" + expr + "\n");
+//				return false;
+			}
+		}
+
+		public Expr<BoolSort> getExpr() {
+			return expr;
 		}
 
 		public String description() {

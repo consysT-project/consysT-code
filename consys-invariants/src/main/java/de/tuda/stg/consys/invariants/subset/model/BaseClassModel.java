@@ -26,28 +26,96 @@ import java.util.Optional;
 
 public class BaseClassModel {
 
-	final ProgramModel model;
+	protected final ProgramModel model;
 	// The underlying jml type for this declaration
-	final JmlTypeDeclaration jmlType;
+	protected final JmlTypeDeclaration jmlType;
 
 	// Stores all virtual fields of the class
-	final FieldModel[] classFields;
+	protected FieldModel[] classFields;
 	// Stores all static final fields as constants for usage in formulas
-	final ConstantModel[] classConstants;
+	protected ConstantModel[] classConstants;
 
 	// Methods
-	final MethodModel[] classMethods;
+	protected MethodModel[] classMethods;
 	// Constructors
-	final ConstructorModel[] classConstructors;
+	protected ConstructorModel[] classConstructors;
 
 	// Z3 Sort to represent states of this class.
-	private final TupleSort classSort;
+	private TupleSort classSort;
 
 
-	public BaseClassModel(ProgramModel model, JmlTypeDeclaration jmlType) {
+	public BaseClassModel(ProgramModel model, JmlTypeDeclaration jmlType, boolean initialize) {
 		this.model = model;
 		this.jmlType = jmlType;
 
+		if (initialize) {
+			initializeFields();
+			initializeSort();
+			initializeMethods();
+		}
+	}
+
+	void initializeMethods() {
+		/* Parse methods */
+		List<MethodModel> classMethods = new ArrayList<>(jmlType.methods.length);
+		List<ConstructorModel> classConstructors = new ArrayList<>(jmlType.methods.length);
+
+		for (int i = 0; i < jmlType.methods.length; i++) {
+			AbstractMethodDeclaration method = jmlType.methods[i];
+
+			if (method.isClinit()) {
+				// TODO: Handle clinit
+			} else if (method.isConstructor()) {
+				classConstructors.add(new ConstructorModel(this.model, this, (JmlConstructorDeclaration) method));
+			} else if (method.isStatic() || method.isAbstract()) {
+				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
+			} else if (method instanceof JmlMethodDeclaration) {
+				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
+
+				if (methodIsMerge(method.binding))
+					//Do not handle merge methods here.
+					continue;
+
+				// If the method is a normal method.
+				MethodModel methodModel = new MethodModel(this.model, this, jmlMethod);
+				// Creating the method model also creates a function declaration for z3.
+				classMethods.add(methodModel);
+
+			} else {
+				//TODO: change to sensible defaults.
+				throw new IllegalStateException("Only jml method declarations are supported.");
+			}
+		}
+
+		this.classMethods = classMethods.toArray(MethodModel[]::new);
+		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
+	}
+
+	void initializeSort() {
+		/* Create the z3 sort for states of this class. */
+		String[] fieldNames = new String[this.classFields.length];
+		Sort[] fieldSorts =  new Sort[this.classFields.length];
+
+		for (int i = 0; i < this.classFields.length; i++) {
+			FieldModel field = this.classFields[i];
+			fieldNames[i] = field.getName();
+			fieldSorts[i] = field.getType().getSort()
+					.orElseThrow(
+							() -> new IllegalArgumentException("field type cannot be translated to z3: " + field)
+					);
+		}
+
+		this.classSort = this.model.ctx.mkTupleSort(
+				this.model.ctx.mkSymbol("state_" + getClassName()),
+				Z3Utils.mkSymbols(this.model.ctx, fieldNames), fieldSorts);
+
+		FuncDecl<?>[] accessors = classSort.getFieldDecls();
+		for (int i = 0; i < this.classFields.length; i++) {
+			this.classFields[i].initAccessor(accessors[i]);
+		}
+	}
+
+	void initializeFields() {
 		/* Parse fields and constants */
 		List<FieldModel> classFieldsTemp = new ArrayList(jmlType.fields.length);
 		List<ConstantModel> classConstantsTemp = new ArrayList(jmlType.fields.length);
@@ -82,63 +150,6 @@ public class BaseClassModel {
 		}
 		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
 		this.classConstants = classConstantsTemp.toArray(ConstantModel[]::new);
-
-
-		/* Create the z3 sort for states of this class. */
-		String[] fieldNames = new String[this.classFields.length];
-		Sort[] fieldSorts =  new Sort[this.classFields.length];
-
-		for (int i = 0; i < this.classFields.length; i++) {
-			FieldModel field = this.classFields[i];
-			fieldNames[i] = field.getName();
-			fieldSorts[i] = field.getType().getSort()
-					.orElseThrow(
-							() -> new IllegalArgumentException("field type cannot be translated to z3: " + field)
-					);
-		}
-
-		this.classSort = this.model.ctx.mkTupleSort(
-				this.model.ctx.mkSymbol("state_" + getClassName()),
-				Z3Utils.mkSymbols(this.model.ctx, fieldNames), fieldSorts);
-
-		FuncDecl<?>[] accessors = classSort.getFieldDecls();
-		for (int i = 0; i < this.classFields.length; i++) {
-			this.classFields[i].initAccessor(accessors[i]);
-		}
-
-		/* Parse methods */
-		List<MethodModel> classMethods = new ArrayList<>(jmlType.methods.length);
-		List<ConstructorModel> classConstructors = new ArrayList<>(jmlType.methods.length);
-
-		for (int i = 0; i < jmlType.methods.length; i++) {
-			AbstractMethodDeclaration method = jmlType.methods[i];
-
-			if (method.isClinit()) {
-				// TODO: Handle clinit
-			} else if (method.isConstructor()) {
-				classConstructors.add(new ConstructorModel(this.model, this, (JmlConstructorDeclaration) method));
-			} else if (method.isStatic() || method.isAbstract()) {
-				throw new IllegalStateException("Static and abstract methods are unsupported: " + method);
-			} else if (method instanceof JmlMethodDeclaration) {
-				JmlMethodDeclaration jmlMethod = (JmlMethodDeclaration) method;
-
-				if (methodIsMerge(method.binding))
-					//Do not handle merge methods here.
-					continue;
-
-				// If the method is a normal method.
-				MethodModel methodModel = new MethodModel(this.model, this, jmlMethod);
-				// Creating the method model also creates a function declaration for z3.
-				classMethods.add(methodModel);
-
-			} else {
-				//TODO: change to sensible defaults.
-				throw new IllegalStateException("Only jml method declarations are supported.");
-			}
-		}
-
-		this.classMethods = classMethods.toArray(MethodModel[]::new);
-		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
 	}
 
 	public SourceTypeBinding getBinding() {

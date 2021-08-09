@@ -45,7 +45,7 @@ import java.lang.Math;
     }
 
     //@ assignable incs;
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0);
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; \old(incs[i]) == 0);
     public void resetIncs() {
         for (int i = 0; i < incs.length; i++) incs[i] = 0;
     }

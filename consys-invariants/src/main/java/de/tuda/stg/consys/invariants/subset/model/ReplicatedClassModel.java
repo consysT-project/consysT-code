@@ -11,15 +11,18 @@ public class ReplicatedClassModel extends BaseClassModel {
 
 
 	// Merge Method
-	final MergeMethodModel mergeMethod;
+	protected MergeMethodModel mergeMethod;
 
 
-	public ReplicatedClassModel(ProgramModel model, JmlTypeDeclaration jmlType) {
-		super(model, jmlType);
+	public ReplicatedClassModel(ProgramModel model, JmlTypeDeclaration jmlType, boolean initialize) {
+		super(model, jmlType, initialize);
 
+		if (initialize) {
+			initializeMergeMethod();
+		}
+	}
 
-
-
+	void initializeMergeMethod() {
 		/* Parse merge method */
 		MergeMethodModel mergeMethodTemp = null;
 
@@ -57,7 +60,6 @@ public class ReplicatedClassModel extends BaseClassModel {
 		}
 
 		this.mergeMethod = mergeMethodTemp;
-
 	}
 
 

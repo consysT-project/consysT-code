@@ -130,6 +130,37 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 						);
 
 
+				var assertion_ =
+						model.ctx.mkForall(
+								forallArguments,
+								model.ctx.mkImplies(
+										model.ctx.mkAnd(
+												preCondition.apply(s0),
+												postCondition.apply(s0, s1, res)
+										),
+										model.ctx.mkAnd(
+											model.ctx.mkEq(
+													appToState,
+													s1
+											),
+											model.ctx.mkEq(
+													appToValue,
+													res
+											)
+										)
+								),
+								1,
+								null,
+								null,
+								null,
+								null
+						);
+
+
+
+				Expr[] forallArguments2 = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1, res);
+				Expr[] existArguments2 = new Expr[] { s1, res };
+
 
 
 				var assertion2 =
@@ -147,6 +178,20 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 								null
 						);
 
+				var assertion3 = model.ctx.mkForall(
+						forallArguments,
+						postCondition.apply(
+								s0,
+								appToState,
+								appToValue
+						),
+						1,
+						null,
+						null,
+						null,
+						null
+				);
+
 
 //				var assertion =
 //						model.ctx.mkForall(
@@ -162,10 +207,8 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 //								null,
 //								null
 //						);
-
-				model.solver.add(assertion);
+				model.solver.add(assertion2);
 			}
-
 		}
 	}
 

@@ -12,6 +12,7 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +46,119 @@ public class ProgramModel {
 		}
 	}
 
+	/* Possible solver tactics
+	0 = "ackermannize_bv"
+				1 = "subpaving"
+				2 = "horn"
+				3 = "horn-simplify"
+				4 = "nlsat"
+				5 = "qfnra-nlsat"
+				6 = "nlqsat"
+				7 = "qe-light"
+				8 = "qe"
+				9 = "qsat"
+				10 = "qe2"
+				11 = "qe_rec"
+				12 = "psat"
+				13 = "sat"
+				14 = "sat-preprocess"
+				15 = "ctx-solver-simplify"
+				16 = "smt"
+				17 = "psmt"
+				18 = "unit-subsume-simplify"
+				19 = "aig"
+				20 = "add-bounds"
+				21 = "card2bv"
+				22 = "degree-shift"
+				23 = "diff-neq"
+				24 = "eq2bv"
+				25 = "factor"
+				26 = "fix-dl-var"
+				27 = "fm"
+				28 = "lia2card"
+				29 = "lia2pb"
+				30 = "nla2bv"
+				31 = "normalize-bounds"
+				32 = "pb2bv"
+				33 = "propagate-ineqs"
+				34 = "purify-arith"
+				35 = "recover-01"
+				36 = "bit-blast"
+				37 = "bv1-blast"
+				38 = "bv_bound_chk"
+				39 = "propagate-bv-bounds"
+				40 = "propagate-bv-bounds-new"
+				41 = "reduce-bv-size"
+				42 = "bvarray2uf"
+				43 = "dt2bv"
+				44 = "elim-small-bv"
+				45 = "max-bv-sharing"
+				46 = "blast-term-ite"
+				47 = "cofactor-term-ite"
+				48 = "collect-statistics"
+				49 = "ctx-simplify"
+				50 = "der"
+				51 = "distribute-forall"
+				52 = "dom-simplify"
+				53 = "elim-term-ite"
+				54 = "elim-uncnstr"
+				55 = "injectivity"
+				56 = "snf"
+				57 = "nnf"
+				58 = "occf"
+				59 = "pb-preprocess"
+				60 = "propagate-values"
+				61 = "reduce-args"
+				62 = "reduce-invertible"
+				63 = "simplify"
+				64 = "elim-and"
+				65 = "solve-eqs"
+				66 = "special-relations"
+				67 = "split-clause"
+				68 = "symmetry-reduce"
+				69 = "tseitin-cnf"
+				70 = "tseitin-cnf-core"
+				71 = "qffd"
+				72 = "pqffd"
+				73 = "smtfd"
+				74 = "fpa2bv"
+				75 = "qffp"
+				76 = "qffpbv"
+				77 = "qffplra"
+				78 = "default"
+				79 = "sine-filter"
+				80 = "qfbv-sls"
+				81 = "nra"
+				82 = "qfaufbv"
+				83 = "qfauflia"
+				84 = "qfbv"
+				85 = "qfidl"
+				86 = "qflia"
+				87 = "qflra"
+				88 = "qfnia"
+				89 = "qfnra"
+				90 = "qfuf"
+				91 = "qfufbv"
+				92 = "qfufbv_ackr"
+				93 = "ufnia"
+				94 = "uflra"
+				95 = "auflia"
+				96 = "auflira"
+				97 = "aufnira"
+				98 = "lra"
+				99 = "lia"
+				100 = "lira"
+				101 = "skip"
+				102 = "fail"
+				103 = "fail-if-undecided"
+				104 = "macro-finder"
+				105 = "quasi-macros"
+				106 = "ufbv-rewriter"
+				107 = "bv"
+				108 = "ufbv"
+	 */
+
+
 	public final Context ctx;
 	public final Solver solver;
 
@@ -61,7 +175,7 @@ public class ProgramModel {
 
 	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult) {
 		this.ctx = ctx;
-		this.solver = ctx.mkSolver();
+		this.solver = ctx.mkSolver(); //ctx.mkSolver(ctx.mkTactic("horn-simplify"));
 		this.compileResult = compileResult;
 		this.types = new TypeModelFactory(this);
 		this.classes = new ClassModelFactory(this);
@@ -72,13 +186,6 @@ public class ProgramModel {
 
 	public ProgramModel(CompilerBinding.CompileResult compileResult) {
 		this(new Context(), compileResult);
-	}
-
-	public void addClass(JmlTypeDeclaration jmlClass) {
-		classes.generateModelFor(jmlClass).ifPresent(clazzModel -> {
-			models.put(jmlClass.binding, clazzModel);
-			modelSequence.add(jmlClass.binding);
-		});
 	}
 
 	public Optional<BaseClassModel> getModelForClass(ReferenceBinding refBinding) {
@@ -115,13 +222,32 @@ public class ProgramModel {
 	// Loads the parsed classes into this program model.
 	public void loadParsedClasses() {
 		List<JmlTypeDeclaration> declarations = compileResult.getTypes();
-		for (var clazz : declarations) {
-			addClass(clazz);
-		}
+
+		classes.generateModelForClasses(declarations, (jmlType, classModel) -> {
+			models.put(jmlType.binding, classModel);
+			modelSequence.add(jmlType.binding);
+		});
 	}
 
 	public CompilationUnitScope getParserScope() {
 		return compileResult.getParser().compilationUnit.scope;
+	}
+
+	public boolean isValid(Expr<BoolSort>[] exprs) {
+		Status status = solver.check(Arrays.stream(exprs).map(ctx::mkNot).toArray(Expr[]::new));
+		switch (status) {
+			case UNSATISFIABLE:
+				return true;
+			case SATISFIABLE:
+				//System.out.println(expr);
+				//System.out.println(solver.getModel());
+				return false;
+			case UNKNOWN:
+				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + solver.getReasonUnknown() + "\n" + Arrays.toString(exprs));
+			default:
+				//Does not exist
+				throw new RuntimeException();
+		}
 	}
 
 	public boolean isValid(Expr<BoolSort> expr) {
@@ -134,7 +260,7 @@ public class ProgramModel {
 				//System.out.println(solver.getModel());
 				return false;
 			case UNKNOWN:
-				throw new RuntimeException("z3 was not able to solve the following expression:\n" + expr);
+				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + solver.getReasonUnknown() + "\n" + expr);
 			default:
 				//Does not exist
 				throw new RuntimeException();
