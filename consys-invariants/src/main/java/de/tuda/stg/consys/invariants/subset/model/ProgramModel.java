@@ -214,20 +214,22 @@ public class ProgramModel {
 			Logger.withIdentation(() -> {
 				// Parse the z3 model from AST.
 				BaseClassModel classModel = models.get(binding);
-
+				ClassProperties.CheckResult result;
 				if (classModel instanceof ReplicatedClassModel) {
 					Logger.info("@ReplicatedModel");
 					var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
 					var properties = new ReplicatedClassProperties<>(this, constraints);
-					var result = properties.check();
-					Logger.info(result.toString());
+					result = properties.check();
 				} else {
 					Logger.info("@DataModel");
 					var constraints = new BaseClassConstraints<>(this, classModel);
 					var properties = new BaseClassProperties<>(this, constraints);
-					var result = properties.check();
-					Logger.info(result.toString());
+					result = properties.check();
 				}
+				Logger.info("Result for class " + String.valueOf(binding.shortReadableName()));
+				Logger.withIdentation(() -> {
+					Logger.info(result.toString());
+				});
 			});
 
 		}

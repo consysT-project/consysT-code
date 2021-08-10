@@ -65,7 +65,7 @@ public class Logger {
 		public void write(char[] cbuf, int off, int len) throws IOException {
 			var msg = String.valueOf(cbuf, off, len);
 
-			var prefix = "[" + sdf.format(new Date()) + "][" + tag + "]" + Strings.repeat("   ", identation.get()) + " ";
+			var prefix = "[" + sdf.format(new Date()) + "][" + tag + "]" + Strings.repeat("  |", identation.get()) + " ";
 
 			var s = String.valueOf(msg);
 
