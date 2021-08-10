@@ -21,12 +21,12 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 	}
 
 	@Override
-	public Expr parseExpression(Expression expression) {
+	protected Expr parseExpression(Expression expression, int depth) {
 		if (expression instanceof JmlQualifiedNameReference) {
 			return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
 		}
 
-		return super.parseExpression(expression);
+		return super.parseExpression(expression, depth);
 	}
 
 	@Override

@@ -175,7 +175,15 @@ public class ProgramModel {
 
 	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult) {
 		this.ctx = ctx;
-		this.solver = ctx.mkSolver(); //ctx.mkSolver(ctx.mkTactic("horn-simplify"));
+		this.solver =  ctx.mkSolver(); // ctx.mkSolver(ctx.mkTactic("default"));
+
+//		var params = ctx.mkParams();
+//		params.add("max_degree", 128);
+//		params.add("blast_full", true);
+//		params.add("array.weak", true);
+//		params.add("enable_pre_simplify", true);
+//		solver.setParameters(params);
+
 		this.compileResult = compileResult;
 		this.types = new TypeModelFactory(this);
 		this.classes = new ClassModelFactory(this);
@@ -185,7 +193,13 @@ public class ProgramModel {
 	}
 
 	public ProgramModel(CompilerBinding.CompileResult compileResult) {
-		this(new Context(), compileResult);
+		this(
+				new Context(
+					/*Map.of("model", "true",
+					"proof", "true",
+					"auto-config", "false")*/
+				),
+				compileResult);
 	}
 
 	public Optional<BaseClassModel> getModelForClass(ReferenceBinding refBinding) {
@@ -233,37 +247,5 @@ public class ProgramModel {
 		return compileResult.getParser().compilationUnit.scope;
 	}
 
-	public boolean isValid(Expr<BoolSort>[] exprs) {
-		Status status = solver.check(Arrays.stream(exprs).map(ctx::mkNot).toArray(Expr[]::new));
-		switch (status) {
-			case UNSATISFIABLE:
-				return true;
-			case SATISFIABLE:
-				//System.out.println(expr);
-				//System.out.println(solver.getModel());
-				return false;
-			case UNKNOWN:
-				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + solver.getReasonUnknown() + "\n" + Arrays.toString(exprs));
-			default:
-				//Does not exist
-				throw new RuntimeException();
-		}
-	}
 
-	public boolean isValid(Expr<BoolSort> expr) {
-		Status status = solver.check(ctx.mkNot(expr));
-		switch (status) {
-			case UNSATISFIABLE:
-				return true;
-			case SATISFIABLE:
-				//System.out.println(expr);
-				//System.out.println(solver.getModel());
-				return false;
-			case UNKNOWN:
-				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + solver.getReasonUnknown() + "\n" + expr);
-			default:
-				//Does not exist
-				throw new RuntimeException();
-		}
-	}
 }

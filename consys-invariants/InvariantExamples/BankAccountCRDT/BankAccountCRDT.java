@@ -17,6 +17,7 @@ import java.lang.Math;
     // Invariant definitions can use constants and fields.
     // Pure methods (i.e. methods that do not change the object state) that only use Z3 types can be used in constraints.
     //@ public invariant getValue() >= 0;
+    //@ public invariant replicaId >= 0 && replicaId < numOfReplicas;
 
 
     /* Constructors */
@@ -79,7 +80,7 @@ import java.lang.Math;
     }
 
     //@ assignable \nothing;
-    //@ ensures \result == \old(sumIncs()) - \old(sumDecs());
+    //@ ensures \result == sumIncs() - sumDecs();
     public int getValue() {
         return sumIncs() - sumDecs();
     }
@@ -97,7 +98,7 @@ import java.lang.Math;
     //@ requires  getValue() >= val;
     //@ assignable decs[replicaId];
     //@ ensures decs[replicaId] == \old(decs[replicaId]) + val;
-    //@ ensures \result == this;
+    //@ ensures \result == \old(this);
     public BankAccountCRDT withdraw(int val) {
         if (val > getValue())
             throw new IllegalArgumentException("not enough balance to withdraw");

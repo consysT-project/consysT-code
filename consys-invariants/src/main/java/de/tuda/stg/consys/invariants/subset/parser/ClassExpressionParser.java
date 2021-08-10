@@ -38,20 +38,20 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	}
 
 	@Override
-	public Expr parseExpression(Expression expression) {
+	protected Expr parseExpression(Expression expression, int depth) {
 		if (expression instanceof ThisReference) {
 			return parseThisReference((ThisReference) expression);
 		}
 
 		if (expression instanceof JmlFieldReference) {
-			return parseJmlFieldReference((JmlFieldReference) expression);
+			return parseJmlFieldReference((JmlFieldReference) expression, depth);
 		}
 
-		return super.parseExpression(expression);
+		return super.parseExpression(expression, depth + 1);
 	}
 
 	@Override
-	public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
 		Optional<Expr> constantExpr = classModel.getConstant(jmlSingleNameReference)
 				.map(cons -> cons.getValue());
 
@@ -69,12 +69,12 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return super.parseJmlSingleReference(jmlSingleNameReference);
 	}
 
-	public Expr parseThisReference(ThisReference thisReference) {
+	protected Expr parseThisReference(ThisReference thisReference) {
 		return thisConst;
 	}
 
-	public Expr parseJmlFieldReference(JmlFieldReference fieldReference) {
-		Expr receiver = parseExpression(fieldReference.receiver);
+	protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
+		Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
 		String fieldName = String.valueOf(fieldReference.token);
 
 		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {

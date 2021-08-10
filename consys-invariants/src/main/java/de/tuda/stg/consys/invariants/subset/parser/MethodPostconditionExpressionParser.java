@@ -29,10 +29,10 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	}
 
 	@Override
-	public Expr parseExpression(Expression expression) {
+	protected Expr parseExpression(Expression expression, int depth) {
 		// "\old(...)"
 		if (expression instanceof JmlOldExpression) {
-			return visitOldExpression((JmlOldExpression) expression);
+			return visitOldExpression((JmlOldExpression) expression, depth);
 		}
 
 		// \result is the result reference
@@ -40,18 +40,18 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
     		return parseJmlResultReference((JmlResultReference) expression);
 		}
 
-		return super.parseExpression(expression);
+		return super.parseExpression(expression, depth);
 	}
 
 
-	public Expr visitOldExpression(JmlOldExpression jmlOldExpression) {
+	protected Expr visitOldExpression(JmlOldExpression jmlOldExpression, int depth) {
 		// Change the resolution of `this` to the const for old.
 		return withThisReference(oldConst, () -> {
-			return parseExpression(jmlOldExpression.expression);
+			return parseExpression(jmlOldExpression.expression, depth + 1);
 		});
 	}
 
-	public Expr parseJmlResultReference(JmlResultReference jmlResultReference) {
+	protected Expr parseJmlResultReference(JmlResultReference jmlResultReference) {
 		if (resultConst == null || methodModel.returnsVoid())
 			throw new IllegalArgumentException("\\result can not be used when method does return void.");
 
@@ -120,7 +120,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 								}
 
 								if (receiver.fieldBinding().equals(field.getDecl().binding)) {
-									Expr index = parseExpression(arrayRef.position);
+									Expr index = parseExpression(arrayRef.position, 0);
 									assignedIndices.add(index);
 								}
 							}

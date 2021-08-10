@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.subset;
 import com.google.common.collect.Lists;
 import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
+import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -32,17 +33,42 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		var result = new CheckResult();
 		for (var prop : properties) {
-			boolean isValid = prop.check();
+			var isValid = prop.check();
 			result.addResult(prop, isValid);
 		}
 
 		return result;
 	}
 
+
+	private boolean isValid(Expr<BoolSort> expr) {
+		Status status = model.solver.check(model.ctx.mkNot(expr));
+		switch (status) {
+			case UNSATISFIABLE:
+				return true;
+			case SATISFIABLE:
+				//System.out.println(expr);
+				//System.out.println(solver.getModel());
+				return false;
+			case UNKNOWN:
+				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
+			default:
+				//Does not exist
+				throw new RuntimeException();
+		}
+	}
+
+
+	private enum CheckStatus {
+		VALID, INVALID, ERROR
+	}
+
+
+
 	public class CheckResult {
 		private final List<PropertyResult> results = Lists.newLinkedList();
 
-		void addResult(Property property, boolean isValid) {
+		void addResult(Property property, CheckStatus isValid) {
 			results.add(new PropertyResult(property, isValid));
 		}
 
@@ -64,9 +90,9 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		private class PropertyResult {
 			private final Property property;
-			private final boolean isValid;
+			private final CheckStatus isValid;
 
-			private PropertyResult(Property property, boolean isValid) {
+			private PropertyResult(Property property, CheckStatus isValid) {
 				this.property = property;
 				this.isValid = isValid;
 			}
@@ -82,13 +108,17 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 			this.expr = expr;
 		}
 
-		public boolean check() {
+		public CheckStatus check() {
 			try {
-				return model.isValid(expr);
+				Logger.info("Solving " + description() + "...");
+				var result = isValid(expr);
+				Logger.info("Result = " + result /* + "\n" + model.solver.getStatistics() */);
+				return result ? CheckStatus.VALID : CheckStatus.INVALID;
 			} catch (RuntimeException e) {
-				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
-//				Logger.err("exception during solving for property <" + description() + ">\n" + expr + "\n");
-//				return false;
+//				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
+				Logger.err("exception during solving for property <" + description() + ">\n" + expr + "\nReason:");
+				e.printStackTrace(Logger.err);
+				return CheckStatus.ERROR;
 			}
 		}
 

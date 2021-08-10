@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Z3Predicate {
-	private final String name;
+	protected final String name;
 
-	private final Expr[] parameters;
-	private final Expr body;
+	protected final Expr[] parameters;
+	protected final Expr body;
 
 	public Z3Predicate(String name, Expr[] parameters, Expr body) {
 		this.name = name;

@@ -21,15 +21,15 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 	}
 
 	@Override
-	public Expr parseExpression(Expression expression) {
+	protected Expr parseExpression(Expression expression, int depth) {
 		if (expression instanceof JmlQualifiedNameReference) {
 			return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
 		}
 
-		return super.parseExpression(expression);
+		return super.parseExpression(expression, depth);
 	}
 
-	public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
 		Argument mergeArg = getMergeMethod().getArgument();
 
 		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
@@ -39,7 +39,7 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 		return super.parseJmlSingleReference(jmlSingleNameReference);
 	}
 
-	public Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
+	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
 		Argument mergeArg = getMergeMethod().getArgument();
 
 		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {

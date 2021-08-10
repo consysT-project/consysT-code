@@ -12,11 +12,14 @@ import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
+import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
+import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class BaseClassConstraints<CModel extends BaseClassModel> {
@@ -55,8 +58,27 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 	}
 
 	public static class PostconditionModel extends Z3Predicate3 {
-		PostconditionModel(Expr oldConst, Expr thisConst, Expr resultConst, Expr body) {
+		private final Expr[] bodyElements;
+
+		PostconditionModel(Expr oldConst, Expr thisConst, Expr resultConst, Expr body, Expr[] bodyElements) {
 			super("post", oldConst, thisConst, resultConst, body);
+			this.bodyElements = bodyElements;
+		}
+
+		@Override
+		public Expr apply(Expr arg1, Expr arg2, Expr arg3) {
+//			throw new UnsupportedOperationException();
+			return super.apply(arg1, arg2, arg3);
+		}
+
+		public Expr[] applyWithSplitBody(Expr oldArg, Expr thisArg, Expr resultArg) {
+			var result = new Expr[bodyElements.length];
+			for (int i = 0; i < bodyElements.length; i++) {
+				Z3Predicate3 pred = new Z3Predicate3("post_" + i, parameters[0], parameters[1], parameters[2], bodyElements[i]);
+				result[i] = pred.apply(oldArg, thisArg, resultArg);
+			}
+
+			return result;
 		}
 	}
 
@@ -71,6 +93,9 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		Expr invariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
 		ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
+
+		model.solver.add(invariantExpr);
+
 		invariant = new InvariantModel(invariantVar, invariantExpr);
 
 		// Setup the initial condition
@@ -91,123 +116,34 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 						.map(argModel -> argModel.getConst().orElseThrow())
 						.toArray(Expr[]::new);
 
-				var returnSort = methodModel.getReturnType().getSort().orElseThrow();
-
 				var s0 = classModel.toFreshConst("s0");
 				var s1 = classModel.toFreshConst("s1");
-				var res = model.ctx.mkFreshConst("res", returnSort);
 
-				var application = methodModel.makeApplyWithTupledResult(s0, args).orElseThrow();
-				var result = methodModel.makeReturnTuple(s1, res).orElseThrow();
+				var appToState = methodModel.makeApplyWithStateResult2(s0, args).orElseThrow();
+				var appToValue = methodModel.makeApplyWithValueResult2(s0, args).orElseThrow();
 
-				var appToState = methodModel.makeApplyWithStateResult(s0, args).orElseThrow();
-				var appToValue = methodModel.makeApplyWithValueResult(s0, args).orElseThrow();
+				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1);
 
-				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1, res);
-				var assertion =
-						model.ctx.mkForall(
-								forallArguments,
-								model.ctx.mkImplies(
-									model.ctx.mkAnd(
-										preCondition.apply(s0),
-										model.ctx.mkEq(
-												appToState,
-												s1
-										),
-										model.ctx.mkEq(
-												appToValue,
-												res
-										)
-									),
-									postCondition.apply(s0, s1, res)
-								)
-								,
-								1,
-								null,
-								null,
-								null,
-								null
-						);
-
-
-				var assertion_ =
-						model.ctx.mkForall(
-								forallArguments,
-								model.ctx.mkImplies(
-										model.ctx.mkAnd(
-												preCondition.apply(s0),
-												postCondition.apply(s0, s1, res)
-										),
-										model.ctx.mkAnd(
-											model.ctx.mkEq(
-													appToState,
-													s1
-											),
-											model.ctx.mkEq(
-													appToValue,
-													res
-											)
-										)
-								),
-								1,
-								null,
-								null,
-								null,
-								null
-						);
-
-
-
-				Expr[] forallArguments2 = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1, res);
-				Expr[] existArguments2 = new Expr[] { s1, res };
-
-
-
-				var assertion2 =
-						model.ctx.mkForall(
-								forallArguments,
-								postCondition.apply(
-										s0,
-										appToState,
-										appToValue
-								),
-								1,
-								null,
-								null,
-								null,
-								null
-						);
-
-				var assertion3 = model.ctx.mkForall(
-						forallArguments,
-						postCondition.apply(
-								s0,
-								appToState,
-								appToValue
-						),
-						1,
-						null,
-						null,
-						null,
-						null
+				var conds =  postCondition.applyWithSplitBody(
+						s0,
+						appToState,
+						appToValue
 				);
 
+				for (var cond : conds) {
+					var assertion =
+							model.ctx.mkForall(
+									forallArguments,
+									cond,
+									1,
+									null,
+									null,
+									null,
+									null
+							);
+					model.solver.add(assertion);
+				}
 
-//				var assertion =
-//						model.ctx.mkForall(
-//								forallArguments,
-//								postCondition.apply(
-//										s0,
-//										s0,
-//										model.ctx.mkApp(methodModel.getZ3FuncDecl().get(), applyArguments)
-//								),
-//								1,
-//								null,
-//								null,
-//								null,
-//								null
-//						);
-				model.solver.add(assertion2);
 			}
 		}
 	}
@@ -251,7 +187,16 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 		// Parse the postcondition from JML @ensures specification
 		var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
-		Expr expr = parser.parseExpression(methodModel.getJPostcondition().orElse(null));
+
+		var jmlConds = splitAndExpression(methodModel.getJPostcondition().orElse(null));
+
+		Expr[] exprs = new Expr[jmlConds.length + 1];
+		for (int i = 0; i < jmlConds.length; i++) {
+			var e = parser.parseExpression(jmlConds[i]);
+			exprs[i + 1] = e;
+		}
+
+
 		// Parse the assignable clause
 		BoolExpr assignable;
 		var maybeClause = methodModel.getAssignableClause();
@@ -262,8 +207,8 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 			assignable = parser.parseJmlAssignableClause(maybeClause.get());
 		}
 		// Combine the exprs for the postcondition
-		Expr postcondition = model.ctx.mkAnd(expr, assignable);
-		return new PostconditionModel(oldConst, thisConst, resultConst, postcondition);
+		exprs[0] = assignable;
+		return new PostconditionModel(oldConst, thisConst, resultConst, model.ctx.mkAnd(exprs), exprs);
 	}
 
 	public InvariantModel getInvariant() {
@@ -279,6 +224,30 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 	public PostconditionModel getPostcondition(MethodBinding method) {
 		return postconditions.get(method);
 	}
+
+	private Expression[] splitAndExpression(Expression expr) {
+
+		if (expr instanceof BinaryExpression) {
+			BinaryExpression binExpr = (BinaryExpression) expr;
+			String operator = binExpr.operatorToString();
+
+			if ("&".equals(operator) || "&&".equals(operator)) {
+				var lhs = splitAndExpression(binExpr.left);
+				var rhs = splitAndExpression(binExpr.right);
+
+				var result = new Expression[lhs.length + rhs.length];
+				System.arraycopy(lhs, 0, result, 0, lhs.length);
+				System.arraycopy(rhs, 0, result, lhs.length, rhs.length);
+
+				return result;
+			}
+
+		}
+
+		return new Expression[]{expr};
+
+	}
+
 
 	public BaseClassModel getClassModel() {
 		return classModel;

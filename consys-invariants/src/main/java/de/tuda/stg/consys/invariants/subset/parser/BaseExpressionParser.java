@@ -38,7 +38,7 @@ public class BaseExpressionParser extends ExpressionParser {
    * @return the corresponding Z3 expression
    */
   @Override
-  public Expr parseExpression(Expression expression) {
+  protected Expr parseExpression(Expression expression, int depth) {
 
     if (expression == null) {
       Logger.warn("expression was null and was converted to `true`");
@@ -57,28 +57,28 @@ public class BaseExpressionParser extends ExpressionParser {
 
       // "array[index]"
     if (expression instanceof JmlArrayReference) {
-      return visitJmlArrayReference((JmlArrayReference) expression);
+      return visitJmlArrayReference((JmlArrayReference) expression, depth);
     }
 
     // "({\forall | \exists | \sum} boundVarDeclarations; rangeExpression; body)"
     if (expression instanceof JmlQuantifiedExpression) {
-      return visitJmlQuantifiedExpression((JmlQuantifiedExpression) expression);
+      return visitJmlQuantifiedExpression((JmlQuantifiedExpression) expression, depth);
     }
 
     // expressions with operators: a + b, a ? b : c, !a ...
     if (expression instanceof OperatorExpression) {
-      return parseOperatorExpression((OperatorExpression) expression);
+      return parseOperatorExpression((OperatorExpression) expression, depth);
     }
 
     // method calls
     if (expression instanceof JmlMessageSend) {
-      return parseJmlMessageSend((JmlMessageSend) expression);
+      return parseJmlMessageSend((JmlMessageSend) expression, depth);
     }
 
-    return super.parseExpression(expression);
+    return super.parseExpression(expression, depth);
   }
 
-  public Expr parseLiteral(Literal literalExpression) {
+  protected Expr parseLiteral(Literal literalExpression) {
     // literals can be translated directly
     if (literalExpression instanceof IntLiteral)
       return model.ctx.mkInt(((IntLiteral) literalExpression).value);
@@ -97,26 +97,26 @@ public class BaseExpressionParser extends ExpressionParser {
     throw new UnsupportedJMLExpression(literalExpression);
   }
 
-  public Expr parseOperatorExpression(OperatorExpression operatorExpression) {
+  protected Expr parseOperatorExpression(OperatorExpression operatorExpression, int depth) {
     // !a ...
     if (operatorExpression instanceof UnaryExpression) {
-      return parseUnaryExpression((UnaryExpression) operatorExpression);
+      return parseUnaryExpression((UnaryExpression) operatorExpression, depth);
     }
 
     // expressions like addition, modulo, and, or, ...
     if (operatorExpression instanceof BinaryExpression) {
-      return parseBinaryExpression((BinaryExpression) operatorExpression);
+      return parseBinaryExpression((BinaryExpression) operatorExpression, depth);
     }
 
     if (operatorExpression instanceof ConditionalExpression) {
-      return parseConditionalExpression((ConditionalExpression) operatorExpression);
+      return parseConditionalExpression((ConditionalExpression) operatorExpression, depth);
     }
 
     throw new UnsupportedJMLExpression(operatorExpression);
   }
 
-  public Expr parseUnaryExpression(UnaryExpression unaryExpression) {
-    Expr expr = parseExpression(unaryExpression.expression);
+  protected Expr parseUnaryExpression(UnaryExpression unaryExpression, int depth) {
+    Expr expr = parseExpression(unaryExpression.expression, depth + 1);
     throw new UnsupportedJMLExpression(unaryExpression);
   }
 
@@ -126,10 +126,10 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return e Z3 expression that uses the correct operator
    */
-  public Expr parseBinaryExpression(BinaryExpression binaryExpression) {
+  protected Expr parseBinaryExpression(BinaryExpression binaryExpression, int depth) {
     // translate expressions from both operands
-    Expr left = parseExpression(binaryExpression.left);
-    Expr right = parseExpression(binaryExpression.right);
+    Expr left = parseExpression(binaryExpression.left, depth + 1);
+    Expr right = parseExpression(binaryExpression.right, depth + 1);
 
     // get operator value and construct corresponding Z3 expression
     String s = binaryExpression.operatorToString();
@@ -200,7 +200,7 @@ public class BaseExpressionParser extends ExpressionParser {
     throw new UnsupportedJMLExpression(binaryExpression);
   }
 
-  public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+  protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
     String variableName = String.valueOf(jmlSingleNameReference.token);
     Expr cons = localVariables.get(variableName);
 
@@ -212,10 +212,10 @@ public class BaseExpressionParser extends ExpressionParser {
   }
 
 
-  public Expr parseConditionalExpression(ConditionalExpression conditionalExpression) {
-    Expr cond = parseExpression(conditionalExpression.condition);
-    Expr thenBranch = parseExpression(conditionalExpression.valueIfTrue);
-    Expr elseBranch = parseExpression(conditionalExpression.valueIfFalse);
+  protected Expr parseConditionalExpression(ConditionalExpression conditionalExpression, int depth) {
+    Expr cond = parseExpression(conditionalExpression.condition, depth + 1);
+    Expr thenBranch = parseExpression(conditionalExpression.valueIfTrue, depth + 1);
+    Expr elseBranch = parseExpression(conditionalExpression.valueIfFalse, depth + 1);
 
     if (cond instanceof BoolExpr) {
       BoolExpr condBool = (BoolExpr) cond;
@@ -231,19 +231,19 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return a Z3 select expressions or {@code null} if the translation did not succeed
    */
-  public Expr visitJmlArrayReference(JmlArrayReference jmlArrayReference) {
-    Expr array = parseExpression(jmlArrayReference.receiver);
+  protected Expr visitJmlArrayReference(JmlArrayReference jmlArrayReference, int depth) {
+    Expr array = parseExpression(jmlArrayReference.receiver, depth + 1);
 
     if (array instanceof ArrayExpr) {
       // get index expression
-      Expr index = parseExpression(jmlArrayReference.position);
+      Expr index = parseExpression(jmlArrayReference.position, depth + 1);
       return model.ctx.mkSelect((ArrayExpr) array, index);
     }
 
     throw new UnsupportedJMLExpression(jmlArrayReference);
   }
 
-  public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
+  protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
     // Resolve some basic functions for convenient usage in constraints
     var methodName = String.valueOf(jmlMessageSend.selector);
 
@@ -252,38 +252,38 @@ public class BaseExpressionParser extends ExpressionParser {
     // The cases are categorized by the classes in which they are defined:
     // java.lang.Object
     if (JDTUtils.methodMatchesSignature(methodBinding, false,"java.lang.Object", "equals", "java.lang.Object")) {
-      var receiverExpr = parseExpression(jmlMessageSend.receiver);
-      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkEq(receiverExpr, argExpr);
     }
     // java.util.Map
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Map", "get", "java.lang.Object")) {
-      var receiverExpr = parseExpression(jmlMessageSend.receiver);
-      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
     // java.math.BigInteger
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
-      var receiverExpr = parseExpression(jmlMessageSend.receiver);
-      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
 
       return model.ctx.mkAdd(receiverExpr, argExpr);
     }  else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
-      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return argExpr;
     }
     // java
     else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "max", "int", "int")) {
-      var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
-      var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
+      var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
       return model.ctx.mkITE(
               model.ctx.mkGe(arg1Expr, arg2Expr),
               arg1Expr, arg2Expr
       );
     } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "min", "int", "int")) {
-      var arg1Expr = parseExpression(jmlMessageSend.arguments[0]);
-      var arg2Expr = parseExpression(jmlMessageSend.arguments[1]);
+      var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
       return model.ctx.mkITE(
               model.ctx.mkLe(arg1Expr, arg2Expr),
@@ -292,7 +292,7 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     /* Handle call to method from a class in the data model */
-    var receiverExpr = parseExpression(jmlMessageSend.receiver);
+    var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
     var declaringClassModel = model.getModelForClass(methodBinding.declaringClass)
             .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model"));
 
@@ -307,11 +307,11 @@ public class BaseExpressionParser extends ExpressionParser {
       argExprs = new Expr[0];
     } else {
       argExprs = Arrays.stream(jmlMessageSend.arguments)
-              .map(this::parseExpression)
+              .map(jmlExpr -> parseExpression(jmlExpr, depth + 1))
               .toArray(Expr[]::new);
     }
 
-    var mbApply = methodModel.makeApply(receiverExpr, argExprs);
+    var mbApply = methodModel.makeApplyWithValueResult2(receiverExpr, argExprs);
 
     if (mbApply.isEmpty()) throw new UnsupportedJMLExpression(jmlMessageSend);
 
@@ -325,8 +325,8 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return
    */
-  public Expr visitJmlQuantifiedExpression(
-      JmlQuantifiedExpression jmlQuantifiedExpression) {
+  protected Expr visitJmlQuantifiedExpression(
+      JmlQuantifiedExpression jmlQuantifiedExpression, int depth) {
 
 
     // boundVariables declaration: introduce new local scope
@@ -344,8 +344,8 @@ public class BaseExpressionParser extends ExpressionParser {
 
     Expr quantExpr = withLocalVariables(names, consts, () -> {
       // get range and body expression
-      Expr rangeExpr = parseExpression(jmlQuantifiedExpression.range);
-      Expr bodyExpr = parseExpression(jmlQuantifiedExpression.body);
+      Expr rangeExpr = parseExpression(jmlQuantifiedExpression.range, depth + 1);
+      Expr bodyExpr = parseExpression(jmlQuantifiedExpression.body, depth + 1);
 
       //quantifier operator as string
       String quantifier = jmlQuantifiedExpression.quantifier.lexeme;
@@ -419,9 +419,6 @@ public class BaseExpressionParser extends ExpressionParser {
 
     return quantExpr;
   }
-
-
-
 
   protected <T> T withLocalVariable(String varName, Expr varExpr, Supplier<T> f) {
     Expr prev = localVariables.put(varName, varExpr);

@@ -20,7 +20,7 @@ public class MethodExpressionParser extends ClassExpressionParser {
 	}
 
 	@Override
-	public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
 		return methodModel.getArgument(jmlSingleNameReference)
 				.flatMap(ArgumentModel::getConst)
 				.orElseGet(() -> super.parseJmlSingleReference(jmlSingleNameReference));

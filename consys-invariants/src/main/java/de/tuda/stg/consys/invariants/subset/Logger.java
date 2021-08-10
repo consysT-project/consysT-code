@@ -28,7 +28,7 @@ public class Logger {
 		err.println(msg);
 	}
 
-		public static void withIdentation(Runnable f) {
+	public static void withIdentation(Runnable f) {
 		identation.incrementAndGet();
 		f.run();
 		identation.decrementAndGet();

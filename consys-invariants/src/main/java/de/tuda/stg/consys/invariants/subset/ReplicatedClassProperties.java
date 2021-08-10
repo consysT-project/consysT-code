@@ -35,14 +35,22 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new ClassProperty("invariant/merge",
-				model.ctx.mkImplies(
-						model.ctx.mkAnd(
-								constraints.getInvariant().apply(s0),
-								constraints.getInvariant().apply(s1),
-								constraints.getMergePrecondition().apply(s0, s1),
-								constraints.getMergePostcondition().apply(s0, s1, s0_new)
+				model.ctx.mkForall(
+						new Expr[] {s0, s1, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getInvariant().apply(s0),
+										constraints.getInvariant().apply(s1),
+										constraints.getMergePrecondition().apply(s0, s1),
+										constraints.getMergePostcondition().apply(s0, s1, s0_new)
+								),
+								constraints.getInvariant().apply(s0_new)
 						),
-						constraints.getInvariant().apply(s0_new)
+						1,
+						null,
+						null,
+						null,
+						null
 				)
 		);
 	}
@@ -55,10 +63,19 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 
 		return new ClassProperty("mergability/initial",
-				model.ctx.mkImplies(
-						constraints.getInitialCondition().apply(s0),
-						constraints.getMergePrecondition().apply(s0 ,s0)
+				model.ctx.mkForall(
+						new Expr[] {s0},
+						model.ctx.mkImplies(
+								constraints.getInitialCondition().apply(s0),
+								constraints.getMergePrecondition().apply(s0 ,s0)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
 				)
+
 		);
 	}
 
@@ -74,16 +91,25 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 
 		return new MethodProperty("mergability/method",
 				binding,
-				model.ctx.mkImplies(
-						model.ctx.mkAnd(
-								constraints.getInvariant().apply(s0),
-								constraints.getInvariant().apply(s1),
-								constraints.getPrecondition(binding).apply(s0),
-								constraints.getMergePrecondition().apply(s0, s1),
-								constraints.getPostcondition(binding).apply(s0, s0_new, null)
+				model.ctx.mkForall(
+						new Expr[] {s0, s1, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getInvariant().apply(s0),
+										constraints.getInvariant().apply(s1),
+										constraints.getPrecondition(binding).apply(s0),
+										constraints.getMergePrecondition().apply(s0, s1),
+										constraints.getPostcondition(binding).apply(s0, s0_new, null)
+								),
+								constraints.getMergePrecondition().apply(s0_new, s1)
 						),
-						constraints.getMergePrecondition().apply(s0_new, s1)
+						1,
+						null,
+						null,
+						null,
+						null
 				)
+
 		);
 
 
@@ -97,14 +123,22 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
 		return new ClassProperty("mergability/merge",
-				model.ctx.mkImplies(
-						model.ctx.mkAnd(
-								constraints.getInvariant().apply(s0),
-								constraints.getInvariant().apply(s1),
-								constraints.getMergePrecondition().apply(s0, s1),
-								constraints.getMergePostcondition().apply(s0, s1, s0_new)
+				model.ctx.mkForall(
+						new Expr[] {s0, s1, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getInvariant().apply(s0),
+										constraints.getInvariant().apply(s1),
+										constraints.getMergePrecondition().apply(s0, s1),
+										constraints.getMergePostcondition().apply(s0, s1, s0_new)
+								),
+								constraints.getMergePrecondition().apply(s0_new, s1)
 						),
-						constraints.getMergePrecondition().apply(s0_new, s1)
+						1,
+						null,
+						null,
+						null,
+						null
 				)
 		);
 	}

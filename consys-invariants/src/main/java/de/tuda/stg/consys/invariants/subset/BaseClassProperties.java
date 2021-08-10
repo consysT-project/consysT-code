@@ -28,9 +28,17 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 	private Property initialSatisfiesInvariant() {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		return new ClassProperty("invariant/initial",
-				model.ctx.mkImplies(
-						constraints.getInitialCondition().apply(s0),
-						constraints.getInvariant().apply(s0)
+				model.ctx.mkForall(
+						new Expr[] {s0},
+						model.ctx.mkImplies(
+								constraints.getInitialCondition().apply(s0),
+								constraints.getInvariant().apply(s0)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
 				)
 		);
 	}
@@ -43,13 +51,21 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 
 		return new MethodProperty("invariant/method",
 				binding,
-				model.ctx.mkImplies(
-						model.ctx.mkAnd(
-								constraints.getInvariant().apply(s0),
-								constraints.getPrecondition(binding).apply(s0),
-								constraints.getPostcondition(binding).apply(s0, s0_new, null)
+				model.ctx.mkForall(
+						new Expr[] {s0, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getInvariant().apply(s0),
+										constraints.getPrecondition(binding).apply(s0),
+										constraints.getPostcondition(binding).apply(s0, s0_new, null)
+								),
+								constraints.getInvariant().apply(s0_new)
 						),
-						constraints.getInvariant().apply(s0_new)
+						1,
+						null,
+						null,
+						null,
+						null
 				)
 		);
 	}

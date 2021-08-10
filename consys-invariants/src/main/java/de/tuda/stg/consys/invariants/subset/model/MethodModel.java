@@ -14,6 +14,9 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
 	// f(thisState, args...) => (newState, return)
 	private final FuncDecl<?> func;
+	private final FuncDecl<?> funcState;
+	private final FuncDecl<?> funcValue;
+
 	private final TupleSort returnSort;
 
 	public MethodModel(ProgramModel model, BaseClassModel clazz, JmlMethodDeclaration method) {
@@ -29,61 +32,90 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
 			returnSort = model.ctx.mkTupleSort(
 					model.ctx.mkSymbol("T_RET_" + getName()),
-					new Symbol[] { model.ctx.mkSymbol("get_state_" + getName()), model.ctx.mkSymbol("get_result_" + getName()) },
+					new Symbol[] { model.ctx.mkSymbol("state_" + getName()), model.ctx.mkSymbol("result_" + getName()) },
 					new Sort[] { clazz.getClassSort(), retType.toSort() }
 			);
 
 			func = model.ctx.mkFreshFuncDecl(getName(), argSortsAndThis, returnSort);
+
+			funcState = model.ctx.mkFreshFuncDecl(getName() + "_state", argSortsAndThis, clazz.getClassSort());
+			funcValue = model.ctx.mkFreshFuncDecl(getName() + "_value", argSortsAndThis, retType.toSort());
+
 		} else {
 			func = null;
 			returnSort = null;
+			funcState = null;
+			funcValue = null;
 		}
 	}
 
 	private Optional<FuncDecl<?>> toFuncDecl() {
 		if (!isZ3Usable()) return Optional.empty();
-
 		return Optional.ofNullable(func);
 	}
 
-	public Optional<Expr> makeApply(Expr thisExpr, Expr[] argExprs) {
-		return makeApplyWithValueResult(thisExpr, argExprs);
+	private Optional<FuncDecl<?>> toFuncDeclState() {
+		if (!isZ3Usable()) return Optional.empty();
+		return Optional.ofNullable(funcState);
 	}
 
-	public Optional<Expr> makeApplyWithTupledResult(Expr thisExpr, Expr[] argExprs) {
-		return toFuncDecl().map(funcDecl -> {
-			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
-			return model.ctx.mkApp(funcDecl, thisAndArgsExprs);
-		});
+	private Optional<FuncDecl<?>> toFuncDeclValue() {
+		if (!isZ3Usable()) return Optional.empty();
+		return Optional.ofNullable(funcValue);
 	}
 
-	public Optional<Expr> makeApplyWithStateResult(Expr thisExpr, Expr[] argExprs) {
-		return toFuncDecl().map(funcDecl -> {
-			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
-			return
-					// Select the second field of the return sort
-					model.ctx.mkApp(returnSort.getFieldDecls()[0],
-							// Apply the method
-							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
-					);
-		});
+//	public Optional<Expr> makeApply(Expr thisExpr, Expr[] argExprs) {
+//		return makeApplyWithValueResult(thisExpr, argExprs);
+//	}
+//
+//	public Optional<Expr> makeApplyWithTupledResult(Expr thisExpr, Expr[] argExprs) {
+//		return toFuncDecl().map(funcDecl -> {
+//			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+//			return model.ctx.mkApp(funcDecl, thisAndArgsExprs);
+//		});
+//	}
+
+//	public Optional<Expr> makeApplyWithStateResult2(Expr thisExpr, Expr[] argExprs) {
+//		return toFuncDecl().map(funcDecl -> {
+//			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+//			return
+//					// Select the second field of the return sort
+//					model.ctx.mkApp(returnSort.getFieldDecls()[0],
+//							// Apply the method
+//							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
+//					);
+//		});
+//	}
+//
+//	public Optional<Expr> makeApplyWithValueResult2(Expr thisExpr, Expr[] argExprs) {
+//		return toFuncDecl().map(funcDecl -> {
+//			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
+//			return
+//					// Select the second field of the return sort
+//					model.ctx.mkApp(returnSort.getFieldDecls()[1],
+//							// Apply the method
+//							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
+//					);
+//		});
+//	}
+
+	public Optional<Expr> makeApplyWithValueResult2(Expr thisExpr, Expr[] argExprs) {
+		return toFuncDeclValue().map(funcDecl ->
+				model.ctx.mkApp(funcDecl, Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr))
+		);
 	}
 
-	public Optional<Expr> makeApplyWithValueResult(Expr thisExpr, Expr[] argExprs) {
-		return toFuncDecl().map(funcDecl -> {
-			Expr[] thisAndArgsExprs =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr);
-			return
-					// Select the second field of the return sort
-					model.ctx.mkApp(returnSort.getFieldDecls()[1],
-							// Apply the method
-							model.ctx.mkApp(funcDecl, thisAndArgsExprs)
-					);
-		});
+	public Optional<Expr> makeApplyWithStateResult2(Expr thisExpr, Expr[] argExprs) {
+		return toFuncDeclState().map(funcDecl ->
+				model.ctx.mkApp(funcDecl, Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisExpr))
+		);
 	}
 
-	public Optional<Expr> makeReturnTuple(Expr state, Expr result) {
-		return Optional.ofNullable(returnSort).map(sort -> model.ctx.mkApp(sort.mkDecl(), state, result));
-	}
+
+
+//	public Optional<Expr> makeReturnTuple(Expr state, Expr result) {
+//		return Optional.ofNullable(returnSort).map(sort -> model.ctx.mkApp(sort.mkDecl(), state, result));
+//	}
 
 	public Optional<JmlAssignableClause> getAssignableClause() {
 		JmlAssignableClause result = null;

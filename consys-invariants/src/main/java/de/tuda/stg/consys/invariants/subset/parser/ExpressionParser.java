@@ -9,7 +9,11 @@ import org.eclipse.jdt.internal.compiler.ast.Expression;
  */
 public abstract class ExpressionParser {
 
-	public Expr parseExpression(Expression expression) {
-		throw new UnsupportedJMLExpression(expression, "expression type not supported");
+	public final Expr parseExpression(Expression expression) {
+		return parseExpression(expression, 0);
+	}
+
+	protected Expr parseExpression(Expression expression, int depth) {
+		throw new UnsupportedJMLExpression(expression, "expression type not supported. depth: " + depth);
 	}
 }
