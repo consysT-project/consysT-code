@@ -24,10 +24,11 @@ import java.lang.String;
  *
  */
 @ReplicatedModel public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
+	// omitted in new versions: payload.containsKey(s) - payload.get(s) != null
 
 	/*@
 	@ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
-	@ public invariant (\forall String s; payload.get(s) != null; payload.get(s).compareTo(BigInteger.ZERO) != -1);
+	@ public invariant (\forall String s; true ; payload.get(s).compareTo(BigInteger.ZERO) != -1);
 	@*/
 
 	// Change from the origin: We had this field:
@@ -41,7 +42,7 @@ import java.lang.String;
 
 	// Second idea: ensures (\forall BigInteger o : payload.values(); o.equals(BigInteger.ZERO));
 	/*@
-	@ ensures (\forall String s; payload.get(s) != null; payload.get(s).equals(BigInteger.ZERO));
+	@ ensures (\forall String s; true ; payload.get(s).equals(BigInteger.ZERO));
 	@ ensures clientId.equals(client);
 	@*/
 	@Inject
@@ -77,11 +78,11 @@ import java.lang.String;
 	}
 
 	/*@
-	@ ensures (\forall String s; \old(payload.get(s)) != null;
+	@ ensures (\forall String s; true ;
 				other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? payload.get(s).equals(other.payload.get(s)) : payload.get(s).equals(\old(payload.get(s))) );
 	@ ensures clientId.equals(\old(clientId));
 	@*/
-	@Override
+	// changed from original: @Override
 	public void merge(final GCounter other) { // Change from the origin: void <- GCounter
 		Map<String, BigInteger> retmap = Maps
 				.newHashMapWithExpectedSize(Math.max(payload.size(), other.payload.size()));
@@ -101,7 +102,7 @@ import java.lang.String;
 	@ assignable \nothing;
 	@ ensures \result.intValue() == (\sum int i; i >= 0 && i < payload.values().toArray().length; payload.values().toArray(new BigInteger[0])[i].intValue());
 	@*/
-	@Override
+	// Changed from the original: @Override
 	public BigInteger value() {
 		BigInteger retval = BigInteger.ZERO;
 
@@ -127,7 +128,7 @@ import java.lang.String;
 	@ ensures payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
 	@ ensures \result.equals(this.value());
 	@*/
-	@Override
+	// Changed from the original: @Override
 	public BigInteger increment(@Nonnegative final int n) {
 		Preconditions.checkArgument(n >= 0);
 		
@@ -139,7 +140,7 @@ import java.lang.String;
 	}
 
 	// no need to annotate
-	@Override
+	// Changed from the original: @Override
 	public byte[] payload() {
 		try {
 			return serializer().writeValueAsBytes(payload);
@@ -149,13 +150,13 @@ import java.lang.String;
 	}
 
 	//@ requires false;
-	@Override
+	// Changed from the original: @Override
 	public BigInteger decrement() {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	@Override
+	// Changed from the original: @Override
 	public BigInteger decrement(@Nonnegative final int n) {
 		throw new UnsupportedOperationException();
 	}
@@ -165,7 +166,7 @@ import java.lang.String;
 	@ assignable \nothing;
 	@ ensures \result == this.value().equals(o.value());
 	@*/
-	@Override
+	// Changed from the original: @Override
 	public boolean equals(final Object o) {
 		if (!(o instanceof GCounter)) {
 			return false;
@@ -184,7 +185,7 @@ import java.lang.String;
 	@ assignable \nothing;
 	@ ensures \result == this.value().hashCode();
 	@*/
-	@Override
+	// Changed from the original: @Override
 	public int hashCode() {
 		return this.value().hashCode();
 	}

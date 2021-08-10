@@ -70,6 +70,11 @@ public class BaseExpressionParser extends ExpressionParser {
       return parseOperatorExpression((OperatorExpression) expression, depth);
     }
 
+    // expressions like BigInteger.ZERO
+    if (expression instanceof JmlQualifiedNameReference) {
+      return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
+    }
+
     // method calls
     if (expression instanceof JmlMessageSend) {
       return parseJmlMessageSend((JmlMessageSend) expression, depth);
@@ -117,7 +122,9 @@ public class BaseExpressionParser extends ExpressionParser {
 
   protected Expr parseUnaryExpression(UnaryExpression unaryExpression, int depth) {
     Expr expr = parseExpression(unaryExpression.expression, depth + 1);
-    throw new UnsupportedJMLExpression(unaryExpression);
+    if(expr == null)
+      throw new UnsupportedJMLExpression(unaryExpression);
+    return expr;
   }
 
   /**
@@ -211,6 +218,21 @@ public class BaseExpressionParser extends ExpressionParser {
     return cons;
   }
 
+  protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
+    String className = String.valueOf(jmlQualifiedNameReference.tokens[0]);
+    String classField = String.valueOf(jmlQualifiedNameReference.tokens[1]);
+    Expr cons = null;
+    if(className.equals("BigInteger")) {
+      if (classField.equals("ZERO"))
+        cons = model.ctx.mkIntConst("0");
+    }
+    if (cons == null) {
+      throw new UnsupportedJMLExpression(jmlQualifiedNameReference);
+    }
+
+    return cons;
+  }
+
 
   protected Expr parseConditionalExpression(ConditionalExpression conditionalExpression, int depth) {
     Expr cond = parseExpression(conditionalExpression.condition, depth + 1);
@@ -268,9 +290,23 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
 
       return model.ctx.mkAdd(receiverExpr, argExpr);
-    }  else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return argExpr;
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "intValue")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      return receiverExpr;
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "compareTo", "java.math.BigInteger")) {
+      // This method is not working correctly for equal situation. Please use equals for that purpose also.
+      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      return model.ctx.mkITE(
+              model.ctx.mkGe(argExpr, receiverExpr),
+              model.ctx.mkIntConst("-1"), model.ctx.mkIntConst("1")
+      );
     }
     // java
     else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "max", "int", "int")) {
