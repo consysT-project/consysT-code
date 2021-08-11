@@ -3,18 +3,15 @@ package de.tuda.stg.consys.checker
 import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
-import de.tuda.stg.consys.annotations.Transactional
-import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.checker.InferenceVisitor.State
+import de.tuda.stg.consys.annotations.{ReadOnly, Transactional}
 import de.tuda.stg.consys.checker.qual.Mixed
 
 import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils}
 
-import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
@@ -159,6 +156,26 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			transactionContext = true
 			shouldClose = true
 		}
+
+		val method = TreeUtils.elementFromDeclaration(node)
+		if (method.getAnnotation(classOf[ReadOnly]) == null) {
+			// enforce ReadOnly inheritance
+			val overridden = ElementUtils.getOverriddenMethods(method, types).exists(m =>
+				m.getAnnotation(classOf[ReadOnly]) != null)
+
+			new ReadOnlyVisitor().visitMethod(node) match {
+				case Nil if !overridden => // checker.reportWarning(node, "readonly.inference", node.getName)
+				case _ if overridden => checker.reportError(node, "readonly.override", node.getName)
+				case _ =>
+			}
+		} else {
+			new ReadOnlyVisitor().visitMethod(node) match {
+				case Nil =>
+				case errors => errors.foreach(e =>
+					checker.reportError(e, "readonly.declaration", node.getName, e))
+			}
+		}
+
 		val r = super.visitMethod(node, p)
 		if (shouldClose) {
 			transactionContext = false
