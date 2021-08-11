@@ -17,7 +17,7 @@ public class TypeModelFactory {
 	private final Lazy<IntModel> intModel;
 	private final Lazy<BoolModel> boolModel;
 	private final Lazy<RealModel> realModel;
-	private final Lazy<VoidModel> emptyModel;
+	private final Lazy<VoidModel> voidModel;
 	private final Lazy<StringModel> stringModel;
 
 	private final HashMap<ReferenceBinding, RefModel> refModels;
@@ -27,7 +27,7 @@ public class TypeModelFactory {
 		this.intModel = Lazy.make(() -> new IntModel(model));
 		this.boolModel = Lazy.make(() -> new BoolModel(model));
 		this.realModel = Lazy.make(() -> new RealModel(model));
-		this.emptyModel = Lazy.make(() -> new VoidModel(model));
+		this.voidModel = Lazy.make(() -> new VoidModel(model));
 		this.refModels = Maps.newHashMap();
 		this.stringModel = Lazy.make(() -> new StringModel(model));
 	}
@@ -61,7 +61,7 @@ public class TypeModelFactory {
 				case 5: // boolean
 					return boolModel.get();
 				case 6: // void
-					return emptyModel.get();
+					return voidModel.get();
 				default:
 					//throw new IllegalArgumentException("incompatible base type " + typeBinding);
 					return new EmptyModel(model, "incompatible base type " + typeBinding);

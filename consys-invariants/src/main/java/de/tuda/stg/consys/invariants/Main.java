@@ -49,7 +49,7 @@ public class Main {
     var compileResult = CompilerBinding.compile(sources);
 
     // Create the program model
-    var config = new ProgramConfig(false);
+    var config = new ProgramConfig(true);
     var model = new ProgramModel(compileResult, config);
     model.loadParsedClasses();
     // Check the classes

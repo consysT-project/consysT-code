@@ -116,7 +116,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 				return result ? CheckStatus.VALID : CheckStatus.INVALID;
 			} catch (RuntimeException e) {
 //				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
-				Logger.err("exception during solving for property <" + description() + ">\nReason:");
+				Logger.err("exception while checking property <" + description() + ">:");
 				e.printStackTrace(Logger.err);
 				return CheckStatus.ERROR;
 			}

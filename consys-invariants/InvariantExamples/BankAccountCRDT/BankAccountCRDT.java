@@ -124,6 +124,7 @@ import java.lang.Math;
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
                    incs[i] == Math.max(\old(incs[i]), other.incs[i])
                     && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
+    @ ensures replicaId == \old(replicaId);
     @*/
     public void merge(BankAccountCRDT other) {
         for (int i = 0; i < numOfReplicas; i++) {

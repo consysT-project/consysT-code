@@ -91,8 +91,6 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
 
-		model.solver.add(invariantExpr);
-
 		invariant = new InvariantModel(invariantVar, invariantExpr);
 
 		// Setup the initial condition
