@@ -2,7 +2,6 @@ package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPostconditionExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPreconditionExpressionParser;

@@ -2,14 +2,13 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Lists;
 import de.tuda.stg.consys.invariants.subset.Logger;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class ClassModelFactory {
 

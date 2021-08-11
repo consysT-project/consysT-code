@@ -4,10 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import com.microsoft.z3.Tactic;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
@@ -19,7 +17,6 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class BaseClassConstraints<CModel extends BaseClassModel> {
@@ -111,7 +108,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 			postconditions.put(methodModel.getBinding(), postCondition);
 
 			// If the method is pure.
-			if (methodModel.isZ3Usable()) {
+			if (methodModel.usableAsConstraint()) {
 				Expr[] args = methodModel.getArguments().stream()
 						.map(argModel -> argModel.getConst().orElseThrow())
 						.toArray(Expr[]::new);

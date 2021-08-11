@@ -1,10 +1,12 @@
-package de.tuda.stg.consys.invariants.subset.model;
+package de.tuda.stg.consys.invariants.subset;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.CompilerBinding;
-import de.tuda.stg.consys.invariants.subset.*;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
+import de.tuda.stg.consys.invariants.subset.model.ClassModelFactory;
+import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
@@ -12,7 +14,6 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +46,8 @@ public class ProgramModel {
 			throw new RuntimeException("unsupported OS: " + osname);
 		}
 	}
+
+
 
 	/* Possible solver tactics
 	0 = "ackermannize_bv"
@@ -168,21 +171,21 @@ public class ProgramModel {
 
 	private final CompilerBinding.CompileResult compileResult;
 
+	public final ProgramConfig config;
+
 	// Stores all class models
 	private final Map<ReferenceBinding, BaseClassModel> models;
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
-	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult) {
+	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult, ProgramConfig config) {
 		this.ctx = ctx;
 		this.solver =  ctx.mkSolver(); // ctx.mkSolver(ctx.mkTactic("default"));
+		this.config = config;
 
-//		var params = ctx.mkParams();
-//		params.add("max_degree", 128);
-//		params.add("blast_full", true);
-//		params.add("array.weak", true);
-//		params.add("enable_pre_simplify", true);
-//		solver.setParameters(params);
+		var params = ctx.mkParams();
+		params.add("enable_pre_simplify", true);
+		solver.setParameters(params);
 
 		this.compileResult = compileResult;
 		this.types = new TypeModelFactory(this);
@@ -192,14 +195,14 @@ public class ProgramModel {
 		this.modelSequence = Lists.newLinkedList();
 	}
 
-	public ProgramModel(CompilerBinding.CompileResult compileResult) {
+	public ProgramModel(CompilerBinding.CompileResult compileResult, ProgramConfig config) {
 		this(
 				new Context(
 					/*Map.of("model", "true",
 					"proof", "true",
 					"auto-config", "false")*/
 				),
-				compileResult);
+				compileResult, config);
 	}
 
 	public Optional<BaseClassModel> getModelForClass(ReferenceBinding refBinding) {

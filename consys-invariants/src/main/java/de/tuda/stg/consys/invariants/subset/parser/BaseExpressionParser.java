@@ -4,9 +4,8 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
 
@@ -304,8 +303,12 @@ public class BaseExpressionParser extends ExpressionParser {
       var receiverExpr = parseExpression(jmlMessageSend.receiver);
       var argExpr = parseExpression(jmlMessageSend.arguments[0]);
       return model.ctx.mkITE(
-              model.ctx.mkGe(argExpr, receiverExpr),
-              model.ctx.mkIntConst("-1"), model.ctx.mkIntConst("1")
+              model.ctx.mkEq(receiverExpr, argExpr),
+              model.ctx.mkInt(0),
+              model.ctx.mkITE(
+                      model.ctx.mkGe(argExpr, receiverExpr),
+                      model.ctx.mkInt("-1"), model.ctx.mkInt("1")
+              )
       );
     }
     // java
@@ -335,7 +338,7 @@ public class BaseExpressionParser extends ExpressionParser {
     var methodModel = declaringClassModel.getMethod(methodBinding)
             .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "method not available in " + declaringClassModel.getClassName()));
 
-    if (!methodModel.isZ3Usable())
+    if (!methodModel.usableAsConstraint())
       throw new UnsupportedJMLExpression(jmlMessageSend, "method is not usable in Z3");
 
     final Expr[] argExprs;

@@ -97,7 +97,7 @@ import java.lang.Math;
     //@ requires val >= 0;
     //@ requires  getValue() >= val;
     //@ assignable decs[replicaId];
-    //@ ensures decs[replicaId] == \old(decs[replicaId]) + val;
+    //@ ensures decs[\old(replicaId)] == \old(decs[replicaId]) + val;
     //@ ensures \result == \old(this);
     public BankAccountCRDT withdraw(int val) {
         if (val > getValue())

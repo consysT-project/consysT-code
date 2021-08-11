@@ -2,7 +2,6 @@ package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 import java.util.List;

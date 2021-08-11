@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
-import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
 import java.util.Optional;
 

@@ -5,7 +5,6 @@ import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 import java.util.List;
@@ -30,6 +29,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		List<Property> properties = Lists.newLinkedList();
 		// Populates the list with properties
 		addProperties(properties);
+
 
 		var result = new CheckResult();
 		for (var prop : properties) {
@@ -116,7 +116,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 				return result ? CheckStatus.VALID : CheckStatus.INVALID;
 			} catch (RuntimeException e) {
 //				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
-				Logger.err("exception during solving for property <" + description() + ">\n" + expr + "\nReason:");
+				Logger.err("exception during solving for property <" + description() + ">\nReason:");
 				e.printStackTrace(Logger.err);
 				return CheckStatus.ERROR;
 			}

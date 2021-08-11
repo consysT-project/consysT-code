@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.microsoft.z3.BoolSort;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 
 public class BoolModel extends BaseTypeModel<BoolSort> {
 

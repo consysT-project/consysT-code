@@ -1,10 +1,9 @@
 package de.tuda.stg.consys.invariants;
 
-import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.ProgramConfig;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -47,10 +46,11 @@ public class Main {
 
   public static void runChecker(Path[] sources) {
     // Compile the file to ASTs
-    CompilerBinding.CompileResult compileResult = CompilerBinding.compile(sources);
+    var compileResult = CompilerBinding.compile(sources);
 
     // Create the program model
-    ProgramModel model = new ProgramModel(compileResult);
+    var config = new ProgramConfig(false);
+    var model = new ProgramModel(compileResult, config);
     model.loadParsedClasses();
     // Check the classes
     model.checkAll();

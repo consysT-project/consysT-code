@@ -3,7 +3,7 @@ package de.tuda.stg.consys.invariants.subset.model.types;
 import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.IntSort;
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 
 public class ArrayModel<ESort extends Sort, EType extends TypeModel<ESort>> extends BaseTypeModel<ArraySort<IntSort, ESort>> {

@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.Logger;
+import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
@@ -50,17 +51,17 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	}
 
 	private Optional<FuncDecl<?>> toFuncDecl() {
-		if (!isZ3Usable()) return Optional.empty();
+		if (!usableAsConstraint()) return Optional.empty();
 		return Optional.ofNullable(func);
 	}
 
 	private Optional<FuncDecl<?>> toFuncDeclState() {
-		if (!isZ3Usable()) return Optional.empty();
+		if (!usableAsConstraint()) return Optional.empty();
 		return Optional.ofNullable(funcState);
 	}
 
 	private Optional<FuncDecl<?>> toFuncDeclValue() {
-		if (!isZ3Usable()) return Optional.empty();
+		if (!usableAsConstraint()) return Optional.empty();
 		return Optional.ofNullable(funcValue);
 	}
 
@@ -162,7 +163,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		return maybePrecond.isPresent() && !maybePrecond.stream().anyMatch(cond -> cond instanceof TrueLiteral);
 	}
 
-	public boolean isZ3Usable() {
-		return func != null;
+	public boolean usableAsConstraint() {
+		return func != null && (model.config.parseImpureMethods || isPure());
 	}
 }
