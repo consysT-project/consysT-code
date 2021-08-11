@@ -295,19 +295,23 @@ public class BaseExpressionParser extends ExpressionParser {
       return argExpr;
     }
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "intValue")) {
-      var receiverExpr = parseExpression(jmlMessageSend.receiver);
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      return receiverExpr;
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "hashCode")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       return receiverExpr;
     }
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "compareTo", "java.math.BigInteger")) {
       // This method is not working correctly for equal situation. Please use equals for that purpose also.
-      var receiverExpr = parseExpression(jmlMessageSend.receiver);
-      var argExpr = parseExpression(jmlMessageSend.arguments[0]);
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkITE(
               model.ctx.mkEq(receiverExpr, argExpr),
               model.ctx.mkInt(0),
               model.ctx.mkITE(
                       model.ctx.mkGe(argExpr, receiverExpr),
-                      model.ctx.mkInt("-1"), model.ctx.mkInt("1")
+                      model.ctx.mkInt(-1), model.ctx.mkInt(1)
               )
       );
     }

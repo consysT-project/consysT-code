@@ -25,15 +25,18 @@ import java.lang.String;
  */
 @ReplicatedModel public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
 	// omitted in new versions: payload.containsKey(s) - payload.get(s) != null
-
+	// Added to the origin code:
+	static final int numOfReplicas = 3;
+	static final String[] keys = new String[] {"KeyA", "KeyB", "KeyC"};
+	// End added part
+	
 	/*@
 	@ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
-	@ public invariant (\forall String s; true ; payload.get(s).compareTo(BigInteger.ZERO) != -1);
+	@ public invariant (\forall String s; true ; this.payload.get(s).compareTo(BigInteger.ZERO) != -1);
 	@*/
 
 	// Change from the origin: We had this field:
-	//private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {
-	//};
+	//private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {};
 
 	private final String clientId;
 
@@ -42,8 +45,8 @@ import java.lang.String;
 
 	// Second idea: ensures (\forall BigInteger o : payload.values(); o.equals(BigInteger.ZERO));
 	/*@
-	@ ensures (\forall String s; true ; payload.get(s).equals(BigInteger.ZERO));
-	@ ensures clientId.equals(client);
+	@ ensures (\forall String s; true ; this.payload.get(s).equals(BigInteger.ZERO));
+	@ ensures this.clientId.equals(client);
 	@*/
 	@Inject
 	public GCounter(final ObjectMapper mapper, @ClientId final String client) {
@@ -71,15 +74,15 @@ import java.lang.String;
 	End change from the origin */
 
 	// Another constructor
-	private GCounter(final ObjectMapper mapper, @ClientId final String client, final Map<String, BigInteger> value) {
+	/*private GCounter(final ObjectMapper mapper, @ClientId final String client, final Map<String, BigInteger> value) {
 		this(mapper, client);
 
 		this.payload.putAll(value);
-	}
+	}*/
 
 	/*@
 	@ ensures (\forall String s; true ;
-				other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? payload.get(s).equals(other.payload.get(s)) : payload.get(s).equals(\old(payload.get(s))) );
+				other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? this.payload.get(s).equals(other.payload.get(s)) : this.payload.get(s).equals(\old(payload.get(s))) );
 	@ ensures clientId.equals(\old(clientId));
 	@*/
 	// changed from original: @Override
@@ -97,10 +100,10 @@ import java.lang.String;
 		//return new GCounter(serializer(), clientId, retmap);
 	}
 
-
+	// Prevously: ensures \result.intValue() == (\sum int i; i >= 0 && i < this.payload.values().toArray().length; this.payload.values().toArray(new BigInteger[0])[i].intValue());
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.intValue() == (\sum int i; i >= 0 && i < payload.values().toArray().length; payload.values().toArray(new BigInteger[0])[i].intValue());
+	@ ensures (\sum int i; i >= 0 && i < numOfReplicas; payload.get(keys[i]).intValue());
 	@*/
 	// Changed from the original: @Override
 	public BigInteger value() {
@@ -114,8 +117,8 @@ import java.lang.String;
 	}
 
 	/*@
-	@ assignable payload.get(clientId);
-	@ ensures payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
+	@ assignable this.payload.get(clientId);
+	@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
 	@ ensures \result.equals(this.value());
 	@*/
 	public BigInteger increment() {
@@ -124,8 +127,8 @@ import java.lang.String;
 
 	/*@
 	@ requires n >= 0;
-	@ assignable payload.get(clientId);
-	@ ensures payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
+	@ assignable this.payload.get(clientId);
+	@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
 	@ ensures \result.equals(this.value());
 	@*/
 	// Changed from the original: @Override
@@ -161,10 +164,11 @@ import java.lang.String;
 		throw new UnsupportedOperationException();
 	}
 
-	// Should we have annotations for equals method? - should we care about Object o?
+	// Prevously: \result == (this.value().intValue() == o.value().intValue());
+	// The problem was type casting but we conclude we don't need any post conditions in equals method.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().equals(o.value());
+	@
 	@*/
 	// Changed from the original: @Override
 	public boolean equals(final Object o) {
@@ -180,7 +184,7 @@ import java.lang.String;
 			return this.value().equals(t.value());
 		}
 	}
-
+	// ensures \result == this.value().hashCode();
 	/*@
 	@ assignable \nothing;
 	@ ensures \result == this.value().hashCode();
