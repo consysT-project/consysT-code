@@ -9,6 +9,7 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class ClassModelFactory {
 
@@ -18,7 +19,7 @@ public class ClassModelFactory {
 		this.model = model;
 	}
 
-	public void generateModelForClasses(Iterable<JmlTypeDeclaration> jmlTypes, BiConsumer<JmlTypeDeclaration, BaseClassModel> doWithClassModel) {
+	public void generateModelForClasses(Iterable<JmlTypeDeclaration> jmlTypes, Consumer<BaseClassModel> doWithClassModel) {
 		List<BaseClassModel> generatedModels = Lists.newLinkedList();
 
 		for (var jmlType : jmlTypes) {
@@ -37,15 +38,18 @@ public class ClassModelFactory {
 				}
 
 				if (classModel != null) {
-					classModel.initializeFields();
-					classModel.initializeSort();
 					generatedModels.add(classModel);
-					doWithClassModel.accept(jmlType, classModel);
 					continue;
 				}
 			}
 
 			Logger.warn("class is not part of the constraints model: " + String.valueOf(jmlType.name));
+		}
+
+		for (BaseClassModel classModel : generatedModels) {
+			classModel.initializeFields();
+			classModel.initializeSort();
+			doWithClassModel.accept(classModel);
 		}
 
 		for (BaseClassModel classModel : generatedModels) {

@@ -248,9 +248,9 @@ public class ProgramModel {
 	public void loadParsedClasses() {
 		List<JmlTypeDeclaration> declarations = compileResult.getTypes();
 
-		classes.generateModelForClasses(declarations, (jmlType, classModel) -> {
-			models.put(jmlType.binding, classModel);
-			modelSequence.add(jmlType.binding);
+		classes.generateModelForClasses(declarations, (classModel) -> {
+			models.put(classModel.getBinding(), classModel);
+			modelSequence.add(classModel.getBinding());
 		});
 	}
 

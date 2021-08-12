@@ -352,7 +352,6 @@ public class BaseExpressionParser extends ExpressionParser {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
 
-
       return model.ctx.mkITE(
               model.ctx.mkEq(receiverExpr, argExpr),
               model.ctx.mkInt(0),
@@ -362,7 +361,7 @@ public class BaseExpressionParser extends ExpressionParser {
               )
       );
     }
-    // java
+    // Math
     else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "max", "int", "int")) {
       var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
@@ -379,6 +378,14 @@ public class BaseExpressionParser extends ExpressionParser {
               model.ctx.mkLe(arg1Expr, arg2Expr),
               arg1Expr, arg2Expr
       );
+    }
+    // System methods
+    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replicaId")) {
+      return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replica")) {
+      return model.ctx.mkString(model.config.SYSTEM__REPLICA);
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "numOfReplicas")) {
+      return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
 
     /* Handle call to method from a class in the data model */

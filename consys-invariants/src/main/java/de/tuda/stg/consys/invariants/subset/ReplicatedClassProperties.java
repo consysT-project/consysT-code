@@ -23,6 +23,12 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			properties.add(methodSatisfiesMergability(m.getBinding()));
 		});
 		properties.add(mergeSatisfiesMergability());
+
+		if (model.config.SOLVER__CHECK_MERGE_PROPERTIES) {
+			properties.add(mergeAssociative());
+			properties.add(mergeCommutative());
+			properties.add(mergeIdempotent());
+		}
 	}
 
 
@@ -132,6 +138,87 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 										constraints.getMergePostcondition().apply(s0, s1, s0_new)
 								),
 								constraints.getMergePrecondition().apply(s0_new, s1)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
+				)
+		);
+	}
+
+
+	public Property mergeAssociative() {
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s2 = constraints.getClassModel().toFreshConst("s2");
+		Expr s0_a_new = constraints.getClassModel().toFreshConst("s0_a_new");
+		Expr s0_b_new = constraints.getClassModel().toFreshConst("s0_b_new");
+		Expr s1_a_new = constraints.getClassModel().toFreshConst("s1_a_new");
+		Expr s1_b_new = constraints.getClassModel().toFreshConst("s1_b_new");
+
+		return new ClassProperty("property/merge/associativity",
+				model.ctx.mkForall(
+						new Expr[] {s0, s1, s2, s0_a_new, s0_b_new, s1_a_new, s1_b_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getMergePrecondition().apply(s0, s1),
+										constraints.getMergePostcondition().apply(s0, s1, s0_a_new),
+										constraints.getMergePostcondition().apply(s0_a_new, s2, s0_b_new),
+										constraints.getMergePostcondition().apply(s0, s1_a_new, s1_b_new),
+										constraints.getMergePostcondition().apply(s1, s2, s1_a_new)
+								),
+								model.ctx.mkEq(s0_b_new, s1_b_new)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
+				)
+		);
+	}
+
+	public Property mergeCommutative() {
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
+		Expr s1_new = constraints.getClassModel().toFreshConst("s1_new");
+
+		return new ClassProperty("property/merge/commutativity",
+				model.ctx.mkForall(
+						new Expr[] {s0, s1, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getMergePrecondition().apply(s0, s1),
+										constraints.getMergePostcondition().apply(s0, s1, s0_new),
+										constraints.getMergePostcondition().apply(s1, s0, s1_new)
+								),
+								model.ctx.mkEq(s0_new, s1_new)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
+				)
+		);
+	}
+
+	public Property mergeIdempotent() {
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
+
+		return new ClassProperty("property/merge/idempotence",
+				model.ctx.mkForall(
+						new Expr[] {s0, s0_new},
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getMergePrecondition().apply(s0, s0),
+										constraints.getMergePostcondition().apply(s0, s0, s0_new)
+								),
+								model.ctx.mkEq(s0_new, s0)
 						),
 						1,
 						null,

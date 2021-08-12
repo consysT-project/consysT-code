@@ -1,3 +1,5 @@
+package de.tuda.stg.consys.invariants.examples.multicounter;
+
 import de.tuda.stg.consys.annotations.invariants.DataModel;
 import java.lang.Void;
 
@@ -6,8 +8,8 @@ public class SimpleNumber{
 
     private int value;
 
-    public SimpleNumber(int input) {
-        value = input;
+    public SimpleNumber(int val) {
+        value = val;
     }
 
     //@ assignable value;

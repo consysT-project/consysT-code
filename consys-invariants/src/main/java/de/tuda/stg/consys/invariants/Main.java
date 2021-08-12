@@ -23,9 +23,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 
-    ProgramConfig config = new ProgramConfig(
-            false
-    );
+    ProgramConfig config = Examples.DEFAULT_CONFIG;
 
     // Set the source file
     Path[] sources = new Path[] {

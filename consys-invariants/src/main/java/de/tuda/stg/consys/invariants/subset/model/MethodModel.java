@@ -107,6 +107,6 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 	}
 
 	public boolean usableAsConstraint() {
-		return funcValue != null && funcState != null && (model.config.parseImpureMethods || isPure());
+		return funcValue != null && funcState != null && (model.config.MODEL__INCLUDE_IMPURE_METHODS || isPure());
 	}
 }

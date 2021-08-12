@@ -1,41 +1,29 @@
+import de.tuda.stg.consys.invariants.Examples;
 import de.tuda.stg.consys.invariants.Main;
 import de.tuda.stg.consys.invariants.subset.ProgramConfig;
 import org.junit.Test;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 
 public class TestCheckExamples {
 	/* INFO: to run the tests in IntelliJ, change the working directory in the run configurations to the consys-code folder. */
 
-	public static final ProgramConfig defaultConfig = new ProgramConfig(
-			false
-	);
-
-	public static final ProgramConfig statefulConfig = new ProgramConfig(
-			true
-	);
-
 	@Test
-	public void testBankAccountCRDT() {
-		Main.runChecker(defaultConfig, new Path[] {
-				Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java")
-		});
+	public void testBankAccount() {
+		Main.runChecker(Examples.DEFAULT_CONFIG, Examples.BANK_ACCOUNT);
 	}
 
 	@Test
-	public void testGSetCRDT() {
-		Main.runChecker(defaultConfig, new Path[] {
-				Paths.get("consys-invariants", "InvariantExamples", "GSetCRDT", "GSetCRDT.java")
-		});
+	public void testCreditAccount() {
+		Main.runChecker(Examples.STATEFUL_CONFIG, Examples.CREDIT_ACCOUNT);
+	}
+
+	@Test
+	public void testGSet() {
+		Main.runChecker(Examples.DEFAULT_CONFIG, Examples.GSET);
 	}
 
 	@Test
 	public void testSimpleCounter() {
-		Main.runChecker(statefulConfig, new Path[] {
-				Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
-				Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java")
-		});
+		Main.runChecker(Examples.STATEFUL_CONFIG, Examples.MULTICLASS_COUNTER);
 	}
 }

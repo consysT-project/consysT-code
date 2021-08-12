@@ -20,7 +20,7 @@ public class TypeModelFactory {
 	private final Lazy<VoidModel> voidModel;
 	private final Lazy<StringModel> stringModel;
 
-	private final HashMap<ReferenceBinding, RefModel> refModels;
+	private final HashMap<ReferenceBinding, ObjectModel> refModels;
 
 	public TypeModelFactory(ProgramModel model) {
 		this.model = model;
@@ -32,11 +32,11 @@ public class TypeModelFactory {
 		this.stringModel = Lazy.make(() -> new StringModel(model));
 	}
 
-	private RefModel modelForRef(ReferenceBinding refBinding) {
+	private ObjectModel modelForRef(ReferenceBinding refBinding) {
 		if (refModels.containsKey(refBinding)) {
 			return refModels.get(refBinding);
 		} else {
-			var refModel = new RefModel(model, refBinding);
+			var refModel = new ObjectModel(model, refBinding);
 			refModels.put(refBinding, refModel);
 			return refModel;
 		}
