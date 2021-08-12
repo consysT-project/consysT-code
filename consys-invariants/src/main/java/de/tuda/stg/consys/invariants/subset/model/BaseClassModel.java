@@ -138,7 +138,6 @@ public class BaseClassModel {
 				} else {
 					ExpressionParser parser = new BaseExpressionParser(this.model);
 					Expr initialValue = parser.parseExpression(field.initialization);
-
 					classConstantsTemp.add(new ConstantModel(this.model, field, initialValue));
 				}
 

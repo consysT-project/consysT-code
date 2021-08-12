@@ -7,7 +7,6 @@ import java.lang.Math;
     // Constants have to be declared with static final.
     public static final int numOfReplicas = 3;
 
-
     /* Fields */
     // Virtual fields that can be accessed in constraints with `this` or using normal field references.
     public final int[] incs = new int[numOfReplicas], decs = new int[numOfReplicas];

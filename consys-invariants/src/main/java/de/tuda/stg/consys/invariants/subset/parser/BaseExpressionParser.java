@@ -57,7 +57,11 @@ public class BaseExpressionParser extends ExpressionParser {
 
       // "array[index]"
     if (expression instanceof JmlArrayReference) {
-      return visitJmlArrayReference((JmlArrayReference) expression, depth);
+      return parseJmlArrayReference((JmlArrayReference) expression, depth);
+    }
+
+    if (expression instanceof ArrayAllocationExpression) {
+      return parseArrayAllocationExpression((ArrayAllocationExpression) expression, depth);
     }
 
     // "({\forall | \exists | \sum} boundVarDeclarations; rangeExpression; body)"
@@ -83,6 +87,32 @@ public class BaseExpressionParser extends ExpressionParser {
     return super.parseExpression(expression, depth);
   }
 
+  protected Expr parseArrayAllocationExpression(ArrayAllocationExpression arrayAllocationExpression, int depth) {
+    var type = model.types.typeFor(arrayAllocationExpression.resolvedType);
+    var sort = type.getSort().orElseThrow(() -> new UnsupportedJMLExpression(arrayAllocationExpression, "unsupported array type " + type));
+
+    var arrayConst = model.ctx.mkFreshConst("array_new", sort);
+
+    var init = arrayAllocationExpression.initializer;
+    if (init != null) {
+      Logger.warn("created constant array. The elements in that array may not change. Array: " + arrayAllocationExpression);
+      for (int i = 0; i < init.expressions.length; i++) {
+        var expr = parseExpression(init.expressions[i]);
+        model.solver.add(
+          model.ctx.mkEq(
+                  model.ctx.mkSelect((ArrayExpr) arrayConst, model.ctx.mkInt(i)),
+                  expr
+          )
+        );
+      }
+    } else {
+      throw new UnsupportedJMLExpression(arrayAllocationExpression, "array expression without initializer not supported.");
+    }
+
+    return arrayConst;
+
+  }
+
   protected Expr parseLiteral(Literal literalExpression) {
     // literals can be translated directly
     if (literalExpression instanceof IntLiteral)
@@ -98,6 +128,9 @@ public class BaseExpressionParser extends ExpressionParser {
 
     if (literalExpression instanceof FalseLiteral)
       return model.ctx.mkFalse();
+
+    if (literalExpression instanceof StringLiteral)
+      return model.ctx.mkString(String.valueOf(literalExpression.constant.stringValue()));
 
     throw new UnsupportedJMLExpression(literalExpression);
   }
@@ -253,7 +286,7 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return a Z3 select expressions or {@code null} if the translation did not succeed
    */
-  protected Expr visitJmlArrayReference(JmlArrayReference jmlArrayReference, int depth) {
+  protected Expr parseJmlArrayReference(JmlArrayReference jmlArrayReference, int depth) {
     Expr array = parseExpression(jmlArrayReference.receiver, depth + 1);
 
     if (array instanceof ArrayExpr) {
@@ -318,6 +351,8 @@ public class BaseExpressionParser extends ExpressionParser {
       // This method is not working correctly for equal situation. Please use equals for that purpose also.
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+
+
       return model.ctx.mkITE(
               model.ctx.mkEq(receiverExpr, argExpr),
               model.ctx.mkInt(0),

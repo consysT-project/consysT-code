@@ -61,8 +61,8 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
 		var methodBinding = jmlMessageSend.binding;
 
+		/* resolve stateful methods */
 		if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "stateful", "java.lang.Object")) {
-
 			if (jmlMessageSend.arguments[0] instanceof JmlMessageSend) {
 				var statefulMethod = (JmlMessageSend) jmlMessageSend.arguments[0];
 				var receiverExpr = parseExpression(statefulMethod.receiver);
