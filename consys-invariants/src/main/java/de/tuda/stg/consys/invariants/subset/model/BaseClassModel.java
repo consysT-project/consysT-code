@@ -107,7 +107,7 @@ public class BaseClassModel {
 		}
 
 		this.classSort = this.model.ctx.mkTupleSort(
-				this.model.ctx.mkSymbol("state_" + getClassName()),
+				this.model.ctx.mkSymbol("T_class_" + getClassName()),
 				Z3Utils.mkSymbols(this.model.ctx, fieldNames), fieldSorts);
 
 		FuncDecl<?>[] accessors = classSort.getFieldDecls();

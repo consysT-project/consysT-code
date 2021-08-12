@@ -25,6 +25,7 @@ public class BaseExpressionParser extends ExpressionParser {
   // Local variables from jml quantifiers.
   private final Map<String, Expr> localVariables = Maps.newHashMap();
 
+  private boolean allowStatefulMethodCalls = false;
 
   public BaseExpressionParser(ProgramModel model) {
     this.model = model;
@@ -265,9 +266,6 @@ public class BaseExpressionParser extends ExpressionParser {
   }
 
   protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
-    // Resolve some basic functions for convenient usage in constraints
-    var methodName = String.valueOf(jmlMessageSend.selector);
-
     var methodBinding = jmlMessageSend.binding;
 
     // The cases are categorized by the classes in which they are defined:
@@ -283,14 +281,28 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
+    // java.util.Set
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "isEmpty")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      ArraySort sort = (ArraySort) receiverExpr.getSort();
+//      var e = model.ctx.mkFreshConst("e", sort.getDomain());
+//      return model.ctx.mkForall(new Expr[]{e}, model.ctx.mkNot(model.ctx.mkSetMembership(e, receiverExpr)), 1, null, null, null, null);
+      return model.ctx.mkEq(receiverExpr, model.ctx.mkEmptySet(sort.getDomain()));
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "contains", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      return model.ctx.mkSetMembership(argExpr, receiverExpr);
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "containsAll", "java.util.Collection")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      return model.ctx.mkSetSubset(argExpr, receiverExpr);
+    }
     // java.math.BigInteger
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
-
       return model.ctx.mkAdd(receiverExpr, argExpr);
-    }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return argExpr;
     }
@@ -337,14 +349,19 @@ public class BaseExpressionParser extends ExpressionParser {
     /* Handle call to method from a class in the data model */
     var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
     var declaringClassModel = model.getModelForClass(methodBinding.declaringClass)
-            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model"));
+            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model, or method is unsupported"));
 
     var methodModel = declaringClassModel.getMethod(methodBinding)
             .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "method not available in " + declaringClassModel.getClassName()));
 
     if (!methodModel.usableAsConstraint())
-      throw new UnsupportedJMLExpression(jmlMessageSend, "method is not usable in Z3");
+      throw new UnsupportedJMLExpression(jmlMessageSend, "method is not usable in constraints");
 
+    if (!methodModel.isPure() && !allowStatefulMethodCalls) {
+      throw new UnsupportedJMLExpression(jmlMessageSend, "impure methods outside of stateful");
+    }
+
+    /* Create exprs for all arguments */
     final Expr[] argExprs;
     if (jmlMessageSend.arguments == null) {
       argExprs = new Expr[0];
@@ -354,11 +371,17 @@ public class BaseExpressionParser extends ExpressionParser {
               .toArray(Expr[]::new);
     }
 
-    var mbApply = methodModel.makeApplyWithValueResult2(receiverExpr, argExprs);
+    /* if the method is in a stateful expression, and it is the top method, then create a state method instead */
+    Expr methodInvocation;
+    if (allowStatefulMethodCalls && depth == 0) {
+      methodInvocation = methodModel.makeApplyReturnState(receiverExpr, argExprs)
+              .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+    } else {
+      methodInvocation = methodModel.makeApplyReturnValue(receiverExpr, argExprs)
+              .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+    }
 
-    if (mbApply.isEmpty()) throw new UnsupportedJMLExpression(jmlMessageSend);
-
-    return mbApply.get();
+    return methodInvocation;
   }
 
   /**
@@ -501,6 +524,20 @@ public class BaseExpressionParser extends ExpressionParser {
           localVariables.put(varName[i], prev[i]);
         }
       }
+    }
+
+    return result;
+  }
+
+  protected <T> T withStatefulMethods(Supplier<T> f) {
+    boolean prev = this.allowStatefulMethodCalls;
+    allowStatefulMethodCalls = true;
+
+    T result = null;
+    try {
+      result = f.get();
+    } finally {
+      allowStatefulMethodCalls = prev;
     }
 
     return result;

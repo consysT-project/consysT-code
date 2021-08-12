@@ -8,6 +8,7 @@ import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.FieldModel;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -32,30 +33,55 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	protected Expr parseExpression(Expression expression, int depth) {
 		// "\old(...)"
 		if (expression instanceof JmlOldExpression) {
-			return visitOldExpression((JmlOldExpression) expression, depth);
+			return parseOldExpression((JmlOldExpression) expression, depth);
 		}
 
 		// \result is the result reference
     	if (expression instanceof JmlResultReference) {
-    		return parseJmlResultReference((JmlResultReference) expression);
+    		return parseJmlResultReference((JmlResultReference) expression, depth);
 		}
 
 		return super.parseExpression(expression, depth);
 	}
 
 
-	protected Expr visitOldExpression(JmlOldExpression jmlOldExpression, int depth) {
+	protected Expr parseOldExpression(JmlOldExpression jmlOldExpression, int depth) {
 		// Change the resolution of `this` to the const for old.
-		return withThisReference(oldConst, () -> {
-			return parseExpression(jmlOldExpression.expression, depth + 1);
-		});
+		return withThisReference(oldConst, () -> parseExpression(jmlOldExpression.expression, depth + 1));
 	}
 
-	protected Expr parseJmlResultReference(JmlResultReference jmlResultReference) {
+	protected Expr parseJmlResultReference(JmlResultReference jmlResultReference, int depth) {
 		if (resultConst == null || methodModel.returnsVoid())
 			throw new IllegalArgumentException("\\result can not be used when method does return void.");
 
 		return resultConst;
+	}
+
+	@Override
+	protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
+		var methodBinding = jmlMessageSend.binding;
+
+		if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "stateful", "java.lang.Object")) {
+
+			if (jmlMessageSend.arguments[0] instanceof JmlMessageSend) {
+				var statefulMethod = (JmlMessageSend) jmlMessageSend.arguments[0];
+				var receiverExpr = parseExpression(statefulMethod.receiver);
+
+				return withThisReference(oldConst, () -> withStatefulMethods(() -> {
+					var statefulMethodExpr = parseExpression(statefulMethod, 0);
+					var result = model.ctx.mkEq(
+							receiverExpr,
+							statefulMethodExpr
+					);
+
+					return result;
+				}));
+			} else {
+				throw new UnsupportedJMLExpression(jmlMessageSend, "expected method call in stateful");
+			}
+		}
+
+		return super.parseJmlMessageSend(jmlMessageSend, depth);
 	}
 
 

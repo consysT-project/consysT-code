@@ -47,7 +47,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 			return parseJmlFieldReference((JmlFieldReference) expression, depth);
 		}
 
-		return super.parseExpression(expression, depth + 1);
+		return super.parseExpression(expression, depth);
 	}
 
 	@Override

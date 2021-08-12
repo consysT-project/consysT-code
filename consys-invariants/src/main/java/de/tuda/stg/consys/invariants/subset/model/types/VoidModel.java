@@ -11,7 +11,7 @@ public class VoidModel extends BaseTypeModel<Sort> {
 	
 	VoidModel(ProgramModel smt) {
 		super(smt);
-		sort = model.ctx.mkUninterpretedSort("T_VOID");
+		sort = model.ctx.mkUninterpretedSort("T_void");
 
 		var v = model.ctx.mkFreshConst("v", sort);
 

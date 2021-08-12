@@ -83,6 +83,14 @@ public class TypeModelFactory {
 
 			if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.String")) {
 				return stringModel.get();
+			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Set")) {
+				if (refBinding instanceof ParameterizedTypeBinding) {
+					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
+					return new SetModel(model, typeFor(parBinding.arguments[0]));
+				} else {
+					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					return new SetModel(model, objectModel);
+				}
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Map")) {
 				// Map<String, BigInteger>
 				if (refBinding instanceof ParameterizedTypeBinding) {
@@ -94,9 +102,19 @@ public class TypeModelFactory {
 					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
 					return new MapModel(model, objectModel, objectModel);
 				}
+			}
+			/* other integer types */
+			else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.Integer")) {
+				return intModel.get();
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.math.BigInteger")) {
 				return intModel.get();
-			} else if (typeBinding instanceof MissingTypeBinding) {
+			}
+			/* other void types */
+			else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.Void")) {
+				return voidModel.get();
+			}
+			/* rest */
+			else if (typeBinding instanceof MissingTypeBinding) {
 				Logger.err("missing type binding: " + typeBinding);
 				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 			}

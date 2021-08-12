@@ -7,14 +7,11 @@ import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 
 public class MapModel<KSort extends Sort, VSort extends Sort, KType extends TypeModel<KSort>, VType extends TypeModel<VSort>> extends BaseTypeModel<ArraySort<KSort, VSort>> {
 
-	private final VType valueType;
-
 	private final Lazy<ArraySort<KSort, VSort>> sort;
 
-	protected MapModel(ProgramModel smt, KType keyType, VType valueType) {
-		super(smt);
-		this.valueType = valueType;
-		this.sort = Lazy.make(() -> smt.ctx.mkArraySort(keyType.toSort(), valueType.toSort()));
+	protected MapModel(ProgramModel model, KType keyType, VType valueType) {
+		super(model);
+		this.sort = Lazy.make(() -> model.ctx.mkArraySort(keyType.toSort(), valueType.toSort()));
 	}
 
 	@Override

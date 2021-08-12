@@ -46,7 +46,7 @@ public class JDTUtils {
 				parent = ((ReferenceBinding) binding).superclass();
 			} catch (NullPointerException e) {
 				//TODO: There is a null pointerexception sometimes in this code?
-				Logger.err("there was a null pointer exception while getting the superclass for: " + binding.readableName());
+				Logger.err("there was a null pointer exception while getting the superclass for: " + binding.debugName());
 				e.printStackTrace();
 				return false;
 			}

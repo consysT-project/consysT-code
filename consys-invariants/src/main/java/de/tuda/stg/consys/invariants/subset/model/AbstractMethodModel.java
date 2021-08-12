@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
@@ -37,18 +38,18 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		}
 	}
 
-	public Optional<Expression> getJPrecondition() {
+	public Optional<Expression> getJmlPrecondition() {
 		if (method.getSpecification() == null) return Optional.empty();
 		return Optional.of(method.getSpecification().getPrecondition());
 	}
 
-	public Optional<Expression> getJPostcondition() {
+	public Optional<Expression> getJmlPostcondition() {
 		if (method.getSpecification() == null) return Optional.empty();
 		return Optional.of(method.getSpecification().getPostcondition());
 	}
 
 	public String getName() {
-		return String.valueOf(method.selector);
+		return String.valueOf(JDTUtils.nameOfClass(method.binding.declaringClass)) + "." + String.valueOf(method.binding.selector);
 	}
 
 	public MethodBinding getBinding() {

@@ -7,47 +7,45 @@ import java.util.Set;
 @ReplicatedModel public class GSetCRDT{
     public static final int numOfReplicas = 3;
 
-    public Set<Integer> set;
+    public Set<Integer> underlying;
     public int replicaId;
 
+    //@ public invariant replicaId >= 0 && replicaId < numOfReplicas;
 
     /* Constructors */
-    // Constructors define the initial state of an object.
     //@ requires id >= 0 && id < numOfReplicas;
-    //@ ensures set.size() == 0;
+    //@ ensures underlying.isEmpty();
     //@ ensures replicaId == id;
     public GSetCRDT(int id) {
         if (!(id >= 0 && id < numOfReplicas))
             throw new IllegalArgumentException("id not in range.");
-        this.set = new HashSet<Integer>();
+        this.underlying = new HashSet<Integer>();
         this.replicaId = id;
     }
 
-
     /*@
-    @ assignable set;
-    @ ensures set.contains(val);
-    @ ensures \forall Integer num; set.contains(num) && num.equals(val) == false; \old(set.contains(num));
+    @ assignable underlying;
+    @ ensures underlying.contains(val);
+    @ ensures underlying.containsAll(\old(underlying));
     @*/
     void add(int val) {
-        set.add(val);
+        underlying.add(val);
     }
 
-
-
     /*@
-    @ assignable nothing;
-    @ ensures \result == set.contains(val);
+    @ assignable \nothing;
+    @ ensures \result == underlying.contains(val);
     @*/
     boolean lookup(int val){
-        return set.contains(val);
+        return underlying.contains(val);
     }
 
     /*@
-    @ ensures (\forall int val; \old(set.contains(val)) || other.set.contains(val); set.contains(val));
-    @ ensures (\forall int val; set.contains(val); \old(set.contains(val)) || other.set.contains(val));
+    @ ensures (\forall int i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
+    @ ensures (\forall int i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
+    @ ensures replicaId == \old(replicaId);
     @*/
     void merge(GSetCRDT other) {
-        set.addAll(other.set);
+        underlying.addAll(other.underlying);
     }
 }

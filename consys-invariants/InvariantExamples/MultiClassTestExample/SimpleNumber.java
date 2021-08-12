@@ -1,4 +1,5 @@
 import de.tuda.stg.consys.annotations.invariants.DataModel;
+import java.lang.Void;
 
 @DataModel
 public class SimpleNumber{
@@ -9,8 +10,11 @@ public class SimpleNumber{
         value = input;
     }
 
-    void setValue(int n) {
+    //@ assignable value;
+    //@ ensures value == n;
+    Void setValue(int n) {
         value = n;
+        return null;
     }
 
     //@ assignable \nothing;
@@ -19,17 +23,13 @@ public class SimpleNumber{
         return value;
     }
 
-    void modify(int change) {
-        value += change;
-    }
-
     //@ assignable \nothing;
     //@ ensures \result == (n == value);
     boolean hasValue(int n) {
         return n == value;
     }
 
-    @Override
+    //@ assignable \nothing;
     public boolean equals(Object o) {
         return o instanceof SimpleNumber && ((SimpleNumber) o).value == value;
     }

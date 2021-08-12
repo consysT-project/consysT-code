@@ -114,8 +114,8 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 				var s0 = classModel.toFreshConst("s0");
 				var s1 = classModel.toFreshConst("s1");
 
-				var appToState = methodModel.makeApplyWithStateResult2(s0, args).orElseThrow();
-				var appToValue = methodModel.makeApplyWithValueResult2(s0, args).orElseThrow();
+				var appToState = methodModel.makeApplyReturnState(s0, args).orElseThrow();
+				var appToValue = methodModel.makeApplyReturnValue(s0, args).orElseThrow();
 
 				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1);
 
@@ -149,10 +149,10 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		List<Expr> initialConditions = Lists.newLinkedList();
 		for (var constructor : classModel.getConstructors()) {
 			var preParser = new ConstructorPreconditionExpressionParser(model, classModel, constructor);
-			var preExpr = preParser.parseExpression(constructor.getJPrecondition().orElse(null));
+			var preExpr = preParser.parseExpression(constructor.getJmlPrecondition().orElse(null));
 
 			var postParser = new ConstructorPostconditionExpressionParser(model, classModel, constructor, thisConst);
-			var postExpr = postParser.parseExpression(constructor.getJPostcondition().orElse(null));
+			var postExpr = postParser.parseExpression(constructor.getJmlPostcondition().orElse(null));
 
 			initialConditions.add(model.ctx.mkITE(preExpr, postExpr, model.ctx.mkFalse()));
 		}
@@ -164,7 +164,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 	private PreconditionModel handlePrecondition(MethodModel methodModel) {
 		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 		var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
-		Expr expr = parser.parseExpression(methodModel.getJPrecondition().orElse(null));
+		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
 		return new PreconditionModel(thisConst, expr);
 	}
 
@@ -183,7 +183,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		// Parse the postcondition from JML @ensures specification
 		var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
 
-		var jmlConds = splitAndExpression(methodModel.getJPostcondition().orElse(null));
+		var jmlConds = splitAndExpression(methodModel.getJmlPostcondition().orElse(null));
 
 		Expr[] exprs = new Expr[jmlConds.length + 1];
 		for (int i = 0; i < jmlConds.length; i++) {

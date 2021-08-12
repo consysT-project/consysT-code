@@ -23,6 +23,10 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 
+    ProgramConfig config = new ProgramConfig(
+            false
+    );
+
     // Set the source file
     Path[] sources = new Path[] {
 //            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
@@ -41,15 +45,14 @@ public class Main {
 //            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
     };
 
-    runChecker(sources);
+    runChecker(config, sources);
   }
 
-  public static void runChecker(Path[] sources) {
+  public static void runChecker(ProgramConfig config, Path[] sources) {
     // Compile the file to ASTs
     var compileResult = CompilerBinding.compile(sources);
 
     // Create the program model
-    var config = new ProgramConfig(true);
     var model = new ProgramModel(compileResult, config);
     model.loadParsedClasses();
     // Check the classes

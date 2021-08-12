@@ -48,7 +48,7 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
 		var parser = new MergeMethodPreconditionExpressionParser(model, classModel, methodModel, thisConst, otherConst);
-		Expr expr = parser.parseExpression(methodModel.getJPrecondition().orElse(null));
+		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
 		return new MergePreconditionModel(thisConst, otherConst, expr);
 	}
 
@@ -58,7 +58,7 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
 
 		var parser = new MergeMethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, otherConst);
-		Expr expr = parser.parseExpression(methodModel.getJPostcondition().orElse(null));
+		Expr expr = parser.parseExpression(methodModel.getJmlPostcondition().orElse(null));
 		return new MergePostconditionModel(oldConst, otherConst, thisConst, expr);
 	}
 

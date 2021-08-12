@@ -219,23 +219,29 @@ public class ProgramModel {
 				BaseClassModel classModel = models.get(binding);
 				ClassProperties.CheckResult result;
 				if (classModel instanceof ReplicatedClassModel) {
-					Logger.info("@ReplicatedModel");
+					Logger.info(classModelTypeName(classModel));
 					var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
 					var properties = new ReplicatedClassProperties<>(this, constraints);
 					result = properties.check();
 				} else {
-					Logger.info("@DataModel");
+					Logger.info(classModelTypeName(classModel));
 					var constraints = new BaseClassConstraints<>(this, classModel);
 					var properties = new BaseClassProperties<>(this, constraints);
 					result = properties.check();
 				}
-				Logger.info("Result for class " + String.valueOf(binding.shortReadableName()));
+				Logger.info("Result for " + classModelTypeName(classModel) + " " + String.valueOf(binding.shortReadableName()));
 				Logger.withIdentation(() -> {
 					Logger.info(result.toString());
 				});
 			});
-
 		}
+	}
+
+	private static String classModelTypeName(BaseClassModel classModel) {
+		if (classModel instanceof ReplicatedClassModel)
+			return "@ReplicatedModel";
+		 else
+			return "@DataModel";
 	}
 
 	// Loads the parsed classes into this program model.

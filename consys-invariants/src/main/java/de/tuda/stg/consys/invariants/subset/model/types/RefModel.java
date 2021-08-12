@@ -13,7 +13,7 @@ public class RefModel extends BaseTypeModel<Sort> {
 	RefModel(ProgramModel model, ReferenceBinding refBinding) {
 		super(model);
 		this.refBinding = refBinding;
-		this.backUpSort = Lazy.make(() -> model.ctx.mkUninterpretedSort("T_UN_" + String.valueOf(refBinding.shortReadableName())));
+		this.backUpSort = Lazy.make(() -> model.ctx.mkUninterpretedSort("T_class_unresolved_" + String.valueOf(refBinding.shortReadableName())));
 	}
 
 	@Override
