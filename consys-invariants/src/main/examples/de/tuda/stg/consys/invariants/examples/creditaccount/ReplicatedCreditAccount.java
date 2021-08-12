@@ -4,17 +4,18 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
 
 
-@ReplicatedModel
-public class SequentialCreditAccount {
 
-    private final SequentialCounter credits;
+@ReplicatedModel
+public class ReplicatedCreditAccount {
+
+    private final ReplicatedCounter credits;
 
     /* Invariants */
     //@ public invariant getValue() >= 0;
 
     //@ ensures getValue() == 0;
-    public SequentialCreditAccount() {
-        credits = new SequentialCounter(0);
+    public ReplicatedCreditAccount() {
+        credits = new ReplicatedCounter();
     }
 
     /* Methods */
@@ -43,8 +44,8 @@ public class SequentialCreditAccount {
     }
 
     /* Merge method */
-    //@ ensures stateful( credits.setValue(getValue() + other.getValue()) );
-    public void merge(SequentialCreditAccount other) {
-        credits.setValue(getValue() + other.getValue());
+    //@ ensures stateful( credits.merge(other.credits) );
+    public void merge(ReplicatedCreditAccount other) {
+        credits.merge(other.credits);
     }
 }

@@ -14,8 +14,6 @@ public class MergeMethodModel extends MethodModel {
 			throw new IllegalArgumentException("merge methods needs exactly one argument, was: " + args.length);
 		} else if (!"merge".equals(String.valueOf(method.selector))) {
 			throw new IllegalArgumentException("merge methods has the wrong name, was: " + method.selector);
-		} else if (!method.binding.returnType.equals(TypeBinding.VOID)) {
-			throw new IllegalArgumentException("merge methods has wrong return type, was: " + method.binding.returnType);
 		}
 	}
 

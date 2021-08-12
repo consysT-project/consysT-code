@@ -39,16 +39,11 @@ public class ReplicatedClassModel extends BaseClassModel {
 
 				// Handle merge methods here.
 				if (methodIsMerge(method.binding)) {
-					if (jmlMethod.arguments.length == 1 && jmlMethod.arguments[0].binding.type.equals(jmlType.binding)
-							&& jmlMethod.binding.returnType.equals(TypeBinding.VOID)) {
-						if (mergeMethodTemp != null)
-							throw new IllegalArgumentException("double merge method: " + jmlMethod);
+					if (mergeMethodTemp != null)
+						throw new IllegalArgumentException("double merge method: " + jmlMethod);
 
-						mergeMethodTemp = new MergeMethodModel(this.model, this, jmlMethod);
-						continue;
-					} else {
-						Logger.info("method with name \"merge\" is not a valid merge method.");
-					}
+					mergeMethodTemp = new MergeMethodModel(this.model, this, jmlMethod);
+					continue;
 				}
 			} else {
 				//TODO: change to sensible defaults.
