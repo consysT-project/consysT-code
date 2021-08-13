@@ -1,6 +1,7 @@
 package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigInteger;
@@ -19,6 +20,9 @@ import com.readytalk.crdt.inject.ClientId;
 
 import java.lang.String;
 
+
+
+
 /**
  * Grow-only counter.  Does not support decrementing.
  *
@@ -26,10 +30,10 @@ import java.lang.String;
 @ReplicatedModel public class GCounter extends AbstractCRDT<BigInteger, GCounter> implements CRDTCounter<BigInteger, GCounter> {
 	// omitted in new versions: payload.containsKey(s) - payload.get(s) != null
 	// Added to the origin code:
-	static final int numOfReplicas = 3;
+	//static final int numOfReplicas = 3;
 	static final String[] keys = new String[] {"KeyA", "KeyB", "KeyC"};
 	// End added part
-	
+
 	/*@
 	@ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
 	@ public invariant (\forall String s; true ; this.payload.get(s).compareTo(BigInteger.ZERO) != -1);
@@ -103,7 +107,7 @@ import java.lang.String;
 	// Prevously: ensures \result.intValue() == (\sum int i; i >= 0 && i < this.payload.values().toArray().length; this.payload.values().toArray(new BigInteger[0])[i].intValue());
 	/*@
 	@ assignable \nothing;
-	@ ensures (\sum int i; i >= 0 && i < numOfReplicas; payload.get(keys[i]).intValue());
+	@ ensures \result.intValue() == (\sum int i; i >= 0 && i < numOfReplicas(); payload.get(keys[i]).intValue());
 	@*/
 	// Changed from the original: @Override
 	public BigInteger value() {
