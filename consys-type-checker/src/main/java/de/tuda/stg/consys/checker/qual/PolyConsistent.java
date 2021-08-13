@@ -10,7 +10,7 @@ import org.checkerframework.framework.qual.PolymorphicQualifier;
 import java.lang.annotation.*;
 
 @Documented
-@PolymorphicQualifier
+@PolymorphicQualifier(Inconsistent.class)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE})
 public @interface PolyConsistent {

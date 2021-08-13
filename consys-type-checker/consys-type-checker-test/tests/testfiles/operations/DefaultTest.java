@@ -1,78 +1,77 @@
 package testfiles.operations;
 
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.japi.Ref;
 
 import java.util.LinkedList;
 
-// TODO: If we limit default ops to extends expressions, we can skip checking the base class (all fields get same level) -> if a class has an op level specified, it must be annotated with Mixed
-// TODO: also consider that we cannot check the base class if the source is not available
-
-// TODO: add default annotations to runtime information
 public class DefaultTest {
-    static @Mixed(withDefault = StrongOp.class) class MixedStrong {
-        int i;
+}
+// ------------------------------------------------------------------------------------------------------
+// Case where base class is not compatible with derived instantiation
 
-        void setI(@Weak int j, @Strong int k) {
-            k = i;
-            // :: error: assignment.type.incompatible
-            i = j;
-        }
+class Base {
+    private int i;
+
+    // TODO: better error message, i.e. info about which derived class leads to error
+    void setI(@Weak int j) {
+        // :: error: assignment.type.incompatible
+        i = j;
     }
 
-    static @Mixed(withDefault = WeakOp.class) class MixedWeak {
-        int i;
+    int getI() { return i; }
+}
 
-        void setI(@Weak int j, @Strong int k) {
-            // :: error: assignment.type.incompatible
-            k = i;
-            i = j;
-        }
+@Mixed(withDefault = StrongOp.class) class Derived extends Base {
+    // since the base class methods are now @StrongOp, there is an error at setI()
+}
+
+// ------------------------------------------------------------------------------------------------------
+// Cases for each default option
+
+@Mixed(withDefault = StrongOp.class) class MixedStrong {
+    private int i; // inferred strong
+
+    void setI(@Weak int j, @Strong int k) {
+        k = i;
+        // :: error: assignment.type.incompatible
+        i = j;
     }
+}
 
-    static @Mixed class MixedNoDefault {
-        int i;
+@Mixed(withDefault = WeakOp.class) class MixedWeak {
+    private int i; // inferred weak
 
-        void setI(@Weak int j, @Strong int k) {
-            // :: error: assignment.type.incompatible
-            k = i;
-            i = j;
-        }
+    void setI(@Weak int j, @Strong int k) {
+        // :: error: assignment.type.incompatible
+        k = i;
+        i = j;
     }
+}
 
-    // ------------------------------------------------------------------------------------------------------
+@Mixed class MixedNoDefault {
+    private int i; // inferred weak
 
-    static class Base {
-        int i;
-
-        // TODO: better error message, i.e. info about which derived class leads to error
-        void setI(@Weak int j) {
-            // :: error: assignment.type.incompatible
-            i = j;
-        }
-
-        int getI() { return i; }
+    void setI(@Weak int j, @Strong int k) {
+        // :: error: assignment.type.incompatible
+        k = i;
+        i = j;
     }
+}
 
-    static @Mixed(withDefault = StrongOp.class) class Derived extends Base {
-        // since the base class methods are now @StrongOp, there is an error at setI()
-    }
+// ---------------------------------------------------------------------------------------
+// Case where inferred base class field is used in derived
 
-    // ------------------------------------------------------------------------------------------------------
+@Mixed class Der extends LinkedList<String> {
+    private @Strong int i;
 
-    static @Mixed class Der extends LinkedList<String> {
-        @Strong int i;
-
-        @StrongOp
-        void test() {
-            i = 0;
-            // :: error: assignment.type.incompatible
-            i = modCount;
-        }
+    @StrongOp
+    void test() {
+        i = 0;
+        // :: error: assignment.type.incompatible
+        i = modCount; // modCount inferred weak
     }
 }

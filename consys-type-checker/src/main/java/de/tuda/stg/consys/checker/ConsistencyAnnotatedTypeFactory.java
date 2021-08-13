@@ -95,7 +95,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			case IDENTIFIER:
 			case VARIABLE:
 			case MEMBER_SELECT:
-				if (TreeUtils.elementFromTree(tree).getKind() != ElementKind.FIELD)
+				if (TreeUtils.elementFromTree(tree).getKind() != ElementKind.FIELD
+						|| tree.toString().endsWith(".class"))
 					return;
 
 				AnnotationMirror mixed = null;
@@ -184,6 +185,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	public void popMixedClassContext() {
 		this.mixedClassContext.pop();
+	}
+
+	public boolean isInMixedClassContext() {
+		return !mixedClassContext.empty();
 	}
 
 	public void processClassWithoutCache(ClassTree node, String opLevel) {

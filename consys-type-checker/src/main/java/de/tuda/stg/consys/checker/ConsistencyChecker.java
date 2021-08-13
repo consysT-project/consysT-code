@@ -25,7 +25,9 @@ public class ConsistencyChecker extends BaseTypeChecker {
 
     @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
-        super.reportError(source, messageKey, args);
+        // TODO: remove this hack
+        if (!messageKey.equals("type.argument.type.incompatible"))
+            super.reportError(source, messageKey, args);
     }
 
     @Override

@@ -10,6 +10,7 @@ import de.tuda.stg.consys.core.store.cassandra.levels.Weak$;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 
@@ -18,12 +19,17 @@ public class ReadOnlyTest {
         int i = 0;
         Box box;
 
+        @ReadOnly @SideEffectFree Box() {}
+
         void set(int i) { this.i = i; }
 
-        @ReadOnly
+        Box getBox() { return box; }
+
+        @ReadOnly @SideEffectFree
         int get() { return i; }
 
         @ReadOnly
+        @SideEffectFree
         int getNonMutating() {
             int a = 0;
             a = 1;
@@ -33,6 +39,7 @@ public class ReadOnlyTest {
         }
 
         @ReadOnly
+        @SideEffectFree
         @Transactional
         int getMutating(CassandraTransactionContextBinding ctx, Box p) {
             // :: error: readonly.declaration
@@ -97,6 +104,12 @@ public class ReadOnlyTest {
         @WeakOp @ReadOnly
         void g() {
             w.get();
+        }
+
+        @WeakOp
+        void test() {
+            Box f = w.getBox();
+            f.i = 0;
         }
 
         @StrongOp @ReadOnly

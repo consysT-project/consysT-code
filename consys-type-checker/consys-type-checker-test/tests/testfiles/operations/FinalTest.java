@@ -12,30 +12,26 @@ import java.io.Serializable;
 /**
  * Checks that fields that are never written are @Local
  */
-public class FinalTest {
-    static @Mixed
-    class A implements Serializable {
-        final int a;
-        final int b = 0;
-        int c;
+public @Mixed class FinalTest {
+    final int a;
+    final int b = 0;
+    int c;
 
-        // TODO: How to handle constructors?
-        A() {
-            a = 0;
-        }
+    FinalTest() {
+        a = 0;
+    }
 
-        @WeakOp
-        int weak() { return c; }
+    @WeakOp
+    int weak() { return c; }
 
-        @StrongOp
-        int strong() { return c; }
+    @StrongOp
+    int strong() { return c; }
 
-        @StrongOp
-        void bla(@Local int l) {
-            // checks that a, b, c are all @Local
-            l = a;
-            l = b;
-            l = c;
-        }
+    @StrongOp
+    void bla(@Local int l) {
+        // checks that a, b, c are all @Local
+        l = a;
+        l = b;
+        l = c;
     }
 }

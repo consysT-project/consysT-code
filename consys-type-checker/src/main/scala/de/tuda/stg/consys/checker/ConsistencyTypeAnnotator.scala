@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.checker
 
-import de.tuda.stg.consys.checker.TypeFactoryUtils.getExplicitAnnotation
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, immutableAnnotation, mutableAnnotation}
 import de.tuda.stg.consys.checker.qual.Mixed
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.javacutil.AnnotationUtils
@@ -15,7 +16,7 @@ import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyTypeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends TypeAnnotator(tf) {
+class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) extends TypeAnnotator(tf) {
 	var currentMethod: AnnotatedExecutableType = null
 
 	override def visitExecutable(method: AnnotatedExecutableType, aVoid: Void): Void = {

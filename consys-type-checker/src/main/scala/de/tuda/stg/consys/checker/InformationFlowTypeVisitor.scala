@@ -216,7 +216,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 			})
 
 			if (methodLevel.isEmpty) {
-				getQualifierForOp(getMixedDefaultOp(typ.getAnnotation(classOf[Mixed]))) match {
+				getQualifierNameForOp(getMixedDefaultOp(typ.getAnnotation(classOf[Mixed]))) match {
 					case Some(qualifier) =>
 						methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
 					case None => // TODO: handle case where given default operation level is not valid

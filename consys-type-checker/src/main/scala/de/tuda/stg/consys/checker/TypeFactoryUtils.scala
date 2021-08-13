@@ -26,9 +26,16 @@ object TypeFactoryUtils {
 	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
+	def immutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Immutable")
+
+	def mutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Mutable")
+
 	val checkerPackageName = s"de.tuda.stg.consys.checker"
 	val japiPackageName = s"de.tuda.stg.consys.japi"
 	val annoPackageName = s"de.tuda.stg.consys.annotations"
+	val qualPackageName = s"de.tuda.stg.consys.checker.qual"
 
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
@@ -68,10 +75,19 @@ object TypeFactoryUtils {
 		if (methodLevel.isEmpty) default else methodLevel.get
 	}
 
-	def getQualifierForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[String] = {
+	def getQualifierNameForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[String] = {
 		if (qualifierForOpMap.isEmpty)
 			qualifierForOpMap = Some(buildQualifierMap)
 		qualifierForOpMap.get.get(qualifiedName)
+	}
+
+	def getQualifierForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[AnnotationMirror] = {
+		if (qualifierForOpMap.isEmpty)
+			qualifierForOpMap = Some(buildQualifierMap)
+		qualifierForOpMap.get.get(qualifiedName) match {
+			case Some(value) => Some(AnnotationBuilder.fromName(tf.getElementUtils, value))
+			case None => None
+		}
 	}
 
 	def getQualifierForOpMap(implicit tf: AnnotatedTypeFactory): Map[String, String] = {

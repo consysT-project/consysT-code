@@ -4,20 +4,23 @@ import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundA
 import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.annotations.ReadOnly
 import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap, getQualifierNameForOp}
 import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
-import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement, VariableElement}
+import javax.lang.model.element
+import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
 
 object InferenceVisitor {
     sealed trait AssignmentSide
+
     case object LHS extends AssignmentSide
+
     case object RHS extends AssignmentSide
 
     type DefaultOpLevel = String
@@ -37,6 +40,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     private var currentClass: Option[TypeElement] = None
 
     def visitClass(node: ClassTree): Unit = visitClass(node, (None, None, None, None))
+
     def visitClass(decl: TypeElement): Unit = visitClass(decl, (None, None, None, None))
 
     override def visitClass(node: ClassTree, state: State): Void = {
@@ -64,6 +68,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
         checkSuperclass(getSuperclassElement(node), newState)
+        processPublicFields(newState)
 
         val r = super.visitClass(node, newState)
         currentClass = None
@@ -116,7 +121,19 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         }
     }
 
+    private def processPublicFields(state: State): Unit = {
+        val (Some(clazz), Some(defaultOp), _, _) = state
+        // set public and package fields to the default level
+        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+            filter(field => !(field.getModifiers.contains(Modifier.PRIVATE) ||
+                field.getModifiers.contains(Modifier.PROTECTED))).
+            foreach(field => updateField(field, (Some(clazz), Some(defaultOp), getQualifierForOp(defaultOp), Some(LHS)), field))
+    }
+
     override def visitMethod(node: MethodTree, state: State): Void = {
+        if (TreeUtils.isConstructor(node))
+            return null
+
         val (classContext, Some(defaultOpLevel), _, _) = state
         var methodLevel: Option[AnnotationMirror] = None
 
@@ -133,7 +150,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         })
 
         if (methodLevel.isEmpty) {
-            getQualifierForOp(defaultOpLevel) match {
+            getQualifierNameForOp(defaultOpLevel) match {
                 case Some(qualifier) =>
                     methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
                 case None => // TODO: handle case where given default operation level is not valid
@@ -157,7 +174,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         r
     }
 
-    override def visitMethodInvocation(node: MethodInvocationTree, state:State): Void = {
+    override def visitMethodInvocation(node: MethodInvocationTree, state: State): Void = {
         val (clazz, defaultOpLevel, methodLevel, _) = state
         val method = TreeUtils.elementFromUse(node)
         if (method.getAnnotation(classOf[ReadOnly]) != null)
@@ -237,7 +254,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         })
 
         val (_, defaultOpLevel, _, _) = state
-        getQualifierForOp(defaultOpLevel.get) match {
+        getQualifierNameForOp(defaultOpLevel.get) match {
             case Some(qualifier) =>
                 val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
                 fields.foreach(f => {
@@ -256,6 +273,11 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
                 case None => getSuperclassElement(clazz) match {
                     case Some(superclass) =>
                         val (result, depth) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
+                        /* TODO: if result is Local, then level should be determined by derived class:
+                                 store the base class variable's level as undefined, if the base class does not write it
+                                 and differentiate use in base class (-> Local) and use in derived classes
+                                 (-> next defined use in class hierarchy). Shadowed fields may pose a problem
+                         */
                         (result, depth + 1)
                     case None =>
                         (None, 0)

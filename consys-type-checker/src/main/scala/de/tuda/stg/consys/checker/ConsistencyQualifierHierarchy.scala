@@ -43,7 +43,7 @@ class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <:
 
     private def getDefaultOpElement(anno: AnnotationMirror): AnnotationMirror = {
         val operationLevel = getMixedDefaultOp(anno)
-        getQualifierForOp(operationLevel) match {
+        getQualifierNameForOp(operationLevel) match {
             case Some(qualifier) =>
                 AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
 

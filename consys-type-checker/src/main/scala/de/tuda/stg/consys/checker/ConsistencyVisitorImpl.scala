@@ -9,7 +9,7 @@ import de.tuda.stg.consys.checker.qual.Mixed
 import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils}
 
 import javax.lang.model.`type`.{DeclaredType, NoType}
@@ -96,6 +96,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private def checkAssignment(lhsType : AnnotatedTypeMirror, rhsType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree))) //|| !implicitContext.allowsUpdatesFrom(rhsType, tree)))
 			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
+
+		if (lhsType.hasAnnotation(classOf[qual.Immutable]))
+			checker.reportError(tree, "immutability.assignment.type")
 	}
 
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
@@ -117,9 +120,10 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			case memberSelectTree : MemberSelectTree =>
 				val expr : ExpressionTree = memberSelectTree.getExpression
 				val recvType = atypeFactory.getAnnotatedType(expr)
+				val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
 
 				if (expr != null && !methodInvocationIsRefOrGetField(node) && !recvType.hasAnnotation(classOf[Mixed]))
-					checkMethodInvocationReceiver(recvType, node)
+					checkMethodInvocationReceiver(recvType, methodType, node)
 
 				if (recvType.hasAnnotation(classOf[Mixed]) && methodInvocationIsRefFieldAccess(node)) {
 					//checker.reportError(node, "mixed.field.access")
@@ -315,9 +319,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
 	}
 
-	private def checkMethodInvocationReceiver(receiverType : AnnotatedTypeMirror, tree : Tree) : Unit = {
+	private def checkMethodInvocationReceiver(receiverType : AnnotatedTypeMirror, methodType: AnnotatedExecutableType, tree : Tree) : Unit = {
 		if (transactionContext && !implicitContext.allowsAsReceiver(receiverType, tree))
 			checker.reportError(tree, "invocation.receiver.implicitflow", receiverType, implicitContext.get, tree)
+
+		if (receiverType.hasAnnotation(classOf[qual.Immutable]) &&
+			ElementUtils.hasAnnotation(methodType.getElement, classOf[ReadOnly].getName))
+			checker.reportError(tree, "immutability.invocation.receiver")
 	}
 
 	private def checkMethodInvocationArgument(argType : AnnotatedTypeMirror, tree : Tree) : Unit = {
@@ -335,6 +343,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = { //can only include consistency annotations
+		return typ.getAnnotationInHierarchy(getTopAnnotation)
+
 		val annotations : util.Set[AnnotationMirror] = typ.getAnnotations
 		if (annotations.size == 1) return annotations.iterator.next
 		else if (annotations.isEmpty) return null
@@ -344,4 +354,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation(atypeFactory)
 
 	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation(atypeFactory)
+
+	// TODO: this is a hack to circumvent a possible bug in the checkerframework, where type arguments with multiple
+	//		 annotations get erased and can't be inferred. If we remove this, ref() calls crash the checker
+	override def skipReceiverSubtypeCheck(node: MethodInvocationTree, methodDefinitionReceiver: AnnotatedTypeMirror, methodCallReceiver: AnnotatedTypeMirror): Boolean =
+		true
 }
