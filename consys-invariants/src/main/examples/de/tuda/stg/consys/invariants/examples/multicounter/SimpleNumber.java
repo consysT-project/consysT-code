@@ -14,20 +14,20 @@ public class SimpleNumber{
 
     //@ assignable value;
     //@ ensures value == n;
-    Void setValue(int n) {
+    public Void setValue(int n) {
         value = n;
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == value;
-    int getValue() {
+    public int getValue() {
         return value;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == (n == value);
-    boolean hasValue(int n) {
+    public boolean hasValue(int n) {
         return n == value;
     }
 

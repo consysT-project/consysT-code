@@ -6,7 +6,9 @@ import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
+import org.jmlspecs.jml4.ast.JmlQualifiedNameReference;
 import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 import java.util.Optional;
@@ -27,8 +29,8 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	 * @param thisConst Substitute all `this` references with the given const. The const needs to have
 	 *                  the same sort as the class that is parsed.
 	 */
-	public ClassExpressionParser(ProgramModel smt, BaseClassModel classModel, Expr thisConst) {
-		super(smt);
+	public ClassExpressionParser(ProgramModel model, BaseClassModel classModel, Expr thisConst) {
+		super(model);
 
 		if (thisConst != null && !thisConst.getSort().equals(classModel.getClassSort()))
 			throw new IllegalArgumentException("the sort for `this` has to match the sort of the class");
@@ -37,21 +39,9 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		this.thisConst = thisConst;
 	}
 
-	@Override
-	protected Expr parseExpression(Expression expression, int depth) {
-		if (expression instanceof ThisReference) {
-			return parseThisReference((ThisReference) expression);
-		}
-
-		if (expression instanceof JmlFieldReference) {
-			return parseJmlFieldReference((JmlFieldReference) expression, depth);
-		}
-
-		return super.parseExpression(expression, depth);
-	}
 
 	@Override
-	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
 		Optional<Expr> constantExpr = classModel.getConstant(jmlSingleNameReference)
 				.map(cons -> cons.getValue());
 
@@ -66,67 +56,59 @@ public class ClassExpressionParser extends BaseExpressionParser {
 			return fieldExpr.get();
 		}
 
-		return super.parseJmlSingleReference(jmlSingleNameReference);
+		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
 	}
 
-	protected Expr parseThisReference(ThisReference thisReference) {
+	@Override
+	protected Expr parseThisReference(ThisReference thisReference, int depth) {
 		return thisConst;
 	}
 
-	protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
-		Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
-		String fieldName = String.valueOf(fieldReference.token);
+//	@Override
+//	protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
+//		Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
+//
+//		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {
+//			return classModel.getField(fieldReference)
+//					.map(field -> field.getAccessor().apply(receiver))
+//					.orElseThrow(() -> new UnsupportedJMLExpression(fieldReference));
+//		}
+//
+//		return super.parseJmlFieldReference(fieldReference, depth);
+//	}
 
-		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {
-			return classModel.getField(fieldReference)
-					.map(field -> field.getAccessor().apply(receiver))
-					.orElseThrow(() -> new UnsupportedJMLExpression(fieldReference));
+	@Override
+	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
+
+		//a.b
+		// TODO: Implement
+		// check whether a is a field in classModel, i.e., a.b == this.a.b
+		if (jmlQualifiedNameReference.actualReceiverType.equals(classModel.getBinding())) {
+			if (!(jmlQualifiedNameReference.binding instanceof FieldBinding))
+				throw new UnsupportedJMLExpression(jmlQualifiedNameReference, "expected name for field as receiver");
+
+			var receiverBinding = (FieldBinding) jmlQualifiedNameReference.binding;
+			var namedBinding = jmlQualifiedNameReference.otherBindings[0];
+
+			var receiverField = classModel.getField(receiverBinding)
+					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in `this` class"));
+
+			var namedField = model.getModelForClass(namedBinding.declaringClass)
+					.flatMap(namedClass -> namedClass.getField(namedBinding))
+					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in named class"));
+
+			var result = namedField.getAccessor().apply(receiverField.getAccessor().apply(getThisConst()));
+
+			return result;
 		}
 
-		throw new UnsupportedJMLExpression(fieldReference);
+
+
+
+		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
+
 	}
 
-	/**
-	 * Visits method call like {@code getValue()} or {@code other.getValue()}.
-	 *
-	 * @return the result expression of the called method if it has one, {@code null} otherwise
-	 */
-//	@Override
-//	public Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend) {
-//
-//
-//		return handleMethodCall(thisConst, classModel, jmlMessageSend.binding, jmlMessageSend.arguments)
-//				.orElseGet(() -> super.parseJmlMessageSend(jmlMessageSend));
-//
-////		var mbMethodModel = classModel.getMethod(jmlMessageSend.binding);
-////
-////		if (mbMethodModel.isEmpty()) {
-////			return super.parseJmlMessageSend(jmlMessageSend);
-////		}
-////
-////		var methodModel = mbMethodModel.get();
-////
-////		if (!methodModel.isZ3Usable()) {
-////			throw new UnsupportedJMLExpression(jmlMessageSend);
-////		}
-////
-////
-////		final Expr[] argExprs;
-////		if (jmlMessageSend.arguments == null) {
-////			argExprs = new Expr[0];
-////		} else {
-////			argExprs = Arrays.stream(jmlMessageSend.arguments)
-////					.map(this::parseExpression)
-////					.toArray(Expr[]::new);
-////		}
-////
-////		var z3Func = methodModel.getZ3FuncDecl()
-////				.orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
-////
-////
-////		Expr[] argExprsAndThis =  Z3Utils.arrayPrepend(Expr[]::new, argExprs, thisConst, thisConst);
-////		return model.ctx.mkApp(z3Func, argExprsAndThis);
-//	}
 
 
 	protected <T> T withThisReference(Expr otherConst, Supplier<T> f) {

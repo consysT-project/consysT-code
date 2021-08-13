@@ -20,26 +20,23 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 		this.otherConst = otherConst;
 	}
 
+	public MergeMethodModel getMergeMethod() {
+		return (MergeMethodModel) methodModel;
+	}
+
+//	@Override
+//	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
+//		Argument mergeArg = getMergeMethod().getArgument();
+//
+//		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
+//			return otherConst;
+//		}
+//
+//		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
+//	}
+
 	@Override
-	protected Expr parseExpression(Expression expression, int depth) {
-		if (expression instanceof JmlQualifiedNameReference) {
-			return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
-		}
-
-		return super.parseExpression(expression, depth);
-	}
-
-	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
-		Argument mergeArg = getMergeMethod().getArgument();
-
-		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
-			return otherConst;
-		}
-
-		return super.parseJmlSingleReference(jmlSingleNameReference);
-	}
-
-	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
+	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
 		Argument mergeArg = getMergeMethod().getArgument();
 
 		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {
@@ -50,12 +47,9 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
 		}
 
-		throw new UnsupportedJMLExpression(jmlQualifiedNameReference);
+		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
 	}
 
-	public MergeMethodModel getMergeMethod() {
-		return (MergeMethodModel) methodModel;
-	}
 
 
 }

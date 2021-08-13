@@ -8,7 +8,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 @ReplicatedModel
 public class ReplicatedCounter {
 
-	private int[] values;
+	public int[] values;
 
 	//@ ensures (\forall int i; true; values[i] == 0);
 	public ReplicatedCounter() {
@@ -24,18 +24,9 @@ public class ReplicatedCounter {
 	}
 
 	//@ requires val >= 0;
-	//@ assignable values;
+	//@ assignable values[replicaId()];
 	//@ ensures values[replicaId()] == \old(values[replicaId()]) + val;
 	public Void increment(int val) {
-		if (val < 0) throw new IllegalArgumentException();
-		values[replicaId()] += val;
-		return null;
-	}
-
-	//@ requires val >= 0;
-	//@ assignable values;
-	//@ ensures values[replicaId()] == \old(values[replicaId()]) + val;
-	public Void decrement(int val) {
 		if (val < 0) throw new IllegalArgumentException();
 		values[replicaId()] += val;
 		return null;

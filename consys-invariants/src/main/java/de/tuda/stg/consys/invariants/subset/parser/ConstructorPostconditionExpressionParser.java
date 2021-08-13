@@ -10,8 +10,8 @@ import de.tuda.stg.consys.invariants.subset.ProgramModel;
  */
 public class ConstructorPostconditionExpressionParser extends MethodExpressionParser {
 
-	public ConstructorPostconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, ConstructorModel constructorModel, Expr thisConst) {
-		super(smt, classModel, constructorModel, thisConst);
+	public ConstructorPostconditionExpressionParser(ProgramModel model, BaseClassModel classModel, ConstructorModel constructorModel, Expr thisConst) {
+		super(model, classModel, constructorModel, thisConst);
 	}
 
 }

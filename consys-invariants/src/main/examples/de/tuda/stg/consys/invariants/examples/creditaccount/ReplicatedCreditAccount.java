@@ -3,6 +3,8 @@ package de.tuda.stg.consys.invariants.examples.creditaccount;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
 
+import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
+
 
 
 @ReplicatedModel
@@ -34,16 +36,16 @@ public class ReplicatedCreditAccount {
     }
 
 
-    //@ requires val >= 0;
-    //@ requires val <= getValue();
+    //@ requires 0 <= val && val <= getValue();
     //@ assignable credits;
-    //@ ensures stateful( credits.decrement(val) );
+    //@ ensures stateful( credits.increment(val) );
     public void withdraw(int val) {
         if (val > getValue()) throw new IllegalArgumentException();
-        credits.decrement(val);
+        credits.increment(val);
     }
 
     /* Merge method */
+    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.values[i], other.credits.values[i])) >= 0;
     //@ ensures stateful( credits.merge(other.credits) );
     public void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);

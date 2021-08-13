@@ -30,29 +30,15 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 	}
 
 	@Override
-	protected Expr parseExpression(Expression expression, int depth) {
-		// "\old(...)"
-		if (expression instanceof JmlOldExpression) {
-			return parseOldExpression((JmlOldExpression) expression, depth);
-		}
-
-		// \result is the result reference
-    	if (expression instanceof JmlResultReference) {
-    		return parseJmlResultReference((JmlResultReference) expression, depth);
-		}
-
-		return super.parseExpression(expression, depth);
-	}
-
-
 	protected Expr parseOldExpression(JmlOldExpression jmlOldExpression, int depth) {
 		// Change the resolution of `this` to the const for old.
 		return withThisReference(oldConst, () -> parseExpression(jmlOldExpression.expression, depth + 1));
 	}
 
+	@Override
 	protected Expr parseJmlResultReference(JmlResultReference jmlResultReference, int depth) {
 		if (resultConst == null || methodModel.returnsVoid())
-			throw new IllegalArgumentException("\\result can not be used when method does return void.");
+			throw new UnsupportedJMLExpression(jmlResultReference, "\\result can not be used when method does return void.");
 
 		return resultConst;
 	}

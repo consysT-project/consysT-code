@@ -18,15 +18,13 @@ public class ConstructorPreconditionExpressionParser extends MethodExpressionPar
 	}
 
 	@Override
-	protected Expr parseThisReference(ThisReference thisReference) {
-		// `this` cannot be referenced in constructor precondition.
-		throw new UnsupportedJMLExpression(thisReference);
+	protected Expr parseThisReference(ThisReference thisReference, int depth) {
+		throw new UnsupportedJMLExpression(thisReference, "`this` cannot be referenced in constructor precondition");
 	}
 
 	@Override
 	protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
-		// fields cannot be referenced in constructor precondition.
-		throw new UnsupportedJMLExpression(fieldReference);
+		throw new UnsupportedJMLExpression(fieldReference, "fields cannot be referenced in constructor precondition");
 	}
 
 

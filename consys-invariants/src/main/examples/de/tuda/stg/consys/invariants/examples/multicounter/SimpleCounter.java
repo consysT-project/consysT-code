@@ -11,7 +11,7 @@ public class SimpleCounter {
 
     /* Constructors */
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i].hasValue(0));
-    public SimpleCounter(int id) {
+    public SimpleCounter() {
         this.incs = new SimpleNumber[numOfReplicas()];
         for(int i = 0; i < numOfReplicas(); ++i)
             incs[i] = new SimpleNumber(0);
@@ -19,7 +19,7 @@ public class SimpleCounter {
 
     //@ assignable \nothing;
     //@ ensures \result ==  (\sum int i; i >= 0 && i < numOfReplicas(); incs[i].getValue());
-    int getValue() {
+    public int getValue() {
         int res = 0;
         for (int i = 0; i < numOfReplicas(); ++i) {
             res += incs[i].getValue();
@@ -29,7 +29,7 @@ public class SimpleCounter {
 
     //@ assignable incs[replicaId()];
     //@ ensures stateful( incs[replicaId()].setValue(incs[replicaId()].getValue() + 1) );
-    void inc() {
+    public void inc() {
         incs[replicaId()].setValue(incs[replicaId()].getValue() + 1);
     }
 
@@ -39,7 +39,7 @@ public class SimpleCounter {
                         stateful( incs[i].setValue(incs[i].getValue()) )
                         : stateful( incs[i].setValue(other.incs[i].getValue()) ));
     @*/
-    void merge(SimpleCounter other) {
+    public void merge(SimpleCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i].setValue(Math.max(incs[i].getValue(), other.incs[i].getValue()));
         }

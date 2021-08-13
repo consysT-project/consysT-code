@@ -5,8 +5,10 @@ import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;
+import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.*;
 
 import java.util.Arrays;
@@ -20,73 +22,17 @@ import java.util.function.Supplier;
 @SuppressWarnings("rawtypes")
 public class BaseExpressionParser extends ExpressionParser {
 
-  // The z3 context used for creating expressions
-  protected final ProgramModel model;
+
   // Local variables from jml quantifiers.
   private final Map<String, Expr> localVariables = Maps.newHashMap();
 
   private boolean allowStatefulMethodCalls = false;
 
   public BaseExpressionParser(ProgramModel model) {
-    this.model = model;
+    super(model);
   }
 
-  /**
-   * This method calls the correct visitXYZ(...) method for a given JML expression
-   *
-   * @param expression the expression to be visited
-   * @return the corresponding Z3 expression
-   */
   @Override
-  protected Expr parseExpression(Expression expression, int depth) {
-
-    if (expression == null) {
-      Logger.warn("expression was null and was converted to `true`");
-      return model.ctx.mkTrue();
-    }
-
-    // literal expression: 10, -5.6, true, ...
-    if (expression instanceof Literal) {
-      return parseLiteral((Literal) expression);
-    }
-
-    // one reference of a variable: "a"
-    if (expression instanceof JmlSingleNameReference) {
-      return parseJmlSingleReference((JmlSingleNameReference) expression);
-    }
-
-      // "array[index]"
-    if (expression instanceof JmlArrayReference) {
-      return parseJmlArrayReference((JmlArrayReference) expression, depth);
-    }
-
-    if (expression instanceof ArrayAllocationExpression) {
-      return parseArrayAllocationExpression((ArrayAllocationExpression) expression, depth);
-    }
-
-    // "({\forall | \exists | \sum} boundVarDeclarations; rangeExpression; body)"
-    if (expression instanceof JmlQuantifiedExpression) {
-      return visitJmlQuantifiedExpression((JmlQuantifiedExpression) expression, depth);
-    }
-
-    // expressions with operators: a + b, a ? b : c, !a ...
-    if (expression instanceof OperatorExpression) {
-      return parseOperatorExpression((OperatorExpression) expression, depth);
-    }
-
-    // expressions like BigInteger.ZERO
-    if (expression instanceof JmlQualifiedNameReference) {
-      return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
-    }
-
-    // method calls
-    if (expression instanceof JmlMessageSend) {
-      return parseJmlMessageSend((JmlMessageSend) expression, depth);
-    }
-
-    return super.parseExpression(expression, depth);
-  }
-
   protected Expr parseArrayAllocationExpression(ArrayAllocationExpression arrayAllocationExpression, int depth) {
     var type = model.types.typeFor(arrayAllocationExpression.resolvedType);
     var sort = type.getSort().orElseThrow(() -> new UnsupportedJMLExpression(arrayAllocationExpression, "unsupported array type " + type));
@@ -105,15 +51,14 @@ public class BaseExpressionParser extends ExpressionParser {
           )
         );
       }
-    } else {
-      throw new UnsupportedJMLExpression(arrayAllocationExpression, "array expression without initializer not supported.");
+      return arrayConst;
     }
 
-    return arrayConst;
-
+    return super.parseArrayAllocationExpression(arrayAllocationExpression, depth);
   }
 
-  protected Expr parseLiteral(Literal literalExpression) {
+  @Override
+  protected Expr parseLiteral(Literal literalExpression, int depth) {
     // literals can be translated directly
     if (literalExpression instanceof IntLiteral)
       return model.ctx.mkInt(((IntLiteral) literalExpression).value);
@@ -132,32 +77,15 @@ public class BaseExpressionParser extends ExpressionParser {
     if (literalExpression instanceof StringLiteral)
       return model.ctx.mkString(String.valueOf(literalExpression.constant.stringValue()));
 
-    throw new UnsupportedJMLExpression(literalExpression);
+    return parseLiteral(literalExpression, depth);
   }
 
-  protected Expr parseOperatorExpression(OperatorExpression operatorExpression, int depth) {
-    // !a ...
-    if (operatorExpression instanceof UnaryExpression) {
-      return parseUnaryExpression((UnaryExpression) operatorExpression, depth);
-    }
-
-    // expressions like addition, modulo, and, or, ...
-    if (operatorExpression instanceof BinaryExpression) {
-      return parseBinaryExpression((BinaryExpression) operatorExpression, depth);
-    }
-
-    if (operatorExpression instanceof ConditionalExpression) {
-      return parseConditionalExpression((ConditionalExpression) operatorExpression, depth);
-    }
-
-    throw new UnsupportedJMLExpression(operatorExpression);
-  }
-
+  @Override
   protected Expr parseUnaryExpression(UnaryExpression unaryExpression, int depth) {
     Expr expr = parseExpression(unaryExpression.expression, depth + 1);
-    if(expr == null)
-      throw new UnsupportedJMLExpression(unaryExpression);
-    return expr;
+    if (expr != null) return expr;
+
+    return super.parseUnaryExpression(unaryExpression, depth);
   }
 
   /**
@@ -166,6 +94,7 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return e Z3 expression that uses the correct operator
    */
+  @Override
   protected Expr parseBinaryExpression(BinaryExpression binaryExpression, int depth) {
     // translate expressions from both operands
     Expr left = parseExpression(binaryExpression.left, depth + 1);
@@ -237,36 +166,61 @@ public class BaseExpressionParser extends ExpressionParser {
     if (left != null && right != null && (s.equals("<=!=>") || s.equals("!=")))
       return model.ctx.mkNot(model.ctx.mkEq(left, right));
 
-    throw new UnsupportedJMLExpression(binaryExpression);
+    return super.parseOperatorExpression(binaryExpression, depth);
   }
 
-  protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+  @Override
+  protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
     String variableName = String.valueOf(jmlSingleNameReference.token);
     Expr cons = localVariables.get(variableName);
 
-    if (cons == null) {
-      throw new UnsupportedJMLExpression(jmlSingleNameReference);
+    if (cons != null) {
+      return cons;
     }
 
-    return cons;
+    return super.parseJmlSingleReference(jmlSingleNameReference, depth);
   }
 
-  protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
+  @Override
+  protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
     String className = String.valueOf(jmlQualifiedNameReference.tokens[0]);
     String classField = String.valueOf(jmlQualifiedNameReference.tokens[1]);
     Expr cons = null;
+
     if(className.equals("BigInteger")) {
       if (classField.equals("ZERO"))
         cons = model.ctx.mkIntConst("0");
     }
-    if (cons == null) {
-      throw new UnsupportedJMLExpression(jmlQualifiedNameReference);
+    if (cons != null) {
+      return cons;
     }
 
-    return cons;
+    return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
+
   }
 
+  @Override
+  protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
+    if (!(fieldReference.receiverType instanceof ReferenceBinding))
+      return super.parseJmlFieldReference(fieldReference, depth);
 
+    var mbClassModel = model.getModelForClass((ReferenceBinding) fieldReference.receiverType);
+    if (mbClassModel.isEmpty())
+      return super.parseJmlFieldReference(fieldReference, depth);
+
+    var classModel = mbClassModel.get();
+
+    Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
+
+    var mbField = classModel.getField(fieldReference);
+    if (mbField.isEmpty())
+      return super.parseJmlFieldReference(fieldReference, depth);
+
+    var result = mbField.get().getAccessor().apply(receiver);
+    return result;
+  }
+
+  @Override
   protected Expr parseConditionalExpression(ConditionalExpression conditionalExpression, int depth) {
     Expr cond = parseExpression(conditionalExpression.condition, depth + 1);
     Expr thenBranch = parseExpression(conditionalExpression.valueIfTrue, depth + 1);
@@ -277,8 +231,7 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkITE(condBool, thenBranch, elseBranch);
     }
 
-    throw new UnsupportedJMLExpression(conditionalExpression);
-
+    return super.parseConditionalExpression(conditionalExpression, depth);
   }
 
   /**
@@ -286,6 +239,7 @@ public class BaseExpressionParser extends ExpressionParser {
    *
    * @return a Z3 select expressions or {@code null} if the translation did not succeed
    */
+  @Override
   protected Expr parseJmlArrayReference(JmlArrayReference jmlArrayReference, int depth) {
     Expr array = parseExpression(jmlArrayReference.receiver, depth + 1);
 
@@ -295,9 +249,10 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkSelect((ArrayExpr) array, index);
     }
 
-    throw new UnsupportedJMLExpression(jmlArrayReference);
+    return super.parseJmlArrayReference(jmlArrayReference, depth);
   }
 
+  @Override
   protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
     var methodBinding = jmlMessageSend.binding;
 
@@ -389,58 +344,52 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     /* Handle call to method from a class in the data model */
-    var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
-    var declaringClassModel = model.getModelForClass(methodBinding.declaringClass)
-            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model, or method is unsupported"));
+    var maybeMethodModel = model
+            .getModelForClass(methodBinding.declaringClass)
+            .flatMap(cls -> cls.getMethod(methodBinding));
 
-    var methodModel = declaringClassModel.getMethod(methodBinding)
-            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "method not available in " + declaringClassModel.getClassName()));
+//            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model, or method is unsupported"));
 
-    if (!methodModel.usableAsConstraint())
-      throw new UnsupportedJMLExpression(jmlMessageSend, "method is not usable in constraints");
+    if (maybeMethodModel.isPresent()) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var methodModel = maybeMethodModel.get();
 
-    if (!methodModel.isPure() && !allowStatefulMethodCalls) {
-      throw new UnsupportedJMLExpression(jmlMessageSend, "impure methods outside of stateful");
+      if (!methodModel.usableAsConstraint() || (!methodModel.isPure() && !allowStatefulMethodCalls))
+        return super.parseJmlMessageSend(jmlMessageSend, depth);
+
+      /* Create exprs for all arguments */
+      final Expr[] argExprs;
+      if (jmlMessageSend.arguments == null) {
+        argExprs = new Expr[0];
+      } else {
+        argExprs = Arrays.stream(jmlMessageSend.arguments)
+                .map(jmlExpr -> parseExpression(jmlExpr, depth + 1))
+                .toArray(Expr[]::new);
+      }
+
+      /* if the method is in a stateful expression, and it is the top method, then create a state method instead */
+      Expr methodInvocation;
+      if (allowStatefulMethodCalls && depth == 0) {
+        methodInvocation = methodModel.makeApplyReturnState(receiverExpr, argExprs)
+                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+      } else {
+        methodInvocation = methodModel.makeApplyReturnValue(receiverExpr, argExprs)
+                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+      }
+      return methodInvocation;
     }
-
-    /* Create exprs for all arguments */
-    final Expr[] argExprs;
-    if (jmlMessageSend.arguments == null) {
-      argExprs = new Expr[0];
-    } else {
-      argExprs = Arrays.stream(jmlMessageSend.arguments)
-              .map(jmlExpr -> parseExpression(jmlExpr, depth + 1))
-              .toArray(Expr[]::new);
-    }
-
-    /* if the method is in a stateful expression, and it is the top method, then create a state method instead */
-    Expr methodInvocation;
-    if (allowStatefulMethodCalls && depth == 0) {
-      methodInvocation = methodModel.makeApplyReturnState(receiverExpr, argExprs)
-              .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
-    } else {
-      methodInvocation = methodModel.makeApplyReturnValue(receiverExpr, argExprs)
-              .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
-    }
-
-    return methodInvocation;
+    return super.parseJmlMessageSend(jmlMessageSend, depth);
   }
 
   /**
    * Visits quantified expressions and translates universal/existential quantification directly to
    * Z3 quantifiers. Sum quantification is only supported if it is applied on an array reference
-   * without range constraints.
+   * with range constraints.
    *
    * @return
    */
-  protected Expr visitJmlQuantifiedExpression(
-      JmlQuantifiedExpression jmlQuantifiedExpression, int depth) {
-
-
-    // boundVariables declaration: introduce new local scope
-//    Map<String, Expr> newLocalVars = new HashMap<>(scope.getLocalVariables());
-//    Expr[] boundConstants = new Expr[jmlQuantifiedExpression.boundVariables.length];
-
+  @Override
+  protected Expr parseJmlQuantifiedExpression(JmlQuantifiedExpression jmlQuantifiedExpression, int depth) {
     int index = 0;
     String[] names = new String[jmlQuantifiedExpression.boundVariables.length];
     Expr[] consts = new Expr[jmlQuantifiedExpression.boundVariables.length];
@@ -451,6 +400,7 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     Expr quantExpr = withLocalVariables(names, consts, () -> {
+
       // get range and body expression
       Expr rangeExpr = parseExpression(jmlQuantifiedExpression.range, depth + 1);
       Expr bodyExpr = parseExpression(jmlQuantifiedExpression.body, depth + 1);
@@ -471,9 +421,7 @@ public class BaseExpressionParser extends ExpressionParser {
             finalBodyExpr = model.ctx.mkAnd((BoolExpr) rangeExpr, (BoolExpr) bodyExpr);
           }
 
-
           boolean isForall = quantifier.equals(JmlQuantifier.FORALL);
-
           // quantifier: forall or exists
           Expr quantifiedExpr =
                   model.ctx.mkQuantifier(
@@ -486,10 +434,8 @@ public class BaseExpressionParser extends ExpressionParser {
                           null, //smt.ctx.mkSymbol("Q_" + getFreshId()),
                           null //smt.ctx.mkSymbol("Sk_" + getFreshId())
                   );
-
           return quantifiedExpr;
         }
-
         return null;
       }
 
@@ -521,11 +467,11 @@ public class BaseExpressionParser extends ExpressionParser {
       return null;
     });
 
-    if (quantExpr == null) {
-      throw new UnsupportedJMLExpression(jmlQuantifiedExpression);
+    if (quantExpr != null) {
+      return quantExpr;
     }
 
-    return quantExpr;
+    return super.parseJmlQuantifiedExpression(jmlQuantifiedExpression, depth);
   }
 
   protected <T> T withLocalVariable(String varName, Expr varExpr, Supplier<T> f) {

@@ -2,10 +2,14 @@ package de.tuda.stg.consys.invariants.subset.model;
 
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
+import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
+
+import java.util.Optional;
 
 public class ReplicatedClassModel extends BaseClassModel {
 
@@ -58,6 +62,15 @@ public class ReplicatedClassModel extends BaseClassModel {
 		this.mergeMethod = mergeMethodTemp;
 	}
 
+	@Override
+	public Optional<MethodModel> getMethod(MethodBinding binding) {
+		//TODO: Is there any special case that we have to note here?
+		if (binding == mergeMethod.getBinding()) {
+			return Optional.of(mergeMethod);
+		}
+
+		return super.getMethod(binding);
+	}
 
 	public MergeMethodModel getMergeMethod() {
 		return mergeMethod;

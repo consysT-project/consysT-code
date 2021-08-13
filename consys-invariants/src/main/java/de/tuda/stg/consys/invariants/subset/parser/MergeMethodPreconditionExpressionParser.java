@@ -21,38 +21,30 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 	}
 
 	@Override
-	protected Expr parseExpression(Expression expression, int depth) {
-		if (expression instanceof JmlQualifiedNameReference) {
-			return parseJmlQualifiedNameReference((JmlQualifiedNameReference) expression);
-		}
-
-		return super.parseExpression(expression, depth);
-	}
-
-	@Override
-	public Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference) {
+	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
 		Argument mergeArg = getMergeMethod().getArgument();
 
 		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
 			return otherConst;
 		}
 
-		return super.parseJmlSingleReference(jmlSingleNameReference);
+		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
 	}
 
-	public Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference) {
-		Argument mergeArg = getMergeMethod().getArgument();
-
-		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {
-			FieldBinding fieldBinding = jmlQualifiedNameReference.otherBindings[0];
-
-			return getClassModel().getField(fieldBinding)
-					.map(field -> field.getAccessor().apply(otherConst))
-					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
-		}
-
-		throw new UnsupportedJMLExpression(jmlQualifiedNameReference);
-	}
+//	@Override
+//	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
+//		Argument mergeArg = getMergeMethod().getArgument();
+//
+//		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {
+//			FieldBinding fieldBinding = jmlQualifiedNameReference.otherBindings[0];
+//
+//			return getClassModel().getField(fieldBinding)
+//					.map(field -> field.getAccessor().apply(otherConst))
+//					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
+//		}
+//
+//		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
+//	}
 
 	public MergeMethodModel getMergeMethod() {
 		return (MergeMethodModel) methodModel;
