@@ -33,10 +33,17 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 	private final Multimap<E, UUID> elements = LinkedHashMultimap.create();
 	private final Multimap<E, UUID> tombstones = LinkedHashMultimap.create();
 
+
+
+	/*@
+	@ ensures elements.isEmpty();
+	@ ensures tombstones.isEmpty();
+	@*/
 	public ORSet(final ObjectMapper mapper) {
 		super(mapper);
 	}
 
+	// Another constructor
 	public ORSet(final ObjectMapper mapper, final byte[] value) {
 		super(mapper);
 
@@ -66,6 +73,14 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 
 	}
 
+
+	/*@
+	@ assignable elements;
+	@ ensures elements.containsKey(value);
+	@ ensures elements.get(value).size() == (\old(elements.get(value))).size() + 1;
+	@ ensures (\forall E elem; elem.equals(value) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures \result == !(\old(elements.containsKey(value)));
+	@*/
 	@Override
 	public boolean add(final E value) {
 		checkNotNull(value);

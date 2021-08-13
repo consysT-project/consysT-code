@@ -2,6 +2,8 @@ package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
+// this import is used by jml annotations so it's important to be.
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigInteger;
