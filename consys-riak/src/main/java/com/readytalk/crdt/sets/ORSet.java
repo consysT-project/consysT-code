@@ -1,5 +1,8 @@
 package com.readytalk.crdt.sets;
 
+
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.readytalk.crdt.util.CollectionUtils.checkCollectionDoesNotContainNull;
 
@@ -24,7 +27,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.readytalk.crdt.AbstractCRDT;
 
-public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
+@ReplicatedModel public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		CRDTSet<E, ImmutableSet<E>, ORSet<E>> {
 
 	private static final String ELEMENTS_TOKEN = "e";
@@ -81,7 +84,7 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 	@ ensures (\forall E elem; elem.equals(value) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures \result == !(\old(elements.containsKey(value)));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean add(final E value) {
 		checkNotNull(value);
 		
@@ -93,7 +96,13 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		return retval;
 	}
 
-	@Override
+	/*@
+	@ assignable elements;
+	@ ensures (\forall E elem; values.contains(elem); elements.get(elem).size() == (\old(elements.get(elem))).size() + 1);
+	@ ensures (\forall E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures \result == (\exists E elem; values.contains(elem); \old(elements.containsKey(elem)) == false);
+	@*/
+	// changed from original: @Override
 	public boolean addAll(final Collection<? extends E> values) {
 		checkNotNull(values);
 		checkCollectionDoesNotContainNull(values);
@@ -107,39 +116,67 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		return retval;
 	}
 
-	@Override
+	/*@
+	@ assignable elements, tombstones;
+	@ ensures elements.isEmpty();
+	@ ensures (\forall E elem; \old(elements.containsKey(elem)); tombstones.get(elem).containsAll(\old(elements.get(elem))));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@*/
+	// changed from original: @Override
 	public void clear() {
 		this.tombstones.putAll(this.elements);
 		this.elements.clear();
 
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == elements.containsKey(value);
+	@*/
+	// changed from original: @Override
 	public boolean contains(final Object value) {
 		checkNotNull(value);
 		
 		return this.elements.containsKey(value);
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == this.value().containsAll(values);
+	@*/
+	// changed from original: @Override
 	public boolean containsAll(final Collection<?> values) {
 		checkCollectionDoesNotContainNull(values);
 		return this.value().containsAll(values);
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == elements.isEmpty();
+	@*/
+	// changed from original: @Override
 	public boolean isEmpty() {
 		return elements.isEmpty();
 	}
 
-	@Override
+	// No need to annotate.
+	// changed from original: @Override
 	public Iterator<E> iterator() {
 		return Iterators
 				.unmodifiableIterator(this.elements.keySet().iterator());
 	}
 
+
+	/*@
+	@ assignable elements, tombstones;
+	@ ensures elements.containsKey(value) == false;
+	@ ensures (\forall E elem; elem.equals(value) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures tombstones.get(value).containsAll(\old(elements.get(value)));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@ ensures \result == (\old(elements.get(value)).isEmpty() == false);
+	@*/
 	@SuppressWarnings("unchecked")
-	@Override
+	// changed from original: @Override
 	public boolean remove(final Object value) {
 		checkNotNull(value);
 
@@ -149,7 +186,15 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 
 	}
 
-	@Override
+	/*@
+	@ assignable elements, tombstones;
+	@ ensures (\forall E elem; values.contains(elem); elements.containsKey(elem) == false);
+	@ ensures (\forall E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall E elem; values.contains(elem); tombstones.get(elem).containsAll(\old(elements.get(elem))));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@ ensures \result == (\exists E elem; values.contains(elem); (\old(elements.get(elem)).isEmpty() == false));
+	@*/
+	// changed from original: @Override
 	public boolean removeAll(final Collection<?> values) {
 		checkNotNull(values);
 		checkCollectionDoesNotContainNull(values);
@@ -177,7 +222,15 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		return true;
 	}
 
-	@Override
+	/*@
+	@ assignable elements, tombstones;
+	@ ensures (\forall E elem; values.contains(elem) && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall E elem; values.contains(elem) == false; elements.containsKey(elem) == false);
+	@ ensures (\forall E elem; values.contains(elem) == false; tombstones.get(elem).containsAll(\old(elements.get(elem))));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@ ensures \result == (\exists E elem; values.contains(elem) == false && this.value().contains(elem); true);
+	@*/
+	// changed from original: @Override
 	@SuppressWarnings("unchecked")
 	public boolean retainAll(final Collection<?> values) {
 		checkNotNull(values);
@@ -189,22 +242,44 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		return this.removeAll(diff);
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == elements.keySet().size();
+	@*/
+	// changed from original: @Override
 	public int size() {
 		return elements.keySet().size();
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(elements.keySet().toArray());
+	@*/
+	// changed from original: @Override
 	public Object[] toArray() {
 		return elements.keySet().toArray();
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(elements.keySet().toArray(arg));
+	@*/
+	// changed from original: @Override
 	public <T> T[] toArray(final T[] arg) {
 		return elements.keySet().toArray(arg);
 	}
 
-	@Override
+	/*@
+	@ ensures (\forall E elem; \old(elements.containsKey(elem)) && tombstones.containsKey(elem) == false; elements.containsAll(\old(elements.get(elem))));
+	@ ensures (\forall E elem; other.elements.containsKey(elem) && tombstones.containsKey(elem) == false; elements.containsAll(other.element.get(elem)));
+	@ ensures (\forall E elem; tombstones.containsKey(elem); elements.containsKey(elem) == false);
+	@ ensures (\forall E elem; elements.containsKey(elem); tombstones.containsKey(elem) == false);
+	@ ensures (\forall E elem; elements.containsKey(elem); other.elements.get(elem).addAll(\old(elements.get(elem))).containsAll(elements.get(elem)));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.containsAll(\old(tombstones.get(elem))));
+	@ ensures (\forall E elem; other.tombstones.containsKey(elem); tombstones.containsAll(other.tombstones.get(elem)));
+	@ ensures (\forall E elem; tombstones.containsKey(elem); other.tombstones.get(elem).addAll(\old(tombstones.get(elem))).containsAll(tombstones.get(elem)));
+	@*/
+	// changed from original: @Override
 	public ORSet<E> merge(final ORSet<E> other) {
 		ORSet<E> retval = new ORSet<E>(serializer());
 
@@ -218,12 +293,18 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		return retval;
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures (\forall E elem; \result.contains(elem); elements.containsKey(elem));
+	@ ensures (\forall E elem; elements.containsKey(elem); \result.contains(elem));
+	@*/
+	// changed from original: @Override
 	public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(elements.keySet());
 	}
 
-	@Override
+	// No need to annotate.
+	// changed from original: @Override
 	public byte[] payload() {
 		Map<String, Object> retval = Maps.newLinkedHashMap();
 
@@ -237,7 +318,12 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		}
 	}
 
-	@Override
+	// The problem was type casting but we conclude we don't need any post conditions in equals method.
+	// We decided there is no need to annotate equals().
+	/*@
+	@ assignable \nothing;
+	@*/
+	// changed from original: @Override
 	public final boolean equals(@Nullable final Object o) {
 		if (!(o instanceof ORSet)) {
 			return false;
@@ -252,12 +338,20 @@ public class ORSet<E> extends AbstractCRDT<ImmutableSet<E>, ORSet<E>> implements
 		}
 	}
 
-	@Override
+	/*@
+	@ assignable \nothing;
+	@ ensures \result == this.value().hashCode();
+	@*/
+	// changed from original: @Override
 	public final int hashCode() {
 		return this.value().hashCode();
 	}
-	
-	@Override
+
+	/*@
+	@ assignable \nothing;
+	@ ensures \result.equals(this.value().toString());
+	@*/
+	// changed from original: @Override
 	public String toString() {
 		return this.value().toString();
 	}
