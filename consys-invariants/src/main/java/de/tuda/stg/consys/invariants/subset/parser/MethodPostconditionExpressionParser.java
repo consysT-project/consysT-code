@@ -110,7 +110,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 							}
 
 							// Check whether the binding references field.
-							if (ref.fieldBinding().equals(field.getDecl().binding)) {
+							if (ref.fieldBinding().equals(field.getBinding())) {
 								// The binding is assigned. We cannot make any assertions on that field.
 								allIndicesAssigned = true;
 								break;
@@ -131,7 +131,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 									throw new UnsupportedJMLExpression(arrayRef);
 								}
 
-								if (receiver.fieldBinding().equals(field.getDecl().binding)) {
+								if (receiver.fieldBinding().equals(field.getBinding())) {
 									Expr index = parseExpression(arrayRef.position, 0);
 									assignedIndices.add(index);
 								}
@@ -179,7 +179,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 					for (Expression ref : references) {
 						if (ref instanceof JmlSingleNameReference) {
 							Binding b = ((JmlSingleNameReference) ref).binding;
-							if (b.equals(field.getDecl().binding)) {
+							if (b.equals(field.getBinding())) {
 								// The binding is assigned. We cannot make any assertions on that field.
 								isAssigned = true;
 								break;

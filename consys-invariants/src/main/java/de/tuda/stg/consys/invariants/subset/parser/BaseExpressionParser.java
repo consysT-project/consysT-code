@@ -7,12 +7,16 @@ import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
+import org.apache.tools.ant.taskdefs.Local;
 import org.eclipse.jdt.internal.compiler.ast.*;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
+import org.eclipse.jdt.internal.compiler.lookup.LocalVariableBinding;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.*;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -24,7 +28,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
 
   // Local variables from jml quantifiers.
-  private final Map<String, Expr> localVariables = Maps.newHashMap();
+  private final Map<LocalVariableBinding, Expr> localVariables = Maps.newHashMap();
 
   private boolean allowStatefulMethodCalls = false;
 
@@ -171,9 +175,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
   @Override
   protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
-    String variableName = String.valueOf(jmlSingleNameReference.token);
-    Expr cons = localVariables.get(variableName);
-
+    Expr cons = lookupLocalVariable(jmlSingleNameReference.localVariableBinding()).orElse(null);
     if (cons != null) {
       return cons;
     }
@@ -193,6 +195,16 @@ public class BaseExpressionParser extends ExpressionParser {
     }
     if (cons != null) {
       return cons;
+    }
+
+    if (jmlQualifiedNameReference.binding instanceof LocalVariableBinding) {
+      var receiverBinding = (LocalVariableBinding) jmlQualifiedNameReference.binding;
+      var receiverExpr = lookupLocalVariable(receiverBinding)
+              .orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "local variable not found"));
+
+      var result = handleQualifiedName(jmlQualifiedNameReference, receiverExpr);
+
+      return result;
     }
 
     return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
@@ -391,15 +403,15 @@ public class BaseExpressionParser extends ExpressionParser {
   @Override
   protected Expr parseJmlQuantifiedExpression(JmlQuantifiedExpression jmlQuantifiedExpression, int depth) {
     int index = 0;
-    String[] names = new String[jmlQuantifiedExpression.boundVariables.length];
+    LocalVariableBinding[] vars = new LocalVariableBinding[jmlQuantifiedExpression.boundVariables.length];
     Expr[] consts = new Expr[jmlQuantifiedExpression.boundVariables.length];
     for (LocalDeclaration localDeclaration : jmlQuantifiedExpression.boundVariables) {
-      names[index] = String.valueOf(localDeclaration.name);
-      consts[index] = model.ctx.mkFreshConst(names[index], model.types.typeFor(localDeclaration.type).toSort());
+      vars[index] = localDeclaration.binding;
+      consts[index] = mkFreshLocalVar(vars[index]);
       index++;
     }
 
-    Expr quantExpr = withLocalVariables(names, consts, () -> {
+    Expr quantExpr = withLocalVariables(vars, consts, () -> {
 
       // get range and body expression
       Expr rangeExpr = parseExpression(jmlQuantifiedExpression.range, depth + 1);
@@ -474,8 +486,8 @@ public class BaseExpressionParser extends ExpressionParser {
     return super.parseJmlQuantifiedExpression(jmlQuantifiedExpression, depth);
   }
 
-  protected <T> T withLocalVariable(String varName, Expr varExpr, Supplier<T> f) {
-    Expr prev = localVariables.put(varName, varExpr);
+  protected <T> T withLocalVariable(LocalVariableBinding varBinding, Expr varExpr, Supplier<T> f) {
+    Expr prev = localVariables.put(varBinding, varExpr);
 
     T result = null;
 
@@ -483,33 +495,33 @@ public class BaseExpressionParser extends ExpressionParser {
       result = f.get();
     } finally {
       if (prev == null) {
-        localVariables.remove(varName);
+        localVariables.remove(varBinding);
       } else {
-        localVariables.put(varName, prev);
+        localVariables.put(varBinding, prev);
       }
     }
 
     return result;
   }
 
-  protected <T> T withLocalVariables(String[] varName, Expr[] varExpr, Supplier<T> f) {
-    if (varName.length != varExpr.length)
+  protected <T> T withLocalVariables(LocalVariableBinding[] varBinding, Expr[] varExpr, Supplier<T> f) {
+    if (varBinding.length != varExpr.length)
       throw new IllegalArgumentException("ranges of arrays do not match");
 
-    Expr[] prev = new Expr[varName.length];
-    for (int i = 0; i < varName.length; i++) {
-      prev[i] = localVariables.put(varName[i], varExpr[i]);
+    Expr[] prev = new Expr[varBinding.length];
+    for (int i = 0; i < varBinding.length; i++) {
+      prev[i] = localVariables.put(varBinding[i], varExpr[i]);
     }
 
     T result = null;
     try {
       result = f.get();
     } finally {
-      for (int i = 0; i < varName.length; i++) {
+      for (int i = 0; i < varBinding.length; i++) {
         if (prev[i] == null) {
-          localVariables.remove(varName[i]);
+          localVariables.remove(varBinding[i]);
         } else {
-          localVariables.put(varName[i], prev[i]);
+          localVariables.put(varBinding[i], prev[i]);
         }
       }
     }
@@ -526,6 +538,33 @@ public class BaseExpressionParser extends ExpressionParser {
       result = f.get();
     } finally {
       allowStatefulMethodCalls = prev;
+    }
+
+    return result;
+  }
+
+  protected Expr mkFreshLocalVar(LocalVariableBinding binding) {
+    return model.ctx.mkFreshConst(String.valueOf(binding.name), model.types.typeFor(binding.type).toSort());
+  }
+
+  protected void addLocalVariable(LocalVariableBinding binding, Expr expr) {
+    localVariables.put(binding, expr);
+  }
+
+  protected Optional<Expr> lookupLocalVariable(LocalVariableBinding binding) {
+    if (binding == null) return Optional.empty();
+    return Optional.ofNullable(localVariables.get(binding));
+  }
+
+  protected Expr handleQualifiedName(QualifiedNameReference jmlQualifiedNameReference, Expr receiverExpr) {
+    var result = receiverExpr;
+    var qualifiedFields = jmlQualifiedNameReference.otherBindings;
+    for (FieldBinding fieldBinding : qualifiedFields) {
+      var fieldModel = model.getModelForClass(fieldBinding.declaringClass)
+              .flatMap(namedClass -> namedClass.getField(fieldBinding))
+              .orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in named class"));
+
+      result = fieldModel.getAccessor().apply(result);
     }
 
     return result;

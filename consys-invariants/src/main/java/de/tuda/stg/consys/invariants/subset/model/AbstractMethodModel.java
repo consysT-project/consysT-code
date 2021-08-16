@@ -57,7 +57,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 	}
 
 	public Optional<ArgumentModel> getArgument(Reference arg) {
-		return Z3Utils.findReferenceInArray(args, arg, model -> model.getDecl().binding);
+		return Z3Utils.findReferenceInArray(args, arg, ArgumentModel::getBinding);
 	}
 
 	public boolean returnsVoid() {

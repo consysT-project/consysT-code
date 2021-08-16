@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
@@ -17,12 +18,12 @@ public class MethodExpressionParser extends ClassExpressionParser {
 	public MethodExpressionParser(ProgramModel smt, BaseClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst) {
 		super(smt, classModel, thisConst);
 		this.methodModel = methodModel;
-	}
 
-	@Override
-	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
-		return methodModel.getArgument(jmlSingleNameReference)
-				.flatMap(ArgumentModel::getConst)
-				.orElseGet(() -> super.parseJmlSingleReference(jmlSingleNameReference, depth));
+		for (var arg : methodModel.getArguments()) {
+			arg.getConst().ifPresentOrElse(
+					expr -> addLocalVariable(arg.getBinding(), expr),
+					() -> Logger.warn("argument not available in constraints: " + arg)
+			);
+		}
 	}
 }

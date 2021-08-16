@@ -28,9 +28,14 @@ public class VariableModel<VarDecl extends AbstractVariableDeclaration> {
 		return type;
 	}
 
-	public VarDecl getDecl() {
-		return varDecl;
+	@Override
+	public String toString() {
+		return "VarModel[" + varDecl + "]";
 	}
+
+//	public VarDecl getDecl() {
+//		return varDecl;
+//	}
 
 
 }

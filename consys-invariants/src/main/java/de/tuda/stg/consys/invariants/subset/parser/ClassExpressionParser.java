@@ -5,6 +5,7 @@ import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
+import org.eclipse.jdt.internal.compiler.ast.QualifiedNameReference;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
@@ -80,24 +81,19 @@ public class ClassExpressionParser extends BaseExpressionParser {
 	@Override
 	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
 
-		//a.b
-		// TODO: Implement
 		// check whether a is a field in classModel, i.e., a.b == this.a.b
-		if (jmlQualifiedNameReference.actualReceiverType.equals(classModel.getBinding())) {
-			if (!(jmlQualifiedNameReference.binding instanceof FieldBinding))
-				throw new UnsupportedJMLExpression(jmlQualifiedNameReference, "expected name for field as receiver");
+		if (jmlQualifiedNameReference.binding instanceof FieldBinding) {
+
+			if (!jmlQualifiedNameReference.actualReceiverType.equals(classModel.getBinding())) {
+				throw new UnsupportedJMLExpression(jmlQualifiedNameReference, "expected `this` class as receiver");
+			}
 
 			var receiverBinding = (FieldBinding) jmlQualifiedNameReference.binding;
-			var namedBinding = jmlQualifiedNameReference.otherBindings[0];
-
 			var receiverField = classModel.getField(receiverBinding)
 					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in `this` class"));
+			var receiverExpr = receiverField.getAccessor().apply(getThisConst());
 
-			var namedField = model.getModelForClass(namedBinding.declaringClass)
-					.flatMap(namedClass -> namedClass.getField(namedBinding))
-					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in named class"));
-
-			var result = namedField.getAccessor().apply(receiverField.getAccessor().apply(getThisConst()));
+			var result = handleQualifiedName(jmlQualifiedNameReference, receiverExpr);
 
 			return result;
 		}
@@ -108,6 +104,8 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
 
 	}
+
+
 
 
 

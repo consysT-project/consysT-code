@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 import com.microsoft.z3.FuncDecl;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 
 public class FieldModel extends VariableModel<FieldDeclaration>{
 
@@ -24,10 +25,11 @@ public class FieldModel extends VariableModel<FieldDeclaration>{
 		return accessor;
 	}
 
-	@Override
-	public String toString() {
-		return "FieldModel[" + getDecl() + "]";
+	public FieldBinding getBinding() {
+		return varDecl.binding;
 	}
+
+
 
 	public boolean isArray() {
 		return varDecl.binding.type.isArrayType();

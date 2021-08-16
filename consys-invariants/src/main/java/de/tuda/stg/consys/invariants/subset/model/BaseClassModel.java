@@ -161,11 +161,11 @@ public class BaseClassModel {
 	}
 
 	public Optional<FieldModel> getField(Reference fieldRef) {
-		return Z3Utils.findReferenceInArray(classFields, fieldRef, (field) -> field.getDecl().binding);
+		return Z3Utils.findReferenceInArray(classFields, fieldRef, FieldModel::getBinding);
 	}
 
 	public Optional<FieldModel> getField(FieldBinding binding) {
-		return Z3Utils.findBindingInArray(classFields, binding, (field) -> field.getDecl().binding);
+		return Z3Utils.findBindingInArray(classFields, binding, FieldModel::getBinding);
 	}
 
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
@@ -173,7 +173,7 @@ public class BaseClassModel {
 	}
 
 	public Optional<ConstantModel> getConstant(Reference constantRef) {
-		return Z3Utils.findReferenceInArray(classConstants, constantRef, (constant) -> constant.getDecl().binding);
+		return Z3Utils.findReferenceInArray(classConstants, constantRef, ConstantModel::getBinding);
 	}
 
 	public Iterable<MethodModel> getMethods() {
