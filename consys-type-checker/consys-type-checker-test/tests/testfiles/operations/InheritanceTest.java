@@ -1,4 +1,4 @@
-package testfiles.operations;
+
 
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -8,38 +8,40 @@ import de.tuda.stg.consys.checker.qual.Weak;
 
 import java.io.Serializable;
 
-// @skip-test
-
 public class InheritanceTest {
-    static @Mixed class Base implements Serializable {
-        int k;
-        int h;
+}
 
-        @WeakOp
-        void setK() { k = 0; }
+@Mixed class Base implements Serializable {
+    protected int k; // inferred weak
+    protected int h; // inferred strong
 
-        @StrongOp
-        void setH(@Strong int i) {
-            h = i;
-        }
+    @WeakOp
+    void setK() { k = 0; }
+
+    @StrongOp
+    void setH(@Strong int i) {
+        h = i;
+    }
+}
+
+@Mixed class Derived extends Base {
+    int j; // inferred strong
+
+    @WeakOp
+    void setHDerived() {
+        // :: error: mixed.inheritance.field.overwrite
+        h = 0;
     }
 
-    static @Mixed class Derived extends Base {
-        int j;
+    @StrongOp
+    void setJfromK() {
+        // :: error: assignment.type.incompatible
+        j = k;
+    }
 
-        @WeakOp
-        void setHDerived() { h = 0; }
-
-        @StrongOp
-        void setJfromK() {
-            // :: error: assignment.type.incompatible
-            j = k;
-        }
-
-        @StrongOp
-        void setJfromH() {
-            // :: error: assignment.type.incompatible
-            j = h;
-        }
+    @StrongOp
+    void setJfromH() {
+        // :: error: assignment.type.incompatible
+        j = h;
     }
 }

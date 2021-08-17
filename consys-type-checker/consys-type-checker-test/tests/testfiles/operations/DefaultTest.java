@@ -1,5 +1,3 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -8,12 +6,11 @@ import de.tuda.stg.consys.checker.qual.Weak;
 
 import java.util.LinkedList;
 
-public class DefaultTest {
-}
+public class DefaultTest { }
 // ------------------------------------------------------------------------------------------------------
 // Case where base class is not compatible with derived instantiation
 
-class Base {
+class DefaultTestBase {
     private int i;
 
     // TODO: better error message, i.e. info about which derived class leads to error
@@ -25,7 +22,7 @@ class Base {
     int getI() { return i; }
 }
 
-@Mixed(withDefault = StrongOp.class) class Derived extends Base {
+@Mixed(withDefault = StrongOp.class) class DefaultTestDerived extends DefaultTestBase {
     // since the base class methods are now @StrongOp, there is an error at setI()
 }
 

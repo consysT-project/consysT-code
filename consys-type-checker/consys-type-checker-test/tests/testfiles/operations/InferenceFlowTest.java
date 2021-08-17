@@ -11,15 +11,10 @@ public @Mixed class InferenceFlowTest {
     private @Weak Box<Box<Integer>> boxBox;
 
     @WeakOp void test() {
-        // TODO: resolve field in member select cascade on lhs (but not on rhs)
-        boxBox.value.value = box.value; // ok
-        boxBox.value = box; // error
-        boxBox.value.value = 0; // error
-        // TODO: reference problem -> simplest solution: also consider reads of non-primitive fields for inference and checking, if on rhs
-        //       only for rhs of assignments, we can still do reads in other contexts
-        //       Alternative: if we encounter a field reference type on rhs
-        //       Alternative: forbid non-primitive fields on rhs
-        if (box.value > 0) {} // ok
+        boxBox.value.value = box.value; // ok, primitive assignment
+        // :: error: assignment.type.incompatible
+        boxBox.value = box; // error, assignment: @Mutable @Weak <- @Mutable @Strong
+        boxBox.value.value = 0; // ok, primitive assignment
     }
 
     @WeakOp Box<Box<Integer>> test2(Box<Box<Integer>> param) {

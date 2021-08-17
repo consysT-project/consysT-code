@@ -2,16 +2,15 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodInvocationTree, MethodTree, ModifiersTree, Tree, VariableTree}
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.annotations.ReadOnly
 import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap, getQualifierNameForOp}
-import de.tuda.stg.consys.checker.qual.{Local, Mixed, QualifierForOperation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap, getQualifierNameForOp, inconsistentAnnotation, localAnnotation}
+import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, Mixed, QualifierForOperation}
+import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
-import javax.lang.model.element
 import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
@@ -67,10 +66,13 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
         inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
+
         checkSuperclass(getSuperclassElement(node), newState)
         processPublicFields(newState)
-
+        processStaticFields(newState)
         val r = super.visitClass(node, newState)
+        processUnusedFields(newState)
+
         currentClass = None
         r
     }
@@ -123,11 +125,40 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
     private def processPublicFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
-        // set public and package fields to the default level
+        val isNestedClass = clazz.getEnclosingElement match {
+            case _: TypeElement => true
+            case _ => false
+        }
+
+        // set public and package fields to the default level,
+        // or, for nested classes, do this for all levels
         ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
-            filter(field => !(field.getModifiers.contains(Modifier.PRIVATE) ||
+            filter(field => isNestedClass || !(field.getModifiers.contains(Modifier.PRIVATE) ||
                 field.getModifiers.contains(Modifier.PROTECTED))).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), getQualifierForOp(defaultOp), Some(LHS)), field))
+    }
+
+    private def processUnusedFields(state: State): Unit = {
+        val (Some(clazz), Some(defaultOp), _, _) = state
+        // set all unused unannotated fields to Local
+        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+            filter(field => !inferenceTable.get(clazz, defaultOp).get.contains(field) && getExplicitAnnotation(field).isEmpty).
+            foreach(field => updateField(field, (Some(clazz), Some(defaultOp), Some(localAnnotation), Some(LHS)), field))
+    }
+
+    private def processStaticFields(state: State): Unit = {
+        val (Some(clazz), Some(defaultOp), _, _) = state
+        // set all static fields to Inconsistent and check for forbidden explicit annotations
+        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+            filter(field => field.getModifiers.contains(Modifier.STATIC)).
+            foreach(field => {
+                getExplicitAnnotation(field) match {
+                    case Some(value) if !AnnotationUtils.areSameByClass(value, classOf[Inconsistent]) =>
+                        atypeFactory.getChecker.reportError(field, "mixed.field.static.incompatible")
+                    case _ =>
+                }
+                updateField(field, (Some(clazz), Some(defaultOp), Some(inconsistentAnnotation), Some(LHS)), field)
+            })
     }
 
     override def visitMethod(node: MethodTree, state: State): Void = {
@@ -177,7 +208,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     override def visitMethodInvocation(node: MethodInvocationTree, state: State): Void = {
         val (clazz, defaultOpLevel, methodLevel, _) = state
         val method = TreeUtils.elementFromUse(node)
-        if (method.getAnnotation(classOf[ReadOnly]) != null)
+        if (method.getAnnotation(classOf[SideEffectFree]) != null || method.getAnnotation(classOf[Pure]) != null)
             super.visitMethodInvocation(node, (clazz, defaultOpLevel, methodLevel, Some(RHS)))
         else
             super.visitMethodInvocation(node, (clazz, defaultOpLevel, methodLevel, Some(LHS)))
@@ -202,11 +233,17 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
                 if field.getKind == ElementKind.FIELD
                     && ElementUtils.getAllFieldsIn(classContext.get, atypeFactory.getElementUtils).contains(field) =>
 
-                (getExplicitAnnotation(atypeFactory, field), state._4) match {
+                (getExplicitAnnotation(field), state._4) match {
+                    // check compatibility between explicit type and operation level
                     case (Some(explicitAnnotation), Some(LHS)) if !atypeFactory.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         atypeFactory.getChecker.reportError(node, "mixed.field.incompatible",
                             explicitAnnotation.getAnnotationType.asElement().getSimpleName,
                             methodLevel.getAnnotationType.asElement().getSimpleName)
+
+                    case (Some(explicitAnnotation), Some(LHS))
+                        if field.getModifiers.contains(Modifier.STATIC) &&
+                            AnnotationUtils.areSameByClass(explicitAnnotation, classOf[Inconsistent]) =>
+                        atypeFactory.getChecker.reportError(node, "mixed.field.static.incompatible")
 
                     case (None, _) =>
                         updateField(field, state, node)

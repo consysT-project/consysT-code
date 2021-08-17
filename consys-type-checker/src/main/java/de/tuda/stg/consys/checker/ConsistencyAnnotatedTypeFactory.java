@@ -3,6 +3,7 @@ package de.tuda.stg.consys.checker;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.Tree;
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -92,6 +93,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 					inferenceVisitor.visitClass((ClassTree)tree);
 				break;
 
+				// TODO: static field select
 			case IDENTIFIER:
 			case VARIABLE:
 			case MEMBER_SELECT:
@@ -125,11 +127,19 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				if (type.hasExplicitAnnotation(definedAnnotation) && inferenceVisitor.refinementTable().get(tree).isDefined()) {
 					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
 					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, definedAnnotation));
+					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
 				} else if (inferredAnnotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
 					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
 					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, inferredAnnotation));
+					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
 				} else if (inferredAnnotation != null) {
 					type.replaceAnnotation(inferredAnnotation);
+					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
+				}
+
+				var definedMutabilityAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+				if (type.hasExplicitAnnotation(definedMutabilityAnnotation)) {
+
 				}
 
 				if (mixed != null) {
@@ -154,6 +164,16 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		super.addComputedTypeAnnotations(elt, type);
 
+		// add @Mutable to parameters in methods that are: Transactional or in mixed class
+		if (type instanceof AnnotatedTypeMirror.AnnotatedExecutableType) {
+			var executableType = (AnnotatedTypeMirror.AnnotatedExecutableType) type;
+			if (executableType.getUnderlyingType().getAnnotation(Transactional.class) != null) {
+				executableType.getParameterTypes().forEach(param -> {
+					param.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
+				});
+			}
+		}
+
 		if (elt.getKind() == ElementKind.FIELD) {
 			if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))
 				return;
@@ -161,6 +181,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			var anno = annotateField((VariableElement) elt, type);
 			if (anno != null) {
 				type.replaceAnnotation(anno);
+				//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
 			}
 		}
 	}

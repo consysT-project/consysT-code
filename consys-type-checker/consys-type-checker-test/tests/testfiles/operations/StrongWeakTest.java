@@ -7,36 +7,33 @@ import de.tuda.stg.consys.checker.qual.Strong;
 
 import java.io.Serializable;
 
-public class StrongWeakTest {
-    static @Mixed
-    class A implements Serializable {
-        int w; // @Weak
-        int s; // @Strong
+public @Mixed class StrongWeakTest {
+    private int w; // inferred @Weak
+    private int s; // inferred @Strong
 
-        @WeakOp
-        int weak() {
-            w = 0;
-            return s;
-        }
+    @WeakOp
+    int writeWeak() {
+        w = 0;
+        return s;
+    }
 
-        @StrongOp
-        int strong() {
-            return w + s;
-        }
+    @StrongOp
+    int readStrong() {
+        return w + s;
+    }
 
-        @StrongOp
-        void bla() {
-            @Strong int i = s;
-            s = (@Strong int)0;
+    @StrongOp
+    void test() {
+        @Strong int i = s;
+        s = (@Strong int)0;
 
-            // :: error: assignment.type.incompatible
-            s = w;
-            // :: error: assignment.type.incompatible
-            this.s = w;
-            // :: error: assignment.type.incompatible
-            this.s = this.w;
-            // :: error: assignment.type.incompatible
-            s = this.w;
-        }
+        // :: error: assignment.type.incompatible
+        s = w;
+        // :: error: assignment.type.incompatible
+        this.s = w;
+        // :: error: assignment.type.incompatible
+        this.s = this.w;
+        // :: error: assignment.type.incompatible
+        s = this.w;
     }
 }

@@ -5,16 +5,23 @@ import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
 public class A_ImmutabilityTest {
-    static class A { Box box; }
-    static class Box {int i;}
+    static class A {
+        @Mutable @Strong Box box;
+        void set(@Mutable @Strong Box v) {
+            box = v;
+        }
+    }
+
+    static class Box { int i; }
 
     @Transactional
     void test(Ref<@Weak @Immutable A> w) {
-        // :: error: immutability.assignment.type :: error: assignment.type.incompatible
+        // :: error: immutability.assignment.type
         w.ref().box = new Box();
 
+        @Weak @Mutable Box b;
         // :: error: assignment.type.incompatible
-        @Weak Box b = w.ref().box;
+        b = w.ref().box;
     }
 
     @Transactional

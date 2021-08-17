@@ -1,12 +1,11 @@
 package testfiles.operations;
 
-import de.tuda.stg.consys.annotations.ReadOnly;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.core.store.cassandra.levels.Weak$;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
@@ -14,21 +13,45 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 
-public class ReadOnlyTest {
+public @Mixed class ReadOnlyTest {
+    private Box strongBox = new Box();
+
+    @StrongOp
+    void set() {
+        strongBox.set(0);
+    }
+
+    @WeakOp
+    void get() {
+        strongBox.get();
+    }
+
+    @WeakOp
+    void test() {
+        Box f = strongBox.getOtherBox();
+        f.i = 0;
+    }
+
+    @StrongOp
+    @Strong @Immutable Box getBox() {
+        return strongBox;
+    }
+
+
     static class Box implements Serializable {
         int i = 0;
-        Box box;
+        Box otherBox;
 
-        @ReadOnly @SideEffectFree Box() {}
+        @SideEffectFree Box() {}
 
         void set(int i) { this.i = i; }
 
-        Box getBox() { return box; }
+        @SideEffectFree
+        Box getOtherBox() { return otherBox; }
 
-        @ReadOnly @SideEffectFree
+        @SideEffectFree
         int get() { return i; }
 
-        @ReadOnly
         @SideEffectFree
         int getNonMutating() {
             int a = 0;
@@ -38,18 +61,17 @@ public class ReadOnlyTest {
             return i;
         }
 
-        @ReadOnly
         @SideEffectFree
         @Transactional
         int getMutating(CassandraTransactionContextBinding ctx, Box p) {
-            // :: error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.assign.field
             i = 0;
-            // :: error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.assign.field
             this.i = 1;
 
             p.getNonMutating();
             p.get();
-            // :: error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.call
             p.set(0);
 
             int a;
@@ -59,24 +81,22 @@ public class ReadOnlyTest {
             // TODO: how to handle constructors?
             // :: error: readonly.declaration
             Box b = new Box();
-            // :: error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.assign.field
             b.i = 0;
 
-            // :: error: readonly.declaration
-            b.box = p;
-            // :: error: readonly.declaration
-            b.box.i = 0;
+            // :: error: purity.not.sideeffectfree.assign.field
+            b.otherBox = p;
+            // :: error: purity.not.sideeffectfree.assign.field
+            b.otherBox.i = 0;
 
             b.getNonMutating();
-            // :: error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.call
             b.set(0);
 
-            // TODO: replication allowed in ReadOnly methods?
-            /*
+            // :: error: purity.not.sideeffectfree.call
             Ref<Box> o = ctx.replicate("o", CassandraConsistencyLevels.WEAK, Box.class);
-              error: readonly.declaration
+            // :: error: purity.not.sideeffectfree.assign.field
             o.ref().i = 0;
-            */
 
             return i;
         }
@@ -89,32 +109,7 @@ public class ReadOnlyTest {
         // :: error: readonly.override
         int get() { return super.i; }
 
-        @Override @ReadOnly
+        @Override
         int getNonMutating() { return i; }
-    }
-
-    static @Mixed class A {
-        private Box w = new Box();
-
-        @StrongOp
-        void f() {
-            w.set(0);
-        }
-
-        @WeakOp @ReadOnly
-        void g() {
-            w.get();
-        }
-
-        @WeakOp
-        void test() {
-            Box f = w.getBox();
-            f.i = 0;
-        }
-
-        @StrongOp @ReadOnly
-        @Strong Box getBox() {
-            return w;
-        }
     }
 }

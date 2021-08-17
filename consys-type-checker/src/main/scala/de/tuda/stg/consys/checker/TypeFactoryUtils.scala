@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
-import de.tuda.stg.consys.checker.qual.{Mixed, QualifierForOperation}
+import de.tuda.stg.consys.checker.qual.{Mutable, MutableBottom, QualifierForOperation}
 
 import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
@@ -30,7 +30,10 @@ object TypeFactoryUtils {
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Immutable")
 
 	def mutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Mutable")
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mutable])
+
+	def mutableBottomAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[MutableBottom])
 
 	val checkerPackageName = s"de.tuda.stg.consys.checker"
 	val japiPackageName = s"de.tuda.stg.consys.japi"
@@ -44,7 +47,7 @@ object TypeFactoryUtils {
 	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, atype: AnnotatedTypeMirror): Option[AnnotationMirror] =
 		Some(atype.getAnnotationInHierarchy(inconsistentAnnotation)).filter(atype.hasExplicitAnnotation)
 
-	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, elt: Element): Option[AnnotationMirror] =
+	def getExplicitAnnotation(elt: Element)(implicit atypeFactory : AnnotatedTypeFactory): Option[AnnotationMirror] =
 		getExplicitAnnotation(atypeFactory, atypeFactory.getAnnotatedType(elt))
 
 	def hasAnnotation(implicit atypeFactory : AnnotatedTypeFactory, modifiers: ModifiersTree, annotation: String): Boolean = {
@@ -74,6 +77,8 @@ object TypeFactoryUtils {
 
 		if (methodLevel.isEmpty) default else methodLevel.get
 	}
+
+
 
 	def getQualifierNameForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[String] = {
 		if (qualifierForOpMap.isEmpty)

@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.checker
 
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, japiPackageName}
+import de.tuda.stg.consys.checker.qual.MutableBottom
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils
 
-import javax.lang.model.`type`.TypeKind
 import javax.lang.model.element.AnnotationMirror
 
 /**
@@ -15,31 +15,28 @@ import javax.lang.model.element.AnnotationMirror
 	*/
 class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory : AnnotatedTypeFactory) extends TypeHierarchy {
 	implicit private val tf: AnnotatedTypeFactory = atypeFactory
+	var doImmutabilityCheck: Boolean = false
 
 	override def isSubtype(subtype : AnnotatedTypeMirror, supertype : AnnotatedTypeMirror) : Boolean = (refType(subtype), refType(supertype)) match {
 		case (Some(declaredSubtype), Some(declaredSupertype)) =>
 			val subtypeMirror = getArgOfRefType(declaredSubtype)
 			val superTypeMirror = getArgOfRefType(declaredSupertype)
 
-			//hierarchy.isSubtype(subtypeMirror, superTypeMirror)
+			// always check immutability for Ref<> types
 			isCombinedSubtype(subtypeMirror, superTypeMirror)
 
+		case _ if TypesUtils.isPrimitiveOrBoxed(subtype.getUnderlyingType) && TypesUtils.isPrimitiveOrBoxed(supertype.getUnderlyingType) =>
+				// || TypesUtils.isClassType(subtype.getUnderlyingType) && TypesUtils.isClassType(supertype.getUnderlyingType) =>
+			isConsistencySubtypeOnly(subtype, supertype)
+
 		case _ if tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].isInMixedClassContext =>
-			if (TypesUtils.isPrimitiveOrBoxed(subtype.getUnderlyingType) && TypesUtils.isPrimitiveOrBoxed(supertype.getUnderlyingType)) {
-				val consistencySubtype = subtype.getAnnotationInHierarchy(inconsistentAnnotation)
-				val consistencySupertype = supertype.getAnnotationInHierarchy(inconsistentAnnotation)
-				tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
-			} else {
-				isCombinedSubtype(subtype, supertype)
-			}
+			isCombinedSubtype(subtype, supertype)
 
 		case _ =>
 			// TODO: find a way to use this subtyping check for non-ref objects without breaking non-distributed code
 			//hierarchy.isSubtype(subtype, supertype)
-			//isCombinedSubtype(subtype, supertype)
-			val consistencySubtype = subtype.getAnnotationInHierarchy(inconsistentAnnotation)
-			val consistencySupertype = supertype.getAnnotationInHierarchy(inconsistentAnnotation)
-			tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
+			//isConsistencySubtypeOnly(subtype, supertype)
+			isCombinedSubtype(subtype, supertype)
 	}
 
 
@@ -68,15 +65,22 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 			}
 	}
 
+	private def isConsistencySubtypeOnly(subtype : AnnotatedTypeMirror, supertype : AnnotatedTypeMirror): Boolean = {
+		val consistencySubtype = subtype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
+		val consistencySupertype = supertype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
+		tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
+	}
 
 	// TODO: disable mutability check for primitive types
 	private def isCombinedSubtype(subtype : AnnotatedTypeMirror, supertype : AnnotatedTypeMirror): Boolean = {
-		val mutabilitySubtype = subtype.getAnnotationInHierarchy(immutableAnnotation)
-		val mutabilitySupertype = supertype.getAnnotationInHierarchy(immutableAnnotation)
-		val consistencySubtype = subtype.getAnnotationInHierarchy(inconsistentAnnotation)
-		val consistencySupertype = supertype.getAnnotationInHierarchy(inconsistentAnnotation)
+		val mutabilitySubtype = subtype.getEffectiveAnnotationInHierarchy(immutableAnnotation)
+		val mutabilitySupertype = supertype.getEffectiveAnnotationInHierarchy(immutableAnnotation)
+		val consistencySubtype = subtype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
+		val consistencySupertype = supertype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 
-		if (isSameType(consistencySubtype, consistencySupertype))
+		if (subtype.hasAnnotation(classOf[MutableBottom]))
+			true
+		else if (isSameType(consistencySubtype, consistencySupertype))
 			tf.getQualifierHierarchy.isSubtype(mutabilitySubtype, mutabilitySupertype)
 		else if (isSameType(mutabilitySubtype, immutableAnnotation) && isSameType(mutabilitySupertype, immutableAnnotation))
 			tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
@@ -84,6 +88,6 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 			false
 	}
 
-	private def isSameType(t1: AnnotationMirror, t2: AnnotationMirror): Boolean = tf.getQualifierHierarchy.isSubtype(t1, t2) &&
-		tf.getQualifierHierarchy.isSubtype(t2, t1)
+	private def isSameType(t1: AnnotationMirror, t2: AnnotationMirror): Boolean =
+		tf.getQualifierHierarchy.isSubtype(t1, t2) && tf.getQualifierHierarchy.isSubtype(t2, t1)
 }

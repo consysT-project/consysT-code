@@ -30,16 +30,15 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
 		//Locally generated objects (new Obj...) are always @Local.
-		annotatedTypeMirror.clearAnnotations()
-		annotatedTypeMirror.addAnnotation(localAnnotation)
+		annotatedTypeMirror.replaceAnnotation(localAnnotation)
 
 		super.visitNewClass(node, annotatedTypeMirror)
 	}
 
 	override def visitLiteral(node : LiteralTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
-		//Literals are always @Local.
-		annotatedTypeMirror.clearAnnotations()
-		annotatedTypeMirror.addAnnotation(localAnnotation)
+		//Literals are always @MutableBottom @Local.
+		annotatedTypeMirror.replaceAnnotation(localAnnotation)
+		annotatedTypeMirror.replaceAnnotation(mutableBottomAnnotation)
 		super.visitLiteral(node, annotatedTypeMirror)
 	}
 
@@ -50,6 +49,7 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 			//Change type to: @Local Class...
 			annotatedTypeMirror.clearAnnotations()
 			annotatedTypeMirror.addAnnotation(localAnnotation)
+			annotatedTypeMirror.addAnnotation(mutableBottomAnnotation)
 
 			//Change type to: Class<@Local ...>
 			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
@@ -58,6 +58,7 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 					val typeArg = typ.getTypeArguments.get(0)
 					typeArg.clearAnnotations()
 					typeArg.addAnnotation(localAnnotation)
+					typeArg.addAnnotation(mutableBottomAnnotation)
 					null
 				}
 			}, null)
