@@ -83,12 +83,18 @@ public class ClassExpressionParser extends BaseExpressionParser {
 
 		// check whether a is a field in classModel, i.e., a.b == this.a.b
 		if (jmlQualifiedNameReference.binding instanceof FieldBinding) {
+			var receiverBinding = (FieldBinding) jmlQualifiedNameReference.binding;
+
+
+			if (receiverBinding.isStatic()) {
+				// Pass static fields to super
+				return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
+			}
 
 			if (!jmlQualifiedNameReference.actualReceiverType.equals(classModel.getBinding())) {
 				throw new UnsupportedJMLExpression(jmlQualifiedNameReference, "expected `this` class as receiver");
 			}
 
-			var receiverBinding = (FieldBinding) jmlQualifiedNameReference.binding;
 			var receiverField = classModel.getField(receiverBinding)
 					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in `this` class"));
 			var receiverExpr = receiverField.getAccessor().apply(getThisConst());

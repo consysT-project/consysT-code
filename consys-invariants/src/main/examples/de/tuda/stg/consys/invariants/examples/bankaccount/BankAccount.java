@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.examples.bankaccount;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import java.lang.Math;
+import java.math.BigInteger;
 
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;

@@ -180,7 +180,8 @@ public class ProgramModel {
 
 	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult, ProgramConfig config) {
 		this.ctx = ctx;
-		this.solver =  ctx.mkSolver(); // ctx.mkSolver(ctx.mkTactic("default"));
+		this.solver =  ctx.mkSolver();
+//			ctx.mkSolver(ctx.mkTactic("default"));
 		this.config = config;
 
 		var params = ctx.mkParams();
