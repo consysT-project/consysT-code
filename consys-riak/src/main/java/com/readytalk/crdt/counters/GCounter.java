@@ -86,13 +86,18 @@ import java.lang.String;
 		this.payload.putAll(value);
 	}*/
 
+	/*
+	 New suggestion to check for this annotations:
+	 (\forall int i; i >= 0 && i < numOfReplicas();
+				other.payload.get(keys[i]).intValue() > \old(payload.get(keys[i])).intValue() ? this.payload.get(keys[i]).equals(other.payload.get(keys[i])) : this.payload.get(keys[i]).equals(\old(payload.get([keys[i]))) );
+	 */
 	/*@
 	@ ensures (\forall String s; true ;
 				other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? this.payload.get(s).equals(other.payload.get(s)) : this.payload.get(s).equals(\old(payload.get(s))) );
 	@ ensures clientId.equals(\old(clientId));
 	@*/
 	// changed from original: @Override
-	public void merge(final GCounter other) { // Change from the origin: void <- GCounter
+	public Void merge(final GCounter other) { // Change from the origin: void <- GCounter
 		Map<String, BigInteger> retmap = Maps
 				.newHashMapWithExpectedSize(Math.max(payload.size(), other.payload.size()));
 		retmap.putAll(payload);

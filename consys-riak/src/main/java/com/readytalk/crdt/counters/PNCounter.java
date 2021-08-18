@@ -1,6 +1,8 @@
 package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import static de.tuda.stg.consys.utils.InvariantUtils.*;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
@@ -23,12 +25,12 @@ import com.readytalk.crdt.inject.ClientId;
 @ReplicatedModel public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CRDTCounter<BigInteger, PNCounter> {
 	// Can we say when we are sure about GCounter, we can omit GCounter related conditions?
 	/*@
-    @ public invariant value().compareTo(BigInteger.ZERO) != -1;
+    @ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
     @*/
 
-	private static final TypeReference<Map<String, JsonNode>> REF = new TypeReference<Map<String, JsonNode>>() {
-		
-	};
+	// Change from the origin: We had this field:
+	//private static final TypeReference<Map<String, JsonNode>> REF = new TypeReference<Map<String, JsonNode>>() {
+	//};
 	
 	
 	private static final String POSITIVE_TOKEN = "p";
@@ -54,6 +56,7 @@ import com.readytalk.crdt.inject.ClientId;
 
 	}
 
+	/* Change from the origin: We had this constructor:
 	public PNCounter(final ObjectMapper mapper, @ClientId final String client, final byte[] value) {
 		super(mapper);
 
@@ -71,6 +74,7 @@ import com.readytalk.crdt.inject.ClientId;
 		}
 
 	}
+	End change from the origin */
 
 	private PNCounter(final ObjectMapper mapper, @ClientId final String client, final GCounter p, final GCounter n) {
 		super(mapper);
@@ -81,25 +85,34 @@ import com.readytalk.crdt.inject.ClientId;
 		this.clientId = client;
 	}
 
+	/* Old postconditions:
+	ensures positive.equals(\old(positive).merge(other.positive));
+	ensures negative.equals(\old(negative).merge(other.negative));
+	*/
 	/*@
-	@ ensures positive.equals(\old(positive).merge(other.positive))
-	@ ensures negative.equals(\old(negative).merge(other.negative))
+	@ ensures stateful(positive.merge(other.positive));
+	@ ensures stateful(negative.merge(other.negative));
 	@ ensures clientId.equals(\old(clientId));
 	@*/
-	@Override
-	public PNCounter merge(final PNCounter other) {
-		return new PNCounter(serializer(), clientId, positive.merge(other.positive), negative.merge(other.negative));
+	// changed from original: @Override
+	public Void merge(final PNCounter other) { // Change from the origin: void <- PNCounter
+		// my codes:
+		positive.merge(other.positive);
+		negative.merge(other.negative);
+		// end of my codes.
+		// this merge function had GCounter output type.
+		//return new PNCounter(serializer(), clientId, positive.merge(other.positive), negative.merge(other.negative));
 	}
 	/*@
 	@ assignable \nothing;
 	@ ensures \result.equals(positive.value().subtract(negative.value()));
 	@*/
-	@Override
+	// changed from original: @Override
 	public BigInteger value() {
 		return this.positive.value().subtract(this.negative.value());
 	}
 
-	@Override
+	// changed from original: @Override
 	public byte[] payload() {
 		try {
 			Map<String, JsonNode> retval = Maps.newHashMap();
@@ -113,23 +126,27 @@ import com.readytalk.crdt.inject.ClientId;
 		}
 	}
 
+	// The old post condition: positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(1)));
 	/*@
 	@ assignable positive;
-	@ ensures positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(1)));
+	@ ensures stateful(positive.increment());
+	@ ensures \result.equals(this.value());
 	@*/
-	@Override
+	// changed from original: @Override
 	public BigInteger increment() {
 		this.positive.increment();
 
 		return this.value();
 	}
 
+	// The old post condition: positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(n)));
 	/*@
 	@ requires n >= 0;
 	@ assignable positive;
-	@ ensures positive.value().equals(\old(positive.value()).add(BigInteger.valueOf(n)));
+	@ ensures stateful(positive.increment(n));
+	@ ensures \result.equals(this.value());
 	@*/
-	@Override
+	// changed from original: @Override
 	public BigInteger increment(@Nonnegative final int n) {
 		Preconditions.checkArgument(n >= 0);
 		
@@ -138,23 +155,27 @@ import com.readytalk.crdt.inject.ClientId;
 		return this.value();
 	}
 
+	// The old post condition: negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(1)));
 	/*@
 	@ assignable negative;
-	@ ensures negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(1)));
+	@ ensures stateful(negative.increment());
+	@ ensures \result.equals(this.value());
 	@*/
-	@Override
+	// changed from original: @Override
 	public BigInteger decrement() {
 		this.negative.increment();
 
 		return this.value();
 	}
 
+	// The old post condition: negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(n)));
 	/*@
 	@ requires n >= 0;
 	@ assignable negative;
-	@ ensures negative.value().equals(\old(negative.value()).add(BigInteger.valueOf(n)));
+	@ ensures stateful(negative.increment(n));
+	@ ensures \result.equals(this.value());
 	@*/
-	@Override
+	// changed from original: @Override
 	public BigInteger decrement(@Nonnegative final int n) {
 		Preconditions.checkArgument(n >= 0);
 		
@@ -163,11 +184,12 @@ import com.readytalk.crdt.inject.ClientId;
 		return this.value();
 	}
 
+	// Prevously: \result == o.value().equals(this.value());
+	// The problem was type casting but we conclude we don't need any post conditions in equals method.
 	/*@
 	@ assignable nothing;
-	@ ensures \result == o.value().equals(value());
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean equals(final Object o) {
 		if (!(o instanceof PNCounter)) {
 			return false;
@@ -184,9 +206,9 @@ import com.readytalk.crdt.inject.ClientId;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == value().hashCode();
+	@ ensures \result == this.value().hashCode();
 	@*/
-	@Override
+	// changed from original: @Override
 	public int hashCode() {
 		return this.value().hashCode();
 	}

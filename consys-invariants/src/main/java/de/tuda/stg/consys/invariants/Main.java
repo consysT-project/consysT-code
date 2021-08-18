@@ -23,7 +23,8 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 
-    ProgramConfig config = Examples.DEFAULT_CONFIG;
+    //ProgramConfig config = Examples.DEFAULT_CONFIG;
+    ProgramConfig config = Examples.STATEFUL_CONFIG;
 
     // Set the source file
     Path[] sources = new Path[] {
@@ -37,10 +38,11 @@ public class Main {
             // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
            // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
             //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
-            Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
-            Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java"),
+            //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
+            //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java"),
             //  Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-//            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java")
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
     };
 
     runChecker(config, sources);

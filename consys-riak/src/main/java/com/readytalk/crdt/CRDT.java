@@ -7,8 +7,8 @@ public interface CRDT<S, R extends CRDT<S, R>> {
 	/**
 	 * Merge this CRDT with another of the same type.
 	 */
-	// Chnage from the origin: type of merge output: void -< R
-	void merge(R other);
+	// Chnage from the origin: type of merge output: Void -< R
+	Void merge(R other);
 	
 	/**
 	 * The value of this CRDT.  Should be immutable or a defensive copy.
