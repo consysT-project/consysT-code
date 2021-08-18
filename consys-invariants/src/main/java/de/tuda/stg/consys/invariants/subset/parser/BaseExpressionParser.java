@@ -302,7 +302,13 @@ public class BaseExpressionParser extends ExpressionParser {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkAdd(receiverExpr, argExpr);
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "subtract", "java.math.BigInteger")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      return model.ctx.mkSub(receiverExpr, argExpr);
+    }
+    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return argExpr;
     }
