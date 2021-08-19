@@ -13,21 +13,18 @@ import java.util.Optional;
 
 public class ReplicatedClassModel extends BaseClassModel {
 
-
-
 	// Merge Method
 	protected MergeMethodModel mergeMethod;
 
 
 	public ReplicatedClassModel(ProgramModel model, JmlTypeDeclaration jmlType, boolean initialize) {
 		super(model, jmlType, initialize);
-
-		if (initialize) {
-			initializeMergeMethod();
-		}
 	}
 
-	void initializeMergeMethod() {
+	@Override
+	void initializeMethods() {
+		super.initializeMethods();
+
 		/* Parse merge method */
 		MergeMethodModel mergeMethodTemp = null;
 

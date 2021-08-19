@@ -54,9 +54,6 @@ public class ClassModelFactory {
 
 		for (BaseClassModel classModel : generatedModels) {
 			classModel.initializeMethods();
-			if (classModel instanceof ReplicatedClassModel) {
-				((ReplicatedClassModel) classModel).initializeMergeMethod();
-			}
 		}
 	}
 }

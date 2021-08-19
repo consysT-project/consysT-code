@@ -222,13 +222,27 @@ public class ProgramModel {
 				if (classModel instanceof ReplicatedClassModel) {
 					Logger.info(classModelTypeName(classModel));
 					var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
+
+//					var status = solver.check();
+//					Model z3Model = null;
+//					if (status == Status.SATISFIABLE) {
+//						 z3Model = solver.getModel();
+//					}
+
 					var properties = new ReplicatedClassProperties<>(this, constraints);
-					result = properties.check();
+					result = properties.check(null);
 				} else {
 					Logger.info(classModelTypeName(classModel));
 					var constraints = new BaseClassConstraints<>(this, classModel);
+
+//					var status = solver.check();
+//					Model z3Model = null;
+//					if (status == Status.SATISFIABLE) {
+//						z3Model = solver.getModel();
+//					}
+
 					var properties = new BaseClassProperties<>(this, constraints);
-					result = properties.check();
+					result = properties.check(null);
 				}
 				Logger.info("Result for " + classModelTypeName(classModel) + " " + String.valueOf(binding.shortReadableName()));
 				Logger.withIdentation(() -> {
@@ -258,6 +272,7 @@ public class ProgramModel {
 	public CompilationUnitScope getParserScope() {
 		return compileResult.getParser().compilationUnit.scope;
 	}
+
 
 
 }

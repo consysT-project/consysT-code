@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.ProgramModel;
@@ -13,23 +14,22 @@ import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 public class MergeMethodPreconditionExpressionParser extends MethodExpressionParser {
 
-	private final Expr otherConst;
-
 	public MergeMethodPreconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst);
-		this.otherConst = otherConst;
+
+		addLocalVariable(methodModel.getArgument().binding, otherConst);
 	}
 
-	@Override
-	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
-		Argument mergeArg = getMergeMethod().getArgument();
-
-		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
-			return otherConst;
-		}
-
-		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
-	}
+//	@Override
+//	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
+//		Argument mergeArg = getMergeMethod().getArgument();
+//
+//		if (jmlSingleNameReference.binding.equals(mergeArg.binding)) {
+//			return otherConst;
+//		}
+//
+//		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
+//	}
 
 //	@Override
 //	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {

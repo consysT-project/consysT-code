@@ -105,7 +105,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 			var postCondition = handlePostcondition(methodModel);
 			postconditions.put(methodModel.getBinding(), postCondition);
 
-			// If the method is pure.
+			// Add the constraint that defines the method if it is usable as constraint
 			if (methodModel.usableAsConstraint()) {
 				Expr[] args = methodModel.getArguments().stream()
 						.map(argModel -> argModel.getConst().orElseThrow())

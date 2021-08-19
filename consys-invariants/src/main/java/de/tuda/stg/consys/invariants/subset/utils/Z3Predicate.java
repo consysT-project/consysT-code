@@ -38,7 +38,8 @@ public class Z3Predicate {
 			}
 		}
 
-		return body.substitute(_params.toArray(Expr[]::new), _args.toArray(Expr[]::new));
+		var result = body.substitute(_params.toArray(Expr[]::new), _args.toArray(Expr[]::new));
+		return result;
 	}
 
 	@Override

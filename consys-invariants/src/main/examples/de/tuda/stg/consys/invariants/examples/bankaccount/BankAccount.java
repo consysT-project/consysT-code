@@ -23,11 +23,11 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
     //@ public invariant getValue() >= 0;
 
-
     /* Constructors */
     // Constructors define the initial state of an object.
 
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0 && decs[i] == 0);
+    //@ ensures (\forall int i; true; incs[i] == 0);
+    //@ ensures (\forall int i; true; decs[i] == 0);
     public BankAccount() {
         incs = new int[numOfReplicas()];
         decs = new int[numOfReplicas()];

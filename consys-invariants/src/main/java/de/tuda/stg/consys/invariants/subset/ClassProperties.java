@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.subset;
 import com.google.common.collect.Lists;
 import com.microsoft.z3.BoolSort;
 import com.microsoft.z3.Expr;
+import com.microsoft.z3.Model;
 import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -25,7 +26,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		return constraints.classModel;
 	}
 
-	public CheckResult check() {
+	public CheckResult check(Model z3Model) {
 		List<Property> properties = Lists.newLinkedList();
 		// Populates the list with properties
 		addProperties(properties);
@@ -33,7 +34,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		var result = new CheckResult();
 		for (var prop : properties) {
-			var isValid = prop.check();
+			var isValid = prop.check(z3Model);
 			result.addResult(prop, isValid);
 		}
 
@@ -41,8 +42,10 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 	}
 
 
-	private boolean isValid(Expr<BoolSort> expr) {
+	private boolean isValid(Model z3Model, Expr<BoolSort> expr) {
 		Status status = model.solver.check(model.ctx.mkNot(expr));
+
+
 		switch (status) {
 			case UNSATISFIABLE:
 				return true;
@@ -108,10 +111,10 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 			this.expr = expr;
 		}
 
-		public CheckStatus check() {
+		public CheckStatus check(Model z3Model) {
 			try {
 				Logger.info("Solving " + description() + "...");
-				var result = isValid(expr);
+				var result = isValid(z3Model, expr);
 				Logger.info("Result = " + result /* + "\n" + model.solver.getStatistics() */);
 				return result ? CheckStatus.VALID : CheckStatus.INVALID;
 			} catch (RuntimeException e) {

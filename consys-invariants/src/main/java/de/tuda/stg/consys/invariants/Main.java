@@ -55,6 +55,7 @@ public class Main {
     // Create the program model
     var model = new ProgramModel(compileResult, config);
     model.loadParsedClasses();
+
     // Check the classes
     model.checkAll();
   }

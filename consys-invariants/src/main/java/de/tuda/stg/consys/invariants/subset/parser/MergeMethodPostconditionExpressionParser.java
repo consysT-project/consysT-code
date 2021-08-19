@@ -13,11 +13,10 @@ import org.jmlspecs.jml4.ast.JmlSingleNameReference;
 
 public class MergeMethodPostconditionExpressionParser extends MethodPostconditionExpressionParser {
 
-	private final Expr otherConst;
 
 	public MergeMethodPostconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr oldConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst, oldConst, null);
-		this.otherConst = otherConst;
+		addLocalVariable(methodModel.getArgument().binding, otherConst);
 	}
 
 	public MergeMethodModel getMergeMethod() {
@@ -35,20 +34,20 @@ public class MergeMethodPostconditionExpressionParser extends MethodPostconditio
 //		return super.parseJmlSingleReference(jmlSingleNameReference, depth);
 //	}
 
-	@Override
-	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
-		Argument mergeArg = getMergeMethod().getArgument();
-
-		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {
-			FieldBinding fieldBinding = jmlQualifiedNameReference.otherBindings[0];
-
-			return getClassModel().getField(fieldBinding)
-					.map(field -> field.getAccessor().apply(otherConst))
-					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
-		}
-
-		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
-	}
+//	@Override
+//	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
+//		Argument mergeArg = getMergeMethod().getArgument();
+//
+//		if (jmlQualifiedNameReference.binding.equals(mergeArg.binding)) {
+//			FieldBinding fieldBinding = jmlQualifiedNameReference.otherBindings[0];
+//
+//			return getClassModel().getField(fieldBinding)
+//					.map(field -> field.getAccessor().apply(otherConst))
+//					.orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference));
+//		}
+//
+//		return super.parseJmlQualifiedNameReference(jmlQualifiedNameReference, depth);
+//	}
 
 
 

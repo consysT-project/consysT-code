@@ -67,11 +67,14 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	public Property initialSatisfiesMergability() {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 
-		return new ClassProperty("mergability/initial",
+		var result = new ClassProperty("mergability/initial",
 				model.ctx.mkForall(
 						new Expr[] {s0},
 						model.ctx.mkImplies(
-								constraints.getInitialCondition().apply(s0),
+								model.ctx.mkAnd(
+										constraints.getInitialCondition().apply(s0),
+										constraints.getInvariant().apply(s0)
+								),
 								constraints.getMergePrecondition().apply(s0 ,s0)
 						),
 						1,
@@ -82,6 +85,8 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 				)
 
 		);
+
+		return result;
 	}
 
 
@@ -102,6 +107,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
 										constraints.getInvariant().apply(s1),
+										constraints.getInvariant().apply(s0_new),
 										constraints.getPrecondition(binding).apply(s0),
 										constraints.getMergePrecondition().apply(s0, s1),
 										constraints.getPostcondition(binding).apply(s0, s0_new, null)
@@ -134,6 +140,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
 										constraints.getInvariant().apply(s1),
+										constraints.getInvariant().apply(s0_new),
 										constraints.getMergePrecondition().apply(s0, s1),
 										constraints.getMergePostcondition().apply(s0, s1, s0_new)
 								),

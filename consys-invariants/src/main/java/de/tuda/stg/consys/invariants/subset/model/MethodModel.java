@@ -103,7 +103,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
 	public boolean hasPrecondition() {
 		var maybePrecond = getJmlPrecondition();
-		return maybePrecond.isPresent() && !maybePrecond.stream().anyMatch(cond -> cond instanceof TrueLiteral);
+		return maybePrecond.isPresent() && maybePrecond.stream().noneMatch(cond -> cond instanceof TrueLiteral);
 	}
 
 	public boolean usableAsConstraint() {
