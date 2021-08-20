@@ -35,7 +35,7 @@ import com.google.common.collect.Sets;
 
 	};
 
-	//@ ensures delegate.size() == 0;
+	//@ ensures this.delegate.isEmpty();
 	@Inject
 	public GSet(final ObjectMapper mapper) {
 		serializer = mapper;
