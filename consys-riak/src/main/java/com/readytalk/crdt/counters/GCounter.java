@@ -97,7 +97,7 @@ import java.lang.String;
 	@ ensures clientId.equals(\old(clientId));
 	@*/
 	// changed from original: @Override
-	public Void merge(final GCounter other) { // Change from the origin: void <- GCounter
+	public Void merge(final GCounter other) { // Change from the origin: Void <- GCounter
 		Map<String, BigInteger> retmap = Maps
 				.newHashMapWithExpectedSize(Math.max(payload.size(), other.payload.size()));
 		retmap.putAll(payload);

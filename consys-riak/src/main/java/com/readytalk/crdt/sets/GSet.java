@@ -63,13 +63,13 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result.equals(delegate);
 	@*/
-	@Override
+	// changed from original: @Override
 	protected Set<E> delegate() {
 		return delegate;
 	}
 
 	//@ requires false;
-	@Override
+	// changed from original: @Override
 	public void clear() {
 		throw new UnsupportedOperationException();
 
@@ -77,25 +77,25 @@ import com.google.common.collect.Sets;
 
 
 	// No annotations I think...
-	@Override
+	// changed from original: @Override
 	public Iterator<E> iterator() {
 		return Iterators.unmodifiableIterator(super.iterator());
 	}
 
 	//@ requires false;
-	@Override
+	// changed from original: @Override
 	public boolean remove(final Object o) {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	@Override
+	// changed from original: @Override
 	public boolean removeAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	@Override
+	// changed from original: @Override
 	public boolean retainAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
@@ -104,27 +104,28 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E val; \old(delegate.contains(val)) || other.delegate.contains(val); delegate.contains(val));
 	@ ensures (\forall E val; delegate.contains(val); \old(delegate.contains(val)) || other.delegate.contains(val));
 	@*/
-	@Override
-	public GSet<E> merge(final GSet<E> other) {
+	// changed from original: @Override
+	public Void merge(final GSet<E> other) { // Change from the origin: Void <- GSet<E>
 		Set<E> retval = Sets.newLinkedHashSet();
 
 		retval.addAll(delegate);
 		retval.addAll(other.delegate);
 
-		return new GSet<E>(serializer, retval);
+		// this merge function had GSet<E> output type.
+		//return new GSet<E>(serializer, retval);
 	}
 
 	/*@
 	@ assignable \nothing;
 	@ ensures \result.equals(ImmutableSet.copyOf(delegate));
 	@*/
-	@Override
+	// changed from original: @Override
 	public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(delegate);
 	}
 
 	// No annotations needed
-	@Override
+	// changed from original: @Override
 	public byte[] payload() {
 		try {
 			return serializer.writeValueAsBytes(delegate);
@@ -138,7 +139,7 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result == delegate.contains(object);
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean contains(final Object object) {
 		checkNotNull(object);
 
@@ -152,7 +153,7 @@ import com.google.common.collect.Sets;
     @ ensures (\forall E elem; delegate.contains(elem) && elem.equals(element) == false; \old(delegate.contains(elem)));
     @ ensures \result == !(\old(delegate.contains(element)));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean add(final E element) {
 		checkNotNull(element);
 
@@ -162,7 +163,7 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; collection.contains(elem); delegate.contains(elem));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean containsAll(final Collection<?> collection) {
 		checkCollectionDoesNotContainNull(collection);
 
@@ -176,7 +177,7 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
 	@ ensures \result == !(\forall E elem; collection.contains(elem); \old(delegate.contains(elem)));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean addAll(final Collection<? extends E> collection) {
 		checkCollectionDoesNotContainNull(collection);
 

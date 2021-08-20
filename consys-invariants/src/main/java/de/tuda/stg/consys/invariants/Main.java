@@ -41,8 +41,9 @@ public class Main {
             //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
             //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java"),
             //  Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
+            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
+            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java")
     };
 
     runChecker(config, sources);
