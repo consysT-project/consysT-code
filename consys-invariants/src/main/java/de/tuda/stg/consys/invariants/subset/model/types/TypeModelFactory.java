@@ -117,7 +117,6 @@ public class TypeModelFactory {
 			/* rest */
 			else if (typeBinding instanceof MissingTypeBinding) {
 				Logger.warn("missing type binding: " + typeBinding.debugName());
-//				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
 				return new MissingModel(model, (MissingTypeBinding) typeBinding);
 			}
 			return modelForRef(refBinding);
