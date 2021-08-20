@@ -77,7 +77,8 @@ public class TypeModelFactory {
 			} else {
 				return new EmptyModel(model, "incompatible array element type in " + typeBinding);
 			}
-
+		} else if (typeBinding instanceof TypeVariableBinding) {
+			return typeFor(((TypeVariableBinding) typeBinding).superclass);
 		} else if (typeBinding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
@@ -115,8 +116,9 @@ public class TypeModelFactory {
 			}
 			/* rest */
 			else if (typeBinding instanceof MissingTypeBinding) {
-				Logger.err("missing type binding: " + typeBinding);
-				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
+				Logger.err("missing type binding: " + typeBinding.debugName());
+//				throw new IllegalArgumentException("unsupported type binding: " + typeBinding);
+				return new MissingModel(model, (MissingTypeBinding) typeBinding);
 			}
 			return modelForRef(refBinding);
 		} else {

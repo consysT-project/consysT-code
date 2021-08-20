@@ -106,9 +106,7 @@ public class BaseClassModel {
 			FieldModel field = this.classFields[i];
 			fieldNames[i] = field.getName();
 			fieldSorts[i] = field.getType().getSort()
-					.orElseThrow(
-							() -> new IllegalArgumentException("field type cannot be translated to z3: " + field)
-					);
+					.orElseThrow(() -> new IllegalArgumentException("field type cannot be translated to z3: " + field));
 		}
 
 		var sortName = model.config.SOLVER__SIMPLE_NAMES ?
