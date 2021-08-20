@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.subset.model;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
 import org.jmlspecs.jml4.ast.*;
@@ -27,8 +28,16 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 			var argSorts = argTypes.stream().map(TypeModel::toSort).toArray(Sort[]::new);
 			var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort());
 
-			funcState = model.ctx.mkFreshFuncDecl(getName() + "_state", argSortsAndThis, clazz.getClassSort());
-			funcValue = model.ctx.mkFreshFuncDecl(getName() + "_value", argSortsAndThis, retType.toSort());
+			var methodNamePrefix = model.config.SOLVER__SIMPLE_NAMES ?
+					JDTUtils.simpleNameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector) :
+					JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
+
+			var stateMethodName = methodNamePrefix + "_STATE";
+			var valueMethodName = model.config.SOLVER__SIMPLE_NAMES ?
+					methodNamePrefix : methodNamePrefix + "_VALUE";
+
+			funcState = model.ctx.mkFreshFuncDecl(stateMethodName, argSortsAndThis, clazz.getClassSort());
+			funcValue = model.ctx.mkFreshFuncDecl(valueMethodName, argSortsAndThis, retType.toSort());
 
 		} else {
 			funcState = null;

@@ -111,8 +111,12 @@ public class BaseClassModel {
 					);
 		}
 
+		var sortName = model.config.SOLVER__SIMPLE_NAMES ?
+				this.model.ctx.mkSymbol("T_" + JDTUtils.simpleNameOfClass(getBinding())) :
+				this.model.ctx.mkSymbol("T_CLASS_" + getClassName());
+
 		this.classSort = this.model.ctx.mkTupleSort(
-				this.model.ctx.mkSymbol("T_class_" + getClassName()),
+				sortName,
 				Z3Utils.mkSymbols(this.model.ctx, fieldNames), fieldSorts);
 
 		FuncDecl<?>[] accessors = classSort.getFieldDecls();

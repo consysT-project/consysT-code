@@ -48,7 +48,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 	}
 
 	public String getName() {
-		return String.valueOf(JDTUtils.nameOfClass(method.binding.declaringClass)) + "." + String.valueOf(method.binding.selector);
+		return JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
 	}
 
 	public MethodBinding getBinding() {
