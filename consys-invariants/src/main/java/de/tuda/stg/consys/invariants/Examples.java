@@ -10,6 +10,7 @@ public class Examples {
 	public static final ProgramConfig DEFAULT_CONFIG = new ProgramConfig(
 			false,
 			false,
+			true,
 			1,
 			"replica-01",
 			3
@@ -18,6 +19,7 @@ public class Examples {
 	public static final ProgramConfig STATEFUL_CONFIG = new ProgramConfig(
 			true,
 			false,
+			true,
 			1,
 			"replica-01",
 			3

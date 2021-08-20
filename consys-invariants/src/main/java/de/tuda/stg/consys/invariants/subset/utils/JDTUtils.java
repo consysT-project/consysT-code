@@ -32,6 +32,10 @@ public class JDTUtils {
 		return Arrays.stream(refBinding.compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
 	}
 
+	public static String simpleNameOfClass(ReferenceBinding refBinding) {
+		return String.valueOf(refBinding.shortReadableName());
+	}
+
 	public static boolean typeIsSubtypeOfName(TypeBinding binding, String typeName) {
 		if (binding == null)
 			throw new NullPointerException("binding was null");
