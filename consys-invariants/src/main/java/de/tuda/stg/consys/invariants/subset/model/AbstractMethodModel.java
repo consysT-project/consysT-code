@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;

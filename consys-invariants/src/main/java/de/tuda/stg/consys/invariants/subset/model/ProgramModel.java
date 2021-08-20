@@ -1,19 +1,20 @@
-package de.tuda.stg.consys.invariants.subset;
+package de.tuda.stg.consys.invariants.subset.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.microsoft.z3.*;
+import com.microsoft.z3.Context;
+import com.microsoft.z3.Solver;
 import de.tuda.stg.consys.invariants.CompilerBinding;
-import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
-import de.tuda.stg.consys.invariants.subset.model.ClassModelFactory;
-import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
+import de.tuda.stg.consys.invariants.subset.*;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -165,8 +166,6 @@ public class ProgramModel {
 	public final Context ctx;
 	public final Solver solver;
 
-	public final ClassModelFactory classes;
-
 	public final TypeModelFactory types;
 
 	private final CompilerBinding.CompileResult compileResult;
@@ -175,6 +174,9 @@ public class ProgramModel {
 
 	// Stores all class models
 	private final Map<ReferenceBinding, BaseClassModel> models;
+	// Stores all class properties
+	private final Map<ReferenceBinding, BaseClassConstraints<?>> constraints;
+
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
@@ -190,9 +192,9 @@ public class ProgramModel {
 
 		this.compileResult = compileResult;
 		this.types = new TypeModelFactory(this);
-		this.classes = new ClassModelFactory(this);
 
 		this.models = Maps.newHashMap();
+		this.constraints = Maps.newHashMap();
 		this.modelSequence = Lists.newLinkedList();
 	}
 
@@ -206,8 +208,12 @@ public class ProgramModel {
 				compileResult, config);
 	}
 
-	public Optional<BaseClassModel> getModelForClass(ReferenceBinding refBinding) {
+	public Optional<BaseClassModel> getClassModel(ReferenceBinding refBinding) {
 		return Optional.ofNullable(models.getOrDefault(refBinding, null));
+	}
+
+	public Optional<BaseClassConstraints<?>> getClassConstraints(ReferenceBinding refBinding) {
+		return Optional.ofNullable(constraints.getOrDefault(refBinding, null));
 	}
 
 	public void checkAll() {
@@ -221,27 +227,13 @@ public class ProgramModel {
 				ClassProperties.CheckResult result;
 				if (classModel instanceof ReplicatedClassModel) {
 					Logger.info(classModelTypeName(classModel));
-					var constraints = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
-
-//					var status = solver.check();
-//					Model z3Model = null;
-//					if (status == Status.SATISFIABLE) {
-//						 z3Model = solver.getModel();
-//					}
-
-					var properties = new ReplicatedClassProperties<>(this, constraints);
+					var constraint = constraints.get(classModel.getBinding());
+					var properties = new ReplicatedClassProperties(this, (ReplicatedClassConstraints) constraint);
 					result = properties.check(null);
 				} else {
 					Logger.info(classModelTypeName(classModel));
-					var constraints = new BaseClassConstraints<>(this, classModel);
-
-//					var status = solver.check();
-//					Model z3Model = null;
-//					if (status == Status.SATISFIABLE) {
-//						z3Model = solver.getModel();
-//					}
-
-					var properties = new BaseClassProperties<>(this, constraints);
+					var constraint = constraints.get(classModel.getBinding());
+					var properties = new BaseClassProperties<>(this, constraint);
 					result = properties.check(null);
 				}
 				Logger.info("Result for " + classModelTypeName(classModel) + " " + String.valueOf(binding.shortReadableName()));
@@ -262,14 +254,58 @@ public class ProgramModel {
 	// Loads the parsed classes into this program model.
 	public void loadParsedClasses() {
 		List<JmlTypeDeclaration> declarations = compileResult.getTypes();
+		List<BaseClassModel> generatedModels = Lists.newLinkedList();
 
-		classes.generateModelForClasses(declarations, (classModel) -> {
+		/* Create class models */
+		for (var jmlType : declarations) {
+			if (jmlType.annotations != null) {
+				var hasDataModelAnnotation = Arrays.stream(jmlType.annotations)
+						.anyMatch(anno -> JDTUtils.typeIsTypeOfName(anno.resolvedType, "de.tuda.stg.consys.annotations.invariants.DataModel"));
+				var hasReplicatedModelAnnotation = Arrays.stream(jmlType.annotations)
+						.anyMatch(anno -> JDTUtils.typeIsTypeOfName(anno.resolvedType, "de.tuda.stg.consys.annotations.invariants.ReplicatedModel"));
+
+				BaseClassModel classModel = null;
+
+				if (hasDataModelAnnotation) {
+					classModel = new BaseClassModel(this, jmlType, false);
+				} else if (hasReplicatedModelAnnotation) {
+					classModel = new ReplicatedClassModel(this, jmlType, false);
+				}
+
+				if (classModel != null) {
+					generatedModels.add(classModel);
+					continue;
+				}
+			}
+			Logger.warn("class is not part of the constraints model: " + String.valueOf(jmlType.name));
+		}
+
+		for (var classModel : generatedModels) {
+			classModel.initializeFields();
+			classModel.initializeSort();
 			models.put(classModel.getBinding(), classModel);
 			modelSequence.add(classModel.getBinding());
-		});
+		}
+
+		for (var classModel : generatedModels) {
+			classModel.initializeMethods();
+		}
+
+		/* Create class properties */
+		for (var classModel : generatedModels) {
+			// Parse the z3 model from AST.
+			if (classModel instanceof ReplicatedClassModel) {
+				var constraint = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
+				constraints.put(classModel.getBinding(), constraint);
+			} else {
+				var constraint = new BaseClassConstraints<>(this, classModel);
+				constraints.put(classModel.getBinding(), constraint);
+			}
+		}
 	}
 
 	public CompilationUnitScope getParserScope() {
+		//TODO: Can we change this to take the correct compilation unit?
 		return compileResult.getParser().compilationUnit.scope;
 	}
 

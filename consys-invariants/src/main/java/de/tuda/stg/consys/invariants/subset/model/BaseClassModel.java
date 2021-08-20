@@ -5,7 +5,6 @@ import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.TupleSort;
 import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
@@ -32,17 +31,21 @@ public class BaseClassModel {
 	protected final JmlTypeDeclaration jmlType;
 
 	// Stores all virtual fields of the class
-	protected FieldModel[] classFields;
+	private FieldModel[] classFields;
 	// Stores all static final fields as constants for usage in formulas
-	protected ConstantModel[] classConstants;
+	private ConstantModel[] classConstants;
 
 	// Methods
-	protected MethodModel[] classMethods;
+	private MethodModel[] classMethods;
 	// Constructors
-	protected ConstructorModel[] classConstructors;
+	private ConstructorModel[] classConstructors;
 
 	// Z3 Sort to represent states of this class.
 	private TupleSort classSort;
+
+	private boolean fieldsInitialized = false;
+	private boolean sortInitialized = false;
+	private boolean methodsInitialized = false;
 
 
 	public BaseClassModel(ProgramModel model, JmlTypeDeclaration jmlType, boolean initialize) {
@@ -90,6 +93,8 @@ public class BaseClassModel {
 
 		this.classMethods = classMethods.toArray(MethodModel[]::new);
 		this.classConstructors = classConstructors.toArray(ConstructorModel[]::new);
+
+		methodsInitialized = true;
 	}
 
 	void initializeSort() {
@@ -114,6 +119,8 @@ public class BaseClassModel {
 		for (int i = 0; i < this.classFields.length; i++) {
 			this.classFields[i].initAccessor(accessors[i]);
 		}
+
+		sortInitialized = true;
 	}
 
 	void initializeFields() {
@@ -150,6 +157,8 @@ public class BaseClassModel {
 		}
 		this.classFields = classFieldsTemp.toArray(FieldModel[]::new);
 		this.classConstants = classConstantsTemp.toArray(ConstantModel[]::new);
+
+		fieldsInitialized = true;
 	}
 
 	public SourceTypeBinding getBinding() {
@@ -160,32 +169,52 @@ public class BaseClassModel {
 		return JDTUtils.nameOfClass(jmlType.binding);
 	}
 
+	private FieldModel[] getClassFields() {
+		if (!fieldsInitialized) throw new IllegalStateException("fields have not been initialized");
+		return classFields;
+	};
+	// Stores all static final fields as constants for usage in formulas
+	private ConstantModel[] getClassConstants() {
+		if (!fieldsInitialized) throw new IllegalStateException("fields have not been initialized");
+		return classConstants;
+	}
+
+	private MethodModel[] getClassMethods() {
+		if (!methodsInitialized) throw new IllegalStateException("methods have not been initialized");
+		return classMethods;
+	}
+
+	private ConstructorModel[] getClassConstructors() {
+		if (!methodsInitialized) throw new IllegalStateException("methods have not been initialized");
+		return classConstructors;
+	}
+
 	public Optional<FieldModel> getField(Reference fieldRef) {
-		return Z3Utils.findReferenceInArray(classFields, fieldRef, FieldModel::getBinding);
+		return Z3Utils.findReferenceInArray(getClassFields(), fieldRef, FieldModel::getBinding);
 	}
 
 	public Optional<FieldModel> getField(FieldBinding binding) {
-		return Z3Utils.findBindingInArray(classFields, binding, FieldModel::getBinding);
+		return Z3Utils.findBindingInArray(getClassFields(), binding, FieldModel::getBinding);
 	}
 
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
-		return Z3Utils.findBindingInArray(classMethods, binding, AbstractMethodModel::getBinding);
+		return Z3Utils.findBindingInArray(getClassMethods(), binding, AbstractMethodModel::getBinding);
 	}
 
 	public Optional<ConstantModel> getConstant(Reference constantRef) {
-		return Z3Utils.findReferenceInArray(classConstants, constantRef, ConstantModel::getBinding);
+		return Z3Utils.findReferenceInArray(getClassConstants(), constantRef, ConstantModel::getBinding);
 	}
 
 	public Iterable<MethodModel> getMethods() {
-		return Arrays.asList(classMethods);
+		return Arrays.asList(getClassMethods());
 	}
 
 	public Iterable<ConstructorModel> getConstructors() {
-		return Arrays.asList(classConstructors);
+		return Arrays.asList(getClassConstructors());
 	}
 
 	public Iterable<FieldModel> getFields() {
-		return Arrays.asList(classFields);
+		return Arrays.asList(getClassFields());
 	}
 
 	public JmlTypeDeclaration getJmlType() {
@@ -194,6 +223,7 @@ public class BaseClassModel {
 
 
 	public TupleSort getClassSort() {
+		if (!sortInitialized) throw new IllegalStateException("sort has not been initialized");
 		return classSort;
 	}
 

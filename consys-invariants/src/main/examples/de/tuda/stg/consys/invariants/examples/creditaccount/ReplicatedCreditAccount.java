@@ -16,6 +16,8 @@ public class ReplicatedCreditAccount {
     //@ public invariant getValue() >= 0;
 
     //@ ensures getValue() == 0;
+    //@ ensures (\forall int i; true; credits.incs[i] == 0);
+    //@ ensures (\forall int i; true; credits.decs[i] == 0);
     public ReplicatedCreditAccount() {
         credits = new ReplicatedCounter();
     }
@@ -38,14 +40,14 @@ public class ReplicatedCreditAccount {
 
     //@ requires 0 <= val && val <= getValue();
     //@ assignable credits;
-    //@ ensures stateful( credits.increment(val) );
+    //@ ensures stateful( credits.decrement(val) );
     public void withdraw(int val) {
         if (val > getValue()) throw new IllegalArgumentException();
-        credits.increment(val);
+        credits.decrement(val);
     }
 
     /* Merge method */
-    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.values[i], other.credits.values[i])) >= 0;
+    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incs[i], other.credits.incs[i])) -  (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.decs[i], other.credits.decs[i])) >= 0;
     //@ ensures stateful( credits.merge(other.credits) );
     public void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);

@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.google.common.collect.Maps;
 import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;

@@ -6,6 +6,8 @@ import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.types.ObjectModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
@@ -26,6 +28,8 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	/** The invariant of the class */
 	private final InvariantModel invariant;
+	/** The invariants of all fields of the class */
+	private final FieldInvariantModel fieldInvariant;
 	/** The initial predicate of the class */
 	private final InitialConditionModel initial;
 
@@ -36,9 +40,16 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 
 	/* Helper classes for predicate models. */
+	/** Handles the user-defined invariant */
 	public static class InvariantModel extends Z3Predicate1 {
 		InvariantModel(Expr thisConst, Expr body) {
 			super("I", thisConst, body);
+		}
+	}
+
+	public static class FieldInvariantModel extends Z3Predicate1 {
+		FieldInvariantModel(Expr thisConst, Expr body) {
+			super("I_fields", thisConst, body);
 		}
 	}
 
@@ -92,6 +103,30 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
 
 		invariant = new InvariantModel(invariantVar, invariantExpr);
+
+		// Setup the field invariants
+		Expr fieldInvariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
+		Expr fieldInvariantExpr = model.ctx.mkTrue();
+		for (var fieldModel : classModel.getFields()) {
+			if (fieldModel.getType() instanceof ObjectModel) {
+				var refBinding = ((ObjectModel) fieldModel.getType()).getRefBinding();
+				var mbFieldConstraints = model.getClassConstraints(refBinding);
+				if (mbFieldConstraints.isEmpty()) {
+					Logger.warn("cannot get constraints for class " + classModel.getClassName());
+					continue;
+				}
+				var fieldConstraints = mbFieldConstraints.get();
+				fieldInvariantExpr = model.ctx.mkAnd(fieldInvariantExpr,
+						// Add the invariant of the field
+						fieldConstraints.getInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar)),
+						// and all the field invariants
+						fieldConstraints.getFieldInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar))
+				).simplify();
+
+			}
+		}
+		fieldInvariant = new FieldInvariantModel(fieldInvariantVar, fieldInvariantExpr);
+
 
 		// Setup the initial condition
 		initial = handleInitialConditions(classModel);
@@ -208,6 +243,10 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	public InvariantModel getInvariant() {
 		return invariant;
+	}
+
+	public FieldInvariantModel getFieldInvariant() {
+		return fieldInvariant;
 	}
 
 	public InitialConditionModel getInitialCondition() { return initial; }

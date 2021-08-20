@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 
@@ -16,6 +16,11 @@ public class ObjectModel extends BaseTypeModel<Sort> {
 		this.backUpSort = Lazy.make(() -> model.ctx.mkUninterpretedSort("T_class_unresolved_" + String.valueOf(refBinding.shortReadableName())));
 	}
 
+
+	public ReferenceBinding getRefBinding() {
+		return refBinding;
+	}
+
 	@Override
 	public boolean hasSort() {
 		return true;
@@ -23,7 +28,7 @@ public class ObjectModel extends BaseTypeModel<Sort> {
 
 	@Override
 	public Sort toSort() {
-		var maybeModel = model.getModelForClass(refBinding);
+		var maybeModel = model.getClassModel(refBinding);
 
 		if (maybeModel.isPresent()) {
 			return maybeModel.get().getClassSort();

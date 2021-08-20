@@ -4,10 +4,8 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
-import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import org.apache.tools.ant.taskdefs.Local;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.LocalVariableBinding;
@@ -216,7 +214,7 @@ public class BaseExpressionParser extends ExpressionParser {
     if (!(fieldReference.receiverType instanceof ReferenceBinding))
       return super.parseJmlFieldReference(fieldReference, depth);
 
-    var mbClassModel = model.getModelForClass((ReferenceBinding) fieldReference.receiverType);
+    var mbClassModel = model.getClassModel((ReferenceBinding) fieldReference.receiverType);
     if (mbClassModel.isEmpty())
       return super.parseJmlFieldReference(fieldReference, depth);
 
@@ -363,7 +361,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
     /* Handle call to method from a class in the data model */
     var maybeMethodModel = model
-            .getModelForClass(methodBinding.declaringClass)
+            .getClassModel(methodBinding.declaringClass)
             .flatMap(cls -> cls.getMethod(methodBinding));
 
 //            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model, or method is unsupported"));
@@ -566,9 +564,9 @@ public class BaseExpressionParser extends ExpressionParser {
     var result = receiverExpr;
     var qualifiedFields = jmlQualifiedNameReference.otherBindings;
     for (FieldBinding fieldBinding : qualifiedFields) {
-      var fieldModel = model.getModelForClass(fieldBinding.declaringClass)
+      var fieldModel = model.getClassModel(fieldBinding.declaringClass)
               .flatMap(namedClass -> namedClass.getField(fieldBinding))
-              .orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in named class"));
+              .orElseThrow(() -> new UnsupportedJMLExpression(jmlQualifiedNameReference, "field not in named class: " + fieldBinding));
 
       result = fieldModel.getAccessor().apply(result);
     }

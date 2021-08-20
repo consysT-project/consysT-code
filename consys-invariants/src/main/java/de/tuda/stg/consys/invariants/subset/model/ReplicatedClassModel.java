@@ -1,11 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import de.tuda.stg.consys.invariants.subset.Logger;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
@@ -15,6 +11,8 @@ public class ReplicatedClassModel extends BaseClassModel {
 
 	// Merge Method
 	protected MergeMethodModel mergeMethod;
+
+	private boolean mergeIsInitialized = false;
 
 
 	public ReplicatedClassModel(ProgramModel model, JmlTypeDeclaration jmlType, boolean initialize) {
@@ -57,19 +55,23 @@ public class ReplicatedClassModel extends BaseClassModel {
 		}
 
 		this.mergeMethod = mergeMethodTemp;
+
+		mergeIsInitialized = true;
 	}
+
+
 
 	@Override
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
-		//TODO: Is there any special case that we have to note here?
-		if (binding == mergeMethod.getBinding()) {
-			return Optional.of(mergeMethod);
+		if (binding == getMergeMethod().getBinding()) {
+			return Optional.of(getMergeMethod());
 		}
 
 		return super.getMethod(binding);
 	}
 
 	public MergeMethodModel getMergeMethod() {
+		if (!mergeIsInitialized) throw new IllegalStateException("merge has not been initialized");
 		return mergeMethod;
 	}
 

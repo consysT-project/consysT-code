@@ -7,7 +7,7 @@ import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.FieldModel;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;

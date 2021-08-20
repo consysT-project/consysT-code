@@ -3,10 +3,8 @@ package de.tuda.stg.consys.invariants.subset.parser;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
-import de.tuda.stg.consys.invariants.subset.model.ArgumentModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
-import org.jmlspecs.jml4.ast.JmlSingleNameReference;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
 /**
  * Parser for parsing expression inside of methods.

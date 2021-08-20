@@ -1,8 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
 public class MergeMethodModel extends MethodModel {

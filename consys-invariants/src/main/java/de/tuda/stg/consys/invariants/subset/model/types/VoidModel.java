@@ -1,9 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
-import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
-import com.microsoft.z3.Symbol;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
 public class VoidModel extends BaseTypeModel<Sort> {
 

@@ -4,7 +4,7 @@ import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ConstructorModel;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.ThisReference;
 import org.jmlspecs.jml4.ast.JmlFieldReference;
 

@@ -3,7 +3,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
 public class MethodPreconditionExpressionParser extends MethodExpressionParser {
 

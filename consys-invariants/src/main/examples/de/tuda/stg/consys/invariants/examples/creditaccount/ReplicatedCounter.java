@@ -8,34 +8,49 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 @ReplicatedModel
 public class ReplicatedCounter {
 
-	public int[] values;
+	public int[] incs;
+	public int[] decs;
 
-	//@ ensures (\forall int i; true; values[i] == 0);
+	//@ public invariant (\forall int i; true; incs[i] >= 0);
+
+	//@ ensures (\forall int i; true; incs[i] == 0);
+	//@ ensures (\forall int i; true; decs[i] == 0);
 	public ReplicatedCounter() {
-		this.values = new int[numOfReplicas()];
+		this.incs = new int[numOfReplicas()];
+		this.decs = new int[numOfReplicas()];
 	}
 
 	//@ assignable \nothing;
-	//@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); values[i]);
+	//@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]) - (\sum int i; i >= 0 && i < numOfReplicas(); decs[i]);
 	public int getValue() {
 		int sum = 0;
-		for (int v : values) sum += v;
+		for (int v : incs) sum += v;
+		for (int v : decs) sum -= v;
 		return sum;
 	}
 
 	//@ requires val >= 0;
-	//@ assignable values[replicaId()];
-	//@ ensures values[replicaId()] == \old(values[replicaId()]) + val;
+	//@ assignable incs[replicaId()];
+	//@ ensures incs[replicaId()] == \old(incs[replicaId()]) + val;
 	public Void increment(int val) {
 		if (val < 0) throw new IllegalArgumentException();
-		values[replicaId()] += val;
+		incs[replicaId()] += val;
 		return null;
 	}
 
-	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); values[i] == Math.max(\old(values[i]), other.values[i]));
+	//@ requires val >= 0;
+	//@ assignable decs[replicaId()];
+	//@ ensures decs[replicaId()] == \old(decs[replicaId()]) + val;
+	public Void decrement(int val) {
+		if (val < 0) throw new IllegalArgumentException();
+		decs[replicaId()] += val;
+		return null;
+	}
+
+	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == Math.max(\old(incs[i]), other.incs[i]) && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
 	public Void merge(ReplicatedCounter other) {
 		for (int i = 0; i < numOfReplicas(); i++) {
-			values[i] = Math.max(values[i], other.values[i]);
+			incs[i] = Math.max(incs[i], other.incs[i]);
 		}
 		return null;
 	}

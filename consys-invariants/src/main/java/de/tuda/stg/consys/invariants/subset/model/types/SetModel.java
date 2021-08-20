@@ -1,9 +1,8 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
-import com.microsoft.z3.ArraySort;
 import com.microsoft.z3.SetSort;
 import com.microsoft.z3.Sort;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;
 
 public class SetModel<VSort extends Sort, VType extends TypeModel<VSort>> extends BaseTypeModel<SetSort<VSort>> {

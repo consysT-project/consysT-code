@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants;
 
 import de.tuda.stg.consys.invariants.subset.ProgramConfig;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 
 import java.io.IOException;
 import java.nio.file.Path;

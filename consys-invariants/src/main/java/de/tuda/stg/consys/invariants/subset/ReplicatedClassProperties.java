@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
@@ -45,7 +46,9 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
+										constraints.getFieldInvariant().apply(s0),
 										constraints.getInvariant().apply(s1),
+										constraints.getFieldInvariant().apply(s1),
 										constraints.getMergePrecondition().apply(s0, s1),
 										constraints.getMergePostcondition().apply(s0, s1, s0_new)
 								),
@@ -73,7 +76,8 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInitialCondition().apply(s0),
-										constraints.getInvariant().apply(s0)
+										constraints.getInvariant().apply(s0),
+										constraints.getFieldInvariant().apply(s0)
 								),
 								constraints.getMergePrecondition().apply(s0 ,s0)
 						),
@@ -106,8 +110,11 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
+										constraints.getFieldInvariant().apply(s0),
 										constraints.getInvariant().apply(s1),
+										constraints.getFieldInvariant().apply(s1),
 										constraints.getInvariant().apply(s0_new),
+										constraints.getFieldInvariant().apply(s0_new),
 										constraints.getPrecondition(binding).apply(s0),
 										constraints.getMergePrecondition().apply(s0, s1),
 										constraints.getPostcondition(binding).apply(s0, s0_new, null)
@@ -139,8 +146,11 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
+										constraints.getFieldInvariant().apply(s0),
 										constraints.getInvariant().apply(s1),
+										constraints.getFieldInvariant().apply(s1),
 										constraints.getInvariant().apply(s0_new),
+										constraints.getFieldInvariant().apply(s0_new),
 										constraints.getMergePrecondition().apply(s0, s1),
 										constraints.getMergePostcondition().apply(s0, s1, s0_new)
 								),

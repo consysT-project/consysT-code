@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.subset.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.Argument;
 import org.eclipse.jdt.internal.compiler.lookup.LocalVariableBinding;
 
