@@ -222,7 +222,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
     Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
 
-    var mbField = classModel.getField(fieldReference);
+    var mbField = classModel.getField(fieldReference.fieldBinding());
     if (mbField.isEmpty())
       return super.parseJmlFieldReference(fieldReference, depth);
 

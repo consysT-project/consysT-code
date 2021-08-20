@@ -209,11 +209,11 @@ public class ProgramModel {
 	}
 
 	public Optional<BaseClassModel> getClassModel(ReferenceBinding refBinding) {
-		return Optional.ofNullable(models.getOrDefault(refBinding, null));
+		return Optional.ofNullable(models.getOrDefault(JDTUtils.erase(refBinding), null));
 	}
 
 	public Optional<BaseClassConstraints<?>> getClassConstraints(ReferenceBinding refBinding) {
-		return Optional.ofNullable(constraints.getOrDefault(refBinding, null));
+		return Optional.ofNullable(constraints.getOrDefault(JDTUtils.erase(refBinding), null));
 	}
 
 	public void checkAll() {
@@ -283,8 +283,8 @@ public class ProgramModel {
 		for (var classModel : generatedModels) {
 			classModel.initializeFields();
 			classModel.initializeSort();
-			models.put(classModel.getBinding(), classModel);
-			modelSequence.add(classModel.getBinding());
+			models.put(JDTUtils.erase(classModel.getBinding()), classModel);
+			modelSequence.add(JDTUtils.erase(classModel.getBinding()));
 		}
 
 		for (var classModel : generatedModels) {
@@ -296,10 +296,10 @@ public class ProgramModel {
 			// Parse the z3 model from AST.
 			if (classModel instanceof ReplicatedClassModel) {
 				var constraint = new ReplicatedClassConstraints<>(this, (ReplicatedClassModel) classModel);
-				constraints.put(classModel.getBinding(), constraint);
+				constraints.put(JDTUtils.erase(classModel.getBinding()), constraint);
 			} else {
 				var constraint = new BaseClassConstraints<>(this, classModel);
-				constraints.put(classModel.getBinding(), constraint);
+				constraints.put(JDTUtils.erase(classModel.getBinding()), constraint);
 			}
 		}
 	}

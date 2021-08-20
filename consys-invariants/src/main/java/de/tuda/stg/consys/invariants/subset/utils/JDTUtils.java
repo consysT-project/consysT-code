@@ -1,14 +1,19 @@
 package de.tuda.stg.consys.invariants.subset.utils;
 
 import de.tuda.stg.consys.invariants.subset.Logger;
-import org.eclipse.jdt.internal.compiler.lookup.BaseTypeBinding;
-import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
-import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
-import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
+import org.eclipse.jdt.internal.compiler.lookup.*;
 
 import java.util.Arrays;
 
 public class JDTUtils {
+
+	public static FieldBinding erase(FieldBinding binding) {
+		return binding.original();
+	}
+
+	public static ReferenceBinding erase(ReferenceBinding binding) {
+		return (ReferenceBinding) binding.original();
+	}
 
 	/**
 	 *

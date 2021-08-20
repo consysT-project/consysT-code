@@ -40,14 +40,14 @@ public class ClassExpressionParser extends BaseExpressionParser {
 
 	@Override
 	protected Expr parseJmlSingleReference(JmlSingleNameReference jmlSingleNameReference, int depth) {
-		Optional<Expr> constantExpr = classModel.getConstant(jmlSingleNameReference)
+		Optional<Expr> constantExpr = classModel.getConstant(jmlSingleNameReference.fieldBinding())
 				.map(cons -> cons.getValue());
 
 		if (constantExpr.isPresent()) {
 			return constantExpr.get();
 		}
 
-		Optional<Expr> fieldExpr = classModel.getField(jmlSingleNameReference)
+		Optional<Expr> fieldExpr = classModel.getField(jmlSingleNameReference.fieldBinding())
 				.map(field -> field.getAccessor().apply(thisConst));
 
 		if (fieldExpr.isPresent()) {

@@ -191,20 +191,16 @@ public class BaseClassModel {
 		return classConstructors;
 	}
 
-	public Optional<FieldModel> getField(Reference fieldRef) {
-		return Z3Utils.findReferenceInArray(getClassFields(), fieldRef, FieldModel::getBinding);
-	}
-
 	public Optional<FieldModel> getField(FieldBinding binding) {
-		return Z3Utils.findBindingInArray(getClassFields(), binding, FieldModel::getBinding);
+		return Z3Utils.findBindingInArray(getClassFields(), JDTUtils.erase(binding), FieldModel::getBinding);
 	}
 
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
 		return Z3Utils.findBindingInArray(getClassMethods(), binding, AbstractMethodModel::getBinding);
 	}
 
-	public Optional<ConstantModel> getConstant(Reference constantRef) {
-		return Z3Utils.findReferenceInArray(getClassConstants(), constantRef, ConstantModel::getBinding);
+	public Optional<ConstantModel> getConstant(FieldBinding binding) {
+		return Z3Utils.findBindingInArray(getClassConstants(), JDTUtils.erase(binding), ConstantModel::getBinding);
 	}
 
 	public Iterable<MethodModel> getMethods() {
