@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
+import com.google.common.collect.ImmutableSet;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
