@@ -50,21 +50,36 @@ public class JDTUtils {
 		}
 
 		if (binding instanceof ReferenceBinding) {
+			ReferenceBinding refBinding = (ReferenceBinding) binding;
 			ReferenceBinding parent = null;
 			try {
-				parent = ((ReferenceBinding) binding).superclass();
+				parent = refBinding.superclass();
 			} catch (NullPointerException e) {
 				//TODO: There is a null pointerexception sometimes in this code?
 				Logger.err("there was a null pointer exception while getting the superclass for: " + binding.debugName());
 				e.printStackTrace(Logger.err);
+			}
+
+			// Check super class
+			var parentMatches = false;
+			if (parent != null) {
+				parentMatches = typeIsSubtypeOfName(parent, typeName);
+			}
+			if (parentMatches) {
+				return true;
+			}
+
+			// Check all super interfaces
+			if (refBinding.superInterfaces() == null) {
 				return false;
 			}
 
-			if (parent == null) {
-				return false;
-			} else {
-				return typeIsSubtypeOfName(parent, typeName);
+			var interfaceMatches = false;
+			for (var superInterface : refBinding.superInterfaces()) {
+				interfaceMatches = interfaceMatches || typeIsSubtypeOfName(superInterface, typeName);
 			}
+			return interfaceMatches;
+
 		} else {
 			Logger.warn("unsupported binding: " + binding);
 			return false;

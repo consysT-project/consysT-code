@@ -37,8 +37,11 @@ public class CompilerBinding {
 
     private CompilerBinding() { }
 
-    public static CompileResult compile(Path... sourceFiles) {
+    public static CompileResult compile(Path[] sourceFiles) {
+        return compile(new Path[0], sourceFiles);
+    }
 
+    public static CompileResult compile(Path[] additionalClassPath, Path[] sourceFiles) {
         var compilerStarter = new ConsysCompilerStarter(
                 Logger.info,
                 Logger.warn,
@@ -50,13 +53,12 @@ public class CompilerBinding {
                 .map(Path::toString)
                 .toArray(String[]::new);
 
-        Path[] classPath = new Path[] {
-                // The java library
-                Paths.get("consys-invariants","src", "main", "resources", "rt.jar"),
-                // ConSysT annotations
-                Paths.get("consys-annotations", "target", "consys-annotations-3.0.0-alpha.jar")
-        };
+        if (additionalClassPath == null) additionalClassPath = new Path[0];
 
+        Path[] classPath = new Path[additionalClassPath.length + 2];
+        System.arraycopy(additionalClassPath, 0, classPath, 2, additionalClassPath.length);
+        classPath[0] = Paths.get("consys-invariants","src", "main", "resources", "rt.jar");
+        classPath[1] = Paths.get("consys-annotations", "target", "consys-annotations-3.0.0-alpha.jar");
 
         String[] compilerOpts = new String[] {
                 "-cp", Arrays.stream(classPath).map(Path::toString).reduce( (acc, e) -> acc + File.pathSeparator + e).orElse(".")

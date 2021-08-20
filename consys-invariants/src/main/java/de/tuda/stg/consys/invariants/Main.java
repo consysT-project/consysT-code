@@ -46,12 +46,12 @@ public class Main {
             Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java")
     };
 
-    runChecker(config, sources);
+    runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
   }
 
-  public static void runChecker(ProgramConfig config, Path[] sources) {
+  public static void runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
     // Compile the file to ASTs
-    var compileResult = CompilerBinding.compile(sources);
+    var compileResult = CompilerBinding.compile(additionalClasspath, sources);
 
     // Create the program model
     var model = new ProgramModel(compileResult, config);

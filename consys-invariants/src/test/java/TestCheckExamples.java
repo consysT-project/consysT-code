@@ -9,21 +9,21 @@ public class TestCheckExamples {
 
 	@Test
 	public void testBankAccount() {
-		Main.runChecker(Examples.DEFAULT_CONFIG, Examples.BANK_ACCOUNT);
+		Main.runChecker(Examples.DEFAULT_CONFIG, null, Examples.BANK_ACCOUNT);
 	}
 
 	@Test
 	public void testCreditAccount() {
-		Main.runChecker(Examples.STATEFUL_CONFIG, Examples.CREDIT_ACCOUNT);
+		Main.runChecker(Examples.STATEFUL_CONFIG, null, Examples.CREDIT_ACCOUNT);
 	}
 
 	@Test
 	public void testGSet() {
-		Main.runChecker(Examples.DEFAULT_CONFIG, Examples.GSET);
+		Main.runChecker(Examples.DEFAULT_CONFIG, null, Examples.GSET);
 	}
 
 	@Test
 	public void testSimpleCounter() {
-		Main.runChecker(Examples.STATEFUL_CONFIG, Examples.MULTICLASS_COUNTER);
+		Main.runChecker(Examples.STATEFUL_CONFIG, null, Examples.MULTICLASS_COUNTER);
 	}
 }

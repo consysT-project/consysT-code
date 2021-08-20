@@ -295,6 +295,19 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSetSubset(argExpr, receiverExpr);
     }
+    // java.util.Collection
+    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Collection", "isEmpty")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      ArraySort sort = (ArraySort) receiverExpr.getSort();
+      var e = model.ctx.mkFreshConst("e", sort.getDomain());
+      return model.ctx.mkForall(new Expr[]{e},
+              model.ctx.mkEq(model.ctx.mkSelect(receiverExpr, e), model.ctx.mkInt(0)),
+              1, null, null, null, null);
+    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Collection", "contains", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      return model.ctx.mkNot(model.ctx.mkEq(model.ctx.mkSelect(receiverExpr, argExpr), model.ctx.mkInt(0)));
+    }
     // java.math.BigInteger
     else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);

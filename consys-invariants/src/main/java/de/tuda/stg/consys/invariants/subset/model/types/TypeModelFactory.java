@@ -79,6 +79,8 @@ public class TypeModelFactory {
 			}
 		} else if (typeBinding instanceof TypeVariableBinding) {
 			return typeFor(((TypeVariableBinding) typeBinding).superclass);
+		} else if (typeBinding instanceof WildcardBinding) {
+			return typeFor(((WildcardBinding) typeBinding).typeVariable().superclass);
 		} else if (typeBinding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
@@ -102,6 +104,16 @@ public class TypeModelFactory {
 					//not type parameters -> Map<Object, Object>
 					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
 					return new MapModel(model, objectModel, objectModel);
+				}
+			}
+			/* generic collections */
+			else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Collection")) {
+				if (refBinding instanceof ParameterizedTypeBinding) {
+					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
+					return new CollectionModel(model, typeFor(parBinding.arguments[0]));
+				} else {
+					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					return new CollectionModel(model, objectModel);
 				}
 			}
 			/* other integer types */
