@@ -117,7 +117,7 @@ import com.google.common.collect.Sets;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(ImmutableSet.copyOf(delegate));
+	@ ensures \result.equals(delegate);
 	@*/
 	// changed from original: @Override
 	public ImmutableSet<E> value() {
