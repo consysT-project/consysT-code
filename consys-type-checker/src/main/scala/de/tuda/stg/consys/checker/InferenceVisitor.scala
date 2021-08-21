@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
+import de.tuda.stg.consys.checker.InferenceVisitor.{AnnotationName, ClassName, DefaultOpLevel, FieldName, LHS, RHS, State}
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
 import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, Mixed}
 import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
@@ -23,13 +23,18 @@ object InferenceVisitor {
     case object RHS extends AssignmentSide
 
     type DefaultOpLevel = String
+    type ClassName = String
+    type FieldName = String
+    type AnnotationName = String
     type State = (Option[TypeElement], Option[DefaultOpLevel], Option[AnnotationMirror], Option[AssignmentSide])
 }
 
 class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
 
     // TODO: switch the keys to strings for performance?
-    type InferenceTable = mutable.Map[(TypeElement, String), mutable.Map[VariableElement, AnnotationMirror]]
+    //type InferenceTable = mutable.Map[(TypeElement, String), mutable.Map[VariableElement, AnnotationMirror]]
+    type InferenceTable = mutable.Map[(ClassName, DefaultOpLevel), mutable.Map[FieldName, AnnotationName]]
+
     var inferenceTable: InferenceTable = mutable.Map.empty
 
     /**
@@ -59,12 +64,12 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             case (None, Some(_)) =>
         }
 
-        if (inferenceTable.contains((classDecl, defaultOpLevel.get))) {
+        if (inferenceTable.contains((classDecl.getQualifiedName.toString, defaultOpLevel.get))) {
             currentClass = None
             return null
         }
 
-        inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
+        inferenceTable.put((classDecl.getQualifiedName.toString, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
 
         checkSuperclass(getSuperclassElement(node), newState)
@@ -94,12 +99,12 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             case (None, Some(_)) =>
         }
 
-        if (inferenceTable.contains((classDecl, defaultOpLevel.get))) {
+        if (inferenceTable.contains((classDecl.getQualifiedName.toString, defaultOpLevel.get))) {
             currentClass = None
             return null
         }
 
-        inferenceTable.put((classDecl, defaultOpLevel.get), mutable.Map.empty)
+        inferenceTable.put((classDecl.getQualifiedName.toString, defaultOpLevel.get), mutable.Map.empty)
         val newState = (Some(classDecl), defaultOpLevel, None, None)
         checkSuperclass(getSuperclassElement(classDecl), newState)
 
@@ -142,7 +147,8 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         val (Some(clazz), Some(defaultOp), _, _) = state
         // set all unused unannotated fields to Local
         getOwnFields(clazz).
-            filter(field => !inferenceTable.get(clazz, defaultOp).get.contains(field) && getExplicitAnnotation(field).isEmpty).
+            filter(field => !inferenceTable.get(clazz.getQualifiedName.toString, defaultOp).get.
+                contains(getQualifiedName(field)) && getExplicitAnnotation(field).isEmpty).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), Some(localAnnotation), Some(LHS)), field))
     }
 
@@ -162,7 +168,8 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     }
 
     override def visitMethod(node: MethodTree, state: State): Void = {
-        if (TreeUtils.isConstructor(node))
+        // ignore constructors and static methods
+        if (TreeUtils.isConstructor(node) || node.getModifiers.getFlags.contains(Modifier.STATIC))
             return null
 
         val (classContext, Some(defaultOpLevel), _, _) = state
@@ -230,7 +237,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
         (methodContext, TreeUtils.elementFromUse(node)) match {
             case (Some(methodLevel), field: VariableElement)
-                if field.getKind == ElementKind.FIELD
+                if field.getKind == ElementKind.FIELD // ignore element if it is a field of a field
                     && ElementUtils.getAllFieldsIn(classContext.get, atypeFactory.getElementUtils).contains(field) =>
 
                 (getExplicitAnnotation(field), state._4) match {
@@ -268,18 +275,16 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), side) match {
             case ((Some(fieldLevel), depth), Some(LHS)) if depth == 0 =>
                 val lup = atypeFactory.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
-                inferenceTable.apply(clazz, defaultOp).update(field, lup)
+                inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp).update(getQualifiedName(field), getQualifiedName(lup))
             case ((Some(fieldLevel), depth), Some(LHS)) if depth > 0 =>
-                // TODO: Do we need extra considerations for Mixed objects here?
                 // checks if field level is a (non-reflexive) subtype of method level, i.e. if field would be weakened
                 if (!atypeFactory.getQualifierHierarchy.isSubtype(annotation, fieldLevel))
                     atypeFactory.getChecker.reportError(source, "mixed.inheritance.field.overwrite",
                         fieldLevel, field.getSimpleName, annotation, source)
             case ((None, _), Some(LHS)) =>
-                inferenceTable.apply(clazz, defaultOp).update(field, annotation)
+                inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp).update(getQualifiedName(field), getQualifiedName(annotation))
             case ((None, _), Some(RHS)) =>
-                inferenceTable.apply(clazz, defaultOp).update(field,
-                    AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Local]))
+                inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp).update(getQualifiedName(field), classOf[Local].getCanonicalName)
             case _ =>
         }
     }
@@ -300,18 +305,18 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     }
 
     def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): (Option[AnnotationMirror], Int) = {
-        inferenceTable.get(clazz, defaultOpLevel) match {
-            case Some(map) => map.get(field) match {
-                case value: Some[AnnotationMirror] =>
-                    (value, 0)
+        inferenceTable.get(clazz.getQualifiedName.toString, defaultOpLevel) match {
+            case Some(map) => map.get(getQualifiedName(field)) match {
+                case Some(name) =>
+                    (Some(fromName(name)), 0)
                 case None => getSuperclassElement(clazz) match {
                     case Some(superclass) =>
-                        val (result, depth) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
-                        /* TODO: if result is Local, then level should be determined by derived class:
-                                 store the base class variable's level as undefined, if the base class does not write it
-                                 and differentiate use in base class (-> Local) and use in derived classes
-                                 (-> next defined use in class hierarchy). Shadowed fields may pose a problem
-                         */
+                        var (result, depth) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
+                        // change Local superclass field to Strong for the subclass
+                        result = result match {
+                            case Some(value) if AnnotationUtils.areSame(value, localAnnotation) => Some(strongAnnotation)
+                            case _ => result
+                        }
                         (result, depth + 1)
                     case None =>
                         (None, 0)
@@ -353,4 +358,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             case _ => false
         }).map(f => f.asInstanceOf[VariableElement])
     }
+
+    private def fromName(name: String): AnnotationMirror =
+        AnnotationBuilder.fromName(atypeFactory.getElementUtils, name)
 }

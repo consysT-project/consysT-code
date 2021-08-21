@@ -9,5 +9,5 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Mixed {
-    Class<? extends Annotation> withDefault() default WeakOp.class;
+    Class<? extends Annotation> value() default WeakOp.class;
 }

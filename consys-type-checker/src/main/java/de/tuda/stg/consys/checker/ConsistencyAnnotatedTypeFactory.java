@@ -166,6 +166,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		super.addComputedTypeAnnotations(elt, type);
 
 		// add @Mutable to parameters in methods that are: Transactional or in mixed class
+		/*
 		if (type instanceof AnnotatedTypeMirror.AnnotatedExecutableType) {
 			var executableType = (AnnotatedTypeMirror.AnnotatedExecutableType) type;
 			if (executableType.getUnderlyingType().getAnnotation(Transactional.class) != null) {
@@ -174,6 +175,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				});
 			}
 		}
+		*/
 
 		if (elt.getKind() == ElementKind.FIELD) {
 			if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))

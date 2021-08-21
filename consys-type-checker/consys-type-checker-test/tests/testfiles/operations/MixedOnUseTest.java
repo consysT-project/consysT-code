@@ -18,8 +18,8 @@ public class MixedOnUseTest {
         }
     }
 
-    void testRefAssignment(Ref<@Mixed(withDefault = WeakOp.class) A> mixedWeak,
-              Ref<@Mixed(withDefault = StrongOp.class) A> mixedStrong,
+    void testRefAssignment(Ref<@Mixed(WeakOp.class) A> mixedWeak,
+              Ref<@Mixed(StrongOp.class) A> mixedStrong,
               Ref<@Weak A> weak, Ref<@Strong A> strong) {
 
         weak = mixedWeak;
@@ -35,8 +35,8 @@ public class MixedOnUseTest {
     }
 
     @Transactional
-    void testFields(Ref<@Mixed(withDefault = WeakOp.class) A> mixedWeak,
-                           Ref<@Mixed(withDefault = StrongOp.class) A> mixedStrong,
+    void testFields(Ref<@Mixed(WeakOp.class) A> mixedWeak,
+                           Ref<@Mixed(StrongOp.class) A> mixedStrong,
                            Ref<@Weak A> weak, Ref<@Strong A> strong) {
 
         // :: error: assignment.type.incompatible

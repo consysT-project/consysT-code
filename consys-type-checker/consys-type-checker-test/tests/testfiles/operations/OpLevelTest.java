@@ -9,7 +9,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-public class AOpLevelTest {
+public class OpLevelTest {
     static abstract class A {
         abstract void f();
         @StrongOp abstract void g();
@@ -48,7 +48,7 @@ public class AOpLevelTest {
         @StrongOp void f() {}
     }
 
-    @Transactional void test(Ref<@Mutable @Mixed A> a1, Ref<@Mutable @Mixed(withDefault = StrongOp.class) A> a2) {
+    @Transactional void test(Ref<@Mutable @Mixed A> a1, Ref<@Mutable @Mixed(StrongOp.class) A> a2) {
         if ((@Weak boolean) true) { // weak context
             // f is counted as WeakOp -> subclasses should not override with StrongOp
             a1.ref().f();

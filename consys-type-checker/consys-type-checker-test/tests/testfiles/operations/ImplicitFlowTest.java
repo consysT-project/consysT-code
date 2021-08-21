@@ -33,7 +33,7 @@ public class ImplicitFlowTest {
                Ref<@Mutable @Weak A> w,
                Ref<@Mutable @Mixed List<Ref<@Mutable @Mixed A>>> lm,
                Ref<@Mutable @Mixed A> mw,
-               Ref<@Mutable @Mixed(withDefault = StrongOp.class) A> ms) {
+               Ref<@Mutable @Mixed(StrongOp.class) A> ms) {
         for (Ref<@Mutable @Mixed A> r : lm.ref()) { // Mixed context -> treated as Weak context
             // :: error: invocation.operation.implicitflow
             r.ref().f();

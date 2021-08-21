@@ -22,14 +22,14 @@ class DefaultTestBase {
     int getI() { return i; }
 }
 
-@Mixed(withDefault = StrongOp.class) class DefaultTestDerived extends DefaultTestBase {
+@Mixed(StrongOp.class) class DefaultTestDerived extends DefaultTestBase {
     // since the base class methods are now @StrongOp, there is an error at setI()
 }
 
 // ------------------------------------------------------------------------------------------------------
 // Cases for each default option
 
-@Mixed(withDefault = StrongOp.class) class MixedStrong {
+@Mixed(StrongOp.class) class MixedStrong {
     private int i; // inferred strong
 
     void setI(@Weak int j, @Strong int k) {
@@ -39,7 +39,7 @@ class DefaultTestBase {
     }
 }
 
-@Mixed(withDefault = WeakOp.class) class MixedWeak {
+@Mixed(WeakOp.class) class MixedWeak {
     private int i; // inferred weak
 
     void setI(@Weak int j, @Strong int k) {

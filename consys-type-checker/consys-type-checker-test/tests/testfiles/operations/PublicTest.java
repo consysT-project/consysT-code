@@ -11,8 +11,8 @@ import de.tuda.stg.consys.japi.Ref;
 
 public class PublicTest {
     @Transactional
-    void test(Ref<@Mixed(withDefault = WeakOp.class) A> objW,
-              Ref<@Mixed(withDefault = StrongOp.class) A> objS) {
+    void test(Ref<@Mixed(WeakOp.class) A> objW,
+              Ref<@Mixed(StrongOp.class) A> objS) {
         // :: error: assignment.type.incompatible
         @Strong int a = objW.ref().a;
         @Weak int a1 = objW.ref().a;

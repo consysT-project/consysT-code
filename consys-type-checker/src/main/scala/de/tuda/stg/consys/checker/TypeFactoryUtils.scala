@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
-import de.tuda.stg.consys.checker.qual.{Immutable, Mutable, MutableBottom, QualifierForOperation}
+import de.tuda.stg.consys.checker.qual.{Immutable, Mutable, MutableBottom, QualifierForOperation, Strong}
 
 import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
@@ -27,6 +27,9 @@ object TypeFactoryUtils {
 	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
+	def strongAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Strong])
+
 	def immutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Immutable])
 
@@ -44,9 +47,11 @@ object TypeFactoryUtils {
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
+	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
+	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
 
 	def getExplicitAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
-		Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(aType.hasExplicitAnnotation)
+		Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(a => a != null && aType.hasExplicitAnnotation(a))
 
 	def getExplicitAnnotation(elt: Element)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
 		getExplicitAnnotation(tf.getAnnotatedType(elt))
@@ -65,7 +70,7 @@ object TypeFactoryUtils {
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
 	def getMixedDefaultOp(mixedAnnotation: AnnotationMirror): String =
-		AnnotationUtils.getElementValue(mixedAnnotation, "withDefault", classOf[Object], true).toString
+		AnnotationUtils.getElementValue(mixedAnnotation, "value", classOf[Object], true).toString
 
 	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit atypeFactory: AnnotatedTypeFactory): String = {
 		var methodLevel: Option[String] = None
