@@ -7,7 +7,7 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBind
 import org.checkerframework.framework.qual.DefaultQualifierForUse;
 
 import java.io.Serializable;
-
+//@skip-test
 public class BasicTest {
     @Transactional
     void transaction(@Mutable CassandraTransactionContextBinding ctx, AA z) {

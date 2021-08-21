@@ -4,6 +4,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Immutable;
+import de.tuda.stg.consys.checker.qual.Local;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
@@ -44,7 +45,7 @@ public @Mixed class ReadOnlyTest {
 
         @SideEffectFree Box() {}
 
-        void set(int i) { this.i = i; }
+        void set(@Local int i) { this.i = i; }
 
         @SideEffectFree
         Box getOtherBox() { return otherBox; }

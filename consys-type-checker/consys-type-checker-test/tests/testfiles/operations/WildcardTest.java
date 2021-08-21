@@ -8,7 +8,7 @@ import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 
-public class AA_WildcardTest {
+public class WildcardTest {
     static class A {
         int i;
         void write() {

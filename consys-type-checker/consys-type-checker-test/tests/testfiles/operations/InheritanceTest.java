@@ -25,7 +25,7 @@ public class InheritanceTest {
 }
 
 @Mixed class Derived extends Base {
-    int j; // inferred strong
+    private int j; // inferred strong
 
     @WeakOp
     void setHDerived() {
@@ -41,7 +41,7 @@ public class InheritanceTest {
 
     @StrongOp
     void setJfromH() {
-        // :: error: assignment.type.incompatible
+        // h is still strong, but an error is thrown in setHDerived
         j = h;
     }
 }

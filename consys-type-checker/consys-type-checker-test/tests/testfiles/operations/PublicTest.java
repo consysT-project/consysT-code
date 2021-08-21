@@ -1,5 +1,3 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -13,7 +11,8 @@ import de.tuda.stg.consys.japi.Ref;
 
 public class PublicTest {
     @Transactional
-    void test(Ref<@Mixed(withDefault = WeakOp.class) A> objW, Ref<@Mixed(withDefault = StrongOp.class) A> objS) {
+    void test(Ref<@Mixed(withDefault = WeakOp.class) A> objW,
+              Ref<@Mixed(withDefault = StrongOp.class) A> objS) {
         // :: error: assignment.type.incompatible
         @Strong int a = objW.ref().a;
         @Weak int a1 = objW.ref().a;
@@ -22,11 +21,11 @@ public class PublicTest {
         @Weak int b1 = objW.ref().b;
 
         // :: error: assignment.type.incompatible
-        @Local int c = objW.ref().a;
-        @Strong int c1 = objW.ref().a;
+        @Local int c = objS.ref().a;
+        @Strong int c1 = objS.ref().a;
         // :: error: assignment.type.incompatible
-        @Local int d = objW.ref().b;
-        @Strong int d1 = objW.ref().b;
+        @Local int d = objS.ref().b;
+        @Strong int d1 = objS.ref().b;
 
         // :: error: assignment.type.incompatible
         @Strong int e = objW.ref().a1;

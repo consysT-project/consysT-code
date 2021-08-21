@@ -15,7 +15,7 @@ public class ImplicitFlowTest {
     }
 
     @Transactional
-    void test(Ref<@Mixed A> obj, @Weak int w, @Strong int s) {
+    void test(Ref<@Mutable @Mixed A> obj, @Weak int w, @Strong int s) {
         if (w > 0) {
             // :: error: invocation.operation.implicitflow
             obj.ref().f();
@@ -29,12 +29,12 @@ public class ImplicitFlowTest {
     }
 
     @Transactional
-    void test2(Ref<@Strong @Mutable A> s,
-               Ref<@Weak @Mutable A> w,
-               Ref<@Mixed List<Ref<@Mixed A>>> lm,
-               Ref<@Mixed @Mutable A> mw,
-               Ref<@Mixed(withDefault = StrongOp.class) @Mutable A> ms) {
-        for (Ref<@Mixed A> r : lm.ref()) { // Mixed context -> treated as Weak context
+    void test2(Ref<@Mutable @Strong A> s,
+               Ref<@Mutable @Weak A> w,
+               Ref<@Mutable @Mixed List<Ref<@Mutable @Mixed A>>> lm,
+               Ref<@Mutable @Mixed A> mw,
+               Ref<@Mutable @Mixed(withDefault = StrongOp.class) A> ms) {
+        for (Ref<@Mutable @Mixed A> r : lm.ref()) { // Mixed context -> treated as Weak context
             // :: error: invocation.operation.implicitflow
             r.ref().f();
             r.ref().g();
