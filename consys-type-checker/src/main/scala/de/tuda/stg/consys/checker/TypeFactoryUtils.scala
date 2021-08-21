@@ -1,13 +1,14 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
-import de.tuda.stg.consys.checker.qual.{Mutable, MutableBottom, QualifierForOperation}
+import de.tuda.stg.consys.checker.qual.{Immutable, Mutable, MutableBottom, QualifierForOperation}
 
 import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
+import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
@@ -27,7 +28,7 @@ object TypeFactoryUtils {
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
 	def immutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Immutable")
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Immutable])
 
 	def mutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mutable])
@@ -44,20 +45,24 @@ object TypeFactoryUtils {
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
 
-	def getExplicitAnnotation(implicit atypeFactory : AnnotatedTypeFactory, atype: AnnotatedTypeMirror): Option[AnnotationMirror] =
-		Some(atype.getAnnotationInHierarchy(inconsistentAnnotation)).filter(atype.hasExplicitAnnotation)
+	def getExplicitAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
+		Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(aType.hasExplicitAnnotation)
 
-	def getExplicitAnnotation(elt: Element)(implicit atypeFactory : AnnotatedTypeFactory): Option[AnnotationMirror] =
-		getExplicitAnnotation(atypeFactory, atypeFactory.getAnnotatedType(elt))
+	def getExplicitAnnotation(elt: Element)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
+		getExplicitAnnotation(tf.getAnnotatedType(elt))
 
-	def hasAnnotation(implicit atypeFactory : AnnotatedTypeFactory, modifiers: ModifiersTree, annotation: String): Boolean = {
-		modifiers.getAnnotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
-			case adt: AnnotatedDeclaredType =>
-				getQualifiedName(adt) == annotation
-			case _ =>
-				false
+	def hasAnnotation(modifiers: ModifiersTree, annotation: String)(implicit tf : AnnotatedTypeFactory): Boolean = {
+		modifiers.getAnnotations.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
+			case adt: AnnotatedDeclaredType => getQualifiedName(adt) == annotation
+			case _ => false
 		})
 	}
+
+	def hasAnnotation(modifiers: ModifiersTree, annotation: Class[_ <: Annotation])(implicit tf : AnnotatedTypeFactory): Boolean =
+		hasAnnotation(modifiers, annotation.getCanonicalName)
+
+	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
+		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
 	def getMixedDefaultOp(mixedAnnotation: AnnotationMirror): String =
 		AnnotationUtils.getElementValue(mixedAnnotation, "withDefault", classOf[Object], true).toString

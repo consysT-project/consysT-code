@@ -4,7 +4,9 @@ import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
 import de.tuda.stg.consys.annotations.Transactional
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.Mixed
+import de.tuda.stg.consys.checker.TypeFactoryUtils._
 
 import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
@@ -175,6 +177,23 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		if (!transactionContext && methodDeclarationIsTransactional(node)) {
 			transactionContext = true
 			shouldClose = true
+		}
+
+		// check operation level override rules
+		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
+			hasAnnotation(node.getModifiers, classOf[Pure]))) {
+
+			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
+			overrides.foreach(m => {
+				if (hasAnnotation(m, classOf[WeakOp]) && !hasAnnotation(node.getModifiers, classOf[WeakOp]))
+					checker.reportError(node, "mixed.inheritance.operation.incompatible",
+						if (hasAnnotation(node.getModifiers, classOf[StrongOp])) "StrongOp" else "Default",
+						"WeakOp", m.getReceiverType)
+				else if (!hasAnnotation(m, classOf[StrongOp]) && !hasAnnotation(m, classOf[WeakOp]) &&
+					hasAnnotation(node.getModifiers, classOf[StrongOp]))
+					checker.reportError(node, "mixed.inheritance.operation.incompatible",
+						"StrongOp", "Default", m.getReceiverType)
+			})
 		}
 
 		val r = super.visitMethod(node, p)

@@ -34,7 +34,7 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		val methodTree = tf.getTreeUtils.getTree(method.getElement)
 
 		// currently only run on mixed classes
-		if (mixed != null && getExplicitAnnotation(tf, returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]
+		if (mixed != null && getExplicitAnnotation(returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]
 			&& methodTree != null && !methodTree.getModifiers.getFlags.contains(Modifier.ABSTRACT)) {
 
 			val defaultOpLevel = if (mixed != null)

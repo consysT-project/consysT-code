@@ -90,7 +90,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		switch (tree.getKind()) {
 			case CLASS:
-				if (TypeFactoryUtils.hasAnnotation(this, ((ClassTree)tree).getModifiers(), TypeFactoryUtils.checkerPackageName() + ".qual.Mixed"))
+				if (TypeFactoryUtils.hasAnnotation(((ClassTree)tree).getModifiers(), Mixed.class, this))
 					inferenceVisitor.visitClass((ClassTree)tree);
 				break;
 

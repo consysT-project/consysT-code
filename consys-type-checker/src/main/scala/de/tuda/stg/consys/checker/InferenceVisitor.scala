@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{AnnotationTree, AssignmentTree, ClassTree, CompoundAssignmentTree, ExpressionTree, IdentifierTree, MemberSelectTree, MethodInvocationTree, MethodTree, ModifiersTree, Tree, VariableTree}
+import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.checker.InferenceVisitor.{DefaultOpLevel, LHS, RHS, State}
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, getQualifiedName, getQualifierForOp, getQualifierForOpMap, getQualifierNameForOp, inconsistentAnnotation, localAnnotation}
-import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, Mixed, QualifierForOperation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils._
+import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, Mixed}
 import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
@@ -171,7 +171,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         // try to find an explicit supported op level on the method
         getQualifierForOpMap.foreach(mapping => {
             val (operation, qualifier) = mapping
-            if (TypeFactoryUtils.hasAnnotation(atypeFactory, node.getModifiers, operation)) {
+            if (hasAnnotation(node.getModifiers, operation)) {
                 methodLevel match {
                     case None =>
                         methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
@@ -337,7 +337,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         elt.getSuperclass match {
             case dt: DeclaredType => dt.asElement().getKind match {
                 case ElementKind.CLASS => Some(dt.asElement().asInstanceOf[TypeElement])
-                case _ => None // TODO: when could this happen?
+                case _ => None // ignore interfaces
             }
             case _ => None
         }
