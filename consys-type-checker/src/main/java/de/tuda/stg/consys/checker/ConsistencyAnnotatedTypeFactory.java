@@ -16,6 +16,7 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import scala.Option;
@@ -121,25 +122,25 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				if (mixedClassContext.empty())
 					return;
 
-				var definedAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				var inferredAnnotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
-
-				if (type.hasExplicitAnnotation(definedAnnotation) && inferenceVisitor.refinementTable().get(tree).isDefined()) {
-					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
-					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, definedAnnotation));
-					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
-				} else if (inferredAnnotation != null && inferenceVisitor.refinementTable().get(tree).isDefined()) {
-					var opLevel = inferenceVisitor.refinementTable().get(tree).get();
-					type.replaceAnnotation(getQualifierHierarchy().leastUpperBound(opLevel, inferredAnnotation));
-					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
-				} else if (inferredAnnotation != null) {
-					type.replaceAnnotation(inferredAnnotation);
-					//type.replaceAnnotation(TypeFactoryUtils.mutableAnnotation(this));
+				// explicitly defined or inferred annotation
+				var annotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+				if (!type.hasExplicitAnnotation(annotation)) {
+					annotation = annotateField((VariableElement) TreeUtils.elementFromTree(tree), type);
 				}
 
-				var definedMutabilityAnnotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				if (type.hasExplicitAnnotation(definedMutabilityAnnotation)) {
+				var opLevelForRead = inferenceVisitor.refinementTable().get(tree);
 
+				// handle read access
+				if (opLevelForRead.isDefined() && annotation != null) {
+					var lup = getQualifierHierarchy().leastUpperBound(opLevelForRead.get(), annotation);
+					type.replaceAnnotation(lup);
+					// read access must be treated as immutable if we have to adapt the consistency type
+					if (AnnotationUtils.areSame(lup, opLevelForRead.get()) &&
+							!AnnotationUtils.areSame(annotation, opLevelForRead.get())) {
+						type.replaceAnnotation(TypeFactoryUtils.immutableAnnotation(this));
+					}
+				} else if (annotation != null) {
+					type.replaceAnnotation(annotation);
 				}
 
 				if (mixed != null) {

@@ -6,11 +6,12 @@ import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChe
 import de.tuda.stg.consys.annotations.Transactional
 import de.tuda.stg.consys.checker.qual.Mixed
 
-import javax.lang.model.element.{AnnotationMirror, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
+import org.checkerframework.javacutil
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import org.jmlspecs.annotation.Pure
 
@@ -87,8 +88,15 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
-		println(s"  >Var decl:\n" +
-			s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
+		if (node.getInitializer != null)
+			println(s"  >Var decl:\n" +
+				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}\n" +
+				s"   <$node>\n" +
+				s"      where ${node.getName} -> ${atypeFactory.getAnnotatedType(node)}\n" +
+				s"      where ${node.getInitializer} -> ${atypeFactory.getAnnotatedType(node.getInitializer)}")
+		else
+			println(s"  >Var decl:\n" +
+				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
 
 		val initializer: ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)
@@ -101,10 +109,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		tree match {
 			case _: VariableTree => // variable initialization at declaration is allowed
-			case _ =>
-				// TODO: handle refs
-				if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
+			case assign: AssignmentTree => assign.getVariable match {
+				case id: IdentifierTree if TreeUtils.elementFromUse(id).getKind != ElementKind.FIELD => // reassigning variables is allowed
+				case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
 					checker.reportError(tree, "immutability.assignment.type")
+			}
+			case _ =>
 		}
 	}
 
@@ -246,7 +256,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
 		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField"))
 
-	private def methodInvocationIsRefAccess(node: MethodInvocationTree): Boolean =
+	def methodInvocationIsRefAccess(node: MethodInvocationTree): Boolean =
 		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
 
 	private def methodInvocationIsReplicateOrLookup(node: MethodInvocationTree): Boolean =

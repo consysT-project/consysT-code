@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, japiPackageName}
-import de.tuda.stg.consys.checker.qual.MutableBottom
+import de.tuda.stg.consys.checker.qual.{Local, MutableBottom}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils
@@ -78,14 +78,17 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 		val consistencySubtype = subtype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 		val consistencySupertype = supertype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 
-		if (subtype.hasAnnotation(classOf[MutableBottom]))
+		// TODO: throw exception when types are missing
+
+		// TODO: throw error here if we find MutableBottom on something other than Local?
+		if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))
 			true
-		else if (isSameType(consistencySubtype, consistencySupertype))
-			tf.getQualifierHierarchy.isSubtype(mutabilitySubtype, mutabilitySupertype)
-		else if (isSameType(mutabilitySubtype, immutableAnnotation) && isSameType(mutabilitySupertype, immutableAnnotation))
-			tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
+		else if (isSameType(mutabilitySupertype, immutableAnnotation))
+			tf.getQualifierHierarchy.isSubtype(mutabilitySubtype, mutabilitySupertype) &&
+				tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
 		else
-			false
+			tf.getQualifierHierarchy.isSubtype(mutabilitySubtype, mutabilitySupertype) &&
+				isSameType(consistencySubtype, consistencySupertype)
 	}
 
 	private def isSameType(t1: AnnotationMirror, t2: AnnotationMirror): Boolean =

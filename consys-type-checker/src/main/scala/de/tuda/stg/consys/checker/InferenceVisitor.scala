@@ -132,7 +132,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
         // set public and package fields to the default level,
         // or, for nested classes, do this for all levels
-        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+        getOwnFields(clazz).
             filter(field => isNestedClass || !(field.getModifiers.contains(Modifier.PRIVATE) ||
                 field.getModifiers.contains(Modifier.PROTECTED))).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), getQualifierForOp(defaultOp), Some(LHS)), field))
@@ -141,7 +141,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     private def processUnusedFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
         // set all unused unannotated fields to Local
-        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+        getOwnFields(clazz).
             filter(field => !inferenceTable.get(clazz, defaultOp).get.contains(field) && getExplicitAnnotation(field).isEmpty).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), Some(localAnnotation), Some(LHS)), field))
     }
@@ -149,7 +149,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     private def processStaticFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
         // set all static fields to Inconsistent and check for forbidden explicit annotations
-        ElementUtils.getAllFieldsIn(clazz, atypeFactory.getElementUtils).
+        getOwnFields(clazz).
             filter(field => field.getModifiers.contains(Modifier.STATIC)).
             foreach(field => {
                 getExplicitAnnotation(field) match {
@@ -285,17 +285,14 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     }
 
     private def processClassDeclaration(elt: TypeElement, state: State): Unit = {
-        val fields = elt.getEnclosedElements.filter({
-            case _: VariableElement => true
-            case _ => false
-        })
+        val fields = getOwnFields(elt)
 
         val (_, defaultOpLevel, _, _) = state
         getQualifierNameForOp(defaultOpLevel.get) match {
             case Some(qualifier) =>
                 val level = AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier)
                 fields.foreach(f => {
-                    updateField(f.asInstanceOf[VariableElement], (Some(elt), defaultOpLevel, Some(level), Some(LHS)), f)
+                    updateField(f, (Some(elt), defaultOpLevel, Some(level), Some(LHS)), f)
                 })
 
             case None => // TODO: handle case where given default operation level is not valid
@@ -349,4 +346,11 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         getSuperclassElement(TreeUtils.elementFromDeclaration(classTree))
 
     private def getSourceOfElement(elt: TypeElement): ClassTree = atypeFactory.getTreeUtils.getTree(elt)
+
+    private def getOwnFields(elt: TypeElement): Iterable[VariableElement] = {
+        elt.getEnclosedElements.filter({
+            case _: VariableElement => true
+            case _ => false
+        }).map(f => f.asInstanceOf[VariableElement])
+    }
 }

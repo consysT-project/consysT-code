@@ -31,7 +31,7 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
 		//Locally generated objects (new Obj...) are always @Local.
 		annotatedTypeMirror.replaceAnnotation(localAnnotation)
-
+		annotatedTypeMirror.replaceAnnotation(mutableBottomAnnotation)
 		super.visitNewClass(node, annotatedTypeMirror)
 	}
 
