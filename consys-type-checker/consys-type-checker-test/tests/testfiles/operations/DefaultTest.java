@@ -1,3 +1,5 @@
+package test;
+
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -10,21 +12,9 @@ public class DefaultTest { }
 // ------------------------------------------------------------------------------------------------------
 // Case where base class is not compatible with derived instantiation
 
-class DefaultTestBase {
-    private int i;
 
-    // TODO: better error message, i.e. info about which derived class leads to error
-    void setI(@Weak int j) {
-        // :: error: assignment.type.incompatible
-        i = j;
-    }
 
-    int getI() { return i; }
-}
 
-@Mixed(StrongOp.class) class DefaultTestDerived extends DefaultTestBase {
-    // since the base class methods are now @StrongOp, there is an error at setI()
-}
 
 // ------------------------------------------------------------------------------------------------------
 // Cases for each default option

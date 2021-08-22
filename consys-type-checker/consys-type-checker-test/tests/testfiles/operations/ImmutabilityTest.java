@@ -7,9 +7,6 @@ import de.tuda.stg.consys.japi.Ref;
 public class ImmutabilityTest {
     static class A {
         @Mutable @Strong Box box;
-        void set(@Mutable @Strong Box v) {
-            box = v;
-        }
     }
 
     static class Box { int i; }

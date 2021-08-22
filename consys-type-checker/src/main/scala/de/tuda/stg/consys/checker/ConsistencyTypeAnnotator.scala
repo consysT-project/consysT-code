@@ -34,6 +34,7 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		val methodTree = tf.getTreeUtils.getTree(method.getElement)
 
 		// currently only run on mixed classes
+		/*
 		if (mixed != null && getExplicitAnnotation(returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]
 			&& methodTree != null && !methodTree.getModifiers.getFlags.contains(Modifier.ABSTRACT)) {
 
@@ -47,6 +48,7 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 
 			tf.popMixedClassContext()
 		}
+		 */
 
 		currentMethod = prevMethod
 		aVoid

@@ -17,8 +17,10 @@ import org.checkerframework.javacutil
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import org.jmlspecs.annotation.Pure
 
+import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import scala.collection.mutable
 
 /**
 	* Created on 05.03.19.
@@ -33,23 +35,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		Map(s"$checkerPackageName.qual.Strong" -> classOf[StrongSubConsistencyChecker],
 			s"$checkerPackageName.qual.Weak" -> classOf[WeakSubConsistencyChecker])
 
-
-	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
-		val recvType = atypeFactory.getAnnotatedType(node.getExpression)
-		if (recvType.hasEffectiveAnnotation(classOf[Mixed])
-			&& TreeUtils.isFieldAccess(node)
-			&& !TreeUtils.isExplicitThisDereference(node.getExpression)
-			// class literals are treated as fields
-			&& !TreeUtils.isClassLiteral(node)) {
-
-			//checker.reportError(node, "mixed.field.access")
-		}
-
-		super.visitMemberSelect(node, p)
-	}
+	val classVisitCache: mutable.Set[(TypeElement, AnnotationMirror)] = mutable.Set.empty
+	val classVisitQueue: mutable.Set[(TypeElement, AnnotationMirror)] = mutable.Set.empty
+	val treeMap: mutable.Map[TypeElement, ClassTree] = mutable.Map.empty
 
 	override def processClassTree(classTree: ClassTree): Unit = {
-		println(">Class decl:  " + getQualifiedName(classTree))
+		/*
 		// TODO: clean up + we should explicitly run the inference here before moving on
 		val mixed = atypeFactory.getAnnotatedType(classTree).getAnnotation(classOf[Mixed])
 		val defaultOpLevel = if (mixed != null) TypeFactoryUtils.getMixedDefaultOp(mixed) else ""
@@ -60,23 +51,76 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		super.processClassTree(classTree)
 		if (mixed != null)
 			atypeFactory.popMixedClassContext()
+
+		//return
+
+		 */
+
+		val upperBound = atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(inconsistentAnnotation)
+		processClassTree(classTree, upperBound, checker.getLintOption("libMode"))
+
+		val classElement = TreeUtils.elementFromDeclaration(classTree)
+		classVisitQueue.filter(pair => pair._1 == classElement).foreach(pair => processClassTree(classTree, pair._2))
 	}
 
-	def processMixedClassTree(classTree: ClassTree, defaultOpLevel: String): Unit = {
-		println(">Class decl (noCache):  " + getQualifiedName(classTree))
-		atypeFactory.pushMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
+	def visitOrQueueClassTree(classTree: ClassTree, annotation: AnnotationMirror): Unit = {
+		val classElement = TreeUtils.elementFromDeclaration(classTree)
+		if (classVisitCache.exists(pair => pair._1 == classElement)) {
+			processClassTree(classTree, annotation)
+		} else {
+			classVisitQueue.update((classElement, annotation), included = true)
+			treeMap.update(classElement, classTree)
+		}
+	}
+
+
+
+	/**
+	 * Visits a class tree under a specific consistency qualifier
+	 */
+	private def processClassTree(classTree: ClassTree, annotation: AnnotationMirror, libMode: Boolean = false): Unit = {
+		// TODO
+		//----------------------------------------------------------------
+		// set class context in type factory to upper bound of class tree, then visit class
+		// include class context in error output, so that we know which version of the class produces errors
+		// in lib mode, also do this for all lower consistencies (w/o cache)
+		// if mixed, then run inference before visiting
+		// cache visited classes somewhere (name + consistency should be enough)
+		// in type factory: - if use of class found somewhere, check cache and visit early if not cached
+		// 					- for strong and weak classes: possibly no further action needed, treeannotator already takes care of adaptation
+		//                  - for mixed classes: do what we do already
+
+		val classElement = TreeUtils.elementFromDeclaration(classTree)
+		if (classVisitCache.contains((classElement, annotation)))
+			return
+		else classVisitCache.update((classElement, annotation), included = true)
+
+		if (tf.areSameByClass(annotation, classOf[Mixed])) {
+			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName}(${Class.forName(getMixedDefaultOp(annotation)).getSimpleName}) ${getQualifiedName(classTree)}")
+		} else {
+			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName} ${getQualifiedName(classTree)}")
+		}
+
+		tf.pushVisitClassContext(classElement, annotation)
+		if (tf.areSameByClass(annotation, classOf[Mixed])) {
+			tf.inferenceVisitor.visitClass(classTree)
+		}
 		super.processClassTree(classTree)
-		atypeFactory.popMixedClassContext()
+		tf.popVisitClassContext()
+
+		if (checker.getLintOption("libMode")) {
+
+		}
 	}
 
 	/*
 		Check that implicit contexts are correct.
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
-		println(s"  >Var assign:\n" +
-				s"   <$node>\n" +
-				s"      where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}\n" +
-				s"      where ${node.getExpression} -> ${atypeFactory.getAnnotatedType(node.getExpression)}")
+		//println(s"  >Var assign:\n" +
+		//		s"   <$node>\n" +
+		//		s"      where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}\n" +
+		//		s"      where ${node.getExpression} -> ${atypeFactory.getAnnotatedType(node.getExpression)}")
 
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
@@ -90,6 +134,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
+		/*
 		if (node.getInitializer != null)
 			println(s"  >Var decl:\n" +
 				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}\n" +
@@ -99,6 +144,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		else
 			println(s"  >Var decl:\n" +
 				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
+		 */
 
 		val initializer: ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)

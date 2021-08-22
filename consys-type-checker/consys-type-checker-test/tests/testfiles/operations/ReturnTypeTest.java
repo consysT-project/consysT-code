@@ -8,7 +8,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 
-public class AReturnTypeTest {
+public class ReturnTypeTest {
     @Transactional
     void test(Ref<@Mutable ReturnTypeTest_Class> o) {
         @Strong int a;

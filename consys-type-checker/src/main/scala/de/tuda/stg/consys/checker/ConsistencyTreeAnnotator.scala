@@ -47,18 +47,16 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 		//Class literals are always @Local.
 		if (node.getIdentifier.contentEquals("class")) {
 			//Change type to: @Local Class...
-			annotatedTypeMirror.clearAnnotations()
-			annotatedTypeMirror.addAnnotation(localAnnotation)
-			annotatedTypeMirror.addAnnotation(mutableBottomAnnotation)
+			annotatedTypeMirror.replaceAnnotation(localAnnotation)
+			annotatedTypeMirror.replaceAnnotation(mutableBottomAnnotation)
 
 			//Change type to: Class<@Local ...>
 			annotatedTypeMirror.accept(new TypeAnnotator(atypeFactory) {
 				override def visitDeclared(typ : AnnotatedTypeMirror.AnnotatedDeclaredType, p : Void) : Void = {
 					require(typ.getUnderlyingType.asElement().getSimpleName.toString == "Class")
 					val typeArg = typ.getTypeArguments.get(0)
-					typeArg.clearAnnotations()
-					typeArg.addAnnotation(localAnnotation)
-					typeArg.addAnnotation(mutableBottomAnnotation)
+					typeArg.replaceAnnotation(localAnnotation)
+					typeArg.replaceAnnotation(mutableBottomAnnotation)
 					null
 				}
 			}, null)
@@ -103,8 +101,9 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 								// get weakest type between type argument and receiver
 								val lowerBound = atypeFactory.getQualifierHierarchy.leastUpperBound(typeArgument.getAnnotations.iterator.next, ann)
 
-								typeArgument.clearAnnotations()
-								typeArgument.addAnnotation(lowerBound)
+								//typeArgument.clearPrimaryAnnotations()
+								//typeArgument.addAnnotation()
+								typeArgument.replaceAnnotation(lowerBound)
 
 							case _ => ()
 						}

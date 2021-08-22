@@ -10,6 +10,7 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclar
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
 
 import java.lang.annotation.Annotation
+import java.util.Collections
 import javax.lang.model.`type`.DeclaredType
 import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
@@ -31,10 +32,7 @@ object InferenceVisitor {
 
 class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
 
-    // TODO: switch the keys to strings for performance?
-    //type InferenceTable = mutable.Map[(TypeElement, String), mutable.Map[VariableElement, AnnotationMirror]]
     type InferenceTable = mutable.Map[(ClassName, DefaultOpLevel), mutable.Map[FieldName, AnnotationName]]
-
     var inferenceTable: InferenceTable = mutable.Map.empty
 
     /**
@@ -120,7 +118,10 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
                 val superclassTree = getSourceOfElement(elt)
                 if (superclassTree != null) {
                     visitClass(superclassTree, state)
-                    atypeFactory.processClassWithoutCache(superclassTree, defaultOpLevel)
+                    atypeFactory.getVisitor.visitOrQueueClassTree(superclassTree,
+                        AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
+                            AnnotationBuilder.elementNamesValues("value", Class.forName(defaultOpLevel))))
+                    // TODO: cache annotationmirror
                 } else {
                     visitClass(elt, state)
                 }
@@ -159,7 +160,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             filter(field => field.getModifiers.contains(Modifier.STATIC)).
             foreach(field => {
                 getExplicitAnnotation(field) match {
-                    case Some(value) if !AnnotationUtils.areSameByClass(value, classOf[Inconsistent]) =>
+                    case Some(value) if !atypeFactory.areSameByClass(value, classOf[Inconsistent]) =>
                         atypeFactory.getChecker.reportError(field, "mixed.field.static.incompatible")
                     case _ =>
                 }
@@ -249,7 +250,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
                     case (Some(explicitAnnotation), Some(LHS))
                         if field.getModifiers.contains(Modifier.STATIC) &&
-                            AnnotationUtils.areSameByClass(explicitAnnotation, classOf[Inconsistent]) =>
+                            atypeFactory.areSameByClass(explicitAnnotation, classOf[Inconsistent]) =>
                         atypeFactory.getChecker.reportError(node, "mixed.field.static.incompatible")
 
                     case (None, _) =>

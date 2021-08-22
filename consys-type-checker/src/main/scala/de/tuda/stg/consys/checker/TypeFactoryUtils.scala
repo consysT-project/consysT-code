@@ -1,15 +1,17 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
-import de.tuda.stg.consys.checker.qual.{Immutable, Mutable, MutableBottom, QualifierForOperation, Strong}
+import com.sun.tools.javac.code.Type
+import de.tuda.stg.consys.annotations.methods.WeakOp
+import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong}
 
-import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement}
+import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ExecutableElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.DeclaredType
+import javax.lang.model.`type`.{DeclaredType, TypeMirror}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
@@ -69,8 +71,16 @@ object TypeFactoryUtils {
 	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
-	def getMixedDefaultOp(mixedAnnotation: AnnotationMirror): String =
-		AnnotationUtils.getElementValue(mixedAnnotation, "value", classOf[Object], true).toString
+	def getMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
+		if (mixedAnnotation.getElementValues.values().isEmpty)
+			classOf[WeakOp].getCanonicalName
+		else
+			mixedAnnotation.getElementValues.values().head.getValue match {
+				case v: DeclaredType => getQualifiedName(v)
+				case v: Class[_] => v.getCanonicalName
+				case _ => sys.error("")
+			}
+	}
 
 	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit atypeFactory: AnnotatedTypeFactory): String = {
 		var methodLevel: Option[String] = None
@@ -78,8 +88,7 @@ object TypeFactoryUtils {
 			val (operation, _) = mapping
 			if (ElementUtils.hasAnnotation(method, operation)) {
 				methodLevel match {
-					case None =>
-						methodLevel = Option(operation)
+					case None => methodLevel = Option(operation)
 					case _ => // TODO: handle case if more than one annotation given
 				}
 			}

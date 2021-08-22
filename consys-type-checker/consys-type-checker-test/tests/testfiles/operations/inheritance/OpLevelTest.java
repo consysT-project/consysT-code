@@ -1,4 +1,4 @@
-package testfiles.operations;
+package testfiles.operations.inheritance;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;

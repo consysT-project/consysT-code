@@ -8,7 +8,7 @@ import org.checkerframework.framework.source.SuppressWarningsPrefix;
 
 import java.util.LinkedHashSet;
 
-@SupportedLintOptions({"disableSubChecker"})
+@SupportedLintOptions({"disableSubChecker", "libMode"})
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
 
@@ -26,11 +26,12 @@ public class ConsistencyChecker extends BaseTypeChecker {
 
     @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
+        // overwrite ref() access to be side-effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
                 ((ConsistencyVisitorImpl)getVisitor()).methodInvocationIsRefAccess((MethodInvocationTree) source)) {
             return;
         }
-        // TODO: remove this hack for refs
+        // TODO: remove this hack for ref type arguments
         if (messageKey.equals("type.argument.type.incompatible")) {
             return;
         }
