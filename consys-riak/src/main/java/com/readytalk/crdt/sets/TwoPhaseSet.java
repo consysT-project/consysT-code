@@ -92,6 +92,8 @@ import com.google.common.collect.Sets;
 		r.addAll(other.removals);
 		// this merge function had TwoPhaseSet<E> output type.
 		//return new TwoPhaseSet<E>(serializer, a, r);
+
+		return null;
 	}
 
 	// Unsure about it. Maybe using each element \in \result or not.
@@ -120,8 +122,8 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ requires !(removals.contains(obj))
-	@ assignable adds
+	@ requires !(removals.contains(obj));
+	@ assignable adds;
 	@ ensures adds.contains(obj);
     @ ensures (\forall E elem; \old(adds.contains(elem)); adds.contains(elem));
     @ ensures (\forall E elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
@@ -138,7 +140,7 @@ import com.google.common.collect.Sets;
 
 	/*@
 	@ requires (\forall E elem; col.contains(elem); removals.contains(elem) == false);
-	@ assignable adds
+	@ assignable adds;
 	@ ensures (\forall E elem; col.contains(elem); adds.contains(elem));
     @ ensures (\forall E elem; \old(adds.contains(elem)); adds.contains(elem));
 	@ ensures (\forall E elem; adds.contains(elem) && col.contains(elem) == false; \old(adds.contains(elem)));
@@ -157,7 +159,7 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ assignable removals
+	@ assignable removals;
 	@ ensures (\forall E elem; adds.contains(elem); removals.contains(elem));
 	@*/
 	// changed from original: @Override
@@ -205,7 +207,7 @@ import com.google.common.collect.Sets;
 
 
 	/*@
-	@ assignable removals
+	@ assignable removals;
 	@ ensures removals.contains(obj);
 	@ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
 	@ ensures (\forall E elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
@@ -224,9 +226,9 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ requires !col.isEmpty()
-	@ requires !col.contains(null)
-	@ assignable removals
+	@ requires !col.isEmpty();
+	@ requires !col.contains(null);
+	@ assignable removals;
 	@ ensures (\forall E elem; col.contains(elem) && adds.contains(elem); removals.contains(elem));
     @ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
 	@ ensures (\forall E elem; removals.contains(elem) && col.contains(elem) == false; \old(removals.contains(elem)));
@@ -245,9 +247,9 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ requires !col.isEmpty()
-	@ requires !col.contains(null)
-	@ assignable removals
+	@ requires !col.isEmpty();
+	@ requires !col.contains(null);
+	@ assignable removals;
 	@ ensures (\forall E elem; col.contains(elem) && adds.contains(elem) && \old(removals.contains(elem)) == false; !removals.contains(elem));
 	@ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
 	@ ensures (\forall E elem; removals.contains(elem) && \old(removals.contains(elem)) == false; adds.contains(elem) && col.contains(elem) == false);
