@@ -90,7 +90,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 					}
 				}
 			} else {
-				Logger.warn("jml spec case not supported. Method: " + this + ". Spec case: "  + rest);
+//				Logger.warn("jml spec case not supported. Method: " + this + ". Spec case: "  + rest);
 				return Optional.empty();
 			}
 		}

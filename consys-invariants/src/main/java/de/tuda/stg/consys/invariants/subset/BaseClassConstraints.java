@@ -232,7 +232,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		BoolExpr assignable;
 		var maybeClause = methodModel.getAssignableClause();
 		if (maybeClause.isEmpty()) {
-			Logger.warn("no assignable clause found, defaulting to assignable \\nothing: " + methodModel);
+			Logger.warn("no assignable clause found, defaulting to assignable \\nothing. Method: " + methodModel);
 			assignable = parser.parseJmlAssignableClause(null);
 		} else {
 			assignable = parser.parseJmlAssignableClause(maybeClause.get());
