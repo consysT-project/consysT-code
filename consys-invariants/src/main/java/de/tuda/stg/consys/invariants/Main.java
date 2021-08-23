@@ -43,7 +43,8 @@ public class Main {
             //  Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java")
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java")
     };
 
     runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);

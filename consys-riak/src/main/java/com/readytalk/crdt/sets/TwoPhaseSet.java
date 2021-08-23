@@ -75,13 +75,13 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ ensures (\forall E val; \old(adds.contains(val)) || other.adds.contains(val); adds.contains(val));
-	@ ensures (\forall E val; adds.contains(val); \old(adds.contains(val)) || other.adds.contains(val));
-	@ ensures (\forall E val; \old(removals.contains(val)) || other.removals.contains(val); removals.contains(val));
-	@ ensures (\forall E val; removals.contains(val); \old(removals.contains(val)) || other.removals.contains(val));
+	@ ensures (\forall E val; \old(adds.contains(val)) || other.adds.contains(val); this.adds.contains(val));
+	@ ensures (\forall E val; this.adds.contains(val); \old(adds.contains(val)) || other.adds.contains(val));
+	@ ensures (\forall E val; \old(this.removals.contains(val)) || other.removals.contains(val); this.removals.contains(val));
+	@ ensures (\forall E val; this.removals.contains(val); \old(removals.contains(val)) || other.removals.contains(val));
 	@*/
-	@Override
-	public TwoPhaseSet<E> merge(final TwoPhaseSet<E> other) {
+	// changed from original: @Override
+	public Void merge(final TwoPhaseSet<E> other) { // Change from the origin: Void <- TwoPhaseSet<E>
 		GSet<E> a = new GSet<E>(serializer);
 		GSet<E> r = new GSet<E>(serializer);
 
@@ -90,22 +90,22 @@ import com.google.common.collect.Sets;
 
 		a.addAll(other.adds);
 		r.addAll(other.removals);
-
-		return new TwoPhaseSet<E>(serializer, a, r);
+		// this merge function had TwoPhaseSet<E> output type.
+		//return new TwoPhaseSet<E>(serializer, a, r);
 	}
 
 	// Unsure about it. Maybe using each element \in \result or not.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(ImmutableSet.copyOf(Sets.difference(adds, removals)));
+	@ ensures \result.equals(Sets.difference(adds, removals));
 	@*/
-	@Override
+	// changed from original: @Override
 	public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(Sets.difference(this.adds, this.removals));
 	}
 
 	// No need to annotate
-	@Override
+	// changed from original: @Override
 	public byte[] payload() {
 		try {
 			Map<String, JsonNode> retval = Maps.newHashMap();
@@ -127,7 +127,7 @@ import com.google.common.collect.Sets;
     @ ensures (\forall E elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
     @ ensures \result == !(\old(adds.contains(obj)));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean add(final E obj) {
 		if (removals.contains(obj)) {
 			throw new IllegalArgumentException(
@@ -144,7 +144,7 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; adds.contains(elem) && col.contains(elem) == false; \old(adds.contains(elem)));
 	@ ensures \result == !(\forall E elem; col.contains(elem); \old(adds.contains(elem)));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean addAll(final Collection<? extends E> col) {
 		Set<E> s = Sets.intersection(removals, Sets.newHashSet(col));
 
@@ -160,7 +160,7 @@ import com.google.common.collect.Sets;
 	@ assignable removals
 	@ ensures (\forall E elem; adds.contains(elem); removals.contains(elem));
 	@*/
-	@Override
+	// changed from original: @Override
 	public void clear() {
 		removals.addAll(adds);
 
@@ -170,7 +170,7 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result== !removals.contains(obj) && adds.contains(obj);
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean contains(final Object obj) {
 		return !removals.contains(obj) && adds.contains(obj);
 	}
@@ -179,7 +179,7 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; col.contains(elem); removals.contains(elem) == false) && (\forall E elem; col.contains(elem); adds.contains(elem));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean containsAll(final Collection<?> col) {
 		Set<E> s = Sets.intersection(removals, Sets.newHashSet(col));
 		return s.isEmpty() && adds.containsAll(col);
@@ -189,16 +189,16 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; adds.contains(elem); removals.contains(elem));
 	@*/
-	@Override
+	// changed from original: @Override
 	public boolean isEmpty() {
 		return removals.containsAll(adds);
 	}
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(value().iterator());
+	@ ensures \result.equals(this.value().iterator());
 	@*/
-	@Override
+	// changed from original: @Override
 	public Iterator<E> iterator() {
 		return this.value().iterator();
 	}
@@ -211,8 +211,8 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
 	@ ensures \result == \old(removals.contains(obj)) && !adds.contains(obj);
 	@*/
-	@Override
-	@SuppressWarnings("unchecked")
+	// changed from original: @Override
+	// changed from original: @SuppressWarnings("unchecked")
 	public boolean remove(final Object obj) {
 		if (removals.contains(obj) || !adds.contains(obj)) {
 			return false;
@@ -232,8 +232,8 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; removals.contains(elem) && col.contains(elem) == false; \old(removals.contains(elem)));
 	@ ensures \result == !(\forall E elem; col.contains(elem); \old(removals.contains(elem)));
 	@*/
-	@Override
-	@SuppressWarnings("unchecked")
+	// changed from original: @Override
+	// changed from original: @SuppressWarnings("unchecked")
 	public boolean removeAll(final Collection<?> col) {
 		checkNotNull(col);
 		checkCollectionDoesNotContainNull(col);
@@ -251,10 +251,10 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; col.contains(elem) && adds.contains(elem) && \old(removals.contains(elem)) == false; !removals.contains(elem));
 	@ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
 	@ ensures (\forall E elem; removals.contains(elem) && \old(removals.contains(elem)) == false; adds.contains(elem) && col.contains(elem) == false);
-	@ ensures \result == (\exists E elem; !col.contains(elem) && value().contains(elem); true);
+	@ ensures \result == (\exists E elem; !col.contains(elem) && this.value().contains(elem); true);
 	@*/
-	@Override
-	@SuppressWarnings("unchecked")
+	// changed from original: @Override
+	// changed from original: @SuppressWarnings("unchecked")
 	public boolean retainAll(final Collection<?> col) {
 		checkNotNull(col);
 		checkCollectionDoesNotContainNull(col);
@@ -269,25 +269,25 @@ import com.google.common.collect.Sets;
 	@ assignable \nothing;
 	@ ensures \result == adds.size() - removals.size();
 	@*/
-	@Override
+	// changed from original: @Override
 	public int size() {
 		return this.adds.size() - this.removals.size();
 	}
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(value().toArray());
+	@ ensures \result.equals(this.value().toArray());
 	@*/
-	@Override
+	// changed from original: @Override
 	public Object[] toArray() {
 		return this.value().toArray();
 	}
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(value().toArray(arg));
+	@ ensures \result.equals(this.value().toArray(arg));
 	@*/
-	@Override
+	// changed from original: @Override
 	public <T> T[] toArray(final T[] arg) {
 		return this.value().toArray(arg);
 	}
@@ -295,9 +295,9 @@ import com.google.common.collect.Sets;
 	// I think we need some type casting supports for this use case.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == value().equals(o.value()));
+	@ ensures \result == this.value().equals(o.value()));
 	@*/
-	@Override
+	// changed from original: @Override
 	public final boolean equals(@Nullable final Object o) {
 
 		if (!(o instanceof TwoPhaseSet)) {
@@ -315,18 +315,18 @@ import com.google.common.collect.Sets;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == value().hashCode();
+	@ ensures \result == this.value().hashCode();
 	@*/
-	@Override
+	// changed from original: @Override
 	public int hashCode() {
 		return this.value().hashCode();
 	}
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(value().toString());
+	@ ensures \result.equals(this.value().toString());
 	@*/
-	@Override
+	// changed from original: @Override
 	public String toString() {
 		return this.value().toString();
 	}
