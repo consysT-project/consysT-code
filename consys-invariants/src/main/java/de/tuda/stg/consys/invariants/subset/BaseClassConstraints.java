@@ -9,6 +9,7 @@ import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.ObjectModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
+import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
@@ -112,7 +113,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 				var refBinding = ((ObjectModel) fieldModel.getType()).getRefBinding();
 				var mbFieldConstraints = model.getClassConstraints(refBinding);
 				if (mbFieldConstraints.isEmpty()) {
-					Logger.warn("cannot get constraints for class " + classModel.getClassName());
+					Logger.warn("cannot get constraints for class " + JDTUtils.nameOfClass(refBinding));
 					continue;
 				}
 				var fieldConstraints = mbFieldConstraints.get();

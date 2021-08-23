@@ -407,6 +407,7 @@ public class BaseExpressionParser extends ExpressionParser {
       }
       return methodInvocation;
     }
+
     return super.parseJmlMessageSend(jmlMessageSend, depth);
   }
 
@@ -585,5 +586,10 @@ public class BaseExpressionParser extends ExpressionParser {
     }
 
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return "BaseExpressionParser";
   }
 }

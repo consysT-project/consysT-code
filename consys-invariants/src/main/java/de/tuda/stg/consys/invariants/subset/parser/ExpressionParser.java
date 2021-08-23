@@ -26,7 +26,7 @@ public abstract class ExpressionParser {
 	protected final Expr parseExpression(Expression expression, int depth) {
 
 		if (expression == null) {
-			Logger.warn("expression was null and was converted to `true`");
+			Logger.warn("expression was null and was converted to `true`. Parser: " + this.toString());
 			return model.ctx.mkTrue();
 		}
 

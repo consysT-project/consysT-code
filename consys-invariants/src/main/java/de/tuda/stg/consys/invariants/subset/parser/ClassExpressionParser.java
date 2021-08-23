@@ -139,5 +139,11 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return classModel;
 	}
 
+	@Override
+	public String toString() {
+		return "ClassExpressionParser{" +
+				"classModel=" + classModel +
+				'}';
+	}
 
 }

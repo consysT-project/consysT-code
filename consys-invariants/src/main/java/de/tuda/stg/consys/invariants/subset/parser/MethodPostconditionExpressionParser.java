@@ -205,4 +205,11 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 
 		throw new IllegalArgumentException(jmlAssignableClause.toString());
 	}
+
+	@Override
+	public String toString() {
+		return "MethodPostconditionExpressionParser{" +
+				"methodModel=" + methodModel +
+				'}';
+	}
 }

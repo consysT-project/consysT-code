@@ -27,5 +27,11 @@ public class ConstructorPreconditionExpressionParser extends MethodExpressionPar
 		throw new UnsupportedJMLExpression(fieldReference, "fields cannot be referenced in constructor precondition");
 	}
 
+	@Override
+	public String toString() {
+		return "ConstructorPreconditionExpressionParser{" +
+				"methodModel=" + methodModel +
+				'}';
+	}
 
 }

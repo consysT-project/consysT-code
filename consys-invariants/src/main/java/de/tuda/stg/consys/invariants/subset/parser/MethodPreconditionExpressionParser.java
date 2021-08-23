@@ -10,4 +10,11 @@ public class MethodPreconditionExpressionParser extends MethodExpressionParser {
 	public MethodPreconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, AbstractMethodModel<?> methodModel, Expr thisConst) {
 		super(smt, classModel, methodModel, thisConst);
 	}
+
+	@Override
+	public String toString() {
+		return "MethodPreconditionExpressionParser{" +
+				"methodModel=" + methodModel +
+				'}';
+	}
 }

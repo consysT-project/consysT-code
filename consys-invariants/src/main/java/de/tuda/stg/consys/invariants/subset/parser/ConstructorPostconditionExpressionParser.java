@@ -14,4 +14,11 @@ public class ConstructorPostconditionExpressionParser extends MethodExpressionPa
 		super(model, classModel, constructorModel, thisConst);
 	}
 
+	@Override
+	public String toString() {
+		return "ConstructorPostconditionExpressionParser{" +
+				"methodModel=" + methodModel +
+				'}';
+	}
+
 }

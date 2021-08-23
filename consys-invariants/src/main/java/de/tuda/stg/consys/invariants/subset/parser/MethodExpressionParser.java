@@ -24,4 +24,11 @@ public class MethodExpressionParser extends ClassExpressionParser {
 			);
 		}
 	}
+
+	@Override
+	public String toString() {
+		return "MethodExpressionParser{" +
+				"methodModel=" + methodModel +
+				'}';
+	}
 }
