@@ -77,7 +77,7 @@ import com.google.common.collect.Sets;
 	/*@
 	@ ensures (\forall E val; \old(adds.contains(val)) || other.adds.contains(val); this.adds.contains(val));
 	@ ensures (\forall E val; this.adds.contains(val); \old(adds.contains(val)) || other.adds.contains(val));
-	@ ensures (\forall E val; \old(this.removals.contains(val)) || other.removals.contains(val); this.removals.contains(val));
+	@ ensures (\forall E val; \old(removals.contains(val)) || other.removals.contains(val); this.removals.contains(val));
 	@ ensures (\forall E val; this.removals.contains(val); \old(removals.contains(val)) || other.removals.contains(val));
 	@*/
 	// changed from original: @Override
@@ -122,7 +122,7 @@ import com.google.common.collect.Sets;
 	}
 
 	/*@
-	@ requires !(removals.contains(obj));
+	@ requires (removals.contains(obj) == false);
 	@ assignable adds;
 	@ ensures adds.contains(obj);
     @ ensures (\forall E elem; \old(adds.contains(elem)); adds.contains(elem));
@@ -170,7 +170,7 @@ import com.google.common.collect.Sets;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result== !removals.contains(obj) && adds.contains(obj);
+	@ ensures \result == !removals.contains(obj) && adds.contains(obj);
 	@*/
 	// changed from original: @Override
 	public boolean contains(final Object obj) {
@@ -225,9 +225,9 @@ import com.google.common.collect.Sets;
 		return true;
 	}
 
+	// Omitted: requires col.contains(null) == false;
 	/*@
-	@ requires !col.isEmpty();
-	@ requires !col.contains(null);
+	@ requires col.isEmpty() == false;
 	@ assignable removals;
 	@ ensures (\forall E elem; col.contains(elem) && adds.contains(elem); removals.contains(elem));
     @ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
@@ -246,9 +246,9 @@ import com.google.common.collect.Sets;
 		return this.removals.addAll(intersection);
 	}
 
+	// Omitted: requires col.contains(null) == false;
 	/*@
-	@ requires !col.isEmpty();
-	@ requires !col.contains(null);
+	@ requires col.isEmpty() == false;
 	@ assignable removals;
 	@ ensures (\forall E elem; col.contains(elem) && adds.contains(elem) && \old(removals.contains(elem)) == false; !removals.contains(elem));
 	@ ensures (\forall E elem; \old(removals.contains(elem)); removals.contains(elem));
@@ -297,7 +297,7 @@ import com.google.common.collect.Sets;
 	// I think we need some type casting supports for this use case.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().equals(o.value()));
+	@ ensures \result == this.value().equals(o.value());
 	@*/
 	// changed from original: @Override
 	public final boolean equals(@Nullable final Object o) {
