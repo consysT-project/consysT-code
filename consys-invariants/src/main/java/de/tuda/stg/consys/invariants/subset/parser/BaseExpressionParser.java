@@ -267,6 +267,42 @@ public class BaseExpressionParser extends ExpressionParser {
     var receiverBinding = jmlMessageSend.actualReceiverType;
     var methodBinding = jmlMessageSend.binding;
 
+
+    /* Handle call to method from a class in the data model */
+    var maybeMethodModel = model
+            .getClassModel(methodBinding.declaringClass)
+            .flatMap(cls -> cls.getMethod(methodBinding));
+    // If the method exists then handle it!
+    if (maybeMethodModel.isPresent()) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var methodModel = maybeMethodModel.get();
+
+      if (!methodModel.usableAsConstraint() || (!methodModel.isPure() && !allowStatefulMethodCalls))
+        return super.parseJmlMessageSend(jmlMessageSend, depth);
+
+      /* Create exprs for all arguments */
+      final Expr[] argExprs;
+      if (jmlMessageSend.arguments == null) {
+        argExprs = new Expr[0];
+      } else {
+        argExprs = Arrays.stream(jmlMessageSend.arguments)
+                .map(jmlExpr -> parseExpression(jmlExpr, depth + 1))
+                .toArray(Expr[]::new);
+      }
+
+      /* if the method is in a stateful expression, and it is the top method, then create a state method instead */
+      Expr methodInvocation;
+      if (allowStatefulMethodCalls && depth == 0) {
+        methodInvocation = methodModel.makeApplyReturnState(receiverExpr, argExprs)
+                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+      } else {
+        methodInvocation = methodModel.makeApplyReturnValue(receiverExpr, argExprs)
+                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
+      }
+      return methodInvocation;
+    }
+
+
     // The cases are categorized by the classes in which they are defined:
     // java.lang.Object
     if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false,"java.lang.Object", "equals", "java.lang.Object")) {
@@ -373,41 +409,7 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
 
-    /* Handle call to method from a class in the data model */
-    var maybeMethodModel = model
-            .getClassModel(methodBinding.declaringClass)
-            .flatMap(cls -> cls.getMethod(methodBinding));
 
-//            .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "class " + String.valueOf(methodBinding.declaringClass.shortReadableName()) + " not in data model, or method is unsupported"));
-
-    if (maybeMethodModel.isPresent()) {
-      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
-      var methodModel = maybeMethodModel.get();
-
-      if (!methodModel.usableAsConstraint() || (!methodModel.isPure() && !allowStatefulMethodCalls))
-        return super.parseJmlMessageSend(jmlMessageSend, depth);
-
-      /* Create exprs for all arguments */
-      final Expr[] argExprs;
-      if (jmlMessageSend.arguments == null) {
-        argExprs = new Expr[0];
-      } else {
-        argExprs = Arrays.stream(jmlMessageSend.arguments)
-                .map(jmlExpr -> parseExpression(jmlExpr, depth + 1))
-                .toArray(Expr[]::new);
-      }
-
-      /* if the method is in a stateful expression, and it is the top method, then create a state method instead */
-      Expr methodInvocation;
-      if (allowStatefulMethodCalls && depth == 0) {
-        methodInvocation = methodModel.makeApplyReturnState(receiverExpr, argExprs)
-                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
-      } else {
-        methodInvocation = methodModel.makeApplyReturnValue(receiverExpr, argExprs)
-                .orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend));
-      }
-      return methodInvocation;
-    }
 
     return super.parseJmlMessageSend(jmlMessageSend, depth);
   }
