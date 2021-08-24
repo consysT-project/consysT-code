@@ -33,11 +33,13 @@ public class TypeModelFactory {
 	}
 
 	private ObjectModel modelForRef(ReferenceBinding refBinding) {
-		if (refModels.containsKey(refBinding)) {
-			return refModels.get(refBinding);
+		var erased = JDTUtils.erase(refBinding);
+
+		if (refModels.containsKey(erased)) {
+			return refModels.get(erased);
 		} else {
-			var refModel = new ObjectModel(model, refBinding);
-			refModels.put(refBinding, refModel);
+			var refModel = new ObjectModel(model, erased);
+			refModels.put(erased, refModel);
 			return refModel;
 		}
 	}
@@ -84,6 +86,11 @@ public class TypeModelFactory {
 		} else if (typeBinding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
+			var mbClassModel = model.getClassModel(refBinding);
+			if (mbClassModel.isPresent()) {
+				return modelForRef(refBinding);
+			}
+
 			if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.String")) {
 				return stringModel.get();
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Set")) {
@@ -91,7 +98,7 @@ public class TypeModelFactory {
 					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
 					return new SetModel(model, typeFor(parBinding.arguments[0]));
 				} else {
-					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					var objectModel = modelForRef(model.bindingForJavaLangObject());
 					return new SetModel(model, objectModel);
 				}
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Map")) {
@@ -102,7 +109,7 @@ public class TypeModelFactory {
 					return new MapModel(model, typeFor(parBinding.arguments[0]), typeFor(parBinding.arguments[1]));
 				} else {
 					//not type parameters -> Map<Object, Object>
-					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					var objectModel = modelForRef(model.bindingForJavaLangObject());
 					return new MapModel(model, objectModel, objectModel);
 				}
 			}
@@ -112,7 +119,7 @@ public class TypeModelFactory {
 					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
 					return new CollectionModel(model, typeFor(parBinding.arguments[0]));
 				} else {
-					var objectModel = modelForRef(model.getParserScope().getJavaLangObject());
+					var objectModel = modelForRef(model.bindingForJavaLangObject());
 					return new CollectionModel(model, objectModel);
 				}
 			}

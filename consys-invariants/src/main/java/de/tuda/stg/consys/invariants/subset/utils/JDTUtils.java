@@ -15,6 +15,10 @@ public class JDTUtils {
 		return (ReferenceBinding) binding.original();
 	}
 
+	public static MethodBinding erase(MethodBinding binding) {
+		return binding.original();
+	}
+
 	/**
 	 *
 	 * @param binding
@@ -24,7 +28,7 @@ public class JDTUtils {
 	public static boolean typeIsTypeOfName(TypeBinding binding, String typeName) {
 
 		if (binding instanceof ReferenceBinding) {
-			return nameOfClass((ReferenceBinding) binding).equals(typeName/* ~ "java.lang.Object" */);
+			return typeName/* ~ "java.lang.Object" */.equals(nameOfClass((ReferenceBinding) binding));
 		} else if (binding instanceof BaseTypeBinding) {
 			BaseTypeBinding baseBinding = (BaseTypeBinding) binding;
 			return String.valueOf(baseBinding.simpleName/* ~ "long" */).equals(typeName);
@@ -34,7 +38,12 @@ public class JDTUtils {
 	}
 
 	public static String nameOfClass(ReferenceBinding refBinding) {
-		return Arrays.stream(refBinding.compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
+		if (refBinding instanceof TypeVariableBinding) {
+			return nameOfClass(((TypeVariableBinding) refBinding).superclass);
+		} else {
+			return Arrays.stream(erase(refBinding).compoundName).map(String::valueOf).reduce( (acc, e) -> acc + "." + e).orElse("");
+		}
+
 	}
 
 	public static String simpleNameOfClass(ReferenceBinding refBinding) {
@@ -86,12 +95,12 @@ public class JDTUtils {
 		}
 	}
 
-	public static boolean methodMatchesSignature(MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
+	public static boolean methodMatchesSignature(TypeBinding receiverBinding, MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
 		if (binding.isStatic() != isStatic) {
 			return false;
 		}
 
-		if (!typeIsSubtypeOfName(binding.declaringClass, declaringClassName)) {
+		if (!typeIsSubtypeOfName(receiverBinding, declaringClassName)) {
 			return false;
 		}
 

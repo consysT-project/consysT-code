@@ -264,74 +264,75 @@ public class BaseExpressionParser extends ExpressionParser {
 
   @Override
   protected Expr parseJmlMessageSend(JmlMessageSend jmlMessageSend, int depth) {
+    var receiverBinding = jmlMessageSend.actualReceiverType;
     var methodBinding = jmlMessageSend.binding;
 
     // The cases are categorized by the classes in which they are defined:
     // java.lang.Object
-    if (JDTUtils.methodMatchesSignature(methodBinding, false,"java.lang.Object", "equals", "java.lang.Object")) {
+    if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false,"java.lang.Object", "equals", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkEq(receiverExpr, argExpr);
     }
     // java.util.Map
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Map", "get", "java.lang.Object")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Map", "get", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
     // java.util.Set
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "isEmpty")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Set", "isEmpty")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       ArraySort sort = (ArraySort) receiverExpr.getSort();
 //      var e = model.ctx.mkFreshConst("e", sort.getDomain());
 //      return model.ctx.mkForall(new Expr[]{e}, model.ctx.mkNot(model.ctx.mkSetMembership(e, receiverExpr)), 1, null, null, null, null);
       return model.ctx.mkEq(receiverExpr, model.ctx.mkEmptySet(sort.getDomain()));
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "contains", "java.lang.Object")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Set", "contains", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSetMembership(argExpr, receiverExpr);
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Set", "containsAll", "java.util.Collection")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Set", "containsAll", "java.util.Collection")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSetSubset(argExpr, receiverExpr);
     }
     // java.util.Collection
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Collection", "isEmpty")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Collection", "isEmpty")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       ArraySort sort = (ArraySort) receiverExpr.getSort();
       var e = model.ctx.mkFreshConst("e", sort.getDomain());
       return model.ctx.mkForall(new Expr[]{e},
               model.ctx.mkEq(model.ctx.mkSelect(receiverExpr, e), model.ctx.mkInt(0)),
               1, null, null, null, null);
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.util.Collection", "contains", "java.lang.Object")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Collection", "contains", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkNot(model.ctx.mkEq(model.ctx.mkSelect(receiverExpr, argExpr), model.ctx.mkInt(0)));
     }
     // java.math.BigInteger
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkAdd(receiverExpr, argExpr);
     }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "subtract", "java.math.BigInteger")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "subtract", "java.math.BigInteger")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSub(receiverExpr, argExpr);
     }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "java.math.BigInteger", "valueOf", "long")) {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return argExpr;
     }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "intValue")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "intValue")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       return receiverExpr;
     }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "hashCode")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "hashCode")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       return receiverExpr;
     }
-    else if (JDTUtils.methodMatchesSignature(methodBinding, false, "java.math.BigInteger", "compareTo", "java.math.BigInteger")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "compareTo", "java.math.BigInteger")) {
       // This method is not working correctly for equal situation. Please use equals for that purpose also.
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
@@ -346,7 +347,7 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
     // Math
-    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "max", "int", "int")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "java.lang.Math", "max", "int", "int")) {
       var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
@@ -354,7 +355,7 @@ public class BaseExpressionParser extends ExpressionParser {
               model.ctx.mkGe(arg1Expr, arg2Expr),
               arg1Expr, arg2Expr
       );
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "java.lang.Math", "min", "int", "int")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "java.lang.Math", "min", "int", "int")) {
       var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
@@ -364,11 +365,11 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
     // System methods
-    else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replicaId")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replicaId")) {
       return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replica")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replica")) {
       return model.ctx.mkString(model.config.SYSTEM__REPLICA);
-    } else if (JDTUtils.methodMatchesSignature(methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "numOfReplicas")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "numOfReplicas")) {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
 

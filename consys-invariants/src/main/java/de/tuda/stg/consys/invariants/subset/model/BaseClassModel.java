@@ -196,7 +196,7 @@ public class BaseClassModel {
 	}
 
 	public Optional<MethodModel> getMethod(MethodBinding binding) {
-		return Z3Utils.findBindingInArray(getClassMethods(), binding, AbstractMethodModel::getBinding);
+		return Z3Utils.findBindingInArray(getClassMethods(), JDTUtils.erase(binding), AbstractMethodModel::getBinding);
 	}
 
 	public Optional<ConstantModel> getConstant(FieldBinding binding) {
@@ -231,7 +231,7 @@ public class BaseClassModel {
 
 
 	protected boolean methodIsMerge(MethodBinding binding) {
-		return JDTUtils.methodMatchesSignature(binding, false,
+		return JDTUtils.methodMatchesSignature(this.getBinding(), binding, false,
 				JDTUtils.nameOfClass(jmlType.binding),
 				"merge",
 				JDTUtils.nameOfClass(jmlType.binding));

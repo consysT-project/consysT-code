@@ -304,9 +304,13 @@ public class ProgramModel {
 		}
 	}
 
-	public CompilationUnitScope getParserScope() {
+	private CompilationUnitScope getParserScope() {
 		//TODO: Can we change this to take the correct compilation unit?
 		return compileResult.getParser().compilationUnit.scope;
+	}
+
+	public ReferenceBinding bindingForJavaLangObject() {
+		return  getParserScope().getJavaLangObject();
 	}
 
 
