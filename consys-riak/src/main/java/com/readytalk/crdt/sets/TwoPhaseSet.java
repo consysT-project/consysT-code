@@ -96,10 +96,11 @@ import com.google.common.collect.Sets;
 		return null;
 	}
 
-	// Unsure about it. Maybe using each element \in \result or not.
+	// Old version: ensures \result.equals(Sets.difference(adds, removals));
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(Sets.difference(adds, removals));
+	@ ensures (\forall E elem; adds.contains(elem) && removals.contains(elem) == false; \result.contains(elem));
+	@ ensures (\forall E elem; \result.contains(elem); adds.contains(elem) && removals.contains(elem) == false);
 	@*/
 	// changed from original: @Override
 	public ImmutableSet<E> value() {
