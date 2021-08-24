@@ -67,18 +67,6 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return thisConst;
 	}
 
-//	@Override
-//	protected Expr parseJmlFieldReference(JmlFieldReference fieldReference, int depth) {
-//		Expr receiver = parseExpression(fieldReference.receiver, depth + 1);
-//
-//		if (fieldReference.binding.declaringClass.equals(classModel.getBinding())) {
-//			return classModel.getField(fieldReference)
-//					.map(field -> field.getAccessor().apply(receiver))
-//					.orElseThrow(() -> new UnsupportedJMLExpression(fieldReference));
-//		}
-//
-//		return super.parseJmlFieldReference(fieldReference, depth);
-//	}
 
 	@Override
 	protected Expr parseJmlQualifiedNameReference(JmlQualifiedNameReference jmlQualifiedNameReference, int depth) {
