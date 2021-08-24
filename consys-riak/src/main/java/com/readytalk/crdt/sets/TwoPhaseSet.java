@@ -96,7 +96,7 @@ import com.google.common.collect.Sets;
 		return null;
 	}
 
-	// Old version: ensures \result.equals(Sets.difference(adds, removals));
+	// Previously: ensures \result.equals(Sets.difference(adds, removals));
 	/*@
 	@ assignable \nothing;
 	@ ensures (\forall E elem; adds.contains(elem) && removals.contains(elem) == false; \result.contains(elem));
@@ -197,9 +197,9 @@ import com.google.common.collect.Sets;
 		return removals.containsAll(adds);
 	}
 
+	// No need to annotate
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(this.value().iterator());
 	@*/
 	// changed from original: @Override
 	public Iterator<E> iterator() {
@@ -268,37 +268,37 @@ import com.google.common.collect.Sets;
 		return this.removeAll(diff);
 	}
 
+	// Previously: ensures \result == adds.value().size() - removals.value().size();
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == adds.size() - removals.size();
 	@*/
 	// changed from original: @Override
 	public int size() {
 		return this.adds.size() - this.removals.size();
 	}
 
+	// Previously: ensures \result.equals(this.value().toArray());
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(this.value().toArray());
 	@*/
 	// changed from original: @Override
 	public Object[] toArray() {
 		return this.value().toArray();
 	}
 
+	// Previously: ensures \result.equals(this.value().toArray(arg));
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(this.value().toArray(arg));
 	@*/
 	// changed from original: @Override
 	public <T> T[] toArray(final T[] arg) {
 		return this.value().toArray(arg);
 	}
 
-	// I think we need some type casting supports for this use case.
+	// Previously: \result == o.value().equals(this.value());
+	// The problem was type casting, but we conclude we don't need any post conditions in equals method.
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().equals(o.value());
 	@*/
 	// changed from original: @Override
 	public final boolean equals(@Nullable final Object o) {
@@ -316,18 +316,18 @@ import com.google.common.collect.Sets;
 		}
 	}
 
+	// Previously: ensures \result == this.value().hashCode();
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().hashCode();
 	@*/
 	// changed from original: @Override
 	public int hashCode() {
 		return this.value().hashCode();
 	}
 
+	// Previously: ensures \result.equals(this.value().toString());
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(this.value().toString());
 	@*/
 	// changed from original: @Override
 	public String toString() {
