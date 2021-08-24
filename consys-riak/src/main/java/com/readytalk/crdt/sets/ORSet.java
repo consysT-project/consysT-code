@@ -242,27 +242,27 @@ import com.readytalk.crdt.AbstractCRDT;
 		return this.removeAll(diff);
 	}
 
+	// Previously: \result == elements.keySet().size();
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == elements.keySet().size();
 	@*/
 	// changed from original: @Override
 	public int size() {
 		return elements.keySet().size();
 	}
 
+	// Previously: ensures \result.equals(elements.keySet().toArray());
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(elements.keySet().toArray());
 	@*/
 	// changed from original: @Override
 	public Object[] toArray() {
 		return elements.keySet().toArray();
 	}
 
+	// Previously: ensures \result.equals(elements.keySet().toArray(arg));
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(elements.keySet().toArray(arg));
 	@*/
 	// changed from original: @Override
 	public <T> T[] toArray(final T[] arg) {
@@ -270,17 +270,17 @@ import com.readytalk.crdt.AbstractCRDT;
 	}
 
 	/*@
-	@ ensures (\forall E elem; \old(elements.containsKey(elem)) && tombstones.containsKey(elem) == false; elements.containsAll(\old(elements.get(elem))));
-	@ ensures (\forall E elem; other.elements.containsKey(elem) && tombstones.containsKey(elem) == false; elements.containsAll(other.element.get(elem)));
+	@ ensures (\forall E elem; \old(elements.containsKey(elem)) && tombstones.containsKey(elem) == false; elements.get(elem).containsAll(\old(elements.get(elem))));
+	@ ensures (\forall E elem; other.elements.containsKey(elem) && tombstones.containsKey(elem) == false; elements.get(elem).containsAll(other.element.get(elem)));
 	@ ensures (\forall E elem; tombstones.containsKey(elem); elements.containsKey(elem) == false);
 	@ ensures (\forall E elem; elements.containsKey(elem); tombstones.containsKey(elem) == false);
 	@ ensures (\forall E elem; elements.containsKey(elem); other.elements.get(elem).addAll(\old(elements.get(elem))).containsAll(elements.get(elem)));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.containsAll(\old(tombstones.get(elem))));
-	@ ensures (\forall E elem; other.tombstones.containsKey(elem); tombstones.containsAll(other.tombstones.get(elem)));
+	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@ ensures (\forall E elem; other.tombstones.containsKey(elem); tombstones.get(elem).containsAll(other.tombstones.get(elem)));
 	@ ensures (\forall E elem; tombstones.containsKey(elem); other.tombstones.get(elem).addAll(\old(tombstones.get(elem))).containsAll(tombstones.get(elem)));
 	@*/
 	// changed from original: @Override
-	public ORSet<E> merge(final ORSet<E> other) {
+	public Void merge(final ORSet<E> other) { // Change from the origin: Void <- ORSet<E>
 		ORSet<E> retval = new ORSet<E>(serializer());
 
 		retval.elements.putAll(this.elements);
@@ -289,8 +289,8 @@ import com.readytalk.crdt.AbstractCRDT;
 		retval.tombstones.putAll(other.elements);
 
 		retval.elements.removeAll(retval.tombstones);
-
-		return retval;
+		// this merge function had ORSet<E> output type.
+		//return retval;
 	}
 
 	/*@
@@ -338,18 +338,18 @@ import com.readytalk.crdt.AbstractCRDT;
 		}
 	}
 
+	// Previously: ensures \result == this.value().hashCode();
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().hashCode();
 	@*/
 	// changed from original: @Override
 	public final int hashCode() {
 		return this.value().hashCode();
 	}
 
+	// Previously: ensures \result.equals(this.value().toString());
 	/*@
 	@ assignable \nothing;
-	@ ensures \result.equals(this.value().toString());
 	@*/
 	// changed from original: @Override
 	public String toString() {
