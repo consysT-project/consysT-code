@@ -1,5 +1,8 @@
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
+import com.readytalk.crdt.sets.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.google.inject.internal.util.Sets;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -14,8 +17,13 @@ import java.util.Set;
 // 5 Kinda implemented in general but not sure where exactly we can say: Invariant("forall(T:t,P:p):− active(t) and enrolled(p,t)=>participant(p,t)")
 @ReplicatedModel public abstract class Tournaments {
 
-    private final Set<Player> players = Sets.newHashSet();
-    private final Set<Tournament> tournaments = Sets.newHashSet();
+    //private final Set<Player> players = Sets.newHashSet();
+    //private final Set<Tournament> tournaments = Sets.newHashSet();
+
+    private final ObjectMapper objectMapper1 = new ObjectMapper();
+    private final ObjectMapper objectMapper2 = new ObjectMapper();
+    private final TwoPhaseSet<Player> players = new  TwoPhaseSet<Player>(objectMapper1);
+    private final TwoPhaseSet<Tournament> tounaments = new TwoPhaseSet<Tournament>(objectMapper2);
 
     /*@
     @ public invariant (\forall Player p; players.contains(p); p.getBudget() >= 0);
@@ -158,4 +166,14 @@ import java.util.Set;
     void addFunds(Player p, int amount) {
         p.incBudget(amount);
     }
+
+    /*@
+	@ ensures stateful(players.merge(other.players));
+	@ ensures stateful(tournaments.merge(other.tournaments));
+    @*/
+    public Void merge(Tournaments other) {
+        players.merge(other);
+        tounaments.merge(other);
+    }
+
 }
