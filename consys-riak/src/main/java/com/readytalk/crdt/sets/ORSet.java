@@ -80,8 +80,10 @@ import com.readytalk.crdt.AbstractCRDT;
 	/*@
 	@ assignable elements;
 	@ ensures elements.containsKey(value);
-	@ ensures elements.get(value).size() == (\old(elements.get(value))).size() + 1;
-	@ ensures (\forall E elem; elem.equals(value) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\exists UUID u; \old(elements.containsValue(u)) == false; elements.containsValue(u));
+	@ ensures (\forall UUID u; \old(elements.containsValue(u)) == false && elements.containsValue(u); (\forall UUID u2; \old(elements.containsValue(u2)) == false && elements.containsValue(u2); u2.equals(u)) );
+	@ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
+	@ ensures (\forall E elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures \result == !(\old(elements.containsKey(value)));
 	@*/
 	// changed from original: @Override
@@ -98,8 +100,12 @@ import com.readytalk.crdt.AbstractCRDT;
 
 	/*@
 	@ assignable elements;
-	@ ensures (\forall E elem; values.contains(elem); elements.get(elem).size() == (\old(elements.get(elem))).size() + 1);
-	@ ensures (\forall E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall E elem; values.contains(elem); elements.containsKey(elem));
+	@ ensures (\forall E elem; values.contains(elem); (\exists UUID u; \old(elements.get(elem)).contains(u) == false; elements.get(elem).contains(u)) );
+	@ ensures (\forall E elem; values.contains(elem); (\forall UUID u; \old(elements.get(elem)).contains(u) == false && elements.get(elem).contains(u);
+														(\forall UUID u2; \old(elements.get(elem)).contains(u2) == false && elements.get(elem).contains(u2); u2.equals(u) ) ) );
+	@ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
+	@ ensures (\forall E elem; values.contains(elem) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures \result == (\exists E elem; values.contains(elem); \old(elements.containsKey(elem)) == false);
 	@*/
 	// changed from original: @Override
@@ -119,8 +125,9 @@ import com.readytalk.crdt.AbstractCRDT;
 	/*@
 	@ assignable elements, tombstones;
 	@ ensures elements.isEmpty();
-	@ ensures (\forall E elem; \old(elements.containsKey(elem)); tombstones.get(elem).containsAll(\old(elements.get(elem))));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
+	@ ensures (\forall UUID u; \old(elements.containsValue(u)); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.containsValue(u)) || \old(tombstones.containsValue(u)) );
 	@*/
 	// changed from original: @Override
 	public void clear() {
@@ -142,7 +149,7 @@ import com.readytalk.crdt.AbstractCRDT;
 
 	/*@
 	@ assignable \nothing;
-	@ ensures \result == this.value().containsAll(values);
+	@ ensures \result == (\forall E elem; values.contains(elem); this.value().contains(elem));
 	@*/
 	// changed from original: @Override
 	public boolean containsAll(final Collection<?> values) {
@@ -170,10 +177,11 @@ import com.readytalk.crdt.AbstractCRDT;
 	/*@
 	@ assignable elements, tombstones;
 	@ ensures elements.containsKey(value) == false;
-	@ ensures (\forall E elem; elem.equals(value) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
-	@ ensures tombstones.get(value).containsAll(\old(elements.get(value)));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
-	@ ensures \result == (\old(elements.get(value)).isEmpty() == false);
+	@ ensures (\forall E elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall UUID u; \old(elements.get(value)).contains(u); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.get(value)).contains(u) || \old(tombstones.containsValue(u)) );
+	@ ensures \result == \old(elements.containsValue(value));
 	@*/
 	@SuppressWarnings("unchecked")
 	// changed from original: @Override
@@ -189,10 +197,11 @@ import com.readytalk.crdt.AbstractCRDT;
 	/*@
 	@ assignable elements, tombstones;
 	@ ensures (\forall E elem; values.contains(elem); elements.containsKey(elem) == false);
-	@ ensures (\forall E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
-	@ ensures (\forall E elem; values.contains(elem); tombstones.get(elem).containsAll(\old(elements.get(elem))));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
-	@ ensures \result == (\exists E elem; values.contains(elem); (\old(elements.get(elem)).isEmpty() == false));
+	@ ensures (\forall E elem; values.contains(elem) == false; elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall E elem; values.contains(elem); (\forall UUID u; \old(elements.get(elem)).contains(u); tombstones.containsValue(u)) );
+	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; tombstones.containsValue(u); (\exists E elem; values.contains(elem); \old(elements.get(elem)).contains(u)) || \old(tombstones.containsValue(u)) );
+	@ ensures \result == (\exists E elem; values.contains(elem) && \old(elements.containsKey(elem)); true);
 	@*/
 	// changed from original: @Override
 	public boolean removeAll(final Collection<?> values) {
@@ -224,11 +233,12 @@ import com.readytalk.crdt.AbstractCRDT;
 
 	/*@
 	@ assignable elements, tombstones;
-	@ ensures (\forall E elem; values.contains(elem) && \old(elements.containsKey(elem)); elements.get(elem).equals(\old(elements.get(elem))));
+	@ ensures (\forall E elem; values.contains(elem); elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures (\forall E elem; values.contains(elem) == false; elements.containsKey(elem) == false);
-	@ ensures (\forall E elem; values.contains(elem) == false; tombstones.get(elem).containsAll(\old(elements.get(elem))));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
-	@ ensures \result == (\exists E elem; values.contains(elem) == false && this.value().contains(elem); true);
+	@ ensures (\forall E elem; values.contains(elem) == false; (\forall UUID u; \old(elements.get(elem)).contains(u); tombstones.containsValue(u)) );
+	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; tombstones.containsValue(u); (\exists E elem; values.contains(elem) == false; \old(elements.get(elem)).contains(u)) || \old(tombstones.containsValue(u)) );
+	@ ensures \result == (\exists E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); true);
 	@*/
 	// changed from original: @Override
 	@SuppressWarnings("unchecked")
@@ -270,14 +280,10 @@ import com.readytalk.crdt.AbstractCRDT;
 	}
 
 	/*@
-	@ ensures (\forall E elem; \old(elements.containsKey(elem)) && tombstones.containsKey(elem) == false; elements.get(elem).containsAll(\old(elements.get(elem))));
-	@ ensures (\forall E elem; other.elements.containsKey(elem) && tombstones.containsKey(elem) == false; elements.get(elem).containsAll(other.element.get(elem)));
-	@ ensures (\forall E elem; tombstones.containsKey(elem); elements.containsKey(elem) == false);
-	@ ensures (\forall E elem; elements.containsKey(elem); tombstones.containsKey(elem) == false);
-	@ ensures (\forall E elem; elements.containsKey(elem); other.elements.get(elem).addAll(\old(elements.get(elem))).containsAll(elements.get(elem)));
-	@ ensures (\forall E elem; \old(tombstones.containsKey(elem)); tombstones.get(elem).containsAll(\old(tombstones.get(elem))));
-	@ ensures (\forall E elem; other.tombstones.containsKey(elem); tombstones.get(elem).containsAll(other.tombstones.get(elem)));
-	@ ensures (\forall E elem; tombstones.containsKey(elem); other.tombstones.get(elem).addAll(\old(tombstones.get(elem))).containsAll(tombstones.get(elem)));
+	@ ensures (\forall UUID u; (\old(this.elements.containsValue(u)) || other.elements.containsValue(u)) && \old(this.tombstones.containsValue(u)) == false && other.tombstones.containsValue(u) == false ; elements.containsValue(u) );
+	@ ensures (\forall UUID u; elements.containsValue(u); (\old(this.elements.containsValue(u)) || other.elements.containsValue(u)) && \old(this.tombstones.containsValue(u)) == false && other.tombstones.containsValue(u) == false );
+	@ ensures (\forall UUID u; \old(this.tombstones.containsValue(u)) || other.tombstones.containsValue(u); tombstones.containsValue(u));
+	@ ensures (\forall UUID u; tombstones.containsValue(u); \old(this.tombstones.containsValue(u)) || other.tombstones.containsValue(u));
 	@*/
 	// changed from original: @Override
 	public Void merge(final ORSet<E> other) { // Change from the origin: Void <- ORSet<E>
@@ -286,7 +292,7 @@ import com.readytalk.crdt.AbstractCRDT;
 		retval.elements.putAll(this.elements);
 		retval.elements.putAll(other.elements);
 		retval.tombstones.putAll(this.tombstones);
-		retval.tombstones.putAll(other.elements);
+		retval.tombstones.putAll(other.tombstones); // Changed from the origin: retval.tombstones.putAll(other.elements); because we think that was a bug from riak library developers.
 
 		retval.elements.removeAll(retval.tombstones);
 		// this merge function had ORSet<E> output type.
