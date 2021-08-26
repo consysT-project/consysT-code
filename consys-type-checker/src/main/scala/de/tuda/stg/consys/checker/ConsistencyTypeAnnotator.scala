@@ -1,14 +1,14 @@
 package de.tuda.stg.consys.checker
 
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, immutableAnnotation, mutableAnnotation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, immutableAnnotation, inconsistentAnnotation, mutableAnnotation}
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
-import org.checkerframework.javacutil.AnnotationUtils
+import org.checkerframework.javacutil.{AnnotationUtils, TypesUtils}
 
-import javax.lang.model.`type`.NoType
-import javax.lang.model.element.{Modifier, TypeElement}
+import javax.lang.model.`type`.{NoType, TypeKind}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
@@ -19,7 +19,10 @@ import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) extends TypeAnnotator(tf) {
 	var currentMethod: AnnotatedExecutableType = null
 
-	override def visitExecutable(method: AnnotatedExecutableType, aVoid: Void): Void = {
+	/*override def visitExecutable(method: AnnotatedExecutableType, aVoid: Void): Void = {
+		if (method.getElement.getKind != ElementKind.METHOD)
+			return null
+
 		if (currentMethod == method) {
 			return null
 		}
@@ -28,13 +31,33 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 
 		super.visitExecutable(method, aVoid)
 
+		// TODO: problem: receiverType is declaring class, not instance -> we cant get instance annotation here
+		//       keep this here for method declarations and use visitclasscontext -> for compatibility check
+		//       put similar code in treeannotator for methodinvocation trees and use instance annotation
 		val recvType = method.getReceiverType
 		val returnType = method.getReturnType
-		val mixed = if (recvType != null) recvType.getAnnotation(classOf[Mixed]) else null
-		val methodTree = tf.getTreeUtils.getTree(method.getElement)
 
-		// currently only run on mixed classes
+		if (recvType == null || method.getElement.getModifiers.contains(Modifier.ABSTRACT))
+			return null
+		if (returnType.getUnderlyingType.getKind != TypeKind.VOID) {
+			val annotation = recvType.getAnnotationInHierarchy(inconsistentAnnotation)
+			if (annotation != null) {
+				tf.returnTypeVisitor.inferenceTable.get(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement], annotation) match {
+					case Some(value) => value.get(method.getElement) match {
+						case Some(value) => returnType.replaceAnnotation(value)
+						case None => //tf.getChecker.reportWarning(method.getElement, "invocation") // TODO
+					}
+					case None => // method is from bytecode, so we cannot infer anything
+				}
+
+			}
+		}
+
+
 		/*
+		// currently only run on mixed classe
+		val mixed = if (recvType != null) recvType.getAnnotation(classOf[Mixed]) else null
+		val methodTree = tf.getTreeUtils.getTree(method.getElement)s
 		if (mixed != null && getExplicitAnnotation(returnType).isEmpty && !returnType.getUnderlyingType.isInstanceOf[NoType]
 			&& methodTree != null && !methodTree.getModifiers.getFlags.contains(Modifier.ABSTRACT)) {
 
@@ -47,10 +70,39 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 			method.getReturnType.replaceAnnotation(lup)
 
 			tf.popMixedClassContext()
-		}
-		 */
+		}*/
 
 		currentMethod = prevMethod
 		aVoid
+	}*/
+
+	override def visitDeclared(declaredType: AnnotatedDeclaredType, p: Void): Void = {
+		val r = super.visitDeclared(declaredType, p)
+
+		val annotation = declaredType.getAnnotationInHierarchy(inconsistentAnnotation)
+		if (annotation == null)
+			return r
+
+		val classElement = TypesUtils.getTypeElement(declaredType.getUnderlyingType)
+		val classTree = tf.getTreeUtils.getTree(classElement)
+
+		if (classTree != null) {
+			// visit class under given consistency to check compatibility
+			tf.getVisitor.visitOrQueueClassTree(classTree, annotation)
+		}
+
+		if (tf.areSameByClass(annotation, classOf[Mixed])) {
+			// run inference on mixed types in case we need the field types
+			val defaultOpLevel = getMixedDefaultOp(annotation)
+			tf.pushVisitClassContext(classElement, annotation)
+			if (classTree != null) {
+				tf.inferenceVisitor.processClass(classTree, (None, Option.apply(defaultOpLevel), None, None))
+			} else {
+				tf.inferenceVisitor.processClass(classElement, (None, Option.apply(defaultOpLevel), None, None))
+			}
+			tf.popVisitClassContext()
+		}
+
+		r
 	}
 }

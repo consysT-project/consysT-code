@@ -17,11 +17,6 @@ public class OnUseTest {
         @Transactional static void test(Ref<@Weak OnUseTest> weak,
                                         Ref<@Strong OnUseTest> strong,
                                         Ref<@Mixed(WeakOp.class) OnUseTest> mixedWeak,
-                                        Ref<@Mixed(StrongOp.class) OnUseTest> mixedStrong) {
-            weak.ref().i = 0;
-            strong.ref().i = 0;
-            mixedWeak.ref().i = 0;
-            mixedStrong.ref().i = 0;
-        }
+                                        Ref<@Mixed(StrongOp.class) OnUseTest> mixedStrong) {}
     }
 }

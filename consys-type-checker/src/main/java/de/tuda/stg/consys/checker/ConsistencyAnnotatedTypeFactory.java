@@ -28,6 +28,7 @@ import java.util.Stack;
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	public final InferenceVisitor inferenceVisitor;
+	public final ReturnTypeVisitor returnTypeVisitor;
 
 	private final Stack<Tuple2<TypeElement, AnnotationMirror>> visitClassContext;
 
@@ -41,6 +42,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		}
 
 		this.inferenceVisitor = new InferenceVisitor(this);
+		this.returnTypeVisitor = new ReturnTypeVisitor(this);
 		this.visitClassContext = new Stack<>();
 	}
 
@@ -105,27 +107,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 				recvConsistency = recvType.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
 				var classElement = TypesUtils.getTypeElement(recvType.getUnderlyingType());
-				var classTree = getTreeUtils().getTree(classElement);
 
-				if (classTree != null) {
-					if (areSameByClass(recvConsistency, Mixed.class)) {
-						var defaultOpLevel = TypeFactoryUtils.getMixedDefaultOp(recvConsistency, this);
-						pushVisitClassContext(classElement, recvConsistency);
-						inferenceVisitor.visitClass(classTree, new Tuple4<>(Option.empty(), Option.apply(defaultOpLevel), Option.empty(), Option.empty()));
-						popVisitClassContext();
-					}
-					// visit class under consistency of receiver to check compatibility
-					getVisitor().visitOrQueueClassTree(classTree, recvConsistency);
-				} else {
-					// TODO: issue warning when using class with consistency for which check was not already performed
-					// manually run inference for unavailable mixed classes
-					if (areSameByClass(recvConsistency, Mixed.class)) {
-						var defaultOpLevel = TypeFactoryUtils.getMixedDefaultOp(recvConsistency, this);
-						pushVisitClassContext(classElement, recvConsistency);
-						inferenceVisitor.visitClass(classElement, new Tuple4<>(Option.empty(), Option.apply(defaultOpLevel), Option.empty(), Option.empty()));
-						popVisitClassContext();
-					}
-				}
 				// deliberate fall through
 				if (!TreeUtils.isExplicitThisDereference(((MemberSelectTree)tree).getExpression())) {
 					// if we are not in the class, i.e. receiver is not 'this', proceed to get field type
@@ -152,10 +134,11 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				}
 
 				// explicitly defined or inferred annotation
-				var annotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				if (!type.hasExplicitAnnotation(annotation)) {
-					annotation = getFieldAnnotation((VariableElement) field);
-				}
+				//var annotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+				//if (!type.hasExplicitAnnotation(annotation)) {
+				//	annotation = getFieldAnnotation((VariableElement) field);
+				//}
+				var annotation = getFieldAnnotation((VariableElement) field);
 
 				var opLevelForRead = inferenceVisitor.refinementTable().get(tree);
 
@@ -178,6 +161,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	@Override
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
+		/*
 		// When encountering a method invocation on a class that was not yet visited,
 		// run the inference first in order to get inferred return type levels
 		if (elt.getKind() == ElementKind.METHOD) {
@@ -189,22 +173,21 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				inferenceVisitor.visitClass((TypeElement)classElement);
 			}
 		}
+		 */
 
 		super.addComputedTypeAnnotations(elt, type);
 
+
+
 		if (elt.getKind() == ElementKind.FIELD) {
-			// for non-mixed classes we only need the class qualifier
 			if (!areSameByClass(peekVisitClassContext()._2, Mixed.class)) {
+				// for non-mixed classes we only need the class qualifier
 				type.replaceAnnotation(peekVisitClassContext()._2);
-				return;
-			}
-
-			if (type.hasExplicitAnnotation(type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this))))
-				return;
-
-			var anno = getFieldAnnotation((VariableElement) elt);
-			if (anno != null) {
-				type.replaceAnnotation(anno);
+			} else {
+				var anno = getFieldAnnotation((VariableElement) elt);
+				if (anno != null) {
+					type.replaceAnnotation(anno);
+				}
 			}
 		}
 	}

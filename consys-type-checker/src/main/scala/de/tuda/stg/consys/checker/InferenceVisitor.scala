@@ -11,8 +11,8 @@ import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, Eleme
 
 import java.lang.annotation.Annotation
 import java.util.Collections
-import javax.lang.model.`type`.DeclaredType
-import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement, VariableElement}
+import javax.lang.model.`type`.{DeclaredType, TypeKind}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
 
@@ -41,11 +41,13 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     var refinementTable: mutable.Map[Tree, AnnotationMirror] = mutable.Map.empty
     private var currentClass: Option[TypeElement] = None
 
-    def visitClass(node: ClassTree): Unit = visitClass(node, (None, None, None, None))
+    def processClass(node: ClassTree, annotation: AnnotationMirror): Unit =
+        processClass(node, (None, Some(getMixedDefaultOp(annotation)), None, None))
 
-    def visitClass(decl: TypeElement): Unit = visitClass(decl, (None, None, None, None))
+    def processClass(decl: TypeElement, annotation: AnnotationMirror): Unit =
+        processClass(decl, (None, Some(getMixedDefaultOp(annotation)), None, None))
 
-    override def visitClass(node: ClassTree, state: State): Void = {
+    def processClass(node: ClassTree, state: State): Void = {
         val classDecl = TreeUtils.elementFromDeclaration(node)
         if (currentClass.isDefined && classDecl == currentClass.get)
             return null
@@ -53,6 +55,10 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
         var (_, defaultOpLevel, _, _) = state
 
+        if (defaultOpLevel.isEmpty)
+            sys.error("inference")
+        // TODO: should we rather not try to get the default from the node?
+        /*
         (getAnnotationMirror(node, classOf[Mixed]), defaultOpLevel) match {
             case (None, None) =>
                 currentClass = None
@@ -60,7 +66,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             case (Some(annotation), _) =>
                 defaultOpLevel = Some(getMixedDefaultOp(annotation))
             case (None, Some(_)) =>
-        }
+        }*/
 
         if (inferenceTable.contains((classDecl.getQualifiedName.toString, defaultOpLevel.get))) {
             currentClass = None
@@ -72,22 +78,30 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
 
         checkSuperclass(getSuperclassElement(node), newState)
         processPublicFields(newState)
+        processExplicitFields(newState)
         processStaticFields(newState)
         val r = super.visitClass(node, newState)
         processUnusedFields(newState)
+
+        atypeFactory.returnTypeVisitor.processClass(node,
+            AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
+                AnnotationBuilder.elementNamesValues("value", Class.forName(defaultOpLevel.get))))
 
         currentClass = None
         r
     }
 
     // TODO: combine duplicate code
-    def visitClass(classDecl: TypeElement, state: State): Void = {
+    def processClass(classDecl: TypeElement, state: State): Void = {
         if (currentClass.isDefined && classDecl == currentClass.get)
             return null
         currentClass = Some(classDecl)
 
         var (_, defaultOpLevel, _, _) = state
 
+        if (defaultOpLevel.isEmpty)
+            sys.error("inference")
+        /*
         (getAnnotationMirror(classDecl, classOf[Mixed]), defaultOpLevel) match {
             case (None, None) =>
                 currentClass = None
@@ -96,6 +110,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
                 defaultOpLevel = Some(getMixedDefaultOp(annotation))
             case (None, Some(_)) =>
         }
+        */
 
         if (inferenceTable.contains((classDecl.getQualifiedName.toString, defaultOpLevel.get))) {
             currentClass = None
@@ -103,7 +118,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         }
 
         inferenceTable.put((classDecl.getQualifiedName.toString, defaultOpLevel.get), mutable.Map.empty)
-        val newState = (Some(classDecl), defaultOpLevel, None, None)
+        val newState = (Some(classDecl), defaultOpLevel, None, Some(RHS))
         checkSuperclass(getSuperclassElement(classDecl), newState)
 
         processClassDeclaration(classDecl, state)
@@ -117,13 +132,13 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             case Some(elt) =>
                 val superclassTree = getSourceOfElement(elt)
                 if (superclassTree != null) {
-                    visitClass(superclassTree, state)
+                    processClass(superclassTree, state)
                     atypeFactory.getVisitor.visitOrQueueClassTree(superclassTree,
                         AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
                             AnnotationBuilder.elementNamesValues("value", Class.forName(defaultOpLevel))))
                     // TODO: cache annotationmirror
                 } else {
-                    visitClass(elt, state)
+                    processClass(elt, state)
                 }
             case None =>
         }
@@ -142,6 +157,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             filter(field => isNestedClass || !(field.getModifiers.contains(Modifier.PRIVATE) ||
                 field.getModifiers.contains(Modifier.PROTECTED))).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), getQualifierForOp(defaultOp), Some(LHS)), field))
+        // TODO: check for explicit annotations
     }
 
     private def processUnusedFields(state: State): Unit = {
@@ -168,12 +184,22 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             })
     }
 
+    private def processExplicitFields(state: State): Unit = {
+        val (Some(clazz), Some(defaultOp), _, _) = state
+
+        getOwnFields(clazz).foreach(field => getExplicitAnnotation(field) match {
+                case Some(annotation) => inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp).
+                    update(getQualifiedName(field), getQualifiedName(annotation))
+                case None =>
+        })
+    }
+
     override def visitMethod(node: MethodTree, state: State): Void = {
         // ignore constructors and static methods
         if (TreeUtils.isConstructor(node) || node.getModifiers.getFlags.contains(Modifier.STATIC))
             return null
 
-        val (classContext, Some(defaultOpLevel), _, _) = state
+        val (classContext, Some(defaultOpLevel), _, side) = state
         var methodLevel: Option[AnnotationMirror] = None
 
         // try to find an explicit supported op level on the method
@@ -196,7 +222,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
             }
         }
 
-        super.visitMethod(node, (classContext, Some(defaultOpLevel), methodLevel, None))
+        super.visitMethod(node, (classContext, Some(defaultOpLevel), methodLevel, side))
     }
 
     override def visitAssignment(node: AssignmentTree, state: State): Void = {
@@ -234,24 +260,19 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     }
 
     private def processField(node: ExpressionTree, state: State): Unit = {
-        val (classContext, _, methodContext, _) = state
+        val (classContext, _, methodContext, side) = state
 
         (methodContext, TreeUtils.elementFromUse(node)) match {
             case (Some(methodLevel), field: VariableElement)
                 if field.getKind == ElementKind.FIELD // ignore element if it is a field of a field
                     && ElementUtils.getAllFieldsIn(classContext.get, atypeFactory.getElementUtils).contains(field) =>
 
-                (getExplicitAnnotation(field), state._4) match {
+                (getExplicitAnnotation(field), side) match {
                     // check compatibility between explicit type and operation level
                     case (Some(explicitAnnotation), Some(LHS)) if !atypeFactory.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         atypeFactory.getChecker.reportError(node, "mixed.field.incompatible",
                             explicitAnnotation.getAnnotationType.asElement().getSimpleName,
                             methodLevel.getAnnotationType.asElement().getSimpleName)
-
-                    case (Some(explicitAnnotation), Some(LHS))
-                        if field.getModifiers.contains(Modifier.STATIC) &&
-                            atypeFactory.areSameByClass(explicitAnnotation, classOf[Inconsistent]) =>
-                        atypeFactory.getChecker.reportError(node, "mixed.field.static.incompatible")
 
                     case (None, _) =>
                         updateField(field, state, node)

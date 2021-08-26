@@ -9,6 +9,7 @@ import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
+import javax.lang.model.element.TypeElement
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 import scala.collection.mutable
 
@@ -17,7 +18,7 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(tf) {
+class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
 	import TypeFactoryUtils._
 
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
@@ -114,5 +115,45 @@ class ConsistencyTreeAnnotator(tf : AnnotatedTypeFactory) extends TreeAnnotator(
 		}
 
 		super.visitMemberSelect(node, annotatedTypeMirror)
+	}
+
+	override def visitMethod(node: MethodTree, typeMirror: AnnotatedTypeMirror): Void = {
+		// TODO
+		null
+	}
+
+	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
+		node.getMethodSelect match {
+			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
+				val recvType = tf.getAnnotatedType(mst.getExpression).asInstanceOf[AnnotatedDeclaredType]
+				val annotation = recvType.getAnnotationInHierarchy(inconsistentAnnotation)
+				val method = TreeUtils.elementFromUse(node)
+				tf.returnTypeVisitor.inferenceTable.get(
+					getQualifiedName(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement]),
+					getQualifiedName(annotation),
+					if (tf.areSameByClass(annotation, classOf[Mixed])) getMixedDefaultOp(annotation) else ""
+				) match {
+					case Some(value) => value.get(method) match {
+						case Some(value) => typeMirror.replaceAnnotation(value)
+						case None => //tf.getChecker.reportWarning(method.getElement, "invocation") // TODO
+					}
+					case None => // method is from bytecode, so we cannot infer anything
+				}
+
+			case _ =>
+				val recvType = tf.peekVisitClassContext()._1
+				val annotation = tf.peekVisitClassContext()._2
+				val method = TreeUtils.elementFromUse(node)
+				tf.returnTypeVisitor.inferenceTable.get(
+					getQualifiedName(recvType), getQualifiedName(annotation), if (tf.areSameByClass(annotation, classOf[Mixed])) getMixedDefaultOp(annotation) else ""
+				) match {
+					case Some(value) => value.get(method) match {
+						case Some(value) => typeMirror.replaceAnnotation(value)
+						case None => //tf.getChecker.reportWarning(method.getElement, "invocation") // TODO
+					}
+					case None => // method is from bytecode, so we cannot infer anything
+				}
+		}
+		return null
 	}
 }
