@@ -347,6 +347,19 @@ public class BaseExpressionParser extends ExpressionParser {
               1, null, null, null, null);
 
       return result;
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "containsValue", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var multimapSort = (ArraySort) receiverExpr.getSort();
+      var internalCollectionSort = (ArraySort) multimapSort.getRange();
+      var keySort = multimapSort.getDomain();
+      var c = model.ctx;
+      var k = c.mkFreshConst("k", keySort);
+      var result = c.mkExists(new Expr[]{k},
+              c.mkGt(c.mkSelect(c.mkSelect(receiverExpr, k), argExpr), c.mkInt(0)),
+              1, null, null, null, null);
+
+      return result;
     } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "get", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
