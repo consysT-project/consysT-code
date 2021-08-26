@@ -86,11 +86,13 @@ public class TypeModelFactory {
 		} else if (typeBinding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) typeBinding;
 
+			// Lookup if class is in the data model
 			var mbClassModel = model.getClassModel(refBinding);
 			if (mbClassModel.isPresent()) {
 				return modelForRef(refBinding);
 			}
 
+			//... else handle some special cases
 			if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.lang.String")) {
 				return stringModel.get();
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Set")) {
@@ -100,6 +102,14 @@ public class TypeModelFactory {
 				} else {
 					var objectModel = modelForRef(model.bindingForJavaLangObject());
 					return new SetModel(model, objectModel);
+				}
+			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "com.google.common.collect.Multimap")) {
+				if (refBinding instanceof ParameterizedTypeBinding) {
+					ParameterizedTypeBinding parBinding = (ParameterizedTypeBinding) refBinding;
+					return new MultimapModel(model, typeFor(parBinding.arguments[0]), typeFor(parBinding.arguments[1]));
+				} else {
+					var objectModel = modelForRef(model.bindingForJavaLangObject());
+					return new MultimapModel(model, objectModel, objectModel);
 				}
 			} else if (JDTUtils.typeIsSubtypeOfName(refBinding, "java.util.Map")) {
 				// Map<String, BigInteger>

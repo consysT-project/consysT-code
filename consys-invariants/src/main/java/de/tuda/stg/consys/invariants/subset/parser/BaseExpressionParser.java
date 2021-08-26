@@ -316,6 +316,45 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
+	// com.google.common.collect.Multimap
+	else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "isEmpty")) {
+		var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+		var multimapSort = (ArraySort) receiverExpr.getSort();
+		var internalCollectionSort = (ArraySort) multimapSort.getRange();
+		var keySort = multimapSort.getDomain();
+		var valueSort = internalCollectionSort.getDomain();
+
+		var c = model.ctx;
+
+		var k = c.mkFreshConst("k", keySort);
+		var v = c.mkFreshConst("v", valueSort);
+
+		var result = c.mkForall(new Expr[]{k, v},
+				c.mkEq(c.mkSelect(c.mkSelect(receiverExpr, k), v), c.mkInt(0)),
+				1, null, null, null, null);
+
+		return result;
+	} else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "containsKey", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var multimapSort = (ArraySort) receiverExpr.getSort();
+      var internalCollectionSort = (ArraySort) multimapSort.getRange();
+      var valueSort = internalCollectionSort.getDomain();
+      var c = model.ctx;
+      var v = c.mkFreshConst("v", valueSort);
+      var result = c.mkExists(new Expr[]{v},
+              c.mkGt(c.mkSelect(c.mkSelect(receiverExpr, argExpr), v), c.mkInt(0)),
+              1, null, null, null, null);
+
+      return result;
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "get", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var c = model.ctx;
+      var result = c.mkSelect(receiverExpr, argExpr);
+
+      return result;
+    }
     // java.util.Set
     else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Set", "isEmpty")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
@@ -343,7 +382,7 @@ public class BaseExpressionParser extends ExpressionParser {
     } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Collection", "contains", "java.lang.Object")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
-      return model.ctx.mkNot(model.ctx.mkEq(model.ctx.mkSelect(receiverExpr, argExpr), model.ctx.mkInt(0)));
+      return model.ctx.mkGt(model.ctx.mkSelect(receiverExpr, argExpr), model.ctx.mkInt(0));
     }
     // java.math.BigInteger
     else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.math.BigInteger", "add", "java.math.BigInteger")) {

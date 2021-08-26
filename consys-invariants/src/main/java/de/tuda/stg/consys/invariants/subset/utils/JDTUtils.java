@@ -79,12 +79,19 @@ public class JDTUtils {
 			}
 
 			// Check all super interfaces
-			if (refBinding.superInterfaces() == null) {
+			ReferenceBinding[] superInterfaces = null;
+			try {
+				superInterfaces = refBinding.superInterfaces();
+			} catch (NullPointerException e) {
+				//TODO: There is a null pointerexception sometimes in this code?
+				Logger.err("there was a null pointer exception while getting the superinterface for: " + binding.debugName());
+				e.printStackTrace(Logger.err);
+			}
+			if (superInterfaces == null) {
 				return false;
 			}
-
 			var interfaceMatches = false;
-			for (var superInterface : refBinding.superInterfaces()) {
+			for (var superInterface : superInterfaces) {
 				interfaceMatches = interfaceMatches || typeIsSubtypeOfName(superInterface, typeName);
 			}
 			return interfaceMatches;
