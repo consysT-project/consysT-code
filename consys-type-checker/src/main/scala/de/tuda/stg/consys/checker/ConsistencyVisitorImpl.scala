@@ -90,9 +90,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		// 					- for strong and weak classes: possibly no further action needed, treeannotator already takes care of adaptation
 		//                  - for mixed classes: do what we do already
 
-		// TODO: how should we handle the cache?
 		val classElement = TreeUtils.elementFromDeclaration(classTree)
-		if (classVisitCache.contains((classElement, annotation)))
+		if (classVisitCache.exists(entry => classElement.equals(entry._1) && AnnotationUtils.areSame(annotation, entry._2)))
 			return
 		else classVisitCache.update((classElement, annotation), included = true)
 
@@ -104,14 +103,15 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		tf.pushVisitClassContext(classElement, annotation)
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
-			tf.inferenceVisitor.processClass(classTree, annotation) // TODO: probably include annotation
+			tf.inferenceVisitor.processClass(classTree, annotation)
 			//tf.returnTypeVisitor.processClass(classTree, annotation)
 		}
+		// TODO: how should we handle the cache?
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
 
 		if (checker.getLintOption("libMode")) {
-
+			// TODO
 		}
 	}
 

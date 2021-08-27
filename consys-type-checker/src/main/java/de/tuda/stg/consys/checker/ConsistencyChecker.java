@@ -8,20 +8,12 @@ import org.checkerframework.framework.source.SuppressWarningsPrefix;
 
 import java.util.LinkedHashSet;
 
-@SupportedLintOptions({"disableSubChecker", "libMode"})
+@SupportedLintOptions({"libMode"})
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
 
     public ConsistencyChecker(){
         super();
-    }
-
-    @Override
-    protected LinkedHashSet<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
-        var checkers = super.getImmediateSubcheckerClasses();
-        //checkers.add(SubConsistencyChecker.WeakSubConsistencyChecker.class);
-        //checkers.add(SubConsistencyChecker.StrongSubConsistencyChecker.class);
-        return checkers;
     }
 
     @Override

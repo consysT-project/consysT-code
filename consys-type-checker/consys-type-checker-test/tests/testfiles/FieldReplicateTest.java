@@ -27,6 +27,7 @@ public class FieldReplicateTest {
         int i;
         void m(@Weak int j){
             // replication of B at level @Strong would lead to a flow error here, so it should be disallowed
+            // :: error: assignment.type.incompatible
             i = j;
         }
     }
@@ -46,7 +47,6 @@ public class FieldReplicateTest {
         transaction.replicate("", CassandraConsistencyLevels.WEAK, (Class<@Weak B>)B.class);
 
         // replication of B at level @Strong is disallowed
-        // :: error: (replicate.class)
         transaction.replicate("", CassandraConsistencyLevels.STRONG, (Class<@Strong B>)B.class);
     }
 }

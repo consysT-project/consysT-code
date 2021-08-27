@@ -41,6 +41,9 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     var refinementTable: mutable.Map[Tree, AnnotationMirror] = mutable.Map.empty
     private var currentClass: Option[TypeElement] = None
 
+    def getInferred(clazz: TypeElement, qual: AnnotationMirror, field: VariableElement): Option[AnnotationMirror] =
+        getInferredFieldOrFromSuperclass(field, clazz, getMixedDefaultOp(qual))._1
+
     def processClass(node: ClassTree, annotation: AnnotationMirror): Unit =
         processClass(node, (None, Some(getMixedDefaultOp(annotation)), None, None))
 

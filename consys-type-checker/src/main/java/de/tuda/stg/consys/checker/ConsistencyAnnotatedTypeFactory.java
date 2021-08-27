@@ -23,6 +23,7 @@ import scala.Tuple2;
 import scala.Tuple4;
 
 import javax.lang.model.element.*;
+import java.util.EmptyStackException;
 import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
@@ -89,6 +90,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
 		super.addComputedTypeAnnotations(tree, type, iUseFlow);
 
+		/*
 		AnnotationMirror recvConsistency = null;
 
 		// TODO: static field select
@@ -100,11 +102,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 					return;
 
 				var recvType = getAnnotatedType(((MemberSelectTree)tree).getExpression());
-				if (TreeUtils.isExplicitThisDereference(((MemberSelectTree)tree).getExpression()) && !visitClassContext.isEmpty()) {
-					// adapt 'this' to type of currently processed class
-					recvType.replaceAnnotation(visitClassContext.peek()._2);
-				}
-
 				recvConsistency = recvType.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
 				var classElement = TypesUtils.getTypeElement(recvType.getUnderlyingType());
 
@@ -156,7 +153,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				}
 		}
 
-		if (recvConsistency != null) popVisitClassContext();
+		if (recvConsistency != null) popVisitClassContext();*/
 	}
 
 	@Override
@@ -177,16 +174,15 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		super.addComputedTypeAnnotations(elt, type);
 
-
-
+		// TODO: member select is problematic, but removing this doesn't seem to impact the tests
 		if (elt.getKind() == ElementKind.FIELD) {
 			if (!areSameByClass(peekVisitClassContext()._2, Mixed.class)) {
 				// for non-mixed classes we only need the class qualifier
-				type.replaceAnnotation(peekVisitClassContext()._2);
+				//type.replaceAnnotation(peekVisitClassContext()._2);
 			} else {
 				var anno = getFieldAnnotation((VariableElement) elt);
 				if (anno != null) {
-					type.replaceAnnotation(anno);
+					//type.replaceAnnotation(anno);
 				}
 			}
 		}
@@ -217,13 +213,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		return !visitClassContext.empty() && areSameByClass(visitClassContext.peek()._2, Mixed.class);
 	}
 
-	public void processClassWithoutCache(ClassTree node, AnnotationMirror qualifier) {
-		boolean oldShouldCache = shouldCache;
-		shouldCache = false;
-		//getVisitor().processClassTreeExtern(node, qualifier, false);
-		shouldCache = oldShouldCache;
-	}
-
 	public void pushVisitClassContext(TypeElement clazz, AnnotationMirror type) {
 		visitClassContext.push(new Tuple2<>(clazz, type));
 	}
@@ -234,6 +223,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	public Tuple2<TypeElement, AnnotationMirror> peekVisitClassContext() {
 		return visitClassContext.peek();
+	}
+
+	public boolean isVisitClassContextEmpty() {
+		return visitClassContext.isEmpty();
 	}
 
 	public ConsistencyVisitorImpl getVisitor() {

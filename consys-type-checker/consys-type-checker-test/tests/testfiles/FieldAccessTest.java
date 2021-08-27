@@ -1,6 +1,7 @@
 package testfiles;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
@@ -19,14 +20,14 @@ public class FieldAccessTest {
         Ref<@Strong A> rs;
     }
 
-    void testObjectField(@Strong A obj) {
+    void testObjectField(@Mutable @Strong A obj) {
         @Weak int i;
         i = obj.i;
         // :: error: (assignment.type.incompatible)
         obj.i = i;
     }
 
-    void testObjectField2(@Weak A obj) {
+    void testObjectField2(@Mutable @Weak A obj) {
         // :: error: (assignment.type.incompatible)
         @Strong int i = obj.i;
 
@@ -35,7 +36,7 @@ public class FieldAccessTest {
 
 
     @Transactional
-    void testRefField(Ref<@Weak A> obj) {
+    void testRefField(Ref<@Mutable @Weak A> obj) {
         // :: error: (assignment.type.incompatible)
         Ref<@Strong A> r = obj.ref().rs;
 
@@ -43,7 +44,7 @@ public class FieldAccessTest {
     }
 
     @Transactional
-    void testRefField2(Ref<@Strong A> obj) {
+    void testRefField2(Ref<@Mutable @Strong A> obj) {
         // :: error: (assignment.type.incompatible)
         Ref<@Strong A> r = obj.ref().rw;
 
@@ -51,7 +52,7 @@ public class FieldAccessTest {
     }
 
     @Transactional
-    void testDefault(Ref<A> obj) {
+    void testDefault(Ref<@Mutable A> obj) {
         // :: error: (assignment.type.incompatible)
         Ref<@Strong A> r1 = obj.ref().rw;
         // :: error: (assignment.type.incompatible)
@@ -62,10 +63,10 @@ public class FieldAccessTest {
      * Test that 'this' is ignored for field access type refinements
      */
     static class ThisTest implements Serializable {
-        Ref<@Strong ThisTest> a;
+        Ref<@Mutable @Strong ThisTest> a;
         int n;
 
-        void setRef(Ref<@Strong ThisTest> s, Ref<@Weak ThisTest> w) {
+        void setRef(Ref<@Mutable @Strong ThisTest> s, Ref<@Mutable @Weak ThisTest> w) {
             a = s;
             this.a = s;
             // :: error: (assignment.type.incompatible)

@@ -17,9 +17,9 @@ public @Mixed class InferenceObjectTest {
     }
 
     @Transactional static void test(Ref<@Immutable @Mixed InferenceObjectTest> obj) {
-        @Strong Box b = obj.ref().box;
+        @Immutable @Strong Box b = obj.ref().box;
         // :: error: assignment.type.incompatible
-        @Local Box b1 = obj.ref().box;
+        @Immutable @Local Box b1 = obj.ref().box;
         @Strong int i = obj.ref().box.value;
         // :: error: assignment.type.incompatible
         @Local int i1 = obj.ref().box.value;

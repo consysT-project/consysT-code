@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, immutableAnnotation, inconsistentAnnotation, mutableAnnotation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getExplicitAnnotation, getMixedDefaultOp, immutableAnnotation, inconsistentAnnotation, localAnnotation, mutableAnnotation}
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
@@ -86,8 +86,8 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		val classElement = TypesUtils.getTypeElement(declaredType.getUnderlyingType)
 		val classTree = tf.getTreeUtils.getTree(classElement)
 
-		if (classTree != null) {
-			// visit class under given consistency to check compatibility
+		if (classTree != null && !AnnotationUtils.areSame(annotation, localAnnotation)) {
+			// visit class under given consistency to check compatibility, skip for bottom type
 			tf.getVisitor.visitOrQueueClassTree(classTree, annotation)
 		}
 
@@ -96,9 +96,9 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 			val defaultOpLevel = getMixedDefaultOp(annotation)
 			tf.pushVisitClassContext(classElement, annotation)
 			if (classTree != null) {
-				tf.inferenceVisitor.processClass(classTree, (None, Option.apply(defaultOpLevel), None, None))
+				tf.inferenceVisitor.processClass(classTree, annotation)
 			} else {
-				tf.inferenceVisitor.processClass(classElement, (None, Option.apply(defaultOpLevel), None, None))
+				tf.inferenceVisitor.processClass(classElement, annotation)
 			}
 			tf.popVisitClassContext()
 		}
