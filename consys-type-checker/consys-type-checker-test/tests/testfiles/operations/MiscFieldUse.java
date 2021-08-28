@@ -6,7 +6,7 @@ import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 
-public @Mixed class AMiscFieldUse {
+public @Mixed class MiscFieldUse {
     private int i;
     private @Weak int k;
 

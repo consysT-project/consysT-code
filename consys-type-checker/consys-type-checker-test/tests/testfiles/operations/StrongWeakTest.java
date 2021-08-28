@@ -7,7 +7,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 
 import java.io.Serializable;
 
-public @Mixed class AAStrongWeakTest {
+public @Mixed class StrongWeakTest {
     private int w; // inferred @Weak
     private int s; // inferred @Strong
 

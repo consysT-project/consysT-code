@@ -7,7 +7,7 @@ import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 
-public class AAAAReturnTest {
+public class ZReturnTest {
     private int i;
     private @Strong int j;
     @StrongOp private void write() { i = 0; }
@@ -16,7 +16,7 @@ public class AAAAReturnTest {
         return i;
     }
 
-    @Transactional static void test(Ref<@Mutable @Mixed AAAAReturnTest> obj) {
+    @Transactional static void test(Ref<@Mutable @Mixed ZReturnTest> obj) {
         @Strong int a = obj.ref().get();
     }
 }

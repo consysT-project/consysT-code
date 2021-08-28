@@ -9,7 +9,7 @@ import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
-import javax.lang.model.element.{AnnotationMirror, TypeElement, VariableElement}
+import javax.lang.model.element.{AnnotationMirror, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 import scala.collection.convert.ImplicitConversions.`collection asJava`
 import scala.collection.mutable
@@ -25,9 +25,6 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
 
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
-
-	private var classContext = ""
-	//private var classTable = mutable.Map[String, mutable.Map[String, mutable.Set[String]]]
 
 
 	override def visitNewClass(node : NewClassTree, annotatedTypeMirror : AnnotatedTypeMirror) : Void = {
@@ -185,7 +182,9 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 	private def visitField(tree: ExpressionTree, typeMirror: AnnotatedTypeMirror, receiver: TypeElement, qualifier: AnnotationMirror): Unit = {
 		val field = TreeUtils.elementFromUse(tree).asInstanceOf[VariableElement]
-		if (tf.areSameByClass(qualifier, classOf[Mixed])) {
+		if (field.getModifiers.contains(Modifier.STATIC))
+			typeMirror.replaceAnnotation(inconsistentAnnotation)
+		else if (tf.areSameByClass(qualifier, classOf[Mixed]) && (field.getModifiers.contains(Modifier.PRIVATE) || field.getModifiers.contains(Modifier.PROTECTED))) {
 			val inferred = tf.inferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
 				case Some(fieldType) => tf.inferenceVisitor.refinementTable.get(tree) match {
@@ -199,16 +198,14 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				}
 				case None => sys.error("inference failed") // TODO: exception if no context
 			}
-		} else {
+		} else if (tf.areSameByClass(qualifier, classOf[Mixed]))
+			typeMirror.replaceAnnotation(getQualifierForOp(getMixedDefaultOp(qualifier)).get)
+		else {
 			typeMirror.replaceAnnotation(qualifier)
 		}
 	}
 
-	override def visitMethod(node: MethodTree, typeMirror: AnnotatedTypeMirror): Void = {
-		// TODO
-		null
-	}
-
+	/*
 	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
 		node.getMethodSelect match {
 			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
@@ -244,4 +241,5 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 		super.visitMethodInvocation(node, typeMirror)
 	}
+	 */
 }

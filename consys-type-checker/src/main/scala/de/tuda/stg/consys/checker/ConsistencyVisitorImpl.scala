@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.checker
 
-import java.util
 import com.sun.source.tree._
 import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
 import de.tuda.stg.consys.annotations.Transactional
@@ -8,18 +7,20 @@ import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.Mixed
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
 
-import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.javacutil
-import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import org.jmlspecs.annotation.Pure
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import scala.collection.convert.ImplicitConversions.`buffer AsJavaList`
+import collection.JavaConverters._
 import scala.collection.mutable
 
 /**
@@ -29,16 +30,18 @@ import scala.collection.mutable
 	*/
 class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
+	type Error = (AnyRef, String, java.util.List[AnyRef])
 	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
+	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
 	val subCheckerMap: Map[String, Class[_ <: SubConsistencyChecker]] =
 		Map(s"$checkerPackageName.qual.Strong" -> classOf[StrongSubConsistencyChecker],
 			s"$checkerPackageName.qual.Weak" -> classOf[WeakSubConsistencyChecker])
 
-	val classVisitCache: mutable.Set[(TypeElement, AnnotationMirror)] = mutable.Set.empty
-	val classVisitQueue: mutable.Set[(TypeElement, AnnotationMirror)] = mutable.Set.empty
-	val treeMap: mutable.Map[TypeElement, ClassTree] = mutable.Map.empty
+	val classVisitCache: mutable.Map[(String, AnnotationMirror), mutable.Buffer[Error]] = mutable.Map.empty
+	val classVisitQueue: mutable.Set[(String, AnnotationMirror)] = mutable.Set.empty
 
+	// TODO endless recursion
 	override def processClassTree(classTree: ClassTree): Unit = {
 		/*
 		// TODO: clean up + we should explicitly run the inference here before moving on
@@ -55,30 +58,57 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		//return
 
 		 */
+		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
+		var upperBound = atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(inconsistentAnnotation)
+		upperBound = repairMixed(upperBound)
 
-		val upperBound = atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(inconsistentAnnotation)
-		processClassTree(classTree, upperBound, checker.getLintOption("libMode"))
+		processClassTree(classTree, upperBound)
 
-		val classElement = TreeUtils.elementFromDeclaration(classTree)
-		classVisitQueue.filter(pair => pair._1 == classElement).foreach(pair => processClassTree(classTree, pair._2))
+		getConsistencyQualifiers.
+			filter(q => tf.getQualifierHierarchy.isSubtype(q, upperBound) && !AnnotationUtils.areSame(q, upperBound)).
+			foreach(q => {
+				consistencyChecker.printErrors = false
+				var errors = mutable.Buffer.empty[Error]
+				var warnings = mutable.Buffer.empty[Error]
+				consistencyChecker.errors = errors.asJava
+				consistencyChecker.warnings = warnings.asJava
+				processClassTree(classTree, q)
+				classVisitCache.put((className, q), errors) // TODO warnings
+				consistencyChecker.printErrors = true
+
+				if (classVisitQueue.exists(entry => className == entry._1 && AnnotationUtils.areSame(q, entry._2))) {
+					//checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(classElement), getQualifiedName(annotation))
+					getErrorsForTypeUse(className, q).
+						foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+				}
+			})
 	}
 
-	def visitOrQueueClassTree(classTree: ClassTree, annotation: AnnotationMirror): Unit = {
-		val classElement = TreeUtils.elementFromDeclaration(classTree)
-		if (classVisitCache.exists(pair => pair._1 == classElement)) {
-			processClassTree(classTree, annotation)
-		} else {
-			classVisitQueue.update((classElement, annotation), included = true)
-			treeMap.update(classElement, classTree)
+	def getErrorsForTypeUse(name: String, q: AnnotationMirror): java.util.List[Error] = {
+		classVisitCache.find(entry => entry._1._1 == name && AnnotationUtils.areSame(entry._1._2, repairMixed(q))) match {
+			case None =>
+				sys.error("") // TODO: silently fail?
+			case Some(value) => value._2
 		}
 	}
 
-
+	def visitOrQueueClassTree(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
+		val q = repairMixed(annotation)
+		val className = getQualifiedName(classElement)
+		if (classVisitCache.exists(entry => className == entry._1._1 && AnnotationUtils.areSame(q, entry._1._2))) {
+			//checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(classElement), getQualifiedName(annotation))
+			// TODO: skip if we already processed these errors
+			getErrorsForTypeUse(className, q).
+				foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+		} else if (!classVisitQueue.exists(entry => className == entry._1 && AnnotationUtils.areSame(q, entry._2))) {
+			classVisitQueue.add((className, q))
+		}
+	}
 
 	/**
 	 * Visits a class tree under a specific consistency qualifier
 	 */
-	private def processClassTree(classTree: ClassTree, annotation: AnnotationMirror, libMode: Boolean = false): Unit = {
+	private def processClassTree(classTree: ClassTree, annotation: AnnotationMirror): Unit = {
 		// TODO
 		//----------------------------------------------------------------
 		// set class context in type factory to upper bound of class tree, then visit class
@@ -91,9 +121,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		//                  - for mixed classes: do what we do already
 
 		val classElement = TreeUtils.elementFromDeclaration(classTree)
-		if (classVisitCache.exists(entry => classElement.equals(entry._1) && AnnotationUtils.areSame(annotation, entry._2)))
+		val className = getQualifiedName(classElement)
+
+		if (classVisitCache.exists(entry => className == entry._1._1 && AnnotationUtils.areSame(annotation, entry._1._2))){
 			return
-		else classVisitCache.update((classElement, annotation), included = true)
+		} else {
+			classVisitCache.put((className, annotation), mutable.Buffer.empty) // TODO warnings
+		}
 
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
 			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName}(${Class.forName(getMixedDefaultOp(annotation)).getSimpleName}) ${getQualifiedName(classTree)}")
@@ -104,15 +138,10 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		tf.pushVisitClassContext(classElement, annotation)
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
 			tf.inferenceVisitor.processClass(classTree, annotation)
-			//tf.returnTypeVisitor.processClass(classTree, annotation)
 		}
 		// TODO: how should we handle the cache?
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
-
-		if (checker.getLintOption("libMode")) {
-			// TODO
-		}
 	}
 
 	/*
@@ -389,7 +418,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	}
 
 	private def checkMethodInvocationReceiverMutability(receiverType : AnnotatedTypeMirror, methodType: AnnotatedExecutableType, tree : MethodInvocationTree) : Unit = {
-		if (!(methodInvocationIsRefAccess(tree) || methodInvocationIsReplicate(tree)) &&
+		if (!(transactionContext ||
+			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)))
+			return
+
+		if (!(methodInvocationIsRefAccess(tree) || methodInvocationIsReplicate(tree) ||
+			methodType.getElement.getModifiers.contains(Modifier.STATIC)) &&
 			receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) &&
 			!(ElementUtils.hasAnnotation(methodType.getElement, classOf[SideEffectFree].getName) ||
 				ElementUtils.hasAnnotation(methodType.getElement, classOf[Pure].getName)))
@@ -414,10 +448,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		return typ.getEffectiveAnnotationInHierarchy(getTopAnnotation)
 
 		//can only include consistency annotations
+		/*
 		val annotations : util.Set[AnnotationMirror] = typ.getAnnotations
 		if (annotations.size == 1) return annotations.iterator.next
 		else if (annotations.isEmpty) return null
 		throw new AssertionError("inferred an unexpected number of annotations. Expected 1 annotation, but got: " + annotations)
+		 */
 	}
 
 	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation(atypeFactory)

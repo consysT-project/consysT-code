@@ -29,7 +29,8 @@ object InferenceVisitor {
     type AnnotationName = String
     type State = (Option[TypeElement], Option[DefaultOpLevel], Option[AnnotationMirror], Option[AssignmentSide])
 }
-
+// TODO: checkSuperclass and checkSubclass without findTree
+// TODO: infer for all default levels in one run
 class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
 
     type InferenceTable = mutable.Map[(ClassName, DefaultOpLevel), mutable.Map[FieldName, AnnotationName]]
@@ -133,16 +134,13 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         val (_, Some(defaultOpLevel), _, _) = state
         superclass match {
             case Some(elt) =>
-                val superclassTree = getSourceOfElement(elt)
+                val superclassTree = getSourceOfElement(elt) // TODO: remove reliance on getTree
                 if (superclassTree != null) {
                     processClass(superclassTree, state)
-                    atypeFactory.getVisitor.visitOrQueueClassTree(superclassTree,
-                        AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
-                            AnnotationBuilder.elementNamesValues("value", Class.forName(defaultOpLevel))))
-                    // TODO: cache annotationmirror
                 } else {
                     processClass(elt, state)
                 }
+                atypeFactory.getVisitor.visitOrQueueClassTree(elt, mixedAnnotation(Class.forName(defaultOpLevel).asInstanceOf[Class[_ <: Annotation]]))
             case None =>
         }
     }
@@ -168,7 +166,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         // set all unused unannotated fields to Local
         getOwnFields(clazz).
             filter(field => !inferenceTable.get(clazz.getQualifiedName.toString, defaultOp).get.
-                contains(getQualifiedName(field)) && getExplicitAnnotation(field).isEmpty).
+                contains(getQualifiedName(field)) && getExplicitConsistencyAnnotation(field).isEmpty).
             foreach(field => updateField(field, (Some(clazz), Some(defaultOp), Some(localAnnotation), Some(LHS)), field))
     }
 
@@ -178,7 +176,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         getOwnFields(clazz).
             filter(field => field.getModifiers.contains(Modifier.STATIC)).
             foreach(field => {
-                getExplicitAnnotation(field) match {
+                getExplicitConsistencyAnnotation(field) match {
                     case Some(value) if !atypeFactory.areSameByClass(value, classOf[Inconsistent]) =>
                         atypeFactory.getChecker.reportError(field, "mixed.field.static.incompatible")
                     case _ =>
@@ -190,7 +188,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     private def processExplicitFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
 
-        getOwnFields(clazz).foreach(field => getExplicitAnnotation(field) match {
+        getOwnFields(clazz).foreach(field => getExplicitConsistencyAnnotation(field) match {
                 case Some(annotation) => inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp).
                     update(getQualifiedName(field), getQualifiedName(annotation))
                 case None =>
@@ -235,6 +233,11 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
         r
     }
 
+    override def visitUnary(node: UnaryTree, state: State): Void = {
+        val (clazz, defaultOpLevel, methodLevel, _) = state
+        super.visitUnary(node, (clazz, defaultOpLevel, methodLevel, Some(LHS)))
+    }
+
     override def visitCompoundAssignment(node: CompoundAssignmentTree, state: State): Void = {
         val (clazz, defaultOpLevel, methodLevel, _) = state
         var r = scan(node.getVariable, (clazz, defaultOpLevel, methodLevel, Some(LHS)))
@@ -270,7 +273,7 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
                 if field.getKind == ElementKind.FIELD // ignore element if it is a field of a field
                     && ElementUtils.getAllFieldsIn(classContext.get, atypeFactory.getElementUtils).contains(field) =>
 
-                (getExplicitAnnotation(field), side) match {
+                (getExplicitConsistencyAnnotation(field), side) match {
                     // check compatibility between explicit type and operation level
                     case (Some(explicitAnnotation), Some(LHS)) if !atypeFactory.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         atypeFactory.getChecker.reportError(node, "mixed.field.incompatible",

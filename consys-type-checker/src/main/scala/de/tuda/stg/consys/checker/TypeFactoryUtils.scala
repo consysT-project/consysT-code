@@ -2,8 +2,8 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
 import com.sun.tools.javac.code.Type
-import de.tuda.stg.consys.annotations.methods.WeakOp
-import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong}
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
+import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong, Weak}
 
 import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ExecutableElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
@@ -32,6 +32,13 @@ object TypeFactoryUtils {
 	def strongAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Strong])
 
+	def weakAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
+
+	def mixedAnnotation(defaultOp: Class[_ <: Annotation])(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
+			AnnotationBuilder.elementNamesValues("value", defaultOp))
+
 	def immutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Immutable])
 
@@ -40,6 +47,14 @@ object TypeFactoryUtils {
 
 	def mutableBottomAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[MutableBottom])
+
+	private var consistencyQualifiers: Set[AnnotationMirror] = Set.empty
+	def getConsistencyQualifiers(implicit tf: AnnotatedTypeFactory): Set[AnnotationMirror] = {
+		if (consistencyQualifiers.isEmpty)
+			consistencyQualifiers = Set(strongAnnotation, weakAnnotation, mixedAnnotation(classOf[StrongOp]), mixedAnnotation(classOf[WeakOp]))
+		consistencyQualifiers
+	}
+
 
 	val checkerPackageName = s"de.tuda.stg.consys.checker"
 	val japiPackageName = s"de.tuda.stg.consys.japi"
@@ -52,11 +67,15 @@ object TypeFactoryUtils {
 	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
 	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
 
-	def getExplicitAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
-		Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(a => a != null && aType.hasExplicitAnnotation(a))
+	// TODO: this is false
+	def getExplicitConsistencyAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] = {
+		val a = tf.getQualifierHierarchy.findAnnotationInHierarchy(aType.getExplicitAnnotations, inconsistentAnnotation)
+		Option(a)
+	}
+	//Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(a => a != null && aType.hasExplicitAnnotation(a))
 
-	def getExplicitAnnotation(elt: Element)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
-		getExplicitAnnotation(tf.getAnnotatedType(elt))
+	def getExplicitConsistencyAnnotation(elt: Element)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
+		getExplicitConsistencyAnnotation(tf.getAnnotatedType(elt))
 
 	def hasAnnotation(modifiers: ModifiersTree, annotation: String)(implicit tf : AnnotatedTypeFactory): Boolean = {
 		modifiers.getAnnotations.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
@@ -97,6 +116,11 @@ object TypeFactoryUtils {
 		if (methodLevel.isEmpty) default else methodLevel.get
 	}
 
+	def repairMixed(annotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
+		if (tf.areSameByClass(annotation, classOf[Mixed]) && annotation.getElementValues.isEmpty)
+			mixedAnnotation(classOf[WeakOp])
+		else annotation
+	}
 
 
 	def getQualifierNameForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[String] = {
