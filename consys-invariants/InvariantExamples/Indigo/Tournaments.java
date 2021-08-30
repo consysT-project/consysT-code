@@ -61,7 +61,7 @@ import java.util.Set;
     @ ensures players.contains(p) == false;
     @ ensures (\forall Player p2; \old(players.contains(p2)) && p2.equals(p) == false; players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2); \old(players.contains(p2)));
-    @*/git 
+    @*/
     void removePlayer(Player p) {
         players.remove(p);
     }
