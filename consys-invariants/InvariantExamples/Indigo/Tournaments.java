@@ -20,10 +20,9 @@ import java.util.Set;
     //private final Set<Player> players = Sets.newHashSet();
     //private final Set<Tournament> tournaments = Sets.newHashSet();
 
-    private final ObjectMapper objectMapper1 = new ObjectMapper();
-    private final ObjectMapper objectMapper2 = new ObjectMapper();
-    private final TwoPhaseSet<Player> players = new  TwoPhaseSet<Player>(objectMapper1);
-    private final TwoPhaseSet<Tournament> tounaments = new TwoPhaseSet<Tournament>(objectMapper2);
+    private final ObjectMapper serializer;
+    private final TwoPhaseSet<Player> players;
+    private final TwoPhaseSet<Tournament> tounaments;
 
     /*@
     @ public invariant (\forall Player p; players.contains(p); p.getBudget() >= 0);
@@ -36,8 +35,10 @@ import java.util.Set;
     @ ensures players.isEmpty();
     @ ensures tournaments.isEmpty();
     @*/
-    public Tournaments() {
-
+    public Tournaments(final ObjectMapper mapper) {
+        serializer = mapper;
+        players = new  TwoPhaseSet<Player>(mapper);
+        tounaments = new TwoPhaseSet<Tournament>(mapper);
     }
 
     // True("player($0)")
@@ -60,7 +61,7 @@ import java.util.Set;
     @ ensures players.contains(p) == false;
     @ ensures (\forall Player p2; \old(players.contains(p2)) && p2.equals(p) == false; players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2); \old(players.contains(p2)));
-    @*/
+    @*/git 
     void removePlayer(Player p) {
         players.remove(p);
     }
