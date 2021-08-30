@@ -22,7 +22,7 @@ import java.util.Set;
 
     private final ObjectMapper serializer;
     private final TwoPhaseSet<Player> players;
-    private final TwoPhaseSet<Tournament> tounaments;
+    private final TwoPhaseSet<Tournament> tournaments;
 
     /*@
     @ public invariant (\forall Player p; players.contains(p); p.getBudget() >= 0);
@@ -38,7 +38,7 @@ import java.util.Set;
     public Tournaments(final ObjectMapper mapper) {
         serializer = mapper;
         players = new  TwoPhaseSet<Player>(mapper);
-        tounaments = new TwoPhaseSet<Tournament>(mapper);
+        tournaments = new TwoPhaseSet<Tournament>(mapper);
     }
 
     // True("player($0)")
@@ -174,7 +174,7 @@ import java.util.Set;
     @*/
     public Void merge(Tournaments other) {
         players.merge(other);
-        tounaments.merge(other);
+        tournaments.merge(other);
     }
 
 }
