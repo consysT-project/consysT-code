@@ -9,6 +9,7 @@ import de.tuda.stg.consys.annotations.invariants.DataModel;
         this.name = name;
     }
 
+    //@ assignable \nothing;
     public int getBudget() {
         return budget;
     }

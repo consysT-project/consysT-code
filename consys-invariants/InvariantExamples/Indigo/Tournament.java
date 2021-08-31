@@ -17,12 +17,17 @@ import java.util.Set;
         enrolled.remove(p);
     }
 
-    public boolean hasParticipant(Player p) {return enrolled.contains(p); }
+    //@ assignable \nothing;
+    public boolean hasParticipant(Player p) {
+        return enrolled.contains(p);
+    }
 
+    //@ assignable \nothing;
     public int numOfPlayers() {
         return enrolled.size();
     }
 
+    //@ assignable \nothing;
     public boolean isActive() {
         return active;
     }
@@ -31,7 +36,13 @@ import java.util.Set;
         this.active = active;
     }
 
-    public int getCapacity() { return capacity; }
+    //@ assignable \nothing;
+    public int getCapacity() {
+        return capacity;
+    }
 
-    public void setCapacity(int c) {capacity = c;}
+    public void setCapacity(int c) {
+        capacity = c;
+    }
+
 }
