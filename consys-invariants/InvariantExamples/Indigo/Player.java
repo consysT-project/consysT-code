@@ -14,6 +14,7 @@ import de.tuda.stg.consys.annotations.invariants.DataModel;
         return budget;
     }
 
+    //@ assignable budget;
     public void incBudget(int amount) {
         budget += amount;
     }

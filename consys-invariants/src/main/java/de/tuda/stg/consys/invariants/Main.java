@@ -40,11 +40,16 @@ public class Main {
             //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
             //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
             //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java"),
-              Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
-              Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java"),
-              Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
-              Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
-              Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
+            Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSetP.java"),
+            //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
+            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSetT.java"),
+              //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
+              //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java"),
+              //Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
+              //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
+              //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),

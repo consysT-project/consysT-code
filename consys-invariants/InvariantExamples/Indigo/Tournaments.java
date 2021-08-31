@@ -21,8 +21,8 @@ import java.util.Set;
     //private final Set<Tournament> tournaments = Sets.newHashSet();
 
     private final ObjectMapper serializer;
-    private final TwoPhaseSet<Player> players;
-    private final TwoPhaseSet<Tournament> tournaments;
+    private final TwoPhaseSetP players;
+    private final TwoPhaseSetT tournaments;
 
     /*@
     @ public invariant (\forall Player p; players.contains(p); p.getBudget() >= 0);
@@ -37,8 +37,8 @@ import java.util.Set;
     @*/
     public Tournaments(final ObjectMapper mapper) {
         serializer = mapper;
-        players = new  TwoPhaseSet<Player>(mapper);
-        tournaments = new TwoPhaseSet<Tournament>(mapper);
+        players = new  TwoPhaseSetP(mapper);
+        tournaments = new TwoPhaseSetT(mapper);
     }
 
     // True("player($0)")
