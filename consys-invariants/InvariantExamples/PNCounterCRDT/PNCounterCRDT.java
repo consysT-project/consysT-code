@@ -1,10 +1,9 @@
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-@ReplicatedModel public class CounterCRDT {
+@ReplicatedModel public class PNCounterCRDT {
   public static final int numOfReplicas = 3;
 
     /*@
-    @ public invariant getValue() >= 0;
     @ public invariant (\forall int inv1; inv1>=0 && inv1<numOfReplicas;
                           incs[inv1] >=0);
     @ public invariant (\forall int inv2; inv2>=0 && inv2<numOfReplicas;
@@ -19,7 +18,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
   //@ requires id >= 0 && id < numOfReplicas;
   //@ ensures (\forall int i; i >= 0 && i < numOfReplicas; incs[i] == 0 && decs[i] == 0);
   //@ ensures replicaId == id;
-  public CounterCRDT(int id) {
+  public PNCounterCRDT(int id) {
     if (!(id >= 0 && id < numOfReplicas))
       throw new IllegalArgumentException("id not in range.");
 
@@ -80,7 +79,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
   }
 
   /*@
-  @ requires getValue() >= 1;
   @ assignable decs[replicaId];
   @ ensures decs[replicaId] == \old(decs[replicaId]) + 1;
   @*/
@@ -92,7 +90,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
   /*@
   @ requires n >= 0;
-  @ requires getValue() >= n;
   @ assignable decs[replicaId];
   @ ensures decs[replicaId] == \old(decs[replicaId]) + n;
   @*/
@@ -103,14 +100,12 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
   }
 
   /*@
-    @ requires ((\sum int i; i >= 0 && i < numOfReplicas; incs[i] >= other.incs[i] ? incs[i] : other.incs[i] )
-             - (\sum int i; i >= 0 && i < numOfReplicas; decs[i] >= other.decs[i] ? decs[i] : other.decs[i] )) >= 0;
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas;
                    (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i])
                 && (\old(decs[i]) >= other.decs[i] ? decs[i] == \old(decs[i]) : decs[i] == other.decs[i]));
     @ ensures replicaId == \old(replicaId);
   @*/
-  void merge(CounterCRDT other) {
+  void merge(PNCounterCRDT other) {
     for (int i = 0; i < numOfReplicas; i++) {
       incs[i] = Math.max(incs[i], other.incs[i]);
       decs[i] = Math.max(decs[i], other.decs[i]);

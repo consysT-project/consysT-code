@@ -1,6 +1,6 @@
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-@ReplicatedModel public class BankAccount {
+@ReplicatedModel public class BankAccountLWW {
 
     int value = 0;
     int timestamp = 0;
@@ -13,7 +13,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
     @ ensures timestamp == 0;
     @ ensures this.id == id;
     @*/
-    public BankAccount(int id) {
+    public BankAccountLWW(int id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
     @ ensures (\old(timestamp) == other.timestamp) && (id > other.id) ==> (value == other.value) && (timestamp == other.timestamp);
     ensures (\old(timestamp) == other.timestamp) && (id == other.id) ==> (value == other.value) && (timestamp == other.timestamp) && (value == \old(value)) && (timestamp == \old(timestamp));
     @*/
-    public void merge(BankAccount other) {
+    public void merge(BankAccountLWW other) {
         if (timestamp > other.timestamp || (timestamp == other.timestamp && id < other.id)) {
             // do not change this state
         } else {
