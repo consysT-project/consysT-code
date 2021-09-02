@@ -103,7 +103,7 @@ public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 		var maybeClause = getAssignableClause();
 		if (maybeClause.isEmpty()) {
 			// There is no assignable clause, so we have to assume that the method is not pure.
-			return false;
+			return true;
 		}
 		// The assignable clause is \nothing.
 		return maybeClause.get().expr.equals(JmlKeywordExpression.NOTHING);

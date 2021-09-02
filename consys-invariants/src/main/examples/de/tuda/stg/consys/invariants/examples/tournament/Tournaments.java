@@ -1,11 +1,11 @@
+package de.tuda.stg.consys.invariants.examples.tournament;
+
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-import com.readytalk.crdt.sets.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.google.inject.internal.util.Sets;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.invariants.examples.twophaseset.TwoPhaseSet;
 
 import java.util.Set;
 
@@ -20,9 +20,8 @@ import java.util.Set;
     //private final Set<Player> players = Sets.newHashSet();
     //private final Set<Tournament> tournaments = Sets.newHashSet();
 
-    private final ObjectMapper serializer;
-    private final TwoPhaseSetP players;
-    private final TwoPhaseSetT tournaments;
+    private final TwoPhaseSetPlayer players;
+    private final TwoPhaseSetTournament tournaments;
 
     /*@
     @ public invariant (\forall Player p; players.contains(p); p.getBudget() >= 0);
@@ -35,10 +34,9 @@ import java.util.Set;
     @ ensures players.isEmpty();
     @ ensures tournaments.isEmpty();
     @*/
-    public Tournaments(final ObjectMapper mapper) {
-        serializer = mapper;
-        players = new  TwoPhaseSetP(mapper);
-        tournaments = new TwoPhaseSetT(mapper);
+    public Tournaments() {
+        players = new TwoPhaseSetPlayer();
+        tournaments = new TwoPhaseSetTournament();
     }
 
     // True("player($0)")
@@ -173,8 +171,10 @@ import java.util.Set;
 	@ ensures stateful(tournaments.merge(other.tournaments));
     @*/
     public Void merge(Tournaments other) {
-        players.merge(other);
-        tournaments.merge(other);
+        players.merge(other.players);
+        tournaments.merge(other.tournaments);
+
+        return null;
     }
 
 }

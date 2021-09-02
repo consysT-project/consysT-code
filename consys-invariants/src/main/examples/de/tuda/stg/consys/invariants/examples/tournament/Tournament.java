@@ -1,6 +1,9 @@
+package de.tuda.stg.consys.invariants.examples.tournament;
+
+import com.google.common.collect.Sets;
 import de.tuda.stg.consys.annotations.invariants.DataModel;
 
-import com.google.inject.internal.util.Sets;
+import de.tuda.stg.consys.invariants.examples.tournament.Player;
 
 import java.util.Set;
 

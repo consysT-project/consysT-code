@@ -1,3 +1,5 @@
+package de.tuda.stg.consys.invariants.examples.tournament;
+
 import de.tuda.stg.consys.annotations.invariants.DataModel;
 
 @DataModel public class Player {
