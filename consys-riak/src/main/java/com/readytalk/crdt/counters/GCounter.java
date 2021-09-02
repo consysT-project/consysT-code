@@ -36,10 +36,6 @@ import java.lang.String;
 	static final String[] keys = new String[] {"KeyA", "KeyB", "KeyC"};
 	// End added part
 
-	/*@
-	@ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
-	@ public invariant (\forall String s; true ; this.payload.get(s).compareTo(BigInteger.ZERO) != -1);
-	@*/
 
 	// Change from the origin: We had this field:
 	//private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {};

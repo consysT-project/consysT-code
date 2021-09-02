@@ -23,10 +23,7 @@ import com.readytalk.crdt.inject.ClientId;
  *
  */
 @ReplicatedModel public class PNCounter extends AbstractCRDT<BigInteger, PNCounter> implements CRDTCounter<BigInteger, PNCounter> {
-	// Can we say when we are sure about GCounter, we can omit GCounter related conditions?
-	/*@
-    @ public invariant this.value().compareTo(BigInteger.ZERO) != -1;
-    @*/
+	// Can we say when we are sure about GCounter, we can omit GCounter related conditions? Yes!
 
 	// Change from the origin: We had this field:
 	//private static final TypeReference<Map<String, JsonNode>> REF = new TypeReference<Map<String, JsonNode>>() {
@@ -44,6 +41,8 @@ import com.readytalk.crdt.inject.ClientId;
 	// Any need to check GCounters are zero?
 	/*@
 	@ ensures clientId.equals(client);
+	@ ensures positive.value().equals(BigInteger.ZERO);
+	@ ensures negative.value().equals(BigInteger.ZERO);
 	@*/
 	@Inject
 	public PNCounter(final ObjectMapper mapper, @ClientId final String client) {

@@ -52,18 +52,18 @@ public class Main {
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java")
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Player.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetPlayer.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetPlayer.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Player.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetPlayer.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetPlayer.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
+            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
     };
     runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
 
