@@ -17,7 +17,7 @@ import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, Eleme
 import org.jmlspecs.annotation.Pure
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, NoType}
+import javax.lang.model.`type`.{DeclaredType, NoType, TypeKind}
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 import scala.collection.convert.ImplicitConversions.`buffer AsJavaList`
 import collection.JavaConverters._
@@ -288,6 +288,23 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 					checker.reportError(node, "mixed.inheritance.operation.incompatible",
 						"StrongOp", "Default", m.getReceiverType)
 			})
+		}
+
+		// check mutable on return type
+		if (!AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)) {
+			val mods = TreeUtils.elementFromDeclaration(node).getModifiers
+			val annotatedReturnType = tf.getAnnotatedType(node).getReturnType
+			val returnType = annotatedReturnType.getUnderlyingType
+			if (!(TreeUtils.isConstructor(node) ||
+				returnType.getKind == TypeKind.VOID ||
+				TypesUtils.isPrimitiveOrBoxed(returnType) ||
+				mods.contains(Modifier.STATIC) ||
+				mods.contains(Modifier.PRIVATE) ||
+				mods.contains(Modifier.PROTECTED)) &&
+				annotatedReturnType.hasEffectiveAnnotation(mutableAnnotation)) {
+
+				checker.reportError(node.getReturnType, "immutability.return.type")
+			}
 		}
 
 		val r = super.visitMethod(node, p)
