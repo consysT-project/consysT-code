@@ -70,34 +70,133 @@ public class Main {
 
 
     };
+    // other use cases: ------------------------------
+    Path[] benchSource2 = new Path[] {
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/bankaccount/BankAccount.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/multicounter/SimpleNumber.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/multicounter/SimpleCounter.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/SequentialCounter.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/SequentialCreditAccount.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/ReplicatedCounter.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/ReplicatedCreditAccount.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java"),
+            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java"),
+    };
+    // Simple use cases: -----------------------------
     int numOfRounds = 10;
-    double totalTime[] = new double[benchSource.length];
-    for(int index = 0; index < benchSource.length; index += 1) {
-      long startTime = System.currentTimeMillis();
-      Path[] inputSource = new Path[1];
+    int extra = 9; // extra use cases other than benchSource singleClass use cases.
+    double totalTime[] = new double[benchSource.length + extra];
+    String classNames[] = new String[benchSource.length + extra];
+    int index = 0;
+    Path[] inputSource;
+    for( ; index < benchSource.length; index += 1) {
+      inputSource = new Path[1];
       inputSource[0] = benchSource[index];
-      for(int round = 0; round < numOfRounds; round += 1) {
-        runChecker(config, new Path[]{Paths.get("consys-invariants", "src", "main", "resources", "guava-14.0.1.jar")}, inputSource);
-      }
-      long endTime   = System.currentTimeMillis();
-      totalTime[index] = ((double) endTime - startTime) / numOfRounds;
-      System.out.println("Average verifying time for this use case: " + totalTime[index] + " ms");
+      totalTime[index] = benchmark(config, inputSource, numOfRounds);
+      classNames[index] = benchSource[index].toString().substring(benchSource[index].toString().lastIndexOf('/') + 1, benchSource[index].toString().length() - 5);
     }
+
+    // Bank Account: ----------------------------------
+    inputSource = new Path[1];
+    inputSource[0] = benchSource2[0];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "BankAccount";
+    index += 1;
+    // MultiClassCounter: ------------------------------------------
+    inputSource = new Path[2];
+    inputSource[0] = benchSource2[1];
+    inputSource[1] = benchSource2[2];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "MultiClassCounter";
+    index += 1;
+    // SequentialCreditAccount: ------------------------------------
+    inputSource = new Path[2];
+    inputSource[0] = benchSource2[3];
+    inputSource[1] = benchSource2[4];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "SequentialCreditAccount";
+    index += 1;
+    // ReplicatedCreditAccount: ------------------------------------
+    inputSource = new Path[2];
+    inputSource[0] = benchSource2[5];
+    inputSource[1] = benchSource2[6];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "ReplicatedCreditAccount";
+    index += 1;
+    // Riak-GCounter: ------------------------------------
+    inputSource = new Path[1];
+    inputSource[0] = benchSource2[7];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "Riak:GCounter";
+    index += 1;
+    // ReplicatedCreditAccount: ------------------------------------
+    inputSource = new Path[2];
+    inputSource[0] = benchSource2[7];
+    inputSource[1] = benchSource2[8];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "Riak:PNCounter";
+    index += 1;
+    // Riak-GSet: ------------------------------------
+    inputSource = new Path[1];
+    inputSource[0] = benchSource2[9];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "Riak:GSet";
+    index += 1;
+    // ReplicatedCreditAccount: ------------------------------------
+    inputSource = new Path[2];
+    inputSource[0] = benchSource2[9];
+    inputSource[1] = benchSource2[10];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "Riak:TwoPhaseSet";
+    index += 1;
+    // Riak-GSet: ------------------------------------
+    inputSource = new Path[1];
+    inputSource[0] = benchSource2[11];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "Riak:ORSet";
+    index += 1;
+    // Printing: ------
     System.out.println();
     System.out.println("-----------------------Benchmarks-----------------------");
-    System.out.println();
-    for(int index = 0; index < benchSource.length; index += 1) {
-      System.out.println("Average verifying time for the use case " + benchSource[index].toString().substring(benchSource[index].toString().lastIndexOf('/') + 1) + ": " + totalTime[index] + " ms.");
+    System.out.println("Number of use cases: " + index);
+    System.out.println("Number of rounds: " + numOfRounds);
+    for(int ind = 0; ind < benchSource.length + extra; ind += 1) {
+      System.out.println("Average verifying time for the use case " + classNames[ind] + ": " + totalTime[ind] + " ms.");
     }
+    // Maybe Tournaments?
     /*
     Last result:
-    Average verifying time for the use case BankAccountLWW.java: 125.4 ms.
-    Average verifying time for the use case Consensus.java: 57.5 ms.
-    Average verifying time for the use case DistributedLock.java: 49.6 ms.
-    Average verifying time for the use case GCounterCRDT.java: 179.1 ms.
-    Average verifying time for the use case PNCounterCRDT.java: 181.9 ms.
-    Average verifying time for the use case ResettableCounterWithRound.java: 115.9 ms.
+    Number of use cases: 15
+    Number of rounds: 10
+    Average verifying time for the use case BankAccountLWW: 112.7 ms.
+    Average verifying time for the use case Consensus: 69.9 ms.
+    Average verifying time for the use case DistributedLock: 42.2 ms.
+    Average verifying time for the use case GCounterCRDT: 206.4 ms.
+    Average verifying time for the use case PNCounterCRDT: 165.8 ms.
+    Average verifying time for the use case ResettableCounterWithRound: 88.1 ms.
+    Average verifying time for the use case BankAccount: 444.8 ms.
+    Average verifying time for the use case MultiClassCounter: 86.8 ms.
+    Average verifying time for the use case SequentialCreditAccount: 31.8 ms.
+    Average verifying time for the use case ReplicatedCreditAccount: 500.3 ms.
+    Average verifying time for the use case Riak:GCounter: 4361.4 ms.
+    Average verifying time for the use case Riak:PNCounter: 301851.9 ms.
+    Average verifying time for the use case Riak:GSet: 34.2 ms.
+    Average verifying time for the use case Riak:TwoPhaseSet: 58.7 ms.
+    Average verifying time for the use case Riak:ORSet: 54.7 ms.
     */
+  }
+
+  public static double benchmark(ProgramConfig config, Path[] sources, int numberOfRounds) {
+    long startTime = System.currentTimeMillis();
+    for(int round = 0; round < numberOfRounds; round += 1) {
+      runChecker(config, new Path[]{Paths.get("consys-invariants", "src", "main", "resources", "guava-14.0.1.jar")}, sources);
+    }
+    long endTime = System.currentTimeMillis();
+    double result = ((double) endTime - startTime) / numberOfRounds;
+    return result;
   }
 
   public static void runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
