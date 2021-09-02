@@ -190,9 +190,6 @@ object StrongAkkaReplicaSystem {
 
 				super.transactionFinished(tx)
 			}
-
-
-
 		}
 	}
 

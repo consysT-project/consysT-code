@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLASS_NAME='de.tuda.stg.consys.demo.concert.ConcertBenchmark'
-JAR_NAME='target/concert-tickets-2.0.0-allinone.jar'
+JAR_NAME='target/concert-tickets-3.0.0-allinone.jar'
 
 N_PROCS=`seq 0 8`
 

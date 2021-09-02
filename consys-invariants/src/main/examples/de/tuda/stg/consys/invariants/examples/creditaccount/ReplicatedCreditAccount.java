@@ -24,7 +24,7 @@ public class ReplicatedCreditAccount {
 
     /* Methods */
     //@ assignable \nothing;
-    //@ ensures \result == credits.getValue();
+    //@ ensures \result == \old(credits.getValue());
     public int getValue() {
         return credits.getValue();
     }

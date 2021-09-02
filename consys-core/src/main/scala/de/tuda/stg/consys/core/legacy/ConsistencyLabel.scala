@@ -20,6 +20,7 @@ object ConsistencyLabel {
 	/* Experimental */
 	case object High extends ConsistencyLabel
 	case object Low extends ConsistencyLabel
+	case object Mixed extends ConsistencyLabel
 
 	/* CRDTs */
 	case object CvRDT extends ConsistencyLabel

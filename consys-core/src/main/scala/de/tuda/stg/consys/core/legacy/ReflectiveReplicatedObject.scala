@@ -52,7 +52,7 @@ trait ReflectiveReplicatedObject[Addr, T] extends ReplicatedObject[Addr, T] {
 		private[ReflectiveReplicatedObject] def getObject : T =
 			state
 
-		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
+		def resolveMethod(methodName : String, args : Seq[Seq[Any]]) : Option[Symbol] = ReflectiveAccess.synchronized {
 			val mthdTerm = TermName(methodName)
 			val argClasses : Seq[Seq[Class[_]]] = args.map(argList => argList.map(arg => arg.getClass))
 			val mbMethodSym : Option[Symbol] = typeOf[T].member(mthdTerm).asTerm.alternatives.find { s =>
@@ -80,7 +80,11 @@ trait ReflectiveReplicatedObject[Addr, T] extends ReplicatedObject[Addr, T] {
 				//				flattenedParams == argClasses
 			}
 
-			mbMethodSym match {
+			mbMethodSym
+		}
+
+		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
+			resolveMethod(methodName, args) match {
 				case Some(methodSymbol: MethodSymbol) =>
 					val methodMirror = objMirror.reflectMethod(methodSymbol)
 					val result = methodMirror.apply(args.flatten : _*)
