@@ -41,7 +41,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	val classVisitCache: mutable.Map[(String, AnnotationMirror), mutable.Buffer[Error]] = mutable.Map.empty
 	val classVisitQueue: mutable.Set[(String, AnnotationMirror)] = mutable.Set.empty
 
-	// TODO endless recursion
+	private var isInConstructor: Boolean = false
+
 	override def processClassTree(classTree: ClassTree): Unit = {
 		/*
 		// TODO: clean up + we should explicitly run the inference here before moving on
@@ -66,7 +67,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		getConsistencyQualifiers.
 			filter(q => tf.getQualifierHierarchy.isSubtype(q, upperBound) && !AnnotationUtils.areSame(q, upperBound)).
-			foreach(q => {
+			foreach(a => {
+				val q = repairMixed(a)
 				consistencyChecker.printErrors = false
 				var errors = mutable.Buffer.empty[Error]
 				var warnings = mutable.Buffer.empty[Error]
@@ -85,7 +87,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	}
 
 	def getErrorsForTypeUse(name: String, q: AnnotationMirror): java.util.List[Error] = {
-		classVisitCache.find(entry => entry._1._1 == name && AnnotationUtils.areSame(entry._1._2, repairMixed(q))) match {
+		val a = repairMixed(q)
+		classVisitCache.find(entry => entry._1._1 == name && AnnotationUtils.areSame(entry._1._2, a)) match {
 			case None =>
 				sys.error("") // TODO: silently fail?
 			case Some(value) => value._2
@@ -128,13 +131,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		} else {
 			classVisitCache.put((className, annotation), mutable.Buffer.empty) // TODO warnings
 		}
-
+/*
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
 			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName}(${Class.forName(getMixedDefaultOp(annotation)).getSimpleName}) ${getQualifiedName(classTree)}")
 		} else {
 			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName} ${getQualifiedName(classTree)}")
 		}
-
+*/
 		tf.pushVisitClassContext(classElement, annotation)
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
 			tf.inferenceVisitor.processClass(classTree, annotation)
@@ -190,6 +193,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			case _: VariableTree => // variable initialization at declaration is allowed
 			case assign: AssignmentTree => assign.getVariable match {
 				case id: IdentifierTree if TreeUtils.elementFromUse(id).getKind != ElementKind.FIELD => // reassigning variables is allowed
+				case id: IdentifierTree if isInConstructor && TreeUtils.elementFromUse(id).getKind == ElementKind.FIELD => // allow field initialization in constructor
+				case mst: MemberSelectTree => mst.getExpression match {
+					case id: IdentifierTree if isInConstructor && id.getName.contentEquals("this") => // allow field initialization in constructor
+					case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
+						checker.reportError(tree, "immutability.assignment.type")
+				}
 				case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
 					checker.reportError(tree, "immutability.assignment.type")
 			}
@@ -218,28 +227,33 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				val recvType = atypeFactory.getAnnotatedType(expr)
 				val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
 
-				// check implicit context on non-mixed method invocation
-				if (expr != null && !methodInvocationIsRefOrGetField(node) && !recvType.hasEffectiveAnnotation(classOf[Mixed]))
-					checkMethodInvocationReceiver(recvType, node)
+				// check receiver w.r.t. implicit context
+				if (expr != null && !methodInvocationIsRefOrGetField(node)) {
+					if (recvType.hasEffectiveAnnotation(classOf[Mixed]))
+						checkMethodInvocationOpLevel(recvType, node)
+					else
+						checkMethodInvocationReceiver(recvType, node)
+				}
 
-				// check implicit context on mixed method invocation
-				if (recvType.hasEffectiveAnnotation(classOf[Mixed]))
-					checkMethodInvocationOpLevel(recvType, node)
+				// check immutability on receiver
+				if (!methodInvocationIsRefAccess(node) &&
+					!methodInvocationIsReplicateOrLookup(node) &&
+					!methodType.getElement.getModifiers.contains(Modifier.STATIC)) {
 
-				// check immutability
-				checkMethodInvocationReceiverMutability(recvType, methodType, node)
+					checkMethodInvocationReceiverMutability(recvType, methodType, node)
+				}
 
 			case _ =>
 		}
 
-		node.getArguments.forEach(argExpr =>
-			checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
-		)
-
-		if (methodInvocationIsReplicate(node)) {
-			val (isAllowed, src) = replicateIsAllowedForLevel(node)
-			if (!isAllowed) checker.reportError(node, "replicate.class", node, src)
-		}
+		// check arguments w.r.t. implicit context
+		val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
+		(methodType.getParameterTypes zip node.getArguments).foreach(entry => {
+			val (paramType, argExpr) = entry
+			// arguments taken as immutable parameters cannot violate implicit context
+			if (!paramType.hasAnnotation(immutableAnnotation))
+				checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
+		})
 
 		val r = super.visitMethodInvocation(node, p)
 
@@ -254,6 +268,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		if (!transactionContext && methodDeclarationIsTransactional(node)) {
 			transactionContext = true
 			shouldClose = true
+		}
+		if (TreeUtils.isConstructor(node)) {
+			isInConstructor = true
 		}
 
 		// check operation level override rules
@@ -274,6 +291,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		}
 
 		val r = super.visitMethod(node, p)
+		if (TreeUtils.isConstructor(node)) {
+			isInConstructor = false
+		}
 		if (shouldClose) {
 			transactionContext = false
 		}
@@ -422,9 +442,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)))
 			return
 
-		if (!(methodInvocationIsRefAccess(tree) || methodInvocationIsReplicate(tree) ||
-			methodType.getElement.getModifiers.contains(Modifier.STATIC)) &&
-			receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) &&
+		if (receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) &&
 			!(ElementUtils.hasAnnotation(methodType.getElement, classOf[SideEffectFree].getName) ||
 				ElementUtils.hasAnnotation(methodType.getElement, classOf[Pure].getName)))
 			checker.reportError(tree, "immutability.invocation.receiver")
@@ -438,7 +456,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private def checkMethodInvocationOpLevel(recvType: AnnotatedTypeMirror, tree: MethodInvocationTree): Unit = {
 		if (transactionContext && recvType.hasEffectiveAnnotation(classOf[Mixed]) && !implicitContext.allowsAsMixedInvocation(recvType, tree))
 			checker.reportError(tree, "invocation.operation.implicitflow",
-				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getMixedDefaultOp(recvType.getAnnotation(classOf[Mixed]))),
+				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getMixedDefaultOp(recvType.getEffectiveAnnotation(classOf[Mixed]))),
 				implicitContext.get, tree)
 	}
 

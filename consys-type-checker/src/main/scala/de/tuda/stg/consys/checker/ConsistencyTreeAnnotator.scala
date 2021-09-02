@@ -89,8 +89,8 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 						}
 
 					} else if (tf.getQualifierHierarchy.findAnnotationInHierarchy(List(ann), immutableAnnotation) != null) {
-						val qualifier = receiverType.getEffectiveAnnotationInHierarchy(immutableAnnotation)
-						val lup = tf.getQualifierHierarchy.leastUpperBound(qualifier, ann)
+						val fieldQualifier = typeMirror.getEffectiveAnnotationInHierarchy(immutableAnnotation)
+						val lup = tf.getQualifierHierarchy.leastUpperBound(fieldQualifier, ann)
 						typeMirror.replaceAnnotation(lup)
 
 					} else {
