@@ -37,7 +37,8 @@ public class TwoPhaseSetTournament {
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
-	//@ ensure (\forall Tournament p; adds.contains(p); removals.contains(p));
+	//@ assignable \nothing;
+	//@ ensure \result == (\forall Tournament p; adds.contains(p); removals.contains(p));
 	public boolean isEmpty() {
 		return Sets.difference(adds.underlying, removals.underlying).isEmpty();
 	}

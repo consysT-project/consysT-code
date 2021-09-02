@@ -57,8 +57,18 @@ public class Main {
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java")
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Player.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetPlayer.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetPlayer.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
     };
-    //runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
+    runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
+
+
+    // -------------------------------------------------------Start part of benchmarks:-------------------------------------------------------
 
     Path[] benchSource = new Path[] {
             Paths.get("consys-invariants/InvariantExamples/BankAccountLWW/BankAccountLWW.java"),
@@ -85,13 +95,20 @@ public class Main {
             Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java"),
             Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java"),
     };
-    // Simple use cases: -----------------------------
-    int numOfRounds = 10;
+
+    int numOfRounds = 0; // change it for benchmarks
     int extra = 9; // extra use cases other than benchSource singleClass use cases.
     double totalTime[] = new double[benchSource.length + extra];
     String classNames[] = new String[benchSource.length + extra];
     int index = 0;
     Path[] inputSource;
+    // Some runes before measuring time: ----------------------
+    for(int i = 0; numOfRounds > 0 && i < benchSource.length; i += 1){
+      Path[] tmp = new Path[1];
+      tmp[0] = benchSource[i];
+      benchmark(config, tmp, 3 );
+    }
+    // Simple use cases: -----------------------------
     for( ; index < benchSource.length; index += 1) {
       inputSource = new Path[1];
       inputSource[0] = benchSource[index];
@@ -159,12 +176,14 @@ public class Main {
     classNames[index] = "Riak:ORSet";
     index += 1;
     // Printing: ------
-    System.out.println();
-    System.out.println("-----------------------Benchmarks-----------------------");
-    System.out.println("Number of use cases: " + index);
-    System.out.println("Number of rounds: " + numOfRounds);
-    for(int ind = 0; ind < benchSource.length + extra; ind += 1) {
-      System.out.println("Average verifying time for the use case " + classNames[ind] + ": " + totalTime[ind] + " ms.");
+    if(numOfRounds > 0) {
+      System.out.println();
+      System.out.println("-----------------------Benchmarks-----------------------");
+      System.out.println("Number of use cases: " + index);
+      System.out.println("Number of rounds: " + numOfRounds);
+      for (int ind = 0; ind < benchSource.length + extra; ind += 1) {
+        System.out.println("Average verifying time for the use case " + classNames[ind] + ": " + totalTime[ind] + " ms.");
+      }
     }
     // Maybe Tournaments?
     /*
@@ -186,7 +205,27 @@ public class Main {
     Average verifying time for the use case Riak:GSet: 34.2 ms.
     Average verifying time for the use case Riak:TwoPhaseSet: 58.7 ms.
     Average verifying time for the use case Riak:ORSet: 54.7 ms.
+
+    Last result for compiling:
+    Number of rounds: 10
+    Average verifying time for the use case BankAccountLWW: 28.0 ms.
+    Average verifying time for the use case Consensus: 29.0 ms.
+    Average verifying time for the use case DistributedLock: 24.8 ms.
+    Average verifying time for the use case GCounterCRDT: 19.1 ms.
+    Average verifying time for the use case PNCounterCRDT: 16.2 ms.
+    Average verifying time for the use case ResettableCounterWithRound: 16.5 ms.
+    Average verifying time for the use case BankAccount: 22.8 ms.
+    Average verifying time for the use case MultiClassCounter: 19.2 ms.
+    Average verifying time for the use case SequentialCreditAccount: 18.3 ms.
+    Average verifying time for the use case ReplicatedCreditAccount: 18.0 ms.
+    Average verifying time for the use case Riak:GCounter: 27.2 ms.
+    Average verifying time for the use case Riak:PNCounter: 24.7 ms.
+    Average verifying time for the use case Riak:GSet: 25.3 ms.
+    Average verifying time for the use case Riak:TwoPhaseSet: 38.8 ms.
+    Average verifying time for the use case Riak:ORSet: 38.9 ms.
+
     */
+
   }
 
   public static double benchmark(ProgramConfig config, Path[] sources, int numberOfRounds) {

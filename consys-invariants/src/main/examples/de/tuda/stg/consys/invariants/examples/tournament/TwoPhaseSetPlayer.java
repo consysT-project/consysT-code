@@ -38,7 +38,8 @@ public class TwoPhaseSetPlayer {
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
-	//@ ensure (\forall Player p; adds.contains(p); removals.contains(p));
+	//@ assignable \nothing;
+	//@ ensure \result == (\forall Player p; adds.contains(p); removals.contains(p));
 	public boolean isEmpty() {
 		return Sets.difference(adds.underlying, removals.underlying).isEmpty();
 	}

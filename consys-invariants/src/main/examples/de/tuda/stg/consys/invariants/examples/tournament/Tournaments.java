@@ -6,6 +6,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.examples.twophaseset.TwoPhaseSet;
+import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
 
 import java.util.Set;
 
@@ -101,7 +102,7 @@ import java.util.Set;
     @ requires t.hasParticipant(p) == false;
     @ assignable p, t;
     @ ensures t.hasParticipant(p);
-    @ ensures p.getBudget() == \old(p.getBudget) - 1;
+    @ ensures p.getBudget() == \old(p.getBudget()) - 1;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2) && p2.equals(p) == false; \old(t.hasParticipant(p2)));
     @*/
