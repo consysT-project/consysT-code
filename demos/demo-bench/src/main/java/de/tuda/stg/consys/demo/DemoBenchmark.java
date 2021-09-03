@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static de.tuda.stg.consys.japi.legacy.JConsistencyLevels.MIXED;
 import static de.tuda.stg.consys.japi.legacy.JConsistencyLevels.WEAK;
 
 /**
@@ -22,7 +23,7 @@ import static de.tuda.stg.consys.japi.legacy.JConsistencyLevels.WEAK;
 public abstract class DemoBenchmark extends DistributedBenchmark {
 
 	private enum BenchmarkType {
-		WEAK, MIXED, STRONG
+		WEAK, MIXED, STRONG, OP_MIXED
 	}
 
 	private final BenchmarkType benchType;
@@ -55,6 +56,7 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 	protected ConsistencyLabel getStrongLevel() {
 		switch (benchType) {
 			case WEAK: return WEAK;
+			case OP_MIXED: return MIXED;
 			default: return JConsistencyLevels.STRONG;
 		}
 	}
@@ -62,6 +64,7 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 	protected ConsistencyLabel getWeakLevel() {
 		switch (benchType) {
 			case STRONG: return JConsistencyLevels.STRONG;
+			case OP_MIXED: return MIXED;
 			default: return JConsistencyLevels.WEAK;
 		}
 	}

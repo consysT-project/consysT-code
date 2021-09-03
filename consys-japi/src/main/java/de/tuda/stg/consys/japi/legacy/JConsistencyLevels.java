@@ -13,6 +13,7 @@ public interface JConsistencyLevels {
 	@Local ConsistencyLabel STRONG = ConsistencyLabel.Strong$.MODULE$;
 	@Local ConsistencyLabel WEAK = ConsistencyLabel.Weak$.MODULE$;
 	@Local ConsistencyLabel CAUSAL = ConsistencyLabel.Causal$.MODULE$;
+	@Local ConsistencyLabel MIXED = ConsistencyLabel.Mixed$.MODULE$;
 
 	@Local ConsistencyLabel CMRDT = ConsistencyLabel.CmRDT$.MODULE$;
 	@Local ConsistencyLabel CVRDT = ConsistencyLabel.CvRDT$.MODULE$;

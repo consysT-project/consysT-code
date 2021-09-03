@@ -299,7 +299,7 @@ trait AkkaReplicaSystem extends ReplicaSystem
 		result.asInstanceOf[RequestHandler[Addr]]
 	}
 
-	private[akka] def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
+	def foreachOtherReplica(f : RequestHandler[Addr] => Unit) : Unit = {
 		for (replica <- otherReplicas) {
 			val handler = handlerFor(replica)
 			f(handler)

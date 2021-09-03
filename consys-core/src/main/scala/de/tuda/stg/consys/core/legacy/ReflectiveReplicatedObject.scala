@@ -34,7 +34,7 @@ trait ReflectiveReplicatedObject[Addr, T] extends ReplicatedObject[Addr, T] {
 
 
 
-	private final object ReflectiveAccess {
+	final object ReflectiveAccess {
 
 		private var state : T = _
 

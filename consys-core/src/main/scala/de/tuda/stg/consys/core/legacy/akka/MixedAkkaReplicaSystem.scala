@@ -1,10 +1,11 @@
 package de.tuda.stg.consys.core.legacy.akka
 
 import akka.actor.ActorRef
+import de.tuda.stg.consys.annotations.methods.WeakOp
 import de.tuda.stg.consys.core.legacy.ConsistencyLabel
 import de.tuda.stg.consys.core.legacy.ConsistencyLabel.{Mixed, Strong}
 import de.tuda.stg.consys.core.legacy.akka.MixedAkkaReplicaSystem.MixedReplicatedObject.{MixedFollowerReplicatedObject, MixedMasterReplicatedObject}
-import de.tuda.stg.consys.core.legacy.akka.Requests.{GetFieldOp, InvokeOp, Operation, Request, RequestHandler, SetFieldOp, SynchronousRequest}
+import de.tuda.stg.consys.core.legacy.akka.Requests.{AsynchronousRequest, GetFieldOp, InvokeOp, NoAnswerRequest, Operation, Request, RequestHandler, SetFieldOp, SynchronousRequest}
 import de.tuda.stg.consys.core.legacy.akka.StrongAkkaReplicaSystem.StrongReplicatedObject.{StrongFollowerReplicatedObject, StrongMasterReplicatedObject}
 import jdk.dynalink.linker.support.TypeUtilities
 import scala.language.postfixOps
@@ -21,12 +22,12 @@ import scala.util.DynamicVariable
 trait MixedAkkaReplicaSystem extends AkkaReplicaSystem {
 
 	override protected def createMasterReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T) : AkkaReplicatedObject[Addr, T] = l match {
-		case Strong => new MixedMasterReplicatedObject[Addr, T](obj, addr, this)
+		case Mixed => new MixedMasterReplicatedObject[Addr, T](obj, addr, this)
 		case _ =>	super.createMasterReplica[T](l, addr, obj)
 	}
 
 	override protected def createFollowerReplica[T <: Obj : TypeTag](l : ConsistencyLevel, addr : Addr, obj : T, masterRef : ActorRef) : AkkaReplicatedObject[Addr, T] = l match {
-		case Strong => new MixedFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
+		case Mixed => new MixedFollowerReplicatedObject[Addr, T](obj, addr, masterRef, this)
 		case _ =>	super.createFollowerReplica[T](l, addr, obj, masterRef)
 	}
 }
@@ -38,6 +39,16 @@ object MixedAkkaReplicaSystem {
 		extends AkkaReplicatedObject[Addr, T]
 			with Lockable[T] {
 		override final def consistencyLevel : ConsistencyLabel = Mixed
+
+		def isWeak(methodName: String, args: Seq[Seq[Any]]) : Boolean = {
+			ReflectiveAccess.resolveMethod(methodName, args) match {
+				case Some(method) =>
+					method.annotations.exists(annotation => annotation.toString.equals("de.tuda.stg.consys.annotations.methods.WeakOp"))
+				case None =>
+					println("method can not be resolved: " + methodName)
+					false
+			}
+		}
 	}
 
 
@@ -51,9 +62,29 @@ object MixedAkkaReplicaSystem {
 			with AkkaMultiversionReplicatedObject[Loc, T] {
 			setObject(init)
 
+
 			override def internalInvoke[R](tx : Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-				val result = super.internalInvoke[R](tx, methodName, args)
-				result
+
+				if (isWeak(methodName, args)) {
+					// Weak logic
+					val res = super.internalInvoke[R](tx, methodName, args)
+					this.replicaSystem.foreachOtherReplica(handler => handler.request(addr, WeakMergeReq(getObject)))
+					res
+				} else {
+					// Strong logic
+					if (opCache.contains(tx)) {
+						//transaction is cached. No locking required.
+					} else {
+						lock(tx.id)
+						tx.addLock(addr.asInstanceOf[String])
+					}
+
+					val res = super.internalInvoke[R](tx, methodName, args)
+					res
+				}
+
+
+
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
@@ -91,16 +122,15 @@ object MixedAkkaReplicaSystem {
 					unlock(txid)
 					().asInstanceOf[R]
 
+				case WeakMergeReq(obj) =>
+					getObject.asInstanceOf[de.tuda.stg.consys.core.legacy.CanBeMerged[T]].merge(obj.asInstanceOf[T])
+					().asInstanceOf[R]
+
 				case _ => super.handleRequest(request)
 			}
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
-				if (opCache.contains(tx)) {
-					//transaction is cached. No locking required.
-				} else {
-					lock(tx.id)
-					tx.addLock(addr.asInstanceOf[String])
-				}
+
 				super.transactionStarted(tx)
 			}
 
@@ -108,7 +138,7 @@ object MixedAkkaReplicaSystem {
 				super.transactionFinished(tx)
 			}
 
-			override def toString : String = s"StrongMaster($addr, $getObject)"
+			override def toString : String = s"MixedMaster($addr, $getObject)"
 		}
 
 
@@ -125,10 +155,24 @@ object MixedAkkaReplicaSystem {
 			private var handler : DynamicVariable[RequestHandler[Loc]] = new DynamicVariable(null)
 
 			override def internalInvoke[R](tx: Transaction, methodName: String, args: Seq[Seq[Any]]) : R = {
-				val res = super.internalInvoke[R](tx, methodName, args)
-				handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
+				if (isWeak(methodName, args)) {
+					// Weak logic
+					val res = super.internalInvoke[R](tx, methodName, args)
+					val answer = handler.value.request(addr, WeakMergeReq(getObject))
+					res
+				} else {
+					// Strong logic
+					if (opCache.contains(tx)) {
+						//transaction is cached. No locking required.
+					} else {
+						lockWithHandler(tx.id, handler.value)
+						tx.addLock(addr.asInstanceOf[String])
+					}
 
-				res
+					val res = super.internalInvoke[R](tx, methodName, args)
+					handler.value.request(addr, MergeReq(getObject, InvokeOp(tx, methodName, args), res))
+					res
+				}
 			}
 
 			override def internalGetField[R](tx : Transaction, fldName : String) : R = {
@@ -139,9 +183,12 @@ object MixedAkkaReplicaSystem {
 				throw new UnsupportedOperationException()
 			}
 
-			override def internalSync() : Unit = {	}
+			override def internalSync() : Unit = {
+				val handler = replicaSystem.handlerFor(masterReplica)
+				handler.request(addr, WeakMergeReq(getObject))
+				handler.close()
+			}
 
-			override def sync() : Unit = { }
 
 
 			override protected def requiresCache(op : Operation[_]) : Boolean = {
@@ -167,21 +214,19 @@ object MixedAkkaReplicaSystem {
 				handler.request(addr, UnlockReq(txid))
 			}
 
-			override def toString : String = s"StrongFollower($addr, $getObject)"
+			override def toString : String = s"MixedFollower($addr, $getObject)"
 
+			override def handleRequest[R](request : Request[R]) : R = request match {
+				case WeakMergeReq(obj) =>
+					getObject.asInstanceOf[de.tuda.stg.consys.core.legacy.CanBeMerged[T]].merge(obj.asInstanceOf[T])
+					().asInstanceOf[R]
+
+				case _ => super.handleRequest(request)
+			}
 
 			override protected def transactionStarted(tx : Transaction) : Unit = {
 				assert(handler.value == null)
-
 				handler.value = replicaSystem.handlerFor(masterReplica)
-
-				if (opCache.contains(tx)) {
-					//transaction is cached. No locking required.
-				} else {
-					lockWithHandler(tx.id, handler.value)
-					tx.addLock(addr.asInstanceOf[String])
-				}
-
 				super.transactionStarted(tx)
 			}
 
@@ -195,6 +240,10 @@ object MixedAkkaReplicaSystem {
 	}
 
 
+
+	case class SynchronizeWithWeakMaster(seq : scala.collection.Seq[Operation[_]]) extends SynchronousRequest[WeakSynchronized]
+	case class WeakMergeReq(obj : Any) extends NoAnswerRequest
+	case class WeakSynchronized(obj : Any)
 
 	case class LockReq(txid : Long) extends SynchronousRequest[LockRes]
 	case class LockRes(obj : Any)

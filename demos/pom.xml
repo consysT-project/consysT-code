@@ -20,6 +20,7 @@
         <module>counter</module>
         <module>twitter-clone</module>
         <module>eshop</module>
+        <module>invariant-demos</module>
     </modules>
 
 
