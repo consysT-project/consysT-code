@@ -47,7 +47,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
     @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
     @ ensures (\old(timestamp) == other.timestamp) && (id < other.id) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) == other.timestamp) && (id > other.id) ==> (value == other.value) && (timestamp == other.timestamp);
-    ensures (\old(timestamp) == other.timestamp) && (id == other.id) ==> (value == other.value) && (timestamp == other.timestamp) && (value == \old(value)) && (timestamp == \old(timestamp));
+    @ ensures (\old(timestamp) == other.timestamp) && (id == other.id) ==> (value == other.value) && (timestamp == other.timestamp) && (value == \old(value)) && (timestamp == \old(timestamp));
     @*/
     public void merge(BankAccountLWW other) {
         if (timestamp > other.timestamp || (timestamp == other.timestamp && id < other.id)) {

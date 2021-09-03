@@ -64,8 +64,9 @@ public class Main {
             //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
             //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
             //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
+            //Paths.get("consys-invariants/InvariantExamples/cards/JointBankAccount/JointBankAccount.java")
     };
-    //runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
+   // runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
 
 
     // -------------------------------------------------------Start part of benchmarks:-------------------------------------------------------
@@ -101,11 +102,12 @@ public class Main {
             Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
             Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
             Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
-            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
+            Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java"),
+            Paths.get("consys-invariants/InvariantExamples/cards/JointBankAccount/JointBankAccount.java")
     };
 
     int numOfRounds = 10; // change it for benchmarks
-    int extra = 11; // extra use cases other than benchSource singleClass use cases.
+    int extra = 12; // extra use cases other than benchSource singleClass use cases.
     double totalTime[] = new double[benchSource.length + extra];
     String classNames[] = new String[benchSource.length + extra];
     int index = 0;
@@ -194,6 +196,12 @@ public class Main {
     totalTime[index] = benchmark(config, inputSource, numOfRounds);
     classNames[index] = "Tournaments";
     index += 1;
+    // CARDS/JointBankAccount: ------------------------------------
+    inputSource = new Path[1];
+    inputSource[0] = benchSource2[20];
+    totalTime[index] = benchmark(config, inputSource, numOfRounds);
+    classNames[index] = "JointBankAccount";
+    index += 1;
     // Printing: ---------------------------------------
     if(numOfRounds > 0) {
       System.out.println();
@@ -227,6 +235,7 @@ Average verifying time for the use case Riak:GSet: 36.5 ms.
 Average verifying time for the use case Riak:TwoPhaseSet: 63.3 ms.
 Average verifying time for the use case Riak:ORSet: 54.3 ms.
 Average verifying time for the use case Tournaments: 48.2 ms.
+Average verifying time for the use case JointBankAccount: 24.4 ms.
 
     Last result for compiling:
 
@@ -250,6 +259,7 @@ Average verifying time for the use case Riak:GSet: 24.5 ms.
 Average verifying time for the use case Riak:TwoPhaseSet: 33.2 ms.
 Average verifying time for the use case Riak:ORSet: 32.9 ms.
 Average verifying time for the use case Tournaments: 36.2 ms.
+Average verifying time for the use case JointBankAccount: 17.0 ms.
 
     */
 

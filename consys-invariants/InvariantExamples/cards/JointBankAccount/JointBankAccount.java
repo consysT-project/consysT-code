@@ -1,27 +1,30 @@
-public class JointBankAccount {
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+@ReplicatedModel public class JointBankAccount {
     //@ public invariant balance >= 0;
     private int balance = 0;
     int timestamp = 0;
     private boolean requested = false;
     private boolean approved = false;
-
+    private int replicaId;
 
     /*@
     @ ensures balance == 0;
     @ ensures timestamp == 0;
     @ ensures requested == false;
     @ ensures approved == false;
+    @ ensures replicaID == r;
     @*/
-    public JointBankAccount() {}
+    public JointBankAccount(int r) {
+        replicaId = r;
+    }
 
 
     /*@
     @ requires amount >= 0;
+    @ assignable balance, timestamp;
     @ ensures balance == \old(balance) + amount;
     @ ensures timestamp == \old(timestamp) + 1;
-    @ ensures requested == \old(requested);
-    @ ensures approved == \old(approved);
-
     @*/
     public void deposit(int amount) {
         if (amount < 0) throw new IllegalArgumentException("amount must be positive");
@@ -30,8 +33,9 @@ public class JointBankAccount {
     }
 
     /*@
-    @ requires \old(balance) - amount >= 0;
-    @ requires \old(approved) == true;
+    @ requires balance - amount >= 0;
+    @ requires approved == true;
+    @ assignable balance, timestamp, approved, requested;
     @ ensures balance == \old(balance) - amount;
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures approved == false;
@@ -46,10 +50,9 @@ public class JointBankAccount {
     }
 
     /*@
+    @ assignable timestamp, requested;
     @ ensures timestamp == \old(timestamp) + 1;
-    @ ensures approved == \old(approved);
     @ ensures requested == true;
-    @ ensures balance == \old(balance);
     @*/
     public void request() {
         requested = true;
@@ -57,10 +60,9 @@ public class JointBankAccount {
     }
 
     /*@
+    @ assignable approved, timestamp;
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures approved == \old(requested);
-    @ ensures requested == \old(requested);
-    @ ensures balance == \old(balance);
     @*/
     public void approve() {
         approved = requested;
@@ -68,10 +70,10 @@ public class JointBankAccount {
     }
 
     /*@
+    @ assignable approved, requested, timestamp;
     @ ensures timestamp == \old(timestamp) + 1;
     @ ensures approved == false;
     @ ensures requested == false;
-    @ ensures balance == \old(balance);
     @*/
     public void reset() {
         requested = false;
@@ -80,15 +82,20 @@ public class JointBankAccount {
     }
 
     /*@
-    @ requires \old(balance) >= 0;
-    @ requires other.balance >= 0;
-    @ requires \old(timestamp) == other.timestamp ==> \old(balance) == other.balance;
-
-    @ ensures (\old(timestamp) > other.timestamp) ==> (balance == \old(balance)) && (timestamp == \old(timestamp)) && (requested == \old(requested)) && (approved == \old(approved));
-    @ ensures (\old(timestamp) < other.timestamp) ==> (balance == other.balance) && (timestamp == other.timestamp) && (requested == other.requested) && (approved == other.approved);
-    @ ensures (\old(timestamp) == other.timestamp) ==> (balance == \old(balance)) && (timestamp == \old(timestamp)) &&
-                                                   (balance == other.balance) && (timestamp == other.timestamp) &&
-                                                   (requested == \old(requested)) && (approved == \old(approved)) && (requested == other.requested) && (approved == other.approved);
+    @ ensures (\old(timestamp) > other.timestamp) ==> (balance == \old(balance)) && (timestamp == \old(timestamp) && approved == \old(approved)) && requested == \old(requested);
+    @ ensures (\old(timestamp) < other.timestamp) ==> (balance == other.balance) && (timestamp == other.timestamp) && approved == other.approved && requested == other.requested;
+    @ ensures (\old(timestamp) == other.timestamp) && (replicaId < other.replicaId) ==> (balance == \old(balance)) && (timestamp == \old(timestamp)) && approved == \old(approved) && requested == \old(requested);
+    @ ensures (\old(timestamp) == other.timestamp) && (replicaId > other.replicaId) ==> (balance == other.balance) && (timestamp == other.timestamp) && approved == other.approved && requested == other.requested;
+    @ ensures (\old(timestamp) == other.timestamp) && (replicaId == other.replicaId) ==> (balance == other.balance) && (timestamp == other.timestamp) && (balance == \old(balance)) && (timestamp == \old(timestamp)) && approved == other.approved && requested == other.requested && approved == \old(approved)) && requested == \old(requested);
     @*/
-    public void merge(JointBankAccount other) {}
+    public void merge(JointBankAccount other) {
+        if (timestamp > other.timestamp || (timestamp == other.timestamp && replicaId < other.replicaId)) {
+            // do not change this state
+        } else {
+            balance = other.balance;
+            timestamp = other.timestamp;
+            approved = other.approved;
+            requested = other.requested;
+        }
+    }
 }
