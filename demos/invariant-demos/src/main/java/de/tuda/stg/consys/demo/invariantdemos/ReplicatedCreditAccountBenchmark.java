@@ -8,7 +8,7 @@ import de.tuda.stg.consys.demo.invariantdemos.schema.creditaccount.ReplicatedCre
 import de.tuda.stg.consys.japi.legacy.JRef;
 import scala.Option;
 
-public abstract class ReplicatedCreditAccountBenchmark extends InvariantDemosBenchmark<ReplicatedCreditAccount> {
+public class ReplicatedCreditAccountBenchmark extends InvariantDemosBenchmark<ReplicatedCreditAccount> {
 
     public static void main(String[] args) {
         start(ReplicatedCreditAccountBenchmark.class, args);
@@ -17,5 +17,4 @@ public abstract class ReplicatedCreditAccountBenchmark extends InvariantDemosBen
     public ReplicatedCreditAccountBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
         super(config, outputResolver, new ReplicatedCreditAccountSchema());
     }
-
 }

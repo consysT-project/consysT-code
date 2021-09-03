@@ -10,6 +10,7 @@ import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, Simp
 import de.tuda.stg.consys.core.store.utils.Address
 import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems
 import de.tuda.stg.consys.japi.legacy.impl.akka.JAkkaReplicaSystem
+import de.tuda.stg.consys.utils.InvariantUtils
 import java.io.{FileNotFoundException, PrintWriter}
 import scala.collection.JavaConverters
 
@@ -52,10 +53,14 @@ abstract class DistributedBenchmark(
 			config.getInt("consys.bench.operationsPerIteration"),
 			config.getDuration("consys.bench.waitPerOperation"),
 			outputResolver match {
-				case None => new DateTimeOutputResolver(config.getString("consys.bench.outputFile"))
+				case None => new DateTimeOutputResolver(getClass.getSimpleName, config.getString("consys.bench.outputFile"))
 				case Some(e) => e
 			}
 		)
+
+		InvariantUtils.setReplicaId(processId)
+		InvariantUtils.setNumOfReplicas(replicas.length)
+		InvariantUtils.setReplicaName(address.toString)
 	}
 
 
@@ -193,7 +198,7 @@ object DistributedBenchmark {
 		if (args.length == 1) {
 			start(benchmark, args(0), None)
 		} else if (args.length == 2) {
-			start(benchmark, args(0), Some(new SimpleOutputResolver(args(1))))
+			start(benchmark, args(0), Some(new SimpleOutputResolver(benchmark.getSimpleName, args(1))))
 		} else {
 			println("Wrong usage of command. Expected: $ benchmark configFilePath [outputDirectory]")
 		}

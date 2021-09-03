@@ -101,7 +101,7 @@ object MixedAkkaReplicaSystem {
 
 			override protected def requiresCache(op : Operation[_]) : Boolean = {
 //				!op.tx.hasOnlyLevel(Strong)
-				true
+				false
 			}
 
 			override def handleRequest[R](request : Request[R]) : R = request match {
@@ -193,7 +193,7 @@ object MixedAkkaReplicaSystem {
 
 			override protected def requiresCache(op : Operation[_]) : Boolean = {
 //				!op.tx.hasOnlyLevel(Strong)
-				true
+				false
 			}
 
 

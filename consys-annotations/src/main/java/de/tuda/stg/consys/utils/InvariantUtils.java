@@ -6,15 +6,31 @@ public class InvariantUtils {
 		throw new UnsupportedOperationException("stateful is only useable in constraints.");
 	}
 
+	private static int replicaId = 2;
+	private static String replicaName = "replica-02@192.0.0.1";
+	private static int numOfReplicas = 5;
+
+	public static void setReplicaId(int i) {
+		replicaId = i;
+	}
+
+	public static void setReplicaName(String s) {
+		replicaName = s;
+	}
+
+	public static void setNumOfReplicas(int i) {
+		numOfReplicas = i;
+	}
+
 	public static int replicaId() {
-		return 2; //TODO implement
+		return replicaId;
 	}
 
 	public static String replica() {
-		return "replica-02@192.0.0.1"; //TODO implement
+		return replicaName;
 	}
 
 	public static int numOfReplicas() {
-		return 3; //TODO implement
+		return numOfReplicas;
 	}
 }

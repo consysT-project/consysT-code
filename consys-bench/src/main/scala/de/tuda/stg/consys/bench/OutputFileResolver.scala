@@ -12,9 +12,9 @@ trait OutputFileResolver {
 
 object OutputFileResolver {
 
-	class DateTimeOutputResolver(basePath : String) extends OutputFileResolver {
+	class DateTimeOutputResolver(className : String, basePath : String) extends OutputFileResolver {
 		private val sdf = new SimpleDateFormat("YY-MM-dd_kk-mm-ss")
- 		private val outputDir = Paths.get(basePath, sdf.format(new Date))
+ 		private val outputDir = Paths.get("results", className, basePath, sdf.format(new Date))
 
 		//Initialize output dir
 		try {
@@ -50,8 +50,8 @@ object OutputFileResolver {
 	}
 
 
-	class SimpleOutputResolver(basePath : String) extends OutputFileResolver {
-		private val outputDir = Paths.get(basePath)
+	class SimpleOutputResolver(className : String, basePath : String) extends OutputFileResolver {
+		private val outputDir = Paths.get("results", className, basePath)
 		//Initialize output dir
 		try {
 			Files.createDirectories(outputDir)
