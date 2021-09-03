@@ -3,12 +3,7 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 @ReplicatedModel public class PNCounterCRDT {
   public static final int numOfReplicas = 3;
 
-    /*@
-    @ public invariant (\forall int inv1; inv1>=0 && inv1<numOfReplicas;
-                          incs[inv1] >=0);
-    @ public invariant (\forall int inv2; inv2>=0 && inv2<numOfReplicas;
-                          decs[inv2] >=0);
-    @*/
+
     public int[] incs;
     public int[] decs;
     public int replicaId;

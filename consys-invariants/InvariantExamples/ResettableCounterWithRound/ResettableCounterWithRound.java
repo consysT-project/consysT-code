@@ -7,10 +7,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
     public int[] incs;
     public int round;
 
-    /*@
-    @ public invariant round >= 0;
-    @ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas; incs[inv] >= 0);
-    @*/
 
     /*@
     @ ensures round == 0;

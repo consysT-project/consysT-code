@@ -45,7 +45,6 @@ import java.lang.String;
 	private final Map<String, BigInteger> payload = Maps.newHashMap();
 
 
-	// Second idea: ensures (\forall BigInteger o : payload.values(); o.equals(BigInteger.ZERO));
 	/*@
 	@ ensures (\forall String s; true ; this.payload.get(s).equals(BigInteger.ZERO));
 	@ ensures this.clientId.equals(client);
@@ -73,14 +72,14 @@ import java.lang.String;
 			throw new IllegalArgumentException("Unable to deserialize payload.", ioe);
 		}
 	}
-	End change from the origin */
+	//End change from the origin */
 
 	// Another constructor
-	/*private GCounter(final ObjectMapper mapper, @ClientId final String client, final Map<String, BigInteger> value) {
+	private GCounter(final ObjectMapper mapper, @ClientId final String client, final Map<String, BigInteger> value) {
 		this(mapper, client);
 
 		this.payload.putAll(value);
-	}*/
+	}
 
 	/*
 	 New suggestion to check for this annotations:

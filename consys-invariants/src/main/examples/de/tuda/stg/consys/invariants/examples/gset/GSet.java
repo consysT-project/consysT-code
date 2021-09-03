@@ -31,6 +31,7 @@ import java.util.Set;
         return underlying.contains(val);
     }
 
+    //@ assignable \nothing;
     //@ underlying.isEmpty();
     public boolean isEmpty() {
         return underlying.isEmpty();

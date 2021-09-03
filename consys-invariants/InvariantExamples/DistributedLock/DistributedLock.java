@@ -7,7 +7,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
      @ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas && i<numOfReplicas;
      @                   lock[i] && lock[j] ==> i == j);
      @ public invariant (\exists int k; k>=0 && k<numOfReplicas; lock[k]);
-     @ public invariant timestamp >= 0;
      @*/
 
     public static final int numOfReplicas = 4;

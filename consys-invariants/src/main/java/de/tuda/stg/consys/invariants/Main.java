@@ -33,8 +33,8 @@ public class Main {
 //            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
             // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
             //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
-            //Paths.get("consys-invariants", "InvariantExamples", "CounterCRDT", "CounterCRDT.java")
-//            Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
+            //Paths.get("consys-invariants", "InvariantExamples", "PNCounterCRDT", "PNCounterCRDT.java")
+            //Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
             //  Paths.get("consys-invariants", "InvariantExamples", "GSetCRDT", "GSetCRDT.java")
               //Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
             // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
@@ -52,8 +52,8 @@ public class Main {
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
               //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
-            Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
+            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
+            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java")
             //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java")
@@ -65,7 +65,7 @@ public class Main {
             //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
             //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
     };
-    runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
+    //runChecker(config, new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") }, sources);
 
 
     // -------------------------------------------------------Start part of benchmarks:-------------------------------------------------------
@@ -270,11 +270,11 @@ Average verifying time for the use case Tournaments: 36.2 ms.
     var compileResult = CompilerBinding.compile(additionalClasspath, sources);
 
     // Create the program modelconsys
-    //var model = new ProgramModel(compileResult, config);
-    //model.loadParsedClasses();
+    var model = new ProgramModel(compileResult, config);
+    model.loadParsedClasses();
 
     // Check the classes
-    //model.checkAll();
+    model.checkAll();
   }
 
 
