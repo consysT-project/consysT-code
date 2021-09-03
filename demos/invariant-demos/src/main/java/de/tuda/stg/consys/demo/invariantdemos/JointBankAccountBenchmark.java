@@ -15,6 +15,6 @@ public class JointBankAccountBenchmark extends InvariantDemosBenchmark<JointBank
     }
 
     public JointBankAccountBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new JointBankAccountSchema());
+        super("jointbankaccount", config, outputResolver, new JointBankAccountSchema());
     }
 }

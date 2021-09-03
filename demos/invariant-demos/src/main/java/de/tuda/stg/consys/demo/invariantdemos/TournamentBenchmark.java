@@ -15,6 +15,6 @@ public class TournamentBenchmark extends InvariantDemosBenchmark<Tournaments> {
     }
 
     public TournamentBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new TournamentsSchema());
+        super("tournament", config, outputResolver, new TournamentsSchema());
     }
 }

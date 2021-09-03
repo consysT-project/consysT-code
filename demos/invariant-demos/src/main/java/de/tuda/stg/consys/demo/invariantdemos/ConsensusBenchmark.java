@@ -15,6 +15,6 @@ public class ConsensusBenchmark extends InvariantDemosBenchmark<Consensus> {
     }
 
     public ConsensusBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new ConsensusSchema());
+        super("consensus", config, outputResolver, new ConsensusSchema());
     }
 }

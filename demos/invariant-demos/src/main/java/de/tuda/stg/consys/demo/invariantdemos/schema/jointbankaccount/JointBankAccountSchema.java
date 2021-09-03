@@ -22,13 +22,13 @@ public class JointBankAccountSchema extends Schema<JointBankAccount> {
 	public void doOperation(JRef<JointBankAccount> ref) {
 		int rand = random.nextInt(100);
 		if (rand < 25) {
-			ref.ref().deposit(100);
+			ref.invoke("deposit" , 100);
 		} else if (rand < 50) {
-			ref.ref().withdraw(1);
+			ref.invoke("withdraw" ,1);
 		} else if (rand < 75) {
-			ref.ref().approve();
+			ref.invoke("approve");
 		} else if (rand < 100) {
-			ref.ref().request();
+			ref.invoke("request");
 		}
 	}
 }

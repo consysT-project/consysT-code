@@ -24,7 +24,7 @@ public class DistributedLockSchema extends Schema<DistributedLock> {
 
 	@Override
 	public void doOperation(JRef<DistributedLock> ref) {
-		ref.ref().transfer(random.nextInt(InvariantUtils.numOfReplicas() - 1) + 1);
+		ref.invoke("transfer", random.nextInt(InvariantUtils.numOfReplicas() - 1) + 1);
 	}
 
 

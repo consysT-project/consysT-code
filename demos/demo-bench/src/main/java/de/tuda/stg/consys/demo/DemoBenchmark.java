@@ -34,13 +34,17 @@ public abstract class DemoBenchmark extends DistributedBenchmark {
 	private final Random random = new Random();
 
 
-	public DemoBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-		super(config, outputResolver);
+	public DemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
+		super(name, config, outputResolver);
 		String typeString = config.getString("consys.bench.demo.type");
 		if (typeString == null) {
 			throw new IllegalArgumentException("config key not found: consys.bench.demo.type");
 		}
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
+	}
+
+	public DemoBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+		this("default", config, outputResolver);
 	}
 
 	protected void doSync(Runnable f)  {

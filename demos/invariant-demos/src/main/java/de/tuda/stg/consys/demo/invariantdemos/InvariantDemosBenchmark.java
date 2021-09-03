@@ -11,8 +11,8 @@ public abstract class InvariantDemosBenchmark<T extends CanBeMerged<T>> extends 
 
     private JRef<T> ref;
 
-    protected InvariantDemosBenchmark(Config config, Option<OutputFileResolver> outputResolver, Schema<T> schema) {
-        super(config, outputResolver);
+    protected InvariantDemosBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver, Schema<T> schema) {
+        super(name, config, outputResolver);
         this.schema = schema;
     }
 

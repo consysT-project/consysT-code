@@ -21,6 +21,7 @@ import scala.collection.JavaConverters
  * @author Mirko Köhler
  */
 abstract class DistributedBenchmark(
+	val name : String,
 	/** The address of this replica. */
 	val address : Address,
 	/** The addresses of the other replicas. Can contain this replica. */
@@ -43,8 +44,9 @@ abstract class DistributedBenchmark(
 
 	println("All replicas found")
 
-	def this(config : Config, outputResolver : Option[OutputFileResolver]) {
+	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver]) {
 		this(
+			name,
 			Address.parse(config.getString("consys.bench.hostname")),
 			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.parse(str)).toArray(i => new Array[Address](i)),
 			config.getInt("consys.bench.processId"),
@@ -53,7 +55,7 @@ abstract class DistributedBenchmark(
 			config.getInt("consys.bench.operationsPerIteration"),
 			config.getDuration("consys.bench.waitPerOperation"),
 			outputResolver match {
-				case None => new DateTimeOutputResolver(getClass.getSimpleName, config.getString("consys.bench.outputFile"))
+				case None => new DateTimeOutputResolver(name, config.getString("consys.bench.outputFile"))
 				case Some(e) => e
 			}
 		)
@@ -64,8 +66,8 @@ abstract class DistributedBenchmark(
 	}
 
 
-	def this(configName : String, outputResolver : Option[OutputFileResolver]) {
-		this(ConfigFactory.load(configName), outputResolver)
+	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver]) {
+		this(name, ConfigFactory.load(configName), outputResolver)
 	}
 
 

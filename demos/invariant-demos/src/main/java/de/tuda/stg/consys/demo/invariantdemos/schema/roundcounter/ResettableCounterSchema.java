@@ -25,11 +25,11 @@ public class ResettableCounterSchema extends Schema<ResettableCounterWithRound> 
 	public void doOperation(JRef<ResettableCounterWithRound> ref) {
 		int rand = random.nextInt(100);
 		if (rand < 33) {
-			ref.ref().inc();
+			ref.invoke("inc");
 		} else if (rand < 66) {
-			ref.ref().getValue();
+			ref.invoke("getValue");
 		} else if (rand < 100) {
-			ref.ref().reset();
+			ref.invoke("reset");
 		}
 	}
 }

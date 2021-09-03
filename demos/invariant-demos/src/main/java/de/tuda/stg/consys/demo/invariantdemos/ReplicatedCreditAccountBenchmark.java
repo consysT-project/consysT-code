@@ -15,6 +15,6 @@ public class ReplicatedCreditAccountBenchmark extends InvariantDemosBenchmark<Re
     }
 
     public ReplicatedCreditAccountBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new ReplicatedCreditAccountSchema());
+        super("creditaccount", config, outputResolver, new ReplicatedCreditAccountSchema());
     }
 }

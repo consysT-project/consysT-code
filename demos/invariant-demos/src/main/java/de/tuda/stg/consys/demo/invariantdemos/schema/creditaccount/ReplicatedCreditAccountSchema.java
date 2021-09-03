@@ -25,11 +25,11 @@ public class ReplicatedCreditAccountSchema extends Schema<ReplicatedCreditAccoun
 	public void doOperation(JRef<ReplicatedCreditAccount> ref) {
 		int rand = random.nextInt(100);
 		if (rand < 33) {
-			ref.ref().deposit(100);
+			ref.invoke("deposit",100);
 		} else if (rand < 66) {
-			ref.ref().withdraw(1);
+			ref.invoke("withdraw", 1);
 		} else if (rand < 100) {
-			ref.ref().getValue();
+			ref.invoke("getValue");
 		}
 	}
 }

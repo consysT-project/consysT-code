@@ -16,6 +16,6 @@ public class DistributedLockBenchmark extends InvariantDemosBenchmark<Distribute
     }
 
     public DistributedLockBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new DistributedLockSchema());
+        super("distributedlock", config, outputResolver, new DistributedLockSchema());
     }
 }

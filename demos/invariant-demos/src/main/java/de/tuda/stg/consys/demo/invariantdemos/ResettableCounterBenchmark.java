@@ -15,6 +15,6 @@ public class ResettableCounterBenchmark extends InvariantDemosBenchmark<Resettab
     }
 
     public ResettableCounterBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new ResettableCounterSchema());
+        super("resettablecounter", config, outputResolver, new ResettableCounterSchema());
     }
 }

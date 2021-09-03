@@ -30,38 +30,38 @@ public class TournamentsSchema extends Schema<Tournaments> {
 		if (rand < 20) {
 			Player p = new Player("Thorsten");
 			localPlayers.add(p);
-			ref.ref().addPlayer(p);
+			ref.invoke("addPlayer", p);
 		} else if (rand < 40) {
 			Tournament t = new Tournament();
 			localTournaments.add(t);
-			ref.ref().addTournament(t);
+			ref.invoke("addTournament", t);
 		} else if (rand < 60) {
 			if (localTournaments.isEmpty()) {
 				Tournament t = new Tournament();
 				localTournaments.add(t);
-				ref.ref().addTournament(t);
+				ref.invoke("addTournament", t);
 			} else {
-				ref.ref().beginTournament(localTournaments.iterator().next());
+				ref.invoke("beginTournament", localTournaments.iterator().next());
 			}
 		} else if (rand < 80) {
 			if (localTournaments.isEmpty()) {
 				Tournament t = new Tournament();
 				localTournaments.add(t);
-				ref.ref().addTournament(t);
+				ref.invoke("addTournament", t);
 			} else if (localPlayers.isEmpty()) {
 				Player p = new Player("Thorsten");
 				localPlayers.add(p);
-				ref.ref().addPlayer(p);
+				ref.invoke("addPlayer", p);
 			} else {
-				ref.ref().enrollTournament(localPlayers.iterator().next(), localTournaments.iterator().next());
+				ref.invoke("enrollTournament", localPlayers.iterator().next(), localTournaments.iterator().next());
 			}
 		}  else if (rand < 100) {
 			if (localPlayers.isEmpty()) {
 				Player p = new Player("Thorsten");
 				localPlayers.add(p);
-				ref.ref().addPlayer(p);
+				ref.invoke("addPlayer", p);
 			} else {
-				ref.ref().addFunds(localPlayers.iterator().next(), 1);
+				ref.invoke("addFunds", localPlayers.iterator().next(), 1);
 			}
 		}
 	}

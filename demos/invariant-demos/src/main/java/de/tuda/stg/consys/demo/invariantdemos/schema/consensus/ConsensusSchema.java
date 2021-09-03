@@ -23,9 +23,9 @@ public class ConsensusSchema extends Schema<Consensus> {
 	public void doOperation(JRef<Consensus> ref) {
 		int rand = random.nextInt(100);
 		if (rand < 50) {
-			ref.ref().agree();
+			ref.invoke("agree");
 		} else if (rand < 100) {
-			ref.ref().mark();
+			ref.invoke("mark");
 		}
 	}
 }

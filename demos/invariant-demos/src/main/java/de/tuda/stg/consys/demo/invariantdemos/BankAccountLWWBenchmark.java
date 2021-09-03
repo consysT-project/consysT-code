@@ -15,6 +15,6 @@ public class BankAccountLWWBenchmark extends InvariantDemosBenchmark<BankAccount
     }
 
     public BankAccountLWWBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new BankAccountLWWSchema());
+        super("bankaccountlww", config, outputResolver, new BankAccountLWWSchema());
     }
 }

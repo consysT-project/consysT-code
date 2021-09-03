@@ -15,6 +15,6 @@ public class BankAccountBenchmark extends InvariantDemosBenchmark<BankAccount> {
     }
 
     public BankAccountBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver, new BankAccountSchema());
+        super("bankaccount", config, outputResolver, new BankAccountSchema());
     }
 }

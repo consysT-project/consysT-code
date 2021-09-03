@@ -22,9 +22,9 @@ public class BankAccountLWWSchema extends Schema<BankAccountLWW> {
 	public void doOperation(JRef<BankAccountLWW> ref) {
 		int rand = random.nextInt(100);
 		if (rand < 50) {
-			ref.ref().deposit(100);
+			ref.invoke("deposit", 100);
 		} else if (rand < 100) {
-			ref.ref().withdraw(1);
+			ref.invoke("withdraw" , 1);
 		}
 	}
 }
