@@ -74,19 +74,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	}
 
 	@Override
-	protected void addCheckedCodeDefaults(QualifierDefaults defs) {
-		defs.addCheckedCodeDefault(
-				AnnotationBuilder.fromClass(getElementUtils(), Inconsistent.class),
-				TypeUseLocation.FIELD);
-
-		super.addCheckedCodeDefaults(defs);
-	}
-
-	protected void addCheckedCodeDefaultsSkip(QualifierDefaults defs) {
-		super.addCheckedCodeDefaults(defs);
-	}
-
-	@Override
 	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
 		super.addComputedTypeAnnotations(tree, type, iUseFlow);
 

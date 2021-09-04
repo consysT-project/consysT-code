@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.checker.testfiles.testfiles;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
@@ -18,7 +19,7 @@ public class ImplicitFlowRefTest {
     }
 
     @Transactional
-    void ifTest(Ref<@Strong A> s, Ref<@Weak A> w) {
+    void ifTest(Ref<@Mutable @Strong A> s, Ref<@Mutable @Weak A> w) {
         // strong context
         if (s.ref().n < s.ref().n) {
             // write to weak ref allowed

@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.checker.testfiles.testfiles.transactions;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
@@ -45,7 +46,7 @@ class TransactionalTest {
         void f3() {}
     }
 
-    void testTransactionalInvocation_OutsideTransaction(Base base, Derived derived) {
+    void testTransactionalInvocation_OutsideTransaction(@Mutable Base base, @Mutable Derived derived) {
         // :: error: (invocation.method.transaction)
         base.f1();
         // :: error: (invocation.method.transaction)
@@ -73,7 +74,7 @@ class TransactionalTest {
     }
 
     @Transactional
-    void testTransactionalInvocation_InsideTransactional(Base base, Derived derived) {
+    void testTransactionalInvocation_InsideTransactional(@Mutable Base base, @Mutable Derived derived) {
         base.f1();
         base.f2();
         base.f3();
@@ -93,7 +94,7 @@ class TransactionalTest {
     }
 
 
-    void testTransactionalInvocation_InsideTransaction(Base base, Derived derived, CassandraStoreBinding replica) {
+    void testTransactionalInvocation_InsideTransaction(@Mutable Base base, @Mutable Derived derived, CassandraStoreBinding replica) {
         replica.transaction(ctx -> {
             base.f1();
             base.f2();

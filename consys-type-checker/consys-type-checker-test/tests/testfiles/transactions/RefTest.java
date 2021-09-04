@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.checker.testfiles.testfiles.transactions;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -13,7 +14,7 @@ import java.io.Serializable;
  */
 public class RefTest {
     CassandraStoreBinding replica;
-    Ref<@Strong A> obj;
+    Ref<@Mutable @Strong A> obj;
 
     static class A implements Serializable {
         int n;
