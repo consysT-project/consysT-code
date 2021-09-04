@@ -38,4 +38,9 @@ public class TestCheckExamples {
 	public void testTournament() {
 		Main.runChecker(Examples.STATEFUL_CONFIG, ADDITIONAL_LIBS, Examples.TOURNAMENT);
 	}
+
+	@Test
+	public void testJointBankAccount() {
+		Main.runChecker(Examples.STATEFUL_CONFIG, ADDITIONAL_LIBS, Examples.JOINTBANKACCOUNT);
+	}
 }

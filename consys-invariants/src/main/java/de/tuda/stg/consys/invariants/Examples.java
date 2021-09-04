@@ -46,6 +46,11 @@ public class Examples {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/multicounter/SimpleCounter.java")
 	};
 
+	public static final Path[] JOINTBANKACCOUNT = new Path[] {
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/pncounter/PNCounterCRDT.java"),
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/jointbankaccount/JointBankAccount.java")
+	};
+
 	public static final Path[] TOURNAMENT = new Path[] {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Player.java"),
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
