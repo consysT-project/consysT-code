@@ -30,8 +30,10 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
 	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
-	val classVisitCache: mutable.Map[(String, AnnotationMirror), mutable.Buffer[Error]] = mutable.Map.empty
-	val classVisitQueue: mutable.Set[(String, AnnotationMirror)] = mutable.Set.empty
+	type ClassName = String
+	type QualifierName = (String, String)
+	private val classVisitCache: mutable.Map[(ClassName, QualifierName), mutable.Buffer[Error]] = mutable.Map.empty
+	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
 	private var isInConstructor: Boolean = false
 
@@ -52,37 +54,25 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				consistencyChecker.errors = errors.asJava
 				consistencyChecker.warnings = warnings.asJava
 				processClassTree(classTree, q)
-				classVisitCache.put((className, q), errors) // TODO warnings
+				classVisitCache.put((className, toQualifierName(q)), errors) // TODO warnings
 				consistencyChecker.printErrors = true
 
-				if (classVisitQueue.exists(entry => className == entry._1 && AnnotationUtils.areSame(q, entry._2))) {
+				if (classVisitQueue.contains(className, toQualifierName(q))) {
 					//checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(classElement), getQualifiedName(annotation))
-					getErrorsForTypeUse(className, q).
-						foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+					errors.foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
 				}
 			})
 	}
 
-	def getErrorsForTypeUse(name: String, q: AnnotationMirror): java.util.List[Error] = {
-		val a = repairMixed(q)
-		classVisitCache.find(entry => entry._1._1 == name && AnnotationUtils.areSame(entry._1._2, a)) match {
-			case None =>
-				sys.error("") // TODO: silently fail?
-			case Some(value) => value._2
-		}
-	}
-
 	def visitOrQueueClassTree(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
-		val q = repairMixed(annotation)
 		val className = getQualifiedName(classElement)
-		if (classVisitCache.exists(entry => className == entry._1._1 && AnnotationUtils.areSame(q, entry._1._2))) {
-			//checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(classElement), getQualifiedName(annotation))
-			// TODO: skip if we already processed these errors
-			// TODO: getErrorsForTypeUse does not always find the entry (somehow non deterministic) -> leads to crash
-			getErrorsForTypeUse(className, q).
-				foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
-		} else if (!classVisitQueue.exists(entry => className == entry._1 && AnnotationUtils.areSame(q, entry._2))) {
-			classVisitQueue.add((className, q))
+		val qualifierName = toQualifierName(annotation)
+		classVisitCache.get(className, qualifierName) match {
+			case Some(errors) => // TODO: skip if we already processed these errors
+				errors.foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+			case None if !classVisitQueue.contains(className, toQualifierName(annotation)) =>
+				classVisitQueue.add(className, qualifierName)
+			case _ =>
 		}
 	}
 
@@ -103,11 +93,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		val classElement = TreeUtils.elementFromDeclaration(classTree)
 		val className = getQualifiedName(classElement)
+		val qualifierName = toQualifierName(annotation)
 
-		if (classVisitCache.exists(entry => className == entry._1._1 && AnnotationUtils.areSame(annotation, entry._1._2))){
+		if (classVisitCache.contains(className, qualifierName)){
 			return
 		} else {
-			classVisitCache.put((className, annotation), mutable.Buffer.empty) // TODO warnings
+			classVisitCache.put((className, qualifierName), mutable.Buffer.empty) // TODO warnings
 		}
 /*
 		if (tf.areSameByClass(annotation, classOf[Mixed])) {
@@ -433,6 +424,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				implicitContext.get, tree)
 	}
 
+	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
+		if (tf.areSameByClass(qualifier, classOf[Mixed]))
+			(getQualifiedName(qualifier), getMixedDefaultOp(repairMixed(qualifier)))
+		else
+			(getQualifiedName(qualifier), "")
+	}
 
 
 	override protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = {
