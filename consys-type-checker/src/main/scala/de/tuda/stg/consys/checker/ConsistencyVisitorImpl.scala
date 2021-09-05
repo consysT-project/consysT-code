@@ -26,20 +26,22 @@ import scala.collection.mutable
 	*/
 class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
-	type Error = (AnyRef, String, java.util.List[AnyRef])
+
 	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
 	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
+	private var isInConstructor: Boolean = false
+
+	type Error = (AnyRef, String, java.util.List[AnyRef])
 	type ClassName = String
 	type QualifierName = (String, String)
 	private val classVisitCache: mutable.Map[(ClassName, QualifierName), mutable.Buffer[Error]] = mutable.Map.empty
 	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
-	private var isInConstructor: Boolean = false
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
-		var upperBound = atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(inconsistentAnnotation)
+		var upperBound = atypeFactory.getAnnotatedType(classTree.asInstanceOf[Tree]).getAnnotationInHierarchy(inconsistentAnnotation)
 		upperBound = repairMixed(upperBound)
 
 		processClassTree(classTree, upperBound)
@@ -80,17 +82,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	 * Visits a class tree under a specific consistency qualifier
 	 */
 	private def processClassTree(classTree: ClassTree, annotation: AnnotationMirror): Unit = {
-		// TODO
-		//----------------------------------------------------------------
-		// set class context in type factory to upper bound of class tree, then visit class
-		// include class context in error output, so that we know which version of the class produces errors
-		// in lib mode, also do this for all lower consistencies (w/o cache)
-		// if mixed, then run inference before visiting
-		// cache visited classes somewhere (name + consistency should be enough)
-		// in type factory: - if use of class found somewhere, check cache and visit early if not cached
-		// 					- for strong and weak classes: possibly no further action needed, treeannotator already takes care of adaptation
-		//                  - for mixed classes: do what we do already
-
 		val classElement = TreeUtils.elementFromDeclaration(classTree)
 		val className = getQualifiedName(classElement)
 		val qualifierName = toQualifierName(annotation)
@@ -100,18 +91,11 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		} else {
 			classVisitCache.put((className, qualifierName), mutable.Buffer.empty) // TODO warnings
 		}
-/*
-		if (tf.areSameByClass(annotation, classOf[Mixed])) {
-			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName}(${Class.forName(getMixedDefaultOp(annotation)).getSimpleName}) ${getQualifiedName(classTree)}")
-		} else {
-			println(s">Class decl: @${annotation.getAnnotationType.asElement().getSimpleName} ${getQualifiedName(classTree)}")
-		}
-*/
+
 		tf.pushVisitClassContext(classElement, annotation)
-		if (tf.areSameByClass(annotation, classOf[Mixed])) {
+		if (isMixedQualifier(annotation)) {
 			tf.inferenceVisitor.processClass(classTree, annotation)
 		}
-		// TODO: how should we handle the cache?
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
 	}
@@ -120,11 +104,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		Check that implicit contexts are correct.
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
-		//println(s"  >Var assign:\n" +
-		//		s"   <$node>\n" +
-		//		s"      where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}\n" +
-		//		s"      where ${node.getExpression} -> ${atypeFactory.getAnnotatedType(node.getExpression)}")
-
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
 	}
@@ -137,18 +116,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
-		/*
-		if (node.getInitializer != null)
-			println(s"  >Var decl:\n" +
-				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}\n" +
-				s"   <$node>\n" +
-				s"      where ${node.getName} -> ${atypeFactory.getAnnotatedType(node)}\n" +
-				s"      where ${node.getInitializer} -> ${atypeFactory.getAnnotatedType(node.getInitializer)}")
-		else
-			println(s"  >Var decl:\n" +
-				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
-		 */
-
 		val initializer: ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)
 		super.visitVariable(node, p)
@@ -245,6 +212,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			isInConstructor = true
 		}
 
+		// TODO: check for multiple operation annotations
+
 		// check operation level override rules
 		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
 			hasAnnotation(node.getModifiers, classOf[Pure]))) {
@@ -266,7 +235,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		// check mutable on return type
 		if (!AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)) {
 			val mods = TreeUtils.elementFromDeclaration(node).getModifiers
-			val annotatedReturnType = tf.getAnnotatedType(node).getReturnType
+			val annotatedReturnType = tf.getAnnotatedType(node.asInstanceOf[Tree]).asInstanceOf[AnnotatedExecutableType].getReturnType
 			val returnType = annotatedReturnType.getUnderlyingType
 			if (!(TreeUtils.isConstructor(node) ||
 				returnType.getKind == TypeKind.VOID ||
@@ -287,35 +256,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		if (shouldClose)
 			transactionContext = prevIsTransactionContext
 		r
-	}
-
-	private def replicateIsAllowedForLevel(node: MethodInvocationTree): (Boolean, Object) = {
-		/*
-		// match 'classType' in 'ctx.replicate(_, _, Class<classType>)'
-		val argType = atypeFactory.getAnnotatedType(node.getArguments.get(2))
-		argType match {
-			case adt: AnnotatedDeclaredType => adt.getTypeArguments.get(0) match {
-				case classType: AnnotatedDeclaredType =>
-					val qualifierName = AnnotationUtils.annotationName(classType.getAnnotationInHierarchy(getTopAnnotation))
-
-					subCheckerMap.get(qualifierName) match {
-						case Some(subChecker) =>
-							val subCheckerTypeFactory: SubConsistencyAnnotatedTypeFactory = checker.getTypeFactoryOfSubchecker(subChecker)
-							// having no sub checker means we are currently in a sub checker so we don't need to test replicate
-							if (subCheckerTypeFactory == null)
-								(true, null)
-							else
-								(subCheckerTypeFactory.isAllowed(classType.getUnderlyingType),
-									subCheckerTypeFactory.getSrcForDisallowed(classType.getUnderlyingType))
-						case None => (true, null)
-					}
-				}
-				case _ => (true, null)
-			case _ => (true, null)
-		}
-
-		 */
-		null
 	}
 
 	private def methodInvocationIsX(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
@@ -420,13 +360,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private def checkMethodInvocationOpLevel(recvType: AnnotatedTypeMirror, tree: MethodInvocationTree): Unit = {
 		if (transactionContext && recvType.hasEffectiveAnnotation(classOf[Mixed]) && !implicitContext.allowsAsMixedInvocation(recvType, tree))
 			checker.reportError(tree, "invocation.operation.implicitflow",
-				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getMixedDefaultOp(recvType.getEffectiveAnnotation(classOf[Mixed]))),
+				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getNameForMixedDefaultOp(recvType.getEffectiveAnnotation(classOf[Mixed]))),
 				implicitContext.get, tree)
 	}
 
 	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
-		if (tf.areSameByClass(qualifier, classOf[Mixed]))
-			(getQualifiedName(qualifier), getMixedDefaultOp(repairMixed(qualifier)))
+		if (isMixedQualifier(qualifier))
+			(getQualifiedName(qualifier), getNameForMixedDefaultOp(repairMixed(qualifier)))
 		else
 			(getQualifiedName(qualifier), "")
 	}

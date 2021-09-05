@@ -9,7 +9,7 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 // TODO: try a few more types if it fails
-public class AAMixedOnUseTest {
+public class MixedOnUseTest {
     static class A {
         int i;
 

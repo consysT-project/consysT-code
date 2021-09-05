@@ -9,6 +9,7 @@ import scala.Tuple3;
 
 import java.util.*;
 
+@SupportedLintOptions({"inferGetters"}) // TODO
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
 

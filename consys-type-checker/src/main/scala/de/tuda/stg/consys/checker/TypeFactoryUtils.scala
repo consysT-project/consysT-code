@@ -29,6 +29,7 @@ object TypeFactoryUtils {
 	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
+	// TODO: cache AnnotationMirrors
 	def strongAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Strong])
 
@@ -67,12 +68,10 @@ object TypeFactoryUtils {
 	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
 	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
 
-	// TODO: this is false
 	def getExplicitConsistencyAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] = {
 		val a = tf.getQualifierHierarchy.findAnnotationInHierarchy(aType.getExplicitAnnotations, inconsistentAnnotation)
 		Option(a)
 	}
-	//Some(aType.getAnnotationInHierarchy(inconsistentAnnotation)).filter(a => a != null && aType.hasExplicitAnnotation(a))
 
 	def getExplicitConsistencyAnnotation(elt: Element)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] =
 		getExplicitConsistencyAnnotation(tf.getAnnotatedType(elt))
@@ -90,15 +89,28 @@ object TypeFactoryUtils {
 	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
-	def getMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
+	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =
+		tf.areSameByClass(qualifier, classOf[Mixed])
+
+	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
 		if (mixedAnnotation.getElementValues.values().isEmpty)
 			classOf[WeakOp].getCanonicalName
 		else
 			mixedAnnotation.getElementValues.values().head.getValue match {
 				case v: DeclaredType => getQualifiedName(v)
 				case v: Class[_] => v.getCanonicalName
-				case _ => sys.error("")
+				case _ => sys.error("consyst checker bug")
 			}
+	}
+
+	def getQualifierForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
+		val operationLevel = getNameForMixedDefaultOp(mixedAnnotation)
+		getQualifierNameForOp(operationLevel) match {
+			case Some(qualifier) =>
+				AnnotationBuilder.fromName(tf.getElementUtils, qualifier)
+			case None =>
+				sys.error("invalid default operation on mixed") // TODO: handle case where given default operation level is not valid
+		}
 	}
 
 	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit atypeFactory: AnnotatedTypeFactory): String = {
@@ -115,6 +127,9 @@ object TypeFactoryUtils {
 
 		if (methodLevel.isEmpty) default else methodLevel.get
 	}
+
+	def getQualifierForMethodOp(method: ExecutableElement, recvQual: AnnotationMirror)(implicit atypeFactory: AnnotatedTypeFactory): Option[AnnotationMirror] =
+		getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQual)))
 
 	def repairMixed(annotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
 		if (tf.areSameByClass(annotation, classOf[Mixed]) && annotation.getElementValues.isEmpty)

@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotatedTypeTree, ClassTree, MethodTree, ReturnTree}
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{getMixedDefaultOp, getQualifiedName, inconsistentAnnotation, localAnnotation}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{getNameForMixedDefaultOp, getQualifiedName, inconsistentAnnotation, localAnnotation}
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.framework.`type`.AnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils}
@@ -24,7 +24,7 @@ class ReturnTypeVisitor(implicit tf: AnnotatedTypeFactory) extends TreeScanner[A
         val classElement = TreeUtils.elementFromDeclaration(node)
         val className = getQualifiedName(node)
         val qualifierName = getQualifiedName(qualifier)
-        val defaultOp = if (tf.areSameByClass(qualifier, classOf[Mixed])) getMixedDefaultOp(qualifier) else ""
+        val defaultOp = if (tf.areSameByClass(qualifier, classOf[Mixed])) getNameForMixedDefaultOp(qualifier) else ""
 
         if (inferenceTable.contains((className, qualifierName, defaultOp)))
             return

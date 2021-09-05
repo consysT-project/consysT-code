@@ -1,29 +1,20 @@
 package de.tuda.stg.consys.checker;
 
-import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
-import de.tuda.stg.consys.checker.qual.Inconsistent;
-import de.tuda.stg.consys.checker.qual.Mixed;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.*;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.defaults.QualifierDefaults;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypesUtils;
-import scala.Option;
 import scala.Tuple2;
-import scala.Tuple4;
 
 import javax.lang.model.element.*;
-import java.util.EmptyStackException;
 import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
@@ -32,6 +23,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public final ReturnTypeVisitor returnTypeVisitor;
 
 	private final Stack<Tuple2<TypeElement, AnnotationMirror>> visitClassContext;
+	private AnnotationMirror methodReceiverContext;
 
 	public ConsistencyAnnotatedTypeFactory(BaseTypeChecker checker) {
         /*
@@ -74,95 +66,57 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	}
 
 	@Override
-	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
-		super.addComputedTypeAnnotations(tree, type, iUseFlow);
-
-		/*
-		AnnotationMirror recvConsistency = null;
-
-		// TODO: static field select
-		switch (tree.getKind()) {
-			case MEMBER_SELECT:
-				// member select case is only relevant for mixed classes
-				// TODO: include method invocations
-				if (TreeUtils.elementFromTree(tree).getKind() != ElementKind.FIELD || TreeUtils.isClassLiteral(tree))
-					return;
-
-				var recvType = getAnnotatedType(((MemberSelectTree)tree).getExpression());
-				recvConsistency = recvType.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				var classElement = TypesUtils.getTypeElement(recvType.getUnderlyingType());
-
-				// deliberate fall through
-				if (!TreeUtils.isExplicitThisDereference(((MemberSelectTree)tree).getExpression())) {
-					// if we are not in the class, i.e. receiver is not 'this', proceed to get field type
-					pushVisitClassContext(classElement, recvConsistency);
-				} else {
-					// if we are in the class,
-					recvConsistency = null;
-				}
-			case IDENTIFIER:
-			case VARIABLE:
-				if (visitClassContext.empty())
-					return;
-				var field = TreeUtils.elementFromTree(tree);
-				if (field == null || field.getKind() != ElementKind.FIELD) {
-					if (recvConsistency != null) popVisitClassContext();
-					return;
-				}
-
-				// for non-mixed classes we only need the class qualifier
-				if (!areSameByClass(peekVisitClassContext()._2, Mixed.class)) {
-					type.replaceAnnotation(peekVisitClassContext()._2);
-					if (recvConsistency != null) popVisitClassContext();
-					return;
-				}
-
-				// explicitly defined or inferred annotation
-				//var annotation = type.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
-				//if (!type.hasExplicitAnnotation(annotation)) {
-				//	annotation = getFieldAnnotation((VariableElement) field);
-				//}
-				var annotation = getFieldAnnotation((VariableElement) field);
-
-				var opLevelForRead = inferenceVisitor.refinementTable().get(tree);
-
-				// handle read access
-				if (opLevelForRead.isDefined() && annotation != null) {
-					var lup = getQualifierHierarchy().leastUpperBound(opLevelForRead.get(), annotation);
-					type.replaceAnnotation(lup);
-					// read access must be treated as immutable if we have to adapt the consistency type
-					if (AnnotationUtils.areSame(lup, opLevelForRead.get()) &&
-							!AnnotationUtils.areSame(annotation, opLevelForRead.get())) {
-						type.replaceAnnotation(TypeFactoryUtils.immutableAnnotation(this));
-					}
-				} else if (annotation != null) {
-					type.replaceAnnotation(annotation);
-				}
+	public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
+		if (tree.getKind() == Tree.Kind.METHOD && ((MethodTree)tree).getName().toString().toLowerCase().startsWith("get")) {
+			// disable cache when querying methods, so that we don't skip the return type adaptation
+			boolean prevShouldCache = super.shouldCache;
+			super.shouldCache = false;
+			var result = super.getAnnotatedType(tree);
+			super.shouldCache = prevShouldCache;
+			return result;
 		}
 
-		if (recvConsistency != null) popVisitClassContext();*/
+		return super.getAnnotatedType(tree);
+	}
+
+	@Override
+	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
+		var prevMethodReceiverContext = methodReceiverContext;
+		if (tree.getKind() == Tree.Kind.METHOD) {
+			if (!visitClassContext.isEmpty())
+				methodReceiverContext = visitClassContext.peek()._2;
+		} else if (tree.getKind() == Tree.Kind.METHOD_INVOCATION) {
+			var selectTree = ((MethodInvocationTree) tree).getMethodSelect();
+			if (selectTree.getKind() == Tree.Kind.MEMBER_SELECT &&
+					!TreeUtils.isExplicitThisDereference(((MemberSelectTree) selectTree).getExpression())) {
+				methodReceiverContext = getAnnotatedType(((MemberSelectTree) selectTree).getExpression()).
+						getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this));
+			} else if (!visitClassContext.isEmpty()) {
+				methodReceiverContext = visitClassContext.peek()._2;
+			}
+		}
+
+		super.addComputedTypeAnnotations(tree, type, iUseFlow);
+
+		if (tree.getKind() == Tree.Kind.METHOD || tree.getKind() == Tree.Kind.METHOD_INVOCATION) {
+			methodReceiverContext = prevMethodReceiverContext;
+		}
 	}
 
 	@Override
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
-		/*
-		// When encountering a method invocation on a class that was not yet visited,
-		// run the inference first in order to get inferred return type levels
-		if (elt.getKind() == ElementKind.METHOD) {
-			var classElement = elt.getEnclosingElement();
-			var classTree = getTreeUtils().getTree(classElement);
-			if (classTree != null && classTree.getKind() == Tree.Kind.CLASS) {
-				inferenceVisitor.visitClass((ClassTree)classTree);
-			} else if (classElement.getKind() == ElementKind.CLASS) {
-				inferenceVisitor.visitClass((TypeElement)classElement);
-			}
+		var prevMethodReceiverContext = methodReceiverContext;
+		if (elt.getKind() == ElementKind.METHOD && !visitClassContext.isEmpty()) {
+			methodReceiverContext = peekVisitClassContext()._2;
 		}
-		 */
 
 		super.addComputedTypeAnnotations(elt, type);
+		methodReceiverContext = prevMethodReceiverContext;
 
-		// TODO: member select is problematic, but removing this doesn't seem to impact the tests
+		// TODO: do we need this?
+		/*
 		if (elt.getKind() == ElementKind.FIELD) {
+			// TODO: when the type of a field is queried, we don't have the receiver context (this or external)
 			if (!areSameByClass(peekVisitClassContext()._2, Mixed.class)) {
 				// for non-mixed classes we only need the class qualifier
 				//type.replaceAnnotation(peekVisitClassContext()._2);
@@ -173,6 +127,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				}
 			}
 		}
+		*/
 	}
 
 	private AnnotationMirror getFieldAnnotation(VariableElement elt) {
@@ -182,10 +137,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			return null;
 
 		var classQualifier = visitClassContext.peek()._2;
-		if (areSameByClass(classQualifier, Mixed.class)) {
+		if (TypeFactoryUtils.isMixedQualifier(classQualifier, this)) {
 			var annotation =
 					inferenceVisitor.getInferredFieldOrFromSuperclass(elt, visitClassContext.peek()._1,
-							TypeFactoryUtils.getMixedDefaultOp(classQualifier, this))._1;
+							TypeFactoryUtils.getNameForMixedDefaultOp(classQualifier, this))._1;
 			if (annotation.isDefined()) {
 				return annotation.get();
 			} else {
@@ -197,7 +152,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	}
 
 	public boolean isInMixedClassContext() {
-		return !visitClassContext.empty() && areSameByClass(visitClassContext.peek()._2, Mixed.class);
+		return !visitClassContext.empty() && TypeFactoryUtils.isMixedQualifier(visitClassContext.peek()._2, this);
 	}
 
 	public void pushVisitClassContext(TypeElement clazz, AnnotationMirror type) {
@@ -214,6 +169,10 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	public boolean isVisitClassContextEmpty() {
 		return visitClassContext.isEmpty();
+	}
+
+	public AnnotationMirror getMethodReceiverContext() {
+		return methodReceiverContext;
 	}
 
 	public ConsistencyVisitorImpl getVisitor() {

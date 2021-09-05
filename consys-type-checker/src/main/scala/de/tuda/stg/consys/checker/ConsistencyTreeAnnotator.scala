@@ -182,9 +182,9 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 	private def visitField(tree: ExpressionTree, typeMirror: AnnotatedTypeMirror, receiver: TypeElement, qualifier: AnnotationMirror): Unit = {
 		val field = TreeUtils.elementFromUse(tree).asInstanceOf[VariableElement]
-		if (field.getModifiers.contains(Modifier.STATIC))
+		if (field.getModifiers.contains(Modifier.STATIC)) {
 			typeMirror.replaceAnnotation(inconsistentAnnotation)
-		else if (tf.areSameByClass(qualifier, classOf[Mixed]) && (field.getModifiers.contains(Modifier.PRIVATE) || field.getModifiers.contains(Modifier.PROTECTED))) {
+		} else if (tf.areSameByClass(qualifier, classOf[Mixed]) && (field.getModifiers.contains(Modifier.PRIVATE) || field.getModifiers.contains(Modifier.PROTECTED))) {
 			val inferred = tf.inferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
 				case Some(fieldType) => tf.inferenceVisitor.refinementTable.get(tree) match {
@@ -199,47 +199,33 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				case None => sys.error("inference failed") // TODO: exception if no context
 			}
 		} else if (tf.areSameByClass(qualifier, classOf[Mixed]))
-			typeMirror.replaceAnnotation(getQualifierForOp(getMixedDefaultOp(qualifier)).get)
+			typeMirror.replaceAnnotation(getQualifierForOp(getNameForMixedDefaultOp(qualifier)).get)
 		else {
 			typeMirror.replaceAnnotation(qualifier)
 		}
 	}
 
-	/*
-	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
-		node.getMethodSelect match {
-			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
-				val recvType = tf.getAnnotatedType(mst.getExpression).asInstanceOf[AnnotatedDeclaredType]
-				val annotation = recvType.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
-				val method = TreeUtils.elementFromUse(node)
-				tf.returnTypeVisitor.inferenceTable.get(
-					getQualifiedName(recvType.getUnderlyingType.asElement().asInstanceOf[TypeElement]),
-					getQualifiedName(annotation),
-					if (tf.areSameByClass(annotation, classOf[Mixed])) getMixedDefaultOp(annotation) else ""
-				) match {
-					case Some(value) => value.get(method) match {
-						case Some(value) => typeMirror.replaceAnnotation(value)
-						case None => //tf.getChecker.reportWarning(method.getElement, "invocation") // TODO
-					}
-					case None => // method is from bytecode, so we cannot infer anything
-				}
 
+	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
+		val method = TreeUtils.elementFromUse(node)
+		val methodType = tf.getAnnotatedType(method)
+		val methodName = method.getSimpleName.toString.toLowerCase
+		val recvQualifier = node.getMethodSelect match {
+			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
+				val typ = tf.getAnnotatedType(mst.getExpression).asInstanceOf[AnnotatedDeclaredType]
+				typ.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 			case _ =>
-				val recvType = tf.peekVisitClassContext()._1
-				val annotation = tf.peekVisitClassContext()._2
-				val method = TreeUtils.elementFromUse(node)
-				tf.returnTypeVisitor.inferenceTable.get(
-					getQualifiedName(recvType), getQualifiedName(annotation), if (tf.areSameByClass(annotation, classOf[Mixed])) getMixedDefaultOp(annotation) else ""
-				) match {
-					case Some(value) => value.get(method) match {
-						case Some(value) => typeMirror.replaceAnnotation(value)
-						case None => //tf.getChecker.reportWarning(method.getElement, "invocation") // TODO
-					}
-					case None => // method is from bytecode, so we cannot infer anything
-				}
+				tf.peekVisitClassContext()._2
+		}
+
+		if (getExplicitConsistencyAnnotation(methodType.getReturnType).isEmpty &&
+			methodName.startsWith("get")) { // TODO: include fields for method name check
+			val inferred =
+				if (isMixedQualifier(recvQualifier)) getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
+				else recvQualifier
+			typeMirror.replaceAnnotation(inferred)
 		}
 
 		super.visitMethodInvocation(node, typeMirror)
 	}
-	 */
 }

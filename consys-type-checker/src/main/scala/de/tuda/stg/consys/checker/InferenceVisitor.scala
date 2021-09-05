@@ -43,13 +43,13 @@ class InferenceVisitor(implicit atypeFactory: ConsistencyAnnotatedTypeFactory) e
     private var currentClass: Option[TypeElement] = None
 
     def getInferred(clazz: TypeElement, qual: AnnotationMirror, field: VariableElement): Option[AnnotationMirror] =
-        getInferredFieldOrFromSuperclass(field, clazz, getMixedDefaultOp(qual))._1
+        getInferredFieldOrFromSuperclass(field, clazz, getNameForMixedDefaultOp(qual))._1
 
     def processClass(node: ClassTree, annotation: AnnotationMirror): Unit =
-        processClass(node, (None, Some(getMixedDefaultOp(annotation)), None, None))
+        processClass(node, (None, Some(getNameForMixedDefaultOp(annotation)), None, None))
 
     def processClass(decl: TypeElement, annotation: AnnotationMirror): Unit =
-        processClass(decl, (None, Some(getMixedDefaultOp(annotation)), None, None))
+        processClass(decl, (None, Some(getNameForMixedDefaultOp(annotation)), None, None))
 
     def processClass(node: ClassTree, state: State): Void = {
         val classDecl = TreeUtils.elementFromDeclaration(node)
