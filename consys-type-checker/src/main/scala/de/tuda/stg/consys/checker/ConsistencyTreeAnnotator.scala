@@ -187,7 +187,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		} else if (tf.areSameByClass(qualifier, classOf[Mixed]) && (field.getModifiers.contains(Modifier.PRIVATE) || field.getModifiers.contains(Modifier.PROTECTED))) {
 			val inferred = tf.inferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
-				case Some(fieldType) => tf.inferenceVisitor.refinementTable.get(tree) match {
+				case Some(fieldType) => tf.inferenceVisitor.getReadAccess(tree) match {
 					case Some(methodType) =>
 						val lup = tf.getQualifierHierarchy.leastUpperBound(fieldType, methodType)
 						typeMirror.replaceAnnotation(lup)
