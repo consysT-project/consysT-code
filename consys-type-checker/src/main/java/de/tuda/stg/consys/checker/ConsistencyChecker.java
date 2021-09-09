@@ -1,21 +1,24 @@
 package de.tuda.stg.consys.checker;
 
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.Tree;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedLintOptions;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
-import scala.Tuple3;
+import org.checkerframework.javacutil.BugInCF;
+import scala.Tuple2;
 
+import javax.lang.model.element.Element;
 import java.util.*;
 
 @SupportedLintOptions({"inferGetters"}) // TODO
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
-
-    public List<Tuple3<Object, String, List<Object>>> errors = new LinkedList<>();
-    public List<Tuple3<Object, String, List<Object>>> warnings = new LinkedList<>();
-    public boolean printErrors = true;
+    private final Stack<Boolean> captureErrorsAndWarnings = new Stack<>();
+    private final Stack<StringBuilder> capturedErrors = new Stack<>();
+    private final Stack<StringBuilder> capturedWarnings = new Stack<>();
 
     public ConsistencyChecker(){
         super();
@@ -33,19 +36,51 @@ public class ConsistencyChecker extends BaseTypeChecker {
             return;
         }
 
-        if (printErrors) {
+        if (captureErrorsAndWarnings.isEmpty() || !captureErrorsAndWarnings.peek()) {
+            if (messageKey.equals("consistency.type.use.incompatible")) {
+                System.out.println("");
+            }
             super.reportError(source, messageKey, args);
-        } else {
-            errors.add(new Tuple3<>(source, messageKey, Arrays.asList(args)));
+        } else if (!shouldSuppressWarnings(source, messageKey)) {
+            capturedErrors.peek().append("\n - error:").append(formatCapturedError(source, messageKey, args));
         }
     }
 
     @Override
     public void reportWarning(Object source, @CompilerMessageKey String messageKey, Object... args) {
-        if (printErrors) {
+        if (captureErrorsAndWarnings.isEmpty() || !captureErrorsAndWarnings.peek()) {
             super.reportWarning(source, messageKey, args);
-        } else {
-            warnings.add(new Tuple3<>(source, messageKey, Arrays.asList(args)));
+        } else if (!shouldSuppressWarnings(source, messageKey)) {
+            capturedWarnings.peek().append("\n - warning:").append(formatCapturedError(source, messageKey, args));
         }
+    }
+
+    private boolean shouldSuppressWarnings(@Nullable Object src, String errKey) {
+        if (src instanceof Element) {
+            return shouldSuppressWarnings((Element) src, errKey);
+        } else if (src instanceof Tree) {
+            return shouldSuppressWarnings((Tree) src, errKey);
+        } else if (src == null) {
+            return false;
+        } else {
+            throw new BugInCF("Unexpected source " + src);
+        }
+    }
+
+    public void enableLogCapture() {
+        captureErrorsAndWarnings.push(true);
+        capturedErrors.push(new StringBuilder());
+        capturedWarnings.push(new StringBuilder());
+    }
+
+    public Tuple2<String, String> disableLogCapture() {
+        captureErrorsAndWarnings.pop();
+        String errors = capturedErrors.pop().toString();
+        String warnings = capturedWarnings.pop().toString();
+        return new Tuple2<>(errors, warnings);
+    }
+
+    private String formatCapturedError(Object source, @CompilerMessageKey String messageKey, Object... args) {
+        return "(" + messageKey + ")";
     }
 }

@@ -6,7 +6,7 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
-public class ReturnTest {
+public @Mixed class ReturnTest {
     protected @Strong int i;
     protected @Weak int j;
 
@@ -55,7 +55,7 @@ public class ReturnTest {
     }
 }
 
-class Derived extends ReturnTest {
+@Mixed class Derived extends ReturnTest {
     @StrongOp public int getStrong() {
         // :: error: return.type.incompatible
         return j;

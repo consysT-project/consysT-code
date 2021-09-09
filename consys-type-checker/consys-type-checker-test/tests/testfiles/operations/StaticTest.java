@@ -3,7 +3,7 @@ import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
-public class StaticTest {
+public @Mixed class StaticTest {
     // :: error: mixed.field.static.incompatible
     static @Weak int i;
     static int j;

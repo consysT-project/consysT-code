@@ -6,10 +6,10 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
+// :: error: consistency.type.use.incompatible
 public class OnUseTest {
     private int i;
     void set(@Weak int i) {
-        // :: error: assignment.type.incompatible
         this.i = i; // error produced by Strong and Mixed(StrongOp) instances
     }
 

@@ -23,7 +23,6 @@ object InferenceVisitor {
 }
 
 // TODO: checkSuperclass and checkSubclass without findTree
-// TODO: infer for all default levels in one run
 class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
     import de.tuda.stg.consys.checker.TypeFactoryUtils._
 

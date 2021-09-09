@@ -32,11 +32,11 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	private var isInConstructor: Boolean = false
 
-	type Error = (AnyRef, String, java.util.List[AnyRef])
 	type ClassName = String
 	type QualifierName = (String, String)
-	private val classVisitCache: mutable.Map[(ClassName, QualifierName), mutable.Buffer[Error]] = mutable.Map.empty
+	private val classVisitCache: mutable.Map[(ClassName, QualifierName), (String, String)] = mutable.Map.empty
 	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
+	private val classVisitQueueReported: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
 
 	override def processClassTree(classTree: ClassTree): Unit = {
@@ -50,18 +50,18 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			filter(q => tf.getQualifierHierarchy.isSubtype(q, upperBound) && !AnnotationUtils.areSame(q, upperBound)).
 			foreach(a => {
 				val q = repairMixed(a)
-				consistencyChecker.printErrors = false
-				var errors = mutable.Buffer.empty[Error]
-				var warnings = mutable.Buffer.empty[Error]
-				consistencyChecker.errors = errors.asJava
-				consistencyChecker.warnings = warnings.asJava
-				processClassTree(classTree, q)
-				classVisitCache.put((className, toQualifierName(q)), errors) // TODO warnings
-				consistencyChecker.printErrors = true
 
-				if (classVisitQueue.contains(className, toQualifierName(q))) {
-					//checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(classElement), getQualifiedName(annotation))
-					errors.foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+				consistencyChecker.enableLogCapture()
+				processClassTree(classTree, q)
+				val (errors, warnings) = consistencyChecker.disableLogCapture()
+				classVisitCache.put((className, toQualifierName(q)), (errors, warnings))
+
+				if (classVisitQueue.contains((className, toQualifierName(q)))) {
+					if (errors.nonEmpty)
+						checker.reportError(classTree, "consistency.type.use.incompatible", getQualifiedName(q), className, errors)
+					if (warnings.nonEmpty)
+						checker.reportWarning(classTree, "consistency.type.use.incompatible", getQualifiedName(q), className, errors)
+					classVisitQueueReported.add((className, toQualifierName(q)))
 				}
 			})
 	}
@@ -69,11 +69,21 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	def visitOrQueueClassTree(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
 		val className = getQualifiedName(classElement)
 		val qualifierName = toQualifierName(annotation)
+
+		if (classVisitQueueReported.contains((className, qualifierName)))
+			return
+
 		classVisitCache.get(className, qualifierName) match {
-			case Some(errors) => // TODO: skip if we already processed these errors
-				errors.foreach(entry => checker.reportError(entry._1, entry._2, entry._3.asScala:_*))
+			case Some((errors, warnings)) =>
+				if (errors.nonEmpty)
+					checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(annotation), className, errors)
+				if (warnings.nonEmpty)
+					checker.reportWarning(classElement, "consistency.type.use.incompatible", getQualifiedName(annotation), className, errors)
+				classVisitQueueReported.add((className, qualifierName))
+
 			case None if !classVisitQueue.contains(className, toQualifierName(annotation)) =>
 				classVisitQueue.add(className, qualifierName)
+
 			case _ =>
 		}
 	}
@@ -86,16 +96,12 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		val className = getQualifiedName(classElement)
 		val qualifierName = toQualifierName(annotation)
 
-		if (classVisitCache.contains(className, qualifierName)){
-			return
-		} else {
-			classVisitCache.put((className, qualifierName), mutable.Buffer.empty) // TODO warnings
-		}
+		if (classVisitCache.contains(className, qualifierName)) return
+		else classVisitCache.put((className, qualifierName), ("", ""))
 
 		tf.pushVisitClassContext(classElement, annotation)
-		if (isMixedQualifier(annotation)) {
+		if (isMixedQualifier(annotation))
 			tf.inferenceVisitor.processClass(classTree, annotation)
-		}
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
 	}
