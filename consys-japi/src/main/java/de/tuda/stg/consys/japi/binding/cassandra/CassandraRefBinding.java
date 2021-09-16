@@ -5,7 +5,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 
-class CassandraRefBinding<T extends Serializable> implements Ref<T> {
+class CassandraRefBinding<T extends Serializable> implements Ref<T>, Serializable {
     private final CassandraRef<T> ref;
 
     CassandraRefBinding(CassandraRef<T> handler) {

@@ -1,14 +1,15 @@
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.japi.Ref;
 
+/**
+ * Check that reference type fields are inferred even when access happens to field of field
+ */
 public @Mixed class InferenceObjectTest {
     static class Box { int value; }
     static class BoxBox { Box value; }
 
-    private Box box;
-    private BoxBox boxBox;
+    private Box box; // inferred @Strong
+    private BoxBox boxBox; // inferred @Strong
 
     @StrongOp
     void writeBox() {
@@ -16,19 +17,22 @@ public @Mixed class InferenceObjectTest {
         boxBox.value.value = 0;
     }
 
-    @Transactional static void test(Ref<@Immutable @Mixed InferenceObjectTest> obj) {
-        @Immutable @Strong Box b = obj.ref().box;
+    @StrongOp
+    void test() {
+        @Immutable @Strong Box b = this.box;
         // :: error: assignment.type.incompatible
-        @Immutable @Local Box b1 = obj.ref().box;
-        @Strong int i = obj.ref().box.value;
-        // :: error: assignment.type.incompatible
-        @Local int i1 = obj.ref().box.value;
+        @Immutable @Local Box b1 = this.box;
 
-        b = obj.ref().boxBox.value;
+        @Strong int i = this.box.value;
         // :: error: assignment.type.incompatible
-        b1 = obj.ref().boxBox.value;
-        i = obj.ref().boxBox.value.value;
+        @Local int i1 = this.box.value;
+
+        b = this.boxBox.value;
         // :: error: assignment.type.incompatible
-        i1 = obj.ref().boxBox.value.value;
+        b1 = this.boxBox.value;
+
+        i = this.boxBox.value.value;
+        // :: error: assignment.type.incompatible
+        i1 = this.boxBox.value.value;
     }
 }

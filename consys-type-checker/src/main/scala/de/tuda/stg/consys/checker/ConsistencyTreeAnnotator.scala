@@ -81,7 +81,15 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 								case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
 									val typeArgument = adt.getTypeArguments.get(0)
 									// get weakest type between type argument and receiver
-									val lup = tf.getQualifierHierarchy.leastUpperBound(typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation), ann)
+									val lup =
+										if (tf.areSameByClass(ann, classOf[Mixed]))
+											tf.getQualifierHierarchy.leastUpperBound(
+												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
+												typeMirror.getEffectiveAnnotationInHierarchy(inconsistentAnnotation))
+										else
+											tf.getQualifierHierarchy.leastUpperBound(
+												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
+												ann)
 									typeArgument.replaceAnnotation(lup)
 
 								case _ => ()
@@ -99,38 +107,6 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 				})
 			}
-
-			/*
-			//Checks whether the type is from an executable (i.e. method, constructor, or initializer).
-			//In these cases, the annotations can not be changed.
-			if (typeMirror.isInstanceOf[AnnotatedExecutableType]) {
-				// println(classOf[ConsistencyTreeAnnotator],s"skipped")
-			} else if (!tf.getAnnotatedType(node.getExpression).hasAnnotation(classOf[Mixed])) {
-				val annotationsOfReceiver = tf.getAnnotatedType(node.getExpression).getAnnotations
-				annotationsOfReceiver.forEach(ann => {
-					typeMirror.replaceAnnotation(ann)
-
-					// Changes level of type argument of Ref<...> to weakest between receiver and field
-					// skip this step if receiver is 'this'
-					if (tf.getQualifierHierarchy.findAnnotationInHierarchy(List(ann), inconsistentAnnotation) != null) {
-						node.getExpression match {
-							case id: IdentifierTree if id.getName.toString == "this" => () // TODO: should we really ignore this for Refs?
-
-							case _ => typeMirror match {
-								case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
-									val typeArgument = adt.getTypeArguments.get(0)
-									// get weakest type between type argument and receiver
-									val lup = tf.getQualifierHierarchy.leastUpperBound(typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation), ann)
-									typeArgument.replaceAnnotation(lup)
-
-								case _ => ()
-							}
-						}
-					}
-				})
-//				println(s"in $node: changed $before to $annotatedTypeMirror")
-
-			}*/
 		}
 
 		super.visitMemberSelect(node, typeMirror)

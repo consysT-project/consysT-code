@@ -23,8 +23,12 @@ object InferenceVisitor {
 }
 
 // TODO: checkSuperclass and checkSubclass without findTree
+// TODO: if superclass is not fully inferred -> if classes share package name, assume we will infer superclass later down the line and dont throw errors -> then
+//       throw errors during superclass inference if the subclass changes protected level
+//       if superclass is not fully inferred and from different package assume compiled class -> maybe only throw warnings?
+//       -> also add lint option to specify project package name (use as minimal common match)
 class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
-    import de.tuda.stg.consys.checker.TypeFactoryUtils._
+    import TypeFactoryUtils._
 
     sealed trait VisitMode
     case object Full extends VisitMode
@@ -120,16 +124,10 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
 
     private def processPublicFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
-        val isNestedClass = clazz.getEnclosingElement match {
-            case _: TypeElement => true
-            case _ => false
-        }
 
-        // set public and package fields to the default level,
-        // or, for nested classes, do this for all levels
+        // set public and package fields to the default level
         getOwnFields(clazz).
-            filter(field => isNestedClass || !(field.getModifiers.contains(Modifier.PRIVATE) ||
-                field.getModifiers.contains(Modifier.PROTECTED))).
+            filter(field => !isPrivateOrProtected(field)).
             foreach(field => {
                 getExplicitConsistencyAnnotation(field) match {
                     case Some(value) if !AnnotationUtils.areSame(value, getQualifierForOp(defaultOp).get) =>
@@ -246,7 +244,7 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
                 if field.getKind == ElementKind.FIELD // ignore element if it is a field of a field
                     && ElementUtils.getAllFieldsIn(classContext.get, tf.getElementUtils).contains(field) =>
 
-                (getExplicitConsistencyAnnotation(field), side) match {
+                (getExplicitOrPublicQualifier(field, state), side) match {
                     // check compatibility between explicit type and operation level
                     case (Some(explicitAnnotation), Some(Write)) if !tf.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         tf.getChecker.reportError(node, "mixed.field.incompatible",
@@ -350,4 +348,17 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
 
     private def fromName(name: String): AnnotationMirror =
         AnnotationBuilder.fromName(tf.getElementUtils, name)
+
+    private def getExplicitOrPublicQualifier(field: VariableElement, state: State): Option[AnnotationMirror] = {
+        val (_, Some(defaultOp), _, _) = state
+        field.getEnclosingElement match {
+            case clazz: TypeElement =>
+                if (!isPrivateOrProtected(field)) {
+                    getInferredFieldOrFromSuperclass(field, clazz, defaultOp)._1
+                } else {
+                    getExplicitConsistencyAnnotation(field)
+                }
+            case _ => None
+        }
+    }
 }

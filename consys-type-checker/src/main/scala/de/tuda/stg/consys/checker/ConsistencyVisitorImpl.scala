@@ -120,7 +120,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		super.visitCompoundAssignment(node, p)
 	}
 
-
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
 		val initializer: ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)
@@ -128,9 +127,11 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	}
 
 	private def checkAssignment(lhsType : AnnotatedTypeMirror, rhsType : AnnotatedTypeMirror, tree : Tree) : Unit = {
+		// check implicit context constraints
 		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree)))
 			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
 
+		// check immutability constraints
 		tree match {
 			case _: VariableTree => // variable initialization at declaration is allowed
 			case assign: AssignmentTree => assign.getVariable match {
@@ -148,22 +149,35 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		}
 	}
 
+	override def visitMemberSelect(node: MemberSelectTree, p: Void): Void = {
+		// restrict private and protected field access through Ref objects
+		node.getExpression match {
+			case mTree: MethodInvocationTree if isRefDereference(mTree) =>
+				val elt = TreeUtils.elementFromUse(node)
+				if (elt.getKind == ElementKind.FIELD && isPrivateOrProtected(elt))
+					checker.reportWarning(node, "ref.field.access")
+			case _ =>
+		}
+
+		super.visitMemberSelect(node, p)
+	}
+
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
 		val prevIsTransactionContext = transactionContext
-		if (methodInvocationIsTransaction(node))
+		if (isTransaction(node))
 			transactionContext = true
 
 		// check transaction violations
 		if (!transactionContext) {
-			if (methodInvocationIsReplicateOrLookup(node))
+			if (isReplicateOrLookup(node))
 				checker.reportError(node, "invocation.replicate.transaction", node)
-			if (methodInvocationIsRefAccess(node))
+			if (isAnyRefAccess(node))
 				checker.reportError(node, "invocation.ref.transaction", node)
 			if (methodInvocationIsTransactional(node))
 				checker.reportError(node, "invocation.method.transaction", node)
 		}
 
-		// TODO: also perform checks for implicit this
+		// TODO: also perform implicit context checks for implicit this
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
 				val expr : ExpressionTree = memberSelectTree.getExpression
@@ -179,8 +193,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				}
 
 				// check immutability on receiver
-				if (!methodInvocationIsRefAccess(node) &&
-					!methodInvocationIsReplicateOrLookup(node) &&
+				if (!isAnyRefAccess(node) &&
+					!isReplicateOrLookup(node) &&
 					!methodType.getElement.getModifiers.contains(Modifier.STATIC)) {
 
 					checkMethodInvocationReceiverMutability(recvType, methodType, node)
@@ -200,7 +214,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		val r = super.visitMethodInvocation(node, p)
 
-		if (methodInvocationIsTransaction(node))
+		if (isTransaction(node))
 			transactionContext = prevIsTransactionContext
 		r
 	}
@@ -264,80 +278,15 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		r
 	}
 
-	private def methodInvocationIsX(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
-		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
-			val methodId = memberSelectTree.getIdentifier.toString
-			methodNames.map(x => x == methodId).fold(false)(_ || _)
-		}
-		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
-				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
-					checkMethodName(mst)
-				case interfaceType: DeclaredType =>
-					checkReceiverNameInInterfaces(interfaceType, mst)
-				case _ => false
-			}
-			case _ => false
-		}
-		def checkReceiverNameInSuperClass(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getSuperclass match {
-				case _: NoType => false
-				case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
-					checkMethodName(mst)
-				case dt: DeclaredType =>
-					checkReceiverNameInInterfaces(dt, mst) || checkReceiverNameInSuperClass(dt, mst)
-				case _ => false
-			}
-			case _ => false
-		}
-
-		node.getMethodSelect match {
-			case memberSelectTree : MemberSelectTree =>
-				val receiverType = atypeFactory.getAnnotatedType(memberSelectTree.getExpression)
-				receiverType match {
-					// check for a direct name match
-					case adt : AnnotatedDeclaredType if getQualifiedName(adt) == receiverName =>
-						checkMethodName(memberSelectTree)
-					// check for name match in interfaces or superclass
-					case adt: AnnotatedDeclaredType =>
-						checkReceiverNameInInterfaces(adt.getUnderlyingType, memberSelectTree) ||
-							checkReceiverNameInSuperClass(adt.getUnderlyingType, memberSelectTree)
-					case _ => false
-				}
-			case _ => false
-		}
-	}
-
 	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField"))
-
-	def methodInvocationIsRefAccess(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
-
-	private def methodInvocationIsReplicateOrLookup(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
-
-	private def methodInvocationIsReplicate(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate"))
-
-	private def methodInvocationIsTransaction(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Store", List("transaction"))
-
-	private def methodInvocationIsRefFieldAccess(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("setField", "getField"))
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField"))
 
 	private def methodDeclarationIsTransactional(node: MethodTree) : Boolean = {
-		val annotations = node.getModifiers.getAnnotations
-		annotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
-			case adt: AnnotatedDeclaredType =>
-				getQualifiedName(adt) == s"$annoPackageName.Transactional"
-			case _ =>
-				false
-		})
+		val execElem = TreeUtils.elementFromDeclaration(node)
+		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
 	}
 
 	private def methodInvocationIsTransactional(node: MethodInvocationTree) : Boolean = {
-		// get the correct method declaration for this invocation and check for annotation
 		val execElem = TreeUtils.elementFromUse(node)
 		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
 	}

@@ -1,17 +1,16 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{AnnotationTree, ClassTree, ModifiersTree}
-import com.sun.tools.javac.code.Type
+import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodInvocationTree, ModifiersTree}
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong, Weak}
 
-import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ExecutableElement}
+import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ExecutableElement, Modifier, TypeElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, TypeMirror}
+import javax.lang.model.`type`.{DeclaredType, NoType, TypeMirror}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
@@ -175,4 +174,63 @@ object TypeFactoryUtils {
 						map + (value.getValue.toString -> elt.toString)
 				}
 			})
+
+	def isPrivateOrProtected(elt: Element): Boolean =
+		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
+
+	def methodInvocationIsAny(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
+		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
+			val methodId = memberSelectTree.getIdentifier.toString
+			methodNames.map(x => x == methodId).fold(false)(_ || _)
+		}
+		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getInterfaces.exists {
+				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
+					checkMethodName(mst)
+				case interfaceType: DeclaredType =>
+					checkReceiverNameInInterfaces(interfaceType, mst)
+				case _ => false
+			}
+			case _ => false
+		}
+		def checkReceiverNameInSuperClass(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getSuperclass match {
+				case _: NoType => false
+				case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
+					checkMethodName(mst)
+				case dt: DeclaredType =>
+					checkReceiverNameInInterfaces(dt, mst) || checkReceiverNameInSuperClass(dt, mst)
+				case _ => false
+			}
+			case _ => false
+		}
+
+		node.getMethodSelect match {
+			case memberSelectTree : MemberSelectTree =>
+				val receiverElement = TreeUtils.elementFromUse(memberSelectTree.getExpression)
+				receiverElement.asType() match {
+					// check for a direct name match
+					case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
+						checkMethodName(memberSelectTree)
+					// check for name match in interfaces or superclass
+					case dt: DeclaredType =>
+						checkReceiverNameInInterfaces(dt, memberSelectTree) ||
+							checkReceiverNameInSuperClass(dt, memberSelectTree)
+					case _ => false
+				}
+			case _ => false
+		}
+	}
+
+	def isRefDereference(node: MethodInvocationTree): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref"))
+
+	def isAnyRefAccess(node: MethodInvocationTree): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
+
+	def isReplicateOrLookup(node: MethodInvocationTree): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
+
+	def isTransaction(node: MethodInvocationTree): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Store", List("transaction"))
 }

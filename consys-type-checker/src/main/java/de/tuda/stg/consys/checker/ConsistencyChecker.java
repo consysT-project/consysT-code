@@ -28,7 +28,7 @@ public class ConsistencyChecker extends BaseTypeChecker {
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
         // overwrite ref() access to be side-effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
-                ((ConsistencyVisitorImpl)getVisitor()).methodInvocationIsRefAccess((MethodInvocationTree) source)) {
+                TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source)) {
             return;
         }
         // TODO: remove this hack for ref type arguments
@@ -37,9 +37,6 @@ public class ConsistencyChecker extends BaseTypeChecker {
         }
 
         if (captureErrorsAndWarnings.isEmpty() || !captureErrorsAndWarnings.peek()) {
-            if (messageKey.equals("consistency.type.use.incompatible")) {
-                System.out.println("");
-            }
             super.reportError(source, messageKey, args);
         } else if (!shouldSuppressWarnings(source, messageKey)) {
             capturedErrors.peek().append("\n - error:").append(formatCapturedError(source, messageKey, args));
