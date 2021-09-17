@@ -4,13 +4,14 @@ import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodI
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong, Weak}
 
-import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ExecutableElement, Modifier, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, Modifier, TypeElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, NoType, TypeMirror}
+import javax.lang.model.`type`.{DeclaredType, NoType}
+import scala.annotation.tailrec
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 /**
@@ -61,8 +62,8 @@ object TypeFactoryUtils {
 	val annoPackageName = s"de.tuda.stg.consys.annotations"
 	val qualPackageName = s"de.tuda.stg.consys.checker.qual"
 
-	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType).toString
-	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt).toString
+	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType)
+	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt)
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
 	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
 	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
@@ -193,6 +194,7 @@ object TypeFactoryUtils {
 			}
 			case _ => false
 		}
+		@tailrec
 		def checkReceiverNameInSuperClass(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
 			case te: TypeElement => te.getSuperclass match {
 				case _: NoType => false

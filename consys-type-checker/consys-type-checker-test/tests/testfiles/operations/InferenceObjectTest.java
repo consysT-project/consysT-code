@@ -20,19 +20,19 @@ public @Mixed class InferenceObjectTest {
     @StrongOp
     void test() {
         @Immutable @Strong Box b = this.box;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Immutable @Local Box b1 = this.box;
 
         @Strong int i = this.box.value;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Local int i1 = this.box.value;
 
         b = this.boxBox.value;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         b1 = this.boxBox.value;
 
         i = this.boxBox.value.value;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         i1 = this.boxBox.value.value;
     }
 }

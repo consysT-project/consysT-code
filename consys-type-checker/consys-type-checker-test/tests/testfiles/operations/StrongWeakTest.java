@@ -27,13 +27,13 @@ public @Mixed class StrongWeakTest {
         @Strong int i = s;
         s = (@Strong int)0;
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         s = w;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         this.s = w;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         this.s = this.w;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         s = this.w;
     }
 }

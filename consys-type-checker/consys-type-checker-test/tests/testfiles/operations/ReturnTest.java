@@ -26,7 +26,7 @@ public @Mixed class ReturnTest {
 
     @StrongOp
     public int getError() {
-        // :: error: return.type.incompatible
+        // :: error: return
         return j;
     }
 
@@ -41,23 +41,23 @@ public @Mixed class ReturnTest {
         a = objStrong.ref().getStrong();
         a = objWeak.ref().getStrong();
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = objStrong.ref().getWeak();
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = objWeak.ref().getWeak();
 
         a = objStrong.ref().get();
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = objWeak.ref().get();
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = objStrong.ref().getExplicit();
     }
 }
 
 @Mixed class Derived extends ReturnTest {
     @StrongOp public int getStrong() {
-        // :: error: return.type.incompatible
+        // :: error: return
         return j;
     }
 

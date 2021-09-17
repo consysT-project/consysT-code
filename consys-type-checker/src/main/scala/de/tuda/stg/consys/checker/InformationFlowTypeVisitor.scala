@@ -23,6 +23,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 	protected val implicitContext : ImplicitContext = new ImplicitContext
 
 	protected var transactionContext: Boolean = false
+	def getTransactionContext: Boolean = transactionContext
 
 
 	//Returns the annotation which information flow should be checked

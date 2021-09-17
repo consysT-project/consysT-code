@@ -2,13 +2,13 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, Mixed}
+import de.tuda.stg.consys.checker.qual.{Inconsistent, Local}
 import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
 import de.tuda.stg.consys.checker.InferenceVisitor._
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, TypeKind}
+import javax.lang.model.`type`.DeclaredType
 import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable

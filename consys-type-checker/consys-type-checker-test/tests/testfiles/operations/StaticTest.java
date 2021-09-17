@@ -11,13 +11,13 @@ public @Mixed class StaticTest {
     @Transactional
     void test(Ref<@Mixed StaticTest> obj) {
         @Weak int a;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = obj.ref().i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = StaticTest.i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = obj.ref().j;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = StaticTest.j;
     }
 }

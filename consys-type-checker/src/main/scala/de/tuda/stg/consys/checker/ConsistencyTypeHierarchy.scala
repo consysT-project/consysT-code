@@ -29,14 +29,11 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 				// || TypesUtils.isClassType(subtype.getUnderlyingType) && TypesUtils.isClassType(supertype.getUnderlyingType) =>
 			isConsistencySubtypeOnly(subtype, supertype)
 
-		case _ if tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].isInMixedClassContext =>
+		case _ if !tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].isVisitClassContextEmpty || tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].getVisitor.getTransactionContext=>
 			isCombinedSubtype(subtype, supertype)
 
 		case _ =>
-			// TODO: find a way to use this subtyping check for non-ref objects without breaking non-distributed code
-			//hierarchy.isSubtype(subtype, supertype)
-			//isConsistencySubtypeOnly(subtype, supertype)
-			isCombinedSubtype(subtype, supertype)
+			isConsistencySubtypeOnly(subtype, supertype) // TODO: is this useful?
 	}
 
 
@@ -71,14 +68,16 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 		tf.getQualifierHierarchy.isSubtype(consistencySubtype, consistencySupertype)
 	}
 
-	// TODO: disable mutability check for primitive types
 	private def isCombinedSubtype(subtype : AnnotatedTypeMirror, supertype : AnnotatedTypeMirror): Boolean = {
 		val mutabilitySubtype = subtype.getEffectiveAnnotationInHierarchy(immutableAnnotation)
 		val mutabilitySupertype = supertype.getEffectiveAnnotationInHierarchy(immutableAnnotation)
 		val consistencySubtype = subtype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 		val consistencySupertype = supertype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 
-		// TODO: throw exception when types are missing
+		if (mutabilitySubtype == null || mutabilitySupertype == null)
+			sys.error("immutability qualifier is missing from type")
+		if (consistencySubtype == null || consistencySupertype == null)
+			sys.error("consistency qualifier is missing from type")
 
 		// TODO: throw error here if we find MutableBottom on something other than Local?
 		if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))

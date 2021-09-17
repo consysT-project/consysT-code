@@ -26,11 +26,11 @@ public class MixedOnUseTest {
         weak = mixedStrong;
         weak = strong;
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         strong = weak;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         strong = mixedStrong;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         strong = mixedWeak;
     }
 
@@ -39,16 +39,16 @@ public class MixedOnUseTest {
                            Ref<@Mixed(StrongOp.class) A> mixedStrong,
                            Ref<@Weak A> weak, Ref<@Strong A> strong) {
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Local int a = mixedStrong.ref().i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = strong.ref().i;
         @Strong int b = mixedStrong.ref().i;
         b = strong.ref().i;
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Strong int c = mixedWeak.ref().i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         c = weak.ref().i;
         @Weak int d = mixedWeak.ref().i;
         d = weak.ref().i;

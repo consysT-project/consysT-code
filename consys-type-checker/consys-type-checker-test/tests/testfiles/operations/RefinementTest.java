@@ -14,7 +14,7 @@ public @Mixed class RefinementTest {
     @StrongOp
     void g() {
         i = (@Strong int) 0;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         i = (@Weak int) 0;
 
         @Strong int a;
@@ -27,11 +27,11 @@ public @Mixed class RefinementTest {
         j = (@Strong int) 0;
 
         @Strong int a;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = this.i;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = j;
     }
 }

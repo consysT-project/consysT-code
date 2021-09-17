@@ -9,14 +9,12 @@ import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeEl
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import org.jmlspecs.annotation.Pure
 
-import javax.lang.model.`type`.{DeclaredType, NoType, TypeKind}
+import javax.lang.model.`type`.TypeKind
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
-import scala.collection.convert.ImplicitConversions.`buffer AsJavaList`
-import collection.JavaConverters._
 import scala.collection.mutable
 
 /**

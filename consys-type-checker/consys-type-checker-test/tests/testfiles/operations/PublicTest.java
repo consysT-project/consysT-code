@@ -19,17 +19,17 @@ public class PublicTest {
     @Transactional
     void test(Ref<@Mixed(WeakOp.class) A> objW,
               Ref<@Mixed(StrongOp.class) A> objS) {
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Strong int a = objW.ref().a;
         @Weak int a1 = objW.ref().a;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Strong int b = objW.ref().b;
         @Weak int b1 = objW.ref().b;
 
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Local int c = objS.ref().a;
         @Strong int c1 = objS.ref().a;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         @Local int d = objS.ref().b;
         @Strong int d1 = objS.ref().b;
     }

@@ -25,7 +25,7 @@ public @Mixed class ExplicitTest {
         j = i;
 
         @Strong int a;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         a = i;
     }
 

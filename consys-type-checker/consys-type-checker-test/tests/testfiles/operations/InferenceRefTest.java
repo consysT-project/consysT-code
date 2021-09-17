@@ -23,9 +23,9 @@ public @Mixed class InferenceRefTest {
 
     @Transactional
     static void test(Ref<InferenceRefTest> obj) {
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         Ref<@Strong A> a = obj.ref().b;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         Ref<@Mixed A> b = obj.ref().b;
         Ref<@Weak A> c = obj.ref().b;
     }

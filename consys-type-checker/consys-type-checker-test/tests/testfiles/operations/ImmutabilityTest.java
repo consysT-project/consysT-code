@@ -17,7 +17,7 @@ public class ImmutabilityTest {
         w.ref().box = new Box();
 
         @Weak @Mutable Box b;
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         b = w.ref().box;
     }
 
@@ -36,9 +36,9 @@ public class ImmutabilityTest {
         testImmutable(immutable);
         testImmutable(strongMutable);
 
-        // :: error: argument.type.incompatible
+        // :: error: argument
         testMutable(immutable);
-        // :: error: argument.type.incompatible
+        // :: error: argument
         testMutable(strongMutable);
         testMutable(weakMutable);
     }

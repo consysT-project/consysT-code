@@ -15,13 +15,13 @@ public @Mixed class InferenceFlowTest {
     private @Weak Box otherWeakBox;
 
     @WeakOp void test() {
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         weakBox = strongBox;
         weakBox.value = 0;
     }
 
     @StrongOp void test2() {
-        // :: error: assignment.type.incompatible
+        // :: error: assignment
         strongBox = weakBox;
         strongBox.value = 0;
 

@@ -44,7 +44,7 @@ public class WildcardTest {
 
     @Transactional
     void test2(Ref<@Immutable @Mixed(StrongOp.class) B> obj, @Immutable @Mixed(StrongOp.class) B plain) {
-        // :: error: argument.type.incompatible
+        // :: error: argument
         testMutable(obj, plain);
         testImmutable(obj, plain);
     }
