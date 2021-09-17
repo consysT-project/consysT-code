@@ -22,11 +22,6 @@ object InferenceVisitor {
     type State = (Option[TypeElement], Option[DefaultOp], Option[AnnotationMirror], Option[AccessType])
 }
 
-// TODO: checkSuperclass and checkSubclass without findTree
-// TODO: if superclass is not fully inferred -> if classes share package name, assume we will infer superclass later down the line and dont throw errors -> then
-//       throw errors during superclass inference if the subclass changes protected level
-//       if superclass is not fully inferred and from different package assume compiled class -> maybe only throw warnings?
-//       -> also add lint option to specify project package name (use as minimal common match)
 class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
     import TypeFactoryUtils._
 
@@ -237,16 +232,20 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
     }
 
     private def processField(node: ExpressionTree, state: State): Unit = {
-        val (classContext, _, methodContext, side) = state
+        val (Some(clazz), _, maybeMethodLevel, Some(accessMode)) = state
+        // ignore fields outside methods (i.e. field declarations)
+        if (maybeMethodLevel.isEmpty)
+            return
+        val methodLevel = maybeMethodLevel.get
 
-        (methodContext, TreeUtils.elementFromUse(node)) match {
-            case (Some(methodLevel), field: VariableElement)
-                if field.getKind == ElementKind.FIELD // ignore element if it is a field of a field
-                    && ElementUtils.getAllFieldsIn(classContext.get, tf.getElementUtils).contains(field) =>
+        TreeUtils.elementFromUse(node) match {
+            case field: VariableElement if field.getKind == ElementKind.FIELD
+                && ElementUtils.getAllFieldsIn(clazz, tf.getElementUtils).contains(field) => // ignore element if it is a field of a field
 
-                (getExplicitOrPublicQualifier(field, state), side) match {
+                // update inference table
+                (getExplicitOrPublicQualifier(field, state), accessMode) match {
                     // check compatibility between explicit type and operation level
-                    case (Some(explicitAnnotation), Some(Write)) if !tf.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
+                    case (Some(explicitAnnotation), Write) if !tf.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         tf.getChecker.reportError(node, "mixed.field.incompatible",
                             getQualifiedName(explicitAnnotation),
                             getQualifiedName(methodLevel))
@@ -257,10 +256,12 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
                     case _ =>
                 }
 
-                state match {
-                    case (_, _, _, Some(Write)) =>
-                    case _ => readAccessTable.update(node, methodLevel)
+                // update read access table
+                accessMode match {
+                    case Read => readAccessTable.update(node, methodLevel)
+                    case _ =>
                 }
+
             case _ =>
         }
     }
@@ -269,61 +270,68 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
         if (field.getKind != ElementKind.FIELD)
             return
 
-        val (Some(clazz), Some(defaultOp), Some(annotation), side) = state
+        val (Some(clazz), Some(defaultOp), Some(annotation), Some(accessMode)) = state
         val className = getQualifiedName(clazz)
         val fieldName = getQualifiedName(field)
 
-        (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), side) match {
-            case ((Some(fieldLevel), depth), Some(Write)) if depth == 0 =>
+        (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), accessMode) match {
+            case ((Some(fieldLevel), Some(superclass)), Write) if superclass == className =>
+                // field is not inherited, so update inference result
                 val lup = tf.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
                 inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp)._2.update(getQualifiedName(field), getQualifiedName(lup))
-            case ((Some(fieldLevel), depth), Some(Write)) if depth > 0 =>
-                // checks if field level is a (non-reflexive) subtype of method level, i.e. if field would be weakened
+
+            case ((Some(fieldLevel), Some(superclass)), Write) if superclass != className =>
+                // field is inherited, so only check compatibility, i.e. if field would be weakened
                 if (!tf.getQualifierHierarchy.isSubtype(annotation, fieldLevel))
                     tf.getChecker.reportError(source, "mixed.inheritance.field.overwrite",
                         fieldLevel, field.getSimpleName, annotation, source)
-            case ((None, _), Some(Write)) =>
+
+            case ((None, _), Write) =>
+                // field is encountered for the first time
                 inferenceTable.apply(className, defaultOp)._2.update(fieldName, getQualifiedName(annotation))
-            case ((None, _), Some(Read)) =>
+
+            case ((None, _), Read) =>
+                // field is encountered for the first time
                 inferenceTable.apply(className, defaultOp)._2.update(fieldName, classOf[Local].getCanonicalName)
+
             case _ =>
         }
 
         // TODO: check subclass fields for inheritance violations, in case we process classes out of order
     }
 
-    private def processClassDeclaration(elt: TypeElement, state: State): Unit = {
-        val (_, defaultOpLevel, _, _) = state
-        getQualifierNameForOp(defaultOpLevel.get) match {
+    private def processClassDeclaration(clazz: TypeElement, state: State): Unit = {
+        val (_, Some(defaultOp), _, _) = state
+        getQualifierNameForOp(defaultOp) match {
             case Some(qualifier) =>
                 val level = AnnotationBuilder.fromName(tf.getElementUtils, qualifier)
-                getOwnFields(elt).foreach(f => {
-                    updateField(f, (Some(elt), defaultOpLevel, Some(level), Some(Write)), f)
+                getOwnFields(clazz).foreach(f => {
+                    updateField(f, (Some(clazz), Some(defaultOp), Some(level), Some(Write)), f)
                 })
 
             case None => // TODO: handle case where given default operation level is not valid
         }
     }
 
-    def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): (Option[AnnotationMirror], Int) = {
-        inferenceTable.get(clazz.getQualifiedName.toString, defaultOpLevel) match {
-            case Some(map) => map._2.get(getQualifiedName(field)) match {
+    private def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): (Option[AnnotationMirror], Option[ClassName]) = {
+        inferenceTable.get(getQualifiedName(clazz), defaultOpLevel) match {
+            case Some(entry) => entry._2.get(getQualifiedName(field)) match {
                 case Some(name) =>
-                    (Some(fromName(name)), 0)
+                    (Some(fromName(name)), Some(getQualifiedName(clazz)))
                 case None => getSuperclassElement(clazz) match {
                     case Some(superclass) =>
-                        var (result, depth) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
+                        var (result, resultSuperclass) = getInferredFieldOrFromSuperclass(field, superclass, defaultOpLevel)
                         // change Local superclass field to Strong for the subclass
                         result = result match {
                             case Some(value) if AnnotationUtils.areSame(value, localAnnotation) => Some(strongAnnotation)
                             case _ => result
                         }
-                        (result, depth + 1)
+                        (result, resultSuperclass)
                     case None =>
-                        (None, 0)
+                        (None, None)
                 }
             }
-            case None => (None, 0)
+            case None => (None, None)
         }
     }
 

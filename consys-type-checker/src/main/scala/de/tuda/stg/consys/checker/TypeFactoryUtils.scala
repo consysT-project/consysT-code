@@ -178,7 +178,7 @@ object TypeFactoryUtils {
 	def isPrivateOrProtected(elt: Element): Boolean =
 		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
 
-	def methodInvocationIsAny(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
+	def methodInvocationIsAny(node: MethodInvocationTree, receiverName: String, methodNames: List[String])(implicit tf: AnnotatedTypeFactory) : Boolean = {
 		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
 			val methodId = memberSelectTree.getIdentifier.toString
 			methodNames.map(x => x == methodId).fold(false)(_ || _)
@@ -207,30 +207,30 @@ object TypeFactoryUtils {
 
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
-				val receiverElement = TreeUtils.elementFromUse(memberSelectTree.getExpression)
-				receiverElement.asType() match {
+				val receiverType = tf.getAnnotatedType(memberSelectTree.getExpression)
+				receiverType match {
 					// check for a direct name match
-					case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
+					case adt : AnnotatedDeclaredType if getQualifiedName(adt) == receiverName =>
 						checkMethodName(memberSelectTree)
 					// check for name match in interfaces or superclass
-					case dt: DeclaredType =>
-						checkReceiverNameInInterfaces(dt, memberSelectTree) ||
-							checkReceiverNameInSuperClass(dt, memberSelectTree)
+					case adt: AnnotatedDeclaredType =>
+						checkReceiverNameInInterfaces(adt.getUnderlyingType, memberSelectTree) ||
+							checkReceiverNameInSuperClass(adt.getUnderlyingType, memberSelectTree)
 					case _ => false
 				}
 			case _ => false
 		}
 	}
 
-	def isRefDereference(node: MethodInvocationTree): Boolean =
+	def isRefDereference(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref"))
 
-	def isAnyRefAccess(node: MethodInvocationTree): Boolean =
+	def isAnyRefAccess(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
 
-	def isReplicateOrLookup(node: MethodInvocationTree): Boolean =
+	def isReplicateOrLookup(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
 
-	def isTransaction(node: MethodInvocationTree): Boolean =
+	def isTransaction(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Store", List("transaction"))
 }

@@ -139,8 +139,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 		var classQualifier = visitClassContext.peek()._2;
 		if (TypeFactoryUtils.isMixedQualifier(classQualifier, this)) {
 			var annotation =
-					inferenceVisitor.getInferredFieldOrFromSuperclass(elt, visitClassContext.peek()._1,
-							TypeFactoryUtils.getNameForMixedDefaultOp(classQualifier, this))._1;
+					inferenceVisitor.getInferred(visitClassContext.peek()._1, TypeFactoryUtils.getQualifierForMixedDefaultOp(classQualifier, this), elt);
+
 			if (annotation.isDefined()) {
 				return annotation.get();
 			} else {

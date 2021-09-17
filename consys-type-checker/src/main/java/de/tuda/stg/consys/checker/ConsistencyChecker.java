@@ -28,7 +28,7 @@ public class ConsistencyChecker extends BaseTypeChecker {
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
         // overwrite ref() access to be side-effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
-                TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source)) {
+                TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source, getTypeFactory())) {
             return;
         }
         // TODO: remove this hack for ref type arguments
