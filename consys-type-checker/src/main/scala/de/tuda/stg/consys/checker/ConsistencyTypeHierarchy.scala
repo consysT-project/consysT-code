@@ -75,9 +75,9 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 		val consistencySupertype = supertype.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 
 		if (mutabilitySubtype == null || mutabilitySupertype == null)
-			sys.error("immutability qualifier is missing from type")
+			sys.error("ConSysT type checker bug: immutability qualifier is missing from type")
 		if (consistencySubtype == null || consistencySupertype == null)
-			sys.error("consistency qualifier is missing from type")
+			sys.error("ConSysT type checker bug: consistency qualifier is missing from type")
 
 		// TODO: throw error here if we find MutableBottom on something other than Local?
 		if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))

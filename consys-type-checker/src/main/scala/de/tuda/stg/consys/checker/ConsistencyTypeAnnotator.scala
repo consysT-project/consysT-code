@@ -15,11 +15,11 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 	override def visitDeclared(declaredType: AnnotatedDeclaredType, aVoid: Void): Void = {
 		val r = super.visitDeclared(declaredType, aVoid)
 
+		// visit class under given consistency to check compatibility, skip for bottom type
 		val qualifier = declaredType.getAnnotationInHierarchy(inconsistentAnnotation)
 		if (qualifier != null && !AnnotationUtils.areSame(qualifier, localAnnotation)) {
-			// visit class under given consistency to check compatibility, skip for bottom type
 			val classElement = TypesUtils.getTypeElement(declaredType.getUnderlyingType)
-			tf.getVisitor.visitOrQueueClassTree(classElement, qualifier)
+			tf.getVisitor.queueClassVisit(classElement, qualifier)
 		}
 
 		r

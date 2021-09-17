@@ -55,16 +55,13 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				classVisitCache.put((className, toQualifierName(q)), (errors, warnings))
 
 				if (classVisitQueue.contains((className, toQualifierName(q)))) {
-					if (errors.nonEmpty)
-						checker.reportError(classTree, "consistency.type.use.incompatible", getQualifiedName(q), className, errors)
-					if (warnings.nonEmpty)
-						checker.reportWarning(classTree, "consistency.type.use.incompatible", getQualifiedName(q), className, errors)
+					reportQueuedErrors(classTree, className, q, errors, warnings)
 					classVisitQueueReported.add((className, toQualifierName(q)))
 				}
 			})
 	}
 
-	def visitOrQueueClassTree(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
+	def queueClassVisit(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
 		val className = getQualifiedName(classElement)
 		val qualifierName = toQualifierName(annotation)
 
@@ -73,10 +70,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		classVisitCache.get(className, qualifierName) match {
 			case Some((errors, warnings)) =>
-				if (errors.nonEmpty)
-					checker.reportError(classElement, "consistency.type.use.incompatible", getQualifiedName(annotation), className, errors)
-				if (warnings.nonEmpty)
-					checker.reportWarning(classElement, "consistency.type.use.incompatible", getQualifiedName(annotation), className, errors)
+				reportQueuedErrors(classElement, className, annotation, errors, warnings)
 				classVisitQueueReported.add((className, qualifierName))
 
 			case None if !classVisitQueue.contains(className, toQualifierName(annotation)) =>
@@ -84,6 +78,15 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 			case _ =>
 		}
+	}
+
+	private def reportQueuedErrors(source: Object, className: String, annotation: AnnotationMirror, errors: String, warnings: String): Unit = {
+		if (errors.nonEmpty)
+			checker.reportError(source, "consistency.type.use.incompatible",
+				getQualifiedName(annotation), className, errors)
+		if (warnings.nonEmpty)
+			checker.reportWarning(source, "consistency.type.use.incompatible",
+				getQualifiedName(annotation), className, errors)
 	}
 
 	/**
@@ -99,7 +102,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 		tf.pushVisitClassContext(classElement, annotation)
 		if (isMixedQualifier(annotation))
-			tf.inferenceVisitor.processClass(classTree, annotation)
+			tf.mixedInferenceVisitor.processClass(classTree, annotation)
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
 	}
@@ -238,7 +241,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
 			overrides.foreach(m => {
-				// TODO: make more general
 				if (hasAnnotation(m, classOf[WeakOp]) && !hasAnnotation(node.getModifiers, classOf[WeakOp]))
 					checker.reportError(node, "mixed.inheritance.operation.incompatible",
 						if (hasAnnotation(node.getModifiers, classOf[StrongOp])) "StrongOp" else "Default",

@@ -3,16 +3,14 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
 import de.tuda.stg.consys.checker.qual.Mixed
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
-import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
 import javax.lang.model.element.{AnnotationMirror, Modifier, TypeElement, VariableElement}
-import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 import scala.collection.convert.ImplicitConversions.`collection asJava`
-import scala.collection.mutable
 
 /**
 	* Created on 06.03.19.
@@ -145,7 +143,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 	private def visitField(field: VariableElement, typeMirror: AnnotatedTypeMirror, receiver: TypeElement, qualifier: AnnotationMirror): Unit = {
 		if (tf.areSameByClass(qualifier, classOf[Mixed])) {
-			val inferred = tf.inferenceVisitor.getInferred(receiver, qualifier, field)
+			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
 				case Some(value) => typeMirror.replaceAnnotation(value)
 				case None =>
@@ -160,17 +158,20 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		val field = TreeUtils.elementFromUse(tree).asInstanceOf[VariableElement]
 		if (field.getModifiers.contains(Modifier.STATIC)) {
 			typeMirror.replaceAnnotation(inconsistentAnnotation)
-		} else if (tf.areSameByClass(qualifier, classOf[Mixed]) && (field.getModifiers.contains(Modifier.PRIVATE) || field.getModifiers.contains(Modifier.PROTECTED))) {
-			val inferred = tf.inferenceVisitor.getInferred(receiver, qualifier, field)
+		} else if (tf.areSameByClass(qualifier, classOf[Mixed]) && isPrivateOrProtected(field)) {
+			// use the mixed inferred consistency level
+			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
-				case Some(fieldType) => tf.inferenceVisitor.getReadAccess(tree) match {
+				case Some(fieldType) => tf.mixedInferenceVisitor.getReadAccess(tree) match {
 					case Some(methodType) =>
+						// adapt read result to operation level
 						val lup = tf.getQualifierHierarchy.leastUpperBound(fieldType, methodType)
 						typeMirror.replaceAnnotation(lup)
 						// read access must be treated as immutable if the consistency type is adapted
 						if (AnnotationUtils.areSame(lup, methodType) && !AnnotationUtils.areSame(fieldType, methodType))
 							typeMirror.replaceAnnotation(immutableAnnotation)
-					case None => typeMirror.replaceAnnotation(fieldType)
+					case None =>
+						typeMirror.replaceAnnotation(fieldType)
 				}
 				case None => sys.error("inference failed") // TODO: exception if no context
 			}

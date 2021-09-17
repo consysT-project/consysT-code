@@ -19,8 +19,7 @@ import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
-	public final InferenceVisitor inferenceVisitor;
-	public final ReturnTypeVisitor returnTypeVisitor;
+	public final MixedInferenceVisitor mixedInferenceVisitor;
 
 	private final Stack<Tuple2<TypeElement, AnnotationMirror>> visitClassContext;
 	private AnnotationMirror methodReceiverContext;
@@ -34,8 +33,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 			this.postInit();
 		}
 
-		this.inferenceVisitor = new InferenceVisitor(this);
-		this.returnTypeVisitor = new ReturnTypeVisitor(this);
+		this.mixedInferenceVisitor = new MixedInferenceVisitor(this);
 		this.visitClassContext = new Stack<>();
 	}
 
@@ -112,43 +110,6 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		super.addComputedTypeAnnotations(elt, type);
 		methodReceiverContext = prevMethodReceiverContext;
-
-		// TODO: do we need this?
-		/*
-		if (elt.getKind() == ElementKind.FIELD) {
-			// TODO: when the type of a field is queried, we don't have the receiver context (this or external)
-			if (!areSameByClass(peekVisitClassContext()._2, Mixed.class)) {
-				// for non-mixed classes we only need the class qualifier
-				//type.replaceAnnotation(peekVisitClassContext()._2);
-			} else {
-				var anno = getFieldAnnotation((VariableElement) elt);
-				if (anno != null) {
-					//type.replaceAnnotation(anno);
-				}
-			}
-		}
-		*/
-	}
-
-	private AnnotationMirror getFieldAnnotation(VariableElement elt) {
-		if (elt.getSimpleName().toString().equals("this")) // TODO: also do this for "super"?
-			return null;
-		if (visitClassContext.empty())
-			return null;
-
-		var classQualifier = visitClassContext.peek()._2;
-		if (TypeFactoryUtils.isMixedQualifier(classQualifier, this)) {
-			var annotation =
-					inferenceVisitor.getInferred(visitClassContext.peek()._1, TypeFactoryUtils.getQualifierForMixedDefaultOp(classQualifier, this), elt);
-
-			if (annotation.isDefined()) {
-				return annotation.get();
-			} else {
-				return null;
-			}
-		} else {
-			return classQualifier;
-		}
 	}
 
 	public boolean isInMixedClassContext() {

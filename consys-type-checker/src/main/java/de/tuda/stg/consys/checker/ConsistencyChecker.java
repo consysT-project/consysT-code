@@ -3,7 +3,6 @@ package de.tuda.stg.consys.checker;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedLintOptions;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
@@ -13,7 +12,6 @@ import scala.Tuple2;
 import javax.lang.model.element.Element;
 import java.util.*;
 
-@SupportedLintOptions({"inferGetters"}) // TODO
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
     private final Stack<Boolean> captureErrorsAndWarnings = new Stack<>();
@@ -29,10 +27,6 @@ public class ConsistencyChecker extends BaseTypeChecker {
         // overwrite ref() access to be side-effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
                 TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source, getTypeFactory())) {
-            return;
-        }
-        // TODO: remove this hack for ref type arguments
-        if (messageKey.equals("type.argument.type.incompatible")) {
             return;
         }
 
@@ -52,7 +46,7 @@ public class ConsistencyChecker extends BaseTypeChecker {
         }
     }
 
-    private boolean shouldSuppressWarnings(@Nullable Object src, String errKey) {
+    private boolean shouldSuppressWarnings(Object src, String errKey) {
         if (src instanceof Element) {
             return shouldSuppressWarnings((Element) src, errKey);
         } else if (src instanceof Tree) {

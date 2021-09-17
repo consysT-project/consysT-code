@@ -5,7 +5,7 @@ import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.checker.qual.{Inconsistent, Local}
 import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
-import de.tuda.stg.consys.checker.InferenceVisitor._
+import de.tuda.stg.consys.checker.MixedInferenceVisitor._
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.DeclaredType
@@ -13,7 +13,7 @@ import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeEl
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
 
-object InferenceVisitor {
+object MixedInferenceVisitor {
     sealed trait AccessType
     case object Write extends AccessType
     case object Read extends AccessType
@@ -22,7 +22,7 @@ object InferenceVisitor {
     type State = (Option[TypeElement], Option[DefaultOp], Option[AnnotationMirror], Option[AccessType])
 }
 
-class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
+class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
     import TypeFactoryUtils._
 
     sealed trait VisitMode
@@ -112,7 +112,7 @@ class InferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends Tre
                     case tree => processClass(tree, state)
                 }
                 // type check the superclass for the mixed qualifier of the subclass
-                tf.getVisitor.visitOrQueueClassTree(elt, mixedAnnotation(Class.forName(defaultOp).asInstanceOf[Class[_ <: Annotation]]))
+                tf.getVisitor.queueClassVisit(elt, mixedAnnotation(Class.forName(defaultOp).asInstanceOf[Class[_ <: Annotation]]))
             case None =>
         }
     }
