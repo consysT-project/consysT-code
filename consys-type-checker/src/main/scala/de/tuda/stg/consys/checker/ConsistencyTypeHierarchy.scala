@@ -14,7 +14,7 @@ import javax.lang.model.element.AnnotationMirror
 	* @author Mirko Köhler
 	*/
 class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory : AnnotatedTypeFactory) extends TypeHierarchy {
-	implicit private val tf: AnnotatedTypeFactory = atypeFactory
+	implicit private val tf: ConsistencyAnnotatedTypeFactory = atypeFactory.asInstanceOf[ConsistencyAnnotatedTypeFactory]
 	var doImmutabilityCheck: Boolean = false
 
 	override def isSubtype(subtype : AnnotatedTypeMirror, supertype : AnnotatedTypeMirror) : Boolean = (refType(subtype), refType(supertype)) match {
@@ -23,17 +23,16 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 			val superTypeMirror = getArgOfRefType(declaredSupertype)
 
 			// always check immutability for Ref<> types
-			isCombinedSubtype(subtypeMirror, superTypeMirror)
+			isCombinedSubtype(subtypeMirror, superTypeMirror) && hierarchy.isSubtype(subtypeMirror.getErased, superTypeMirror.getErased)
 
 		case _ if TypesUtils.isPrimitiveOrBoxed(subtype.getUnderlyingType) && TypesUtils.isPrimitiveOrBoxed(supertype.getUnderlyingType) =>
-				// || TypesUtils.isClassType(subtype.getUnderlyingType) && TypesUtils.isClassType(supertype.getUnderlyingType) =>
 			isConsistencySubtypeOnly(subtype, supertype)
 
-		case _ if !tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].isVisitClassContextEmpty || tf.asInstanceOf[ConsistencyAnnotatedTypeFactory].getVisitor.getTransactionContext=>
-			isCombinedSubtype(subtype, supertype)
+		case _ if !tf.isVisitClassContextEmpty || tf.getVisitor.getTransactionContext =>
+			isCombinedSubtype(subtype, supertype) && hierarchy.isSubtype(subtype, supertype)
 
-		case _ =>
-			isConsistencySubtypeOnly(subtype, supertype) // TODO: is this useful?
+		case _ => // skip immutability checks for non-replicated type-checking
+			isConsistencySubtypeOnly(subtype, supertype) && hierarchy.isSubtype(subtype, supertype)
 	}
 
 
@@ -79,8 +78,9 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 		if (consistencySubtype == null || consistencySupertype == null)
 			sys.error("ConSysT type checker bug: consistency qualifier is missing from type")
 
-		// TODO: throw error here if we find MutableBottom on something other than Local?
-		if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))
+		if (subtype.hasAnnotation(classOf[MutableBottom]) && !subtype.hasAnnotation(classOf[Local]))
+			sys.error("ConSysT type checker bug: @MutableBottom found on non-@Local qualifier")
+		else if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))
 			true
 		else if (isSameType(mutabilitySupertype, immutableAnnotation))
 			tf.getQualifierHierarchy.isSubtype(mutabilitySubtype, mutabilitySupertype) &&

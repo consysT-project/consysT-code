@@ -23,29 +23,26 @@ public class WildcardTest {
     }
 
     @Transactional
-    void testMutable(Ref<? extends @Mutable @Mixed A> obj, @Mutable @Mixed A plain) {
+    void testMutable(Ref<? extends @Mutable @Mixed A> obj) {
         obj.ref().write();
-        plain.write();
     }
 
     @Transactional
-    void testImmutable(Ref<? extends @Immutable @Mixed A> obj, @Immutable @Mixed A plain) {
+    void testImmutable(Ref<? extends @Immutable @Mixed A> obj) {
         // :: error: immutability.invocation.receiver
         obj.ref().write();
-        // :: error: immutability.invocation.receiver
-        plain.write();
     }
 
     @Transactional
-    void test1(Ref<@Mutable @Mixed B> obj, @Mutable @Mixed B plain) {
-        testMutable(obj, plain);
-        testImmutable(obj, plain);
+    void test1(Ref<@Mutable @Mixed B> obj) {
+        testMutable(obj);
+        testImmutable(obj);
     }
 
     @Transactional
-    void test2(Ref<@Immutable @Mixed(StrongOp.class) B> obj, @Immutable @Mixed(StrongOp.class) B plain) {
+    void test2(Ref<@Immutable @Mixed(StrongOp.class) B> obj) {
         // :: error: argument
-        testMutable(obj, plain);
-        testImmutable(obj, plain);
+        testMutable(obj);
+        testImmutable(obj);
     }
 }
