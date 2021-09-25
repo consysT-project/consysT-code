@@ -155,8 +155,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		node.getExpression match {
 			case mTree: MethodInvocationTree if isRefDereference(mTree) =>
 				val elt = TreeUtils.elementFromUse(node)
-				if (elt.getKind == ElementKind.FIELD && isPrivateOrProtected(elt))
-					checker.reportWarning(node, "ref.field.access")
+				if ((elt.getKind == ElementKind.FIELD || elt.getKind == ElementKind.METHOD) && isPrivateOrProtected(elt))
+					checker.reportWarning(node, "ref.member.access")
 			case _ =>
 		}
 
@@ -301,9 +301,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)))
 			return
 
-		if (receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) &&
-			!(ElementUtils.hasAnnotation(methodType.getElement, classOf[SideEffectFree].getName) ||
-				ElementUtils.hasAnnotation(methodType.getElement, classOf[Pure].getName)))
+		if (receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !isSideEffectFree(methodType.getElement))
 			checker.reportError(tree, "immutability.invocation.receiver")
 	}
 

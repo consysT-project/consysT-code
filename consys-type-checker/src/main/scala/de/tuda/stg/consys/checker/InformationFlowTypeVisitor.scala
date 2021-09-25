@@ -5,8 +5,10 @@ import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
 
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
+import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
 import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
+import org.jmlspecs.annotation.Pure
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -203,6 +205,8 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 		def allowsAsMixedInvocation(typ : AnnotatedTypeMirror, tree : MethodInvocationTree): Boolean = {
 			val method = TreeUtils.elementFromUse(tree)
+			if (isSideEffectFree(method))
+				return true
 
 			var methodLevel: Option[AnnotationMirror] = None
 			getQualifierForOpMap.foreach(mapping => {
