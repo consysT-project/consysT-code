@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodInvocationTree, ModifiersTree}
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong, Weak}
+import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, Strong, Weak}
 import org.checkerframework.dataflow.qual.SideEffectFree
 
 import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, Modifier, TypeElement}
@@ -31,7 +31,6 @@ object TypeFactoryUtils {
 	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
 
-	// TODO: cache AnnotationMirrors
 	def strongAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
 		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Strong])
 
@@ -105,7 +104,7 @@ object TypeFactoryUtils {
 			mixedAnnotation.getElementValues.values().head.getValue match {
 				case v: DeclaredType => getQualifiedName(v)
 				case v: Class[_] => v.getCanonicalName
-				case _ => sys.error("consyst checker bug")
+				case _ => sys.error("ConSysT type checker bug: mixed annotation value not found")
 			}
 	}
 
@@ -115,18 +114,18 @@ object TypeFactoryUtils {
 			case Some(qualifier) =>
 				AnnotationBuilder.fromName(tf.getElementUtils, qualifier)
 			case None =>
-				sys.error("invalid default operation on mixed") // TODO: handle case where given default operation level is not valid
+				sys.error("ConSysT type checker bug: invalid default operation on mixed")
 		}
 	}
 
-	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit atypeFactory: AnnotatedTypeFactory): String = {
+	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit tf: AnnotatedTypeFactory): String = {
 		var methodLevel: Option[String] = None
 		getQualifierForOpMap.foreach(mapping => {
 			val (operation, _) = mapping
 			if (ElementUtils.hasAnnotation(method, operation)) {
 				methodLevel match {
 					case None => methodLevel = Option(operation)
-					case _ => // TODO: handle case if more than one annotation given
+					case _ => tf.getChecker.reportError(method, "mixed.operation.ambiguous")
 				}
 			}
 		})

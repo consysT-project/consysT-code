@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import de.tuda.stg.consys.checker.qual.Mixed
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, MostlyNoElementQualifierHierarchy, TypeHierarchy}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, MostlyNoElementQualifierHierarchy}
 import org.checkerframework.framework.util.QualifierKind
 
 import java.lang.annotation.Annotation

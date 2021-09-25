@@ -66,14 +66,14 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 				// adapt field for receiver
 				receiverType.getAnnotations.forEach(ann => {
-					if (tf.getQualifierHierarchy.findAnnotationInHierarchy(List(ann), inconsistentAnnotation) != null) {
+					if (qualHierarchy.findAnnotationInHierarchy(List(ann), inconsistentAnnotation) != null) {
 						val qualifier = receiverType.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 						visitField(node, typeMirror, receiver, qualifier)
 
 						// Changes level of type argument of Ref<...> to weakest between receiver and field
 						node.getExpression match {
 							// skip this step if receiver is 'this'
-							case id: IdentifierTree if id.getName.toString == "this" => () // TODO: should we really ignore this for Refs?
+							case id: IdentifierTree if id.getName.toString == "this" => ()
 
 							case _ => typeMirror match {
 								case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
@@ -81,11 +81,11 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 									// get weakest type between type argument and receiver
 									val lup =
 										if (tf.areSameByClass(ann, classOf[Mixed]))
-											tf.getQualifierHierarchy.leastUpperBound(
+											qualHierarchy.leastUpperBound(
 												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
 												typeMirror.getEffectiveAnnotationInHierarchy(inconsistentAnnotation))
 										else
-											tf.getQualifierHierarchy.leastUpperBound(
+											qualHierarchy.leastUpperBound(
 												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
 												ann)
 									typeArgument.replaceAnnotation(lup)
@@ -94,9 +94,9 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 							}
 						}
 
-					} else if (tf.getQualifierHierarchy.findAnnotationInHierarchy(List(ann), immutableAnnotation) != null) {
+					} else if (qualHierarchy.findAnnotationInHierarchy(List(ann), immutableAnnotation) != null) {
 						val fieldQualifier = typeMirror.getEffectiveAnnotationInHierarchy(immutableAnnotation)
-						val lup = tf.getQualifierHierarchy.leastUpperBound(fieldQualifier, ann)
+						val lup = qualHierarchy.leastUpperBound(fieldQualifier, ann)
 						typeMirror.replaceAnnotation(lup)
 
 					} else {
@@ -121,8 +121,8 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		}
 
 		val element = TreeUtils.elementFromUse(node)
-		if (element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext() // TODO: exception if no context
+		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
+			val (receiver, qualifier) = tf.peekVisitClassContext()
 			visitField(node, typeMirror, receiver, qualifier)
 		}
 
@@ -146,8 +146,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
 				case Some(value) => typeMirror.replaceAnnotation(value)
-				case None =>
-					sys.error("inference failed") // TODO: exception if no context
+				case None => sys.error("ConSysT type checker bug: mixed inference failed")
 			}
 		} else {
 			typeMirror.replaceAnnotation(qualifier)
@@ -165,7 +164,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				case Some(fieldType) => tf.mixedInferenceVisitor.getReadAccess(tree) match {
 					case Some(methodType) =>
 						// adapt read result to operation level
-						val lup = tf.getQualifierHierarchy.leastUpperBound(fieldType, methodType)
+						val lup = qualHierarchy.leastUpperBound(fieldType, methodType)
 						typeMirror.replaceAnnotation(lup)
 						// read access must be treated as immutable if the consistency type is adapted
 						if (AnnotationUtils.areSame(lup, methodType) && !AnnotationUtils.areSame(fieldType, methodType))
@@ -173,7 +172,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 					case None =>
 						typeMirror.replaceAnnotation(fieldType)
 				}
-				case None => sys.error("inference failed") // TODO: exception if no context
+				case None => sys.error("ConSysT type checker bug: mixed inference failed")
 			}
 		} else if (tf.areSameByClass(qualifier, classOf[Mixed]))
 			typeMirror.replaceAnnotation(getQualifierForOp(getNameForMixedDefaultOp(qualifier)).get)
@@ -196,7 +195,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		}
 
 		if (getExplicitConsistencyAnnotation(methodType.getReturnType).isEmpty &&
-			methodName.startsWith("get")) { // TODO: include fields for method name check
+			methodName.startsWith("get")) {
 			val inferred =
 				if (isMixedQualifier(recvQualifier)) getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
 				else recvQualifier

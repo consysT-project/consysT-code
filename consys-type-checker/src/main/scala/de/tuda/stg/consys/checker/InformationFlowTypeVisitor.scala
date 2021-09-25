@@ -5,10 +5,8 @@ import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
 
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
-import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
-import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
-import org.jmlspecs.annotation.Pure
+import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -150,8 +148,6 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		private def getStrongestNonLocalAnnotationIn(typ : AnnotatedTypeMirror, annotation : AnnotationMirror) : AnnotationMirror = {
 			//Easier access to lower bound
 			def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror = {
-				//TODO: Fix this! There are NullPointerExceptions...
-				//println(s"lower bound $a and $b. type factory? ${atypeFactory != null} hierarchy? ${if (atypeFactory != null) atypeFactory.getQualifierHierarchy != null else false}")
 				atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
 			}
 
@@ -208,25 +204,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 			if (isSideEffectFree(method))
 				return true
 
-			var methodLevel: Option[AnnotationMirror] = None
-			getQualifierForOpMap.foreach(mapping => {
-				val (operation, qualifier) = mapping
-				if (ElementUtils.hasAnnotation(method, operation)) {
-					methodLevel match {
-						case None =>
-							methodLevel = Option(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
-						case _ => // TODO: handle case if more than one annotation given
-					}
-				}
-			})
-
-			if (methodLevel.isEmpty) {
-				getQualifierNameForOp(getNameForMixedDefaultOp(typ.getEffectiveAnnotation(classOf[Mixed]))) match {
-					case Some(qualifier) =>
-						methodLevel = Some(AnnotationBuilder.fromName(atypeFactory.getElementUtils, qualifier))
-					case None => // TODO: handle case where given default operation level is not valid
-				}
-			}
+			val methodLevel = getQualifierForMethodOp(method, typ.getEffectiveAnnotation(classOf[Mixed]))
 
 			atypeFactory.getQualifierHierarchy.isSubtype(get, methodLevel.get) ||
 				atypeFactory.getQualifierHierarchy.getBottomAnnotations.contains(methodLevel.get)

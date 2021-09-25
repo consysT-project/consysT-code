@@ -3,7 +3,6 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
 import de.tuda.stg.consys.checker.qual.{Inconsistent, Local}
-import org.checkerframework.dataflow.qual.{Pure, SideEffectFree}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
 import de.tuda.stg.consys.checker.MixedInferenceVisitor._
 
@@ -61,8 +60,8 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     private def processClass(node: ClassTree, state: State): Unit = {
         val (_, maybeDefaultOp, _, _) = state
         val defaultOp = maybeDefaultOp match {
-            case None => sys.error("ConSysT type checker bug: no default level for mixed inference")
-            case Some(value) => value // TODO: validation here?
+            case None => sys.error("ConSysT type checker bug: no default level for mixed inference given")
+            case Some(value) => value
         }
 
         val classElement = TreeUtils.elementFromDeclaration(node)
@@ -93,7 +92,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         val (_, maybeDefaultOp, _, _) = state
         val defaultOp = maybeDefaultOp match {
             case None => sys.error("ConSysT type checker bug: no default level for mixed inference")
-            case Some(value) => value // TODO: validation here?
+            case Some(value) => value
         }
 
         val className = getQualifiedName(classElement)
@@ -208,27 +207,9 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
             return null
 
         val (_, Some(defaultOp), _, _) = state
-        var methodLevel: Option[AnnotationMirror] = None
 
-        // try to find an explicit supported operation level on the method
-        getQualifierForOpMap.keys.foreach(operation => {
-            if (hasAnnotation(node.getModifiers, operation)) {
-                methodLevel match {
-                    case None =>
-                        methodLevel = getQualifierForOp(operation)
-                    case _ =>
-                        tf.getChecker.reportError(node, "mixed.operation.ambiguous")
-                }
-            }
-        })
-
-        // use default level if no operation was found
-        if (methodLevel.isEmpty) {
-            methodLevel = getQualifierForOp(defaultOp) match {
-                case Some(value) => Some(value)
-                case None => sys.error("ConSysT type checker bug: invalid default operation") // TODO: should this be a user error instead?
-            }
-        }
+        val methodElt = TreeUtils.elementFromDeclaration(node)
+        val methodLevel = getQualifierForOp(getMixedOpForMethod(methodElt, defaultOp))
 
         super.visitMethod(node, state.copy(_3 = methodLevel))
     }
@@ -346,8 +327,8 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                 getOwnFields(clazz).foreach(f => {
                     updateField(f, (Some(clazz), Some(defaultOp), Some(level), Some(Write)), f)
                 })
-
-            case None => // TODO: handle case where given default operation level is not valid
+            case None =>
+                sys.error("ConSysT type checker bug: invalid default operation on Mixed qualifier")
         }
     }
 

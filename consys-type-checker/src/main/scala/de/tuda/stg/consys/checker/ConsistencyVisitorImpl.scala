@@ -178,7 +178,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				checker.reportError(node, "invocation.method.transaction", node)
 		}
 
-		// TODO: also perform implicit context checks for implicit this
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
 				val expr : ExpressionTree = memberSelectTree.getExpression
@@ -201,7 +200,22 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 					checkMethodInvocationReceiverMutability(recvType, methodType, node)
 				}
 
-			case _ =>
+			case _: IdentifierTree => // implicit this receiver
+				// construct type for implicit this
+				val objectMirror = TypesUtils.typeFromClass(classOf[Object], atypeFactory.types, atypeFactory.getElementUtils)
+				val recvType = AnnotatedTypeMirror.createType(objectMirror, atypeFactory, true)
+				recvType.addAnnotation(tf.peekVisitClassContext()._2)
+				recvType.addAnnotation(mutableAnnotation)
+
+				// check receiver w.r.t. implicit context
+				if (!methodInvocationIsRefOrGetField(node)) {
+					if (recvType.hasEffectiveAnnotation(classOf[Mixed]))
+						checkMethodInvocationOpLevel(recvType, node)
+					else
+						checkMethodInvocationReceiver(recvType, node)
+				}
+
+				// no immutability check since 'this' is always mutable
 		}
 
 		// check arguments w.r.t. implicit context
@@ -232,8 +246,6 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		if (TreeUtils.isConstructor(node)) {
 			isInConstructor = true
 		}
-
-		// TODO: check for multiple operation annotations
 
 		// check operation level override rules
 		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||

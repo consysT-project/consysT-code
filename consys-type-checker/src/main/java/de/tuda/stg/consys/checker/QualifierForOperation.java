@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.checker.qual;
+package de.tuda.stg.consys.checker;
 
 import java.lang.annotation.*;
 

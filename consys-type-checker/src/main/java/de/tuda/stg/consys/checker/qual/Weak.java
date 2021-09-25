@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.checker.qual;
 
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.QualifierForOperation;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 import java.lang.annotation.ElementType;
