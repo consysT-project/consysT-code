@@ -7,7 +7,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 /**
  * Checks that strong fields are read as weak in weak methods.
  */
-public @Mixed class RefinementTest {
+public @Mixed class ReadAdaptTest {
     private int i;
     private int j;
 

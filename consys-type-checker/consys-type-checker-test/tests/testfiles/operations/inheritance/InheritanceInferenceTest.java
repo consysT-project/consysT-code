@@ -1,4 +1,3 @@
-
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -7,7 +6,7 @@ import de.tuda.stg.consys.checker.qual.Weak;
 
 import java.io.Serializable;
 
-public class InheritanceTest {
+public class InheritanceInferenceTest {
     @Mixed class Base implements Serializable {
         protected int k; // inferred weak
         protected int h; // inferred strong

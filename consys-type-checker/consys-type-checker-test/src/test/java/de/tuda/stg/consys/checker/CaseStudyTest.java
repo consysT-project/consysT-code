@@ -6,9 +6,9 @@ import org.junit.runners.Parameterized;
 import java.io.File;
 import java.util.List;
 
-public class DirectoryTest extends CheckerFrameworkPerDirectoryTest {
+public class CaseStudyTest extends CheckerFrameworkPerDirectoryTest {
 
-    public DirectoryTest(List<File> testFiles) {
+    public CaseStudyTest(List<File> testFiles) {
         super(
                 testFiles,
                 ConsistencyChecker.class,
@@ -18,13 +18,13 @@ public class DirectoryTest extends CheckerFrameworkPerDirectoryTest {
                 //Disable warnings, so that the tests do not fail when there is the warning about using the unannotated jdk
                 "-nowarn",
                 "-AsuppressWarnings=inconsistent.constructor.type,cast.unsafe",
-                "-AprojectPackage=test");
+                "-Astubs=./tests/per-directory/thesis-case-studies/Cassandra.astub;./tests/per-directory/thesis-case-studies/List.astub");
     }
 
     @Parameterized.Parameters
     public static String[] getTestDirs() {
         return new String[] {
-                "per-directory/mixed-inference",
+                "per-directory/thesis-case-studies",
         };
     }
 }

@@ -5,6 +5,7 @@ import com.sun.source.tree.Tree;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedLintOptions;
+import org.checkerframework.framework.source.SupportedOptions;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
 import org.checkerframework.javacutil.BugInCF;
 import scala.Tuple2;
@@ -12,6 +13,7 @@ import scala.Tuple2;
 import javax.lang.model.element.Element;
 import java.util.*;
 
+@SupportedOptions({"projectPackage"})
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {
     private final Stack<Boolean> captureErrorsAndWarnings = new Stack<>();

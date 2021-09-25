@@ -1,18 +1,21 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.methods.*;
 import de.tuda.stg.consys.checker.qual.*;
 
 /**
- * Checks that fields that are never written are @Local
+ * Checks that fields that are never written are inferred as @Local.
  */
 public @Mixed class FinalTest {
     private final int a;
-    private final int b = 0;
+    private final int b = 0; // direct initialization is ignored during inference
     private int c;
 
     FinalTest() {
-        a = 0;
+        a = 0; // constructors are ignored for inference
+
+        @Local int l;
+        l = a;
+        l = b;
+        l = c;
     }
 
     @WeakOp

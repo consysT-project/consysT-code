@@ -23,12 +23,12 @@ public class FieldAccessTest {
     void testObjectField(@Mutable @Strong A obj) {
         @Weak int i;
         i = obj.i;
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         obj.i = i;
     }
 
     void testObjectField2(@Mutable @Weak A obj) {
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         @Strong int i = obj.i;
 
         obj.i = i;
@@ -37,7 +37,7 @@ public class FieldAccessTest {
 
     @Transactional
     void testRefField(Ref<@Mutable @Weak A> obj) {
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         Ref<@Strong A> r = obj.ref().rs;
 
         obj.ref().rs = r;
@@ -45,7 +45,7 @@ public class FieldAccessTest {
 
     @Transactional
     void testRefField2(Ref<@Mutable @Strong A> obj) {
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         Ref<@Strong A> r = obj.ref().rw;
 
         obj.ref().rw = r;
@@ -53,15 +53,16 @@ public class FieldAccessTest {
 
     @Transactional
     void testDefault(Ref<@Mutable A> obj) {
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         Ref<@Strong A> r1 = obj.ref().rw;
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         Ref<@Weak A> r2 = obj.ref().rw;
     }
 
     /**
      * Test that 'this' is ignored for field access type refinements
      */
+    // :: error: consistency.type.use.incompatible
     static class ThisTest implements Serializable {
         Ref<@Mutable @Strong ThisTest> a;
         int n;
@@ -69,9 +70,9 @@ public class FieldAccessTest {
         void setRef(Ref<@Mutable @Strong ThisTest> s, Ref<@Mutable @Weak ThisTest> w) {
             a = s;
             this.a = s;
-            // :: error: (assignment.type.incompatible)
+            // :: error: assignment
             a = w;
-            // :: error: (assignment.type.incompatible)
+            // :: error: assignment
             this.a = w;
         }
     }

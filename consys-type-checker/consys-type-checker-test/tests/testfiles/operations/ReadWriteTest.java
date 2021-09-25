@@ -1,5 +1,3 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -7,7 +5,10 @@ import de.tuda.stg.consys.checker.qual.Strong;
 
 import java.io.Serializable;
 
-public @Mixed class StrongWeakTest {
+/**
+ * Tests various read and write accesses
+ */
+public @Mixed class ReadWriteTest {
     private int w; // inferred @Weak
     private int s; // inferred @Strong
 

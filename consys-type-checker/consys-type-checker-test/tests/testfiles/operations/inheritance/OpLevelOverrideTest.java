@@ -1,5 +1,3 @@
-package testfiles.operations.inheritance;
-
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -9,7 +7,11 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-public class OpLevelTest {
+/**
+ * Test the override rules for operation levels.
+ * Overrides cannot declare stronger operation levels than the base class method.
+ */
+public class OpLevelOverrideTest {
     static abstract class A {
         abstract void f();
         @StrongOp abstract void g();

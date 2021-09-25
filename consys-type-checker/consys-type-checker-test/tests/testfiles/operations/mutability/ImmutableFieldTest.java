@@ -1,15 +1,16 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 
-public @Mixed(StrongOp.class) class ImmutableExplicit {
+/**
+ * Tests that explicitly given Immutable annotations on fields are respected.
+ */
+public @Mixed(StrongOp.class) class ImmutableFieldTest {
     private @Immutable @Strong String s;
     private @Immutable @Strong Box box;
 
-    public ImmutableExplicit(@Strong String v) {
+    public ImmutableFieldTest(@Strong String v) {
         this.s = v;
         s = v;
         box = new Box();

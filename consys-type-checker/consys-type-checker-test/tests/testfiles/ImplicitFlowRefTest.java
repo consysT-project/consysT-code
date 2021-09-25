@@ -40,7 +40,7 @@ public class ImplicitFlowRefTest {
             // weak <- weak, pure read: allowed
             @Weak int i0 = w.ref().n;
             // strong <- weak, pure read: not allowed
-            // :: error: (assignment.type.implicitflow) :: error: (assignment.type.incompatible)
+            // :: error: (assignment.type.implicitflow) :: error: assignment
             @Strong int i1 = w.ref().n;
 
             // weak <- strong, pure read: allowed

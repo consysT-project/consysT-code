@@ -1,5 +1,3 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -8,23 +6,36 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.util.List;
 
+/**
+ * Tests implicit flow method invocations rules for operation levels.
+ */
 public class ImplicitFlowTest {
     static class A {
         @StrongOp void f() {}
         @WeakOp void g() {}
+        void h() {}
     }
 
     @Transactional
-    void test(Ref<@Mutable @Mixed A> obj, @Weak int w, @Strong int s) {
+    void test(Ref<@Mutable @Mixed A> objW,
+              Ref<@Mutable @Mixed(StrongOp.class) A> objS,
+              @Weak int w, @Strong int s) {
         if (w > 0) {
             // :: error: invocation.operation.implicitflow
-            obj.ref().f();
-            obj.ref().g();
+            objW.ref().f();
+            objW.ref().g();
+
+            objW.ref().h();
+            // :: error: invocation.operation.implicitflow
+            objS.ref().h();
         }
 
         if (s > 0) {
-            obj.ref().f();
-            obj.ref().g();
+            objW.ref().f();
+            objW.ref().g();
+
+            objW.ref().h();
+            objS.ref().h();
         }
     }
 

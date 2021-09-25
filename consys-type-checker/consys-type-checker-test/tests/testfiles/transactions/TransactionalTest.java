@@ -94,7 +94,7 @@ class TransactionalTest {
     }
 
 
-    void testTransactionalInvocation_InsideTransaction(@Mutable Base base, @Mutable Derived derived, CassandraStoreBinding replica) {
+    void testTransactionalInvocation_InsideTransaction(@Mutable Base base, @Mutable Derived derived, @Mutable CassandraStoreBinding replica) {
         replica.transaction(ctx -> {
             base.f1();
             base.f2();

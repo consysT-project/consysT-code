@@ -1,3 +1,5 @@
+package testfiles.operations.mutability;
+
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -8,6 +10,9 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBind
 
 import java.io.Serializable;
 
+/**
+ * Tests immutability compatibility with replication interface.
+ */
 public class ReplicateTest {
     static @Mixed class A implements Serializable { }
 

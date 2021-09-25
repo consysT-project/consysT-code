@@ -5,7 +5,11 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
-public @Mixed class InferenceRefTest {
+/**
+ * Tests that mixed inference does not change Ref<> type arguments.
+ * Tests that access to Refs through Mixed class resolves to lup(field, Ref<>)
+ */
+public @Mixed class RefTest {
     static class A { int i; }
 
     private Ref<@Strong A> a; // inferred @Weak Ref<@Strong A>
@@ -22,7 +26,7 @@ public @Mixed class InferenceRefTest {
     }
 
     @Transactional
-    static void test(Ref<InferenceRefTest> obj) {
+    static void test(Ref<RefTest> obj) {
         // :: error: assignment
         Ref<@Strong A> a = obj.ref().b;
         // :: error: assignment

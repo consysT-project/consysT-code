@@ -50,9 +50,9 @@ public class PublicTest {
 
     @Transactional
     void testNested(Ref<Nested> obj) {
-        // :: warning: ref.field.access
+        // :: warning: ref.member.access
         obj.ref().a = 0;
-        // :: warning: ref.field.access
+        // :: warning: ref.member.access
         obj.ref().b = 0;
     }
 

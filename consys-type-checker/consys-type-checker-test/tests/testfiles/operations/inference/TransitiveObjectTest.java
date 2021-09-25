@@ -4,7 +4,10 @@ import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 
-public @Mixed class InferenceFlowTest {
+/**
+ * Tests that using fields transitively by assigning them to other fields does not break mixed type rules.
+ */
+public @Mixed class TransitiveObjectTest {
     static class Box {
         int value;
     }

@@ -1,11 +1,14 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
+/**
+ * Tests return type 'inference' for mixed operations.
+ * Return types default to the operation level if the method name starts with 'get'.
+ */
+// :: error: consistency.type.use.incompatible
 public @Mixed class ReturnTest {
     protected @Strong int i;
     protected @Weak int j;
@@ -55,13 +58,13 @@ public @Mixed class ReturnTest {
     }
 }
 
+// :: error: consistency.type.use.incompatible
 @Mixed class Derived extends ReturnTest {
     @StrongOp public int getStrong() {
         // :: error: return
         return j;
     }
 
-    // :: error: override.return.invalid
     @WeakOp public int get() {
         return i;
     }

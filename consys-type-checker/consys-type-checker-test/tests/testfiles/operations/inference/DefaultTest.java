@@ -1,5 +1,3 @@
-package test;
-
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
@@ -8,10 +6,11 @@ import de.tuda.stg.consys.checker.qual.Weak;
 
 import java.util.LinkedList;
 
+/**
+ * Tests that the default operation level in the Mixed annotation are included during field inference.
+ */
 public class DefaultTest {
-    // ------------------------------------------------------------------------------------------------------
-    // Cases for each default option
-
+    // explicit StrongOp default
     static @Mixed(StrongOp.class) class MixedStrong {
         private int i; // inferred strong
 
@@ -22,6 +21,7 @@ public class DefaultTest {
         }
     }
 
+    // explicit WeakOp default
     static @Mixed(WeakOp.class) class MixedWeak {
         private int i; // inferred weak
 
@@ -32,6 +32,7 @@ public class DefaultTest {
         }
     }
 
+    // implicit WeakOp default
     static @Mixed class MixedNoDefault {
         private int i; // inferred weak
 
@@ -41,21 +42,4 @@ public class DefaultTest {
             i = j;
         }
     }
-
-    // ---------------------------------------------------------------------------------------
-    // Case where inferred base class field is used in derived
-
-    static @Mixed class Der extends LinkedList<String> {
-        private @Strong int i;
-
-        @StrongOp
-        void test() {
-            i = 0;
-            // :: error: assignment
-            i = modCount; // modCount inferred weak
-        }
-    }
-
-    // ------------------------------------------------------------------------------------------------------
-    // Case where base class is not compatible with derived instantiation
 }

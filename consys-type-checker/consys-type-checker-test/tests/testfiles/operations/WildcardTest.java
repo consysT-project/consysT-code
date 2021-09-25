@@ -8,6 +8,9 @@ import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
 
+/**
+ * Tests inheritance with wildcards in Ref objects.
+ */
 public class WildcardTest {
     static class A {
         int i;

@@ -1,9 +1,10 @@
-package testfiles.operations;
-
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
+/**
+ * Tests various immutability constraint and subtyping rules.
+ */
 public class ImmutabilityTest {
     static class A {
         @Mutable @Strong Box box;

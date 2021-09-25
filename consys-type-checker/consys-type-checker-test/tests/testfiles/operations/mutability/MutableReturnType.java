@@ -1,8 +1,11 @@
-package testfiles.operations;
+package testfiles.operations.mutability;
 
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Weak;
 
+/**
+ * Tests that mutable fields cannot be returned from refs.
+ */
 public @Weak class MutableReturnType {
     private String s;
 

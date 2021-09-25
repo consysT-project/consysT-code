@@ -6,6 +6,9 @@ import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
+/**
+ * Tests that errors are reported for class consistency usages in the program.
+ */
 // :: error: consistency.type.use.incompatible
 public class OnUseTest {
     private int i;

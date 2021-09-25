@@ -3,6 +3,7 @@ package de.tuda.stg.consys.checker.testfiles.testfiles;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 
@@ -23,11 +24,11 @@ public class FieldReplicateTest {
     }
 
     // B can only be replicated at level @Weak
+    // :: error: consistency.type.use.incompatible
     static class B implements Serializable {
         int i;
         void m(@Weak int j){
             // replication of B at level @Strong would lead to a flow error here, so it should be disallowed
-            // :: error: assignment.type.incompatible
             i = j;
         }
     }
@@ -35,18 +36,18 @@ public class FieldReplicateTest {
     @Transactional
     void testReplicateA() {
         // replication of A at level @Weak is allowed
-        transaction.replicate("", CassandraConsistencyLevels.WEAK, (Class<@Weak A>)A.class);
+        Ref<@Weak A> a1 = transaction.replicate("", CassandraConsistencyLevels.WEAK, (Class<@Weak A>)A.class);
 
         // replication of A at level @Strong is allowed
-        transaction.replicate("", CassandraConsistencyLevels.STRONG, (Class<@Strong A>)A.class);
+        Ref<@Strong A> a2 = transaction.replicate("", CassandraConsistencyLevels.STRONG, (Class<@Strong A>)A.class);
     }
 
     @Transactional
     void testReplicateB() {
         // replication of B at level @Weak is allowed
-        transaction.replicate("", CassandraConsistencyLevels.WEAK, (Class<@Weak B>)B.class);
+        Ref<@Weak B> b1 = transaction.replicate("", CassandraConsistencyLevels.WEAK, (Class<@Weak B>)B.class);
 
         // replication of B at level @Strong is disallowed
-        transaction.replicate("", CassandraConsistencyLevels.STRONG, (Class<@Strong B>)B.class);
+        Ref<@Strong B> b2 = transaction.replicate("", CassandraConsistencyLevels.STRONG, (Class<@Strong B>)B.class);
     }
 }
