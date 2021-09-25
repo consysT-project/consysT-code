@@ -15,11 +15,14 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 	override def visitDeclared(declaredType: AnnotatedDeclaredType, aVoid: Void): Void = {
 		val r = super.visitDeclared(declaredType, aVoid)
 
-		// visit class under given consistency to check compatibility, skip for bottom type
-		val qualifier = declaredType.getAnnotationInHierarchy(inconsistentAnnotation)
-		if (qualifier != null && !AnnotationUtils.areSame(qualifier, localAnnotation)) {
-			val classElement = TypesUtils.getTypeElement(declaredType.getUnderlyingType)
-			tf.getVisitor.queueClassVisit(classElement, qualifier)
+		if (typeIsRef(declaredType.getUnderlyingType)) {
+			// visit class under given consistency to check compatibility, skip for bottom type
+			val typeElt = declaredType.getTypeArguments.get(0)
+			val qualifier = typeElt.getAnnotationInHierarchy(inconsistentAnnotation)
+			if (qualifier != null && !AnnotationUtils.areSame(qualifier, localAnnotation)) {
+				val classElement = TypesUtils.getTypeElement(typeElt.getUnderlyingType)
+				tf.getVisitor.queueClassVisit(classElement, qualifier)
+			}
 		}
 
 		r
@@ -33,7 +36,7 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 			val methodName = method.getElement.getSimpleName.toString.toLowerCase
 			val recvQualifier = tf.getMethodReceiverContext
 			if (getExplicitConsistencyAnnotation(method.getReturnType).isEmpty &&
-				methodName.startsWith("get")) { // TODO: include fields for method name check
+				methodName.startsWith("get")) {
 				val inferred =
 					if (isMixedQualifier(recvQualifier)) getQualifierForMethodOp(method.getElement, recvQualifier).get
 					else recvQualifier

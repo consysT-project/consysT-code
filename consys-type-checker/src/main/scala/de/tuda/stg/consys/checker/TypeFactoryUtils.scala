@@ -3,11 +3,13 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodInvocationTree, ModifiersTree}
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, QualifierForOperation, Strong, Weak}
+import org.checkerframework.dataflow.qual.SideEffectFree
 
 import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, Modifier, TypeElement}
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.jmlspecs.annotation.Pure
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
@@ -88,6 +90,10 @@ object TypeFactoryUtils {
 
 	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
+
+	def isSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[SideEffectFree]) != null ||
+			tf.getDeclAnnotation(method, classOf[Pure]) != null
 
 	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =
 		tf.areSameByClass(qualifier, classOf[Mixed])
@@ -235,4 +241,35 @@ object TypeFactoryUtils {
 
 	def isTransaction(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Store", List("transaction"))
+
+	def typeIsInstanceOf(typ: DeclaredType, name: String): Boolean = {
+		def checkReceiverNameInInterfaces(dt: DeclaredType, name: String): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getInterfaces.exists {
+				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == name => true
+				case interfaceType: DeclaredType => checkReceiverNameInInterfaces(interfaceType, name)
+				case _ => false
+			}
+			case _ => false
+		}
+		@tailrec
+		def checkReceiverNameInSuperClass(dt: DeclaredType, name: String): Boolean = dt.asElement() match {
+			case te: TypeElement => te.getSuperclass match {
+				case _: NoType => false
+				case dt: DeclaredType if getQualifiedName(dt) == name => true
+				case dt: DeclaredType => checkReceiverNameInInterfaces(dt, name) || checkReceiverNameInSuperClass(dt, name)
+				case _ => false
+			}
+			case _ => false
+		}
+
+		val typName = getQualifiedName(typ)
+		if (typName == name)
+			true
+		else
+			checkReceiverNameInInterfaces(typ, name) || checkReceiverNameInSuperClass(typ, name)
+	}
+
+	def typeIsRef(typ: DeclaredType): Boolean = {
+		typeIsInstanceOf(typ, s"$japiPackageName.Ref")
+	}
 }
