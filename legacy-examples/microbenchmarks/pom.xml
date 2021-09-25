@@ -4,7 +4,7 @@
 
 
     <parent>
-        <artifactId>examples</artifactId>
+        <artifactId>legacy-examples</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
         <version>3.0.0-alpha</version>
     </parent>

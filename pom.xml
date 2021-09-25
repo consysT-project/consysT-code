@@ -23,6 +23,7 @@
         <module>consys-bench</module>
         <module>legacy-examples</module>
         <module>consys-annotations</module>
+        <module>thesis-test</module>
     </modules>
 
 

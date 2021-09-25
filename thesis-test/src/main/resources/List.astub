@@ -1,0 +1,8 @@
+package java.util;
+
+import org.checkerframework.dataflow.qual.SideEffectFree;
+
+class List<E> extends Collection<E> {
+    public @SideEffectFree E get(int index);
+    public @SideEffectFree int size();
+}

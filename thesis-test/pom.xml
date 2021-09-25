@@ -3,26 +3,33 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>legacy-examples</artifactId>
+        <artifactId>consys</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
         <version>3.0.0-alpha</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>auctions</artifactId>
+    <artifactId>thesis-test</artifactId>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
                 <configuration>
-                    <compilerArguments>
-                        <Xmaxerrs>10000</Xmaxerrs>
-                        <Xmaxwarns>10000</Xmaxwarns>
-                    </compilerArguments>
                     <annotationProcessorPaths>
-                        <!-- path to the consys javac plugin -->
+                        <path>
+                            <!-- use different checker for ConSysT compile-time benchmark (version and name) -->
+                            <groupId>de.tuda.stg.consys</groupId>
+                            <artifactId>consys-type-checker</artifactId>
+                            <version>3.0.0-alpha</version>
+                        </path>
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
@@ -30,7 +37,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
-                        <!-- Add the consys compiler plugin for preprocessing sources -->
+                        <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:ConsysPlugin</arg>
                     </compilerArgs>
                 </configuration>
@@ -44,9 +51,15 @@
             <artifactId>consys-core</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
-            <dependency>
+        <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
+            <version>3.0.0-alpha</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
         <dependency>
@@ -54,7 +67,16 @@
             <artifactId>consys-compiler</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
-     </dependencies>
-
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-annotations</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+    </dependencies>
 
 </project>
