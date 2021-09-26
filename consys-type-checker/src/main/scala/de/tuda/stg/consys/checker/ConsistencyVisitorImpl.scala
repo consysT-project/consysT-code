@@ -42,21 +42,24 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		var upperBound = atypeFactory.getAnnotatedType(classTree.asInstanceOf[Tree]).getAnnotationInHierarchy(inconsistentAnnotation)
 		upperBound = repairMixed(upperBound)
 
+		// process class for upper bound with directly throwing errors
 		processClassTree(classTree, upperBound)
 
 		getConsistencyQualifiers.
 			filter(q => tf.getQualifierHierarchy.isSubtype(q, upperBound) && !AnnotationUtils.areSame(q, upperBound)).
-			foreach(a => {
-				val q = repairMixed(a)
+			foreach(q => {
+				val qualifier = repairMixed(q)
 
+				// process class without throwing errors (but caching them)
 				consistencyChecker.enableLogCapture()
-				processClassTree(classTree, q)
+				processClassTree(classTree, qualifier)
 				val (errors, warnings) = consistencyChecker.disableLogCapture()
-				classVisitCache.put((className, toQualifierName(q)), (errors, warnings))
+				classVisitCache.put((className, toQualifierName(qualifier)), (errors, warnings))
 
-				if (classVisitQueue.contains((className, toQualifierName(q)))) {
-					reportQueuedErrors(classTree, className, q, errors, warnings)
-					classVisitQueueReported.add((className, toQualifierName(q)))
+				// report errors if the class is queued
+				if (classVisitQueue.contains((className, toQualifierName(qualifier)))) {
+					reportQueuedErrors(classTree, className, qualifier, errors, warnings)
+					classVisitQueueReported.add((className, toQualifierName(qualifier)))
 				}
 			})
 	}

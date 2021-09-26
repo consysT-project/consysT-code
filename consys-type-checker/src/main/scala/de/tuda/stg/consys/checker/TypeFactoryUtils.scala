@@ -22,9 +22,15 @@ import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 	* @author Mirko Köhler
 	*/
 object TypeFactoryUtils {
-	/*
-		Annotation definitions
-	 */
+	//------------------------------------------------------------------------------------------------------------------
+
+	val checkerPackageName = s"de.tuda.stg.consys.checker"
+	val japiPackageName = s"de.tuda.stg.consys.japi"
+	val annoPackageName = s"de.tuda.stg.consys.annotations"
+	val qualPackageName = s"de.tuda.stg.consys.checker.qual"
+
+	//------------------------------------------------------------------------------------------------------------------
+
 	def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
 		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations,"de.tuda.stg.consys.checker.qual.Local")
 
@@ -57,17 +63,15 @@ object TypeFactoryUtils {
 		consistencyQualifiers
 	}
 
-
-	val checkerPackageName = s"de.tuda.stg.consys.checker"
-	val japiPackageName = s"de.tuda.stg.consys.japi"
-	val annoPackageName = s"de.tuda.stg.consys.annotations"
-	val qualPackageName = s"de.tuda.stg.consys.checker.qual"
+	//------------------------------------------------------------------------------------------------------------------
 
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType)
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt)
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
 	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
 	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
+
+	//------------------------------------------------------------------------------------------------------------------
 
 	def getExplicitConsistencyAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] = {
 		val a = tf.getQualifierHierarchy.findAnnotationInHierarchy(aType.getExplicitAnnotations, inconsistentAnnotation)
@@ -90,13 +94,14 @@ object TypeFactoryUtils {
 	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
-	def isSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
-		tf.getDeclAnnotation(method, classOf[SideEffectFree]) != null ||
-			tf.getDeclAnnotation(method, classOf[Pure]) != null
+	//------------------------------------------------------------------------------------------------------------------
 
 	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =
 		tf.areSameByClass(qualifier, classOf[Mixed])
 
+	/**
+	 * Returns the qualified name of the default op for a given mixed qualifier
+	 */
 	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
 		if (mixedAnnotation.getElementValues.values().isEmpty)
 			classOf[WeakOp].getCanonicalName
@@ -108,6 +113,9 @@ object TypeFactoryUtils {
 			}
 	}
 
+	/**
+	 * Returns the consistency qualifier for the default op for a given mixed qualifier
+	 */
 	def getQualifierForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
 		val operationLevel = getNameForMixedDefaultOp(mixedAnnotation)
 		getQualifierNameForOp(operationLevel) match {
@@ -118,6 +126,9 @@ object TypeFactoryUtils {
 		}
 	}
 
+	/**
+	 * Returns the qualified name of the operation level on a given method
+	 */
 	def getMixedOpForMethod(method: ExecutableElement, default: String)(implicit tf: AnnotatedTypeFactory): String = {
 		var methodLevel: Option[String] = None
 		getQualifierForOpMap.foreach(mapping => {
@@ -133,22 +144,35 @@ object TypeFactoryUtils {
 		if (methodLevel.isEmpty) default else methodLevel.get
 	}
 
-	def getQualifierForMethodOp(method: ExecutableElement, recvQual: AnnotationMirror)(implicit atypeFactory: AnnotatedTypeFactory): Option[AnnotationMirror] =
+	/**
+	 * Returns the consistency qualifier of the operation level on a given method for a given mixed receiver
+	 */
+	def getQualifierForMethodOp(method: ExecutableElement, recvQual: AnnotationMirror)(implicit tf: AnnotatedTypeFactory): Option[AnnotationMirror] =
 		getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQual)))
 
+	/**
+	 * Adds missing default op levels to a mixed qualifier (using WeakOp as the default)
+	 */
 	def repairMixed(annotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
 		if (tf.areSameByClass(annotation, classOf[Mixed]) && annotation.getElementValues.isEmpty)
 			mixedAnnotation(classOf[WeakOp])
 		else annotation
 	}
 
+	//--------------------------------------------------------------------------------------------------------
 
+	/**
+	 * Returns the qualified name of the consistency qualifier for a given operation level (passed by qualified name).
+	 */
 	def getQualifierNameForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[String] = {
 		if (qualifierForOpMap.isEmpty)
 			qualifierForOpMap = Some(buildQualifierMap)
 		qualifierForOpMap.get.get(qualifiedName)
 	}
 
+	/**
+	 * Returns the consistency qualifier for a given operation level (passed by qualified name).
+	 */
 	def getQualifierForOp(qualifiedName: String)(implicit tf: AnnotatedTypeFactory): Option[AnnotationMirror] = {
 		if (qualifierForOpMap.isEmpty)
 			qualifierForOpMap = Some(buildQualifierMap)
@@ -158,6 +182,9 @@ object TypeFactoryUtils {
 		}
 	}
 
+	/**
+	 * Constructs and returns the mapping between consistency qualifiers and operation levels
+	 */
 	def getQualifierForOpMap(implicit tf: AnnotatedTypeFactory): Map[String, String] = {
 		if (qualifierForOpMap.isEmpty)
 			qualifierForOpMap = Some(buildQualifierMap)
@@ -165,25 +192,31 @@ object TypeFactoryUtils {
 	}
 
 	private var qualifierForOpMap: Option[Map[String, String]] = None
-	private def buildQualifierMap(implicit atypeFactory: AnnotatedTypeFactory): Map[String, String] =
-		atypeFactory.getSupportedTypeQualifiers.
-			map(q => atypeFactory.getAnnotatedType(q) match {
+	private def buildQualifierMap(implicit tf: AnnotatedTypeFactory): Map[String, String] = {
+		// search for QualifierForOperation meta-annotation on all qualifiers in the qual/ directory
+		// and map the qualifiers to the given operation level
+		tf.getSupportedTypeQualifiers.
+			map(q => tf.getAnnotatedType(q) match {
 				case adt: AnnotatedDeclaredType => adt.getUnderlyingType.asElement
 				case _ => null
 			}).
 			filter(x => x != null).
 			foldLeft(Map.empty[String, String])((map, elt) => {
-				atypeFactory.getAnnotationByClass(elt.getAnnotationMirrors, classOf[QualifierForOperation]) match {
+				tf.getAnnotationByClass(elt.getAnnotationMirrors, classOf[QualifierForOperation]) match {
 					case null => map
 					case annotation =>
 						val value = annotation.getElementValues.values().head
 						map + (value.getValue.toString -> elt.toString)
 				}
 			})
+	}
 
-	def isPrivateOrProtected(elt: Element): Boolean =
-		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
+	//------------------------------------------------------------------------------------------------------------------
 
+	/**
+	 * Checks if the given method invocation is a specific method on a specific receiver, including in interfaces and
+	 * superclasses.
+	 */
 	def methodInvocationIsAny(node: MethodInvocationTree, receiverName: String, methodNames: List[String])(implicit tf: AnnotatedTypeFactory) : Boolean = {
 		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
 			val methodId = memberSelectTree.getIdentifier.toString
@@ -241,6 +274,9 @@ object TypeFactoryUtils {
 	def isTransaction(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Store", List("transaction"))
 
+	/**
+	 * Checks if a type has a specific name, including in interfaces and superclasses.
+	 */
 	def typeIsInstanceOf(typ: DeclaredType, name: String): Boolean = {
 		def checkReceiverNameInInterfaces(dt: DeclaredType, name: String): Boolean = dt.asElement() match {
 			case te: TypeElement => te.getInterfaces.exists {
@@ -271,4 +307,11 @@ object TypeFactoryUtils {
 	def typeIsRef(typ: DeclaredType): Boolean = {
 		typeIsInstanceOf(typ, s"$japiPackageName.Ref")
 	}
+
+	def isSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[SideEffectFree]) != null ||
+			tf.getDeclAnnotation(method, classOf[Pure]) != null
+
+	def isPrivateOrProtected(elt: Element): Boolean =
+		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
 }

@@ -67,6 +67,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
 		if (tree.getKind() == Tree.Kind.METHOD && ((MethodTree)tree).getName().toString().toLowerCase().startsWith("get")) {
 			// disable cache when querying methods, so that we don't skip the return type adaptation
+			// fields are never cached, so we don't need additional rules there
 			boolean prevShouldCache = super.shouldCache;
 			super.shouldCache = false;
 			var result = super.getAnnotatedType(tree);
@@ -80,6 +81,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	@Override
 	protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
 		var prevMethodReceiverContext = methodReceiverContext;
+		// adapts the receiver context, so that the TypeAnnotator has the correct information when inferring
+		// return types on mixed getters
 		if (tree.getKind() == Tree.Kind.METHOD) {
 			if (!visitClassContext.isEmpty())
 				methodReceiverContext = visitClassContext.peek()._2;
@@ -104,6 +107,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 	@Override
 	public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
 		var prevMethodReceiverContext = methodReceiverContext;
+		// adapts the receiver context, so that the TypeAnnotator has the correct information when inferring
+		// return types on mixed getters
 		if (elt.getKind() == ElementKind.METHOD && !visitClassContext.isEmpty()) {
 			methodReceiverContext = peekVisitClassContext()._2;
 		}

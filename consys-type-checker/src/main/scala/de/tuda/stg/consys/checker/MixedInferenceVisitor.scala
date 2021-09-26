@@ -193,7 +193,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
 
     private def processExplicitFields(state: State): Unit = {
         val (Some(clazz), Some(defaultOp), _, _) = state
-
+        // set all fields with explicit annotations to the given annotation
         getOwnFields(clazz).foreach(field => getExplicitConsistencyAnnotation(field) match {
                 case Some(annotation) => inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp)._2.
                     update(getQualifiedName(field), getQualifiedName(annotation))
@@ -323,6 +323,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         val (_, Some(defaultOp), _, _) = state
         getQualifierNameForOp(defaultOp) match {
             case Some(qualifier) =>
+                // set inherited fields to default level
                 val level = AnnotationBuilder.fromName(tf.getElementUtils, qualifier)
                 getOwnFields(clazz).foreach(f => {
                     updateField(f, (Some(clazz), Some(defaultOp), Some(level), Some(Write)), f)
@@ -332,6 +333,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         }
     }
 
+    // recursively searches for a given field in the inference table
     private def getInferredFieldOrFromSuperclass(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): Option[(AnnotationMirror, ClassName, VisitMode)] = {
         inferenceTable.get(getQualifiedName(clazz), defaultOpLevel) match {
             case Some(entry) => entry._2.get(getQualifiedName(field)) match {
@@ -364,6 +366,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     private def getSuperclassElement(classTree: ClassTree): Option[TypeElement] =
         getSuperclassElement(TreeUtils.elementFromDeclaration(classTree))
 
+    // returns the fields that the given class defines (i.e. excluding inherited fields)
     private def getOwnFields(elt: TypeElement): Iterable[VariableElement] = {
         elt.getEnclosedElements.filter({
             case _: VariableElement => true
@@ -374,6 +377,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     private def fromName(name: String): AnnotationMirror =
         AnnotationBuilder.fromName(tf.getElementUtils, name)
 
+    // returns the explicit or public qualifier for a field if it exists
     private def getExplicitOrPublicQualifier(field: VariableElement, state: State): Option[AnnotationMirror] = {
         val (_, Some(defaultOp), _, _) = state
         field.getEnclosingElement match {

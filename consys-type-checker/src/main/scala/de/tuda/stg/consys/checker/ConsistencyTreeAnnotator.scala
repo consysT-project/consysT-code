@@ -194,6 +194,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				tf.peekVisitClassContext()._2
 		}
 
+		// return type inference for mixed getters
 		if (getExplicitConsistencyAnnotation(methodType.getReturnType).isEmpty &&
 			methodName.startsWith("get")) {
 			val inferred =
