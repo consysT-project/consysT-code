@@ -76,7 +76,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				}
 			} else /* if (method.getAnnotation(classOf[WeakOp]) != null) */ {
 				if (method.getAnnotation(classOf[WeakOp]) == null) {
-					println(s"Warning: Method [${method.toString}] executed with Weak consistency because it was not annotated.")
+					//println(s"Warning: Method [${method.toString}] executed with Weak consistency because it was not annotated.")
 				}
 				//If the annotation is weak, or if there was no annotation at all...
 				//Lookup the object in the cache

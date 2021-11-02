@@ -1,0 +1,57 @@
+--------------
+Runtime Benchmark
+Warmup: 5
+Measure: 20
+--------------
+
+### Counter ###
+ > Counter (ConSysT-Op):
+    mean:   1.2723
+    median: 1.227
+    s:      0.2567743428730658
+    range:  0.867
+
+ > Counter (ConSysT):
+    mean:   3.2988
+    median: 3.342
+    s:      0.24530659655987538
+    range:  0.7850000000000001
+
+### Twitter ###
+ > Twitter (ConSysT-Op):
+    mean:   3.492349999999999
+    median: 3.539
+    s:      0.42110597178582515
+    range:  1.459
+
+ > Twitter (ConSysT):
+    mean:   3.32655
+    median: 3.295
+    s:      0.4010667978227435
+    range:  1.4409999999999994
+
+### Messages ###
+ > Message Groups (ConSysT-Op):
+    mean:   2.9787999999999997
+    median: 3.022
+    s:      0.47392277851987663
+    range:  1.7040000000000002
+
+ > Message Groups (ConSysT):
+    mean:   4.061200000000001
+    median: 4.057
+    s:      0.40959782585771676
+    range:  1.4340000000000002
+
+### Bank ###
+ > Bank (ConSysT-Op):
+    mean:   3.0860500000000006
+    median: 3.136
+    s:      0.2198328252391612
+    range:  0.863
+
+ > Bank (ConSysT):
+    mean:   20.61455
+    median: 21.229
+    s:      3.6277885604695435
+    range:  13.523

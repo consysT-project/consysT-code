@@ -1,19 +1,21 @@
 package de.tuda.stg.consys.checker
 
-import java.util
 import com.sun.source.tree._
-import SubConsistencyChecker.{StrongSubConsistencyChecker, WeakSubConsistencyChecker}
 import de.tuda.stg.consys.annotations.Transactional
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.Mixed
 
-import javax.lang.model.element.{AnnotationMirror, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
+import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.jmlspecs.annotation.Pure
 
-import javax.lang.model.`type`.{DeclaredType, NoType}
+import javax.lang.model.`type`.TypeKind
 import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import scala.collection.mutable
 
 /**
 	* Created on 05.03.19.
@@ -23,51 +25,95 @@ import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
 
-	val subCheckerMap: Map[String, Class[_ <: SubConsistencyChecker]] =
-		Map(s"$checkerPackageName.qual.Strong" -> classOf[StrongSubConsistencyChecker],
-			s"$checkerPackageName.qual.Weak" -> classOf[WeakSubConsistencyChecker])
+	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
+	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
+	private var isInConstructor: Boolean = false
 
-	override def visitMemberSelect(node : MemberSelectTree, p : Void) : Void = {
-		val recvType = atypeFactory.getAnnotatedType(node.getExpression)
-		if (recvType.hasAnnotation(classOf[Mixed])
-			&& TreeUtils.isFieldAccess(node)
-			&& !TreeUtils.isExplicitThisDereference(node.getExpression)
-			// class literals are treated as fields
-			&& !TreeUtils.isClassLiteral(node)) {
+	type ClassName = String
+	type QualifierName = (String, String)
+	private val classVisitCache: mutable.Map[(ClassName, QualifierName), (String, String)] = mutable.Map.empty
+	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
+	private val classVisitQueueReported: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
-			checker.reportError(node, "mixed.field.access")
-		}
-
-		super.visitMemberSelect(node, p)
-	}
 
 	override def processClassTree(classTree: ClassTree): Unit = {
-		println(">Class decl:  " + getQualifiedName(classTree))
-		// TODO: clean up + we should explicitly run the inference here before moving on
-		val mixed = atypeFactory.getAnnotatedType(classTree).getAnnotation(classOf[Mixed])
-		val defaultOpLevel = if (mixed != null) AnnotationUtils.getElementValuesWithDefaults(mixed).values().head.getValue.toString else ""
-		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
-		super.processClassTree(classTree)
-		atypeFactory.resetMixedClassContext()
+		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
+		var upperBound = atypeFactory.getAnnotatedType(classTree.asInstanceOf[Tree]).getAnnotationInHierarchy(inconsistentAnnotation)
+		upperBound = repairMixed(upperBound)
+
+		// process class for upper bound with directly throwing errors
+		processClassTree(classTree, upperBound)
+
+		getConsistencyQualifiers.
+			filter(q => tf.getQualifierHierarchy.isSubtype(q, upperBound) && !AnnotationUtils.areSame(q, upperBound)).
+			foreach(q => {
+				val qualifier = repairMixed(q)
+
+				// process class without throwing errors (but caching them)
+				consistencyChecker.enableLogCapture()
+				processClassTree(classTree, qualifier)
+				val (errors, warnings) = consistencyChecker.disableLogCapture()
+				classVisitCache.put((className, toQualifierName(qualifier)), (errors, warnings))
+
+				// report errors if the class is queued
+				if (classVisitQueue.contains((className, toQualifierName(qualifier)))) {
+					reportQueuedErrors(classTree, className, qualifier, errors, warnings)
+					classVisitQueueReported.add((className, toQualifierName(qualifier)))
+				}
+			})
 	}
 
-	def processClassTree(classTree: ClassTree, defaultOpLevel: String): Unit = {
-		println(">Class decl (noCache):  " + getQualifiedName(classTree))
-		atypeFactory.setMixedClassContext(TreeUtils.elementFromDeclaration(classTree), defaultOpLevel)
+	def queueClassVisit(classElement: TypeElement, annotation: AnnotationMirror): Unit = {
+		val className = getQualifiedName(classElement)
+		val qualifierName = toQualifierName(annotation)
+
+		if (classVisitQueueReported.contains((className, qualifierName)))
+			return
+
+		classVisitCache.get(className, qualifierName) match {
+			case Some((errors, warnings)) =>
+				reportQueuedErrors(classElement, className, annotation, errors, warnings)
+				classVisitQueueReported.add((className, qualifierName))
+
+			case None if !classVisitQueue.contains(className, toQualifierName(annotation)) =>
+				classVisitQueue.add(className, qualifierName)
+
+			case _ =>
+		}
+	}
+
+	private def reportQueuedErrors(source: Object, className: String, annotation: AnnotationMirror, errors: String, warnings: String): Unit = {
+		if (errors.nonEmpty)
+			checker.reportError(source, "consistency.type.use.incompatible",
+				getQualifiedName(annotation), className, errors)
+		if (warnings.nonEmpty)
+			checker.reportWarning(source, "consistency.type.use.incompatible",
+				getQualifiedName(annotation), className, errors)
+	}
+
+	/**
+	 * Visits a class tree under a specific consistency qualifier
+	 */
+	private def processClassTree(classTree: ClassTree, annotation: AnnotationMirror): Unit = {
+		val classElement = TreeUtils.elementFromDeclaration(classTree)
+		val className = getQualifiedName(classElement)
+		val qualifierName = toQualifierName(annotation)
+
+		if (classVisitCache.contains(className, qualifierName)) return
+		else classVisitCache.put((className, qualifierName), ("", ""))
+
+		tf.pushVisitClassContext(classElement, annotation)
+		if (isMixedQualifier(annotation))
+			tf.mixedInferenceVisitor.processClass(classTree, annotation)
 		super.processClassTree(classTree)
-		atypeFactory.resetMixedClassContext()
+		tf.popVisitClassContext()
 	}
 
 	/*
 		Check that implicit contexts are correct.
 	 */
 	override def visitAssignment(node : AssignmentTree, p : Void) : Void = {
-		println(s"  >Var assign:\n" +
-				s"   <$node>\n" +
-				s"      where ${node.getVariable} -> ${atypeFactory.getAnnotatedType(node.getVariable)}\n" +
-				s"      where ${node.getExpression} -> ${atypeFactory.getAnnotatedType(node.getExpression)}")
-
 		checkAssignment(atypeFactory.getAnnotatedType(node.getVariable), atypeFactory.getAnnotatedType(node.getExpression), node)
 		super.visitAssignment(node, p)
 	}
@@ -78,209 +124,184 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		super.visitCompoundAssignment(node, p)
 	}
 
-
 	override def visitVariable(node : VariableTree, p : Void) : Void = {
-		println(s"  >Var decl:\n" +
-				s"   ${atypeFactory.getAnnotatedType(node)} ${node.getName}")
-
-		val initializer : ExpressionTree = node.getInitializer
+		val initializer: ExpressionTree = node.getInitializer
 		if (initializer != null) checkAssignment(atypeFactory.getAnnotatedType(node), atypeFactory.getAnnotatedType(initializer), node)
 		super.visitVariable(node, p)
 	}
 
 	private def checkAssignment(lhsType : AnnotatedTypeMirror, rhsType : AnnotatedTypeMirror, tree : Tree) : Unit = {
-		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree))) //|| !implicitContext.allowsUpdatesFrom(rhsType, tree)))
+		// check implicit context constraints
+		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree)))
 			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
+
+		// check immutability constraints
+		tree match {
+			case _: VariableTree => // variable initialization at declaration is allowed
+			case assign: AssignmentTree => assign.getVariable match {
+				case id: IdentifierTree if TreeUtils.elementFromUse(id).getKind != ElementKind.FIELD => // reassigning variables is allowed
+				case id: IdentifierTree if isInConstructor && TreeUtils.elementFromUse(id).getKind == ElementKind.FIELD => // allow field initialization in constructor
+				case mst: MemberSelectTree => mst.getExpression match {
+					case id: IdentifierTree if isInConstructor && TreeUtils.isExplicitThisDereference(id) => // allow field initialization in constructor
+					case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
+						checker.reportError(tree, "immutability.assignment.type")
+				}
+				case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
+					checker.reportError(tree, "immutability.assignment.type")
+			}
+			case _ =>
+		}
+	}
+
+	override def visitMemberSelect(node: MemberSelectTree, p: Void): Void = {
+		// restrict private and protected field access through Ref objects
+		node.getExpression match {
+			case mTree: MethodInvocationTree if isRefDereference(mTree) =>
+				val elt = TreeUtils.elementFromUse(node)
+				if ((elt.getKind == ElementKind.FIELD || elt.getKind == ElementKind.METHOD) && isPrivateOrProtected(elt))
+					checker.reportWarning(node, "ref.member.access")
+			case _ =>
+		}
+
+		super.visitMemberSelect(node, p)
 	}
 
 	override def visitMethodInvocation(node : MethodInvocationTree, p : Void) : Void = {
-		if (methodInvocationIsTransaction(node)) {
+		val prevIsTransactionContext = transactionContext
+		if (isTransaction(node))
 			transactionContext = true
-		}
 
-		if (!transactionContext && methodInvocationIsReplicateOrLookup(node)) {
-			checker.reportError(node, "invocation.replicate.transaction", node)
-		}
-		if (!transactionContext && methodInvocationIsRefAccess(node)) {
-			checker.reportError(node, "invocation.ref.transaction", node)
-		}
-		if (!transactionContext && methodInvocationIsTransactional(node)) {
-			checker.reportError(node, "invocation.method.transaction", node)
+		// check transaction violations
+		if (!transactionContext) {
+			if (isReplicateOrLookup(node))
+				checker.reportError(node, "invocation.replicate.transaction", node)
+			if (isAnyRefAccess(node))
+				checker.reportError(node, "invocation.ref.transaction", node)
+			if (methodInvocationIsTransactional(node))
+				checker.reportError(node, "invocation.method.transaction", node)
 		}
 
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
 				val expr : ExpressionTree = memberSelectTree.getExpression
 				val recvType = atypeFactory.getAnnotatedType(expr)
+				val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
 
-				if (expr != null && !methodInvocationIsRefOrGetField(node))
-					checkMethodInvocationReceiver(recvType, node)
-
-				if (recvType.hasAnnotation(classOf[Mixed]) && methodInvocationIsRefFieldAccess(node)) {
-					checker.reportError(node, "mixed.field.access")
+				// check receiver w.r.t. implicit context
+				if (expr != null && !methodInvocationIsRefOrGetField(node)) {
+					if (recvType.hasEffectiveAnnotation(classOf[Mixed]))
+						checkMethodInvocationOpLevel(recvType, node)
+					else
+						checkMethodInvocationReceiver(recvType, node)
 				}
 
-			case _ =>
+				// check immutability on receiver
+				if (!isAnyRefAccess(node) &&
+					!isReplicateOrLookup(node) &&
+					!methodType.getElement.getModifiers.contains(Modifier.STATIC)) {
+
+					checkMethodInvocationReceiverMutability(recvType, methodType, node)
+				}
+
+			case _: IdentifierTree => // implicit this receiver
+				// construct type for implicit this
+				val objectMirror = TypesUtils.typeFromClass(classOf[Object], atypeFactory.types, atypeFactory.getElementUtils)
+				val recvType = AnnotatedTypeMirror.createType(objectMirror, atypeFactory, true)
+				recvType.addAnnotation(tf.peekVisitClassContext()._2)
+				recvType.addAnnotation(mutableAnnotation)
+
+				// check receiver w.r.t. implicit context
+				if (!methodInvocationIsRefOrGetField(node)) {
+					if (recvType.hasEffectiveAnnotation(classOf[Mixed]))
+						checkMethodInvocationOpLevel(recvType, node)
+					else
+						checkMethodInvocationReceiver(recvType, node)
+				}
+
+				// no immutability check since 'this' is always mutable
 		}
 
-		node.getArguments.forEach(argExpr =>
-			checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
-		)
-
-		if (methodInvocationIsReplicate(node)) {
-			val (isAllowed, src) = replicateIsAllowedForLevel(node)
-			if (!isAllowed) checker.reportError(node, "replicate.class", node, src)
-		}
+		// check arguments w.r.t. implicit context
+		val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
+		(methodType.getParameterTypes zip node.getArguments).foreach(entry => {
+			val (paramType, argExpr) = entry
+			// arguments taken as immutable parameters cannot violate implicit context
+			if (!paramType.hasAnnotation(immutableAnnotation))
+				checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
+		})
 
 		val r = super.visitMethodInvocation(node, p)
 
-		if (methodInvocationIsTransaction(node)) {
-			transactionContext = false
-		}
+		if (isTransaction(node))
+			transactionContext = prevIsTransactionContext
 		r
 	}
 
 	override def visitMethod(node: MethodTree, p: Void): Void = {
 		var shouldClose = false
+		val prevIsTransactionContext = transactionContext
 		if (!transactionContext && methodDeclarationIsTransactional(node)) {
 			transactionContext = true
 			shouldClose = true
 		}
-		val r = super.visitMethod(node, p)
-		if (shouldClose) {
-			transactionContext = false
+
+		val prevIsConstructor = isInConstructor
+		if (TreeUtils.isConstructor(node)) {
+			isInConstructor = true
 		}
+
+		// check operation level override rules
+		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
+			hasAnnotation(node.getModifiers, classOf[Pure]))) {
+
+			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
+			overrides.foreach(m => {
+				if (hasAnnotation(m, classOf[WeakOp]) && !hasAnnotation(node.getModifiers, classOf[WeakOp]))
+					checker.reportError(node, "mixed.inheritance.operation.incompatible",
+						if (hasAnnotation(node.getModifiers, classOf[StrongOp])) "StrongOp" else "Default",
+						"WeakOp", m.getReceiverType)
+				else if (!hasAnnotation(m, classOf[StrongOp]) && !hasAnnotation(m, classOf[WeakOp]) &&
+					hasAnnotation(node.getModifiers, classOf[StrongOp]))
+					checker.reportError(node, "mixed.inheritance.operation.incompatible",
+						"StrongOp", "Default", m.getReceiverType)
+			})
+		}
+
+		// check mutable on return type
+		if (!AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)) {
+			val mods = TreeUtils.elementFromDeclaration(node).getModifiers
+			val annotatedReturnType = tf.getAnnotatedType(node.asInstanceOf[Tree]).asInstanceOf[AnnotatedExecutableType].getReturnType
+			val returnType = annotatedReturnType.getUnderlyingType
+			if (!(TreeUtils.isConstructor(node) ||
+				returnType.getKind == TypeKind.VOID ||
+				TypesUtils.isPrimitiveOrBoxed(returnType) ||
+				mods.contains(Modifier.STATIC) ||
+				mods.contains(Modifier.PRIVATE) ||
+				mods.contains(Modifier.PROTECTED)) &&
+				annotatedReturnType.hasEffectiveAnnotation(mutableAnnotation))
+			{
+				checker.reportError(node.getReturnType, "immutability.return.type")
+			}
+		}
+
+		val r = super.visitMethod(node, p)
+
+		if (TreeUtils.isConstructor(node))
+			isInConstructor = prevIsConstructor
+		if (shouldClose)
+			transactionContext = prevIsTransactionContext
 		r
 	}
 
-	private def replicateIsAllowedForLevel(node: MethodInvocationTree): (Boolean, Object) = {
-		// match 'classType' in 'ctx.replicate(_, _, Class<classType>)'
-		val argType = atypeFactory.getAnnotatedType(node.getArguments.get(2))
-		argType match {
-			case adt: AnnotatedDeclaredType => adt.getTypeArguments.get(0) match {
-				case classType: AnnotatedDeclaredType =>
-					val qualifierName = AnnotationUtils.annotationName(classType.getAnnotationInHierarchy(getTopAnnotation))
-
-					subCheckerMap.get(qualifierName) match {
-						case Some(subChecker) =>
-							val subCheckerTypeFactory: SubConsistencyAnnotatedTypeFactory = checker.getTypeFactoryOfSubchecker(subChecker)
-							// having no sub checker means we are currently in a sub checker so we don't need to test replicate
-							if (subCheckerTypeFactory == null)
-								(true, null)
-							else
-								(subCheckerTypeFactory.isAllowed(classType.getUnderlyingType),
-									subCheckerTypeFactory.getSrcForDisallowed(classType.getUnderlyingType))
-						case None => (true, null)
-					}
-				}
-				case _ => (true, null)
-			case _ => (true, null)
-		}
-	}
-
-	private def methodInvocationIsX(node: MethodInvocationTree, receiverName: String, methodNames: List[String]) : Boolean = {
-		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
-			val methodId = memberSelectTree.getIdentifier.toString
-			methodNames.map(x => x == methodId).fold(false)(_ || _)
-		}
-		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
-				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
-					checkMethodName(mst)
-				case interfaceType: DeclaredType =>
-					checkReceiverNameInInterfaces(interfaceType, mst)
-				case _ => false
-			}
-			case _ => false
-		}
-		def checkReceiverNameInSuperClass(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getSuperclass match {
-				case _: NoType => false
-				case dt: DeclaredType if getQualifiedName(dt) == receiverName =>
-					checkMethodName(mst)
-				case dt: DeclaredType =>
-					checkReceiverNameInInterfaces(dt, mst) || checkReceiverNameInSuperClass(dt, mst)
-				case _ => false
-			}
-			case _ => false
-		}
-
-		node.getMethodSelect match {
-			case memberSelectTree : MemberSelectTree =>
-				val receiverType = atypeFactory.getAnnotatedType(memberSelectTree.getExpression)
-				receiverType match {
-					// check for a direct name match
-					case adt : AnnotatedDeclaredType if getQualifiedName(adt) == receiverName =>
-						checkMethodName(memberSelectTree)
-					// check for name match in interfaces or superclass
-					case adt: AnnotatedDeclaredType =>
-						checkReceiverNameInInterfaces(adt.getUnderlyingType, memberSelectTree) ||
-							checkReceiverNameInSuperClass(adt.getUnderlyingType, memberSelectTree)
-					case _ => false
-				}
-			case _ => false
-		}
-	}
-
 	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField"))
-
-	private def methodInvocationIsRefAccess(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
-
-	private def methodInvocationIsReplicateOrLookup(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
-
-	private def methodInvocationIsReplicate(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.TransactionContext", List("replicate"))
-
-	private def methodInvocationIsTransaction(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Store", List("transaction"))
-
-	private def methodInvocationIsRefFieldAccess(node: MethodInvocationTree): Boolean =
-		methodInvocationIsX(node, s"$japiPackageName.Ref", List("setField", "getField"))
-
-	private def methodInvocationIsSetField(node : MethodInvocationTree) : Boolean = node.getMethodSelect match {
-		case memberSelectTree : MemberSelectTree =>
-			val expr : ExpressionTree = memberSelectTree.getExpression
-			val recvType = atypeFactory.getAnnotatedType(expr)
-
-			println(s"expr = $expr, recvType = $recvType, method = ${memberSelectTree.getIdentifier}")
-			println(recvType.asInstanceOf[AnnotatedDeclaredType].getUnderlyingType.asElement().getSimpleName.toString == "JRef")
-			println(memberSelectTree.getIdentifier.toString == "setField")
-
-			recvType match {
-				case adt : AnnotatedDeclaredType if adt.getUnderlyingType.asElement().getSimpleName.toString == "JRef" =>
-					if (memberSelectTree.getIdentifier.toString == "setField") {
-						val setArg = node.getArguments.get(1)
-
-						val setArgT = atypeFactory.getAnnotatedType(setArg)
-
-						val annos = setArgT.getAnnotations
-
-						println(s"args = ${node.getArguments}, argT = $annos")
-					}
-				case _ =>
-			}
-
-			false
-
-		case _ =>
-			false
-	}
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField"))
 
 	private def methodDeclarationIsTransactional(node: MethodTree) : Boolean = {
-		val annotations = node.getModifiers.getAnnotations
-		annotations.exists((at: AnnotationTree) => atypeFactory.getAnnotatedType(at.getAnnotationType) match {
-			case adt: AnnotatedDeclaredType =>
-				getQualifiedName(adt) == s"$annoPackageName.Transactional"
-			case _ =>
-				false
-		})
+		val execElem = TreeUtils.elementFromDeclaration(node)
+		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
 	}
 
 	private def methodInvocationIsTransactional(node: MethodInvocationTree) : Boolean = {
-		// get the correct method declaration for this invocation and check for annotation
 		val execElem = TreeUtils.elementFromUse(node)
 		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
 	}
@@ -290,23 +311,45 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 			checker.reportError(tree, "invocation.receiver.implicitflow", receiverType, implicitContext.get, tree)
 	}
 
+	private def checkMethodInvocationReceiverMutability(receiverType : AnnotatedTypeMirror, methodType: AnnotatedExecutableType, tree : MethodInvocationTree) : Unit = {
+		if (!(transactionContext ||
+			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)))
+			return
+
+		if (receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !isSideEffectFree(methodType.getElement))
+			checker.reportError(tree, "immutability.invocation.receiver")
+	}
+
 	private def checkMethodInvocationArgument(argType : AnnotatedTypeMirror, tree : Tree) : Unit = {
 		if (transactionContext && !implicitContext.allowsAsArgument(argType, tree))
 			checker.reportError(tree, "invocation.argument.implicitflow", argType, implicitContext.get, tree)
 	}
 
+	private def checkMethodInvocationOpLevel(recvType: AnnotatedTypeMirror, tree: MethodInvocationTree): Unit = {
+		if (transactionContext && recvType.hasEffectiveAnnotation(classOf[Mixed]) && !implicitContext.allowsAsMixedInvocation(recvType, tree))
+			checker.reportError(tree, "invocation.operation.implicitflow",
+				getMixedOpForMethod(TreeUtils.elementFromUse(tree), getNameForMixedDefaultOp(recvType.getEffectiveAnnotation(classOf[Mixed]))),
+				implicitContext.get, tree)
+	}
+
+	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
+		if (isMixedQualifier(qualifier))
+			(getQualifiedName(qualifier), getNameForMixedDefaultOp(repairMixed(qualifier)))
+		else
+			(getQualifiedName(qualifier), "")
+	}
 
 
-
-
-	override protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = { //can only include consistency annotations
-		val annotations : util.Set[AnnotationMirror] = typ.getAnnotations
-		if (annotations.size == 1) return annotations.iterator.next
-		else if (annotations.isEmpty) return null
-		throw new AssertionError("inferred an unexpected number of annotations. Expected 1 annotation, but got: " + annotations)
+	override protected def getAnnotation(typ : AnnotatedTypeMirror) : AnnotationMirror = {
+		typ.getEffectiveAnnotationInHierarchy(getTopAnnotation)
 	}
 
 	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation(atypeFactory)
 
 	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation(atypeFactory)
+
+	// TODO: this is a hack to circumvent a possible bug in the checkerframework, where type arguments with multiple
+	//		 annotations get erased and can't be inferred. If we remove this, ref() calls crash the checker
+	override def skipReceiverSubtypeCheck(node: MethodInvocationTree, methodDefinitionReceiver: AnnotatedTypeMirror, methodCallReceiver: AnnotatedTypeMirror): Boolean =
+		true
 }

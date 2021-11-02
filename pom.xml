@@ -23,6 +23,7 @@
         <module>consys-bench</module>
         <module>legacy-examples</module>
         <module>consys-annotations</module>
+        <module>thesis-test</module>
     </modules>
 
 
@@ -45,7 +46,7 @@
         <zookeeper.version>3.5.6</zookeeper.version>
         <curator.version>4.2.0</curator.version>
 
-        <checkerframework.version>3.11.0</checkerframework.version>
+        <checkerframework.version>3.18.0</checkerframework.version>
 
         <plugins.shade.version>3.2.1</plugins.shade.version>
     </properties>

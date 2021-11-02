@@ -1,6 +1,7 @@
 package testfiles;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
@@ -19,15 +20,15 @@ public class FieldAccessTest {
         Ref<@Strong A> rs;
     }
 
-    void testObjectField(@Strong A obj) {
+    void testObjectField(@Mutable @Strong A obj) {
         @Weak int i;
         i = obj.i;
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         obj.i = i;
     }
 
-    void testObjectField2(@Weak A obj) {
-        // :: error: (assignment.type.incompatible)
+    void testObjectField2(@Mutable @Weak A obj) {
+        // :: error: assignment
         @Strong int i = obj.i;
 
         obj.i = i;
@@ -35,42 +36,43 @@ public class FieldAccessTest {
 
 
     @Transactional
-    void testRefField(Ref<@Weak A> obj) {
-        // :: error: (assignment.type.incompatible)
+    void testRefField(Ref<@Mutable @Weak A> obj) {
+        // :: error: assignment
         Ref<@Strong A> r = obj.ref().rs;
 
         obj.ref().rs = r;
     }
 
     @Transactional
-    void testRefField2(Ref<@Strong A> obj) {
-        // :: error: (assignment.type.incompatible)
+    void testRefField2(Ref<@Mutable @Strong A> obj) {
+        // :: error: assignment
         Ref<@Strong A> r = obj.ref().rw;
 
         obj.ref().rw = r;
     }
 
     @Transactional
-    void testDefault(Ref<A> obj) {
-        // :: error: (assignment.type.incompatible)
+    void testDefault(Ref<@Mutable A> obj) {
+        // :: error: assignment
         Ref<@Strong A> r1 = obj.ref().rw;
-        // :: error: (assignment.type.incompatible)
+        // :: error: assignment
         Ref<@Weak A> r2 = obj.ref().rw;
     }
 
     /**
      * Test that 'this' is ignored for field access type refinements
      */
+    // :: error: consistency.type.use.incompatible
     static class ThisTest implements Serializable {
-        Ref<@Strong ThisTest> a;
+        Ref<@Mutable @Strong ThisTest> a;
         int n;
 
-        void setRef(Ref<@Strong ThisTest> s, Ref<@Weak ThisTest> w) {
+        void setRef(Ref<@Mutable @Strong ThisTest> s, Ref<@Mutable @Weak ThisTest> w) {
             a = s;
             this.a = s;
-            // :: error: (assignment.type.incompatible)
+            // :: error: assignment
             a = w;
-            // :: error: (assignment.type.incompatible)
+            // :: error: assignment
             this.a = w;
         }
     }

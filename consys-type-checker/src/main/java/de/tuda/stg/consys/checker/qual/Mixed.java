@@ -5,9 +5,9 @@ import org.checkerframework.framework.qual.SubtypeOf;
 
 import java.lang.annotation.*;
 
-@SubtypeOf({Inconsistent.class})
+@SubtypeOf({Weak.class})
 @Target({ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Mixed {
-    Class<? extends Annotation> withDefault() default WeakOp.class;
+    Class<? extends Annotation> value() default WeakOp.class;
 }

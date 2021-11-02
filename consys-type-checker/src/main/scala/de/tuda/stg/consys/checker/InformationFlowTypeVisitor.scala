@@ -1,9 +1,12 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
+import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
+
 import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
-import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -13,12 +16,14 @@ import scala.collection.{JavaConverters, mutable}
 	* @author Mirko Köhler
 	*/
 abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](baseChecker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](baseChecker) {
-
+	import TypeFactoryUtils._
+	private implicit val tf: AnnotatedTypeFactory = atypeFactory
 
 	//Current context of the consistency check
 	protected val implicitContext : ImplicitContext = new ImplicitContext
 
 	protected var transactionContext: Boolean = false
+	def getTransactionContext: Boolean = transactionContext
 
 
 	//Returns the annotation which information flow should be checked
@@ -114,7 +119,9 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 				 equals(s1, s2) --> weak
 					*/
 		//Retrieve the (inferred) annotated type
-		getAnnotation(atypeFactory.getAnnotatedType(node))
+		val typ = atypeFactory.getAnnotatedType(node)
+		if (typ.hasAnnotation(classOf[Mixed])) AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
+		else getAnnotation(typ)
 	}
 
 
@@ -141,8 +148,6 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		private def getStrongestNonLocalAnnotationIn(typ : AnnotatedTypeMirror, annotation : AnnotationMirror) : AnnotationMirror = {
 			//Easier access to lower bound
 			def lowerBound(a : AnnotationMirror, b : AnnotationMirror) : AnnotationMirror = {
-				//TODO: Fix this! There are NullPointerExceptions...
-				//println(s"lower bound $a and $b. type factory? ${atypeFactory != null} hierarchy? ${if (atypeFactory != null) atypeFactory.getQualifierHierarchy != null else false}")
 				atypeFactory.getQualifierHierarchy.greatestLowerBound(a, b)
 			}
 
@@ -193,5 +198,16 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 		def allowsAsArgument(typ : AnnotatedTypeMirror, tree : Tree) : Boolean =
 			canBeAccessed(typ, tree)
+
+		def allowsAsMixedInvocation(typ : AnnotatedTypeMirror, tree : MethodInvocationTree): Boolean = {
+			val method = TreeUtils.elementFromUse(tree)
+			if (isSideEffectFree(method))
+				return true
+
+			val methodLevel = getQualifierForMethodOp(method, typ.getEffectiveAnnotation(classOf[Mixed]))
+
+			atypeFactory.getQualifierHierarchy.isSubtype(get, methodLevel.get) ||
+				atypeFactory.getQualifierHierarchy.getBottomAnnotations.contains(methodLevel.get)
+		}
 	}
 }
