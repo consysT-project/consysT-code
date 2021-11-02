@@ -1,18 +1,15 @@
 package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 // this import is used by jml annotations so it's important to be.
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.util.Map;
 
 import javax.annotation.Nonnegative;
 import javax.inject.Inject;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;

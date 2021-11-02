@@ -1,7 +1,6 @@
 package com.readytalk.crdt.counters;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-import static de.tuda.stg.consys.utils.InvariantUtils.*;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -10,7 +9,6 @@ import java.util.Map;
 import javax.annotation.Nonnegative;
 import javax.inject.Inject;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;

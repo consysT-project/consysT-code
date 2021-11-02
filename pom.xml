@@ -17,7 +17,7 @@
         <module>integration-tests</module>
         <module>consys-japi</module>
         <module>consys-invariants</module>
-        <module>consys-riak</module>
+        <module>examples/consys-riak</module>
         <module>consys-compiler</module>
         <module>consys-compiler/consys-compiler-test</module>
         <module>consys-bench</module>

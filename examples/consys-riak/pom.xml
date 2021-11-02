@@ -8,6 +8,7 @@
         <artifactId>consys</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
         <version>3.0.0-alpha</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>consys-riak</artifactId>
