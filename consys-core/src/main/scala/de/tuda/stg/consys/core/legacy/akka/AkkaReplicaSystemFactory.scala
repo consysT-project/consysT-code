@@ -41,7 +41,7 @@ object AkkaReplicaSystemFactory extends ReplicaSystemFactory {
 
 
 	override def create(host : Address, others : Seq[Address], timeout : Duration) : System = {
-		require(timeout.isFinite())
+		require(timeout.isFinite)
 
 		//Loads the reference.conf for the akka properties
 		val config = ConfigFactory.load()

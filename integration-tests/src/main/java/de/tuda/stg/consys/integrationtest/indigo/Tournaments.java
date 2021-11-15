@@ -3,6 +3,7 @@ package de.tuda.stg.consys.integrationtest.indigo;
 import com.google.inject.internal.util.Sets;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.Mutable;
 
 import java.util.Set;
 
@@ -14,8 +15,8 @@ import java.util.Set;
 //@Invariant("forall(T:t,P:p):− active(t) and enrolled(p,t)=>participant(p,t)")
 public abstract class Tournaments {
 
-	private final Set<Player> players = Sets.newHashSet();
-	private final Set<Tournament> tournaments = Sets.newHashSet();
+	private final Set<Player> players = (@Mutable Set) Sets.newHashSet();
+	private final Set<Tournament> tournaments = (@Mutable Set) Sets.newHashSet();
 
 	//@True("player($0)")
 	@WeakOp

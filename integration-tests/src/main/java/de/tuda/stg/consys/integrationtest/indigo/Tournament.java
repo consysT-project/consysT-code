@@ -1,11 +1,12 @@
 package de.tuda.stg.consys.integrationtest.indigo;
 
 import com.google.inject.internal.util.Sets;
+import de.tuda.stg.consys.checker.qual.Mutable;
 
 import java.util.Set;
 
 public class Tournament {
-	private final Set<Player> enrolled = Sets.newHashSet();
+	private final Set<Player> enrolled = (@Mutable Set) Sets.newHashSet();
 	private boolean active = false;
 
 	public void enroll(Player p) {

@@ -45,7 +45,7 @@
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
                         <!-- Add the consys compiler plugin for preprocessing sources -->
-                        <arg>-Xplugin:ConsysPlugin</arg>
+                        <arg>-Xplugin:consys-compiler</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

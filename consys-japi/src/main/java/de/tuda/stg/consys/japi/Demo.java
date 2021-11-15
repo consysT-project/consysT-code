@@ -4,8 +4,9 @@ import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
-import scala.Serializable;
 import scala.concurrent.duration.Duration;
+
+import java.io.Serializable;
 
 /**
  * Created on 27.01.20.

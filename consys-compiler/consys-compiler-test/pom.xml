@@ -19,7 +19,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xplugin:ConsysPlugin</arg>
+                        <arg>-Xplugin:consys-compiler</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

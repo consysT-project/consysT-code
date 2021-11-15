@@ -20,7 +20,6 @@
         </plugins>
     </build>
 
-
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
@@ -43,11 +42,12 @@
         </dependency>
         <dependency>
             <groupId>org.scalactic</groupId>
-            <artifactId>scalactic_2.12</artifactId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.12</artifactId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- Plugin dependencies -->
@@ -62,11 +62,15 @@
         <!-- Dependecies for the akka version-->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_2.12</artifactId>
+            <artifactId>akka-actor_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-remote_2.12</artifactId>
+            <artifactId>akka-remote_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-typed_${scala.binary.version}</artifactId>
         </dependency>
          <dependency>
             <groupId>io.aeron</groupId>

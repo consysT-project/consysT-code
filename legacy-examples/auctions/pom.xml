@@ -31,7 +31,7 @@
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <!-- Add the consys compiler plugin for preprocessing sources -->
-                        <arg>-Xplugin:ConsysPlugin</arg>
+                        <arg>-Xplugin:consys-compiler</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

@@ -1,11 +1,13 @@
 package de.tuda.stg.consys.integrationtest.indigo;
 
+import de.tuda.stg.consys.checker.qual.Mutable;
+
 public class Player {
 	
 	private final String name;
 	private int budget = 0;
 
-	public Player(String name) {
+	public Player(@Mutable String name) {
 		this.name = name;
 	}
 	

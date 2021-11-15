@@ -2,6 +2,7 @@ package de.tuda.stg.consys.integrationtest.cards;
 
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.Mutable;
 
 import java.util.Set;
 
@@ -14,7 +15,7 @@ public class StateMachine<State> {
 
     private State currentState;
 
-    public StateMachine(Set<State> states, Set<State> criticalStates, Set<Transition<State>> transitions, State initial) {
+    public StateMachine(@Mutable Set<State> states, @Mutable Set<State> criticalStates, @Mutable Set<Transition<State>> transitions, State initial) {
         if (!states.containsAll(criticalStates))
             throw new IllegalArgumentException("states have to contain all critical states.");
 

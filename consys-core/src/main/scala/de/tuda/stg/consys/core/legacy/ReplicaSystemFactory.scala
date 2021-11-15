@@ -24,6 +24,7 @@ trait ReplicaSystemFactory {
 			JavaConverters.asScalaBuffer(config.getStringList("consys.others"))
 				.map(Address.parse)
   		  .filter(address => address != host)
+				.toSeq
 		val timeout : Duration =
 			Duration.fromNanos(config.getDuration("consys.timeout").toNanos)
 
@@ -75,7 +76,7 @@ trait ReplicaSystemFactory {
 			replicaSystems += Await.result(unresolved(i), FiniteDuration(60, "s"))
 		}
 
-		replicaSystems
+		replicaSystems.toSeq
 	}
 
 	/**

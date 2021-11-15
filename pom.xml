@@ -23,7 +23,6 @@
         <module>consys-bench</module>
         <module>legacy-examples</module>
         <module>consys-annotations</module>
-        <module>thesis-test</module>
     </modules>
 
 
@@ -36,9 +35,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <java.version>11</java.version>
-        <scala.version>2.12.13</scala.version>
+        <scala.version>2.13.7</scala.version>
+        <scala.binary.version>2.13</scala.binary.version>
 
-        <akka.version>2.6.14</akka.version>
+        <akka.version>2.6.17</akka.version>
         <aeron.version>1.31.1</aeron.version>
 
         <cassandra-driver.version>4.11.0</cassandra-driver.version>
@@ -119,7 +119,6 @@
 
     <dependencyManagement>
         <dependencies>
-
             <!-- Scala dependencies -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
@@ -138,25 +137,32 @@
             </dependency>
             <dependency>
                 <groupId>org.scalactic</groupId>
-                <artifactId>scalactic_2.12</artifactId>
-                <version>3.0.5</version>
+                <artifactId>scalactic_${scala.binary.version}</artifactId>
+                <version>3.2.10</version>
             </dependency>
             <dependency>
                 <groupId>org.scalatest</groupId>
-                <artifactId>scalatest_2.12</artifactId>
-                <version>3.0.5</version>
+                <artifactId>scalatest_${scala.binary.version}</artifactId>
+                <version>3.2.10</version>
                 <scope>test</scope>
             </dependency>
 
             <!-- Akka dependencies -->
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-actor_2.12</artifactId>
+                <artifactId>akka-bom_${scala.binary.version}</artifactId>
+                <version>${akka.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-actor_${scala.binary.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-remote_2.12</artifactId>
+                <artifactId>akka-remote_${scala.binary.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
             <dependency>

@@ -29,13 +29,13 @@ public class ConsysJavacPlugin implements Plugin {
 
 	@Override
 	public String getName() {
-		return "ConsysPlugin";
+		return "consys-compiler";
 	}
 
 	@Override
 	public void init(JavacTask task, String... args) {
 		Context context = ((BasicJavacTask) task).getContext();
-		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Plugin loaded: " + getName());
+		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "using " + getName());
 
 
 
