@@ -43,4 +43,10 @@ public class TestCheckExamples {
 	public void testJointBankAccount() {
 		Main.runChecker(Examples.STATEFUL_CONFIG, ADDITIONAL_LIBS, Examples.JOINTBANKACCOUNT);
 	}
+
+	@Test
+	public void testCRDTLIB() {
+		Main.runChecker(Examples.DEFAULT_CONFIG, ADDITIONAL_LIBS, Examples.CRDTLIB);
+	}
+
 }

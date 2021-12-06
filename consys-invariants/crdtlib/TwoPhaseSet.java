@@ -5,6 +5,9 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
 @ReplicatedModel public class TwoPhaseSet<T>{
 
     public GSet<T> adds = new GSet<>();
@@ -41,9 +44,22 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
         return !removals.contains(obj) && adds.contains(obj);
     }
 
-    // TODO: Shall we have this method?
-    //public boolean isEmpty() {
-    //}
+    /*@
+    @ assignable \nothing;
+    @ ensures \result == (\forall T val; adds.contains(val); removals.contains(val));
+    @*/
+    public boolean isEmpty() {
+        return this.getValue().isEmpty();
+    }
+
+    /*@
+    @ assignable \nothing;
+    @ ensures (\forall T val; adds.contains(val) && removals.contains(val) == false; \result.contains(val));
+    @ ensures (\forall T val; \result.contains(val); adds.contains(val) && removals.contains(val) == false);
+    @*/
+    public ImmutableSet<T> getValue() {
+        return ImmutableSet.copyOf(Sets.difference(this.adds, this.removals));
+    }
 
     //@ ensures (\forall T val; \old(adds.contains(val)) || other.adds.contains(val); this.adds.contains(val));
     //@ ensures (\forall T val; this.adds.contains(val); \old(adds.contains(val)) || other.adds.contains(val));

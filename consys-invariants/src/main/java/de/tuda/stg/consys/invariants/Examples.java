@@ -60,7 +60,13 @@ public class Examples {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
 	};
-
+	public static final Path[] CRDTLIB = new Path[] {
+			Paths.get("consys-invariants/crdtlib/GCounter.java"),
+			Paths.get("consys-invariants/crdtlib/PNCounter.java"),
+			Paths.get("consys-invariants/crdtlib/GSet.java"),
+			Paths.get("consys-invariants/crdtlib/TwoPhaseSet.java"),
+			Paths.get("consys-invariants/crdtlib/ORSet.java")
+	};
 
 
 

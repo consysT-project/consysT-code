@@ -37,6 +37,12 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
         return underlying.isEmpty();
     }
 
+    //@ assignable \nothing
+    //@ ensures \result.equals(underlying)
+    public Set<T> getValue() {
+        return underlying;
+    }
+
     //@ ensures (\forall T i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
     //@ ensures (\forall T i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
     public Void merge(GSet<T> other) {

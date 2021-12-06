@@ -287,13 +287,17 @@ import com.readytalk.crdt.AbstractCRDT;
 	@*/
 	// changed from original: @Override
 	public Void merge(final ORSet<E> other) { // Change from the origin: Void <- ORSet<E>
+		// Changed from the origin. Because origin return a new merged object but we don't.
+		this.elements.putAll(other.elements);
+		this.tombstones.putAll(other.tombstones);
+		this.elements.removeAll(this.tombstones);
+		return null;
+		// Origin version:
 		ORSet<E> retval = new ORSet<E>(serializer());
-
 		retval.elements.putAll(this.elements);
 		retval.elements.putAll(other.elements);
 		retval.tombstones.putAll(this.tombstones);
 		retval.tombstones.putAll(other.tombstones); // Changed from the origin: retval.tombstones.putAll(other.elements); because we think that was a bug from riak library developers.
-
 		retval.elements.removeAll(retval.tombstones);
 		// this merge function had ORSet<E> output type.
 		//return retval;

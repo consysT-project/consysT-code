@@ -12,7 +12,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
 
     /* Constructors */
-    //@ ensures (\forall int i; i >= 0 && i < numOfRep[hflicas(); incs[i] == 0);
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0);
     public GCounter() {
         this.incs = new int[numOfReplicas()];
     }
@@ -57,7 +57,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
 
     /*@
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]));
+    @ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]) );
     @*/
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
