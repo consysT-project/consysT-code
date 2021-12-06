@@ -1,10 +1,9 @@
-package de.tuda.stg.consys.invariants.examples.gset;
+package de.tuda.stg.consys.invariants.crdtlib.gset;
+// Grow-only Set CRDT
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-
-// Grow-only Set CRDT
-import java.util.HashSet;
-import java.util.Set;
+import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
 @ReplicatedModel public class GSet<T> {
 
@@ -21,8 +20,9 @@ import java.util.Set;
     @ ensures underlying.contains(val);
     @ ensures underlying.containsAll(\old(underlying));
     @*/
-    public void add(T val) {
+    public Void add(T val) {
         underlying.add(val);
+        return null;
     }
 
     //@ assignable \nothing;
@@ -39,7 +39,8 @@ import java.util.Set;
 
     //@ ensures (\forall T i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
     //@ ensures (\forall T i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
-    public void merge(GSet<T> other) {
+    public Void merge(GSet<T> other) {
         underlying.addAll(other.underlying);
+        return null;
     }
 }
