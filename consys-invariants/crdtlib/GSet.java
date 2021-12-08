@@ -1,9 +1,11 @@
-package de.tuda.stg.consys.invariants.crdtlib.gset;
+package de.tuda.stg.consys.invariants.crdtlib;
 // Grow-only Set CRDT
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+import java.util.HashSet;
+import java.util.Set;
 
 @ReplicatedModel public class GSet<T> {
 
@@ -37,8 +39,8 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
         return underlying.isEmpty();
     }
 
-    //@ assignable \nothing
-    //@ ensures \result.equals(underlying)
+    //@ assignable \nothing;
+    //@ ensures \result.equals(underlying);
     public Set<T> getValue() {
         return underlying;
     }

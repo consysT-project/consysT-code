@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.crdtlib.orset;
+package de.tuda.stg.consys.invariants.crdtlib;
 //  Observed-Remove Set CRDT (Add wins Sets also)
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
@@ -11,7 +11,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;

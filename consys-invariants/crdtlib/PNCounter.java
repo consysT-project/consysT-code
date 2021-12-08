@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.crdtlib.pncounter;
+package de.tuda.stg.consys.invariants.crdtlib;
 // Positive Negative Counter CRDT
 // TODO: we can re-implement it using GCounter and have less annotations here. Shall we consider it?
 

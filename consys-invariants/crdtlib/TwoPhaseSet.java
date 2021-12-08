@@ -1,17 +1,22 @@
-package de.tuda.stg.consys.invariants.crdtlib.twophaseset;
+package de.tuda.stg.consys.invariants.crdtlib;
 // Two-phase Set CRDT (Remove wins Sets also)
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
+import de.tuda.stg.consys.invariants.crdtlib.gset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Set;
+
 @ReplicatedModel public class TwoPhaseSet<T>{
 
-    public GSet<T> adds = new GSet<>();
-    public GSet<T> removals = new GSet<>();
+    public GSet<T> adds = new GSet<T>();
+    public GSet<T> removals = new GSet<T>();
 
     /* Constructor */
     //@ ensures adds.isEmpty() && removals.isEmpty();

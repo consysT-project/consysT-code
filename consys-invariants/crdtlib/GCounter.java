@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.crdtlib.gcounter;
+package de.tuda.stg.consys.invariants.crdtlib;
 // Grow-only Counter CRDT
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
