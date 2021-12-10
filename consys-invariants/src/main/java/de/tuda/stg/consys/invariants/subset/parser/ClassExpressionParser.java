@@ -119,7 +119,7 @@ public class ClassExpressionParser extends BaseExpressionParser {
 		return result;
 	}
 
-	protected Expr getThisConst() {
+	public Expr getThisConst() {
 		return thisConst;
 	}
 

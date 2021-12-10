@@ -6,13 +6,13 @@ import com.microsoft.z3.Expr;
 import java.util.Arrays;
 import java.util.List;
 
-public class Z3Predicate {
+public class Z3Function {
 	protected final String name;
 
 	protected final Expr[] parameters;
 	protected final Expr body;
 
-	public Z3Predicate(String name, Expr[] parameters, Expr body) {
+	public Z3Function(String name, Expr[] parameters, Expr body) {
 		this.name = name;
 		this.parameters = parameters;
 		this.body = body.simplify();

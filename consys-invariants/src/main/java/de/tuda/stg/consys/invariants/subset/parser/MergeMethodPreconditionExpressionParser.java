@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.parser;
 
+import com.google.common.collect.Sets;
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
@@ -7,14 +8,17 @@ import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import org.eclipse.jdt.internal.compiler.ast.Expression;
-import org.eclipse.jdt.internal.compiler.lookup.LocalVariableBinding;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Function1;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMessageSend;
-import scala.NotImplementedError;
+
+import java.util.Set;
 
 public class MergeMethodPreconditionExpressionParser extends MethodExpressionParser {
+
+	/** A set of fields that are merged by this merge method. */
+	public Set<MergeDeclaration> mergedFields = Sets.newHashSet();
 
 	public MergeMethodPreconditionExpressionParser(ProgramModel smt, BaseClassModel classModel, MergeMethodModel methodModel, Expr thisConst, Expr otherConst) {
 		super(smt, classModel, methodModel, thisConst);
@@ -23,6 +27,11 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 
 	public MergeMethodModel getMergeMethod() {
 		return (MergeMethodModel) methodModel;
+	}
+
+	public Expr getOtherConst() {
+		return lookupLocalVariable(getMergeMethod().getArgument().binding).orElseThrow(
+				() -> new IllegalStateException("local variable for merge parameter not initialized"));
 	}
 
 	@Override
@@ -49,24 +58,17 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 				throw new UnsupportedJMLExpression(jmlMessageSend, "merge parameter does not refernce a mergeable data type, but was: " + mergedClassModel);
 			ReplicatedClassModel replicatedClassModel = (ReplicatedClassModel) mergedClassModel;
 
-			// Find the merge declaration of this.f
-			MergeMethodModel underlyingMergeMethod = replicatedClassModel.getMergeMethod();
-
 			// thisMergable is the z3 expr for this.f
 			Expr thisMergeable = parseExpression(jmlMessageSend.arguments[0]);
-			//otherMErgeable is the z3 expr for other.f
-			Expr otherVar = lookupLocalVariable(getMergeMethod().getArgument().binding).orElseThrow(
-					() -> new IllegalStateException("local variable for merge parameter not initialized"));
-			Expr otherMergeable = withThisReference(otherVar, () -> parseExpression(jmlMessageSend.arguments[0]));
 
-			// Create expression that merges this.f and other.f
-			Expr underylingMerge = underlyingMergeMethod.makeApplyReturnState(
-					thisMergeable, new Expr[] { otherMergeable }
-			).orElseThrow(() -> new UnsupportedJMLExpression(jmlMessageSend, "can not apply merge function of " + underlyingMergeMethod));
+			// Add the merge to the merges
+			mergedFields.add( new MergeDeclaration(
+					new Z3Function1("merge", getThisConst(), thisMergeable),
+					replicatedClassModel)
+			);
 
-			//TODO: forall s. merge(this.f, other.f) == s => I(s)
-			//TODO: Move to Constraints?
-			return underylingMerge;
+			// The merge condition just evaluates to true. The mergedFields are resolved in the constraint builder.
+			return model.ctx.mkTrue();
 
 //			if (jmlMessageSend.arguments[0] instanceof JmlMessageSend) {
 //				var mergeMethod = (JmlMessageSend) jmlMessageSend.arguments[0];
@@ -98,5 +100,15 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 				'}';
 	}
 
+
+	public static class MergeDeclaration {
+		public final Z3Function1 declaration;
+		public final ReplicatedClassModel classModel;
+
+		public MergeDeclaration(Z3Function1 declaration, ReplicatedClassModel classModel) {
+			this.declaration = declaration;
+			this.classModel = classModel;
+		}
+	}
 
 }

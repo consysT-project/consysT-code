@@ -2,9 +2,9 @@ package de.tuda.stg.consys.invariants.subset.utils;
 
 import com.microsoft.z3.Expr;
 
-public class Z3Predicate2 extends Z3Predicate {
+public class Z3Function2 extends Z3Function {
 
-	public Z3Predicate2(String name, Expr par1, Expr par2, Expr body) {
+	public Z3Function2(String name, Expr par1, Expr par2, Expr body) {
 		super(name, new Expr[] { par1, par2 }, body);
 	}
 

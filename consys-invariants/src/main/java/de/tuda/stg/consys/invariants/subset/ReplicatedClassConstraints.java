@@ -6,8 +6,8 @@ import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPostconditionExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.MergeMethodPreconditionExpressionParser;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate2;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Function2;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Function3;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends BaseClassConstraints<CModel> {
@@ -19,13 +19,13 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 
 
 	/* Helper classes for predicate models. */
-	public static class MergePreconditionModel extends Z3Predicate2 {
+	public static class MergePreconditionModel extends Z3Function2 {
 		MergePreconditionModel(Expr thisConst, Expr otherConst, Expr body) {
 			super("pre_merge", thisConst, otherConst, body);
 		}
 	}
 
-	public static class MergePostconditionModel extends Z3Predicate3 {
+	public static class MergePostconditionModel extends Z3Function3 {
 		MergePostconditionModel(Expr oldConst, Expr otherConst, Expr thisConst, Expr body) {
 			super("post_merge", oldConst, otherConst, thisConst, body);
 		}
@@ -50,6 +50,41 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
 		var parser = new MergeMethodPreconditionExpressionParser(model, classModel, methodModel, thisConst, otherConst);
 		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
+
+		for (var mergedField : parser.mergedFields) {
+			ReplicatedClassModel mergeableClassModel = mergedField.classModel;
+
+			var baseMergeableConstraints = model.getClassConstraints(mergedField.classModel.getBinding()).orElseThrow(
+					() -> new IllegalStateException("constraints for class not found: " + mergeableClassModel )
+			);
+
+			if (!(baseMergeableConstraints instanceof ReplicatedClassConstraints))
+				throw new IllegalStateException("constraints for mergebale class expected to be replicated constraints: " + mergeableClassModel);
+
+			ReplicatedClassConstraints<?> mergeableConstraints = (ReplicatedClassConstraints<?>) baseMergeableConstraints;
+
+			// Assumption: M is the underlying, mergeable class (e.g. a CRDT) and C is the current class (e.g. the bank account).
+			// The field f is merged.
+//			//Formula: forall s1 : C, s_m : M. post_merge_M(this.f, other.f, s_m) && s1.f == s_m => I_C(s1)
+			Expr sm = model.ctx.mkFreshConst("s_m", mergeableClassModel.getClassSort());
+			Expr s1 = model.ctx.mkFreshConst("s1", classModel.getClassSort());
+			Expr result = model.ctx.mkForall(
+					new Expr[] { sm, s1 },
+					model.ctx.mkImplies(
+							model.ctx.mkAnd(
+									mergeableConstraints.getMergePostcondition().apply(mergedField.declaration.apply(thisConst), mergedField.declaration.apply(otherConst), sm),
+									model.ctx.mkEq(mergedField.declaration.apply(s1), sm)
+									),
+							getInvariant().apply(s1)
+					),
+					1,
+					null, null, null, null
+			);
+
+			expr = model.ctx.mkAnd(expr, result);
+
+		}
+
 		return new MergePreconditionModel(thisConst, otherConst, expr);
 	}
 

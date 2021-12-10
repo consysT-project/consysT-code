@@ -10,8 +10,8 @@ import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.ObjectModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate1;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Predicate3;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Function1;
+import de.tuda.stg.consys.invariants.subset.utils.Z3Function3;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
@@ -42,31 +42,31 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	/* Helper classes for predicate models. */
 	/** Handles the user-defined invariant */
-	public static class InvariantModel extends Z3Predicate1 {
+	public static class InvariantModel extends Z3Function1 {
 		InvariantModel(Expr thisConst, Expr body) {
 			super("I", thisConst, body);
 		}
 	}
 
-	public static class FieldInvariantModel extends Z3Predicate1 {
+	public static class FieldInvariantModel extends Z3Function1 {
 		FieldInvariantModel(Expr thisConst, Expr body) {
 			super("I_fields", thisConst, body);
 		}
 	}
 
-	public static class InitialConditionModel extends Z3Predicate1 {
+	public static class InitialConditionModel extends Z3Function1 {
 		InitialConditionModel(Expr thisConst, Expr body) {
 			super("init", thisConst, body);
 		}
 	}
 
-	public static class PreconditionModel extends Z3Predicate1 {
+	public static class PreconditionModel extends Z3Function1 {
 		PreconditionModel(Expr thisConst, Expr body) {
 			super("pre", thisConst, body);
 		}
 	}
 
-	public static class PostconditionModel extends Z3Predicate3 {
+	public static class PostconditionModel extends Z3Function3 {
 		private final Expr[] bodyElements;
 
 		PostconditionModel(Expr oldConst, Expr thisConst, Expr resultConst, Expr body, Expr[] bodyElements) {
@@ -83,7 +83,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		public Expr[] applyWithSplitBody(Expr oldArg, Expr thisArg, Expr resultArg) {
 			var result = new Expr[bodyElements.length];
 			for (int i = 0; i < bodyElements.length; i++) {
-				Z3Predicate3 pred = new Z3Predicate3("post_" + i, parameters[0], parameters[1], parameters[2], bodyElements[i]);
+				Z3Function3 pred = new Z3Function3("post_" + i, parameters[0], parameters[1], parameters[2], bodyElements[i]);
 				result[i] = pred.apply(oldArg, thisArg, resultArg);
 			}
 
