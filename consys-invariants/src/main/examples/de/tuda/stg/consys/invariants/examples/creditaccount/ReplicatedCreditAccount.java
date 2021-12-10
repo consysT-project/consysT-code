@@ -48,7 +48,6 @@ public class ReplicatedCreditAccount {
 
     /* Merge method */
     //@ requires __merge(credits);
-    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incs[i], other.credits.incs[i])) -  (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.decs[i], other.credits.decs[i])) >= 0;
     //@ ensures stateful( credits.merge(other.credits) );
     public void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);
