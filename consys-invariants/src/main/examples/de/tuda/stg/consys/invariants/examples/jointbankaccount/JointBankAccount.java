@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.examples.jointbankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.examples.pncounter.PNCounterCRDT;
-
+import de.tuda.stg.consys.invariants.crdtlib.PNCounter;
 import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
 
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
@@ -12,7 +12,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 @ReplicatedModel public class JointBankAccount {
     //@ public invariant balance.getValue() >= 0;
     //@ public invariant approved ? requested : true;
-    private PNCounterCRDT balance;
+    private PNCounter balance;
     private boolean requested = false;
     private boolean approved = false;
 
@@ -23,7 +23,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @*/
     public JointBankAccount() {
-        balance = new PNCounterCRDT();
+        balance = new PNCounter();
     }
 
     /*@

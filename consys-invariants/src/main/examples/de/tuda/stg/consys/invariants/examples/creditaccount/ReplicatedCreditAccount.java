@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.examples.creditaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.invariants.crdtlib.PNCounter;
 import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
 import static de.tuda.stg.consys.utils.InvariantUtils.__merge;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
@@ -10,7 +11,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 @ReplicatedModel
 public class ReplicatedCreditAccount {
 
-    private final ReplicatedCounter credits;
+    private final PNCounter credits;
 
     /* Invariants */
     //@ public invariant getValue() >= 0;
@@ -19,7 +20,7 @@ public class ReplicatedCreditAccount {
     //@ ensures (\forall int i; true; credits.incs[i] == 0);
     //@ ensures (\forall int i; true; credits.decs[i] == 0);
     public ReplicatedCreditAccount() {
-        credits = new ReplicatedCounter();
+        credits = new PNCounter();
     }
 
     /* Methods */
@@ -32,18 +33,18 @@ public class ReplicatedCreditAccount {
 
     //@ requires val >= 0;
     //@ assignable credits;
-    //@ ensures stateful( credits.increment(val) );
+    //@ ensures stateful( credits.inc(val) );
     public void deposit(int val) {
-        credits.increment(val);
+        credits.inc(val);
     }
 
 
     //@ requires 0 <= val && val <= getValue();
     //@ assignable credits;
-    //@ ensures stateful( credits.decrement(val) );
+    //@ ensures stateful( credits.dec(val) );
     public void withdraw(int val) {
         if (val > getValue()) throw new IllegalArgumentException();
-        credits.decrement(val);
+        credits.dec(val);
     }
 
     /* Merge method */
