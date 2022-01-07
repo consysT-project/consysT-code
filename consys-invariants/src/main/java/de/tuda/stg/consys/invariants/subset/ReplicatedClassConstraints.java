@@ -113,17 +113,6 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 	}
 
 
-
-//	private Expr getForallInvariant(InvariantModel inv) {
-//		var forallVar = model.ctx.mkFreshConst("s_inv", classModel.getClassSort());
-//		model.ctx.mkForall(
-//				new Expr[] {forallVar},
-//				model.ctx.mkTrue(),
-//
-//
-//		)
-//	}
-
 	@Override
 	public String toString() {
 		return super.toString()
