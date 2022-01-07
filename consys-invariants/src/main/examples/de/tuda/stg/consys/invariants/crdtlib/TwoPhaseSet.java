@@ -5,7 +5,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
-import de.tuda.stg.consys.invariants.crdtlib.gset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -63,7 +62,7 @@ import java.util.Set;
     @ ensures (\forall T val; \result.contains(val); adds.contains(val) && removals.contains(val) == false);
     @*/
     public ImmutableSet<T> getValue() {
-        return ImmutableSet.copyOf(Sets.difference(this.adds, this.removals));
+        return ImmutableSet.copyOf(Sets.difference(this.adds.getValue(), this.removals.getValue()));
     }
 
     //@ ensures (\forall T val; \old(adds.contains(val)) || other.adds.contains(val); this.adds.contains(val));
