@@ -11,9 +11,6 @@ public class ReplicatedCounter {
 	public int[] incs;
 	public int[] decs;
 
-	//@ public invariant (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] >= 0);
-	//@ public invariant (\forall int i; i >= 0 && i < numOfReplicas(); decs[i] >= 0);
-
 
 	//@ ensures (\forall int i; true; incs[i] == 0);
 	//@ ensures (\forall int i; true; decs[i] == 0);
