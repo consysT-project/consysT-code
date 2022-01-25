@@ -20,7 +20,10 @@ public class User implements Serializable {
     private int nRatings;
     private float balance;
     private final Date creationDate;
-    private List<Ref<Item>> auctions;
+    private List<Ref<Item>> buyerAuctions;
+    private List<Ref<Item>> buyerHistory;
+    private List<Ref<Item>> sellerAuctions;
+    private List<Ref<Item>> sellerHistory;
 
     public User(UUID id, String name, String nickname, String password, String email) {
         this.id = id;
@@ -29,11 +32,28 @@ public class User implements Serializable {
         this.password = password;
         this.email = email;
         this.creationDate = new Date();
-        this.auctions = new LinkedList<>();
+        this.buyerAuctions = new LinkedList<>();
+        this.buyerHistory = new LinkedList<>();
+        this.sellerAuctions = new LinkedList<>();
+        this.sellerHistory = new LinkedList<>();
     }
 
     public void addInsertedAuction(Ref<Item> item) {
-        this.auctions.add(item);
+        this.sellerAuctions.add(item);
+    }
+
+    public void closeSellerAuction(Ref<Item> item) {
+        sellerAuctions.removeIf(i -> item.ref().getId().equals(i.ref().getId()));
+        sellerHistory.add(item);
+    }
+
+    public void addWatchedAuction(Ref<Item> item) {
+        buyerAuctions.add(item);
+    }
+
+    public void closeBuyerAuction(Ref<Item> item) {
+        buyerAuctions.removeIf(i -> item.ref().getId().equals(i.ref().getId()));
+        buyerHistory.add(item);
     }
 
     @WeakOp // If this is WeakOp you could log in with an outdated password. Security concern?
@@ -69,16 +89,18 @@ public class User implements Serializable {
         if (value > 0) {
             this.balance += value;
         } else {
-            System.out.println("value must be positive");
+            throw new IllegalArgumentException("value must be positive");
         }
     }
 
     @StrongOp
     public void removeBalance(float value) {
-        if (value > 0) {
-            this.balance -= value;
+        if (value <= 0) {
+            throw new IllegalArgumentException("value must be positive");
+        } else if (balance - value < 0) {
+            throw new IllegalArgumentException("not enough credits");
         } else {
-            System.out.println("value must be positive");
+            this.balance -= value;
         }
     }
 

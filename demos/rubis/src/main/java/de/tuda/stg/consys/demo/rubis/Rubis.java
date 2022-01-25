@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.rubis;
 
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -30,6 +31,7 @@ public class Rubis implements Serializable {
         openAuctions.add(item);
     }
 
+    @WeakOp
     public List<Ref<Item>> browseItems(Category category) {
         if (!openAuctionsByCategory.containsKey(category)) {
             openAuctionsByCategory.put(category, new ArrayList<>());
@@ -37,12 +39,13 @@ public class Rubis implements Serializable {
         return openAuctionsByCategory.get(category);
     }
 
+    @WeakOp
     public List<Ref<Item>> getOpenAuctions() {
         return openAuctions;
     }
 
-    public void closeAuction(String name, Category category) {
-        openAuctions.removeIf(i -> i.ref().getName().equals(name));
-        openAuctionsByCategory.get(category).removeIf(i -> i.ref().getName().equals(name));
+    public void closeAuction(UUID id, Category category) {
+        openAuctions.removeIf(i -> i.ref().getId().equals(id));
+        openAuctionsByCategory.get(category).removeIf(i -> i.ref().getId().equals(id));
     }
 }

@@ -6,5 +6,5 @@ public enum Category {
     OFFICE,
     COMPUTERS,
     SPORTS,
-    EVERYTHING_ELSE
+    MISC
 }

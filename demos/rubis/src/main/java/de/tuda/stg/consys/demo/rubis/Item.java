@@ -65,25 +65,25 @@ public class Item implements Serializable {
     }
 
     @Transactional
-    public void buyNow(Ref<User> buyer) {
+    public float buyNow() {
         if (!bids.isEmpty() && (int)bids.get(0).ref().getBid() >= reservePrice) {
-            System.out.println("Buy now disabled, since reserve price is already met.");
+            throw new IllegalArgumentException("Buy now disabled, since reserve price is already met.");
         } else {
-            buyer.ref().removeBalance(buyNowPrice);
+            return buyNowPrice;
         }
+    }
+
+    public void endAuctionNow() {
+        endDate = new Date();
     }
 
     @Transactional
     @StrongOp
-    public void closeAuction() {
+    public Ref<Bid> closeAuction() {
         if (new Date().before(endDate)) {
-            System.out.println("Auction has not yet ended.");
-            return;
+            throw new IllegalArgumentException("Auction has not yet ended.");
         }
-
-        var winningBid = bids.get(0);
-        ((Ref<User>)winningBid.ref().getUser()).ref().removeBalance(winningBid.ref().getBid());
-        // TODO: winningBid.ref().user.ref().notifyWinner();
+        return bids.isEmpty() ? null : bids.get(0);
     }
 
     @WeakOp
@@ -95,6 +95,9 @@ public class Item implements Serializable {
     public Category getCategory() {
         return category;
     }
+
+    @WeakOp
+    public UUID getId() { return id; }
 
     @WeakOp
     public String getName() {
@@ -113,7 +116,7 @@ public class Item implements Serializable {
 
     @WeakOp
     public float getBiddingPrice() {
-        return bids.get(0).ref().getBid();
+        return bids.isEmpty() ? initialPrice : bids.get(0).ref().getBid();
     }
 
     @WeakOp

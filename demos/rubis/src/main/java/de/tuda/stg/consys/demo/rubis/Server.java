@@ -53,11 +53,10 @@ public class Server extends Thread {
     private void closeAuctions(int start, int end) {
         var now = new Date();
         var auctions = (List<Ref<Item>>)rubis.ref().getOpenAuctions();
-        for (int i = start; i < end; i++) {
-            var auction = auctions.get(i).ref();
-            if (now.after(auction.getEndDate())) {
-                auction.closeAuction();
-                rubis.ref().closeAuction(auction.getName(), auction.getCategory());
+        for (int i = start; i < end; i++) { // TODO: own transaction for each auction?
+            var auction = auctions.get(i);
+            if (now.after(auction.ref().getEndDate())) {
+                Util.closeAuction(auction, rubis);
             }
         }
     }
