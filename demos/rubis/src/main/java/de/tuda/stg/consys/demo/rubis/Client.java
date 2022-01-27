@@ -60,9 +60,28 @@ public class Client {
         }
     }
 
-    public String printUserInfo() {
+    public String printUserInfo(boolean full) {
         checkLogin();
-        return store.transaction(ctx -> Option.<String>apply(user.ref().toString())).get();
+        if (!full) {
+            return store.transaction(ctx -> Option.<String>apply(user.ref().toString())).get();
+        } else {
+            store.transaction(ctx -> {
+                List<Ref<Item>> bought = user.ref().getBuyerHistory();
+                System.out.println("Bought items:");
+                for (var item : bought) {
+                    System.out.println("  " + item.ref().getName() + " (" + item.ref().getId());
+                }
+
+                List<Ref<Item>> sold = user.ref().getSellerHistory();
+                System.out.println("Sold items:");
+                for (var item : sold) {
+                    System.out.println("  " + item.ref().getName() + " (" + item.ref().getId());
+                }
+
+                return Option.empty();
+            });
+        }
+        return "";
     }
 
     public void addBalance(float amount) {

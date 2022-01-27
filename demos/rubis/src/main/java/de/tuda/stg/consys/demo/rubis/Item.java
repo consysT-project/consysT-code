@@ -21,8 +21,8 @@ public class Item implements Serializable {
     private Date endDate;
     private Category category;
     private final Ref<User> seller;
-    private final List<Ref<Bid>> bids; // TODO could also only store best bid
-    private final List<Ref<Bid>> autoBids;
+    private final List<Ref<Bid>> bids;
+    //private final List<Ref<Bid>> autoBids;
 
     public Item(UUID id, String name, String description, int quantity, float reservePrice, float initialPrice,
                 float buyNowPrice, Date startDate, Date endDate, Category category, Ref<User> seller) {
@@ -38,15 +38,14 @@ public class Item implements Serializable {
         this.category = category;
         this.seller = seller;
         this.bids = new Stack<>();
-        this.autoBids = new LinkedList<>(); // TODO: how/where to make new bid items?
+        //this.autoBids = new LinkedList<>(); // TODO: how/where to make new bid items?
     }
 
     @Transactional
     @StrongOp
     public void placeBid(Ref<Bid> bid) {
         if (new Date().after(endDate)) {
-            System.out.println("Auction has already ended.");
-            return;
+            throw new IllegalArgumentException("Auction has already ended.");
         }
 
         float maxBid = bids.isEmpty() ? initialPrice : bids.get(0).ref().getBid();
@@ -65,14 +64,17 @@ public class Item implements Serializable {
     }
 
     @Transactional
+    @StrongOp
     public float buyNow() {
         if (!bids.isEmpty() && (int)bids.get(0).ref().getBid() >= reservePrice) {
-            throw new IllegalArgumentException("Buy now disabled, since reserve price is already met.");
+            throw new IllegalArgumentException("Buy-Now disabled, since reserve price is already met.");
         } else {
+            endAuctionNow();
             return buyNowPrice;
         }
     }
 
+    @StrongOp
     public void endAuctionNow() {
         endDate = new Date();
     }
@@ -83,7 +85,12 @@ public class Item implements Serializable {
         if (new Date().before(endDate)) {
             throw new IllegalArgumentException("Auction has not yet ended.");
         }
-        return bids.isEmpty() ? null : bids.get(0);
+
+        if (bids.isEmpty() || (float)bids.get(0).ref().getBid() < reservePrice) {
+            return null;
+        } else {
+            return bids.get(0);
+        }
     }
 
     @WeakOp

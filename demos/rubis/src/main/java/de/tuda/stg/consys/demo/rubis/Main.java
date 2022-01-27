@@ -71,7 +71,10 @@ public class Main {
                         break;
                     }
                     case "show-user":
-                        System.out.println(client.printUserInfo());
+                        System.out.println(client.printUserInfo(false));
+                        break;
+                    case "show-user-full":
+                        System.out.println(client.printUserInfo(true));
                         break;
                     case "add-credits": {
                         System.out.print("amount: ");
@@ -155,10 +158,12 @@ public class Main {
         replica2 = Cassandra.newReplica("127.0.0.2", 9042, 2181,
                 Duration.apply(msTimeout, "ms"), false);
 
-        replica0.transaction(ctx -> {
-            ctx.replicate("rubis", MIXED, Rubis.class);
-            return Option.empty();
-        });
+        if (clear) {
+            replica0.transaction(ctx -> {
+                ctx.replicate("rubis", MIXED, Rubis.class);
+                return Option.empty();
+            });
+        }
 
         server0.setStore(replica0);
         server0.init();

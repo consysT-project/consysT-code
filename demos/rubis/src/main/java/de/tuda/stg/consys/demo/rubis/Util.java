@@ -3,6 +3,8 @@ package de.tuda.stg.consys.demo.rubis;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.japi.Ref;
 
+import java.util.UUID;
+
 public class Util {
     @Transactional
     public static void closeAuction(Ref<Item> item, Ref<Rubis> rubis) {
@@ -20,7 +22,11 @@ public class Util {
         }
 
         seller.ref().closeSellerAuction(item);
-        rubis.ref().closeAuction(item.ref().getId(), item.ref().getCategory());
+
+        UUID id = item.ref().getId();
+        Category cat = item.ref().getCategory();
+        rubis.ref().closeAuction(id, cat);
+        //rubis.ref().closeAuction(item.ref().getId(), item.ref().getCategory()); // runtime error ref() not resolved by compiler
     }
 
     @Transactional
@@ -37,6 +43,8 @@ public class Util {
         buyer.ref().removeBalance(price);
         seller.ref().addBalance(price);
 
-        rubis.ref().closeAuction(item.ref().getId(), item.ref().getCategory());
+        UUID id = item.ref().getId();
+        Category cat = item.ref().getCategory();
+        rubis.ref().closeAuction(id, cat);
     }
 }

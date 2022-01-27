@@ -15,7 +15,7 @@ public class Server extends Thread {
     private int nReplicas;
     private CassandraStoreBinding store;
 
-    Ref<Rubis> rubis;
+    private Ref<Rubis> rubis;
 
     public Server(int id, int nReplicas, CassandraStoreBinding store) {
         this.store = store;
@@ -28,18 +28,15 @@ public class Server extends Thread {
     }
 
     public void init() {
-        this.rubis = store.transaction(ctx -> {
-            return Option.apply(ctx.lookup("rubis", MIXED, Rubis.class));
-        }).get();
+        this.rubis = store.transaction(ctx -> Option.apply(ctx.lookup("rubis", MIXED, Rubis.class))).get();
     }
 
     public void run() {
         while (true) {
             store.transaction(ctx -> {
                 int nItems = ((List<Ref<Item>>)rubis.ref().getOpenAuctions()).size();
-                int batchSize = nItems / nReplicas;
-                closeAuctions(id * batchSize, id * batchSize + batchSize);
-
+                int batchSize = 1 + (nItems / nReplicas);
+                closeAuctions(id * batchSize, id * batchSize + batchSize > nItems ? id * batchSize : id * batchSize + batchSize);
                 return Option.empty();
             });
 

@@ -56,6 +56,22 @@ public class User implements Serializable {
         buyerHistory.add(item);
     }
 
+    public List<Ref<Item>> getOpenSellerAuctions() {
+        return sellerAuctions;
+    }
+
+    public List<Ref<Item>> getOpenBuyerAuctions() {
+        return buyerAuctions;
+    }
+
+    public List<Ref<Item>> getSellerHistory() {
+        return sellerHistory;
+    }
+
+    public List<Ref<Item>> getBuyerHistory() {
+        return buyerHistory;
+    }
+
     @WeakOp // If this is WeakOp you could log in with an outdated password. Security concern?
     public boolean authenticate(String password) {
         return this.password.equals(password);
