@@ -9,6 +9,7 @@ import scala.concurrent.duration.Duration;
 
 import java.util.Scanner;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 public class InteractiveSession {
     private static final int msTimeout = 100;
@@ -20,6 +21,7 @@ public class InteractiveSession {
     private static Server server1;
     private static Server server2;
     private static Client client;
+    private static ExecutorService threadPool;
 
     public static void main(String[] args) {
         server0 = new Server(0, 3, msServerSleep, null);
@@ -140,7 +142,7 @@ public class InteractiveSession {
                         System.out.println("unknown command");
                         break;
                 }
-            } catch (AppException | NotEnoughCreditsException e) {
+            } catch (AppException e) {
                 System.out.println(e.getMessage());
             } catch (Exception e) {
                 System.out.println(e.getMessage());
@@ -158,7 +160,7 @@ public class InteractiveSession {
                 Duration.apply(msTimeout, "ms"), clear);
         replica1 = Cassandra.newReplica("127.0.0.2", 9042, 2181,
                 Duration.apply(msTimeout, "ms"), false);
-        replica2 = Cassandra.newReplica("127.0.0.2", 9042, 2181,
+        replica2 = Cassandra.newReplica("127.0.0.3", 9042, 2181,
                 Duration.apply(msTimeout, "ms"), false);
 
         if (clear) {
@@ -177,9 +179,9 @@ public class InteractiveSession {
         server2.setStore(replica2);
         server2.init();
 
-        server0.start();
-        server1.start();
-        server2.start();
+        threadPool.submit(server0);
+        threadPool.submit(server1);
+        threadPool.submit(server2);
 
         client.setStore(replica0);
     }
@@ -187,6 +189,8 @@ public class InteractiveSession {
         server0.stopThread();
         server1.stopThread();
         server2.stopThread();
+
+        threadPool.shutdownNow();
 
         try {
             if (replica0 != null)

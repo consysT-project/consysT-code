@@ -24,6 +24,7 @@ public class User implements Serializable {
     private final List<Ref<Item>> buyerHistory;
     private final List<Ref<Item>> sellerAuctions;
     private final List<Ref<Item>> sellerHistory;
+    private final List<Ref<Item>> sellerFailedHistory;
 
     public User(UUID id, String name, String nickname, String password, String email) {
         this.id = id;
@@ -36,6 +37,7 @@ public class User implements Serializable {
         this.buyerHistory = new LinkedList<>();
         this.sellerAuctions = new LinkedList<>();
         this.sellerHistory = new LinkedList<>();
+        this.sellerFailedHistory = new LinkedList<>();
     }
 
     @StrongOp
@@ -44,14 +46,19 @@ public class User implements Serializable {
     }
 
     @StrongOp
-    public void closeOwnAuction(Ref<Item> item) {
+    public void closeOwnAuction(Ref<Item> item, boolean sold) {
         sellerAuctions.removeIf(i -> item.ref().getId().equals(i.ref().getId()));
-        sellerHistory.add(item);
+        if (sold) {
+            sellerHistory.add(item);
+        } else {
+            sellerFailedHistory.add(item);
+        }
     }
 
     @StrongOp
     public void addWatchedAuction(Ref<Item> item) {
-        buyerAuctions.add(item);
+        buyerAuctions.removeIf(x -> item.ref().getId().equals(x.ref().getId()));
+        buyerAuctions.add(0, item);
     }
 
     @StrongOp
@@ -71,8 +78,8 @@ public class User implements Serializable {
     }
 
     @WeakOp
-    public List<Ref<Item>> getSellerHistory() {
-        return sellerHistory;
+    public List<Ref<Item>> getSellerHistory(boolean sold) {
+        return sold ? sellerHistory : sellerFailedHistory;
     }
 
     @WeakOp

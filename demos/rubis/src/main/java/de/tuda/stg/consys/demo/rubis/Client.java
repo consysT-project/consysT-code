@@ -6,11 +6,11 @@ import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 import scala.Option;
+import scala.Tuple2;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 public class Client {
     public static ConsistencyLevel<CassandraStore> objectsConsistencyLevel = MIXED;
@@ -93,11 +93,11 @@ public class Client {
         }).get();
     }
 
-    public void placeBid(UUID itemId, float bidAmount) {
+    public boolean placeBid(UUID itemId, float bidAmount) throws TimeoutException {
         checkLogin();
 
         var bidId = UUID.randomUUID();
-        store.transaction(ctx -> {
+        return store.transaction(ctx -> {
             var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
@@ -110,17 +110,23 @@ public class Client {
 
             var bid = ctx.replicate("bid:" + bidId, objectsConsistencyLevel, Bid.class,
                     bidId, bidAmount, user);
+
             try {
-                item.ref().placeBid(bid);
-            } catch (AppException ignored) {
-                return Option.empty();
+                boolean reserveMet = item.ref().placeBid(bid);
+                user.ref().addWatchedAuction(item);
+                return Option.apply(reserveMet);
+            } catch (Exception e) {
+                if (e instanceof InvocationTargetException &&
+                        ((InvocationTargetException)e).getCause() instanceof RuntimeException) {
+                    throw (RuntimeException) e.getCause();
+                } else {
+                    throw e;
+                }
             }
-            user.ref().addWatchedAuction(item);
-            return Option.empty();
-        });
+        }).get();
     }
 
-    public void buyNow(UUID itemId) {
+    public void buyNow(UUID itemId) throws TimeoutException {
         checkLogin();
 
         store.transaction(ctx -> {
@@ -149,7 +155,7 @@ public class Client {
         }).get();
     }
 
-    public void endAuctionImmediately(UUID itemId) {
+    public void endAuctionImmediately(UUID itemId) throws TimeoutException {
         checkLogin();
 
         store.transaction(ctx -> {
@@ -175,32 +181,65 @@ public class Client {
             if (!full) {
                 return Option.apply(sb.toString());
             }
+            sb.append("\n");
 
             List<Ref<Item>> watched = user.ref().getOpenBuyerAuctions();
-            sb.append("Watched items:\n");
+            if (!watched.isEmpty())
+                sb.append("Watched items:\n");
             for (var item : watched) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             List<Ref<Item>> open = user.ref().getOpenSellerAuctions();
-            sb.append("Open auctions:\n");
+            if (!open.isEmpty())
+                sb.append("Open auctions:\n");
             for (var item : open) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             List<Ref<Item>> bought = user.ref().getBuyerHistory();
-            sb.append("Bought items:\n");
+            if (!bought.isEmpty())
+                sb.append("Bought items:\n");
             for (var item : bought) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
-            List<Ref<Item>> sold = user.ref().getSellerHistory();
-            sb.append("Sold items / closed auctions:\n");
+            List<Ref<Item>> sold = user.ref().getSellerHistory(true);
+            if (!sold.isEmpty())
+                sb.append("Sold items:\n");
             for (var item : sold) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
+            List<Ref<Item>> unsold = user.ref().getSellerHistory(false);
+            if (!unsold.isEmpty())
+                sb.append("Unsold items:\n");
+            for (var item : unsold) {
+                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+            }
+
             return Option.apply(sb.toString());
+        }).get();
+    }
+
+    public Tuple2<Optional<String>, Float> getTopBid(UUID itemId) {
+        return store.transaction(ctx -> {
+            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            Optional<Ref<Bid>> bid = item.ref().getTopBid();
+            if (bid.isPresent())
+                return Option.apply(new Tuple2<>(
+                        Optional.of(((Ref<User>)bid.get().ref().getUser()).ref().getNickname().toString()),
+                        (float)bid.get().ref().getBid()));
+            return Option.apply(new Tuple2<>(
+                    Optional.<String>empty(),
+                    (float)item.ref().getTopBidPrice()));
+        }).get();
+    }
+
+    public boolean hasAuctionEnded(UUID itemId) {
+        return store.transaction(ctx -> {
+            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
         }).get();
     }
 

@@ -25,7 +25,7 @@ public class Util {
             winner.ref().notifyWinner(item, price);
         }
 
-        seller.ref().closeOwnAuction(item);
+        seller.ref().closeOwnAuction(item, winningBid.isPresent());
 
         UUID id = item.ref().getId();
         Category cat = item.ref().getCategory();
@@ -47,7 +47,7 @@ public class Util {
         seller.ref().addBalance(price);
 
         buyer.ref().closeWatchedAuction(item);
-        seller.ref().closeOwnAuction(item);
+        seller.ref().closeOwnAuction(item, true);
 
         buyer.ref().notifyWinner(item, price);
 

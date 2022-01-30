@@ -7,10 +7,11 @@ import scala.Tuple3;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
-public class Server extends Thread {
+public class Server implements Runnable {
     private final int id;
     private final int nReplicas;
     private CassandraStoreBinding store;
@@ -34,8 +35,9 @@ public class Server extends Thread {
         this.auctionStore = store.transaction(ctx -> Option.<Ref<AuctionStore>>apply(ctx.lookup("rubis", MIXED, AuctionStore.class))).get();
     }
 
+    @Override
     public void run() {
-        while (!stop) {;
+        while (!stop) {
             Tuple3<List<Ref<Item>>, Integer, Integer> result = store.transaction(ctx -> {
                 List<Ref<Item>> items = auctionStore.ref().getOpenAuctions();
                 int nItems = items.size();
@@ -49,7 +51,9 @@ public class Server extends Thread {
 
             try {
                 Thread.sleep(sleepMilliseconds);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException e) {
+                return;
+            }
         }
     }
 

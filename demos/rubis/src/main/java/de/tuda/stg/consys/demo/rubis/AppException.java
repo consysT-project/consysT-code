@@ -6,8 +6,14 @@ public class AppException extends RuntimeException {
     }
 }
 
-class NotEnoughCreditsException extends RuntimeException {
+class NotEnoughCreditsException extends AppException {
     NotEnoughCreditsException() {
         super("Not enough credits in account to complete transaction.");
+    }
+}
+
+class DateException extends AppException {
+    DateException(String msg) {
+        super(msg);
     }
 }

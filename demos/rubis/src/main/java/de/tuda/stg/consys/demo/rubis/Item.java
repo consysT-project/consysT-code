@@ -39,17 +39,20 @@ public class Item implements Serializable {
 
     @Transactional
     @StrongOp
-    public void placeBid(Ref<Bid> bid) {
+    public boolean placeBid(Ref<Bid> bid) {
         if (new Date().after(endDate)) {
-            throw new AppException("Auction has already ended.");
+            throw new DateException("Auction has already ended.");
         }
 
         if ((float)bid.ref().getBid() <= getTopBidPrice()) {
-            throw new AppException("Minimum necessary bid amount not met.");
+            throw new AppException("Minimum necessary bid amount (" + getTopBidPrice() + ") not met with bid (" +
+                    bid.ref().getBid() + ")");
         }
 
         bids.add(0, bid);
         nBids++;
+
+        return (float)bid.ref().getBid() >= reservePrice;
     }
 
     @Transactional
@@ -72,7 +75,7 @@ public class Item implements Serializable {
     @StrongOp
     public Optional<Ref<Bid>> closeAuction() {
         if (new Date().before(endDate)) {
-            throw new AppException("Auction has not yet ended.");
+            throw new DateException("Auction has not yet ended.");
         }
 
         if (bids.isEmpty() || getTopBidPrice() < reservePrice) {
