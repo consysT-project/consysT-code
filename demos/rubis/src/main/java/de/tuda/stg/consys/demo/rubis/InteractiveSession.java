@@ -10,8 +10,9 @@ import scala.concurrent.duration.Duration;
 import java.util.Scanner;
 import java.util.UUID;
 
-public class Main {
+public class InteractiveSession {
     private static final int msTimeout = 100;
+    private static final int msServerSleep = 10000;
     private static CassandraStoreBinding replica0;
     private static CassandraStoreBinding replica1;
     private static CassandraStoreBinding replica2;
@@ -21,17 +22,17 @@ public class Main {
     private static Client client;
 
     public static void main(String[] args) {
-        server0 = new Server(0, 3, null);
-        server1 = new Server(1, 3, null);
-        server2 = new Server(2, 3, null);
+        server0 = new Server(0, 3, msServerSleep, null);
+        server1 = new Server(1, 3, msServerSleep, null);
+        server2 = new Server(2, 3, msServerSleep, null);
 
         client = new Client(null);
 
         Scanner commandLine = new Scanner(System.in);
-        System.out.println("rubis client started\ntype 'connect' or 'init'");
+        System.out.println("auction client started\ntype 'connect' or 'init'");
 
         boolean running = true;
-        String input = "";
+        String input;
         while(running){
             System.out.print("> ");
             input = commandLine.nextLine();
@@ -43,15 +44,18 @@ public class Main {
                     case "connect":
                         initConnections(false);
                         break;
-                    case "store-0":
-                        client.setStore(replica0);
+                    case "set store": {
+                        System.out.print("id: ");
+                        var id = commandLine.nextInt();
+                        commandLine.nextLine();
+                        switch (id) {
+                            case 0: client.setStore(replica0); break;
+                            case 1: client.setStore(replica1); break;
+                            case 2: client.setStore(replica2); break;
+                            default: System.out.println("unknown store");
+                        }
                         break;
-                    case "store-1":
-                        client.setStore(replica1);
-                        break;
-                    case "store-2":
-                        client.setStore(replica2);
-                        break;
+                    }
                     case "register": {
                         System.out.print("nickname: ");
                         var nickname = commandLine.nextLine();
@@ -70,20 +74,20 @@ public class Main {
                         client.loginUser(nickname, password);
                         break;
                     }
-                    case "show-user":
+                    case "show user":
                         System.out.println(client.printUserInfo(false));
                         break;
-                    case "show-user-full":
+                    case "show full user":
                         System.out.println(client.printUserInfo(true));
                         break;
-                    case "add-credits": {
+                    case "add credits": {
                         System.out.print("amount: ");
                         var amount = commandLine.nextFloat();
                         commandLine.nextLine();
                         client.addBalance(amount);
                         break;
                     }
-                    case "place-item": {
+                    case "place item": {
                         System.out.print("item name: ");
                         var name = commandLine.nextLine();
                         System.out.print("price: ");
@@ -92,7 +96,8 @@ public class Main {
                         System.out.print("duration: ");
                         var duration = commandLine.nextInt();
                         commandLine.nextLine();
-                        client.registerItem(name, Category.MISC, price, duration);
+                        UUID item = client.registerItem(name, "", Category.MISC, price, duration);
+                        System.out.println("New item: " + item);
                         break;
                     }
                     case "browse": {
@@ -103,9 +108,9 @@ public class Main {
                             category = Category.valueOf(categoryName);
                         } catch (IllegalArgumentException e) {
                             System.out.println("unknown category");
-                            return;
+                            break;
                         }
-                        client.browseCategory(category);
+                        System.out.println(client.browseCategory(category));
                         break;
                     }
                     case "bid": {
@@ -123,6 +128,11 @@ public class Main {
                         client.buyNow(UUID.fromString(id));
                         break;
                     }
+                    case "end auction": {
+                        System.out.print("item id: ");
+                        var id = commandLine.nextLine();
+                        client.endAuctionImmediately(UUID.fromString(id));
+                    }
                     case "exit":
                         running = false;
                         break;
@@ -130,24 +140,17 @@ public class Main {
                         System.out.println("unknown command");
                         break;
                 }
+            } catch (AppException | NotEnoughCreditsException e) {
+                System.out.println(e.getMessage());
             } catch (Exception e) {
+                System.out.println(e.getMessage());
                 e.printStackTrace();
             }
         }
         commandLine.close();
-        System.out.println("rubis client stopped");
-
-        try {
-            if (replica0 != null)
-                replica0.close();
-            if (replica1 != null)
-                replica1.close();
-            if (replica2 != null)
-                replica2.close();
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+        System.out.println("auction client stopped");
+        closeConnections();
+        System.out.println("auction servers stopped");
     }
 
     private static void initConnections(boolean clear) {
@@ -160,7 +163,7 @@ public class Main {
 
         if (clear) {
             replica0.transaction(ctx -> {
-                ctx.replicate("rubis", MIXED, Rubis.class);
+                ctx.replicate("rubis", MIXED, AuctionStore.class);
                 return Option.empty();
             });
         }
@@ -179,5 +182,22 @@ public class Main {
         server2.start();
 
         client.setStore(replica0);
+    }
+    private static void closeConnections() {
+        server0.stopThread();
+        server1.stopThread();
+        server2.stopThread();
+
+        try {
+            if (replica0 != null)
+                replica0.close();
+            if (replica1 != null)
+                replica1.close();
+            if (replica2 != null)
+                replica2.close();
+        }
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 }

@@ -12,24 +12,21 @@ public class Item implements Serializable {
     private final UUID id;
     private final String name;
     private String description;
-    private int quantity;
     private final float reservePrice;
-    private float initialPrice;
-    private float buyNowPrice;
+    private final float initialPrice;
+    private final float buyNowPrice;
     private int nBids;
-    private Date startDate;
+    private final Date startDate;
     private Date endDate;
-    private Category category;
+    private final Category category;
     private final Ref<User> seller;
     private final List<Ref<Bid>> bids;
-    //private final List<Ref<Bid>> autoBids;
 
-    public Item(UUID id, String name, String description, int quantity, float reservePrice, float initialPrice,
+    public Item(UUID id, String name, String description, float reservePrice, float initialPrice,
                 float buyNowPrice, Date startDate, Date endDate, Category category, Ref<User> seller) {
         this.id = id;
         this.name = name;
         this.description = description;
-        //this.quantity = quantity;
         this.reservePrice = reservePrice;
         this.initialPrice = initialPrice;
         this.buyNowPrice = buyNowPrice;
@@ -37,37 +34,29 @@ public class Item implements Serializable {
         this.endDate = endDate;
         this.category = category;
         this.seller = seller;
-        this.bids = new Stack<>();
-        //this.autoBids = new LinkedList<>(); // TODO: how/where to make new bid items?
+        this.bids = new LinkedList<>();
     }
 
     @Transactional
     @StrongOp
     public void placeBid(Ref<Bid> bid) {
         if (new Date().after(endDate)) {
-            throw new IllegalArgumentException("Auction has already ended.");
+            throw new AppException("Auction has already ended.");
         }
 
-        float maxBid = bids.isEmpty() ? initialPrice : bids.get(0).ref().getBid();
-        if ((float)bid.ref().getBid() <= maxBid) {
-            System.out.println("Minimum necessary bid amount not met.");
-            return;
+        if ((float)bid.ref().getBid() <= getTopBidPrice()) {
+            throw new AppException("Minimum necessary bid amount not met.");
         }
 
         bids.add(0, bid);
         nBids++;
-
-        //if ((int)bid.ref().maxBid > 0) {
-        //    autoBids.add(bid);
-        //}
-        // autoBids.notify(newMaxBid)
     }
 
     @Transactional
     @StrongOp
     public float buyNow() {
-        if (!bids.isEmpty() && (int)bids.get(0).ref().getBid() >= reservePrice) {
-            throw new IllegalArgumentException("Buy-Now disabled, since reserve price is already met.");
+        if (!bids.isEmpty() && getTopBidPrice() >= reservePrice) {
+            throw new AppException("Buy-Now is disabled, since reserve price is already met.");
         } else {
             endAuctionNow();
             return buyNowPrice;
@@ -81,16 +70,21 @@ public class Item implements Serializable {
 
     @Transactional
     @StrongOp
-    public Ref<Bid> closeAuction() {
+    public Optional<Ref<Bid>> closeAuction() {
         if (new Date().before(endDate)) {
-            throw new IllegalArgumentException("Auction has not yet ended.");
+            throw new AppException("Auction has not yet ended.");
         }
 
-        if (bids.isEmpty() || (float)bids.get(0).ref().getBid() < reservePrice) {
-            return null;
+        if (bids.isEmpty() || getTopBidPrice() < reservePrice) {
+            return Optional.empty();
         } else {
-            return bids.get(0);
+            return Optional.of(bids.get(0));
         }
+    }
+
+    @WeakOp
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     @WeakOp
@@ -122,12 +116,26 @@ public class Item implements Serializable {
     }
 
     @WeakOp
-    public float getBiddingPrice() {
+    public float getTopBidPrice() {
         return bids.isEmpty() ? initialPrice : bids.get(0).ref().getBid();
+    }
+
+    @WeakOp
+    public Optional<Ref<Bid>> getTopBid() {
+        return bids.isEmpty() ? Optional.empty() : Optional.of(bids.get(0));
     }
 
     @WeakOp
     public Ref<User> getSeller() {
         return seller;
+    }
+
+    @WeakOp
+    public String toString() {
+        return "Item '" + name + "' (" + id + ")\n" +
+                "  - price (bid | Buy-Now): " + getTopBidPrice() + " | " + getBuyNowPrice() + "\n" +
+                "  - auction duration: " + startDate + " - " + endDate + "\n" +
+                "  - number of bids: " + getNumberOfBids() + "\n" +
+                description;
     }
 }

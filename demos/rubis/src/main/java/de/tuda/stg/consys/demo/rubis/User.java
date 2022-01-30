@@ -20,10 +20,10 @@ public class User implements Serializable {
     private int nRatings;
     private float balance;
     private final Date creationDate;
-    private List<Ref<Item>> buyerAuctions;
-    private List<Ref<Item>> buyerHistory;
-    private List<Ref<Item>> sellerAuctions;
-    private List<Ref<Item>> sellerHistory;
+    private final List<Ref<Item>> buyerAuctions;
+    private final List<Ref<Item>> buyerHistory;
+    private final List<Ref<Item>> sellerAuctions;
+    private final List<Ref<Item>> sellerHistory;
 
     public User(UUID id, String name, String nickname, String password, String email) {
         this.id = id;
@@ -38,36 +38,44 @@ public class User implements Serializable {
         this.sellerHistory = new LinkedList<>();
     }
 
-    public void addInsertedAuction(Ref<Item> item) {
+    @StrongOp
+    public void addOwnAuction(Ref<Item> item) {
         this.sellerAuctions.add(item);
     }
 
-    public void closeSellerAuction(Ref<Item> item) {
+    @StrongOp
+    public void closeOwnAuction(Ref<Item> item) {
         sellerAuctions.removeIf(i -> item.ref().getId().equals(i.ref().getId()));
         sellerHistory.add(item);
     }
 
+    @StrongOp
     public void addWatchedAuction(Ref<Item> item) {
         buyerAuctions.add(item);
     }
 
-    public void closeBuyerAuction(Ref<Item> item) {
+    @StrongOp
+    public void closeWatchedAuction(Ref<Item> item) {
         buyerAuctions.removeIf(i -> item.ref().getId().equals(i.ref().getId()));
         buyerHistory.add(item);
     }
 
+    @WeakOp
     public List<Ref<Item>> getOpenSellerAuctions() {
         return sellerAuctions;
     }
 
+    @WeakOp
     public List<Ref<Item>> getOpenBuyerAuctions() {
         return buyerAuctions;
     }
 
+    @WeakOp
     public List<Ref<Item>> getSellerHistory() {
         return sellerHistory;
     }
 
+    @WeakOp
     public List<Ref<Item>> getBuyerHistory() {
         return buyerHistory;
     }
@@ -82,7 +90,7 @@ public class User implements Serializable {
         if (authenticate(oldPassword)) {
             this.password = newPassword;
         } else {
-            System.out.println("wrong password");
+            throw new AppException("Wrong credentials.");
         }
     }
 
@@ -91,7 +99,7 @@ public class User implements Serializable {
         if (authenticate(password)) {
             this.email = newEmail;
         } else {
-            System.out.println("wrong password");
+            throw new AppException("Wrong credentials.");
         }
     }
 
@@ -105,16 +113,16 @@ public class User implements Serializable {
         if (value > 0) {
             this.balance += value;
         } else {
-            throw new IllegalArgumentException("value must be positive");
+            throw new AppException("value must be positive");
         }
     }
 
     @StrongOp
     public void removeBalance(float value) {
         if (value <= 0) {
-            throw new IllegalArgumentException("value must be positive");
+            throw new AppException("value must be positive");
         } else if (balance - value < 0) {
-            throw new IllegalArgumentException("not enough credits");
+            throw new NotEnoughCreditsException();
         } else {
             this.balance -= value;
         }
@@ -127,8 +135,8 @@ public class User implements Serializable {
 
     @WeakOp
     public void rate(int rating) {
-        if (rating < 0 || rating > 5) {
-            System.out.println("rating out of bounds");
+        if (rating < 1 || rating > 5) {
+            throw new AppException("rating out of bounds");
         } else {
             this.rating += (rating - this.rating) / ++nRatings;
         }
@@ -144,8 +152,9 @@ public class User implements Serializable {
         return rating;
     }
 
+    @WeakOp
     public void notifyWinner(Ref<Item> item, float price) {
-        // TODO
+        // send email
     }
 
     @WeakOp

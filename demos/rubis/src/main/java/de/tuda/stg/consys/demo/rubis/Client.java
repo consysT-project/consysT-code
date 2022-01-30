@@ -16,7 +16,7 @@ public class Client {
     public static ConsistencyLevel<CassandraStore> objectsConsistencyLevel = MIXED;
     private CassandraStoreBinding store;
     private Ref<User> user;
-    private Ref<Rubis> rubis;
+    private Ref<AuctionStore> auctionStore;
 
     public Client(CassandraStoreBinding store) {
         this.store = store;
@@ -27,15 +27,15 @@ public class Client {
     }
 
     public void registerUser(String name, String nickname, String password, String email) {
+        var userId = UUID.randomUUID();
         this.user = store.transaction(ctx -> {
-            var id = UUID.randomUUID();
             var user = ctx.replicate("user:" + nickname, objectsConsistencyLevel, User.class,
-                    id, name, nickname, password, email);
+                    userId, name, nickname, password, email);
 
-            if (rubis == null) {
-                rubis = ctx.lookup("rubis", objectsConsistencyLevel, Rubis.class);
+            if (auctionStore == null) {
+                auctionStore = ctx.lookup("rubis", objectsConsistencyLevel, AuctionStore.class);
             }
-            rubis.ref().addUser(user);
+            auctionStore.ref().addUser(user);
 
             return Option.apply(user);
         }).get();
@@ -45,11 +45,11 @@ public class Client {
         var result = store.transaction(ctx -> {
             var user = ctx.lookup("user:" + nickname, objectsConsistencyLevel, User.class);
             if (!(boolean)user.ref().authenticate(password)) {
-                throw new IllegalArgumentException("wrong password");
+                throw new AppException("Wrong credentials.");
             }
 
-            if (rubis == null) {
-                rubis = ctx.lookup("rubis", objectsConsistencyLevel, Rubis.class);
+            if (auctionStore == null) {
+                auctionStore = ctx.lookup("rubis", objectsConsistencyLevel, AuctionStore.class);
             }
 
             return Option.apply(user);
@@ -60,30 +60,6 @@ public class Client {
         }
     }
 
-    public String printUserInfo(boolean full) {
-        checkLogin();
-        if (!full) {
-            return store.transaction(ctx -> Option.<String>apply(user.ref().toString())).get();
-        } else {
-            store.transaction(ctx -> {
-                List<Ref<Item>> bought = user.ref().getBuyerHistory();
-                System.out.println("Bought items:");
-                for (var item : bought) {
-                    System.out.println("  " + item.ref().getName() + " (" + item.ref().getId());
-                }
-
-                List<Ref<Item>> sold = user.ref().getSellerHistory();
-                System.out.println("Sold items:");
-                for (var item : sold) {
-                    System.out.println("  " + item.ref().getName() + " (" + item.ref().getId());
-                }
-
-                return Option.empty();
-            });
-        }
-        return "";
-    }
-
     public void addBalance(float amount) {
         checkLogin();
         store.transaction(ctx -> {
@@ -92,7 +68,7 @@ public class Client {
         });
     }
 
-    public UUID registerItem(String name, Category category, float reservePrice, int durationInSeconds) {
+    public UUID registerItem(String name, String description, Category category, float reservePrice, int durationInSeconds) {
         checkLogin();
 
         var cal = Calendar.getInstance();
@@ -107,32 +83,39 @@ public class Client {
 
         return store.transaction(ctx -> {
             var item = ctx.replicate("item:" + itemId, objectsConsistencyLevel, Item.class,
-                    itemId, name, "", 1, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
+                    itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
                     category, user);
 
-            user.ref().addInsertedAuction(item);
-            rubis.ref().addItem(item, Category.MISC);
+            user.ref().addOwnAuction(item);
+            auctionStore.ref().addItem(item, Category.MISC);
 
             return Option.apply(itemId);
         }).get();
     }
 
-    public void placeBid(UUID itemId, float price) {
+    public void placeBid(UUID itemId, float bidAmount) {
         checkLogin();
 
+        var bidId = UUID.randomUUID();
         store.transaction(ctx -> {
             var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
-                System.out.println("You cannot bid on your own items");
-                return Option.empty();
+                throw new AppException("You cannot bid on your own items.");
             }
 
-            var bidId = UUID.randomUUID();
+            if (!Util.hasEnoughCredits(user, bidAmount)) {
+                throw new NotEnoughCreditsException();
+            }
+
             var bid = ctx.replicate("bid:" + bidId, objectsConsistencyLevel, Bid.class,
-                    bidId, price, user, -1.0f);
-            item.ref().placeBid(bid);
-            // TODO add bid to rubis list
+                    bidId, bidAmount, user);
+            try {
+                item.ref().placeBid(bid);
+            } catch (AppException ignored) {
+                return Option.empty();
+            }
+            user.ref().addWatchedAuction(item);
             return Option.empty();
         });
     }
@@ -144,30 +127,26 @@ public class Client {
             var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
-                System.out.println("You cannot buy your own items");
-                return Option.empty();
+                throw new AppException("You cannot buy your own items.");
             }
 
-            Util.buyItemNow(item, user, rubis);
-
+            Util.buyItemNow(item, user, auctionStore);
             return Option.empty();
         });
     }
 
-    public void browseCategory(Category category) {
+    public String browseCategory(Category category) {
         checkLogin();
 
-        store.transaction(ctx -> {
-            List<Ref<Item>> items = rubis.ref().browseItems(category);
-            System.out.println("Items in category '" + category + "':");
+        return store.transaction(ctx -> {
+            var sb = new StringBuilder();
+            List<Ref<Item>> items = auctionStore.ref().browseItems(category);
+            sb.append("Items in category '").append(category).append("':\n");
             for (var item : items) {
-                System.out.println("  " + item.ref().getName() + " (" + item.ref().getId() + ")" +
-                        " | bidding price: " + item.ref().getBiddingPrice() +
-                        " | Buy-Now price: " + item.ref().getBuyNowPrice() +
-                        " | until: " + item.ref().getEndDate());
+                sb.append((String)item.ref().toString());
             }
-            return Option.empty();
-        });
+            return Option.apply(sb.toString());
+        }).get();
     }
 
     public void endAuctionImmediately(UUID itemId) {
@@ -175,15 +154,59 @@ public class Client {
 
         store.transaction(ctx -> {
             var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            if (!((Ref<User>)item.ref().getSeller()).ref().getNickname().equals(user.ref().getNickname())) {
+                throw new AppException("You can only end your own auctions.");
+            }
+
             item.ref().endAuctionNow();
-            Util.closeAuction(item, rubis);
+            Util.closeAuction(item, auctionStore);
+
             return Option.empty();
         });
     }
 
+    public String printUserInfo(boolean full) {
+        checkLogin();
+
+        return store.transaction(ctx -> {
+            var sb = new StringBuilder();
+            sb.append((String)user.ref().toString());
+
+            if (!full) {
+                return Option.apply(sb.toString());
+            }
+
+            List<Ref<Item>> watched = user.ref().getOpenBuyerAuctions();
+            sb.append("Watched items:\n");
+            for (var item : watched) {
+                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+            }
+
+            List<Ref<Item>> open = user.ref().getOpenSellerAuctions();
+            sb.append("Open auctions:\n");
+            for (var item : open) {
+                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+            }
+
+            List<Ref<Item>> bought = user.ref().getBuyerHistory();
+            sb.append("Bought items:\n");
+            for (var item : bought) {
+                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+            }
+
+            List<Ref<Item>> sold = user.ref().getSellerHistory();
+            sb.append("Sold items / closed auctions:\n");
+            for (var item : sold) {
+                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+            }
+
+            return Option.apply(sb.toString());
+        }).get();
+    }
+
     private void checkLogin() {
         if (user == null) {
-            System.out.println("You must be logged-in in.");
+            throw new AppException("You must be logged-in in.");
         }
     }
 }
