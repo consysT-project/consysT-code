@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.schema;
 
 public enum Category {
     CLOTHING,

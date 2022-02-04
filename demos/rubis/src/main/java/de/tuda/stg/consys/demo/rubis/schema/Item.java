@@ -1,8 +1,9 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -41,7 +42,7 @@ public class Item implements Serializable {
     @StrongOp
     public boolean placeBid(Ref<Bid> bid) {
         if (new Date().after(endDate)) {
-            throw new DateException("Auction has already ended.");
+            throw new AppException.DateException("Auction has already ended.");
         }
 
         if ((float)bid.ref().getBid() <= getTopBidPrice()) {
@@ -75,7 +76,7 @@ public class Item implements Serializable {
     @StrongOp
     public Optional<Ref<Bid>> closeAuction() {
         if (new Date().before(endDate)) {
-            throw new DateException("Auction has not yet ended.");
+            throw new AppException.DateException("Auction has not yet ended.");
         }
 
         if (bids.isEmpty() || getTopBidPrice() < reservePrice) {

@@ -1,6 +1,7 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class Util {
+    public static final String auctionStoreKey = "root";
+
     @Transactional
     public static void closeAuction(Ref<Item> item, Ref<AuctionStore> rubis) {
         Ref<User> seller = item.ref().getSeller();
@@ -35,11 +38,11 @@ public class Util {
 
     @Transactional
     public static void buyItemNow(Ref<Item> item, Ref<User> buyer, Ref<AuctionStore> rubis)
-            throws AppException, NotEnoughCreditsException {
+            throws AppException, AppException.NotEnoughCreditsException {
         float price = item.ref().buyNow();
 
         if (!hasEnoughCredits(buyer, price)) {
-            throw new NotEnoughCreditsException();
+            throw new AppException.NotEnoughCreditsException();
         }
 
         Ref<User> seller = item.ref().getSeller();

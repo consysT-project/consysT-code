@@ -1,5 +1,8 @@
 package de.tuda.stg.consys.demo.rubis;
 
+import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
+import de.tuda.stg.consys.demo.rubis.schema.Item;
+import de.tuda.stg.consys.demo.rubis.schema.Util;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
@@ -7,11 +10,10 @@ import scala.Tuple3;
 
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
-public class Server implements Runnable {
+public class BackgroundTask implements Runnable {
     private final int id;
     private final int nReplicas;
     private CassandraStoreBinding store;
@@ -20,7 +22,7 @@ public class Server implements Runnable {
 
     private Ref<AuctionStore> auctionStore;
 
-    public Server(int id, int nReplicas, long sleepMilliseconds, CassandraStoreBinding store) {
+    public BackgroundTask(int id, int nReplicas, long sleepMilliseconds, CassandraStoreBinding store) {
         this.id = id;
         this.nReplicas = nReplicas;
         this.sleepMilliseconds = sleepMilliseconds;
@@ -32,7 +34,8 @@ public class Server implements Runnable {
     }
 
     public void init() {
-        this.auctionStore = store.transaction(ctx -> Option.<Ref<AuctionStore>>apply(ctx.lookup("rubis", MIXED, AuctionStore.class))).get();
+        this.auctionStore = store.transaction(ctx ->
+                Option.<Ref<AuctionStore>>apply(ctx.lookup(Util.auctionStoreKey, MIXED, AuctionStore.class))).get();
     }
 
     @Override

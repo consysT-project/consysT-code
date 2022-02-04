@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.rubis;
 
+import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
@@ -15,52 +16,50 @@ import java.util.concurrent.*;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
 public class TestRunner {
-    private static final int msTimeout = 50;
+    private static final int msReplicaTimeout = 50;
     private static final int msServerSleep = 1000;
+    private static final boolean enableLog = true;
+    private static final int nReplicas = 3;
+    private static final int nBackgroundTasks = 0;
 
     private static ExecutorService threadPool;
     private static final List<Future<?>> threadFutures = new LinkedList<>();
 
-    private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[3];
-    private static final Client[] clients = new Client[3];
-    private static final Server[] servers = new Server[3];
+    private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[nReplicas];
+    private static final UserInterface[] userInterfaces = new UserInterface[nReplicas];
+    private static final BackgroundTask[] backgroundTasks = new BackgroundTask[nBackgroundTasks];
     private static final UUID[] items = new UUID[5];
 
     public static void main(String[] args) throws InterruptedException {
-        threadPool = Executors.newFixedThreadPool(servers.length + clients.length);
+        threadPool = Executors.newFixedThreadPool(backgroundTasks.length + userInterfaces.length);
         initConnections();
         run();
         closeConnections();
     }
 
     private static void initConnections() {
-        replicas[0] = Cassandra.newReplica("127.0.0.1", 9042, 2181,
-                Duration.apply(msTimeout, "ms"), true);
-        replicas[1] = Cassandra.newReplica("127.0.0.2", 9042, 2181,
-                Duration.apply(msTimeout, "ms"), false);
-        replicas[2] = Cassandra.newReplica("127.0.0.3", 9042, 2181,
-                Duration.apply(msTimeout, "ms"), false);
+        for (int i = 0; i < replicas.length; i++) {
+            replicas[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181,
+                    Duration.apply(msReplicaTimeout, "ms"), i == 0);
+        }
 
         replicas[0].transaction(ctx -> {
-            ctx.replicate("rubis", MIXED, AuctionStore.class);
+            ctx.replicate(Util.auctionStoreKey, MIXED, AuctionStore.class);
             return Option.empty();
         });
 
-        servers[0] = new Server(0, 3, msServerSleep, replicas[0]);
-        servers[1] = new Server(1, 3, msServerSleep, replicas[1]);
-        servers[2] = new Server(2, 3, msServerSleep, replicas[2]);
+        for (int i = 0; i < backgroundTasks.length; i++) {
+            backgroundTasks[i] = new BackgroundTask(i, backgroundTasks.length, msServerSleep, replicas[i % replicas.length]);
+            backgroundTasks[i].init();
+        }
 
-        servers[0].init();
-        servers[1].init();
-        servers[2].init();
-
-        clients[0] = new Client(replicas[0]);
-        clients[1] = new Client(replicas[1]);
-        clients[2] = new Client(replicas[2]);
+        for (int i = 0; i < userInterfaces.length; i++) {
+            userInterfaces[i] = new UserInterface(replicas[i % replicas.length]);
+        }
     }
 
     private static void closeConnections() {
-        for (var server : servers)
+        for (var server : backgroundTasks)
             server.stopThread();
 
         try {
@@ -73,39 +72,39 @@ public class TestRunner {
     }
 
     public static void run() throws InterruptedException {
-        for (var server : servers) {
-            //threadFutures.add(threadPool.submit(server));
+        for (var task : backgroundTasks) {
+            threadFutures.add(threadPool.submit(task));
         }
 
-        Client sellerClient = clients[0];
-
         System.out.println("> Starting auctions...");
-        sellerClient.registerUser("", "0", "", "");
-        items[0] = sellerClient.registerItem("item0", "", Category.MISC, 50, 60);
-        items[1] = sellerClient.registerItem("item1", "", Category.MISC, 50, 60);
-        items[2] = sellerClient.registerItem("item2", "", Category.MISC, 50, 60);
-        items[3] = sellerClient.registerItem("item3", "", Category.MISC, 50, 60);
-        items[4] = sellerClient.registerItem("item4", "", Category.MISC, 50, 60);
+        UserInterface sellerInterface = userInterfaces[0];
+        sellerInterface.registerUser("", "0", "", "");
+        items[0] = sellerInterface.registerItem("item0", "", Category.MISC, 50, 60);
+        items[1] = sellerInterface.registerItem("item1", "", Category.MISC, 50, 60);
+        items[2] = sellerInterface.registerItem("item2", "", Category.MISC, 50, 60);
+        items[3] = sellerInterface.registerItem("item3", "", Category.MISC, 50, 60);
+        items[4] = sellerInterface.registerItem("item4", "", Category.MISC, 50, 60);
 
         System.out.println("> Starting bidding...");
-        threadFutures.add(threadPool.submit(new Test(1, new UUID[]{items[0], items[1]}, 100)));
-        threadFutures.add(threadPool.submit(new Test(2, new UUID[]{items[0], items[1], items[2]}, 90)));
+        threadFutures.add(threadPool.submit(new UserTask(1, new UUID[]{items[0], items[1]}, 100, 4)));
+        threadFutures.add(threadPool.submit(new UserTask(2, new UUID[]{items[0], items[1], items[2]}, 90, 2)));
 
         Thread.sleep(10000);
 
         System.out.println("> Ending auctions...");
-        try {
-            for (var item : items) {
-                sellerClient.endAuctionImmediately(item);
-            }
-        } catch (TimeoutException e) {
-            System.out.println(e.getMessage());
+        boolean end = false;
+        while (!end) {
+            try {
+                for (var item : items)
+                    sellerInterface.endAuctionImmediately(item);
+                end = true;
+            } catch (TimeoutException ignored) {}
         }
 
         threadPool.shutdown();
 
-        for (var server : servers) {
-            //server.stopThread();
+        for (var task : backgroundTasks) {
+            task.stopThread();
         }
 
         for (var future: threadFutures) {
@@ -117,55 +116,63 @@ public class TestRunner {
         }
 
         System.out.println("--------------");
-        System.out.println(clients[0].printUserInfo(true));
-        System.out.println(clients[1].printUserInfo(true));
-        System.out.println(clients[2].printUserInfo(true));
+        for (var client : userInterfaces) {
+            System.out.println(client.printUserInfo(true));
+        }
     }
 
-    static class Test implements Runnable {
-        private final Client client;
+    static class UserTask implements Runnable {
+        private final UserInterface userInterface;
         private final UUID[] watchedItems;
         private final String userName;
         private final float maxBid;
+        float bidIncrement;
 
-        Test(int id, UUID[] watchedItems, float maxBid) {
-            client = clients[id];
+        UserTask(int id, UUID[] watchedItems, float maxBid, float bidIncrement) {
+            userInterface = userInterfaces[id];
             this.watchedItems = watchedItems;
             this.maxBid = maxBid;
+            this.bidIncrement = bidIncrement;
             userName = String.valueOf(id);
 
-            client.registerUser("", userName, "", "");
-            client.addBalance(1000);
+            userInterface.registerUser("", userName, "", "");
+            userInterface.addBalance(1000);
         }
 
         @Override
         public void run() {
-            float increment = 3;
+            boolean[] reservesMet = new boolean[watchedItems.length];
+            int nCompletedItems = 0;
+            while (nCompletedItems < watchedItems.length) {
+                for (int i = 0; i < watchedItems.length; i++) {
+                    var item = watchedItems[i];
+                    Tuple2<Optional<String>, Float> bid = userInterface.getTopBid(item);
+                    float newBid = bid._2 + bidIncrement;
 
-            int i = 0;
-            while (i < watchedItems.length) {
-                for (var item : watchedItems) {
-                    Tuple2<Optional<String>, Float> bid = client.getTopBid(item);
-                    if(bid._2 + increment <= maxBid && !(bid._1.isPresent() && bid._1.get().equals(userName))) {
-                        //System.out.println(userName + " " + item + " " + bid._2 + " " +
-                        // (bid._2 + increment) + " " + (bid._1.isPresent() ? bid._1.get() : ""));
+                    if(newBid <= maxBid && (!(bid._1.isPresent() && bid._1.get().equals(userName)) || !reservesMet[i])) {
                         try {
-                            boolean reserveMet = client.placeBid(item, bid._2 + increment);
-                            // TODO: retry if reserve not met
-                        } catch (DateException ignored) {
-                            //System.out.println("ended");
-                            i++; // auction ended
+                            reservesMet[i] = userInterface.placeBid(item, newBid);
+                            if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
+                                    (reservesMet[i] ? "" : " but reserve not met."));
+                        } catch (AppException.DateException ignored) {
+                            if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
+                                    " but auction has already ended.");
+                            nCompletedItems++; // auction ended
                         } catch (AppException ignored) {
-                            //System.out.println("outbid"); // we were outbid during processing, try again
+                            if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
+                                    " but was outbid during processing.");
+                            // we were outbid during processing, try again
                         } catch (TimeoutException ignored) {
-                            //System.out.println("locked"); // auction is locked, try again
+                            if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
+                                    " but auction is locked by another user.");
+                            // auction is locked, try again
                         }
-                    } else if (bid._2 + increment > maxBid) {
+                    } else if (newBid > maxBid) {
                         //System.out.println("too expensive");
-                        i++;
-                    } else if (client.hasAuctionEnded(item)) {
+                        nCompletedItems++;
+                    } else if (userInterface.hasAuctionEnded(item)) {
                         //System.out.println("ended");
-                        i++;
+                        nCompletedItems++;
                     }
                 }
                 try {

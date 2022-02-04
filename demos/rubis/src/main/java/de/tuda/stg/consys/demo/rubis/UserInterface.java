@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.rubis;
 
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
+import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
@@ -12,13 +13,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
-public class Client {
+public class UserInterface {
     public static ConsistencyLevel<CassandraStore> objectsConsistencyLevel = MIXED;
     private CassandraStoreBinding store;
     private Ref<User> user;
     private Ref<AuctionStore> auctionStore;
 
-    public Client(CassandraStoreBinding store) {
+    public UserInterface(CassandraStoreBinding store) {
         this.store = store;
     }
 
@@ -33,7 +34,7 @@ public class Client {
                     userId, name, nickname, password, email);
 
             if (auctionStore == null) {
-                auctionStore = ctx.lookup("rubis", objectsConsistencyLevel, AuctionStore.class);
+                auctionStore = ctx.lookup(Util.auctionStoreKey, objectsConsistencyLevel, AuctionStore.class);
             }
             auctionStore.ref().addUser(user);
 
@@ -49,7 +50,7 @@ public class Client {
             }
 
             if (auctionStore == null) {
-                auctionStore = ctx.lookup("rubis", objectsConsistencyLevel, AuctionStore.class);
+                auctionStore = ctx.lookup(Util.auctionStoreKey, objectsConsistencyLevel, AuctionStore.class);
             }
 
             return Option.apply(user);
@@ -105,7 +106,7 @@ public class Client {
             }
 
             if (!Util.hasEnoughCredits(user, bidAmount)) {
-                throw new NotEnoughCreditsException();
+                throw new AppException.NotEnoughCreditsException();
             }
 
             var bid = ctx.replicate("bid:" + bidId, objectsConsistencyLevel, Bid.class,

@@ -1,7 +1,8 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.schema;
 
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -129,7 +130,7 @@ public class User implements Serializable {
         if (value <= 0) {
             throw new AppException("value must be positive");
         } else if (balance - value < 0) {
-            throw new NotEnoughCreditsException();
+            throw new AppException.NotEnoughCreditsException();
         } else {
             this.balance -= value;
         }
