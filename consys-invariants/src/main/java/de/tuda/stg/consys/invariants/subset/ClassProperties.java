@@ -44,7 +44,8 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 
 	private boolean isValid(Model z3Model, Expr<BoolSort> expr) {
-		Status status = model.solver.check(model.ctx.mkNot(expr));
+		model.solver.add(model.ctx.mkNot(expr));
+		Status status = model.solver.check();
 
 
 		switch (status) {

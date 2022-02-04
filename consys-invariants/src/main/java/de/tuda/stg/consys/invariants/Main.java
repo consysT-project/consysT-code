@@ -28,48 +28,10 @@ public class Main {
     //ProgramConfig config = Examples.DEFAULT_CONFIG;
     ProgramConfig config = Examples.STATEFUL_CONFIG;
 
-    // Set the source file
-    Path[] sources = new Path[] {
-//            Paths.get("consys-invariants", "InvariantExamples", "BankAccountCRDT", "BankAccountCRDT.java"),
-            // Paths.get("consys-invariants", "InvariantExamples", "BankAccount", "BankAccount.java")
-            //    Paths.get("consys-invariants", "InvariantExamples", "Consensus", "Consensus.java")
-            //Paths.get("consys-invariants", "InvariantExamples", "PNCounterCRDT", "PNCounterCRDT.java")
-            //Paths.get("consys-invariants", "InvariantExamples", "GCounterCRDT", "GCounterCRDT.java")
-            //  Paths.get("consys-invariants", "InvariantExamples", "GSetCRDT", "GSetCRDT.java")
-              //Paths.get("consys-invariants", "InvariantExamples", "DistributedLock", "DistributedLock.java")
-            // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounter", "ResettableCounter.java")
-           // Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
-            //   Paths.get("consys-invariants", "InvariantExamples", "ResettableCounterWithRound", "ResettableCounterWithRound.java")
-            //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleNumber.java"),
-            //Paths.get("consys-invariants","InvariantExamples","MultiClassTestExample","SimpleCounter.java"),
-            //Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSetP.java"),
-            //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSetT.java"),
-              //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
-              //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java"),
-              //Paths.get("consys-invariants","InvariantExamples","Indigo","Player.java"),
-              //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournament.java"),
-              //Paths.get("consys-invariants","InvariantExamples","Indigo","Tournaments.java")
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/GCounter.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/counters/PNCounter.java")
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/GSet.java"),
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/TwoPhaseSet.java")
-            //Paths.get("consys-riak/src/main/java/com/readytalk/crdt/sets/ORSet.java")
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Player.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetPlayer.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetPlayer.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournament.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/GSetTournament.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/TwoPhaseSetTournament.java"),
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/tournament/Tournaments.java")
-            //Paths.get("consys-invariants/InvariantExamples/cards/JointBankAccount/JointBankAccount.java")
-            //Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/twophaseset/TwoPhaseSet.java")
-    };
+   
     runChecker(config,
             /* libs */ new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") },
-            /* checked classes */ Examples.BANK_ACCOUNT
+            /* checked classes */ Examples.REPLICATED_CREDIT_ACCOUNT
     );
 
 

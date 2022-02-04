@@ -48,7 +48,7 @@ public class ReplicatedCreditAccount {
     }
 
     /* Merge method */
-    //@ requires __merge(credits);
+    // requires __merge(credits);
     //@ ensures stateful( credits.merge(other.credits) );
     public void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);

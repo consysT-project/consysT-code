@@ -8,42 +8,36 @@ import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
 import org.jmlspecs.jml4.ast.*;
 
+import java.util.List;
 import java.util.Optional;
 
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{
 
 	// A function declaration to be used in z3. Is null if the method types do not conform to z3 types.
 	// f(thisState, args...) => (newState, return)
-	private final FuncDecl<?> funcState;
-	private final FuncDecl<?> funcValue;
+	FuncDecl<?> funcState;
+	FuncDecl<?> funcValue;
 
 	public MethodModel(ProgramModel model, BaseClassModel clazz, JmlMethodDeclaration method) {
+		this(model, clazz, method, true);
+	}
+
+	MethodModel(ProgramModel model, BaseClassModel clazz, JmlMethodDeclaration method, boolean tryInitialize) {
 		super(model, clazz, method);
 
 		var argTypes = getArgumentTypes();
 		var retType = getReturnType();
 
-		if (argTypes.stream().allMatch(TypeModel::hasSort) && retType.hasSort() /* && isPure() && !hasPrecondition() */) {
-			// Add `this` and `\old this` to the arguments of the z3 function.
-			var argSorts = argTypes.stream().map(TypeModel::toSort).toArray(Sort[]::new);
-			var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort());
-
-			var methodNamePrefix = model.config.SOLVER__SIMPLE_NAMES ?
-					JDTUtils.simpleNameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector) :
-					JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
-
-			var stateMethodName = methodNamePrefix + "_STATE";
-			var valueMethodName = model.config.SOLVER__SIMPLE_NAMES ?
-					methodNamePrefix : methodNamePrefix + "_VALUE";
-
-			funcState = model.ctx.mkFreshFuncDecl(stateMethodName, argSortsAndThis, clazz.getClassSort());
-			funcValue = model.ctx.mkFreshFuncDecl(valueMethodName, argSortsAndThis, retType.toSort());
-
+		if (tryInitialize && argTypes.stream().allMatch(TypeModel::hasSort) && retType.hasSort() /* && isPure() && !hasPrecondition() */) {
+			var decls = initializeMethod(model, clazz, method, argTypes, retType);
+			funcState = decls[0];
+			funcValue = decls[1];
 		} else {
 			funcState = null;
 			funcValue = null;
 		}
 	}
+
 
 	private Optional<FuncDecl<?>> toFuncDeclState() {
 		if (!usableAsConstraint()) return Optional.empty();

@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
+import com.microsoft.z3.FuncDecl;
+import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
@@ -9,6 +11,7 @@ import org.eclipse.jdt.internal.compiler.ast.Reference;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlAbstractMethodDeclaration;
+import org.jmlspecs.jml4.ast.JmlMethodDeclaration;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +38,25 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 					.map(arg -> new ArgumentModel(model, arg))
 					.toArray(ArgumentModel[]::new);
 		}
+	}
+
+	protected static FuncDecl<?>[] initializeMethod(ProgramModel model, BaseClassModel clazz, JmlMethodDeclaration method, List<TypeModel<?>> argTypes, TypeModel<?> retType) {
+		// Add `this` and `\old this` to the arguments of the z3 function.
+		var argSorts = argTypes.stream().map(TypeModel::toSort).toArray(Sort[]::new);
+		var argSortsAndThis = Z3Utils.arrayPrepend(Sort[]::new, argSorts, clazz.getClassSort());
+
+		var methodNamePrefix = model.config.SOLVER__SIMPLE_NAMES ?
+				JDTUtils.simpleNameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector) :
+				JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
+
+		var stateMethodName = methodNamePrefix + "_STATE";
+		var valueMethodName = model.config.SOLVER__SIMPLE_NAMES ?
+				methodNamePrefix : methodNamePrefix + "_VALUE";
+
+		var funcState = model.ctx.mkFreshFuncDecl(stateMethodName, argSortsAndThis, clazz.getClassSort());
+		var funcValue = model.ctx.mkFreshFuncDecl(valueMethodName, argSortsAndThis, retType.toSort());
+
+		return new FuncDecl<?>[]{funcState, funcValue};
 	}
 
 	public Optional<Expression> getJmlPrecondition() {
