@@ -36,6 +36,8 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		var result = new CheckResult();
 		for (var prop : properties) {
 			var isValid = prop.check(z3Model);
+			if (prop.name.equals("mergability/merge"))
+				Logger.info("check");
 			result.addResult(prop, isValid);
 		}
 

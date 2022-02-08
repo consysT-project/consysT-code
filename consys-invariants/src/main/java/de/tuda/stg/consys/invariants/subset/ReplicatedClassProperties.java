@@ -40,7 +40,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
-		return new ClassProperty("invariant/merge",
+		var result = new ClassProperty("invariant/merge",
 				model.ctx.mkForall(
 						new Expr[] {s0, s1, s0_new},
 						model.ctx.mkImplies(
@@ -61,6 +61,8 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 						null
 				)
 		);
+
+		return result;
 	}
 
 	/* Concurrent properties (i.e. predicates for mergability) */

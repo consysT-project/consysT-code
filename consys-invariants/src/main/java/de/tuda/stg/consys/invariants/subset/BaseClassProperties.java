@@ -52,7 +52,7 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
-		return new MethodProperty("invariant/method",
+		var result = new MethodProperty("invariant/method",
 				binding,
 				model.ctx.mkForall(
 						new Expr[] {s0, s0_new},
@@ -72,6 +72,8 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 						null
 				)
 		);
+
+		return result;
 	}
 
 
