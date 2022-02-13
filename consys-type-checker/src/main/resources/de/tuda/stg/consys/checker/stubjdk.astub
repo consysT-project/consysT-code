@@ -1,0 +1,66 @@
+import org.checkerframework.dataflow.qual.*;
+import de.tuda.stg.consys.checker.qual.*;
+
+package java.lang;
+
+class Object {
+    @SideEffectFree
+    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @SideEffectFree
+    String toString();
+}
+
+class String {
+    @SideEffectFree
+    @PolyConsistent boolean equals(@PolyConsistent Object o);
+}
+
+class StringBuilder {
+    @Mutable StringBuilder append(double d);
+    @Mutable StringBuilder append(float f);
+    @Mutable StringBuilder append(int i);
+    @Mutable StringBuilder append(long lng);
+    @Mutable StringBuilder append(Object obj);
+    @Mutable StringBuilder append(String str);
+}
+
+package java.util;
+
+@Immutable class Optional<T> {
+    <T> @Immutable @Local Optional<T> of(T t);
+    <T> @Immutable @Local Optional<T> empty();
+
+    @SideEffectFree
+    boolean isPresent();
+    @SideEffectFree
+    boolean isEmpty();
+    @SideEffectFree
+    T get();
+}
+
+class UUID {
+    @Local UUID randomUUID();
+    @SideEffectFree
+    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @SideEffectFree
+    String toString();
+}
+
+interface List<T> {
+    @SideEffectFree
+    boolean isEmpty();
+}
+
+interface Collection<T> {
+    @Mutable Stream<T> stream();
+}
+
+
+package java.util.stream;
+
+interface Stream<T> {
+    @SideEffectFree
+    T findFirst();
+
+    @Mutable Stream<T> filter(java.util.function.Predicate<? super T> predicate);
+}

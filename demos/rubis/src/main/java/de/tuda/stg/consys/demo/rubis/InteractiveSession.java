@@ -59,7 +59,7 @@ public class InteractiveSession {
                         var name = commandLine.nextLine();
                         System.out.print("password: ");
                         var password = commandLine.nextLine();
-                        userInterface.registerUser(name, nickname, password, "mail@example");
+                        userInterface.registerUser(nickname, name, password, "mail@example");
                         break;
                     }
                     case "login": {

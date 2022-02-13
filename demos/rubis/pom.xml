@@ -30,12 +30,16 @@
                             <version>3.0.0-alpha</version>
                         </path>
                     </annotationProcessorPaths>
-                    <!--<annotationProcessors>
-                        annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
-                    </annotationProcessors>-->
+<!--
+                    <annotationProcessors>
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
+-->
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:consys-compiler</arg>
+                        <arg>-AstubWarnIfNotFound</arg>
+                        <!--<arg>-AsuppressWarnings=inconsistent.constructor.type</arg>-->
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -68,11 +72,6 @@
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-annotations</artifactId>
             <version>3.0.0-alpha</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.6</version>
         </dependency>
     </dependencies>
 

@@ -1,16 +1,18 @@
 package de.tuda.stg.consys.demo.rubis.schema;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.*;
 
-public class AuctionStore implements Serializable {
+public @Mixed class AuctionStore implements Serializable {
     private final List<Ref<User>> users;
     private final List<Ref<Item>> openAuctions;
-    private final Map<Category, List<Ref<Item>>> openAuctionsByCategory;
+    private final Map<Category, @Mutable List<Ref<Item>>> openAuctionsByCategory;
 
     public AuctionStore() {
         this.users = new ArrayList<>();
@@ -32,6 +34,7 @@ public class AuctionStore implements Serializable {
         openAuctions.add(item);
     }
 
+    @Transactional
     @StrongOp
     public void closeAuction(UUID id, Category category) {
         openAuctions.removeIf(i -> i.ref().getId().equals(id));
@@ -51,6 +54,7 @@ public class AuctionStore implements Serializable {
         return openAuctions;
     }
 
+    @Transactional
     @WeakOp
     public Optional<Ref<User>> searchUser(String nickname) {
         return users.stream().filter(user -> user.ref().getNickname().equals(nickname)).findFirst();

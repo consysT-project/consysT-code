@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.rubis;
 
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
 import de.tuda.stg.consys.demo.rubis.schema.Item;
 import de.tuda.stg.consys.demo.rubis.schema.Util;
@@ -22,14 +23,14 @@ public class BackgroundTask implements Runnable {
 
     private Ref<AuctionStore> auctionStore;
 
-    public BackgroundTask(int id, int nReplicas, long sleepMilliseconds, CassandraStoreBinding store) {
+    public BackgroundTask(int id, int nReplicas, long sleepMilliseconds, @Mutable CassandraStoreBinding store) {
         this.id = id;
         this.nReplicas = nReplicas;
         this.sleepMilliseconds = sleepMilliseconds;
         this.store = store;
     }
 
-    public void setStore(CassandraStoreBinding store) {
+    public void setStore(@Mutable CassandraStoreBinding store) {
         this.store = store;
     }
 

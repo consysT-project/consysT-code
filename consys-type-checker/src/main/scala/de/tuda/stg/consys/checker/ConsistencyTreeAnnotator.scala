@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
-import de.tuda.stg.consys.checker.qual.Mixed
+import de.tuda.stg.consys.checker.qual.{Immutable, Mixed}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
@@ -162,14 +162,14 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, qualifier, field)
 			inferred match {
 				case Some(fieldType) => tf.mixedInferenceVisitor.getReadAccess(tree) match {
-					case Some(methodType) =>
-						// adapt read result to operation level
+					case Some(methodType) if !tf.getAnnotatedType(field).hasAnnotation(classOf[Immutable]) =>
+						// adapt read result to operation level (skip for immutable fields)
 						val lup = qualHierarchy.leastUpperBound(fieldType, methodType)
 						typeMirror.replaceAnnotation(lup)
 						// read access must be treated as immutable if the consistency type is adapted
 						if (AnnotationUtils.areSame(lup, methodType) && !AnnotationUtils.areSame(fieldType, methodType))
 							typeMirror.replaceAnnotation(immutableAnnotation)
-					case None =>
+					case _ =>
 						typeMirror.replaceAnnotation(fieldType)
 				}
 				case None => sys.error("ConSysT type checker bug: mixed inference failed")
@@ -188,7 +188,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		val methodName = method.getSimpleName.toString.toLowerCase
 		val recvQualifier = node.getMethodSelect match {
 			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
-				val typ = tf.getAnnotatedType(mst.getExpression).asInstanceOf[AnnotatedDeclaredType]
+				val typ = tf.getAnnotatedType(mst.getExpression)
 				typ.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 			case _ =>
 				tf.peekVisitClassContext()._2

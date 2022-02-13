@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.rubis;
 
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
@@ -16,22 +17,22 @@ import java.util.concurrent.TimeoutException;
 public class UserInterface {
     public static ConsistencyLevel<CassandraStore> objectsConsistencyLevel = MIXED;
     private CassandraStoreBinding store;
-    private Ref<User> user;
-    private Ref<AuctionStore> auctionStore;
+    private Ref<@Mutable User> user;
+    private Ref<@Mutable AuctionStore> auctionStore;
 
-    public UserInterface(CassandraStoreBinding store) {
+    public UserInterface(@Mutable CassandraStoreBinding store) {
         this.store = store;
     }
 
-    public void setStore(CassandraStoreBinding store) {
+    public void setStore(@Mutable CassandraStoreBinding store) {
         this.store = store;
     }
 
-    public void registerUser(String name, String nickname, String password, String email) {
-        var userId = UUID.randomUUID();
+    public void registerUser(String nickname, String name, String password, String email) {
+        @Immutable @Local UUID userId = UUID.randomUUID();
         this.user = store.transaction(ctx -> {
-            var user = ctx.replicate("user:" + nickname, objectsConsistencyLevel, User.class,
-                    userId, name, nickname, password, email);
+            Ref<@Mutable User> user = ctx.replicate("user:" + nickname, objectsConsistencyLevel, User.class,
+                    userId, nickname, name, password, email);
 
             if (auctionStore == null) {
                 auctionStore = ctx.lookup(Util.auctionStoreKey, objectsConsistencyLevel, AuctionStore.class);
@@ -43,7 +44,7 @@ public class UserInterface {
     }
 
     public void loginUser(String nickname, String password) {
-        var result = store.transaction(ctx -> {
+        @Immutable Option<Ref<@Mutable User>> result = store.transaction(ctx -> {
             var user = ctx.lookup("user:" + nickname, objectsConsistencyLevel, User.class);
             if (!(boolean)user.ref().authenticate(password)) {
                 throw new AppException("Wrong credentials.");
@@ -61,7 +62,7 @@ public class UserInterface {
         }
     }
 
-    public void addBalance(float amount) {
+    public void addBalance(@Strong float amount) {
         checkLogin();
         store.transaction(ctx -> {
             user.ref().addBalance(amount);
@@ -72,16 +73,15 @@ public class UserInterface {
     public UUID registerItem(String name, String description, Category category, float reservePrice, int durationInSeconds) {
         checkLogin();
 
-        var cal = Calendar.getInstance();
-        Date startDate = cal.getTime();
+        Calendar cal = (@Mutable Calendar) Calendar.getInstance();
+        Date startDate = (@Mutable Date) cal.getTime();
         cal.add(Calendar.SECOND, durationInSeconds);
-        Date endDate = cal.getTime();
+        Date endDate = (@Mutable Date) cal.getTime();
 
         float initialPrice = reservePrice * 0.3f;
         float buyNowPrice = reservePrice * 1.3f;
 
-        var itemId = UUID.randomUUID();
-
+        @Immutable @Local UUID itemId = UUID.randomUUID();
         return store.transaction(ctx -> {
             var item = ctx.replicate("item:" + itemId, objectsConsistencyLevel, Item.class,
                     itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
@@ -97,9 +97,9 @@ public class UserInterface {
     public boolean placeBid(UUID itemId, float bidAmount) throws TimeoutException {
         checkLogin();
 
-        var bidId = UUID.randomUUID();
+        @Immutable @Local UUID bidId = UUID.randomUUID();
         return store.transaction(ctx -> {
-            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot bid on your own items.");
@@ -131,7 +131,7 @@ public class UserInterface {
         checkLogin();
 
         store.transaction(ctx -> {
-            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot buy your own items.");
@@ -147,7 +147,7 @@ public class UserInterface {
 
         return store.transaction(ctx -> {
             var sb = new StringBuilder();
-            List<Ref<Item>> items = auctionStore.ref().browseItems(category);
+            @Immutable List<Ref<Item>> items = auctionStore.ref().browseItems(category);
             sb.append("Items in category '").append(category).append("':\n");
             for (var item : items) {
                 sb.append((String)item.ref().toString());
@@ -184,36 +184,36 @@ public class UserInterface {
             }
             sb.append("\n");
 
-            List<Ref<Item>> watched = user.ref().getOpenBuyerAuctions();
-            if (!watched.isEmpty())
+            @Immutable @Weak List<Ref<Item>> watched = user.ref().getOpenBuyerAuctions();
+            if ((@Weak boolean)!watched.isEmpty())
                 sb.append("Watched items:\n");
             for (var item : watched) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
-            List<Ref<Item>> open = user.ref().getOpenSellerAuctions();
-            if (!open.isEmpty())
+            @Immutable @Weak List<Ref<Item>> open = user.ref().getOpenSellerAuctions();
+            if ((@Weak boolean)!open.isEmpty())
                 sb.append("Open auctions:\n");
             for (var item : open) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
-            List<Ref<Item>> bought = user.ref().getBuyerHistory();
-            if (!bought.isEmpty())
+            @Immutable @Weak List<Ref<Item>> bought = user.ref().getBuyerHistory();
+            if ((@Weak boolean)!bought.isEmpty())
                 sb.append("Bought items:\n");
             for (var item : bought) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
-            List<Ref<Item>> sold = user.ref().getSellerHistory(true);
-            if (!sold.isEmpty())
+            @Immutable @Weak List<Ref<Item>> sold = user.ref().getSellerHistory(true);
+            if ((@Weak boolean)!sold.isEmpty())
                 sb.append("Sold items:\n");
             for (var item : sold) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
-            List<Ref<Item>> unsold = user.ref().getSellerHistory(false);
-            if (!unsold.isEmpty())
+            @Immutable @Weak List<Ref<Item>> unsold = user.ref().getSellerHistory(false);
+            if ((@Weak boolean)!unsold.isEmpty())
                 sb.append("Unsold items:\n");
             for (var item : unsold) {
                 sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");

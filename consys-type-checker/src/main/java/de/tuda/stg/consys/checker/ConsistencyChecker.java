@@ -4,6 +4,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.StubFiles;
 import org.checkerframework.framework.source.SupportedOptions;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
 import org.checkerframework.javacutil.BugInCF;
@@ -12,6 +13,7 @@ import scala.Tuple2;
 import javax.lang.model.element.Element;
 import java.util.*;
 
+@StubFiles({"stubjdk.astub"})
 @SupportedOptions({"projectPackage"})
 @SuppressWarningsPrefix({"consistency"})
 public class ConsistencyChecker extends BaseTypeChecker {

@@ -78,7 +78,7 @@ public class TestRunner {
 
         System.out.println("> Starting auctions...");
         UserInterface sellerInterface = userInterfaces[0];
-        sellerInterface.registerUser("", "0", "", "");
+        sellerInterface.registerUser("0", "0", "", "");
         items[0] = sellerInterface.registerItem("item0", "", Category.MISC, 50, 60);
         items[1] = sellerInterface.registerItem("item1", "", Category.MISC, 50, 60);
         items[2] = sellerInterface.registerItem("item2", "", Category.MISC, 50, 60);
@@ -135,7 +135,7 @@ public class TestRunner {
             this.bidIncrement = bidIncrement;
             userName = String.valueOf(id);
 
-            userInterface.registerUser("", userName, "", "");
+            userInterface.registerUser(userName, "", "", "");
             userInterface.addBalance(1000);
         }
 
