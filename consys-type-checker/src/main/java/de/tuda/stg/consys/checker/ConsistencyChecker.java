@@ -77,4 +77,20 @@ public class ConsistencyChecker extends BaseTypeChecker {
     private String formatCapturedError(Object source, @CompilerMessageKey String messageKey, Object... args) {
         return "(" + messageKey + ")";
     }
+
+    @Override
+    public void typeProcessingOver() {
+        super.typeProcessingOver();
+
+        // TODO: pass results to compiler plugin somehow/output as file/find other way to generate meta annotation
+        /*
+        var map =
+                ((ConsistencyAnnotatedTypeFactory) getTypeFactory()).mixedInferenceVisitor.getMethodWriteTable();
+        map.foreach(x -> {
+            System.out.println(TypeFactoryUtils.getQualifiedName(x._1));
+            x._2.foreach(y -> {System.out.println("   " + TypeFactoryUtils.getQualifiedName(y)); return null;});
+            return null;
+        });
+        */
+    }
 }
