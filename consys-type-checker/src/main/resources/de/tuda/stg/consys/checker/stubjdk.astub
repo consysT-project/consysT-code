@@ -46,6 +46,11 @@ class UUID {
     String toString();
 }
 
+class Date {
+    @SideEffectFree
+    boolean after(Date d);
+}
+
 interface List<T> {
     @SideEffectFree
     boolean isEmpty();

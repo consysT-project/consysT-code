@@ -134,7 +134,8 @@ public @Mixed class Item implements Serializable {
 
     @StrongOp @SideEffectFree
     public @Local Optional<Ref<Bid>> getTopBid() {
-        return bids.isEmpty() ? Optional.<Ref<@Mixed Bid>>empty() : Optional.<Ref<@Mixed Bid>>of(bids.get(0));
+        if (bids.isEmpty()) return Optional.<Ref<@Mixed Bid>>empty();
+        return Optional.<Ref<@Mixed Bid>>of(bids.get(0));
     }
 
     @WeakOp @SideEffectFree

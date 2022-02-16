@@ -18,7 +18,7 @@ public @Mixed class User implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable String nickname;
     private String name;
-    private String password;
+    private @Weak String password; // TODO: ?
     private @Weak String email;
     private float rating;
     private int nRatings;
@@ -89,7 +89,8 @@ public @Mixed class User implements Serializable {
 
     @WeakOp @SideEffectFree
     public List<Ref<Item>> getSellerHistory(boolean sold) {
-        return sold ? sellerHistory : sellerFailedHistory;
+        if (sold) return sellerHistory;
+        return sellerFailedHistory;
     }
 
     @WeakOp @SideEffectFree
