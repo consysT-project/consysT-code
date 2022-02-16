@@ -42,8 +42,10 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
      */
     private val readAccessTable: mutable.Map[Tree, AnnotationMirror] = mutable.Map.empty
 
-    private val methodWriteTable: mutable.Map[ExecutableElement, List[VariableElement]] = mutable.Map.empty
-    def getMethodWriteTable: mutable.Map[ExecutableElement, List[VariableElement]] = methodWriteTable
+    private val methodWriteTable: mutable.Map[ExecutableElement, Set[VariableElement]] = mutable.Map.empty
+
+    def getMethodWriteList(method: ExecutableElement): Option[Set[VariableElement]] =
+        methodWriteTable.get(method)
 
     def getInferred(clazz: TypeElement, qual: AnnotationMirror, field: VariableElement): Option[AnnotationMirror] =
         getInferredFieldOrFromSuperclass(field, clazz, getNameForMixedDefaultOp(qual)) match {
@@ -284,8 +286,8 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                 maybeMethod match {
                     case Some(method) => accessMode match {
                         case Write => methodWriteTable.get(method) match {
-                            case Some(value) => methodWriteTable.update(method, (field :: value).distinct)
-                            case None => methodWriteTable.update(method, field :: Nil)
+                            case Some(value) => methodWriteTable.update(method, value + field)
+                            case None => methodWriteTable.update(method, Set(field))
                         }
                         case _ =>
                     }

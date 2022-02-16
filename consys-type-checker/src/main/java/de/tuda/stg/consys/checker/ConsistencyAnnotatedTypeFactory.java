@@ -4,6 +4,7 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import de.tuda.stg.consys.annotations.MethodWriteList;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.*;
@@ -11,10 +12,14 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
 import scala.Tuple2;
+import scala.jdk.javaapi.CollectionConverters;
 
 import javax.lang.model.element.*;
+import java.util.ArrayList;
+import java.util.Set;
 import java.util.Stack;
 
 public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
@@ -115,6 +120,31 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 		super.addComputedTypeAnnotations(elt, type);
 		methodReceiverContext = prevMethodReceiverContext;
+	}
+
+	@Override
+	public Set<AnnotationMirror> getDeclAnnotations(Element elt) {
+		var result = super.getDeclAnnotations(elt);
+
+		if (elt.getKind() == ElementKind.METHOD) {
+			// add @MethodWriteList annotation containing each field the method updates (persists in .class files)
+			var fieldSet = mixedInferenceVisitor.getMethodWriteList((ExecutableElement) elt);
+			var annotationValue = new ArrayList<AnnotationValue>();
+			if (fieldSet.isDefined()) {
+				for (var field : CollectionConverters.asJava(fieldSet.get())) {
+					// for some reason we have to provide the string array annotation value
+					// as a List of AnnotationValues of strings
+					annotationValue.add(AnnotationBuilder.elementNamesValues(
+							"", TypeFactoryUtils.getQualifiedName(field)).
+							get(""));
+				}
+
+				result.add(AnnotationBuilder.fromClass(getElementUtils(), MethodWriteList.class,
+						AnnotationBuilder.elementNamesValues("value", annotationValue)));
+			}
+		}
+
+		return result;
 	}
 
 	public boolean isInMixedClassContext() {
