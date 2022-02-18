@@ -1,0 +1,567 @@
+;; This file contains changed z3 formulas for the replicated credit account example. Function definitions have been changed.
+
+(declare-datatypes ((T_PNCounter 0)) (((T_PNCounter (incs (Array Int Int)) (decs (Array Int Int))))))
+(declare-datatypes ((T_ReplicatedCreditAccount 0)) (((T_ReplicatedCreditAccount (credits T_PNCounter)))))
+
+
+
+(declare-fun PNCounter.sumIncs_STATE!0 (T_PNCounter) T_PNCounter)
+(declare-fun PNCounter.sumIncs!1 (T_PNCounter) Int)
+(declare-fun PNCounter.sumDecs_STATE!2 (T_PNCounter) T_PNCounter)
+(declare-fun PNCounter.sumDecs!3 (T_PNCounter) Int)
+(declare-fun PNCounter.getValue_STATE!4 (T_PNCounter) T_PNCounter)
+(declare-fun PNCounter.getValue!5 (T_PNCounter) Int)
+(declare-fun PNCounter.inc_STATE!7 (T_PNCounter) T_PNCounter)
+(declare-fun PNCounter.inc_STATE!10 (T_PNCounter Int) T_PNCounter)
+(declare-fun PNCounter.dec_STATE!12 (T_PNCounter) T_PNCounter)
+(declare-fun PNCounter.dec_STATE!15 (T_PNCounter Int) T_PNCounter)
+(declare-fun PNCounter.merge_STATE!18 (T_PNCounter T_PNCounter) T_PNCounter)
+
+
+
+(declare-fun ReplicatedCreditAccount.getValue_STATE!20
+             (T_ReplicatedCreditAccount)
+             T_ReplicatedCreditAccount)
+(declare-fun ReplicatedCreditAccount.getValue!21
+             (T_ReplicatedCreditAccount)
+             Int)
+(declare-fun ReplicatedCreditAccount.deposit_STATE!23
+             (T_ReplicatedCreditAccount Int)
+             T_ReplicatedCreditAccount)
+(declare-fun ReplicatedCreditAccount.withdraw_STATE!26
+             (T_ReplicatedCreditAccount Int)
+             T_ReplicatedCreditAccount)
+
+
+(declare-fun res!38 () Int)
+(declare-fun res!45 () Int)
+(declare-fun res!52 () Int)
+(declare-fun n!9 () Int)
+(declare-fun n!14 () Int)
+(declare-fun res!97 () Int)
+(declare-fun val!22 () Int)
+(declare-fun val!25 () Int)
+
+
+
+
+
+;; PN Counter methods
+
+;; sumIncs
+(assert (forall ((s0!40 T_PNCounter) (s1!41 T_PNCounter))
+  (= s0!40 (PNCounter.sumIncs_STATE!0 s0!40))))
+
+(assert (forall ((s0!40 T_PNCounter) (s1!41 T_PNCounter))
+  (let ((a!1 (+ (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 0)
+                (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 1)
+                (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 2))))
+    (= (PNCounter.sumIncs!1 s0!40) a!1))))
+
+
+;; sumDecs
+(assert (forall ((s0!47 T_PNCounter) (s1!48 T_PNCounter))
+  (= s0!47 (PNCounter.sumDecs_STATE!2 s0!47))))
+
+(assert (forall ((s0!47 T_PNCounter) (s1!48 T_PNCounter))
+  (let ((a!1 (+ (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 0)
+                (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 1)
+                (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 2))))
+    (= (PNCounter.sumDecs!3 s0!47) a!1))))
+
+
+;; getValue
+(assert (forall ((s0!53 T_PNCounter) (s1!54 T_PNCounter))
+  (= s0!53 (PNCounter.getValue_STATE!4 s0!53))))
+
+(assert (forall ((s0!53 T_PNCounter) (s1!54 T_PNCounter))
+  (let ((a!1 (+ (PNCounter.sumIncs!1 (PNCounter.getValue_STATE!4 s0!53))
+                (* (- 1)
+                   (PNCounter.sumDecs!3 (PNCounter.getValue_STATE!4 s0!53))))))
+    (= (PNCounter.getValue!5 s0!53) a!1))))
+
+
+;; inc
+;;(assert (forall ((s0!60 T_PNCounter) (s1!61 T_PNCounter))
+;;  (and (forall ((i!59 Int))
+;;         (let ((a!1 (= (select (incs (PNCounter.inc_STATE!7 s0!60)) i!59)
+;;                       (select (incs s0!60) i!59))))
+;;           (or (= i!59 1) a!1)))
+;;       (= (decs s0!60) (decs (PNCounter.inc_STATE!7 s0!60))))))
+;;(assert (forall ((s0!60 T_PNCounter) (s1!61 T_PNCounter))
+;;  (= (select (incs (PNCounter.inc_STATE!7 s0!60)) 1)
+;;     (+ 1 (select (incs s0!60) 1)))))
+
+(assert (forall ((s0!60 T_PNCounter) (s1!61 T_PNCounter))
+		(= (PNCounter.inc_STATE!7 s0!60) (T_PNCounter (store (incs s0!60) 1 (+ (select (incs s0!60) 1) 1)) (decs s0!60)))
+))
+
+
+;; inc(int)
+;;(assert (forall ((s0!67 T_PNCounter) (s1!68 T_PNCounter) (n!9 Int))
+;;  (and (forall ((i!66 Int))
+;;         (let ((a!1 (= (select (incs (PNCounter.inc_STATE!10 s0!67 n!9)) i!66)
+;;                       (select (incs s0!67) i!66))))
+;;           (or (= i!66 1) a!1)))
+;;       (= (decs s0!67) (decs (PNCounter.inc_STATE!10 s0!67 n!9))))))
+;;(assert (forall ((s0!67 T_PNCounter) (s1!68 T_PNCounter) (n!9 Int))
+;;  (= (select (incs (PNCounter.inc_STATE!10 s0!67 n!9)) 1)
+;;     (+ (select (incs s0!67) 1) n!9))))
+
+(assert (forall ((s0!67 T_PNCounter) (s1!68 T_PNCounter) (n!9 Int))
+  	(= (PNCounter.inc_STATE!10 s0!67 n!9) (T_PNCounter (store (incs s0!67) 1 (+ (select (incs s0!67) 1) n!9)) (decs s0!67)))
+))
+
+
+
+;; dec
+;;(assert (forall ((s0!74 T_PNCounter) (s1!75 T_PNCounter))
+;;  (and (= (incs s0!74) (incs (PNCounter.dec_STATE!12 s0!74)))
+;;       (forall ((i!73 Int))
+;;         (let ((a!1 (= (select (decs (PNCounter.dec_STATE!12 s0!74)) i!73)
+;;                       (select (decs s0!74) i!73))))
+;;           (or (= i!73 1) a!1))))))
+;;(assert (forall ((s0!74 T_PNCounter) (s1!75 T_PNCounter))
+;;  (= (select (decs (PNCounter.dec_STATE!12 s0!74)) 1)
+;;     (+ 1 (select (decs s0!74) 1)))))
+
+(assert (forall ((s0!74 T_PNCounter) (s1!75 T_PNCounter))
+		(= (PNCounter.dec_STATE!12 s0!74) (T_PNCounter (incs s0!74) (store (decs s0!74) 1 (+ (select (decs s0!74) 1) 1))))
+))
+
+
+
+;; dec(int)
+;;(assert (forall ((s0!81 T_PNCounter) (s1!82 T_PNCounter) (n!14 Int))
+;;  (and (= (incs s0!81) (incs (PNCounter.dec_STATE!15 s0!81 n!14)))
+;;       (forall ((i!80 Int))
+;;         (let ((a!1 (= (select (decs (PNCounter.dec_STATE!15 s0!81 n!14)) i!80)
+;;                       (select (decs s0!81) i!80))))
+;;           (or (= i!80 1) a!1))))))
+;;(assert (forall ((s0!81 T_PNCounter) (s1!82 T_PNCounter) (n!14 Int))
+;;  (= (select (decs (PNCounter.dec_STATE!15 s0!81 n!14)) 1)
+;;     (+ (select (decs s0!81) 1) n!14))))
+
+(assert (forall ((s0!81 T_PNCounter) (s1!82 T_PNCounter) (n!14 Int))
+  	(= (PNCounter.dec_STATE!15 s0!81 n!14) (T_PNCounter (incs s0!81) (store (decs s0!81) 1 (+ (select (decs s0!81) 1) n!14))))
+))
+
+
+;; merge
+(assert (forall ((s0 T_PNCounter) (s1 T_PNCounter) (newincs (Array Int Int)) (newdecs (Array Int Int)))
+		(or (not
+			(and
+				(forall ((i Int)) (= (newincs i) (ite (> (select (incs s0) i) (select (incs s1) i)) (select (incs s0) i) (select (incs s1) i))) )
+				(forall ((i Int)) (= (newdecs i) (ite (> (select (decs s0) i) (select (decs s1) i)) (select (decs s0) i) (select (decs s1) i))) )
+			))
+			(= (PNCounter.merge_STATE!18 s0 s1) (T_PNCounter newincs newdecs))
+		)
+))
+
+
+
+;; Properties
+;;inv/initial
+(assert (forall ((s0!117 T_PNCounter))
+  (=> (and (forall ((i!34 Int))
+             (let ((a!1 (not (and (>= i!34 0) (not (<= 3 i!34)))))
+                   (a!2 (and (= (select (incs s0!117) i!34) 0)
+                             (= (select (decs s0!117) i!34) 0))))
+               (or a!1 a!2)))
+           true)
+      true)
+))
+
+;;inv/method
+(assert (forall ((s0!118 T_PNCounter) (s0_new!119 T_PNCounter))
+  (let ((a!1 (= res!38
+                (+ (select (incs s0_new!119) 0)
+                   (select (incs s0_new!119) 1)
+                   (select (incs s0_new!119) 2)))))
+    (=> (and true true true (= s0!118 s0_new!119) a!1) true)))
+)
+(assert (forall ((s0!120 T_PNCounter) (s0_new!121 T_PNCounter))
+  (let ((a!1 (= res!45
+                (+ (select (decs s0_new!121) 0)
+                   (select (decs s0_new!121) 1)
+                   (select (decs s0_new!121) 2)))))
+    (=> (and true true true (= s0!120 s0_new!121) a!1) true)))
+)
+(assert (forall ((s0!122 T_PNCounter) (s0_new!123 T_PNCounter))
+  (let ((a!1 (= res!52
+                (+ (PNCounter.sumIncs!1 s0_new!123)
+                   (* (- 1) (PNCounter.sumDecs!3 s0_new!123))))))
+    (=> (and true true true (= s0!122 s0_new!123) a!1) true)))
+)
+(assert (forall ((s0!124 T_PNCounter) (s0_new!125 T_PNCounter))
+  (let ((a!1 (forall ((i!59 Int))
+               (or (= i!59 1)
+                   (= (select (incs s0_new!125) i!59)
+                      (select (incs s0!124) i!59)))))
+        (a!2 (= (select (incs s0_new!125) 1) (+ 1 (select (incs s0!124) 1)))))
+    (=> (and true true true a!1 (= (decs s0!124) (decs s0_new!125)) a!2) true)))
+)
+(assert (forall ((s0!126 T_PNCounter) (s0_new!127 T_PNCounter))
+  (let ((a!1 (forall ((i!66 Int))
+               (or (= i!66 1)
+                   (= (select (incs s0_new!127) i!66)
+                      (select (incs s0!126) i!66)))))
+        (a!2 (= (select (incs s0_new!127) 1) (+ (select (incs s0!126) 1) n!9))))
+    (=> (and true true (>= n!9 0) a!1 (= (decs s0!126) (decs s0_new!127)) a!2)
+        true)))
+)
+(assert (forall ((s0!128 T_PNCounter) (s0_new!129 T_PNCounter))
+  (let ((a!1 (forall ((i!73 Int))
+               (or (= i!73 1)
+                   (= (select (decs s0_new!129) i!73)
+                      (select (decs s0!128) i!73)))))
+        (a!2 (= (select (decs s0_new!129) 1) (+ 1 (select (decs s0!128) 1)))))
+    (=> (and true true true (= (incs s0!128) (incs s0_new!129)) a!1 a!2) true)))
+)
+(assert (forall ((s0!130 T_PNCounter) (s0_new!131 T_PNCounter))
+  (let ((a!1 (forall ((i!80 Int))
+               (or (= i!80 1)
+                   (= (select (decs s0_new!131) i!80)
+                      (select (decs s0!130) i!80)))))
+        (a!2 (= (select (decs s0_new!131) 1) (+ (select (decs s0!130) 1) n!14))))
+    (=> (and true true (>= n!14 0) (= (incs s0!130) (incs s0_new!131)) a!1 a!2)
+        true)))
+)
+;; merge/init
+(assert (forall ((s0!132 T_PNCounter) (s1!133 T_PNCounter) (s0_new!134 T_PNCounter))
+  (let ((a!1 (and true
+                  true
+                  true
+                  true
+                  true
+                  (forall ((i!88 Int))
+                    (let ((a!1 (not (and (>= i!88 0) (not (<= 3 i!88)))))
+                          (a!2 (ite (>= (select (incs s0!132) i!88)
+                                        (select (incs s1!133) i!88))
+                                    (= (select (incs s0_new!134) i!88)
+                                       (select (incs s0!132) i!88))
+                                    (= (select (incs s0_new!134) i!88)
+                                       (select (incs s1!133) i!88))))
+                          (a!3 (ite (>= (select (decs s0!132) i!88)
+                                        (select (decs s1!133) i!88))
+                                    (= (select (decs s0_new!134) i!88)
+                                       (select (decs s0!132) i!88))
+                                    (= (select (decs s0_new!134) i!88)
+                                       (select (decs s1!133) i!88)))))
+                      (or a!1 (and a!2 a!3)))))))
+    (=> a!1 true)))
+)
+;; merge/method
+(assert (forall ((s0!136 T_PNCounter) (s1!137 T_PNCounter) (s0_new!138 T_PNCounter))
+  (let ((a!1 (= res!38
+                (+ (select (incs s0_new!138) 0)
+                   (select (incs s0_new!138) 1)
+                   (select (incs s0_new!138) 2)))))
+    (=> (and true true true true true true true true (= s0!136 s0_new!138) a!1)
+        true)))
+)
+(assert (forall ((s0!139 T_PNCounter) (s1!140 T_PNCounter) (s0_new!141 T_PNCounter))
+  (let ((a!1 (= res!45
+                (+ (select (decs s0_new!141) 0)
+                   (select (decs s0_new!141) 1)
+                   (select (decs s0_new!141) 2)))))
+    (=> (and true true true true true true true true (= s0!139 s0_new!141) a!1)
+        true)))
+)
+(assert (forall ((s0!142 T_PNCounter) (s1!143 T_PNCounter) (s0_new!144 T_PNCounter))
+  (let ((a!1 (= res!52
+                (+ (PNCounter.sumIncs!1 s0_new!144)
+                   (* (- 1) (PNCounter.sumDecs!3 s0_new!144))))))
+    (=> (and true true true true true true true true (= s0!142 s0_new!144) a!1)
+        true)))
+)
+(assert (forall ((s0!145 T_PNCounter) (s1!146 T_PNCounter) (s0_new!147 T_PNCounter))
+  (let ((a!1 (forall ((i!59 Int))
+               (or (= i!59 1)
+                   (= (select (incs s0_new!147) i!59)
+                      (select (incs s0!145) i!59)))))
+        (a!2 (= (select (incs s0_new!147) 1) (+ 1 (select (incs s0!145) 1)))))
+    (=> (and true
+             true
+             true
+             true
+             true
+             true
+             true
+             true
+             a!1
+             (= (decs s0!145) (decs s0_new!147))
+             a!2)
+        true)))
+)
+(assert (forall ((s0!148 T_PNCounter) (s1!149 T_PNCounter) (s0_new!150 T_PNCounter))
+  (let ((a!1 (forall ((i!66 Int))
+               (or (= i!66 1)
+                   (= (select (incs s0_new!150) i!66)
+                      (select (incs s0!148) i!66)))))
+        (a!2 (= (select (incs s0_new!150) 1) (+ (select (incs s0!148) 1) n!9))))
+    (=> (and true
+             true
+             true
+             true
+             true
+             true
+             (>= n!9 0)
+             true
+             a!1
+             (= (decs s0!148) (decs s0_new!150))
+             a!2)
+        true)))
+)
+(assert (forall ((s0!151 T_PNCounter) (s1!152 T_PNCounter) (s0_new!153 T_PNCounter))
+  (let ((a!1 (forall ((i!73 Int))
+               (or (= i!73 1)
+                   (= (select (decs s0_new!153) i!73)
+                      (select (decs s0!151) i!73)))))
+        (a!2 (= (select (decs s0_new!153) 1) (+ 1 (select (decs s0!151) 1)))))
+    (=> (and true
+             true
+             true
+             true
+             true
+             true
+             true
+             true
+             (= (incs s0!151) (incs s0_new!153))
+             a!1
+             a!2)
+        true)))
+)
+(assert (forall ((s0!154 T_PNCounter) (s1!155 T_PNCounter) (s0_new!156 T_PNCounter))
+  (let ((a!1 (forall ((i!80 Int))
+               (or (= i!80 1)
+                   (= (select (decs s0_new!156) i!80)
+                      (select (decs s0!154) i!80)))))
+        (a!2 (= (select (decs s0_new!156) 1) (+ (select (decs s0!154) 1) n!14))))
+    (=> (and true
+             true
+             true
+             true
+             true
+             true
+             (>= n!14 0)
+             true
+             (= (incs s0!154) (incs s0_new!156))
+             a!1
+             a!2)
+        true)))
+)
+;; merge/merge
+(assert (forall ((s0!157 T_PNCounter) (s1!158 T_PNCounter) (s0_new!159 T_PNCounter))
+  (let ((a!1 (and true
+                  true
+                  true
+                  true
+                  true
+                  true
+                  true
+                  (forall ((i!88 Int))
+                    (let ((a!1 (not (and (>= i!88 0) (not (<= 3 i!88)))))
+                          (a!2 (ite (>= (select (incs s0!157) i!88)
+                                        (select (incs s1!158) i!88))
+                                    (= (select (incs s0_new!159) i!88)
+                                       (select (incs s0!157) i!88))
+                                    (= (select (incs s0_new!159) i!88)
+                                       (select (incs s1!158) i!88))))
+                          (a!3 (ite (>= (select (decs s0!157) i!88)
+                                        (select (decs s1!158) i!88))
+                                    (= (select (decs s0_new!159) i!88)
+                                       (select (decs s0!157) i!88))
+                                    (= (select (decs s0_new!159) i!88)
+                                       (select (decs s1!158) i!88)))))
+                      (or a!1 (and a!2 a!3)))))))
+    (=> a!1 true)))
+)
+
+
+
+;; ReplicatedCreditAccount
+;; getValue
+(assert (forall ((s0!98 T_ReplicatedCreditAccount) (s1!99 T_ReplicatedCreditAccount))
+  (= s0!98 (ReplicatedCreditAccount.getValue_STATE!20 s0!98))))
+
+(assert (forall ((s0!98 T_ReplicatedCreditAccount) (s1!99 T_ReplicatedCreditAccount))
+  (= (ReplicatedCreditAccount.getValue!21 s0!98)
+     (PNCounter.getValue!5 (credits s0!98)))))
+
+
+;; deposit
+;;(assert (forall ((s0!104 T_ReplicatedCreditAccount)
+;;         (s1!105 T_ReplicatedCreditAccount)
+;;         (val!22 Int))
+;;  true))
+;;(assert (forall ((s0!104 T_ReplicatedCreditAccount)
+;;         (s1!105 T_ReplicatedCreditAccount)
+;;         (val!22 Int))
+;;  (= (credits (ReplicatedCreditAccount.deposit_STATE!23 s0!104 val!22))
+;;     (PNCounter.inc_STATE!10 (credits s0!104) val!22))))
+
+(assert (forall ((s0!104 T_ReplicatedCreditAccount) (s1!105 T_ReplicatedCreditAccount) (val!22 Int))
+	(= (ReplicatedCreditAccount.deposit_STATE!23 s0!104 val!22)  (T_ReplicatedCreditAccount (PNCounter.inc_STATE!10 (credits s0!104) val!22)))
+))
+
+
+;; withdraw
+;;(assert (forall ((s0!110 T_ReplicatedCreditAccount)
+;;         (s1!111 T_ReplicatedCreditAccount)
+;;         (val!25 Int))
+;;  true))
+;;(assert (forall ((s0!110 T_ReplicatedCreditAccount)
+;;         (s1!111 T_ReplicatedCreditAccount)
+;;         (val!25 Int))
+;;  (= (credits (ReplicatedCreditAccount.withdraw_STATE!26 s0!110 val!25))
+;;     (PNCounter.dec_STATE!15 (credits s0!110) val!25))))
+
+(assert (forall ((s0!110 T_ReplicatedCreditAccount) (s1!111 T_ReplicatedCreditAccount) (val!25 Int))
+	(= (ReplicatedCreditAccount.withdraw_STATE!26 s0!110 val!25)  (T_ReplicatedCreditAccount (PNCounter.dec_STATE!15 (credits s0!110) val!25)))
+))
+
+
+;; Properties
+;; inv/initial
+(assert (forall ((s0!178 T_ReplicatedCreditAccount))
+  (let ((a!1 (forall ((i!92 Int)) (= (select (incs (credits s0!178)) i!92) 0)))
+        (a!2 (forall ((i!93 Int)) (= (select (decs (credits s0!178)) i!93) 0))))
+    (=> (and (= (ReplicatedCreditAccount.getValue!21 s0!178) 0) a!1 a!2 true)
+        (>= (ReplicatedCreditAccount.getValue!21 s0!178) 0)))
+))
+
+;; inv/method
+(assert (forall ((s0!179 T_ReplicatedCreditAccount)
+         (s0_new!180 T_ReplicatedCreditAccount)
+				 (res!97 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!179) 0)
+                  true
+                  true
+                  (= s0!179 s0_new!180)
+                  (= res!97 (PNCounter.getValue!5 (credits s0!179))))))
+    (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!180) 0)))
+))
+(assert (forall ((s0!181 T_ReplicatedCreditAccount)
+         (s0_new!182 T_ReplicatedCreditAccount)
+				 (val!22 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!181) 0)
+                  true
+                  (>= val!22 0)
+                  (= (credits s0_new!182)
+                     (PNCounter.inc_STATE!10 (credits s0!181) val!22)))))
+    (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!182) 0)))
+))
+(assert (forall ((s0!183 T_ReplicatedCreditAccount)
+         (s0_new!184 T_ReplicatedCreditAccount)
+				 (val!25 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!183) 0)
+                  true
+                  (<= 0 val!25)
+                  (<= val!25 (ReplicatedCreditAccount.getValue!21 s0!183))
+                  (= (credits s0_new!184)
+                     (PNCounter.dec_STATE!15 (credits s0!183) val!25)))))
+    (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!184) 0)))
+))
+
+;; inv/merge
+(assert (forall ((s0!185 T_ReplicatedCreditAccount)
+         (s1!186 T_ReplicatedCreditAccount)
+         (s0_new!187 T_ReplicatedCreditAccount))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!185) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s1!186) 0)
+                  true
+                  true
+                  (= (credits s0_new!187)
+                     (PNCounter.merge_STATE!18
+                       (credits s0!185)
+                       (credits s1!186))))))
+    (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!187) 0)))
+))
+
+;; merge/init
+(assert (forall ((s0!188 T_ReplicatedCreditAccount))
+  (let ((a!1 (forall ((i!92 Int)) (= (select (incs (credits s0!188)) i!92) 0)))
+        (a!2 (forall ((i!93 Int)) (= (select (decs (credits s0!188)) i!93) 0))))
+    (=> (and (= (ReplicatedCreditAccount.getValue!21 s0!188) 0)
+             a!1
+             a!2
+             (>= (ReplicatedCreditAccount.getValue!21 s0!188) 0)
+             true)
+        true))
+))
+;; merge/method
+(assert (forall ((s0!189 T_ReplicatedCreditAccount)
+         (s1!190 T_ReplicatedCreditAccount)
+         (s0_new!191 T_ReplicatedCreditAccount)
+				 (res!97 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!189) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s1!190) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s0_new!191) 0)
+                  true
+                  true
+                  true
+                  (= s0!189 s0_new!191)
+                  (= res!97 (PNCounter.getValue!5 (credits s0!189))))))
+    (=> a!1 true))
+))
+(assert (forall ((s0!192 T_ReplicatedCreditAccount)
+         (s1!193 T_ReplicatedCreditAccount)
+         (s0_new!194 T_ReplicatedCreditAccount)
+				 (val!22 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!192) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s1!193) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s0_new!194) 0)
+                  true
+                  (>= val!22 0)
+                  true
+                  (= (credits s0_new!194)
+                     (PNCounter.inc_STATE!10 (credits s0!192) val!22)))))
+    (=> a!1 true))
+))
+(assert (forall ((s0!195 T_ReplicatedCreditAccount)
+         (s1!196 T_ReplicatedCreditAccount)
+         (s0_new!197 T_ReplicatedCreditAccount)
+				 (val!25 Int))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!195) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s1!196) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s0_new!197) 0)
+                  true
+                  (<= 0 val!25)
+                  (<= val!25 (ReplicatedCreditAccount.getValue!21 s0!195))
+                  true
+                  (= (credits s0_new!197)
+                     (PNCounter.dec_STATE!15 (credits s0!195) val!25)))))
+    (=> a!1 true))
+))
+;; merge/merge
+(assert (forall ((s0!198 T_ReplicatedCreditAccount)
+         (s1!199 T_ReplicatedCreditAccount)
+         (s0_new!200 T_ReplicatedCreditAccount))
+  (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!198) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s1!199) 0)
+                  true
+                  (>= (ReplicatedCreditAccount.getValue!21 s0_new!200) 0)
+                  true
+                  true
+                  (= (credits s0_new!200)
+                     (PNCounter.merge_STATE!18
+                       (credits s0!198)
+                       (credits s1!199))))))
+    (=> a!1 true))
+))
+
+
+
+
+
+(check-sat)
+(exit)
