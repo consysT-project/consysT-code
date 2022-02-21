@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.legacy.DemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.legacy.JRef;
 import org.checkerframework.com.google.common.collect.Sets;

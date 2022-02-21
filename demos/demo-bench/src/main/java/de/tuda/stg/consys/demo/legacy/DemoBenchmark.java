@@ -1,7 +1,7 @@
-package de.tuda.stg.consys.demo;
+package de.tuda.stg.consys.demo.legacy;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.DistributedBenchmark;
+import de.tuda.stg.consys.bench.legacy.DistributedBenchmark;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.core.legacy.ConsistencyLabel;
 import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;

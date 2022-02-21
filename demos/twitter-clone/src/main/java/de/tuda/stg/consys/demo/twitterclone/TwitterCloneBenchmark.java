@@ -4,7 +4,7 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.legacy.DemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;

@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo.invariantdemos;
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.core.legacy.CanBeMerged;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.legacy.DemoBenchmark;
 import de.tuda.stg.consys.japi.legacy.JRef;
 import scala.Option;
 

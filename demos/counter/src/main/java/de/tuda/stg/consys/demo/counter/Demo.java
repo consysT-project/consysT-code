@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.demo.DemoExecutor;
+import de.tuda.stg.consys.demo.legacy.DemoExecutor;
 
 public class Demo extends DemoExecutor<CounterBenchmark> {
     public static void main(String[] args) throws Exception{

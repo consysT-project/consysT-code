@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.eshop;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.legacy.DemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.eshop.schema.Database;
 import de.tuda.stg.consys.demo.eshop.schema.ShoppingSite;

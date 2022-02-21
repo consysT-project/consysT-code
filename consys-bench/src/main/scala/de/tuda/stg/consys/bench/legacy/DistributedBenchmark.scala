@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.bench
+package de.tuda.stg.consys.bench.legacy
 
 /**
  * Created on 29.10.19.
@@ -7,10 +7,12 @@ package de.tuda.stg.consys.bench
  */
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
+import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
 import de.tuda.stg.consys.core.store.utils.Address
 import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems
 import de.tuda.stg.consys.japi.legacy.impl.akka.JAkkaReplicaSystem
 import de.tuda.stg.consys.utils.InvariantUtils
+
 import java.io.{FileNotFoundException, PrintWriter}
 import scala.collection.JavaConverters
 
