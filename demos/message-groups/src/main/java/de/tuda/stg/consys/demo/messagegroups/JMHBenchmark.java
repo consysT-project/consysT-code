@@ -71,10 +71,10 @@ public class JMHBenchmark {
                             (name("group", grpIndex, replIndex), new Group(), JConsistencyLevels.STRONG);
                     JRef<Inbox> inbox = replicaSystems[replIndex].replicate(
                             name("inbox", grpIndex, replIndex), new Inbox(), JConsistencyLevels.WEAK);
-                    JRef<User> user = replicaSystems[replIndex].replicate(
-                            name("user", grpIndex, replIndex), new User(inbox, name("alice", grpIndex, replIndex)), JConsistencyLevels.WEAK);
+                    //JRef<User> user = replicaSystems[replIndex].replicate(
+                      //      name("user", grpIndex, replIndex), new User(inbox, name("alice", grpIndex, replIndex)), JConsistencyLevels.WEAK);
 
-                    group.invoke("addUser", user);
+                    //group.invoke("addUser", user);
                 }
                 System.out.print(grpIndex % 100 == 0 ? grpIndex : ".");
             }

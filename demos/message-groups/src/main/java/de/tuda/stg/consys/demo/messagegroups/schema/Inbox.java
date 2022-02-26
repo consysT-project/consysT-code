@@ -11,13 +11,13 @@ import java.util.Set;
  */
 public class Inbox implements Serializable {
 
-    Set<String> entries = new HashSet<>();
+    private final Set<String> entries = new HashSet<>();
 
-    Set<String> getEntries() {
+    public Set<String> getEntries() {
         return entries;
     }
 
-    void add(String msg) {
+    public void add(String msg) {
         entries.add(msg);
     }
 
