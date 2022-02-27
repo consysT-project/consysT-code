@@ -150,6 +150,8 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         //system().clear(Sets.newHashSet()); // TODO
+        groups.clear();
+        users.clear();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

@@ -132,6 +132,9 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         //system().clear(Sets.newHashSet());
+        users.clear();
+        tweets.clear();
+
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

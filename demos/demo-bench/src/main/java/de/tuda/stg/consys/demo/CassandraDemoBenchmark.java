@@ -36,7 +36,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	public CassandraDemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
 		super(name, config, outputResolver, (address, processId) ->
 			Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
-					Duration.apply(50, "ms"), (int)processId == 0));
+					Duration.apply(1000, "ms"), (int)processId == 0));
 
 		String typeString = config.getString("consys.bench.demo.type");
 		if (typeString == null) {

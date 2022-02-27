@@ -7,15 +7,20 @@ import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
+
 import scala.Option;
 import scala.Tuple2;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class UserInterface {
-    public static ConsistencyLevel<CassandraStore> objectsConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> bidConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
     private CassandraStoreBinding store;
     private Ref<@Mutable User> user;
     private Ref<@Mutable AuctionStore> auctionStore;
@@ -31,11 +36,11 @@ public class UserInterface {
     public void registerUser(String nickname, String name, String password, String email) {
         @Immutable @Local UUID userId = UUID.randomUUID();
         this.user = store.transaction(ctx -> {
-            Ref<@Mutable User> user = ctx.replicate("user:" + nickname, objectsConsistencyLevel, User.class,
+            Ref<@Mutable User> user = ctx.replicate("user:" + nickname, userConsistencyLevel, User.class,
                     userId, nickname, name, password, email);
 
             if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, objectsConsistencyLevel, AuctionStore.class);
+                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
             }
             auctionStore.ref().addUser(user);
 
@@ -45,13 +50,13 @@ public class UserInterface {
 
     public void loginUser(String nickname, String password) {
         @Immutable Option<Ref<@Mutable User>> result = store.transaction(ctx -> {
-            var user = ctx.lookup("user:" + nickname, objectsConsistencyLevel, User.class);
+            var user = ctx.lookup("user:" + nickname, userConsistencyLevel, User.class);
             if (!(boolean)user.ref().authenticate(password)) {
                 throw new AppException("Wrong credentials.");
             }
 
             if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, objectsConsistencyLevel, AuctionStore.class);
+                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
             }
 
             return Option.apply(user);
@@ -83,7 +88,7 @@ public class UserInterface {
 
         @Immutable @Local UUID itemId = UUID.randomUUID();
         return store.transaction(ctx -> {
-            var item = ctx.replicate("item:" + itemId, objectsConsistencyLevel, Item.class,
+            var item = ctx.replicate("item:" + itemId, itemConsistencyLevel, Item.class,
                     itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
                     category, user);
 
@@ -99,7 +104,7 @@ public class UserInterface {
 
         @Immutable @Local UUID bidId = UUID.randomUUID();
         return store.transaction(ctx -> {
-            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot bid on your own items.");
@@ -109,7 +114,7 @@ public class UserInterface {
                 throw new AppException.NotEnoughCreditsException();
             }
 
-            var bid = ctx.replicate("bid:" + bidId, objectsConsistencyLevel, Bid.class,
+            var bid = ctx.replicate("bid:" + bidId, bidConsistencyLevel, Bid.class,
                     bidId, bidAmount, user);
 
             try {
@@ -131,7 +136,7 @@ public class UserInterface {
         checkLogin();
 
         store.transaction(ctx -> {
-            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot buy your own items.");
@@ -156,11 +161,20 @@ public class UserInterface {
         }).get();
     }
 
+    public List<UUID> browseCategoryItems(Category category) {
+        checkLogin();
+
+        return store.transaction(ctx -> {
+            @Immutable List<Ref<Item>> items = auctionStore.ref().browseItems(category);
+            return Option.apply(items.stream().map(item -> (UUID)item.ref().getId()).collect(Collectors.toList()));
+        }).get();
+    }
+
     public void endAuctionImmediately(UUID itemId) throws TimeoutException {
         checkLogin();
 
         store.transaction(ctx -> {
-            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             if (!((Ref<User>)item.ref().getSeller()).ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You can only end your own auctions.");
             }
@@ -225,7 +239,7 @@ public class UserInterface {
 
     public Tuple2<Optional<String>, Float> getTopBid(UUID itemId) {
         return store.transaction(ctx -> {
-            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Optional<Ref<Bid>> bid = item.ref().getTopBid();
             if (bid.isPresent())
                 return Option.apply(new Tuple2<>(
@@ -239,7 +253,7 @@ public class UserInterface {
 
     public boolean hasAuctionEnded(UUID itemId) {
         return store.transaction(ctx -> {
-            var item = ctx.lookup("item:" + itemId, objectsConsistencyLevel, Item.class);
+            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
         }).get();
     }

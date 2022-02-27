@@ -73,6 +73,12 @@
             <artifactId>consys-annotations</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>demo-bench</artifactId>
+            <version>3.0.0-alpha</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>
