@@ -5,12 +5,15 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
+import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
-import de.tuda.stg.consys.japi.legacy.JRef;
-import de.tuda.stg.consys.japi.legacy.JReplicaSystem;
-import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems;
+import de.tuda.stg.consys.japi.Ref;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;
+import scala.Option;
+import scala.concurrent.duration.Duration;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +60,7 @@ public class JMHBenchmark {
         private final Random random = new Random();
 
         //initialized by setup
-        JReplicaSystem[] replicaSystems = new JReplicaSystem[NUM_OF_REPLICAS];
+        CassandraStoreBinding[] replicaSystems = new CassandraStoreBinding[NUM_OF_REPLICAS];
         BMessageGroupsBenchmark[] benchmarks;
 
 
@@ -66,18 +69,22 @@ public class JMHBenchmark {
 
             /* Initialize replicas */
             System.out.println("Initialize replicas...");
-            replicaSystems = JReplicaSystems.fromActorSystemForTesting(NUM_OF_REPLICAS);
+            for (int i = 0; i < NUM_OF_REPLICAS; i++)
+                replicaSystems[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181,
+                        Duration.apply(100, "ms"), i == 0);
 
             System.out.println("Adding users");
             for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS / NUM_OF_REPLICAS; grpIndex++) {
                 for (int replIndex = 0; replIndex < NUM_OF_REPLICAS; replIndex++) {
+                    int finalGrpIndex = grpIndex;
+                    int finalReplIndex = replIndex;
 
-                    JRef<@Weak User> user = replicaSystems[replIndex].replicate
-                            (addr("user", grpIndex, replIndex), new User(generateRandomName()), JConsistencyLevels.WEAK);
-                    JRef<@Strong Counter> retweetCount =  replicaSystems[replIndex].replicate(
-                            addr("retweetCount", grpIndex,replIndex), new Counter(0), JConsistencyLevels.STRONG);
-                    JRef<@Weak Tweet> tweet = replicaSystems[replIndex].replicate(
-                            addr("tweet", grpIndex, replIndex), new Tweet(user, generateRandomText(3), retweetCount), JConsistencyLevels.WEAK);
+                    Ref<@Weak User> user = replicaSystems[replIndex].transaction(ctx -> Option.apply(ctx.replicate(
+                            addr("user", finalGrpIndex, finalReplIndex), CassandraConsistencyLevels.WEAK, User.class, generateRandomName()))).get();
+                    Ref<@Strong Counter> retweetCount =  replicaSystems[replIndex].transaction(ctx -> Option.apply(ctx.replicate(
+                            addr("retweetCount", finalGrpIndex,finalReplIndex), CassandraConsistencyLevels.STRONG, Counter.class, 0))).get();
+                    Ref<@Weak Tweet> tweet = replicaSystems[replIndex].transaction(ctx -> Option.apply(ctx.replicate(
+                            addr("tweet", finalGrpIndex, finalReplIndex), CassandraConsistencyLevels.WEAK, Tweet.class, user, generateRandomText(3), retweetCount))).get();
 
                     user.ref().addToTimeline(tweet);
                 }
@@ -117,18 +124,18 @@ public class JMHBenchmark {
 
         static class BMessageGroupsBenchmark {
 
-            private final List<JRef<@Weak User>> users = new ArrayList<>(NUM_OF_GROUPS);
-            private final List<JRef<@Weak Tweet>> tweets = new ArrayList<>(NUM_OF_GROUPS);
+            private final List<Ref<@Weak User>> users = new ArrayList<>(NUM_OF_GROUPS);
+            private final List<Ref<@Weak Tweet>> tweets = new ArrayList<>(NUM_OF_GROUPS);
 
             private final Random random = new Random();
 
-            private final JReplicaSystem replicaSystem;
+            private final CassandraStoreBinding replicaSystem;
 
-            BMessageGroupsBenchmark(JReplicaSystem replicaSystem) {
+            BMessageGroupsBenchmark(CassandraStoreBinding replicaSystem) {
                 this.replicaSystem = replicaSystem;
             }
 
-            public JRef<User> randomUser() {
+            public Ref<User> randomUser() {
                 return users.get(random.nextInt(users.size()));
             }
 
@@ -137,8 +144,13 @@ public class JMHBenchmark {
 
                 for (int grpIndex = 0; grpIndex <= NUM_OF_GROUPS; grpIndex++) {
                     for (int replIndex = 0; replIndex < NUM_OF_REPLICAS; replIndex++) {
-                        JRef<@Weak User> user = replicaSystem.lookup(addr("user", grpIndex, replIndex), User.class, JConsistencyLevels.WEAK);
-                        JRef<@Weak Tweet> tweet = replicaSystem.lookup(addr("tweet", grpIndex, replIndex), Tweet.class, JConsistencyLevels.WEAK);
+                        int finalGrpIndex = grpIndex;
+                        int finalReplIndex = replIndex;
+
+                        Ref<@Weak User> user = replicaSystem.transaction(ctx -> Option.apply(ctx.lookup(
+                                addr("user", finalGrpIndex, finalReplIndex), CassandraConsistencyLevels.WEAK, User.class))).get();
+                        Ref<@Weak Tweet> tweet = replicaSystem.transaction(ctx -> Option.apply(ctx.lookup(
+                                addr("tweet", finalGrpIndex, finalReplIndex), CassandraConsistencyLevels.WEAK, Tweet.class))).get();
 
                         users.add(user);
                         tweets.add(tweet);
@@ -148,8 +160,8 @@ public class JMHBenchmark {
             }
 
             private int transaction1() {
-                JRef<User> follower = randomUser();
-                JRef<User> following = randomUser();
+                Ref<User> follower = randomUser();
+                Ref<User> following = randomUser();
 
                 follower.ref().addFollower(following);
                 following.ref().addFollowing(follower);
@@ -158,8 +170,8 @@ public class JMHBenchmark {
             }
 
             private int transaction2() {
-                JRef<User> follower = randomUser();
-                JRef<User> following = randomUser();
+                Ref<User> follower = randomUser();
+                Ref<User> following = randomUser();
 
                 follower.ref().removeFollower(following);
                 following.ref().removeFollowing(follower);
@@ -168,8 +180,8 @@ public class JMHBenchmark {
             }
 
             private int transaction3() {
-                JRef<Tweet> tweet = tweets.get(random.nextInt(tweets.size()));
-                JRef<User> user = randomUser();
+                Ref<Tweet> tweet = tweets.get(random.nextInt(tweets.size()));
+                Ref<User> user = randomUser();
 
                 tweet.ref().retweet();
                 user.ref().addRetweet(tweet);

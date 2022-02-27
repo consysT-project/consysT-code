@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.demo.legacy.DemoExecutor;
+import de.tuda.stg.consys.demo.DemoExecutor;
 
 public class Demo extends DemoExecutor<TwitterCloneBenchmark> {
     public static void main(String[] args) throws Exception{
