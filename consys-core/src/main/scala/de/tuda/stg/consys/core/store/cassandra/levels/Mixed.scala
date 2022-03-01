@@ -44,7 +44,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val flattenedArgs = args.flatten
 			val clazz = implicitly[ClassTag[T]]
-			val method = Reflect.findMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodId, flattenedArgs : _*)
+			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodId, flattenedArgs : _*)
 
 			/* Execute a strong method */
 			if (method.getAnnotation(classOf[StrongOp]) != null) {

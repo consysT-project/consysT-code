@@ -114,7 +114,7 @@ private[akka] abstract class AkkaObject[T <: java.io.Serializable : ClassTag] ex
 			val flattenedArgs = args.flatten
 
 			val clazz = implicitly[ClassTag[T]]
-			val method = Reflect.findMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
+			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
 
 			try {
 				method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]

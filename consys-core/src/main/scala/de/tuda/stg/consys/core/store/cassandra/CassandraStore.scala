@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
-import com.datastax.oss.driver.api.core.cql.{ResultSet, SimpleStatement, Statement}
+import com.datastax.oss.driver.api.core.cql.{BatchStatementBuilder, ResultSet, SimpleStatement, Statement}
 import com.datastax.oss.driver.api.core.{CqlSession, ConsistencyLevel => CassandraLevel}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
@@ -9,6 +9,7 @@ import com.datastax.oss.driver.api.querybuilder.select.Selector
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore.CassandraStoreId
 import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, DistributedZookeeperLockingStore, LockingStore}
+import de.tuda.stg.consys.core.store.utils.Reflect
 import io.aeron.exceptions.DriverTimeoutException
 import java.io._
 import java.net.InetSocketAddress
@@ -84,7 +85,7 @@ trait CassandraStore extends DistributedStore
 		if (initializing) initialize()
 		cassandraSession.execute(s"USE $keyspaceName")
 
-		private def initialize(): Unit = {
+		private def initialize() : Unit = {
 			try {
 				cassandraSession.execute(
 					SimpleStatement.builder(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
@@ -96,20 +97,21 @@ trait CassandraStore extends DistributedStore
 					e.printStackTrace()
 			}
 
-				cassandraSession.execute(
-					SimpleStatement.builder(
-						s"""CREATE KEYSPACE $keyspaceName
-								|WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
-								.stripMargin)
-						.setExecutionProfileName("consys_init")
-						.build()
-				)
+			cassandraSession.execute(
+				SimpleStatement.builder(
+					s"""CREATE KEYSPACE $keyspaceName
+						 |WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3}"""
+						.stripMargin)
+					.setExecutionProfileName("consys_init")
+					.build()
+			)
 
 			try {
 				cassandraSession.execute(
 					SimpleStatement.builder(
 						s"""CREATE TABLE $keyspaceName.$objectTableName (
-							 |addr text primary key,
+							 |id text primary key,
+							 |fieldid text primary key,
 							 |state blob
 							 |) with comment = 'stores objects as blobs'"""
 							.stripMargin)
@@ -122,18 +124,26 @@ trait CassandraStore extends DistributedStore
 			}
 		}
 
-		private[cassandra] def writeObjectStatement[T <: Serializable](addr : String, obj : T, clevel : CassandraLevel, timestamp : Option[Long] = None) : SimpleStatement = {
+		private[cassandra] def addWriteTo[T <: Serializable](batchBuilder : BatchStatementBuilder, id : String, fields : Set[String], obj : T, clevel : CassandraLevel) : Unit = {
 			import QueryBuilder._
-			var builder : Insert = insertInto(s"$objectTableName")
-				.value("addr", literal(addr))
-				.value("state", literal(CassandraStore.serializeObject(obj)))
+			for (fieldName <- fields) {
 
-			timestamp match {
-				case None =>
-				case Some(time) => builder = builder.usingTimestamp(time)
+				val field = Reflect.getField(obj.getClass, fieldName)
+
+				val builder : Insert = insertInto(s"$objectTableName")
+					.value("id", literal(id))
+					.value("fieldid", literal(id))
+					.value("state", literal(CassandraStore.serializeObject(field.get(obj).asInstanceOf[Serializable])))
+
+//			timestamp match {
+//				case None =>
+//				case Some(time) => builder = builder.usingTimestamp(time)
+//			}
+
+				val statement = builder.build().setConsistencyLevel(clevel)
+
+				batchBuilder.addStatement(statement)
 			}
-
-			builder.build().setConsistencyLevel(clevel)
 		}
 
 		private[cassandra] def executeStatement(statement : Statement[_]) : ResultSet = {
@@ -143,7 +153,7 @@ trait CassandraStore extends DistributedStore
 
 		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : (T, Long) = {
 			val query = QueryBuilder.selectFrom(s"$objectTableName")
-				.columns("addr", "state")
+				.columns("id",  "state")
 				.function("WRITETIME", Selector.column("state")).as("writetime")
 				.whereColumn("addr").isEqualTo(QueryBuilder.literal(addr))
 				.build()

@@ -34,7 +34,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int decInd; decInd >= 0 && decInd<numOfReplicas(); decs[decInd]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); decs[i]);
     @*/
     int sumDecs(){
         int result = 0;

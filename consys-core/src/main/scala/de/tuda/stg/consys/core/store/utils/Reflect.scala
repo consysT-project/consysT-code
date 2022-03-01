@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.utils
 
 import akka.util.BoxedType
-import java.lang.reflect.{Constructor, Method}
+import java.lang.reflect.{Constructor, Field, Method}
 import scala.util.Try
 
 /**
@@ -18,7 +18,7 @@ object Reflect {
 	 * @tparam T The type of the class.
 	 * @return A constructor of ´clazz´ that can be applied to the given arguments.
 	 */
-	def findConstructor[T](clazz: Class[T], args: Any*): Constructor[T] = {
+	def getConstructor[T](clazz: Class[T], args: Any*): Constructor[T] = {
 		def error(msg: String): Nothing = {
 			val argClasses = args.map(safeGetClass).mkString(", ")
 			throw new IllegalArgumentException(s"$msg found on $clazz for arguments [$argClasses]")
@@ -60,7 +60,7 @@ object Reflect {
 	 * @tparam T The type of the class.
 	 * @return The method of ´clazz´ with the given name that can be applied to the given arguments.
 	 */
-	def findMethod[T](clazz: Class[T], methodName : String, args: Any*): Method = {
+	def getMethod[T](clazz: Class[T], methodName : String, args: Any*): Method = {
 		def error(msg: String): Nothing = {
 			val argClasses = args.map(safeGetClass).mkString(", ")
 			throw new IllegalArgumentException(s"$msg found on $clazz with name $methodName for arguments [$argClasses]")
@@ -92,6 +92,22 @@ object Reflect {
 
 		if (method == null) error("no matching method")
 		else method
+	}
+
+
+
+	def getField[T](clazz: Class[T], fieldName : String): Field = {
+		val field : Field = Try { clazz.getField(fieldName) }.getOrElse(null)
+
+		if (field == null)
+			throw new IllegalArgumentException(s"no matching field found on $clazz with name $fieldName")
+
+		field
+	}
+
+
+	def getFields[T](clazz: Class[T]): Iterable[Field] = {
+		clazz.getFields()
 	}
 
 	private def safeGetClass(a: Any): Class[_] =
