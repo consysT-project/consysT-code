@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>demos</artifactId>
+        <groupId>de.tuda.stg.consys</groupId>
+        <version>3.0.0-alpha</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>quoddy</artifactId>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>de.tuda.stg.consys</groupId>
+                            <artifactId>consys-type-checker</artifactId>
+                            <version>3.0.0-alpha</version>
+                        </path>
+                        <path>
+                            <groupId>de.tuda.stg.consys</groupId>
+                            <artifactId>consys-compiler</artifactId>
+                            <version>3.0.0-alpha</version>
+                        </path>
+                    </annotationProcessorPaths>
+<!--
+                    <annotationProcessors>
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
+-->
+                    <compilerArgs>
+                        <arg>-AprintErrorStack</arg>
+                        <arg>-Xplugin:consys-compiler</arg>
+                        <arg>-AstubWarnIfNotFound</arg>
+                        <!--<arg>-AsuppressWarnings=inconsistent.constructor.type</arg>-->
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-core</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-japi</artifactId>
+            <version>3.0.0-alpha</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-compiler</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-annotations</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>demo-bench</artifactId>
+            <version>3.0.0-alpha</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+</project>
