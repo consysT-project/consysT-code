@@ -25,7 +25,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			obj : T
 		) : CassandraStore#RefType[T] = {
 			val cassObj = new MixedCassandraObject[T](addr, obj, -1, MixedWeak)
-			txContext.Cache.put(addr, cassObj)
+			txContext.Cache.putForallFields(addr, cassObj)
 			new CassandraRef[T](addr, Mixed)
 		}
 
@@ -48,28 +48,33 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 
 			/* Execute a strong method */
 			if (method.getAnnotation(classOf[StrongOp]) != null) {
+
+				val fields = Reflect.getFields(clazz.runtimeClass)/* TODO: Get fields from method */
+
 				// Lock the object
 				txContext.acquireLock(receiver.addr)
 				//Lookup the object in the cache
 				val addr = receiver.addr
-				txContext.Cache.get(addr) match {
+				txContext.Cache.getData(addr) match {
 					case None =>
 						// If there was no object, then read it from cassandra
 						val obj = strongRead[T](addr)
 						// Cache the strong object and execute the method on it
-						txContext.Cache.put(addr, obj)
+						txContext.Cache.put(addr, fields, obj)
 						val result = obj.invoke[R](methodId, args)
 						result
 					case Some(cached : MixedCassandraObject[T]) if cached.ml == MixedWeak =>
 						// If the object was read with weak consistency, then do the same as in case None
 						// TODO: Merge weak object with newly read strong object.
 						val obj = strongRead[T](addr)
-						txContext.Cache.putOrOverwrite(addr, obj)
+						txContext.Cache.putOrOverwrite(addr, fields, obj)
 						val result = obj.invoke[R](methodId, args)
 						result
 					case Some(cached : MixedCassandraObject[T]) if cached.ml == MixedStrong =>
 						//If the object was already read with strong consistency, then just execute the method
 						val result = cached.invoke[R](methodId, args)
+						//Add the additional to the cached object
+						txContext.Cache.putOrOverwrite(addr, fields, cached)
 						result
 					case cached  =>
 						throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
@@ -81,17 +86,21 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				//If the annotation is weak, or if there was no annotation at all...
 				//Lookup the object in the cache
 				val addr = receiver.addr
-				txContext.Cache.get(addr) match {
+				val fields = Reflect.getFields(clazz.runtimeClass)/* TODO: Get fields from method */
+
+				txContext.Cache.getData(addr) match {
 					case None =>
 						// If there was no object, then read it from cassandra
 						val obj = weakRead[T](addr)
 						// Cache the weak object and execute the method on it
-						txContext.Cache.put(addr, obj)
+						txContext.Cache.put(addr, fields, obj)
 						val result = obj.invoke[R](methodId, args)
 						result
 					case Some(cached : MixedCassandraObject[T]) =>
 						//If the object was already read with any consistency, then just execute the method
 						val result = cached.invoke[R](methodId, args)
+						//Add the additional to the cached object
+						txContext.Cache.putOrOverwrite(addr, fields, cached)
 						result
 					case cached =>
 						throw new IllegalStateException(s"lookup with wrong consistency level. level: $Mixed, obj: $cached")
@@ -120,15 +129,17 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = {
 
-			txContext.Cache.get(ref.addr) match {
+			//TODO: Set consistency level per field
+
+			txContext.Cache.getDataAndFields(ref.addr) match {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-				case Some(cached : MixedCassandraObject[_]) if cached.ml == MixedStrong =>
+				case Some((cached : MixedCassandraObject[_], fields)) if cached.ml == MixedStrong =>
 					val builder = txContext.getCommitStatementBuilder
-					builder.addStatement(store.CassandraBinding.writeObjectStatement(cached.addr, cached.state, CassandraLevel.ALL))
-				case Some(cached : MixedCassandraObject[_]) if cached.ml == MixedWeak =>
+					store.CassandraBinding.addWriteTo(builder, cached.addr, fields.map(_.getName), cached.state, CassandraLevel.ALL)
+				case Some((cached : MixedCassandraObject[_], fields)) if cached.ml == MixedWeak =>
 					val builder = txContext.getCommitStatementBuilder
-					builder.addStatement(store.CassandraBinding.writeObjectStatement(cached.addr, cached.state, CassandraLevel.ONE))
+					store.CassandraBinding.addWriteTo(builder, cached.addr, fields.map(_.getName), cached.state, CassandraLevel.ONE)
 				case cached =>
 					throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 			}

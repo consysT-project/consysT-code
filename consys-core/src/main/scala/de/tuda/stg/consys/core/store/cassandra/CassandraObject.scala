@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra
 
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
-import de.tuda.stg.consys.core.store.extensions.transaction.CachedTransactionContext.CachedObject
 import scala.reflect.ClassTag
 
 
@@ -15,6 +14,6 @@ private[cassandra] class CassandraObject[T <: CassandraStore#ObjType : ClassTag,
 	val consistencyLevel : Level,
 	/** The timestamp of the object when read from Cassandra, or -1 if the object was not read */
 	val timestamp : Long
-) extends ReflectiveObject[CassandraStore#Addr, T] with CachedObject[CassandraStore, T] {
+) extends ReflectiveObject[CassandraStore#Addr, T] {
 	def toRef : CassandraRef[T] = CassandraRef[T](addr, consistencyLevel)
 }

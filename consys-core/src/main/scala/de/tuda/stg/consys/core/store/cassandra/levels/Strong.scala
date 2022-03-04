@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 import scala.reflect.ClassTag
 
@@ -36,7 +37,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : CassandraStore#RefType[T] = {
 			txContext.acquireLock(addr)
 			val cassObj = new CassandraObject[T, Strong.type](addr, obj, Strong, -1)
-			txContext.Cache.put(addr, cassObj)
+			txContext.Cache.putForallFields(addr, cassObj)
 			new CassandraRef[T](addr, Strong)
 		}
 
@@ -55,7 +56,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
 			val result = cached.invoke[R](methodId, args)
 			result
 		}
@@ -67,7 +68,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
 			val result = cached.getField[R](fieldName)
 			result
 		}
@@ -79,22 +80,21 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : Unit = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
 			cached.setField[R](fieldName, value)
 		}
 
 		override def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
-		) : Unit = txContext.Cache.get(ref.addr) match {
+		) : Unit = txContext.Cache.getData(ref.addr) match {
 			case None =>
 				throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 
 			case Some(cassObj : CassandraObject[_, Strong.type]) if cassObj.consistencyLevel == Strong =>
 				// Add a new statement to the batch of write statements
 				val builder = txContext.getCommitStatementBuilder
-				builder.addStatement(store.CassandraBinding.writeObjectStatement(cassObj.addr, cassObj.state, CassandraLevel.ALL))
-
+				store.CassandraBinding.addWriteTo(builder, cassObj.addr, Reflect.getFields(cassObj.state.getClass).map(_.getName), cassObj.state, CassandraLevel.ALL)
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}

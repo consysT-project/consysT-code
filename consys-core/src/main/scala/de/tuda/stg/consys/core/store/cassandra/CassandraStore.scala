@@ -124,7 +124,7 @@ trait CassandraStore extends DistributedStore
 			}
 		}
 
-		private[cassandra] def addWriteTo[T <: Serializable](batchBuilder : BatchStatementBuilder, id : String, fields : Set[String], obj : T, clevel : CassandraLevel) : Unit = {
+		private[cassandra] def addWriteTo[T <: Serializable](batchBuilder : BatchStatementBuilder, id : String, fields : Iterable[String], obj : T, clevel : CassandraLevel) : Unit = {
 			import QueryBuilder._
 			for (fieldName <- fields) {
 
