@@ -38,8 +38,11 @@ These applications have to be installed and running to correctly use the system:
 
 You need Cassandra 4.0+ to run with Java 11.
 
-If using ccm then use `ccm setdir` to set the correct Cassandra install directory. 
+When running Cassandra locally, best use the Cassandra Cluster Manager `ccm`.
 
+1. Create a new cluster. Ensure that the cluster uses at least Cassandra version 4.0. `ccm create consys_cluster -v 4.0.3`
+2. Create nodes for the cluster. `ccm populate -n 3`
+3. Start the cluster. `ccm start`
 
 ## Project overview
 

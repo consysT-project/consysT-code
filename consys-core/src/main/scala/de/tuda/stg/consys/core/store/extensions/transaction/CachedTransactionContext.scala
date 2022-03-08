@@ -16,7 +16,7 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 	protected type CachedType[T <: StoreType#ObjType]
 
 	protected[store] object Cache {
-		val buffer : mutable.Map[StoreType#Addr, CacheElement] = mutable.HashMap.empty
+		val buffer : mutable.Map[StoreType#Addr, CacheElement[_ <: StoreType#ObjType]] = mutable.HashMap.empty
 
 		def put(addr : StoreType#Addr, fields : Iterable[Field] /*  Reflect.getFields(obj.getClass) */, obj : CachedType[_ <: StoreType#ObjType]) : Unit  = buffer.put(addr, CacheElement(obj, fields)) match {
 			case None =>
@@ -26,33 +26,33 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 		def putForallFields(addr : StoreType#Addr, obj : CachedType[_ <: StoreType#ObjType]) : Unit =
 			put(addr, Reflect.getFields(obj.getClass), obj)
 
-		def putOrOverwrite(addr : StoreType#Addr, fields : Iterable[Field], obj : CachedType[_ <: StoreType#ObjType]) : Option[CachedType[_ <: StoreType#ObjType]]  = {
+		def putOrOverwrite[T <: StoreType#ObjType](addr : StoreType#Addr, fields : Iterable[Field], obj : CachedType[T]) : Option[CachedType[T]]  = {
 			buffer.get(addr) match {
 				case None =>
-					buffer.put(addr, CacheElement(obj, Reflect.getFields(obj.getClass))).map(_.data)
+					buffer.put(addr, CacheElement(obj, Reflect.getFields(obj.getClass))).map(_.data.asInstanceOf[CachedType[T]])
 				case Some(prev) =>
-					buffer.put(addr, CacheElement(obj, prev.changedFields ++ fields)).map(_.data)
+					buffer.put(addr, CacheElement(obj, prev.changedFields ++ fields)).map(_.data.asInstanceOf[CachedType[T]])
 
 			}
 		}
 
 
-		def getData(addr : StoreType#Addr) : Option[CachedType[_ <: StoreType#ObjType]] =
-			buffer.get(addr).map(_.data)
+		def getData[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[CachedType[T]] =
+			buffer.get(addr).map(_.data).asInstanceOf[Option[CachedType[T]]]
 
 		def getFields(addr : StoreType#Addr) : Option[Iterable[Field]] =
 			buffer.get(addr).map(_.changedFields)
 
-		def getDataAndFields(addr : StoreType#Addr) : Option[(CachedType[_ <: StoreType#ObjType], Iterable[Field])] =
-			buffer.get(addr).map(f => (f.data, f.changedFields))
+		def getDataAndFields[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[(CachedType[T], Iterable[Field])] =
+			buffer.get(addr).map(f => (f.data.asInstanceOf[CachedType[T]], f.changedFields))
 
 		def getOrElseUpdate[T <: StoreType#ObjType](addr : StoreType#Addr, fields : Iterable[Field],  obj : => CachedType[T]) : CachedType[T] =
-			buffer.getOrElseUpdate(addr, CacheElement(obj, fields)).asInstanceOf[CachedType[T]]
+			buffer.getOrElseUpdate(addr, CacheElement[T](obj, fields)).data.asInstanceOf[CachedType[T]]
 
 
 	}
 
-	case class CacheElement(data : CachedType[_ <: StoreType#ObjType], changedFields : Iterable[Field])
+	case class CacheElement[T <: StoreType#ObjType](data : CachedType[T], changedFields : Iterable[Field])
 
 }
 

@@ -57,7 +57,8 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+				.asInstanceOf[StrongCassandraObject[T]]
 			val result = cached.invoke[R](methodId, args)
 			result
 		}
@@ -69,7 +70,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
 			val result = cached.getField[R](fieldName)
 			result
 		}
@@ -81,7 +82,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : Unit = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate(addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
 			cached.setField[R](fieldName, value)
 		}
 

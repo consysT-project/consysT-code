@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.demo
 
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.core.store.cassandra.levels.{Mixed, Strong}
+import de.tuda.stg.consys.core.store.cassandra.levels.{Mixed, Strong, Weak}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import java.util.concurrent.Executors
 import scala.concurrent.duration.Duration
@@ -19,7 +19,7 @@ object CassandraStoreDemo extends App {
 	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, withTimeout = Duration(60, "s"))
 	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, withTimeout = Duration(60, "s"))
 
-	val level = Mixed
+	val level = Weak
 
 	println(s"Starting demo with consistency level $level")
 	println("transaction 1")
@@ -111,7 +111,10 @@ object CassandraStoreDemo extends App {
 		}
 	}
 
-	case class MyInt(var i : Int = 0) {
+	class MyInt(_i : Int = 0) extends Serializable {
+
+		var i : Int = _i
+
 		@StrongOp def double() : Unit = {
 			i = 2 * i
 		}

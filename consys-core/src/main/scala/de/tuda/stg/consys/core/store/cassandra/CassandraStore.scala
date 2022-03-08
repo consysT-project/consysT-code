@@ -123,12 +123,13 @@ trait CassandraStore extends DistributedStore
 				cassandraSession.execute(
 					SimpleStatement.builder(
 						s"""CREATE TABLE $keyspaceName.$objectTableName (
-							 |id text primary key,
-							 |fieldid text primary key,
+							 |id text,
+							 |fieldid text,
 							 |type int,
 							 |consistency text,
-							 |state blob
-							 |) with comment = 'contains the replicated data for a consys execution'"""
+							 |state blob,
+							 |PRIMARY KEY (id, fieldid)
+							 |) WITH COMMENT = 'contains the replicated data for a consys execution'"""
 							.stripMargin)
 						.setExecutionProfileName("consys_init")
 						.build()
