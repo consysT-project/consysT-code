@@ -61,7 +61,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 			* 2. Use the start timestamp of the transaction if it is newer
 			*/
 			val timestamp = Cache.buffer.valuesIterator.foldLeft(startTimestamp)(
-				(timestamp, cassObj) => if (timestamp > cassObj.data.timestamp) timestamp else cassObj.data.timestamp + 1
+				(timestamp, cassObj) => if (timestamp > cassObj.data.newestTimestamp) timestamp else cassObj.data.newestTimestamp + 1
 			)
 
 			//Create a batch statement to batch all the writes

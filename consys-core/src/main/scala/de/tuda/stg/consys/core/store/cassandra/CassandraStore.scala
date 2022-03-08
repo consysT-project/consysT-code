@@ -12,6 +12,7 @@ import de.tuda.stg.consys.core.store.extensions.store.{DistributedStore, Distrib
 import de.tuda.stg.consys.core.store.utils.Reflect
 import io.aeron.exceptions.DriverTimeoutException
 import java.io._
+import java.lang.reflect.Field
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
@@ -106,14 +107,28 @@ trait CassandraStore extends DistributedStore
 					.build()
 			)
 
+			/*
+			Table layout:
+			Every entry stores data belonging to an object. There are two possiblities: Either an
+			entry stores the value of one field of an object, or it stores the whole object.
+
+			id : the address of the object, aka the objects name
+			fieldid : the name of the field that is stored in the entry, or $ALL if the entry stores a complete object
+			type : the type of entry, 1 if it is a field, 2 if it is a whole object
+			consistency : the consistency level of the entry, e.g., STRONG or WEAK
+			state : the stored data
+			 */
+
 			try {
 				cassandraSession.execute(
 					SimpleStatement.builder(
 						s"""CREATE TABLE $keyspaceName.$objectTableName (
 							 |id text primary key,
 							 |fieldid text primary key,
+							 |type int,
+							 |consistency text,
 							 |state blob
-							 |) with comment = 'stores objects as blobs'"""
+							 |) with comment = 'contains the replicated data for a consys execution'"""
 							.stripMargin)
 						.setExecutionProfileName("consys_init")
 						.build()
@@ -124,39 +139,80 @@ trait CassandraStore extends DistributedStore
 			}
 		}
 
-		private[cassandra] def addWriteTo[T <: Serializable](batchBuilder : BatchStatementBuilder, id : String, fields : Iterable[String], obj : T, clevel : CassandraLevel) : Unit = {
+		private final val FIELD_ALL = "$ALL"
+
+		private final val TYPE_FIELD = 1
+		private final val TYPE_OBJECT = 2
+
+		private final val CONSISTENCY_ANY = "$ANY"
+
+
+		private[cassandra] def writeFieldEntry[T <: Serializable](
+			batchBuilder : BatchStatementBuilder, // the batch builder that creates the final write statement
+			id : String,
+			fields : Iterable[Field], // the fields of the object that are written
+			obj : T,
+			clevel : CassandraLevel
+		) : Unit = {
 			import QueryBuilder._
-			for (fieldName <- fields) {
 
-				val field = Reflect.getField(obj.getClass, fieldName)
-
+			for (field <- fields) {
 				val builder : Insert = insertInto(s"$objectTableName")
 					.value("id", literal(id))
-					.value("fieldid", literal(id))
+					.value("fieldid", literal(field.getName))
+					.value("type", literal(TYPE_FIELD))
+					.value("consistency", literal(CONSISTENCY_ANY))
 					.value("state", literal(CassandraStore.serializeObject(field.get(obj).asInstanceOf[Serializable])))
 
-//			timestamp match {
-//				case None =>
-//				case Some(time) => builder = builder.usingTimestamp(time)
-//			}
-
 				val statement = builder.build().setConsistencyLevel(clevel)
-
 				batchBuilder.addStatement(statement)
 			}
 		}
+
+		private[cassandra] def writeObjectEntry[T <: Serializable](
+			batchBuilder : BatchStatementBuilder, // the batch builder that creates the final write statement
+			id : String,
+			obj : T,
+			clevel : CassandraLevel
+		) : Unit = {
+			import QueryBuilder._
+
+			val builder : Insert = insertInto(s"$objectTableName")
+				.value("id", literal(id))
+				.value("fieldid", literal(FIELD_ALL))
+				.value("type", literal(TYPE_OBJECT))
+				.value("consistency", literal(CONSISTENCY_ANY))
+				.value("state", literal(CassandraStore.serializeObject(obj.asInstanceOf[Serializable])))
+
+			val statement = builder.build().setConsistencyLevel(clevel)
+			batchBuilder.addStatement(statement)
+		}
+
 
 		private[cassandra] def executeStatement(statement : Statement[_]) : ResultSet = {
 			cassandraSession.execute(statement)
 		}
 
 
-		private[cassandra] def readObject[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : (T, Long) = {
+		private[cassandra] class StoredFieldEntry(
+			val addr : String,
+			val fields : Map[Field, Any],
+			val timestamps : Map[Field, Long]
+		)
+
+		private[cassandra] class StoredObjectEntry(
+			val addr : String,
+			val state : Any,
+			val timestamp : Long
+		)
+
+		private[cassandra] def readObjectEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredObjectEntry = {
 			val query = QueryBuilder.selectFrom(s"$objectTableName")
-				.columns("id",  "state")
+				.columns("id", "type", "state")
 				.function("WRITETIME", Selector.column("state")).as("writetime")
-				.whereColumn("addr").isEqualTo(QueryBuilder.literal(addr))
+				.whereColumn("id").isEqualTo(QueryBuilder.literal(addr))
 				.build()
+				//TODO: Read every field with its correct consistency level
 				.setConsistencyLevel(clevel)
 
 			//TODO: Add failure handling
@@ -167,15 +223,59 @@ trait CassandraStore extends DistributedStore
 				response.one() match {
 					case null =>  //the address has not been found. retry.
 					case row =>
+						val typ = row.get("type", TypeCodecs.INT)
+						if (typ != TYPE_OBJECT) throw new IllegalStateException(s"expected object stored as whole, but got: $response")
+
 						val obj = CassandraStore.deserializeObject[T](row.get("state", TypeCodecs.BLOB))
 						val time = row.get("writetime", TypeCodecs.BIGINT)
-						return (obj, time)
+						return new StoredObjectEntry(addr, obj, time)
 				}
 				Thread.sleep(10)
 			}
 
 			throw new TimeoutException(s"the object with address $addr has not been found on this replica")
 
+
+
+		}
+
+		private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredFieldEntry = {
+			val query = QueryBuilder.selectFrom(s"$objectTableName")
+				.columns("id", "fieldid", "type", "state")
+				.function("WRITETIME", Selector.column("state")).as("writetime")
+				.whereColumn("id").isEqualTo(QueryBuilder.literal(addr))
+				.build()
+				//TODO: Read every field with its correct consistency level
+				.setConsistencyLevel(clevel)
+
+			//TODO: Add failure handling
+			val startTime = System.nanoTime()
+			while (System.nanoTime() < startTime + timeout.toNanos) {
+
+				var fields : Map[Field, Any] = Map.empty
+				var timestamps : Map[Field, Long] = Map.empty
+
+				val response = cassandraSession.execute(query)
+
+				response.forEach(row => {
+					val typ = row.get("type", TypeCodecs.INT)
+					if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
+
+					val fieldName : String = row.get("fieldid", TypeCodecs.TEXT)
+					val field : Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
+
+					val state : Any = CassandraStore.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
+					val timestamp : Long = row.get("writetime", TypeCodecs.BIGINT)
+
+					fields = fields + (field -> state)
+					timestamps = timestamps + (field -> timestamp)
+				})
+
+				return new StoredFieldEntry(addr, fields, timestamps)
+
+				Thread.sleep(10)
+			}
+			throw new TimeoutException(s"the object with address $addr has not been found on this replica")
 		}
 	}
 
