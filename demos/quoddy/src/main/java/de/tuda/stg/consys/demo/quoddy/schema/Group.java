@@ -29,7 +29,7 @@ public class Group implements Serializable {
         this.feed = new LinkedList<>();
     }
 
-    void addActivity(Ref<? extends Activity> activity) {
+    public void addActivity(Ref<? extends Activity> activity) {
         feed.add(0, activity);
         // TODO: should group posts be added to the personal feed of members?
         for (Ref<User> member : members)
@@ -39,7 +39,7 @@ public class Group implements Serializable {
     }
 
     @Transactional
-    boolean isUserInGroup(Ref<User> user) {
+    public boolean isUserInGroup(Ref<User> user) {
         boolean result = false;
         for (Ref<User> member : members)
             result |= Util.equalsUser(user, member);

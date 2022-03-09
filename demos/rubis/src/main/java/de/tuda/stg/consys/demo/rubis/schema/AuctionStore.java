@@ -10,19 +10,12 @@ import java.io.Serializable;
 import java.util.*;
 
 public @Mixed class AuctionStore implements Serializable {
-    private final List<Ref<User>> users;
     private final List<Ref<Item>> openAuctions;
     private final Map<Category, @Mutable List<Ref<Item>>> openAuctionsByCategory;
 
     public AuctionStore() {
-        this.users = new ArrayList<>();
         this.openAuctions = new LinkedList<>();
         this.openAuctionsByCategory = new HashMap<>();
-    }
-
-    @StrongOp
-    public void addUser(Ref<User> user) {
-        users.add(user);
     }
 
     @StrongOp
@@ -52,11 +45,5 @@ public @Mixed class AuctionStore implements Serializable {
     @WeakOp
     public List<Ref<Item>> getOpenAuctions() {
         return openAuctions;
-    }
-
-    @Transactional
-    @WeakOp
-    public Optional<Ref<User>> searchUser(String nickname) {
-        return users.stream().filter(user -> user.ref().getNickname().equals(nickname)).findFirst();
     }
 }

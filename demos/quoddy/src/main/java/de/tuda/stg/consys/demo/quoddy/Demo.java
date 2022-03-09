@@ -16,6 +16,7 @@ public class Demo extends DemoExecutor<QuoddyBenchmark> {
                 "    demo {\n" +
                 "      quoddy {\n" +
                 "        users = 100\n" +
+                "        groups = 10\n" +
                 "      }\n" +
                 "      type = \"op_mixed\"\n" +
                 "    }\n" +

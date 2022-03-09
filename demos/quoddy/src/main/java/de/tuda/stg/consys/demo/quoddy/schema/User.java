@@ -41,19 +41,19 @@ public class User implements Serializable {
         this.participatingGroups = new LinkedList<>();
     }
 
-    void addActivity(Ref<? extends Activity> status) {
+    public void addActivity(Ref<? extends Activity> status) {
         unreadFeed.add(status);
     }
 
     @Transactional
-    void notifyOfEventUpdate(Ref<Event> event) {
+    public void notifyOfEventUpdate(Ref<Event> event) {
         feed.removeIf(x -> Util.equalsActivity(x, event));
         unreadFeed.removeIf(x -> Util.equalsActivity(x, event));
         unreadFeed.add(0, event);
     }
 
     @Transactional
-    void notifyOfGroupMembershipAcceptance(Ref<Group> group) {
+    public void notifyOfGroupMembershipAcceptance(Ref<Group> group) {
         participatingGroups.add(group);
     }
 
@@ -63,25 +63,25 @@ public class User implements Serializable {
         feed.add(0, activity);
     }
 
-    void addReceivedFriendRequest(Ref<User> sender) {
+    public  void addReceivedFriendRequest(Ref<User> sender) {
         receivedFriendRequests.add(sender);
     }
 
     @Transactional
-    void removeReceivedFriendRequest(Ref<User> sender) {
+    public void removeReceivedFriendRequest(Ref<User> sender) {
         receivedFriendRequests.removeIf(x -> Util.equalsUser(x, sender));
     }
 
-    void addSentFriendRequest(Ref<User> sender) {
+    public void addSentFriendRequest(Ref<User> sender) {
         sentFriendRequests.add(sender);
     }
 
     @Transactional
-    void removeSentFriendRequest(Ref<User> receiver) {
+    public void removeSentFriendRequest(Ref<User> receiver) {
         sentFriendRequests.removeIf(x -> Util.equalsUser(x, receiver));
     }
 
-    void addFriend(Ref<User> user) {
+    public void addFriend(Ref<User> user) {
         friends.add(user);
     }
 
@@ -90,22 +90,26 @@ public class User implements Serializable {
         friends.removeIf(x -> Util.equalsUser(x, user));
     }
 
-    void addFollower(Ref<User> user) {
+    public void addFollower(Ref<User> user) {
         followers.add(user);
     }
 
     @Transactional
-    void removeFollower(Ref<User> user) {
+    public void removeFollower(Ref<User> user) {
         followers.removeIf(x -> Util.equalsUser(x, user));
     }
 
-    void addFollowing(Ref<User> user) {
+    public void addFollowing(Ref<User> user) {
         following.add(user);
     }
 
     @Transactional
-    void removeFollowing(Ref<User> user) {
+    public void removeFollowing(Ref<User> user) {
         following.removeIf(x -> Util.equalsUser(x, user));
+    }
+
+    public void addParticipatingGroup(Ref<Group> group) {
+        participatingGroups.add(group);
     }
 
     public void changeProfileText(String text) {
@@ -170,5 +174,9 @@ public class User implements Serializable {
 
     public List<Ref<? extends Activity>> getUnreadFeed() {
         return unreadFeed;
+    }
+
+    public List<Ref<Group>> getParticipatingGroups() {
+        return participatingGroups;
     }
 }

@@ -42,7 +42,6 @@ public class UserInterface {
             if (auctionStore == null) {
                 auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
             }
-            auctionStore.ref().addUser(user);
 
             return Option.apply(user);
         }).get();

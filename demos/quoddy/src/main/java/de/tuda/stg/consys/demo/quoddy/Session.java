@@ -33,6 +33,10 @@ public class Session {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
+    public Ref<User> getUser() {
+        return user;
+    }
+
     public Ref<User> registerUser(CassandraTransactionContextBinding tr,
                                   String id, String name) {
         this.user = doTransaction(tr,
@@ -43,16 +47,20 @@ public class Session {
     public Ref<Group> createGroup(CassandraTransactionContextBinding tr,
                                   String id, String name, String description, boolean requiresJoinConfirmation) {
         checkLogin();
-        return doTransaction(tr, ctx -> Option.apply(ctx.replicate(
-                id, groupConsistencyLevel, Group.class, id, name, description, requiresJoinConfirmation, this.user
-        ))).get();
+        return doTransaction(tr, ctx -> {
+            Ref<Group> group = ctx.replicate(id, groupConsistencyLevel, Group.class, id, name, description,
+                    requiresJoinConfirmation, this.user);
+            user.ref().addParticipatingGroup(group);
+            return Option.apply(group);
+        }).get();
     }
 
     public void joinGroup(CassandraTransactionContextBinding tr,
                           Ref<Group> group) {
         checkLogin();
         doTransaction(tr, ctx -> {
-            group.ref().join(this.user);
+            group.ref().join(user);
+            user.ref().addParticipatingGroup(group);
             return Option.empty();
         });
     }

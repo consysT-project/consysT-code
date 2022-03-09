@@ -58,7 +58,8 @@ public class Util {
 
     @Transactional
     public static void postStatusToGroup(Ref<Group> group, Ref<StatusUpdate> status) {
-        if (!(boolean)group.ref().isUserInGroup(status.ref().getOwner()))
+        Ref<User> owner = status.ref().getOwner();
+        if (!(boolean)group.ref().isUserInGroup(owner))
             throw new IllegalArgumentException("can only post in groups you are a member of");
 
         group.ref().addActivity(status);

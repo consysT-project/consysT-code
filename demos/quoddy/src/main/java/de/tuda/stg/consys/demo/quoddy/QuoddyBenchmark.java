@@ -7,6 +7,7 @@ import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.quoddy.schema.Group;
 import de.tuda.stg.consys.demo.quoddy.schema.User;
+import de.tuda.stg.consys.demo.quoddy.schema.Util;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
@@ -20,11 +21,11 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfUsersPerReplica;
+    private final int numOfGroupsPerReplica;
+
     private final List<Session> sessions;
     private final List<Ref<User>> users;
     private final List<Ref<Group>> groups;
-
-    private static final float maxPrice = 100;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -40,6 +41,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.quoddy.users");
+        numOfGroupsPerReplica = config.getInt("consys.bench.demo.quoddy.groups");
 
         Session.userConsistencyLevel = getStrongLevel();
         Session.groupConsistencyLevel = getStrongLevel();
@@ -54,8 +56,8 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         groups = new LinkedList<>();
     }
 
-    private static String addr(String identifier, int grpIndex, int replIndex) {
-        return identifier + "$" + grpIndex + "$"+ replIndex;
+    private static String addr(String identifier, int objectIndex, int replicaIndex) {
+        return identifier + "$" + objectIndex + "$"+ replicaIndex;
     }
 
     private String generateRandomName() {
@@ -63,40 +65,60 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
                 + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
     }
 
-    private String generateRandomPassword() {
-        return WORDS.get(random.nextInt(WORDS.size()));
-    }
-
     private String generateRandomText(int n) {
-        String body = WORDS.get(random.nextInt(WORDS.size()));
+        StringBuilder body = new StringBuilder(WORDS.get(random.nextInt(WORDS.size())));
         for (int i = 0; i < n - 1; i++)
-            body += " " + WORDS.get(random.nextInt(WORDS.size()));
-        return body;
+            body.append(" ").append(WORDS.get(random.nextInt(WORDS.size())));
+        return body.toString();
     }
 
     private Session randomLocalSession() {
         return sessions.get(random.nextInt(sessions.size()));
     }
 
+    private <E> E getRandomElement(List<E> list) {
+        return list.get(random.nextInt(list.size()));
+    }
+
     @Override
     public void setup() {
         System.out.println("Adding users");
-        for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
+        for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
+            sessions.get(usrIndex).registerUser(
+                    null, addr("user", usrIndex, processId()), generateRandomName());
+            BenchmarkUtils.printProgress(usrIndex);
+        }
 
-            users.add(sessions.get(grpIndex).registerUser(
-                    null, addr("user", grpIndex, processId()), generateRandomName()));
-
-            groups.add(sessions.get(grpIndex).createGroup(
-                    null, addr("user", grpIndex, processId()), generateRandomName(), generateRandomText(10), false));
-
+        System.out.println("Adding groups");
+        for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+            sessions.get(grpIndex).createGroup(
+                    null, addr("group", grpIndex, processId()), generateRandomName(),
+                    generateRandomText(10), false);
             BenchmarkUtils.printProgress(grpIndex);
         }
 
-        for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
-            for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+        for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+            for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
+                int finalUsrIndex = usrIndex;
+                int finalReplIndex = replIndex;
+                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
+                        addr("user", finalUsrIndex, finalReplIndex), Session.userConsistencyLevel, User.class)
+                )).get());
+            }
 
+            for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+                int finalGrpIndex = grpIndex;
+                int finalReplIndex = replIndex;
+                groups.add(store().transaction(ctx -> Option.apply(ctx.lookup(
+                        addr("group", finalGrpIndex, finalReplIndex), Session.groupConsistencyLevel, Group.class)
+                )).get());
             }
         }
+
+        for (Session session : sessions) {
+            session.joinGroup(null, getRandomElement(groups));
+        }
+
         BenchmarkUtils.printDone();
     }
 
@@ -112,7 +134,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         //system().clear(Sets.newHashSet());
-        sessions.clear();
         users.clear();
         groups.clear();
 
@@ -145,14 +166,29 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     private void postStatusToGroup() {
-
+        Session session = randomLocalSession();
+        store().transaction(ctx -> {
+            List<Ref<Group>> groups = session.getUser().ref().getParticipatingGroups();
+            session.postStatusToGroup(null, generateRandomText(20), getRandomElement(groups));
+            return Option.empty();
+        });
     }
 
     private void followUser() {
-
+        Session session = randomLocalSession();
+        Ref<User> target = getRandomElement(users);
+        store().transaction(ctx -> {
+            Util.followUser(session.getUser(), target);
+            return Option.empty();
+        });
     }
 
     private void addFriend() {
-
+        Session session = randomLocalSession();
+        Ref<User> target = getRandomElement(users);
+        store().transaction(ctx -> {
+            Util.sendFriendRequest(session.getUser(), target);
+            return Option.empty();
+        });
     }
 }
