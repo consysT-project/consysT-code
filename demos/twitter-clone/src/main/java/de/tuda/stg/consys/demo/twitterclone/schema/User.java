@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
-import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,10 +16,10 @@ public class User implements Serializable {
     private String name;
     private Date created = new Date();
 
-    private List<JRef<User>> followers = new ArrayList<>();
-    private List<JRef<User>> followings = new ArrayList<>();
-    private List<JRef<Tweet>> timeline = new ArrayList<>();
-    private List<JRef<Tweet>> retweets = new ArrayList<>();
+    private List<Ref<User>> followers = new ArrayList<>();
+    private List<Ref<User>> followings = new ArrayList<>();
+    private List<Ref<Tweet>> timeline = new ArrayList<>();
+    private List<Ref<Tweet>> retweets = new ArrayList<>();
 
     public User(String name) {
         this.name = name;
@@ -40,40 +41,41 @@ public class User implements Serializable {
         return created;
     }
 
-    public List<JRef<User>> getFollowers() {
+    public List<Ref<User>> getFollowers() {
         return followers;
     }
 
-    public List<JRef<User>> getFollowings() {
+    public List<Ref<User>> getFollowings() {
         return followings;
     }
 
-    public List<JRef<Tweet>> getTimeline() { return timeline; }
+    public List<Ref<Tweet>> getTimeline() { return timeline; }
 
-    public void addFollower(JRef<User> follower) {
+    public void addFollower(Ref<User> follower) {
         followers.add(follower);
     }
 
-    public void addFollowing(JRef<User> following) {
+    public void addFollowing(Ref<User> following) {
         followings.add(following);
     }
 
-    public void removeFollower(JRef<User> follower) {
+    public void removeFollower(Ref<User> follower) {
         followers.remove(follower);
     }
 
-    public void removeFollowing(JRef<User> following) {
+    public void removeFollowing(Ref<User> following) {
         followings.remove(following);
     }
 
-    public void addRetweet(JRef<Tweet> tweet) {
+    public void addRetweet(Ref<Tweet> tweet) {
         addToTimeline(tweet);
         retweets.add(tweet);
     }
 
-    public void addToTimeline(JRef<Tweet> tweet) {
+    @Transactional
+    public void addToTimeline(Ref<Tweet> tweet) {
         timeline.add(tweet);
-        for(JRef<User> user: followers) {
+        for(Ref<User> user: followers) {
             user.ref().addToTimeline(tweet);
         }
     }

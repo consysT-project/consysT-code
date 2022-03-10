@@ -22,6 +22,7 @@
         <module>eshop</module>
         <module>invariant-demos</module>
         <module>rubis</module>
+        <module>quoddy</module>
         <module>box</module>
     </modules>
 

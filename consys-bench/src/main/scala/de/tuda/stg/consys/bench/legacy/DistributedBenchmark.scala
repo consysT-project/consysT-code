@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.bench
+package de.tuda.stg.consys.bench.legacy
 
 /**
  * Created on 29.10.19.
@@ -7,11 +7,14 @@ package de.tuda.stg.consys.bench
  */
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
-import de.tuda.stg.consys.core.store.utils.{Address, MultiPortAddress}
-import de.tuda.stg.consys.japi.Store
+import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
+import de.tuda.stg.consys.core.store.utils.Address
+import de.tuda.stg.consys.japi.legacy.impl.JReplicaSystems
+import de.tuda.stg.consys.japi.legacy.impl.akka.JAkkaReplicaSystem
 import de.tuda.stg.consys.utils.InvariantUtils
 
 import java.io.{FileNotFoundException, PrintWriter}
+import scala.collection.JavaConverters
 
 
 /**
@@ -19,12 +22,12 @@ import java.io.{FileNotFoundException, PrintWriter}
  *
  * @author Mirko Köhler
  */
-abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
+abstract class DistributedBenchmark(
 	val name : String,
-	/** The address and cassandra port of this replica. */
-	val address : MultiPortAddress,
-	/** The total number of replicas for this benchmark. */
-	val nReplicas : Int,
+	/** The address of this replica. */
+	val address : Address,
+	/** The addresses of the other replicas. Can contain this replica. */
+	val replicas : Array[Address],
 	/** The id of the process that owns this replica. */
 	val processId : Int /* process 0 is the coordinator */ ,
 	/** Defines how often the benchmark is repeated during warmup. */
@@ -36,21 +39,18 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	/** Defines how long we wait between operations. */
 	val waitBetweenOperations : java.time.Duration,
 	/** Defines where the measurement output is stored. */
-	val outputResolver : OutputFileResolver,
-	/** Constructs the underlying replica store **/
-	val storeCreator : (MultiPortAddress, Int) => StoreType
+	val outputResolver : OutputFileResolver
 ) {
-	val store : StoreType = storeCreator(address, processId)
-	val system : BarrierSystem = new BarrierSystem(new Address(address.hostname, address.port2), nReplicas)
+
+	def system : JAkkaReplicaSystem = JReplicaSystems.getSystem
 
 	println("All replicas found")
 
-	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int) => StoreType) {
+	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver]) {
 		this(
 			name,
-			MultiPortAddress.parse(config.getString("consys.bench.hostname")),
-			config.getInt("consys.bench.nReplicas"),
+			Address.parse(config.getString("consys.bench.hostname")),
+			config.getStringList("consys.bench.otherReplicas").stream().map[Address](str => Address.parse(str)).toArray(i => new Array[Address](i)),
 			config.getInt("consys.bench.processId"),
 			config.getInt("consys.bench.warmupIterations"),
 			config.getInt("consys.bench.measureIterations"),
@@ -59,19 +59,17 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 			outputResolver match {
 				case None => new DateTimeOutputResolver(name, config.getString("consys.bench.outputFile"))
 				case Some(e) => e
-			},
-			storeCreator
+			}
 		)
 
 		InvariantUtils.setReplicaId(processId)
-		InvariantUtils.setNumOfReplicas(nReplicas)
+		InvariantUtils.setNumOfReplicas(replicas.length)
 		InvariantUtils.setReplicaName(address.toString)
 	}
 
 
-	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int) => StoreType) {
-		this(name, ConfigFactory.load(configName), outputResolver, storeCreator)
+	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver]) {
+		this(name, ConfigFactory.load(configName), outputResolver)
 	}
 
 
@@ -90,7 +88,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	private def busyWait(ms : Long) : Unit = {
 		val start = System.currentTimeMillis
 		while (System.currentTimeMillis < start + ms) {}
-		//		Thread.sleep(ms)
+//		Thread.sleep(ms)
 	}
 
 
@@ -187,14 +185,20 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 
 
 	def runBenchmark() : Unit = {
-		warmup()
-		measure()
+		JReplicaSystems.withActorSystem(
+			address,
+			JavaConverters.asJavaIterable(replicas),
+			java.time.Duration.ofSeconds(30000)
+		).use(() => {
+			warmup()
+			measure()
+		})
 	}
 }
 
 object DistributedBenchmark {
 
-	def start(benchmark : Class[_ <: DistributedBenchmark[_]], args : Array[String]) : Unit = {
+	def start(benchmark : Class[_ <: DistributedBenchmark], args : Array[String]) : Unit = {
 		if (args.length == 1) {
 			start(benchmark, args(0), None)
 		} else if (args.length == 2) {
@@ -204,7 +208,7 @@ object DistributedBenchmark {
 		}
 	}
 
-	def start(benchmark : Class[_ <: DistributedBenchmark[_]], configName : String, outputResolver : Option[OutputFileResolver]) : Unit = {
+	def start(benchmark : Class[_ <: DistributedBenchmark], configName : String, outputResolver : Option[OutputFileResolver]) : Unit = {
 		val constructor = benchmark.getConstructor(classOf[Config], classOf[Option[OutputFileResolver]])
 		val bench = constructor.newInstance(ConfigFactory.load(configName), outputResolver)
 

@@ -1,10 +1,10 @@
-package de.tuda.stg.consys.demo.eshop;
+package de.tuda.stg.consys.demo.rubis;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.demo.legacy.DemoExecutor;
+import de.tuda.stg.consys.demo.DemoExecutor;
 
-public class Demo extends DemoExecutor<EShopBenchmark> {
+public class Demo extends DemoExecutor<RubisBenchmark> {
     public static void main(String[] args) throws Exception{
         new Demo().runDemo();
     }
@@ -14,11 +14,10 @@ public class Demo extends DemoExecutor<EShopBenchmark> {
         var configString = "consys {\n" +
                 "  bench {\n" +
                 "    demo {\n" +
-                "      eshop {\n" +
-                "        products = 100\n" +
-                "        users = 1000\n" +
+                "      rubis {\n" +
+                "        users = 100\n" +
                 "      }\n" +
-                "      type = \"mixed\"\n" +
+                "      type = \"op_mixed\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";
@@ -27,7 +26,7 @@ public class Demo extends DemoExecutor<EShopBenchmark> {
     }
 
     @Override
-    protected Class<EShopBenchmark> benchmarkClass() {
-        return EShopBenchmark.class;
+    protected Class<RubisBenchmark> benchmarkClass() {
+        return RubisBenchmark.class;
     }
 }

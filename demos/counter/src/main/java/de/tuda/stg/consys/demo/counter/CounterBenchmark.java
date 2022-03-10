@@ -2,10 +2,9 @@ package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
-import de.tuda.stg.consys.japi.legacy.JRef;
-import org.checkerframework.com.google.common.collect.Sets;
+import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 /**
@@ -13,7 +12,7 @@ import scala.Option;
  *
  * @author Mirko Köhler
  */
-public class CounterBenchmark extends DemoBenchmark {
+public class CounterBenchmark extends CassandraDemoBenchmark {
 	public static void main(String[] args) {
 		start(CounterBenchmark.class, args);
 	}
@@ -22,29 +21,28 @@ public class CounterBenchmark extends DemoBenchmark {
 		super(config, outputResolver);
 	}
 
-	private JRef<Counter> counter;
+	private Ref<Counter> counter;
 
 	@Override
 	public void setup() {
 		if (processId() == 0) {
-			counter = system().replicate("counter", new Counter(0), getWeakLevel());
+			counter = store().transaction(ctx -> Option.apply(ctx.replicate("counter", getWeakLevel(), Counter.class, 0))).get();
 		} else {
-			counter = system().lookup("counter", Counter.class, getWeakLevel());
-			counter.sync(); //Force dereference
+			counter = store().transaction(ctx -> Option.apply(ctx.lookup("counter", getWeakLevel(), Counter.class))).get();
 		}
 	}
 
 	@Override
 	public void operation() {
-		counter.ref().inc();
-		doSync(() -> counter.sync());
+		store().transaction(ctx -> {
+			counter.ref().inc();
+			return Option.empty();
+		});
 		System.out.print(".");
 	}
 
 	@Override
 	public void cleanup() {
-		system().clear(Sets.newHashSet());
+		//system().clear(Sets.newHashSet());
 	}
-
-
 }

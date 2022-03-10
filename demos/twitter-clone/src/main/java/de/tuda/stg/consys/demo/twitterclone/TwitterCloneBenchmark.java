@@ -1,15 +1,16 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
-import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
@@ -24,7 +25,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
-public class TwitterCloneBenchmark extends DemoBenchmark {
+public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
 
     public static void main(String[] args) {
@@ -41,8 +42,8 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
     private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
     private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
 
-    private final List<JRef<User>> users;
-    private final List<JRef<Tweet>> tweets;
+    private final List<Ref<User>> users;
+    private final List<Ref<Tweet>> tweets;
 
     private final Random random = new Random();
 
@@ -61,14 +62,12 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
 
 
     private int numOfReplicas() {
-        return replicas().length;
-        // return system().numOfReplicas();
+        return nReplicas();
     }
 
     private String generateRandomName() {
-        String name = FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
+        return FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
                 + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
-        return name;
     }
 
     private String generateRandomText(int n) {
@@ -78,7 +77,7 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
         return body;
     }
 
-    private JRef<User> randomUser() {
+    private Ref<User> randomUser() {
         return users.get(random.nextInt(users.size()));
     }
 
@@ -86,26 +85,34 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
     public void setup() {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
+            int finalGrpIndex = grpIndex;
 
-            JRef<@Weak User> user = system().replicate
-                    (addr("user", grpIndex, processId()), new User(generateRandomName()), getWeakLevel());
-            JRef<@Strong Counter> retweetCount =  system().replicate(
-                    addr("retweetCount", grpIndex, processId()), new Counter(0), getStrongLevel());
-            JRef<@Weak Tweet> tweet = system().replicate(
-                    addr("tweet", grpIndex, processId()), new Tweet(user, generateRandomText(3), retweetCount), getWeakLevel());
+            Ref<@Weak User> user = store().transaction(ctx -> Option.apply(ctx.replicate(
+                    addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class, generateRandomName()))).get();
+            Ref<@Weak Counter> retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
+                    addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(), Counter.class, 0))).get();
+            Ref<@Weak Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+                    addr("tweet", finalGrpIndex, processId()), getWeakLevel(), Tweet.class, user, generateRandomText(3), retweetCount))).get();
 
-            user.ref().addToTimeline(tweet);
-            user.sync();
+            store().transaction(ctx -> {
+                user.ref().addToTimeline(tweet);
+                return Option.empty();
+            });
+            //user.sync();
 
             BenchmarkUtils.printProgress(grpIndex);
         }
 
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
-                JRef<@Weak User> user = system().lookup(
-                        addr("user", grpIndex, replIndex), User.class, getWeakLevel());
-                JRef<@Weak Tweet> tweet = system().lookup(
-                        addr("tweet", grpIndex, replIndex), Tweet.class, getWeakLevel());
+                int finalGrpIndex = grpIndex;
+                int finalReplIndex = replIndex;
+
+                Ref<@Weak User> user = store().transaction(ctx -> Option.apply(ctx.lookup(
+                        addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))).get();
+
+                Ref<@Weak Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
+                        addr("tweet", finalGrpIndex, finalReplIndex), getWeakLevel(), Tweet.class))).get();
 
                 users.add(user);
                 tweets.add(tweet);
@@ -116,12 +123,18 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
 
     @Override
     public void operation() {
-        randomTransaction();
+        store().transaction(ctx -> {
+            randomTransaction();
+            return Option.empty();
+        });
     }
 
     @Override
     public void cleanup() {
-        system().clear(Sets.newHashSet());
+        //system().clear(Sets.newHashSet());
+        users.clear();
+        tweets.clear();
+
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -129,58 +142,67 @@ public class TwitterCloneBenchmark extends DemoBenchmark {
         }
     }
 
-
+    @Transactional
     private int transaction1() {
-        JRef<User> follower = randomUser();
-        JRef<User> following = randomUser();
+        Ref<User> follower = randomUser();
+        Ref<User> following = randomUser();
 
         follower.ref().addFollower(following);
         following.ref().addFollowing(follower);
 
+        /*
         doSync(() -> {
             follower.sync();
             following.sync();
         });
+         */
 
         return 0;
     }
 
+    @Transactional
     private int transaction2() {
-        JRef<User> follower = randomUser();
-        JRef<User> following = randomUser();
+        Ref<User> follower = randomUser();
+        Ref<User> following = randomUser();
 
         follower.ref().removeFollower(following);
         following.ref().removeFollowing(follower);
 
+        /*
         doSync(() -> {
             follower.sync();
             following.sync();
         });
+         */
 
         return 1;
     }
 
+    @Transactional
     private int transaction3() {
-        JRef<Tweet> tweet = tweets.get(random.nextInt(tweets.size()));
-        JRef<User> user = randomUser();
+        Ref<Tweet> tweet = tweets.get(random.nextInt(tweets.size()));
+        Ref<User> user = randomUser();
 
         tweet.ref().retweet();
         user.ref().addRetweet(tweet);
 
+        /*
        doSync(() -> {
            tweet.sync();
            user.sync();
        });
+        */
 
         return 2;
     }
 
+    @Transactional
     private int transaction4() {
-        JRef<User> user = randomUser();
+        Ref<User> user = randomUser();
 
-        List<JRef<Tweet>> timeline = user.ref().getTimeline();
+        List<Ref<Tweet>> timeline = user.ref().getTimeline();
 
-        doSync(() -> user.sync());
+        //doSync(() -> user.sync());
 
         return 3;
     }

@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -10,12 +11,12 @@ import java.util.UUID;
 public class Tweet implements Serializable {
 
     private UUID id = UUID.randomUUID();
-    private JRef<User> user;
+    private Ref<User> user;
     private String body;
     private Date created = new Date();
-    private JRef<@Strong Counter> retweetCount;
+    private Ref<@Strong Counter> retweetCount;
 
-    public Tweet(JRef<User>  user, String body, JRef<@Strong Counter> retweetCount) {
+    public Tweet(Ref<User>  user, String body, Ref<@Strong Counter> retweetCount) {
         this.user = user;
         this.body = body;
         this.retweetCount = retweetCount;
@@ -25,7 +26,7 @@ public class Tweet implements Serializable {
         return id;
     }
 
-    public JRef<User> getUser() {
+    public Ref<User> getUser() {
         return user;
     }
 
@@ -37,6 +38,7 @@ public class Tweet implements Serializable {
         return created;
     }
 
+    @Transactional
     public void retweet() {
         retweetCount.ref().inc();
     }

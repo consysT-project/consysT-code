@@ -1,48 +1,49 @@
-package de.tuda.stg.consys.demo;
+package de.tuda.stg.consys.demo.legacy;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import de.tuda.stg.consys.core.store.utils.MultiPortAddress;
-import scala.Option;
+import de.tuda.stg.consys.core.store.utils.Address;
+import de.tuda.stg.consys.demo.legacy.DemoBenchmark;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.Formatter;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
+public abstract class DemoExecutor<T extends DemoBenchmark> {
 
     protected abstract Config benchmarkConfig();
     protected abstract Class<T> benchmarkClass();
 
     public void runDemo() {
-        MultiPortAddress[] addresses = new MultiPortAddress[] {
-                new MultiPortAddress("127.0.0.1", 9042, 2181),
-                new MultiPortAddress("127.0.0.2", 9042, 2181),
-                new MultiPortAddress("127.0.0.3", 9042, 2181),
+        Address[] addresses = new Address[] {
+                new Address("127.0.0.1", 3443),
+                new Address("127.0.0.2", 3444),
+                new Address("127.0.0.3", 3445),
+                new Address("127.0.0.4", 3446)
         };
 
         var exec = Executors.newFixedThreadPool(addresses.length + 1);
 
         try {
-            var benchConstructor = benchmarkClass().getDeclaredConstructor(Config.class, Option.class);
+            var benchConstructor = benchmarkClass().getDeclaredConstructor(Config.class);
 
             for (int i = 0; i < addresses.length; i++) {
                 var address = addresses[i];
-                var config = benchmarkConfig().withFallback(createConfig(address, i, addresses.length));
+                var config = benchmarkConfig().withFallback(createConfig(address, i, addresses));
 
                 exec.submit(() -> {
-                    CassandraDemoBenchmark benchmark;
+                    DemoBenchmark benchmark = null;
                     try {
-                        benchmark = benchConstructor.newInstance(config, Option.empty());
+                        benchmark = benchConstructor.newInstance(config);
                         benchmark.runBenchmark();
-                        try {
-                            benchmark.store().close();
-                        } catch (Exception e) {
-                            System.out.println("error closing cassandra store: ");
-                            e.printStackTrace();
-                        }
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    } catch (InstantiationException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
                         e.printStackTrace();
                     }
                 });
@@ -59,13 +60,18 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
         }
     }
 
-    private static Config createConfig(MultiPortAddress hostname, int processId, int nReplicas) {
+    private static Config createConfig(Address hostname, int processId, Address[] otherReplicas) {
+        String replicasString = Arrays.stream(otherReplicas)
+                .map(address -> "\"" + address.toString() + "\"")
+                .collect(Collectors.joining(","));
+
+
         String baseConfigString =
                 "consys {\n" +
                         "  bench {\n" +
                         "    hostname = \"%s\"\n" +
                         "    processId = %d\n" +
-                        "    nReplicas = %d\n" +
+                        "    otherReplicas = [%s]\n" +
                         "    warmupIterations = 1\n" +
                         "    measureIterations = 1\n" +
                         "    operationsPerIteration = 100\n" +
@@ -75,8 +81,10 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
                         "}";
 
         Formatter formatter = new Formatter();
-        String configString = formatter.format(baseConfigString, hostname.toString(), processId, nReplicas).toString();
+        String configString = formatter.format(baseConfigString, hostname.toString(), processId, replicasString).toString();
 
         return ConfigFactory.parseString(configString);
     }
+
+
 }

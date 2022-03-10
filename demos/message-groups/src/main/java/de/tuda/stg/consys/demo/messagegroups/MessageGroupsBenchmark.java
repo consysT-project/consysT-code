@@ -1,13 +1,14 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.DemoBenchmark;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.japi.legacy.JRef;
+import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
@@ -21,7 +22,7 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-public class MessageGroupsBenchmark extends DemoBenchmark {
+public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     public static void main(String[] args) {
         start(MessageGroupsBenchmark.class, args);
     }
@@ -29,8 +30,8 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
     private final int numOfGroupsPerReplica;
     private final int numOfWeakGroupsPerReplica;
 
-    private final List<JRef<Group>> groups;
-    private final List<JRef<User>> users;
+    private final List<Ref<Group>> groups;
+    private final List<Ref<User>> users;
 
     private final Random random = new Random();
 
@@ -50,7 +51,7 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
 
 
     private int numOfReplicas() {
-        return replicas().length; //TODO: Change to system().numOfReplicas();
+        return nReplicas();
     }
 
     @Override
@@ -58,22 +59,31 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             try {
+                int finalGrpIndex = grpIndex;
+
                 if (grpIndex < numOfWeakGroupsPerReplica) {
-                    system().replicate(
-                            addr("group", grpIndex, processId()), new Group(), getWeakLevel());
+                    store().transaction(ctx -> {
+                        ctx.replicate(addr("group", finalGrpIndex, processId()), getWeakLevel(), Group.class);
+                        return Option.empty();
+                    });
                 } else {
-                    system().replicate(
-                            addr("group", grpIndex, processId()), new Group(), getStrongLevel());
+                    store().transaction(ctx -> {
+                        ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
+                        return Option.empty();
+                    });
                 }
                 Thread.sleep(33);
 
-
-                JRef<Inbox> inbox = system().replicate(
-                        addr("inbox", grpIndex, processId()), new Inbox(), getWeakLevel());
+                Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
+                        ctx.replicate(addr("inbox", finalGrpIndex, processId()), getWeakLevel(), Inbox.class))
+                ).get();
                 Thread.sleep(33);
 
-                system().replicate(
-                        addr("user", grpIndex, processId()), new User(inbox, addr("alice", grpIndex, processId())), getWeakLevel());
+                store().transaction(ctx -> {
+                    ctx.replicate(addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class,
+                            inbox, addr("alice", finalGrpIndex, processId()));
+                    return Option.empty();
+                });
                 Thread.sleep(33);
 
                 BenchmarkUtils.printProgress(grpIndex);
@@ -83,26 +93,38 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         }
         BenchmarkUtils.printDone();
 
-        system().barrier("users_added");
+        try {
+            system().barrier("users_added");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
-                JRef<Group> group;
+                int finalGrpIndex = grpIndex;
+                int finalReplIndex = replIndex;
+
+                Ref<Group> group;
 
                 if (grpIndex < numOfWeakGroupsPerReplica) {
-                    group = system().lookup(
-                            addr("group", grpIndex, replIndex), Group.class, getWeakLevel());
+                    group = store().transaction(ctx -> Option.apply(
+                            ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getWeakLevel(), Group.class))
+                    ).get();
                 } else {
-                    group = system().lookup(
-                            addr("group", grpIndex, replIndex), Group.class, getStrongLevel());
+                    group = store().transaction(ctx -> Option.apply(
+                            ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getStrongLevel(), Group.class))
+                    ).get();
                 }
 
-                JRef<User> user = system().lookup(
-                        addr("user", grpIndex, replIndex), User.class, getWeakLevel());
+                Ref<User> user = store().transaction(ctx -> Option.apply(
+                        ctx.lookup(addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))
+                ).get();
 
                 if (replIndex == processId()) {
-                    group.ref().addUser(user);
-                    group.sync();
+                    store().transaction(ctx -> {
+                        group.ref().addUser(user);
+                        return Option.empty();
+                    });
                 }
 
                 groups.add(group);
@@ -116,7 +138,10 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
 
     @Override
     public void operation() {
-        randomTransaction();
+        store().transaction(ctx -> {
+            randomTransaction();
+           return Option.empty();
+        });
         System.out.print(".");
     }
 
@@ -124,7 +149,9 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
 
     @Override
     public void cleanup() {
-        system().clear(Sets.newHashSet());
+        //system().clear(Sets.newHashSet()); // TODO
+        groups.clear();
+        users.clear();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -132,27 +159,29 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         }
     }
 
-
+    @Transactional
     private int transaction1() {
         int i = random.nextInt(groups.size());
-        JRef<Group> group = groups.get(i);
+        Ref<Group> group = groups.get(i);
         //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
         group.ref().addPost("Hello " + i);
         return 2;
     }
 
+    @Transactional
     private int transaction1b() {
         int i = random.nextInt(groups.size());
-        JRef<Group> group = groups.get(i);
+        Ref<Group> group = groups.get(i);
         //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
         group.ref().addPost("Hello " + i);
-        doSync(() -> group.sync());
+        //doSync(() -> group.sync());
         return 2;
     }
 
+    @Transactional
     private int transaction2() {
         int i = random.nextInt(users.size());
-        JRef<User> user = users.get(i);
+        Ref<User> user = users.get(i);
         // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
 
         //No sync
@@ -160,38 +189,42 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         return 1;
     }
 
+    @Transactional
     private int transaction2b() {
         int i = random.nextInt(users.size());
-        JRef<User> user = users.get(i);
+        Ref<User> user = users.get(i);
         // System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
 
-        JRef<Inbox> inbox = user.ref().inbox;
+        /*
+        Ref<Inbox> inbox = user.ref().getInbox();
         doSync(() -> {
             user.sync();
             inbox.sync();
         });
+        */
         Set<String> inboxVal = user.ref().getInbox();
 
         return 0;
     }
 
-
+    @Transactional
     private int transaction3() {
         int i = random.nextInt(groups.size());
         int j = random.nextInt(users.size());
 
-        JRef<Group> group = groups.get(i);
-        JRef<User> user = users.get(j);
+        Ref<Group> group = groups.get(i);
+        Ref<User> user = users.get(j);
 
         //  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
         group.ref().addUser(user);
-        doSync(() -> group.sync());
+        //doSync(() -> group.sync());
 
         return 3;
     }
 
     private int counter = 0;
     private boolean shouldSync = false;
+    @Transactional
     private int randomTransaction2() {
         counter++;
         int rand = counter % 10;
@@ -228,6 +261,7 @@ public class MessageGroupsBenchmark extends DemoBenchmark {
         throw new IllegalStateException("cannot be here");
     }
 
+    @Transactional
     private int randomTransaction() {
         int rand = random.nextInt(100);
         if (rand < 58) /*12*/ {
