@@ -38,7 +38,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : CassandraStore#RefType[T] = {
 			txContext.acquireLock(addr)
 			val cassObj = new StrongCassandraObject[T](addr, obj, -1)
-			txContext.Cache.putForallFields(addr, cassObj)
+			txContext.Cache.writeNewEntry(addr, cassObj)
 			new CassandraRef[T](addr, Strong)
 		}
 
@@ -57,9 +57,18 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
 				.asInstanceOf[StrongCassandraObject[T]]
 			val result = cached.invoke[R](methodId, args)
+
+
+			//Arguments from multiple parameter lists are flattened in classes
+			val flattenedArgs = args.flatten
+			val clazz = implicitly[ClassTag[T]]
+			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodId, flattenedArgs : _*)
+			method.getAnnotation()
+
+
 			result
 		}
 
