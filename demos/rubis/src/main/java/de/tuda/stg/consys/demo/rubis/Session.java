@@ -8,6 +8,8 @@ import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
+import scala.Function1;
 import scala.Option;
 import scala.Tuple2;
 
@@ -16,7 +18,7 @@ import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-public class UserInterface {
+public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> bidConsistencyLevel = MIXED;
@@ -25,7 +27,7 @@ public class UserInterface {
     private Ref<@Mutable User> user;
     private Ref<@Mutable AuctionStore> auctionStore;
 
-    public UserInterface(@Mutable CassandraStoreBinding store) {
+    public Session(@Mutable CassandraStoreBinding store) {
         this.store = store;
     }
 
@@ -33,9 +35,15 @@ public class UserInterface {
         this.store = store;
     }
 
-    public void registerUser(String nickname, String name, String password, String email) {
+    private <U> Option<U> doTransaction(CassandraTransactionContextBinding transaction,
+                                        Function1<CassandraTransactionContextBinding, Option<U>> code) {
+        return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+    }
+
+    public void registerUser(CassandraTransactionContextBinding tr,
+                             String nickname, String name, String password, String email) {
         @Immutable @Local UUID userId = UUID.randomUUID();
-        this.user = store.transaction(ctx -> {
+        this.user = doTransaction(tr, ctx -> {
             Ref<@Mutable User> user = ctx.replicate("user:" + nickname, userConsistencyLevel, User.class,
                     userId, nickname, name, password, email);
 
@@ -47,8 +55,9 @@ public class UserInterface {
         }).get();
     }
 
-    public void loginUser(String nickname, String password) {
-        @Immutable Option<Ref<@Mutable User>> result = store.transaction(ctx -> {
+    public void loginUser(CassandraTransactionContextBinding tr,
+                          String nickname, String password) {
+        @Immutable Option<Ref<@Mutable User>> result = doTransaction(tr, ctx -> {
             var user = ctx.lookup("user:" + nickname, userConsistencyLevel, User.class);
             if (!(boolean)user.ref().authenticate(password)) {
                 throw new AppException("Wrong credentials.");
@@ -66,15 +75,17 @@ public class UserInterface {
         }
     }
 
-    public void addBalance(@Strong float amount) {
+    public void addBalance(CassandraTransactionContextBinding tr,
+                           @Strong float amount) {
         checkLogin();
-        store.transaction(ctx -> {
+        doTransaction(tr, ctx -> {
             user.ref().addBalance(amount);
             return Option.empty();
         });
     }
 
-    public UUID registerItem(String name, String description, Category category, float reservePrice, int durationInSeconds) {
+    public UUID registerItem(CassandraTransactionContextBinding tr,
+                             String name, String description, Category category, float reservePrice, int durationInSeconds) {
         checkLogin();
 
         Calendar cal = (@Mutable Calendar) Calendar.getInstance();
@@ -86,7 +97,7 @@ public class UserInterface {
         float buyNowPrice = reservePrice * 1.3f;
 
         @Immutable @Local UUID itemId = UUID.randomUUID();
-        return store.transaction(ctx -> {
+        return doTransaction(tr, ctx -> {
             var item = ctx.replicate("item:" + itemId, itemConsistencyLevel, Item.class,
                     itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
                     category, user);
@@ -98,11 +109,12 @@ public class UserInterface {
         }).get();
     }
 
-    public boolean placeBid(UUID itemId, float bidAmount) throws TimeoutException {
+    public boolean placeBid(CassandraTransactionContextBinding tr,
+                            UUID itemId, float bidAmount) throws TimeoutException {
         checkLogin();
 
         @Immutable @Local UUID bidId = UUID.randomUUID();
-        return store.transaction(ctx -> {
+        return doTransaction(tr, ctx -> {
             Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
@@ -131,10 +143,11 @@ public class UserInterface {
         }).get();
     }
 
-    public void buyNow(UUID itemId) throws TimeoutException {
+    public void buyNow(CassandraTransactionContextBinding tr,
+                       UUID itemId) throws TimeoutException {
         checkLogin();
 
-        store.transaction(ctx -> {
+        doTransaction(tr, ctx -> {
             Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
@@ -146,33 +159,36 @@ public class UserInterface {
         });
     }
 
-    public String browseCategory(Category category) {
+    public String browseCategory(CassandraTransactionContextBinding tr,
+                                 Category category, int count) {
         checkLogin();
 
-        return store.transaction(ctx -> {
+        return doTransaction(tr, ctx -> {
             var sb = new StringBuilder();
             @Immutable List<Ref<Item>> items = auctionStore.ref().browseItems(category);
             sb.append("Items in category '").append(category).append("':\n");
-            for (var item : items) {
-                sb.append((String)item.ref().toString());
+            for (int i = 0; i < Math.min(items.size(), count); i++) {
+                sb.append((String)items.get(i).ref().toString());
             }
             return Option.apply(sb.toString());
         }).get();
     }
 
-    public List<UUID> browseCategoryItems(Category category) {
+    public List<Ref<Item>> browseCategoryItems(CassandraTransactionContextBinding tr,
+                                          Category category) {
         checkLogin();
 
-        return store.transaction(ctx -> {
+        return doTransaction(tr, ctx -> {
             @Immutable List<Ref<Item>> items = auctionStore.ref().browseItems(category);
-            return Option.apply(items.stream().map(item -> (UUID)item.ref().getId()).collect(Collectors.toList()));
+            return Option.apply(items);
         }).get();
     }
 
-    public void endAuctionImmediately(UUID itemId) throws TimeoutException {
+    public void endAuctionImmediately(CassandraTransactionContextBinding tr,
+                                      UUID itemId) throws TimeoutException {
         checkLogin();
 
-        store.transaction(ctx -> {
+        doTransaction(tr, ctx -> {
             var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             if (!((Ref<User>)item.ref().getSeller()).ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You can only end your own auctions.");
@@ -185,10 +201,11 @@ public class UserInterface {
         });
     }
 
-    public String printUserInfo(boolean full) {
+    public String printUserInfo(CassandraTransactionContextBinding tr,
+                                boolean full) {
         checkLogin();
 
-        return store.transaction(ctx -> {
+        return doTransaction(tr, ctx -> {
             var sb = new StringBuilder();
             sb.append((String)user.ref().toString());
 
@@ -236,8 +253,9 @@ public class UserInterface {
         }).get();
     }
 
-    public Tuple2<Optional<String>, Float> getTopBid(UUID itemId) {
-        return store.transaction(ctx -> {
+    public Tuple2<Optional<String>, Float> getTopBid(CassandraTransactionContextBinding tr,
+                                                     UUID itemId) {
+        return doTransaction(tr, ctx -> {
             var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Optional<Ref<Bid>> bid = item.ref().getTopBid();
             if (bid.isPresent())
@@ -250,8 +268,9 @@ public class UserInterface {
         }).get();
     }
 
-    public boolean hasAuctionEnded(UUID itemId) {
-        return store.transaction(ctx -> {
+    public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
+                                   UUID itemId) {
+        return doTransaction(tr, ctx -> {
             var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
         }).get();

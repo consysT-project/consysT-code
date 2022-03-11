@@ -9,10 +9,8 @@ import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public @Mixed class User implements Serializable {
     private final @Immutable UUID id;
@@ -24,11 +22,11 @@ public @Mixed class User implements Serializable {
     private int nRatings;
     private float balance;
     private final Date creationDate;
-    private final List<Ref<Item>> buyerAuctions;
-    private final List<Ref<Item>> buyerHistory;
-    private final List<Ref<Item>> sellerAuctions;
-    private final List<Ref<Item>> sellerHistory;
-    private final List<Ref<Item>> sellerFailedHistory;
+    private final Map<UUID, Ref<Item>> buyerAuctions;
+    private final Map<UUID, Ref<Item>> buyerHistory;
+    private final Map<UUID, Ref<Item>> sellerAuctions;
+    private final Map<UUID, Ref<Item>> sellerHistory;
+    private final Map<UUID, Ref<Item>> sellerFailedHistory;
 
     public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
                 @Weak @Mutable String email) {
@@ -38,64 +36,63 @@ public @Mixed class User implements Serializable {
         this.password = password;
         this.email = email;
         this.creationDate = new Date();
-        this.buyerAuctions = new LinkedList<>();
-        this.buyerHistory = new LinkedList<>();
-        this.sellerAuctions = new LinkedList<>();
-        this.sellerHistory = new LinkedList<>();
-        this.sellerFailedHistory = new LinkedList<>();
+        this.buyerAuctions = new HashMap<>();
+        this.buyerHistory = new HashMap<>();
+        this.sellerAuctions = new HashMap<>();
+        this.sellerHistory = new HashMap<>();
+        this.sellerFailedHistory = new HashMap<>();
     }
 
     @StrongOp
     public void addOwnAuction(Ref<Item> item) {
-        this.sellerAuctions.add(item);
+        this.sellerAuctions.put(item.ref().getId(), item);
     }
 
     @StrongOp
     @Transactional
     public void closeOwnAuction(Ref<Item> item, @Strong boolean sold) {
-        sellerAuctions.removeIf(i -> i.ref().refEquals(item));
+        sellerAuctions.remove(item.ref().getId());
         if (sold) {
-            sellerHistory.add(item);
+            sellerHistory.put(item.ref().getId(), item);
         } else {
-            sellerFailedHistory.add(item);
+            sellerFailedHistory.put(item.ref().getId(), item);
         }
     }
 
     @StrongOp
     @Transactional
     public void addWatchedAuction(Ref<Item> item) {
-        buyerAuctions.removeIf(i -> i.ref().refEquals(item));
-        buyerAuctions.add(0, item);
+        buyerAuctions.putIfAbsent(item.ref().getId(), item);
     }
 
     @StrongOp
     @Transactional
     public void closeWatchedAuction(Ref<Item> item, @Strong boolean bought) {
-        buyerAuctions.removeIf(i -> i.ref().refEquals(item));
+        buyerAuctions.remove(item.ref().getId());
         if (bought)
-            buyerHistory.add(item);
+            buyerHistory.put(item.ref().getId(), item);
     }
 
     @WeakOp @SideEffectFree
     public List<Ref<Item>> getOpenSellerAuctions() {
-        return sellerAuctions;
+        return new ArrayList<>(sellerAuctions.values());
     }
 
     @StrongOp @SideEffectFree
     // StrongOp necessary for calculating potential budget
     public List<Ref<Item>> getOpenBuyerAuctions() {
-        return buyerAuctions;
+        return new ArrayList<>(buyerAuctions.values());
     }
 
     @WeakOp @SideEffectFree
     public List<Ref<Item>> getSellerHistory(boolean sold) {
-        if (sold) return sellerHistory;
-        return sellerFailedHistory;
+        if (sold) return new ArrayList<>(sellerHistory.values());
+        return new ArrayList<>(sellerFailedHistory.values());
     }
 
     @WeakOp @SideEffectFree
     public List<Ref<Item>> getBuyerHistory() {
-        return buyerHistory;
+        return new ArrayList<>(buyerHistory.values());
     }
 
     @WeakOp @SideEffectFree

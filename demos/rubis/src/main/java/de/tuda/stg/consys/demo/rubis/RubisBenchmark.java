@@ -7,7 +7,9 @@ import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
 import de.tuda.stg.consys.demo.rubis.schema.Category;
+import de.tuda.stg.consys.demo.rubis.schema.Item;
 import de.tuda.stg.consys.demo.rubis.schema.Util;
+import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.*;
@@ -20,9 +22,9 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfUsersPerReplica;
-    private final List<UserInterface> rubisInterfaces;
+    private final List<Session> rubisInterfaces;
     private final List<UUID> localItems;
-    private final List<UUID> allItems;
+    private final List<Ref<Item>> allItems;
 
     private static final float maxPrice = 100;
 
@@ -41,14 +43,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
 
-        UserInterface.userConsistencyLevel = getStrongLevel();
-        UserInterface.itemConsistencyLevel = getStrongLevel();
-        UserInterface.bidConsistencyLevel = getWeakLevel();
-        UserInterface.storeConsistencyLevel = getStrongLevel();
+        Session.userConsistencyLevel = getStrongLevel();
+        Session.itemConsistencyLevel = getStrongLevel();
+        Session.bidConsistencyLevel = getWeakLevel();
+        Session.storeConsistencyLevel = getStrongLevel();
 
         rubisInterfaces = new LinkedList<>();
         for (int i = 0; i < numOfUsersPerReplica; i++) {
-            rubisInterfaces.add(new UserInterface(store()));
+            rubisInterfaces.add(new Session(store()));
         }
 
         allItems = new LinkedList<>();
@@ -83,11 +85,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         return random.nextFloat() * max;
     }
 
-    private UserInterface randomLocalUser() {
+    private Session randomLocalUser() {
         return rubisInterfaces.get(random.nextInt(rubisInterfaces.size()));
     }
 
-    private UUID randomItem() {
+    private Ref<Item> randomItem() {
         return allItems.get(random.nextInt(allItems.size()));
     }
 
@@ -103,13 +105,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
 
-            rubisInterfaces.get(grpIndex).registerUser(addr("user", grpIndex, processId()), generateRandomName(),
+            rubisInterfaces.get(grpIndex).registerUser(null, addr("user", grpIndex, processId()), generateRandomName(),
                     generateRandomPassword(), "mail@example.com");
 
-            rubisInterfaces.get(grpIndex).addBalance(numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
+            rubisInterfaces.get(grpIndex).addBalance(null, numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
 
-            rubisInterfaces.get(grpIndex).registerItem(generateRandomText(1), generateRandomText(10),
-                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300);
+            localItems.add(rubisInterfaces.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300));
 
             BenchmarkUtils.printProgress(grpIndex);
         }
@@ -117,11 +119,25 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
                 for (var cat : Category.values()) {
-                    allItems.addAll(randomLocalUser().browseCategoryItems(cat));
+                    allItems.addAll(randomLocalUser().browseCategoryItems(null, cat));
                 }
             }
         }
         BenchmarkUtils.printDone();
+    }
+
+    @Override
+    public void cleanup() {
+        super.cleanup();
+        //system().clear(Sets.newHashSet());
+        localItems.clear();
+        allItems.clear();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -130,20 +146,6 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             randomTransaction();
         } catch (TimeoutException ignored) {
 
-        }
-    }
-
-    @Override
-    public void cleanup() {
-        //system().clear(Sets.newHashSet());
-        rubisInterfaces.clear();
-        localItems.clear();
-        allItems.clear();
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
@@ -164,31 +166,49 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void placeBid() throws TimeoutException {
-        UUID item = randomItem();
-        UserInterface user = randomLocalUser();
+        Ref<Item> item = randomItem();
+        Session session = randomLocalUser();
 
-        float bid = user.getTopBid(item)._2;
-        user.placeBid(item, bid * (1 + random.nextFloat()));
+        store().transaction(ctx -> {
+            float bid = session.getTopBid(ctx, item.ref().getId())._2;
+            try {
+                session.placeBid(ctx, item.ref().getId(), bid * (1 + random.nextFloat()));
+            } catch (TimeoutException e) {
+
+            } catch (AppException e) {
+
+            }
+            return Option.empty();
+        });
     }
 
     private void buyNow() throws TimeoutException {
-        UUID item = randomItem();
-        UserInterface user = randomLocalUser();
+        Ref<Item> item = randomItem();
+        Session session = randomLocalUser();
 
-        user.buyNow(item);
+        store().transaction(cty -> {
+            try {
+                session.buyNow(null, item.ref().getId());
+            } catch (TimeoutException e) {
+
+            } catch (AppException e) {
+
+            }
+            return Option.empty();
+        });
     }
 
     private void closeAuction() throws TimeoutException {
         int n = random.nextInt(rubisInterfaces.size());
-        UserInterface user = rubisInterfaces.get(n);
+        Session user = rubisInterfaces.get(n);
         UUID item = localItems.get(n);
 
-        user.endAuctionImmediately(item);
+        user.endAuctionImmediately(null, item);
     }
 
     private void browseCategory() {
         Category category = getRandomCategory();
-        UserInterface user = randomLocalUser();
-        user.browseCategory(category);
+        Session user = randomLocalUser();
+        user.browseCategory(null, category, 5);
     }
 }

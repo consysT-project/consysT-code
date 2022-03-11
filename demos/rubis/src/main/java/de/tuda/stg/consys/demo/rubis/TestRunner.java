@@ -26,12 +26,12 @@ public class TestRunner {
     private static final List<Future<?>> threadFutures = new LinkedList<>();
 
     private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[nReplicas];
-    private static final UserInterface[] userInterfaces = new UserInterface[nReplicas];
+    private static final Session[] SESSIONS = new Session[nReplicas];
     private static final BackgroundTask[] backgroundTasks = new BackgroundTask[nBackgroundTasks];
     private static final UUID[] items = new UUID[5];
 
     public static void main(String[] args) throws InterruptedException {
-        threadPool = Executors.newFixedThreadPool(backgroundTasks.length + userInterfaces.length);
+        threadPool = Executors.newFixedThreadPool(backgroundTasks.length + SESSIONS.length);
         initConnections();
         run();
         closeConnections();
@@ -53,8 +53,8 @@ public class TestRunner {
             backgroundTasks[i].init();
         }
 
-        for (int i = 0; i < userInterfaces.length; i++) {
-            userInterfaces[i] = new UserInterface(replicas[i % replicas.length]);
+        for (int i = 0; i < SESSIONS.length; i++) {
+            SESSIONS[i] = new Session(replicas[i % replicas.length]);
         }
     }
 
@@ -77,13 +77,13 @@ public class TestRunner {
         }
 
         System.out.println("> Starting auctions...");
-        UserInterface sellerInterface = userInterfaces[0];
-        sellerInterface.registerUser("0", "0", "", "");
-        items[0] = sellerInterface.registerItem("item0", "", Category.MISC, 50, 60);
-        items[1] = sellerInterface.registerItem("item1", "", Category.MISC, 50, 60);
-        items[2] = sellerInterface.registerItem("item2", "", Category.MISC, 50, 60);
-        items[3] = sellerInterface.registerItem("item3", "", Category.MISC, 50, 60);
-        items[4] = sellerInterface.registerItem("item4", "", Category.MISC, 50, 60);
+        Session sellerInterface = SESSIONS[0];
+        sellerInterface.registerUser(null, "0", "0", "", "");
+        items[0] = sellerInterface.registerItem(null, "item0", "", Category.MISC, 50, 60);
+        items[1] = sellerInterface.registerItem(null, "item1", "", Category.MISC, 50, 60);
+        items[2] = sellerInterface.registerItem(null, "item2", "", Category.MISC, 50, 60);
+        items[3] = sellerInterface.registerItem(null, "item3", "", Category.MISC, 50, 60);
+        items[4] = sellerInterface.registerItem(null, "item4", "", Category.MISC, 50, 60);
 
         System.out.println("> Starting bidding...");
         threadFutures.add(threadPool.submit(new UserTask(1, new UUID[]{items[0], items[1]}, 100, 4)));
@@ -96,7 +96,7 @@ public class TestRunner {
         while (!end) {
             try {
                 for (var item : items)
-                    sellerInterface.endAuctionImmediately(item);
+                    sellerInterface.endAuctionImmediately(null, item);
                 end = true;
             } catch (TimeoutException ignored) {}
         }
@@ -116,27 +116,27 @@ public class TestRunner {
         }
 
         System.out.println("--------------");
-        for (var client : userInterfaces) {
-            System.out.println(client.printUserInfo(true));
+        for (var client : SESSIONS) {
+            System.out.println(client.printUserInfo(null, true));
         }
     }
 
     static class UserTask implements Runnable {
-        private final UserInterface userInterface;
+        private final Session session;
         private final UUID[] watchedItems;
         private final String userName;
         private final float maxBid;
         float bidIncrement;
 
         UserTask(int id, UUID[] watchedItems, float maxBid, float bidIncrement) {
-            userInterface = userInterfaces[id];
+            session = SESSIONS[id];
             this.watchedItems = watchedItems;
             this.maxBid = maxBid;
             this.bidIncrement = bidIncrement;
             userName = String.valueOf(id);
 
-            userInterface.registerUser(userName, "", "", "");
-            userInterface.addBalance(1000);
+            session.registerUser(null, userName, "", "", "");
+            session.addBalance(null, 1000);
         }
 
         @Override
@@ -146,12 +146,12 @@ public class TestRunner {
             while (nCompletedItems < watchedItems.length) {
                 for (int i = 0; i < watchedItems.length; i++) {
                     var item = watchedItems[i];
-                    Tuple2<Optional<String>, Float> bid = userInterface.getTopBid(item);
+                    Tuple2<Optional<String>, Float> bid = session.getTopBid(null, item);
                     float newBid = bid._2 + bidIncrement;
 
                     if(newBid <= maxBid && (!(bid._1.isPresent() && bid._1.get().equals(userName)) || !reservesMet[i])) {
                         try {
-                            reservesMet[i] = userInterface.placeBid(item, newBid);
+                            reservesMet[i] = session.placeBid(null, item, newBid);
                             if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
                                     (reservesMet[i] ? "" : " but reserve not met."));
                         } catch (AppException.DateException ignored) {
@@ -170,7 +170,7 @@ public class TestRunner {
                     } else if (newBid > maxBid) {
                         //System.out.println("too expensive");
                         nCompletedItems++;
-                    } else if (userInterface.hasAuctionEnded(item)) {
+                    } else if (session.hasAuctionEnded(null, item)) {
                         //System.out.println("ended");
                         nCompletedItems++;
                     }
