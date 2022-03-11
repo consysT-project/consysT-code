@@ -41,17 +41,12 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
         numOfWeakGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.weakGroups");
 
-        groups = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
-        users = new ArrayList<>(numOfGroupsPerReplica * numOfReplicas());
+        groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
+        users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
         return identifier + "$" + grpIndex + "$" + replIndex;
-    }
-
-
-    private int numOfReplicas() {
-        return nReplicas();
     }
 
     @Override
@@ -93,14 +88,10 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         }
         BenchmarkUtils.printDone();
 
-        try {
-            system().barrier("users_added");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        barrier("users_added");
 
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            for (int replIndex = 0; replIndex < numOfReplicas(); replIndex++) {
+            for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
                 int finalGrpIndex = grpIndex;
                 int finalReplIndex = replIndex;
 
@@ -135,6 +126,18 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         BenchmarkUtils.printDone();
     }
 
+    @Override
+    public void cleanup() {
+        super.cleanup();
+        //system().clear(Sets.newHashSet());
+        groups.clear();
+        users.clear();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void operation() {
@@ -145,18 +148,22 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         System.out.print(".");
     }
 
-
-
-    @Override
-    public void cleanup() {
-        //system().clear(Sets.newHashSet()); // TODO
-        groups.clear();
-        users.clear();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @Transactional
+    private int randomTransaction() {
+        int rand = random.nextInt(100);
+        if (rand < 58) /*12*/ {
+            // inbox checking
+            return transaction2();
+        } else if (rand < 80) {
+            // message posting
+            return transaction1();
+        } else if (rand < 100) {
+            // group joining
+            return transaction3();
         }
+        //user creation: left out
+
+        throw new IllegalStateException("cannot be here");
     }
 
     @Transactional
@@ -165,17 +172,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         Ref<Group> group = groups.get(i);
         //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
         group.ref().addPost("Hello " + i);
-        return 2;
-    }
-
-    @Transactional
-    private int transaction1b() {
-        int i = random.nextInt(groups.size());
-        Ref<Group> group = groups.get(i);
-        //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
-        group.ref().addPost("Hello " + i);
-        //doSync(() -> group.sync());
-        return 2;
+        return 0;
     }
 
     @Transactional
@@ -184,27 +181,9 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         Ref<User> user = users.get(i);
         // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
 
-        //No sync
         Set<String> inbox = user.ref().getInbox();
+
         return 1;
-    }
-
-    @Transactional
-    private int transaction2b() {
-        int i = random.nextInt(users.size());
-        Ref<User> user = users.get(i);
-        // System.out.println(Thread.currentThread().getName() + ": tx2b " + user);
-
-        /*
-        Ref<Inbox> inbox = user.ref().getInbox();
-        doSync(() -> {
-            user.sync();
-            inbox.sync();
-        });
-        */
-        Set<String> inboxVal = user.ref().getInbox();
-
-        return 0;
     }
 
     @Transactional
@@ -215,74 +194,9 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         Ref<Group> group = groups.get(i);
         Ref<User> user = users.get(j);
 
-        //  System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
+        // System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
         group.ref().addUser(user);
-        //doSync(() -> group.sync());
 
-        return 3;
+        return 2;
     }
-
-    private int counter = 0;
-    private boolean shouldSync = false;
-    @Transactional
-    private int randomTransaction2() {
-        counter++;
-        int rand = counter % 10;
-        if (rand < 5) /*12*/ {
-            //inbox checking with sync
-            return transaction2b();
-        } else if (rand < 6) /*12*/ {
-            //inbox checking with sync
-            shouldSync = true;
-            int res = transaction2b();
-            shouldSync = false;
-            return res;
-        } else if (rand < 7) {
-            //Message posting
-            return transaction1b();
-        }  else if (rand < 8) {
-            //Message posting
-            shouldSync = true;
-            int res = transaction1b();
-            shouldSync = false;
-            return res;
-        } else if (rand < 9) {
-            //group joining
-            return transaction3();
-        } else if (rand < 10) {
-            //group joining
-            shouldSync = true;
-            int res = transaction3();
-            shouldSync = false;
-            return res;
-        }
-
-        //user creation: left out
-        throw new IllegalStateException("cannot be here");
-    }
-
-    @Transactional
-    private int randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 58) /*12*/ {
-            //inbox checking with sync
-            return transaction2b(); //use 2b for syncing here
-        } else if (rand < 80) {
-            //Message posting
-            return transaction1b();
-        } else if (rand < 100) {
-            //group joining
-            return transaction3();
-        }
-        //user creation: left out
-
-        throw new IllegalStateException("cannot be here");
-    }
-
-    @Override
-    protected boolean shouldSync() {
-        return shouldSync;
-    }
-
-
 }

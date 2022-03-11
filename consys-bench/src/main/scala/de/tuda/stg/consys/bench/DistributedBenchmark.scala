@@ -38,15 +38,15 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	/** Defines where the measurement output is stored. */
 	val outputResolver : OutputFileResolver,
 	/** Constructs the underlying replica store **/
-	val storeCreator : (MultiPortAddress, Int) => StoreType
+	val storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType
 ) {
-	val store : StoreType = storeCreator(address, processId)
 	val system : BarrierSystem = new BarrierSystem(new Address(address.hostname, address.port2), nReplicas)
+	var store : StoreType = storeCreator(address, processId, system)
 
 	println("All replicas found")
 
 	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int) => StoreType) {
+			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
 		this(
 			name,
 			MultiPortAddress.parse(config.getString("consys.bench.hostname")),
@@ -70,7 +70,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 
 
 	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int) => StoreType) {
+			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
 		this(name, ConfigFactory.load(configName), outputResolver, storeCreator)
 	}
 
@@ -84,7 +84,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	/** Finishes the iterations. This is measured by the run time measure as well. */
 	protected def closeOperations() : Unit = { }
 
-	/** Cleansup all datastructure after the measurement. This is not measured. */
+	/** Cleans up all data structures after the measurement. This is not measured. */
 	protected def cleanup() : Unit
 
 	private def busyWait(ms : Long) : Unit = {
@@ -155,7 +155,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 					latencyWriter.println(s"$i,$j,$latency")
 					BenchmarkUtils.printProgress(j)
 				}
-				closeOperations()
+				closeOperations() // TODO: still necessary?
 				//Measure total runtime (~ time to consistency)
 				val runtime = System.nanoTime - startIt
 				runtimeWriter.println(s"$i,$runtime")

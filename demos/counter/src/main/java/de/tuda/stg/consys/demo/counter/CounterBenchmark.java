@@ -27,7 +27,9 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 	public void setup() {
 		if (processId() == 0) {
 			counter = store().transaction(ctx -> Option.apply(ctx.replicate("counter", getWeakLevel(), Counter.class, 0))).get();
-		} else {
+		}
+		barrier("counter_added");
+		if (processId() != 0) {
 			counter = store().transaction(ctx -> Option.apply(ctx.lookup("counter", getWeakLevel(), Counter.class))).get();
 		}
 	}
@@ -43,6 +45,7 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 
 	@Override
 	public void cleanup() {
+		super.cleanup();
 		//system().clear(Sets.newHashSet());
 	}
 }
