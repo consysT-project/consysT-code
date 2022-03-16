@@ -1,5 +1,6 @@
-package de.tuda.stg.consys.core.store.cassandra
+package de.tuda.stg.consys.core.store.cassandra.objects
 
+import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
 import de.tuda.stg.consys.core.store.utils.Reflect
 import java.lang.reflect.Field

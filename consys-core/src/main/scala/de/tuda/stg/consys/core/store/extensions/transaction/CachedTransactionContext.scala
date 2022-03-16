@@ -46,9 +46,18 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			buffer.getOrElseUpdate(addr, CacheElement[T](fetchedObject, false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
 
 		def setObjectChanged(addr : StoreType#Addr) : Unit = {
-			buffer.put(addr,
-				buffer.getOrElse(addr, throw new IllegalStateException()).copy(changedObject = true)
-			)
+			val prev = buffer.getOrElse(addr, throw new IllegalStateException())
+			buffer.put(addr, prev.copy(changedObject = true))
+		}
+
+		def setFieldsChanged(addr : StoreType#Addr, changedFields : Iterable[Field]) : Unit = {
+			val prev = buffer.getOrElse(addr, throw new IllegalStateException())
+			buffer.put(addr, prev.copy(changedFields = prev.changedFields ++ changedFields))
+		}
+
+		def hasChanges(addr : StoreType#Addr) : Boolean = {
+			val prev = buffer.getOrElse(addr, throw new IllegalStateException())
+			prev.changedObject || prev.changedFields.nonEmpty
 		}
 
 	}

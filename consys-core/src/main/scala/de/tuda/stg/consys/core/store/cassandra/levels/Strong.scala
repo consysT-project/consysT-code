@@ -1,10 +1,14 @@
 package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.core.store.cassandra.objects.StrongCassandraObject
-import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraRef, CassandraStore}
+import de.tuda.stg.consys.annotations.MethodWriteList
+import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+import java.lang.reflect.Field
+import org.checkerframework.dataflow.qual.SideEffectFree
+import org.graalvm.compiler.hotspot.nodes.`type`.MethodPointerStamp.method
 import scala.reflect.ClassTag
 
 /** Consistency level for strong, sequential consistency. */
@@ -61,16 +65,16 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 				.asInstanceOf[StrongCassandraObject[T]]
 			val result = cached.invoke[R](methodId, args)
 
-
-			//Arguments from multiple parameter lists are flattened in classes
-			val flattenedArgs = args.flatten
-			val clazz = implicitly[ClassTag[T]]
-			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodId, flattenedArgs : _*)
-			method.getAnnotation()
-
+			//If method call is not side effect free, then set the changed flag
+			val (objectChanged, changedFields) = Utils.getMethodSideEffects[T](methodId, args)
+			if (objectChanged) txContext.Cache.setObjectChanged(addr)
+			if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
 
 			result
 		}
+
+
+
 
 		override def getField[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
@@ -79,7 +83,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
 			val result = cached.getField[R](fieldName)
 			result
 		}
@@ -91,8 +95,9 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : Unit = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrElseUpdate[T](addr, Reflect.getFields(implicitly[ClassTag[T]].runtimeClass), strongRead[T](addr))
+			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
 			cached.setField[R](fieldName, value)
+			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
 
 		override def commit(
@@ -104,6 +109,8 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 
 			case Some(cassObj : CassandraObject[_, Strong.type]) if cassObj.consistencyLevel == Strong =>
 				// Add a new statement to the batch of write statements
+				if (!txContext.Cache.hasChanges(ref.addr)) return
+
 				val builder = txContext.getCommitStatementBuilder
 				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
 			case cached =>

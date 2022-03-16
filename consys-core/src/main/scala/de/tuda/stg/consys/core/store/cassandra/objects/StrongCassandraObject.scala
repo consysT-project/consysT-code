@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra.objects
 
 import de.tuda.stg.consys.core.store.cassandra.levels.Strong
-import de.tuda.stg.consys.core.store.cassandra.{CassandraObject, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import java.lang.reflect.Field
 import scala.reflect.ClassTag
 

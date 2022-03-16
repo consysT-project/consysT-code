@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
 import de.tuda.stg.consys.core.store.TransactionContext
+import de.tuda.stg.consys.core.store.cassandra.objects.CassandraObject
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
