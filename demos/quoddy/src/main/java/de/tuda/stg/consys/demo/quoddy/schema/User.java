@@ -1,11 +1,11 @@
 package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class User implements Serializable {
     private final String id;
@@ -17,36 +17,37 @@ public class User implements Serializable {
     // profile pic
     private String phone;
     private String profileText;
-    private final List<Ref<User>> friends;
-    private final List<Ref<User>> followers;
-    private final List<Ref<User>> following;
-    private final List<Ref<User>> receivedFriendRequests;
-    private final List<Ref<User>> sentFriendRequests;
+    private final Map<String, Ref<User>> friends;
+    private final Map<String, Ref<User>> followers;
+    private final Map<String, Ref<User>> following;
+    private final Map<String, Ref<User>> receivedFriendRequests;
+    private final Map<String, Ref<User>> sentFriendRequests;
     // education history
     // employment history
-    private final List<Ref<? extends Activity>> feed;
-    private final List<Ref<? extends Activity>> unreadFeed;
+    private final List<Ref<? extends Post>> feed;
+    private final List<Ref<? extends Post>> unreadFeed;
     private final List<Ref<Group>> participatingGroups;
 
     public User(String id, String name) {
         this.id = id;
         this.name = name;
-        this.friends = new LinkedList<>();
-        this.followers = new LinkedList<>();
-        this.following = new LinkedList<>();
-        this.receivedFriendRequests = new LinkedList<>();
-        this.sentFriendRequests = new LinkedList<>();
+        this.friends = new HashMap<>();
+        this.followers = new HashMap<>();
+        this.following = new HashMap<>();
+        this.receivedFriendRequests = new HashMap<>();
+        this.sentFriendRequests = new HashMap<>();
         this.feed = new LinkedList<>();
         this.unreadFeed = new LinkedList<>();
         this.participatingGroups = new LinkedList<>();
     }
 
-    public void addActivity(Ref<? extends Activity> status) {
-        unreadFeed.add(status);
+    public void addPost(Ref<? extends Post> post) {
+        unreadFeed.add(post);
     }
 
     @Transactional
     public void notifyOfEventUpdate(Ref<Event> event) {
+        // TODO: batch too large
         feed.removeIf(x -> Util.equalsActivity(x, event));
         unreadFeed.removeIf(x -> Util.equalsActivity(x, event));
         unreadFeed.add(0, event);
@@ -58,56 +59,63 @@ public class User implements Serializable {
     }
 
     @Transactional
-    public void markActivityAsRead(Ref<? extends Activity> activity) {
-        unreadFeed.removeIf(x -> Util.equalsActivity(x, activity));
-        feed.add(0, activity);
+    public void markPostAsRead(Ref<? extends Post> post) {
+        unreadFeed.removeIf(x -> Util.equalsActivity(x, post));
+        feed.add(0, post);
     }
 
-    public  void addReceivedFriendRequest(Ref<User> sender) {
-        receivedFriendRequests.add(sender);
+    @Transactional
+    public void addReceivedFriendRequest(Ref<User> sender) {
+        receivedFriendRequests.put(sender.ref().getId(), sender);
     }
 
     @Transactional
     public void removeReceivedFriendRequest(Ref<User> sender) {
-        receivedFriendRequests.removeIf(x -> Util.equalsUser(x, sender));
+        receivedFriendRequests.remove(sender.ref().getId());
     }
 
+    @Transactional
     public void addSentFriendRequest(Ref<User> sender) {
-        sentFriendRequests.add(sender);
+        sentFriendRequests.put(sender.ref().getId(), sender);
     }
 
     @Transactional
     public void removeSentFriendRequest(Ref<User> receiver) {
-        sentFriendRequests.removeIf(x -> Util.equalsUser(x, receiver));
+        sentFriendRequests.remove(receiver.ref().getId());
     }
 
+    @StrongOp
+    @Transactional
     public void addFriend(Ref<User> user) {
-        friends.add(user);
+        friends.put(user.ref().getId(), user);
     }
 
     @Transactional
     public void removeFriend(Ref<User> user) {
-        friends.removeIf(x -> Util.equalsUser(x, user));
+        friends.remove(user.ref().getId());
     }
 
+    @Transactional
     public void addFollower(Ref<User> user) {
-        followers.add(user);
+        followers.put(user.ref().getId(), user);
     }
 
     @Transactional
     public void removeFollower(Ref<User> user) {
-        followers.removeIf(x -> Util.equalsUser(x, user));
+        followers.remove(user.ref().getId());
     }
 
+    @Transactional
     public void addFollowing(Ref<User> user) {
-        following.add(user);
+        following.put(user.ref().getId(), user);
     }
 
     @Transactional
     public void removeFollowing(Ref<User> user) {
-        following.removeIf(x -> Util.equalsUser(x, user));
+        following.remove(user.ref().getId());
     }
 
+    @StrongOp
     public void addParticipatingGroup(Ref<Group> group) {
         participatingGroups.add(group);
     }
@@ -149,30 +157,30 @@ public class User implements Serializable {
     }
 
     public List<Ref<User>> getFriends() {
-        return friends;
+        return new ArrayList<>(friends.values());
     }
 
     public List<Ref<User>> getFollowers() {
-        return followers;
+        return new ArrayList<>(followers.values());
     }
 
     public List<Ref<User>> getFollowing() {
-        return following;
+        return new ArrayList<>(following.values());
     }
 
     public List<Ref<User>> getReceivedFriendRequests() {
-        return receivedFriendRequests;
+        return new ArrayList<>(receivedFriendRequests.values());
     }
 
     public List<Ref<User>> getSentFriendRequests() {
-        return sentFriendRequests;
+        return new ArrayList<>(sentFriendRequests.values());
     }
 
-    public List<Ref<? extends Activity>> getFeed() {
+    public List<Ref<? extends Post>> getFeed() {
         return feed;
     }
 
-    public List<Ref<? extends Activity>> getUnreadFeed() {
+    public List<Ref<? extends Post>> getUnreadFeed() {
         return unreadFeed;
     }
 

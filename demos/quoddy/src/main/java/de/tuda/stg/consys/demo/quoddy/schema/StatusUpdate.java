@@ -5,7 +5,7 @@ import de.tuda.stg.consys.japi.Ref;
 import java.util.UUID;
 
 
-public class StatusUpdate extends Activity {
+public class StatusUpdate extends Post {
     private final String text;
 
     public StatusUpdate(UUID id, Ref<User> owner, String text) {

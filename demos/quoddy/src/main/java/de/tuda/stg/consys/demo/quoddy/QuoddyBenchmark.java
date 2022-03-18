@@ -5,9 +5,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
-import de.tuda.stg.consys.demo.quoddy.schema.Group;
-import de.tuda.stg.consys.demo.quoddy.schema.User;
-import de.tuda.stg.consys.demo.quoddy.schema.Util;
+import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
@@ -80,6 +78,14 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         return list.get(random.nextInt(list.size()));
     }
 
+    private <E> E getRandomElementExcept(List<E> list, E object) {
+        E element;
+        do {
+            element = list.get(random.nextInt(list.size()));
+        } while (element == object);
+        return element;
+    }
+
     @Override
     public void setup() {
         System.out.println("Adding users");
@@ -91,32 +97,36 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
         System.out.println("Adding groups");
         for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-            sessions.get(grpIndex).createGroup(
+            Ref<Group> group = sessions.get(grpIndex % numOfUsersPerReplica).createGroup(
                     null, addr("group", grpIndex, processId()), generateRandomName(),
                     generateRandomText(10), false);
+            // every group starts with one post
+            sessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, generateRandomText(20), group);
             BenchmarkUtils.printProgress(grpIndex);
         }
 
         for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
-                int finalUsrIndex = usrIndex;
-                int finalReplIndex = replIndex;
-                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
-                        addr("user", finalUsrIndex, finalReplIndex), Session.userConsistencyLevel, User.class)
-                )).get());
+                users.add(sessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
             }
 
             for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-                int finalGrpIndex = grpIndex;
-                int finalReplIndex = replIndex;
-                groups.add(store().transaction(ctx -> Option.apply(ctx.lookup(
-                        addr("group", finalGrpIndex, finalReplIndex), Session.groupConsistencyLevel, Group.class)
-                )).get());
+                groups.add(sessions.get(0).lookupGroup(null, addr("group", grpIndex, replIndex)).get());
             }
         }
 
         for (Session session : sessions) {
+            // every user starts as a member of one group
             session.joinGroup(null, getRandomElement(groups));
+            // every user starts with one friend
+            Ref<User> friend = getRandomElementExcept(users, session.getUser());
+            session.sendFriendRequest(null, friend);
+            store().transaction(ctx -> {
+                Util.acceptFriendRequest(friend, session.getUser());
+                return Option.empty();
+            });
+            // every user starts with one post
+            session.postStatusToProfile(null, generateRandomText(20));
         }
 
         BenchmarkUtils.printDone();
@@ -149,7 +159,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         // TODO
         int rand = random.nextInt(100);
         if (rand < 12) {
-            addFriend();
+            share();
         } else if (rand < 58) {
             followUser();
         } else if (rand < 80) {
@@ -169,7 +179,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         store().transaction(ctx -> {
             List<Ref<Group>> groups = session.getUser().ref().getParticipatingGroups();
-            session.postStatusToGroup(null, generateRandomText(20), getRandomElement(groups));
+            session.postStatusToGroup(ctx, generateRandomText(20), getRandomElement(groups));
             return Option.empty();
         });
     }
@@ -178,16 +188,53 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         Ref<User> target = getRandomElement(users);
         store().transaction(ctx -> {
-            Util.followUser(session.getUser(), target);
+            session.follow(ctx, target);
             return Option.empty();
         });
     }
 
+    // also immediately accepts friend request
     private void addFriend() {
         Session session = randomLocalSession();
         Ref<User> target = getRandomElement(users);
         store().transaction(ctx -> {
-            Util.sendFriendRequest(session.getUser(), target);
+            session.sendFriendRequest(ctx, target);
+            Util.acceptFriendRequest(target, session.getUser());
+            return Option.empty();
+        });
+    }
+
+    private void share() {
+        Session session = randomLocalSession();
+        Ref<User> user = session.getUser();
+        store().transaction(ctx -> {
+            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
+            Ref<User> friend = getRandomElement(user.ref().getFriends());
+            session.sharePostWithFriend(ctx, friend, post);
+            return Option.empty();
+        });
+    }
+
+    private void commentOnGroupPost() {
+        Session session = randomLocalSession();
+        store().transaction(ctx -> {
+            Ref<User> user = session.getUser();
+            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
+            post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
+            return Option.empty();
+        });
+    }
+
+    private void commentOnFriendPost() {
+        Session session = randomLocalSession();
+        Ref<User> user = session.getUser();
+        store().transaction(ctx -> {
+            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
+            Ref<User> friend = getRandomElement(user.ref().getFriends());
+            post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
             return Option.empty();
         });
     }

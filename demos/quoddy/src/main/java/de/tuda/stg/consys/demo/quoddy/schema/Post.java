@@ -8,20 +8,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class Activity implements Serializable {
+public class Post implements Serializable {
     private final UUID id;
     private final Ref<User> owner;
     private final Date creationTimestamp;
-    private final List<Ref<Comment>> comments;
+    private final List<Comment> comments;
 
-    public Activity(UUID id, Ref<User> owner) {
+    public Post(UUID id, Ref<User> owner) {
         this.id = id;
         this.owner = owner;
         this.comments = new LinkedList<>();
         this.creationTimestamp = new Date();
     }
 
-    void addComment(Ref<Comment> comment) {
+    public void addComment(Comment comment) {
         comments.add(comment);
     }
 
@@ -37,7 +37,7 @@ public class Activity implements Serializable {
         return creationTimestamp;
     }
 
-    public List<Ref<Comment>> getComments() {
+    public List<Comment> getComments() {
         return comments;
     }
 }

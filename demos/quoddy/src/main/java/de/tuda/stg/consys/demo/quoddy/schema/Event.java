@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class Event extends Activity {
+public class Event extends Post {
     private Date date;
     private final List<Ref<User>> subscribers;
 
@@ -22,6 +22,6 @@ public class Event extends Activity {
     }
 
     public void notifySubscribers() {
-
+        // TODO
     }
 }
