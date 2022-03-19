@@ -22,7 +22,7 @@ public @Mixed class Item implements Serializable {
     private Date endDate;
     private final @Immutable Category category;
     private final Ref<@Mutable User> seller;
-    private final List<Ref<Bid>> bids;
+    private final List<Bid> bids;
 
     public Item(@Local UUID id, @Local @Mutable String name, @Mutable @Weak String description,
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
@@ -43,20 +43,20 @@ public @Mixed class Item implements Serializable {
 
     @Transactional
     @StrongOp
-    public boolean placeBid(Ref<Bid> bid) {
+    public boolean placeBid(Bid bid) {
         if (new Date().after(endDate)) {
             throw new AppException.DateException("Auction has already ended.");
         }
 
-        if ((@Weak float)bid.ref().getBid() <= getTopBidPrice()) {
+        if ((@Weak float)bid.getBid() <= getTopBidPrice()) {
             throw new AppException("Minimum necessary bid amount (" + getTopBidPrice() + ") not met with bid (" +
-                    bid.ref().getBid() + ")");
+                    bid.getBid() + ")");
         }
 
         bids.add(0, bid);
         nBids++;
 
-        return (float)bid.ref().getBid() >= reservePrice;
+        return (float)bid.getBid() >= reservePrice;
     }
 
     @Transactional
@@ -77,7 +77,7 @@ public @Mixed class Item implements Serializable {
 
     @Transactional
     @StrongOp
-    public @Strong Optional<Ref<Bid>> closeAuction() {
+    public @Strong Optional<Bid> closeAuction() {
         if (new Date().before(endDate)) {
             throw new AppException.DateException("Auction has not yet ended.");
         }
@@ -100,7 +100,7 @@ public @Mixed class Item implements Serializable {
     }
 
     @StrongOp @SideEffectFree
-    public List<Ref<Bid>> getAllBids() {
+    public List<Bid> getAllBids() {
         return bids;
     }
 
@@ -127,15 +127,19 @@ public @Mixed class Item implements Serializable {
         return buyNowPrice;
     }
 
-    @StrongOp @SideEffectFree @Transactional
+    @StrongOp @SideEffectFree
     public @Strong float getTopBidPrice() {
-        return bids.isEmpty() ? initialPrice : bids.get(0).ref().getBid();
+        return bids.isEmpty() ? initialPrice : bids.get(0).getBid();
     }
 
     @StrongOp @SideEffectFree
-    public @Local Optional<Ref<Bid>> getTopBid() {
-        if (bids.isEmpty()) return Optional.<Ref<@Mixed Bid>>empty();
-        return Optional.<Ref<@Mixed Bid>>of(bids.get(0));
+    public @Local Optional<Bid> getTopBid() {
+        if (bids.isEmpty()) return Optional.<Bid>empty();
+        return Optional.<Bid>of(bids.get(0));
+    }
+
+    public boolean isReserveMet() {
+        return getTopBidPrice() >= reservePrice;
     }
 
     @WeakOp @SideEffectFree

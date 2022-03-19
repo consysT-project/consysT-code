@@ -86,8 +86,8 @@ public class TestRunner {
         items[4] = sellerInterface.registerItem(null, "item4", "", Category.MISC, 50, 60);
 
         System.out.println("> Starting bidding...");
-        threadFutures.add(threadPool.submit(new UserTask(1, new UUID[]{items[0], items[1]}, 100, 4)));
-        threadFutures.add(threadPool.submit(new UserTask(2, new UUID[]{items[0], items[1], items[2]}, 90, 2)));
+        threadFutures.add(threadPool.submit(new UserTask(1, new UUID[]{items[0], items[1]}, 100, 5)));
+        threadFutures.add(threadPool.submit(new UserTask(2, new UUID[]{items[0], items[1], items[2]}, 90, 5)));
 
         Thread.sleep(10000);
 
@@ -98,7 +98,10 @@ public class TestRunner {
                 for (var item : items)
                     sellerInterface.endAuctionImmediately(null, item);
                 end = true;
-            } catch (TimeoutException ignored) {}
+            } catch (Exception ignored) {
+                if (!(ignored instanceof RuntimeException))
+                    throw ignored;
+            }
         }
 
         threadPool.shutdown();
@@ -114,6 +117,8 @@ public class TestRunner {
                 e.printStackTrace();
             }
         }
+
+        // all threads are done, all (strong) data is propagated
 
         System.out.println("--------------");
         for (var client : SESSIONS) {
@@ -146,7 +151,7 @@ public class TestRunner {
             while (nCompletedItems < watchedItems.length) {
                 for (int i = 0; i < watchedItems.length; i++) {
                     var item = watchedItems[i];
-                    Tuple2<Optional<String>, Float> bid = session.getTopBid(null, item);
+                    Tuple2<Optional<String>, Float> bid = session.getTopBidAndBidder(null, item);
                     float newBid = bid._2 + bidIncrement;
 
                     if(newBid <= maxBid && (!(bid._1.isPresent() && bid._1.get().equals(userName)) || !reservesMet[i])) {
@@ -162,10 +167,15 @@ public class TestRunner {
                             if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
                                     " but was outbid during processing.");
                             // we were outbid during processing, try again
-                        } catch (TimeoutException ignored) {
-                            if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
-                                    " but auction is locked by another user.");
-                            // auction is locked, try again
+                        }
+                        catch (Exception ignored) {
+                            if (ignored instanceof TimeoutException) {
+                                if (enableLog) System.out.println("User '" + userName + "' bids " + newBid + " on item " + i +
+                                        " but auction is locked by another user.");
+                                // auction is locked, try again
+                            } else {
+                                throw ignored;
+                            }
                         }
                     } else if (newBid > maxBid) {
                         //System.out.println("too expensive");

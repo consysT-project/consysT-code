@@ -16,12 +16,10 @@ import scala.Tuple2;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> bidConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
     private CassandraStoreBinding store;
     private Ref<@Mutable User> user;
@@ -110,12 +108,18 @@ public class Session {
     }
 
     public boolean placeBid(CassandraTransactionContextBinding tr,
-                            UUID itemId, float bidAmount) throws TimeoutException {
+                            UUID itemId, float bidAmount) {
+        Ref<Item> item = doTransaction(tr, ctx ->
+            Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class))).get();
+        return placeBid(tr, item, bidAmount);
+    }
+
+    public boolean placeBid(CassandraTransactionContextBinding tr,
+                             Ref<Item> item, float bidAmount) {
         checkLogin();
 
         @Immutable @Local UUID bidId = UUID.randomUUID();
         return doTransaction(tr, ctx -> {
-            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot bid on your own items.");
@@ -125,8 +129,7 @@ public class Session {
                 throw new AppException.NotEnoughCreditsException();
             }
 
-            var bid = ctx.replicate("bid:" + bidId, bidConsistencyLevel, Bid.class,
-                    bidId, bidAmount, user);
+            var bid = new Bid(bidId, bidAmount, user);
 
             try {
                 boolean reserveMet = item.ref().placeBid(bid);
@@ -144,11 +147,16 @@ public class Session {
     }
 
     public void buyNow(CassandraTransactionContextBinding tr,
-                       UUID itemId) throws TimeoutException {
+                       UUID itemId) {
+        Ref<Item> item = doTransaction(tr, ctx ->
+            Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class))).get();
+        buyNow(tr, item);
+    }
+
+    public void buyNow(CassandraTransactionContextBinding tr, Ref<Item> item) {
         checkLogin();
 
         doTransaction(tr, ctx -> {
-            Ref<@Mutable Item> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             Ref<User> seller = item.ref().getSeller();
             if (seller.ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You cannot buy your own items.");
@@ -159,8 +167,7 @@ public class Session {
         });
     }
 
-    public String browseCategory(CassandraTransactionContextBinding tr,
-                                 Category category, int count) {
+    public String browseCategory(CassandraTransactionContextBinding tr, Category category, int count) {
         checkLogin();
 
         return doTransaction(tr, ctx -> {
@@ -174,8 +181,7 @@ public class Session {
         }).get();
     }
 
-    public List<Ref<Item>> browseCategoryItems(CassandraTransactionContextBinding tr,
-                                          Category category) {
+    public List<Ref<Item>> browseCategoryItems(CassandraTransactionContextBinding tr, Category category) {
         checkLogin();
 
         return doTransaction(tr, ctx -> {
@@ -185,11 +191,17 @@ public class Session {
     }
 
     public void endAuctionImmediately(CassandraTransactionContextBinding tr,
-                                      UUID itemId) throws TimeoutException {
+                                      UUID itemId) {
+        Ref<Item> item = doTransaction(tr, ctx ->
+                Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class))).get();
+        endAuctionImmediately(tr, item);
+    }
+
+    public void endAuctionImmediately(CassandraTransactionContextBinding tr,
+                                      Ref<Item> item) {
         checkLogin();
 
         doTransaction(tr, ctx -> {
-            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
             if (!((Ref<User>)item.ref().getSeller()).ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You can only end your own auctions.");
             }
@@ -253,19 +265,24 @@ public class Session {
         }).get();
     }
 
-    public Tuple2<Optional<String>, Float> getTopBid(CassandraTransactionContextBinding tr,
-                                                     UUID itemId) {
+    public Tuple2<Optional<String>, Float> getTopBidAndBidder(CassandraTransactionContextBinding tr,
+                                                              UUID itemId) {
         return doTransaction(tr, ctx -> {
             var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
-            Optional<Ref<Bid>> bid = item.ref().getTopBid();
+            Optional<Bid> bid = item.ref().getTopBid();
             if (bid.isPresent())
                 return Option.apply(new Tuple2<>(
-                        Optional.of(((Ref<User>)bid.get().ref().getUser()).ref().getNickname().toString()),
-                        (float)bid.get().ref().getBid()));
+                        Optional.of(((Ref<User>)bid.get().getUser()).ref().getNickname().toString()),
+                        (float)bid.get().getBid()));
             return Option.apply(new Tuple2<>(
                     Optional.<String>empty(),
                     (float)item.ref().getTopBidPrice()));
         }).get();
+    }
+
+    public float getBidPrice(CassandraTransactionContextBinding tr,
+                             Ref<Item> item) {
+        return doTransaction(tr, ctx -> Option.<Float>apply(item.ref().getTopBidPrice())).get();
     }
 
     public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
@@ -275,10 +292,23 @@ public class Session {
             return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
         }).get();
     }
+    public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
+                                   Ref<Item> item) {
+        return doTransaction(tr, ctx -> {
+            return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
+        }).get();
+    }
+
+    Ref<Item> getItem(CassandraTransactionContextBinding tr,
+                      UUID itemId) {
+        return doTransaction(tr, ctx -> {
+            return Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class));
+        }).get();
+    }
 
     private void checkLogin() {
         if (user == null) {
-            throw new AppException("You must be logged-in in.");
+            throw new AppException("You must be logged in.");
         }
     }
 }

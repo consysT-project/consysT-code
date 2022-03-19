@@ -46,10 +46,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session.activityConsistencyLevel = getWeakLevel();
 
         sessions = new LinkedList<>();
-        for (int i = 0; i < numOfUsersPerReplica; i++) {
-            sessions.add(new Session(store()));
-        }
-
         users = new LinkedList<>();
         groups = new LinkedList<>();
     }
@@ -88,6 +84,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void setup() {
+        for (int i = 0; i < numOfUsersPerReplica; i++) {
+            sessions.add(new Session(store()));
+        }
+
         System.out.println("Adding users");
         for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
             sessions.get(usrIndex).registerUser(
@@ -143,7 +143,8 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void cleanup() {
-        //system().clear(Sets.newHashSet());
+        super.cleanup();
+        sessions.clear();
         users.clear();
         groups.clear();
 
