@@ -21,9 +21,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private final int numOfUsersPerReplica;
     private final int numOfGroupsPerReplica;
 
-    private final List<Session> sessions;
+    private final List<Session> localSessions;
     private final List<Ref<User>> users;
     private final List<Ref<Group>> groups;
+    private final List<Ref<Event>> events;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -45,9 +46,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session.groupConsistencyLevel = getStrongLevel();
         Session.activityConsistencyLevel = getWeakLevel();
 
-        sessions = new LinkedList<>();
-        users = new LinkedList<>();
-        groups = new LinkedList<>();
+        localSessions = new ArrayList<>();
+        users = new ArrayList<>();
+        groups = new ArrayList<>();
+        events = new ArrayList<>();
     }
 
     private static String addr(String identifier, int objectIndex, int replicaIndex) {
@@ -67,7 +69,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     private Session randomLocalSession() {
-        return sessions.get(random.nextInt(sessions.size()));
+        return localSessions.get(random.nextInt(localSessions.size()));
     }
 
     private <E> E getRandomElement(List<E> list) {
@@ -85,37 +87,51 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     @Override
     public void setup() {
         for (int i = 0; i < numOfUsersPerReplica; i++) {
-            sessions.add(new Session(store()));
+            localSessions.add(new Session(store()));
         }
 
         System.out.println("Adding users");
         for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
-            sessions.get(usrIndex).registerUser(
+            localSessions.get(usrIndex).registerUser(
                     null, addr("user", usrIndex, processId()), generateRandomName());
             BenchmarkUtils.printProgress(usrIndex);
         }
 
         System.out.println("Adding groups");
         for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-            Ref<Group> group = sessions.get(grpIndex % numOfUsersPerReplica).createGroup(
+            Ref<Group> group = localSessions.get(grpIndex % numOfUsersPerReplica).createGroup(
                     null, addr("group", grpIndex, processId()), generateRandomName(),
                     generateRandomText(10), false);
             // every group starts with one post
-            sessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, generateRandomText(20), group);
+            localSessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, generateRandomText(20), group);
+            // every group starts with one event
+            Ref<Event> event = localSessions.get(grpIndex % numOfUsersPerReplica).
+                    postEventToGroup(null, generateRandomText(20), new Date(), group);
+            events.add(event);
+            // every event has some subscribers
+            for (int i = 0; i < 5; i++) {
+                store().transaction(ctx -> {
+                    event.ref().addSubscriber(getRandomElement(localSessions).getUser());
+                    return Option.empty();
+                });
+            }
+
             BenchmarkUtils.printProgress(grpIndex);
         }
 
+        barrier("users_added");
+
         for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
-                users.add(sessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
+                users.add(localSessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
             }
 
             for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-                groups.add(sessions.get(0).lookupGroup(null, addr("group", grpIndex, replIndex)).get());
+                groups.add(localSessions.get(0).lookupGroup(null, addr("group", grpIndex, replIndex)).get());
             }
         }
 
-        for (Session session : sessions) {
+        for (Session session : localSessions) {
             // every user starts as a member of one group
             session.joinGroup(null, getRandomElement(groups));
             // every user starts with one friend
@@ -134,6 +150,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
+        // TODO: repeat
         try {
             randomTransaction();
         } catch (TimeoutException ignored) {
@@ -144,9 +161,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         super.cleanup();
-        sessions.clear();
+        localSessions.clear();
         users.clear();
         groups.clear();
+        events.clear();
 
         try {
             Thread.sleep(1000);
@@ -157,19 +175,51 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private void randomTransaction() throws TimeoutException {
-        // TODO
+        // TODO: decide on distribution
         int rand = random.nextInt(100);
-        if (rand < 12) {
+        if (rand < 10) {
             share();
-        } else if (rand < 58) {
+        } else if (rand < 20) {
             followUser();
-        } else if (rand < 80) {
+        } else if (rand < 30) {
             postStatusToGroup();
-        } else if (rand < 100) {
+        } else if (rand < 40) {
             postStatusToProfile();
-        } else {
-            throw new IllegalStateException("cannot be here");
+        } else if (rand < 50) {
+            commentOnGroupPost();
+        } else if (rand < 60) {
+            readGroupFeed();
+        } else if (rand < 70) {
+            readPersonalFeed();
+        } else if (rand < 80) {
+            postEventUpdate();
+        } else if (rand < 100) {
+            commentOnFriendPost();
         }
+    }
+
+    private void readPersonalFeed() {
+        // render collapsed feed
+        store().transaction(ctx -> {
+            Ref<User> user = randomLocalSession().getUser();
+            List<Ref<? extends Post>> feed = user.ref().getNewestPosts(5);
+            for (Ref<? extends Post> post : feed) {
+                post.ref().toString();
+            }
+            return Option.empty();
+        });
+        // TODO: show comments of one post
+    }
+
+    private void readGroupFeed() {
+        store().transaction(ctx -> {
+            Ref<Group> group = getRandomElement(groups);
+            List<Ref<? extends Post>> feed = group.ref().getNewestPosts(5);
+            for (Ref<? extends Post> post : feed) {
+                post.ref().toString();
+            }
+            return Option.empty();
+        });
     }
 
     private void postStatusToProfile() {
@@ -210,7 +260,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Ref<User> user = session.getUser();
         store().transaction(ctx -> {
             Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
+            Ref<? extends Post> post = getRandomElement(group.ref().getNewestPosts(5));
             Ref<User> friend = getRandomElement(user.ref().getFriends());
             session.sharePostWithFriend(ctx, friend, post);
             return Option.empty();
@@ -222,7 +272,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         store().transaction(ctx -> {
             Ref<User> user = session.getUser();
             Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
+            Ref<? extends Post> post = getRandomElement(group.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
             return Option.empty();
         });
@@ -232,10 +282,17 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         Ref<User> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends Post> post = getRandomElement(group.ref().getFeed());
             Ref<User> friend = getRandomElement(user.ref().getFriends());
+            Ref<? extends Post> post = getRandomElement(friend.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
+            return Option.empty();
+        });
+    }
+
+    private void postEventUpdate() {
+        Ref<Event> event = getRandomElement(events);
+        store().transaction(ctx -> {
+            event.ref().postUpdate(generateRandomText(10));
             return Option.empty();
         });
     }

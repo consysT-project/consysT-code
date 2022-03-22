@@ -16,4 +16,9 @@ public class StatusUpdate extends Post {
     public String getText() {
         return text;
     }
+
+    @Override
+    public String toString() {
+        return "Posted by " + getOwner() + " on " + getCreationTimestamp() + ": " + getText();
+    }
 }

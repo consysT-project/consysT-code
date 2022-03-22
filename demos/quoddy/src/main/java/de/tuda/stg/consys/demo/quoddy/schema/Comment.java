@@ -2,9 +2,10 @@ package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.japi.Ref;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Comment {
+public class Comment implements Serializable {
     private final String text;
     private final Ref<User> owner;
     private final Date timestamp;

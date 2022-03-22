@@ -6,6 +6,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Group implements Serializable {
     private final String id;
@@ -93,6 +94,7 @@ public class Group implements Serializable {
         this.description = description;
     }
 
+    @StrongOp
     public void setRequiresJoinConfirmation(boolean requiresJoinConfirmation) {
         this.requiresJoinConfirmation = requiresJoinConfirmation;
     }
@@ -121,7 +123,7 @@ public class Group implements Serializable {
         return new ArrayList<>(members.values());
     }
 
-    public List<Ref<? extends Post>> getFeed() {
-        return feed;
+    public List<Ref<? extends Post>> getNewestPosts(int n) {
+        return feed.stream().limit(n).collect(Collectors.toList());
     }
 }

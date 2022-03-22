@@ -48,9 +48,9 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         Session.itemConsistencyLevel = getStrongLevel();
         Session.storeConsistencyLevel = getStrongLevel();
 
-        localSessions = new LinkedList<>();
-        allItems = new LinkedList<>();
-        localItems = new LinkedList<>();
+        localSessions = new ArrayList<>();
+        allItems = new ArrayList<>();
+        localItems = new ArrayList<>();
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {

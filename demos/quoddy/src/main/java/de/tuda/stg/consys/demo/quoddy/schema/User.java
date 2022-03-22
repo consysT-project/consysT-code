@@ -6,6 +6,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class User implements Serializable {
     private final String id;
@@ -25,7 +26,6 @@ public class User implements Serializable {
     // education history
     // employment history
     private final List<Ref<? extends Post>> feed;
-    private final List<Ref<? extends Post>> unreadFeed;
     private final List<Ref<Group>> participatingGroups;
 
     public User(String id, String name) {
@@ -37,31 +37,22 @@ public class User implements Serializable {
         this.receivedFriendRequests = new HashMap<>();
         this.sentFriendRequests = new HashMap<>();
         this.feed = new LinkedList<>();
-        this.unreadFeed = new LinkedList<>();
         this.participatingGroups = new LinkedList<>();
     }
 
     public void addPost(Ref<? extends Post> post) {
-        unreadFeed.add(post);
+        feed.add(0, post);
     }
 
     @Transactional
+    @StrongOp
     public void notifyOfEventUpdate(Ref<Event> event) {
-        // TODO: batch too large
-        feed.removeIf(x -> Util.equalsActivity(x, event));
-        unreadFeed.removeIf(x -> Util.equalsActivity(x, event));
-        unreadFeed.add(0, event);
+        feed.add(0, event); // leads to double entries
     }
 
     @Transactional
     public void notifyOfGroupMembershipAcceptance(Ref<Group> group) {
         participatingGroups.add(group);
-    }
-
-    @Transactional
-    public void markPostAsRead(Ref<? extends Post> post) {
-        unreadFeed.removeIf(x -> Util.equalsActivity(x, post));
-        feed.add(0, post);
     }
 
     @Transactional
@@ -176,12 +167,8 @@ public class User implements Serializable {
         return new ArrayList<>(sentFriendRequests.values());
     }
 
-    public List<Ref<? extends Post>> getFeed() {
-        return feed;
-    }
-
-    public List<Ref<? extends Post>> getUnreadFeed() {
-        return unreadFeed;
+    public List<Ref<? extends Post>> getNewestPosts(int n) {
+        return feed.stream().limit(n).collect(Collectors.toList());
     }
 
     public List<Ref<Group>> getParticipatingGroups() {

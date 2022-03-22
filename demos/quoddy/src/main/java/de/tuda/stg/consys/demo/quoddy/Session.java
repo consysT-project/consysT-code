@@ -9,6 +9,7 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBind
 import scala.Function1;
 import scala.Option;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -112,6 +113,25 @@ public class Session {
 
             return Option.empty();
         });
+    }
+
+    public Ref<Event> postEventToGroup(CassandraTransactionContextBinding tr,
+                                 String text, Date date, Ref<Group> group) {
+        checkLogin();
+        var id = UUID.randomUUID();
+
+        return doTransaction(tr, ctx -> {
+            Ref<Event> event =
+                    ctx.replicate(id.toString(), activityConsistencyLevel, Event.class, id, this.user, date, text);
+            event.ref().initSelf(event);
+
+            if (!(boolean)group.ref().isUserInGroup(this.user))
+                throw new IllegalArgumentException("can only post in groups you are a member of");
+
+            group.ref().addPost(event);
+
+            return Option.apply(event);
+        }).get();
     }
 
     public void sharePostWithFriend(CassandraTransactionContextBinding tr,
