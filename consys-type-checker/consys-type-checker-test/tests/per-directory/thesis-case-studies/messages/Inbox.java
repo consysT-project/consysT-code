@@ -1,4 +1,4 @@
-package messages
+package demos.messages;
 
 
 import de.tuda.stg.consys.annotations.Transactional;

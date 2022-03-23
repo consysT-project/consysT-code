@@ -1,4 +1,4 @@
-package messages
+package demos.messages;
 
 
 import de.tuda.stg.consys.annotations.Transactional;
@@ -9,9 +9,10 @@ import java.io.Serializable;
 import java.util.*;
 
 /* A group chat of users */
-public class Group {
+public @Mixed class Group {
 
-	private final List<Ref<User>> users = LinkedList.empty;
+	private List<Ref<User>> users = Lists.newLinkedList();
+	private int capacity = 100;
 
 	@Transactional
 	@WeakOp public void addPost(String msg) {
@@ -21,6 +22,13 @@ public class Group {
 	}
 
 	@StrongOp public void addUser(Ref<User> user) {
-		users.add(user);
+		if (users.size() < capacity)
+			users.add(user);
 	}
+
+	@WeakOp public void changeCapacity(int capacity) {
+		this.capacity = capacity;
+	}
+
+
 }

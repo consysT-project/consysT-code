@@ -1,4 +1,4 @@
-package messages
+package demos.messages;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.*;
@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.*;
 
 /* A user of the messenger application */
-public class User {
+public @Mixed class User {
 
 	private final Ref<@Weak Inbox> inbox;
 	private final String name;
