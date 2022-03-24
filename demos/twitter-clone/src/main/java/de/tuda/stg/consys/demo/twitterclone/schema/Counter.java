@@ -1,13 +1,20 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+
 import java.io.Serializable;
 
 public class Counter implements Serializable {
 
-    public int value;
+    private int value;
 
+    @StrongOp
     public void inc() {
         value++;
+    }
+
+    public int get() {
+        return value;
     }
 
     public Counter(int value) {

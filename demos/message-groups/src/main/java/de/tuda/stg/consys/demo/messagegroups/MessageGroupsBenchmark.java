@@ -9,7 +9,6 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
-import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
 import java.util.ArrayList;
@@ -129,7 +128,6 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         super.cleanup();
-        //system().clear(Sets.newHashSet());
         groups.clear();
         users.clear();
         try {

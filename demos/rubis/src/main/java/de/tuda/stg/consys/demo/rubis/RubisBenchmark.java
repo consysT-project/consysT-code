@@ -22,9 +22,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfUsersPerReplica;
+    private final float percentOfAuctionItems;
     private final List<Session> localSessions;
     private final List<UUID> localItems;
-    private final List<Ref<Item>> allItems;
+    private final List<Ref<Item>> allAuctionItems;
+    private final List<Ref<Item>> allDirectBuyItems;
     private Ref<AuctionStore> auctionStore;
 
     private static final float maxPrice = 100;
@@ -43,13 +45,15 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
+        percentOfAuctionItems = 0.5f;
 
         Session.userConsistencyLevel = getStrongLevel();
         Session.itemConsistencyLevel = getStrongLevel();
         Session.storeConsistencyLevel = getStrongLevel();
 
         localSessions = new ArrayList<>();
-        allItems = new ArrayList<>();
+        allAuctionItems = new ArrayList<>();
+        allDirectBuyItems = new ArrayList<>();
         localItems = new ArrayList<>();
     }
 
@@ -108,6 +112,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         barrier("auction_store_setup");
 
+        if (processId() != 0) {
+            store().transaction(ctx -> {
+                auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
+                return Option.empty();
+            });
+        }
+
         System.out.println("Adding users and items");
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
 
@@ -127,9 +138,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
                 for (var cat : Category.values()) {
-                    allItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
+                    allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
                 }
             }
+        }
+        for (int i = 0; i < percentOfAuctionItems * numOfUsersPerReplica; i++) {
+            Ref<Item> item = allAuctionItems.remove(i);
+            allDirectBuyItems.add(item);
         }
         BenchmarkUtils.printDone();
     }
@@ -139,7 +154,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         super.cleanup();
         localSessions.clear();
         localItems.clear();
-        allItems.clear();
+        allAuctionItems.clear();
+        allDirectBuyItems.clear();
 
         try {
             Thread.sleep(1000);
@@ -150,25 +166,15 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        do {
-            try {
-                randomTransaction();
-            } catch (Exception e) {
-                if (e instanceof TimeoutException) {
-                    continue;
-                } else if (e instanceof AppException) {
-                    /* possible/acceptable errors:
-                        - bidding on own item (rare)
-                        - auction has already ended (common)
-                    */
-                    System.out.println(e.getMessage());
-                    continue;
-                } else {
-                    throw e;
-                }
-            }
-            break;
-        } while(true);
+        try {
+            randomTransaction();
+        } catch (AppException e) {
+            /* possible/acceptable errors:
+                - bidding on own item (rare)
+                - auction has already ended (common)
+            */
+            System.out.println(e.getMessage());
+        }
     }
 
     @Transactional
@@ -186,7 +192,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void placeBid() {
-        Ref<Item> item = getRandomElement(allItems);
+        Ref<Item> item = getRandomElement(allAuctionItems);
         Session session = getRandomElement(localSessions);
 
         store().transaction(ctx -> {
@@ -197,7 +203,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void buyNow() {
-        Ref<Item> item = getRandomElement(allItems);
+        Ref<Item> item = getRandomElement(allDirectBuyItems);
         Session session = getRandomElement(localSessions);
 
         store().transaction(cty -> {
@@ -207,26 +213,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void closeAuction() {
-        int triesBeforeForcingClose = 5;
-        while (triesBeforeForcingClose > 0) {
-            if (store().transaction(ctx -> {
-                int n = random.nextInt(localSessions.size());
-                Session session = localSessions.get(n);
-                UUID itemId = localItems.get(n);
-                Ref<Item> item = session.getItem(ctx, itemId);
-                if (item.ref().isReserveMet()) {
-                    session.endAuctionImmediately(ctx, item);
-                    localItems.remove(itemId); // caveat: only removes from local process
-                    return Option.apply(true);
-                } else {
-                    return Option.apply(false);
-                }
-            }).get()) {
-                triesBeforeForcingClose = 0;
-            } else {
-                triesBeforeForcingClose--;
-            }
-        }
+        Ref<Item> item = getRandomElement(allAuctionItems);
+
+        store().transaction(ctx -> {
+            item.ref().endAuctionNow();
+            Util.closeAuction(item, auctionStore);
+            return Option.empty();
+        });
     }
 
     private void browseCategory() {

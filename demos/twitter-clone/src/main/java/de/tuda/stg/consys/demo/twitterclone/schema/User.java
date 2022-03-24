@@ -67,6 +67,7 @@ public class User implements Serializable {
         followings.remove(following);
     }
 
+    @Transactional
     public void addRetweet(Ref<Tweet> tweet) {
         addToTimeline(tweet);
         retweets.add(tweet);

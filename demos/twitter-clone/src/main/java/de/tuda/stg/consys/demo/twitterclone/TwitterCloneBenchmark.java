@@ -11,7 +11,6 @@ import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;
 import de.tuda.stg.consys.japi.Ref;
-import org.checkerframework.com.google.common.collect.Sets;
 import scala.Option;
 
 import java.util.ArrayList;
@@ -81,11 +80,11 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
 
-            Ref<@Weak User> user = store().transaction(ctx -> Option.apply(ctx.replicate(
+            Ref<User> user = store().transaction(ctx -> Option.apply(ctx.replicate(
                     addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class, generateRandomName()))).get();
-            Ref<@Weak Counter> retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
+            Ref<Counter> retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
                     addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(), Counter.class, 0))).get();
-            Ref<@Weak Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+            Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
                     addr("tweet", finalGrpIndex, processId()), getWeakLevel(), Tweet.class, user, generateRandomText(3), retweetCount))).get();
 
             store().transaction(ctx -> {
@@ -103,10 +102,10 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
                 int finalGrpIndex = grpIndex;
                 int finalReplIndex = replIndex;
 
-                Ref<@Weak User> user = store().transaction(ctx -> Option.apply(ctx.lookup(
+                Ref<User> user = store().transaction(ctx -> Option.apply(ctx.lookup(
                         addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))).get();
 
-                Ref<@Weak Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
+                Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
                         addr("tweet", finalGrpIndex, finalReplIndex), getWeakLevel(), Tweet.class))).get();
 
                 users.add(user);
@@ -119,7 +118,6 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     @Override
     public void cleanup() {
         super.cleanup();
-        //system().clear(Sets.newHashSet());
         users.clear();
         tweets.clear();
 

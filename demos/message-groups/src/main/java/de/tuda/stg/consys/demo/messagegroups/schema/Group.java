@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.annotations.methods.*;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -16,6 +17,7 @@ public class Group implements Serializable {
     private final Ref<User>[] users = new Ref[100];
 
     //Message delivery
+    @WeakOp
     @Transactional
     public void addPost(String msg) {
         for (Ref<User> user : users) {
@@ -24,6 +26,7 @@ public class Group implements Serializable {
     }
 
     //Join group
+    @StrongOp
     public void addUser(Ref<User> user) {
         for (int i = 0; i < users.length; i++) {
             if (users[i] == null) {
@@ -34,6 +37,7 @@ public class Group implements Serializable {
         throw new IllegalArgumentException("no space for users");
     }
 
+    @WeakOp
     public Ref<User> getUser(int index) {
         Ref<User> user = users[index];
         Objects.requireNonNull(user, "no user at index " + index);
