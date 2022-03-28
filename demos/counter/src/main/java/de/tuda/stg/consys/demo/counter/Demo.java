@@ -12,11 +12,15 @@ public class Demo extends DemoExecutor<CounterBenchmark> {
     @Override
     protected Config benchmarkConfig() {
         var configString = "consys {\n" +
-                "\tbench {\n" +
-                "\t\tdemo {\n" +
-                "\t\t\ttype = \"mixed\"\n" +
-                "\t\t}\n" +
-                "\t}\n" +
+                "  bench {\n" +
+                "    warmupIterations = 5\n" +
+                "    measureIterations = 5\n" +
+                "    operationsPerIteration = 100\n" +
+                "    outputFile = \"./bench-results/mixed/counter\"\n" +
+                "    demo {\n" +
+                "      type = \"op_mixed\"\n" +
+                "    }\n" +
+                "  }\n" +
                 "}";
 
         return ConfigFactory.parseString(configString);

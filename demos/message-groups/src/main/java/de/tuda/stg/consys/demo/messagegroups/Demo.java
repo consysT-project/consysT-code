@@ -18,7 +18,7 @@ public class Demo extends DemoExecutor<MessageGroupsBenchmark> {
                 "        groups = 500\n" +
                 "        weakGroups = 0\n" +
                 "      }\n" +
-                "      type = \"mixed\"\n" +
+                "      type = \"op_mixed\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "\n" +

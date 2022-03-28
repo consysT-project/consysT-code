@@ -12,6 +12,8 @@ import scala.Option;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import scala.concurrent.duration.Duration;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * Created on 19.11.19.
  *
@@ -24,6 +26,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	}
 
 	private final BenchmarkType benchType;
+	private static final int msTimeout = 60000;
 
 
 	public CassandraDemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
@@ -32,18 +35,19 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 
 			if ((int)processId == 0) {
 				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
-						Duration.apply(1000, "ms"), true);
+						Duration.apply(msTimeout, "ms"), true);
 			}
 
 			try {
 				barrier.barrier("init-store");
 			} catch (Exception e) {
+				e.printStackTrace();
 				throw new RuntimeException("error executing barrier during store construction");
 			}
 
 			if ((int)processId != 0) {
 				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
-						Duration.apply(1000, "ms"), false);
+						Duration.apply(msTimeout, "ms"), false);
 			}
 
 			return store;
@@ -82,6 +86,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			store().close();
 			store_$eq(storeCreator().apply(address(), processId(), system()));
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new RuntimeException("error cleaning up store");
 		}
 	}
@@ -90,6 +95,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		try {
 			system().barrier(name);
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new RuntimeException("Error executing barrier '" + name + "'");
 		}
 	}

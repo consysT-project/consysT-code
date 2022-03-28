@@ -9,6 +9,7 @@ import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
@@ -149,7 +150,15 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        randomTransaction();
+        try {
+            randomTransaction();
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof IllegalArgumentException) {
+                System.out.println(e.getMessage());
+            } else throw e;
+        }
     }
 
     @Override
