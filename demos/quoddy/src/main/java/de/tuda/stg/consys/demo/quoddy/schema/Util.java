@@ -33,15 +33,4 @@ public class Util {
         group.ref().acceptMembershipRequest(user, sessionUser);
         user.ref().notifyOfGroupMembershipAcceptance(group);
     }
-
-
-    void mentionUser() {
-
-    }
-    void searchUser() {
-
-    }
-    void searchGroup() {
-
-    }
 }

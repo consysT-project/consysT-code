@@ -12,7 +12,7 @@ import scala.Option;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
-
+@SuppressWarnings({"consistency"})
 public class QuoddyBenchmark extends CassandraDemoBenchmark {
     public static void main(String[] args) {
         start(QuoddyBenchmark.class, args);
@@ -150,12 +150,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        // TODO: repeat
-        try {
-            randomTransaction();
-        } catch (TimeoutException ignored) {
-
-        }
+        randomTransaction();
     }
 
     @Override
@@ -174,7 +169,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     @Transactional
-    private void randomTransaction() throws TimeoutException {
+    private void randomTransaction() {
         // TODO: decide on distribution
         int rand = random.nextInt(100);
         if (rand < 10) {
@@ -253,6 +248,15 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         store().transaction(ctx -> {
             session.sendFriendRequest(ctx, target);
             Util.acceptFriendRequest(target, session.getUser());
+            return Option.empty();
+        });
+    }
+
+    private void joinGroup() {
+        Session session = randomLocalSession();
+        Ref<Group> group = getRandomElement(groups);
+        store().transaction(ctx -> {
+            session.joinGroup(ctx, group);
             return Option.empty();
         });
     }

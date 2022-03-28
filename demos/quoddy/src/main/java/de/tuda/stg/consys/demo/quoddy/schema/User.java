@@ -2,14 +2,15 @@ package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class User implements Serializable {
-    private final String id;
+public @Mixed class User implements Serializable {
+    private @Immutable final String id;
     private String name;
     private String email;
     // socials
@@ -28,7 +29,7 @@ public class User implements Serializable {
     private final List<Ref<? extends Post>> feed;
     private final List<Ref<Group>> participatingGroups;
 
-    public User(String id, String name) {
+    public User(@Local @Immutable String id, @Mutable @Weak String name) {
         this.id = id;
         this.name = name;
         this.friends = new HashMap<>();
@@ -45,9 +46,8 @@ public class User implements Serializable {
     }
 
     @Transactional
-    @StrongOp
     public void notifyOfEventUpdate(Ref<Event> event) {
-        feed.add(0, event); // leads to double entries
+        feed.add(0, event);
     }
 
     @Transactional
@@ -81,26 +81,31 @@ public class User implements Serializable {
         friends.put(user.ref().getId(), user);
     }
 
+    @StrongOp
     @Transactional
     public void removeFriend(Ref<User> user) {
         friends.remove(user.ref().getId());
     }
 
+    @StrongOp
     @Transactional
     public void addFollower(Ref<User> user) {
         followers.put(user.ref().getId(), user);
     }
 
+    @StrongOp
     @Transactional
     public void removeFollower(Ref<User> user) {
         followers.remove(user.ref().getId());
     }
 
+    @StrongOp
     @Transactional
     public void addFollowing(Ref<User> user) {
         following.put(user.ref().getId(), user);
     }
 
+    @StrongOp
     @Transactional
     public void removeFollowing(Ref<User> user) {
         following.remove(user.ref().getId());
@@ -111,19 +116,19 @@ public class User implements Serializable {
         participatingGroups.add(group);
     }
 
-    public void changeProfileText(String text) {
+    public void changeProfileText(@Weak @Mutable String text) {
         this.profileText = text;
     }
 
-    public void changePhoneNumber(String phone) {
+    public void changePhoneNumber(@Weak @Mutable String phone) {
         this.phone = phone;
     }
 
-    public void changeName(String name) {
+    public void changeName(@Weak @Mutable String name) {
         this.name = name;
     }
 
-    public void changeEmail(String email) {
+    public void changeEmail(@Weak @Mutable String email) {
         this.email = email;
     }
 
@@ -168,7 +173,7 @@ public class User implements Serializable {
     }
 
     public List<Ref<? extends Post>> getNewestPosts(int n) {
-        return feed.stream().limit(n).collect(Collectors.toList());
+        return (@Weak @Immutable List<Ref<? extends Post>>) feed.subList(0, Math.min(n, feed.size()));
     }
 
     public List<Ref<Group>> getParticipatingGroups() {

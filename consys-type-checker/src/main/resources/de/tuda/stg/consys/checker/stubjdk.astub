@@ -54,6 +54,9 @@ class Date {
 interface List<T> {
     @SideEffectFree
     boolean isEmpty();
+
+    @SideEffectFree
+    Object subList(int fromIndex, int toIndex);
 }
 
 interface Collection<T> {

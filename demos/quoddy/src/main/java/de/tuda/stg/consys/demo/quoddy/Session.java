@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-
+@SuppressWarnings({"consistency"})
 public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
     public static ConsistencyLevel<CassandraStore> groupConsistencyLevel;
