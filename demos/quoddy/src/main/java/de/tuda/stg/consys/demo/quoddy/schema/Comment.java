@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -17,14 +18,17 @@ public class Comment implements Serializable {
         this.timestamp = timestamp;
     }
 
+    @SideEffectFree
     public String getText() {
         return text;
     }
 
+    @SideEffectFree
     public Ref<User> getOwner() {
         return owner;
     }
 
+    @SideEffectFree
     public Date getTimestamp() {
         return timestamp;
     }

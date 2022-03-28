@@ -57,6 +57,9 @@ interface List<T> {
 
     @SideEffectFree
     Object subList(int fromIndex, int toIndex);
+
+    @SideEffectFree
+    int size();
 }
 
 interface Collection<T> {

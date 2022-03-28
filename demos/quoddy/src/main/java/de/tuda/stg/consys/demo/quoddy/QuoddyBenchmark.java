@@ -10,7 +10,6 @@ import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class QuoddyBenchmark extends CassandraDemoBenchmark {
@@ -170,33 +169,45 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private void randomTransaction() {
-        // TODO: decide on distribution
         int rand = random.nextInt(100);
-        if (rand < 10) {
-            share();
-        } else if (rand < 20) {
-            followUser();
-        } else if (rand < 30) {
-            postStatusToGroup();
-        } else if (rand < 40) {
-            postStatusToProfile();
-        } else if (rand < 50) {
-            commentOnGroupPost();
-        } else if (rand < 60) {
-            readGroupFeed();
-        } else if (rand < 70) {
+        if (rand < 33) {
+            // 33%
             readPersonalFeed();
-        } else if (rand < 80) {
-            postEventUpdate();
-        } else if (rand < 100) {
+        } else if (rand < 50) {
+            // 17%
+            readGroupFeed();
+        } else if (rand < 61) {
+            // 11%
+            postStatusToProfile();
+        } else if (rand < 69) {
+            // 8%
+            postStatusToGroup();
+        } else if (rand < 76) {
+            // 7%
+            followUser();
+        } else if (rand < 82) {
+            // 6%
+            addFriend();
+        } else if (rand < 87) {
+            // 5%
+            share();
+        } else if (rand < 91) {
+            // 4%
             commentOnFriendPost();
+        } else if (rand < 95) {
+            // 4%
+            commentOnGroupPost();
+        } else if (rand < 98) {
+            // 3%
+            joinGroup();
+        } else {
+            // 3%
+            postEventUpdate();
         }
-        // join group
-        // add friend
     }
 
     private void readPersonalFeed() {
-        // render collapsed feed
+        // render feed, where the first few comments are shown
         store().transaction(ctx -> {
             Ref<User> user = randomLocalSession().getUser();
             List<Ref<? extends Post>> feed = user.ref().getNewestPosts(5);
@@ -205,7 +216,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             }
             return Option.empty();
         });
-        // TODO: show comments of one post
     }
 
     private void readGroupFeed() {

@@ -9,8 +9,8 @@ import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class RubisBenchmark extends CassandraDemoBenchmark {
@@ -178,30 +178,44 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 - auction has already ended (common)
             */
             System.out.println(e.getMessage());
+        } catch (Exception e) {
+            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof AppException) {
+                System.out.println(e.getMessage());
+            } else {
+                throw e;
+            }
         }
     }
 
     @Transactional
     private void randomTransaction() {
         int rand = random.nextInt(100);
-        if (rand < 12) {
-            closeAuction();
-        } else if (rand < 28) {
-            rateUser();
-        } else if (rand < 52) {
-            buyNow();
-        } else if (rand < 80){
-            placeBid();
-        } else {
+        if (rand < 44) {
+            // 44%
             browseCategory();
+        } else if (rand < 66) {
+            // 22%
+            placeBid();
+        } else if (rand < 81) {
+            // 15%
+            buyNow();
+        } else if (rand < 92){
+            // 11%
+            rateUser();
+        } else {
+            // 9%
+            closeAuction();
         }
     }
 
     private void placeBid() {
-        Ref<Item> item = getRandomElement(allAuctionItems);
-        Session session = getRandomElement(localSessions);
+        //Ref<Item> item = getRandomElement(allAuctionItems);
+        //Session session = getRandomElement(localSessions);
 
         store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
+            Session session = getRandomElement(localSessions);
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
             return Option.empty();
@@ -209,19 +223,23 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void buyNow() {
-        Ref<Item> item = getRandomElement(allDirectBuyItems);
+        //Ref<Item> item = getRandomElement(allDirectBuyItems);
         Session session = getRandomElement(localSessions);
 
-        store().transaction(cty -> {
-            session.buyNow(null, item);
+        store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
+            session.buyNow(ctx, item);
             return Option.empty();
         });
     }
 
     private void closeAuction() {
-        Ref<Item> item = getRandomElement(allAuctionItems);
+        //Ref<Item> item = getRandomElement(allAuctionItems);
 
         store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
             item.ref().endAuctionNow();
             Util.closeAuction(item, auctionStore);
             return Option.empty();

@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -38,6 +39,7 @@ public @Mixed class Post implements Serializable {
         return creationTimestamp;
     }
 
+    @SideEffectFree
     public List<Comment> getComments() {
         return comments;
     }
