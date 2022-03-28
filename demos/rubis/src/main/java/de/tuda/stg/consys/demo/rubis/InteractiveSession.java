@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@SuppressWarnings({"consistency"})
 public class InteractiveSession {
     private static final int msTimeout = 100;
     private static final int msServerSleep = 1000;

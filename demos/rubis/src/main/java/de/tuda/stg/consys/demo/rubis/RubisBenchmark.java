@@ -12,7 +12,7 @@ import scala.Option;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
-
+@SuppressWarnings({"consistency"})
 public class RubisBenchmark extends CassandraDemoBenchmark {
     public static void main(String[] args) {
         start(RubisBenchmark.class, args);

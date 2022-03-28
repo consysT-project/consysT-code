@@ -17,6 +17,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
+@SuppressWarnings({"consistency"})
 public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;

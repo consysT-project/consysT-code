@@ -60,6 +60,10 @@ interface Collection<T> {
     @Mutable Stream<T> stream();
 }
 
+interface Map<K, V> {
+    @SideEffectFree
+    Object get(Object key);
+}
 
 package java.util.stream;
 

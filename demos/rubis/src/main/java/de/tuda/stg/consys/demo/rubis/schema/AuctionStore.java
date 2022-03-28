@@ -12,40 +12,38 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public @Mixed class AuctionStore implements Serializable {
-    private final List<Tuple2<UUID, Ref<Item>>> openAuctions;
-    private final Map<Category, @Mutable List<Tuple2<UUID, Ref<Item>>>> openAuctionsByCategory;
+    private final Map<UUID, Ref<Item>> openAuctions;
+    private final Map<Category, @Mutable Map<UUID, Ref<Item>>> openAuctionsByCategory;
 
     public AuctionStore() {
-        this.openAuctions = new LinkedList<>();
+        this.openAuctions = new HashMap<>();
         this.openAuctionsByCategory = new HashMap<>();
+        for (@Immutable Category cat : Category.values()) {
+            this.openAuctionsByCategory.put(cat, new HashMap<>());
+        }
     }
 
+    @Transactional
     @StrongOp
     public void addItem(Ref<Item> item, Category category) {
-        if (!openAuctionsByCategory.containsKey(category)) {
-            openAuctionsByCategory.put(category, new LinkedList<>());
-        }
-        openAuctionsByCategory.get(category).add(new Tuple2<>(item.ref().getId(), item));
-        openAuctions.add(new Tuple2<>(item.ref().getId(), item));
+        openAuctionsByCategory.get(category).put(item.ref().getId(), item);
+        openAuctions.put(item.ref().getId(), item);
     }
 
     @Transactional
     @StrongOp
     public void closeAuction(UUID id, Category category) {
-        openAuctions.removeIf(i -> i._1.equals(id));
-        openAuctionsByCategory.get(category).removeIf(i -> i._1.equals(id));
+        openAuctions.remove(id);
+        openAuctionsByCategory.get(category).remove(id);
     }
 
     @WeakOp
     public List<Ref<Item>> browseItems(Category category) {
-        if (!openAuctionsByCategory.containsKey(category)) {
-            openAuctionsByCategory.put(category, new ArrayList<>());
-        }
-        return openAuctionsByCategory.get(category).stream().map(t -> t._2).collect(Collectors.toList());
+        return new ArrayList<>(openAuctionsByCategory.get(category).values());
     }
 
     @WeakOp
     public List<Ref<Item>> getOpenAuctions() {
-        return openAuctions.stream().map(t -> t._2).collect(Collectors.toList());
+        return new ArrayList<>(openAuctions.values());
     }
 }

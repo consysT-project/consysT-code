@@ -46,6 +46,7 @@ public @Mixed class User implements Serializable {
     }
 
     @StrongOp
+    @Transactional
     public void addOwnAuction(Ref<Item> item) {
         this.sellerAuctions.put(item.ref().getId(), item);
     }

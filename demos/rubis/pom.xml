@@ -30,11 +30,11 @@
                             <version>3.0.0-alpha</version>
                         </path>
                     </annotationProcessorPaths>
-<!--
+
                     <annotationProcessors>
                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
--->
+
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:consys-compiler</arg>

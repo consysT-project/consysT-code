@@ -15,6 +15,7 @@ import java.util.concurrent.*;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
+@SuppressWarnings({"consistency"})
 public class TestRunner {
     private static final int msReplicaTimeout = 50;
     private static final int msServerSleep = 1000;
