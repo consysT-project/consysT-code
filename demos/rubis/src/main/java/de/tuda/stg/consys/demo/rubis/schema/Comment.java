@@ -2,9 +2,10 @@ package de.tuda.stg.consys.demo.rubis.schema;
 
 import de.tuda.stg.consys.japi.Ref;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Comment {
+public class Comment implements Serializable {
     int rating;
     String message;
     Ref<User> fromUser;
