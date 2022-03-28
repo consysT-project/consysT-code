@@ -39,7 +39,7 @@
                         <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:consys-compiler</arg>
                         <arg>-AstubWarnIfNotFound</arg>
-                        <!--<arg>-AsuppressWarnings=inconsistent.constructor.type</arg>-->
+                        <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
