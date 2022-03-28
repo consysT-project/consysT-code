@@ -196,6 +196,8 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         } else if (rand < 100) {
             commentOnFriendPost();
         }
+        // join group
+        // add friend
     }
 
     private void readPersonalFeed() {
@@ -289,6 +291,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         });
     }
 
+    // TODO: model event updates with strong consistency?
     private void postEventUpdate() {
         Ref<Event> event = getRandomElement(events);
         store().transaction(ctx -> {

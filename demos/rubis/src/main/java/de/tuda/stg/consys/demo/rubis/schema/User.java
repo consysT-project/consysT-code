@@ -20,6 +20,7 @@ public @Mixed class User implements Serializable {
     private @Weak String email;
     private float rating;
     private int nRatings;
+    private final List<Comment> comments;
     private float balance;
     private final Date creationDate;
     private final Map<UUID, Ref<Item>> buyerAuctions;
@@ -41,6 +42,7 @@ public @Mixed class User implements Serializable {
         this.sellerAuctions = new HashMap<>();
         this.sellerHistory = new HashMap<>();
         this.sellerFailedHistory = new HashMap<>();
+        this.comments = new LinkedList<>();
     }
 
     @StrongOp
@@ -150,11 +152,12 @@ public @Mixed class User implements Serializable {
     }
 
     @WeakOp
-    public void rate(@Weak int rating) {
-        if (rating < 1 || rating > 5) {
+    public void rate(@Weak Comment comment) {
+        if (comment.rating < 1 || comment.rating > 5) {
             throw new AppException("rating out of bounds");
         } else {
-            this.rating += (rating - this.rating) / ++nRatings;
+            this.rating += (comment.rating - this.rating) / ++nRatings;
+            comments.add(comment);
         }
     }
 

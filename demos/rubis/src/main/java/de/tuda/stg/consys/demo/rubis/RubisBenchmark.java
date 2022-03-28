@@ -5,10 +5,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
-import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
-import de.tuda.stg.consys.demo.rubis.schema.Category;
-import de.tuda.stg.consys.demo.rubis.schema.Item;
-import de.tuda.stg.consys.demo.rubis.schema.Util;
+import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
@@ -27,6 +24,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     private final List<UUID> localItems;
     private final List<Ref<Item>> allAuctionItems;
     private final List<Ref<Item>> allDirectBuyItems;
+    private final List<Ref<User>> users;
     private Ref<AuctionStore> auctionStore;
 
     private static final float maxPrice = 100;
@@ -55,6 +53,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         allAuctionItems = new ArrayList<>();
         allDirectBuyItems = new ArrayList<>();
         localItems = new ArrayList<>();
+        users = new ArrayList<>();
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
@@ -137,6 +136,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+                int localGrpIndex = grpIndex;
+                int localReplIndex = replIndex;
+                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
+                        "user:" + addr("user", localGrpIndex, localReplIndex), Session.userConsistencyLevel, User.class))).get());
                 for (var cat : Category.values()) {
                     allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
                 }
@@ -156,6 +159,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         localItems.clear();
         allAuctionItems.clear();
         allDirectBuyItems.clear();
+        users.clear();
 
         try {
             Thread.sleep(1000);
@@ -183,8 +187,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         if (rand < 12) {
             closeAuction();
         } else if (rand < 28) {
-            buyNow();
+            rateUser();
         } else if (rand < 52) {
+            buyNow();
+        } else if (rand < 80){
             placeBid();
         } else {
             browseCategory();
@@ -226,5 +232,15 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         Category category = getRandomCategory();
         Session session = getRandomElement(localSessions);
         session.browseCategory(null, category, 5);
+    }
+
+    private void rateUser() {
+        int rating = 1 + random.nextInt(5);
+        Ref<User> user1 = getRandomElement(users);
+        Ref<User> user2 = getRandomElementExcept(users, user1);
+        store().transaction(ctx -> {
+            user1.ref().rate(new Comment(rating, generateRandomText(10), user2, user1));
+            return Option.empty();
+        });
     }
 }
