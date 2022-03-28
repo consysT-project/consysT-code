@@ -74,6 +74,18 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         return users.get(random.nextInt(users.size()));
     }
 
+    private <E> E getRandomElement(List<E> list) {
+        return list.get(random.nextInt(list.size()));
+    }
+
+    private <E> E getRandomElementExcept(List<E> list, E object) {
+        E element;
+        do {
+            element = list.get(random.nextInt(list.size()));
+        } while (element == object);
+        return element;
+    }
+
     @Override
     public void setup() {
         System.out.println("Adding users");
@@ -158,8 +170,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private int transaction1() {
-        Ref<User> follower = randomUser();
-        Ref<User> following = randomUser();
+        Ref<User> follower = getRandomElement(users);
+        Ref<User> following = getRandomElementExcept(users, follower);
 
         follower.ref().addFollower(following);
         following.ref().addFollowing(follower);

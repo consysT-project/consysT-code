@@ -27,7 +27,6 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfGroupsPerReplica;
-    private final int numOfWeakGroupsPerReplica;
 
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
@@ -38,7 +37,6 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
-        numOfWeakGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.weakGroups");
 
         groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
         users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
@@ -55,17 +53,10 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
             try {
                 int finalGrpIndex = grpIndex;
 
-                if (grpIndex < numOfWeakGroupsPerReplica) {
-                    store().transaction(ctx -> {
-                        ctx.replicate(addr("group", finalGrpIndex, processId()), getWeakLevel(), Group.class);
-                        return Option.empty();
-                    });
-                } else {
-                    store().transaction(ctx -> {
-                        ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
-                        return Option.empty();
-                    });
-                }
+                store().transaction(ctx -> {
+                    ctx.replicate(addr("group", finalGrpIndex, processId()), getWeakLevel(), Group.class);
+                    return Option.empty();
+                });
                 Thread.sleep(33);
 
                 Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
@@ -96,15 +87,9 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
                 Ref<Group> group;
 
-                if (grpIndex < numOfWeakGroupsPerReplica) {
-                    group = store().transaction(ctx -> Option.apply(
-                            ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getWeakLevel(), Group.class))
-                    ).get();
-                } else {
-                    group = store().transaction(ctx -> Option.apply(
-                            ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getStrongLevel(), Group.class))
-                    ).get();
-                }
+                group = store().transaction(ctx -> Option.apply(
+                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getWeakLevel(), Group.class))
+                ).get();
 
                 Ref<User> user = store().transaction(ctx -> Option.apply(
                         ctx.lookup(addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))
