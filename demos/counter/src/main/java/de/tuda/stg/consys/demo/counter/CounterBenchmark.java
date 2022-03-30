@@ -7,6 +7,8 @@ import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
+import java.util.Random;
+
 /**
  * Created on 10.10.19.
  *
@@ -21,21 +23,29 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 		super(config, outputResolver);
 	}
 
+	private final Random random = new Random();
 	private Ref<Counter> counter;
 
 	@Override
 	public void setup() {
 		if (processId() == 0) {
 			counter = store().transaction(ctx -> Option.apply(ctx.replicate("counter", getWeakLevel(), Counter.class, 0))).get();
-		} else {
+		}
+		barrier("counter_added");
+		if (processId() != 0) {
 			counter = store().transaction(ctx -> Option.apply(ctx.lookup("counter", getWeakLevel(), Counter.class))).get();
 		}
 	}
 
 	@Override
 	public void operation() {
+		int roll = random.nextInt(100);
 		store().transaction(ctx -> {
-			counter.ref().inc();
+			if (roll < 50) {
+				counter.ref().inc();
+			} else {
+				counter.ref().get();
+			}
 			return Option.empty();
 		});
 		System.out.print(".");
@@ -43,6 +53,6 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 
 	@Override
 	public void cleanup() {
-		//system().clear(Sets.newHashSet());
+		super.cleanup();
 	}
 }

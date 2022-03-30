@@ -5,24 +5,27 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
-import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
-import de.tuda.stg.consys.demo.rubis.schema.Category;
-import de.tuda.stg.consys.demo.rubis.schema.Util;
+import de.tuda.stg.consys.demo.rubis.schema.*;
+import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
-
+@SuppressWarnings({"consistency"})
 public class RubisBenchmark extends CassandraDemoBenchmark {
     public static void main(String[] args) {
         start(RubisBenchmark.class, args);
     }
 
     private final int numOfUsersPerReplica;
-    private final List<UserInterface> rubisInterfaces;
+    private final float percentOfAuctionItems;
+    private final List<Session> localSessions;
     private final List<UUID> localItems;
-    private final List<UUID> allItems;
+    private final List<Ref<Item>> allAuctionItems;
+    private final List<Ref<Item>> allDirectBuyItems;
+    private final List<Ref<User>> users;
+    private Ref<AuctionStore> auctionStore;
 
     private static final float maxPrice = 100;
 
@@ -40,19 +43,17 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
+        percentOfAuctionItems = 0.5f;
 
-        UserInterface.userConsistencyLevel = getStrongLevel();
-        UserInterface.itemConsistencyLevel = getStrongLevel();
-        UserInterface.bidConsistencyLevel = getWeakLevel();
-        UserInterface.storeConsistencyLevel = getStrongLevel();
+        Session.userConsistencyLevel = getStrongLevel();
+        Session.itemConsistencyLevel = getStrongLevel();
+        Session.storeConsistencyLevel = getStrongLevel();
 
-        rubisInterfaces = new LinkedList<>();
-        for (int i = 0; i < numOfUsersPerReplica; i++) {
-            rubisInterfaces.add(new UserInterface(store()));
-        }
-
-        allItems = new LinkedList<>();
-        localItems = new LinkedList<>();
+        localSessions = new ArrayList<>();
+        allAuctionItems = new ArrayList<>();
+        allDirectBuyItems = new ArrayList<>();
+        localItems = new ArrayList<>();
+        users = new ArrayList<>();
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
@@ -83,62 +84,82 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         return random.nextFloat() * max;
     }
 
-    private UserInterface randomLocalUser() {
-        return rubisInterfaces.get(random.nextInt(rubisInterfaces.size()));
+    private <E> E getRandomElement(List<E> list) {
+        return list.get(random.nextInt(list.size()));
     }
 
-    private UUID randomItem() {
-        return allItems.get(random.nextInt(allItems.size()));
+    private <E> E getRandomElementExcept(List<E> list, E object) {
+        E element;
+        do {
+            element = list.get(random.nextInt(list.size()));
+        } while (element == object);
+        return element;
     }
 
     @Override
     public void setup() {
+        for (int i = 0; i < numOfUsersPerReplica; i++) {
+            localSessions.add(new Session(store()));
+        }
+
         if (processId() == 0) {
             store().transaction(ctx -> {
-                ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
+                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
                 return Option.empty();
             });
         }
 
-        System.out.println("Adding users");
+        barrier("auction_store_setup");
+
+        if (processId() != 0) {
+            store().transaction(ctx -> {
+                auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
+                return Option.empty();
+            });
+        }
+
+        System.out.println("Adding users and items");
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
 
-            rubisInterfaces.get(grpIndex).registerUser(addr("user", grpIndex, processId()), generateRandomName(),
+            localSessions.get(grpIndex).registerUser(null, addr("user", grpIndex, processId()), generateRandomName(),
                     generateRandomPassword(), "mail@example.com");
 
-            rubisInterfaces.get(grpIndex).addBalance(numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
+            localSessions.get(grpIndex).addBalance(null, numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
 
-            rubisInterfaces.get(grpIndex).registerItem(generateRandomText(1), generateRandomText(10),
-                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300);
+            localItems.add(localSessions.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300));
 
             BenchmarkUtils.printProgress(grpIndex);
         }
 
+        barrier("users_added");
+
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+                int localGrpIndex = grpIndex;
+                int localReplIndex = replIndex;
+                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
+                        "user:" + addr("user", localGrpIndex, localReplIndex), Session.userConsistencyLevel, User.class))).get());
                 for (var cat : Category.values()) {
-                    allItems.addAll(randomLocalUser().browseCategoryItems(cat));
+                    allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
                 }
             }
+        }
+        for (int i = 0; i < percentOfAuctionItems * numOfUsersPerReplica; i++) {
+            Ref<Item> item = allAuctionItems.remove(i);
+            allDirectBuyItems.add(item);
         }
         BenchmarkUtils.printDone();
     }
 
     @Override
-    public void operation() {
-        try {
-            randomTransaction();
-        } catch (TimeoutException ignored) {
-
-        }
-    }
-
-    @Override
     public void cleanup() {
-        //system().clear(Sets.newHashSet());
-        rubisInterfaces.clear();
+        super.cleanup();
+        localSessions.clear();
         localItems.clear();
-        allItems.clear();
+        allAuctionItems.clear();
+        allDirectBuyItems.clear();
+        users.clear();
 
         try {
             Thread.sleep(1000);
@@ -147,48 +168,97 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         }
     }
 
-    @Transactional
-    private void randomTransaction() throws TimeoutException {
-        int rand = random.nextInt(100);
-        if (rand < 12) /*12*/ {
-            closeAuction();
-        } else if (rand < 58) {
-            buyNow();
-        } else if (rand < 80) {
-            placeBid();
-        } else if (rand < 100) {
-            browseCategory();
-        } else {
-            throw new IllegalStateException("cannot be here");
+    @Override
+    public void operation() {
+        try {
+            randomTransaction();
+        } catch (AppException e) {
+            /* possible/acceptable errors:
+                - bidding on own item (rare)
+                - auction has already ended (common)
+            */
+            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof AppException) {
+                System.out.println(e.getMessage());
+            } else {
+                throw e;
+            }
         }
     }
 
-    private void placeBid() throws TimeoutException {
-        UUID item = randomItem();
-        UserInterface user = randomLocalUser();
-
-        float bid = user.getTopBid(item)._2;
-        user.placeBid(item, bid * (1 + random.nextFloat()));
+    @Transactional
+    private void randomTransaction() {
+        int rand = random.nextInt(100);
+        if (rand < 44) {
+            // 44%
+            browseCategory();
+        } else if (rand < 66) {
+            // 22%
+            placeBid();
+        } else if (rand < 81) {
+            // 15%
+            buyNow();
+        } else if (rand < 92){
+            // 11%
+            rateUser();
+        } else {
+            // 9%
+            closeAuction();
+        }
     }
 
-    private void buyNow() throws TimeoutException {
-        UUID item = randomItem();
-        UserInterface user = randomLocalUser();
+    private void placeBid() {
+        //Ref<Item> item = getRandomElement(allAuctionItems);
+        //Session session = getRandomElement(localSessions);
 
-        user.buyNow(item);
+        store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
+            Session session = getRandomElement(localSessions);
+            float bid = session.getBidPrice(ctx, item);
+            session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
+            return Option.empty();
+        });
     }
 
-    private void closeAuction() throws TimeoutException {
-        int n = random.nextInt(rubisInterfaces.size());
-        UserInterface user = rubisInterfaces.get(n);
-        UUID item = localItems.get(n);
+    private void buyNow() {
+        //Ref<Item> item = getRandomElement(allDirectBuyItems);
+        Session session = getRandomElement(localSessions);
 
-        user.endAuctionImmediately(item);
+        store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
+            session.buyNow(ctx, item);
+            return Option.empty();
+        });
+    }
+
+    private void closeAuction() {
+        //Ref<Item> item = getRandomElement(allAuctionItems);
+
+        store().transaction(ctx -> {
+            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            Ref<Item> item = getRandomElement(openAuctions);
+            item.ref().endAuctionNow();
+            Util.closeAuction(item, auctionStore);
+            return Option.empty();
+        });
     }
 
     private void browseCategory() {
         Category category = getRandomCategory();
-        UserInterface user = randomLocalUser();
-        user.browseCategory(category);
+        Session session = getRandomElement(localSessions);
+        session.browseCategory(null, category, 5);
+    }
+
+    private void rateUser() {
+        int rating = 1 + random.nextInt(5);
+        Ref<User> user1 = getRandomElement(users);
+        Ref<User> user2 = getRandomElementExcept(users, user1);
+        store().transaction(ctx -> {
+            user1.ref().rate(new Comment(rating, generateRandomText(10), user2, user1));
+            return Option.empty();
+        });
     }
 }

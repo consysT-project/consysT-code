@@ -15,12 +15,12 @@ public class Util {
     @Transactional
     public static void closeAuction(Ref<@Mutable Item> item, Ref<@Mutable AuctionStore> rubis) {
         Ref<@Mutable User> seller = item.ref().getSeller();
-        @Immutable @Strong Optional<Ref<Bid>> winningBid = item.ref().closeAuction();
+        @Immutable @Strong Optional<Bid> winningBid = item.ref().closeAuction();
         @Strong boolean hasWinner = (@Strong boolean)winningBid.isPresent(); // no good way to model return type of Optional
 
         if (hasWinner) {
-            Ref<@Mutable User> winner = winningBid.get().ref().getUser();
-            @Strong float price = winningBid.get().ref().getBid();
+            Ref<@Mutable User> winner = winningBid.get().getUser();
+            @Strong float price = winningBid.get().getBid();
 
             winner.ref().removeBalance(price);
             seller.ref().addBalance(price);
@@ -67,9 +67,9 @@ public class Util {
         float potentialBalance = buyer.ref().getBalance();
 
         for (var item : watched) {
-            @Immutable @Strong Optional<Ref<Bid>> bid = item.ref().getTopBid();
-            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)((Ref<User>)bid.get().ref().getUser()).ref().refEquals(buyer)) {
-                potentialBalance -= (float)bid.get().ref().getBid();
+            @Immutable @Strong Optional<Bid> bid = item.ref().getTopBid();
+            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)((Ref<User>)bid.get().getUser()).ref().refEquals(buyer)) {
+                potentialBalance -= (float)bid.get().getBid();
             }
         }
 
@@ -78,9 +78,9 @@ public class Util {
 
     @Transactional
     private static void closeWatchedItemsForBidders(Ref<@Mutable Item> item) {
-        @Immutable @Strong List<Ref<Bid>> bids = item.ref().getAllBids();
-        for (Ref<Bid> bid : bids) {
-            Ref<@Mutable User> bidder = bid.ref().getUser();
+        @Immutable @Strong List<Bid> bids = item.ref().getAllBids();
+        for (Bid bid : bids) {
+            Ref<@Mutable User> bidder = bid.getUser();
             bidder.ref().closeWatchedAuction(item, false);
         }
     }

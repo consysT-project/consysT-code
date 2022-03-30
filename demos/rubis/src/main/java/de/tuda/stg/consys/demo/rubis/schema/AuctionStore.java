@@ -5,58 +5,45 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import scala.Tuple2;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public @Mixed class AuctionStore implements Serializable {
-    private final List<Ref<User>> users;
-    private final List<Ref<Item>> openAuctions;
-    private final Map<Category, @Mutable List<Ref<Item>>> openAuctionsByCategory;
+    private final Map<UUID, Ref<Item>> openAuctions;
+    private final Map<Category, @Mutable Map<UUID, Ref<Item>>> openAuctionsByCategory;
 
     public AuctionStore() {
-        this.users = new ArrayList<>();
-        this.openAuctions = new LinkedList<>();
+        this.openAuctions = new HashMap<>();
         this.openAuctionsByCategory = new HashMap<>();
+        for (@Immutable Category cat : Category.values()) {
+            this.openAuctionsByCategory.put(cat, new HashMap<>());
+        }
     }
 
-    @StrongOp
-    public void addUser(Ref<User> user) {
-        users.add(user);
-    }
-
+    @Transactional
     @StrongOp
     public void addItem(Ref<Item> item, Category category) {
-        if (!openAuctionsByCategory.containsKey(category)) {
-            openAuctionsByCategory.put(category, new LinkedList<>());
-        }
-        openAuctionsByCategory.get(category).add(item);
-        openAuctions.add(item);
+        openAuctionsByCategory.get(category).put(item.ref().getId(), item);
+        openAuctions.put(item.ref().getId(), item);
     }
 
     @Transactional
     @StrongOp
     public void closeAuction(UUID id, Category category) {
-        openAuctions.removeIf(i -> i.ref().getId().equals(id));
-        openAuctionsByCategory.get(category).removeIf(i -> i.ref().getId().equals(id));
+        openAuctions.remove(id);
+        openAuctionsByCategory.get(category).remove(id);
     }
 
     @WeakOp
     public List<Ref<Item>> browseItems(Category category) {
-        if (!openAuctionsByCategory.containsKey(category)) {
-            openAuctionsByCategory.put(category, new ArrayList<>());
-        }
-        return openAuctionsByCategory.get(category);
+        return new ArrayList<>(openAuctionsByCategory.get(category).values());
     }
 
     @WeakOp
     public List<Ref<Item>> getOpenAuctions() {
-        return openAuctions;
-    }
-
-    @Transactional
-    @WeakOp
-    public Optional<Ref<User>> searchUser(String nickname) {
-        return users.stream().filter(user -> user.ref().getNickname().equals(nickname)).findFirst();
+        return new ArrayList<>(openAuctions.values());
     }
 }

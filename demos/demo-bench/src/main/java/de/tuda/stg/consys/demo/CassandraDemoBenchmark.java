@@ -9,10 +9,10 @@ import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 
-import java.util.Random;
-
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import scala.concurrent.duration.Duration;
+
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Created on 19.11.19.
@@ -26,17 +26,32 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	}
 
 	private final BenchmarkType benchType;
-
-
-	// An executor to use for asynchronous syncs.
-	//private ExecutorService executor = Executors.newCachedThreadPool(); //Currently unused
-	private final Random random = new Random();
+	private static final int msTimeout = 60000;
 
 
 	public CassandraDemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
-		super(name, config, outputResolver, (address, processId) ->
-			Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
-					Duration.apply(1000, "ms"), (int)processId == 0));
+		super(name, config, outputResolver, (address, processId, barrier) -> {
+			CassandraStoreBinding store = null;
+
+			if ((int)processId == 0) {
+				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
+						Duration.apply(msTimeout, "ms"), true);
+			}
+
+			try {
+				barrier.barrier("init-store");
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException("error executing barrier during store construction");
+			}
+
+			if ((int)processId != 0) {
+				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
+						Duration.apply(msTimeout, "ms"), false);
+			}
+
+			return store;
+		});
 
 		String typeString = config.getString("consys.bench.demo.type");
 		if (typeString == null) {
@@ -47,16 +62,6 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 
 	public CassandraDemoBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
 		this("default", config, outputResolver);
-	}
-
-	protected void doSync(Runnable f)  {
-//		final JAkkaReplicaSystem sys = system();
-//		executor.execute(JReplicaSystems.withSystem(sys).use(() -> f));
-		if (shouldSync()) f.run();
-	}
-
-	protected boolean shouldSync() {
-		return random.nextInt(100) < 20;
 	}
 
 	protected ConsistencyLevel<CassandraStore> getStrongLevel() {
@@ -75,17 +80,25 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		}
 	}
 
-/*
-	protected ConsistencyLabel getCausalLevel() {
-		switch (benchType) {
-			case MIXED: return JConsistencyLevels.CAUSAL;
-			case STRONG: return JConsistencyLevels.STRONG;
-			case WEAK: return JConsistencyLevels.WEAK;
+	@Override
+	public void cleanup() {
+		try {
+			store().close();
+			store_$eq(storeCreator().apply(address(), processId(), system()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("error cleaning up store");
 		}
-
-		throw new IllegalArgumentException("unsupported benchtype " + benchType);
 	}
-*/
+
+	protected void barrier(String name) {
+		try {
+			system().barrier(name);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error executing barrier '" + name + "'");
+		}
+	}
 
 	@Override
 	public void closeOperations() {

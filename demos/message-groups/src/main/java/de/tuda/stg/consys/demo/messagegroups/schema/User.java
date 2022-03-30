@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -22,17 +23,20 @@ public class User implements Serializable {
         this.name = name;
     }
 
+    @WeakOp
     @Transactional
     public void send(String msg) {
 //		System.out.println("[Message] " + name + ": " + msg);
         inbox.ref().add(msg);
     }
 
+    @WeakOp
     @Transactional
     public Set<String> getInbox() {
         return inbox.ref().getEntries();
     }
 
+    @WeakOp
     @Transactional
     public void printInbox() {
         String s = "[Inbox] " + name + ": " + inbox.ref().toString();

@@ -14,6 +14,7 @@ import java.util.List;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
+@SuppressWarnings({"consistency"})
 public class BackgroundTask implements Runnable {
     private final int id;
     private final int nReplicas;

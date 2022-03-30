@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.demo.quoddy.schema;
 
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -8,20 +10,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class Activity implements Serializable {
-    private final UUID id;
+public @Mixed class Post implements Serializable {
+    private final @Immutable UUID id;
     private final Ref<User> owner;
     private final Date creationTimestamp;
-    private final List<Ref<Comment>> comments;
+    private final List<Comment> comments;
 
-    public Activity(UUID id, Ref<User> owner) {
+    public Post(@Local @Immutable UUID id, Ref<User> owner) {
         this.id = id;
         this.owner = owner;
         this.comments = new LinkedList<>();
         this.creationTimestamp = new Date();
     }
 
-    void addComment(Ref<Comment> comment) {
+    public void addComment(Comment comment) {
         comments.add(comment);
     }
 
@@ -37,7 +39,8 @@ public class Activity implements Serializable {
         return creationTimestamp;
     }
 
-    public List<Ref<Comment>> getComments() {
+    @SideEffectFree
+    public List<Comment> getComments() {
         return comments;
     }
 }
