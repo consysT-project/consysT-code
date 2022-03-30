@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MixedField {
     String consistencyForWeakDefault() default "";
+    // currently unused by runtime
     String consistencyForStrongDefault() default "";
 }

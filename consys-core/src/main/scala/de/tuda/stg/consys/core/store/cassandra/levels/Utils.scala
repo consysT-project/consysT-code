@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.core.store.cassandra.levels
 
-import de.tuda.stg.consys.annotations.MethodWriteList
+import de.tuda.stg.consys.annotations.{MethodWriteList, MixedField}
+import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.utils.Reflect
 import java.lang.reflect.Field
 import org.checkerframework.dataflow.qual.SideEffectFree
@@ -33,4 +34,13 @@ object Utils {
 		(method.getAnnotation(classOf[SideEffectFree]) != null, writes)
 	}
 
+	def getMixedFieldLevels[T <: CassandraStore#ObjType : ClassTag]: Map[Field, CassandraStore#Level] = {
+		val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
+		// assumes @WeakOp as default for mixed class
+		fields.map(f => (f, f.getAnnotation(classOf[MixedField]).consistencyForWeakDefault() match {
+			case "weak" => Weak
+			case "strong" => Strong
+			case _@s => throw new IllegalStateException(s"invalid parameter <$s> in @MixedField")
+		})).toMap
+	}
 }

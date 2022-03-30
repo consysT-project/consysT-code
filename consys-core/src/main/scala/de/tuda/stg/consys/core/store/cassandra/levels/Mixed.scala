@@ -27,7 +27,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			obj : T
 		) : CassandraStore#RefType[T] = {
 			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
-			val cassObj = new MixedCassandraObject[T](addr, obj, Map.empty,
+			val cassObj = new MixedCassandraObject[T](addr, obj, Utils.getMixedFieldLevels[T],
 				fields.map(f => (f, -1L)).toMap, FetchedStrong
 			)
 			txContext.Cache.writeNewEntry(addr, cassObj, fields)
@@ -127,12 +127,14 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			txContext.Cache.getDataAndFields(ref.addr) match {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-				case Some((cached : MixedCassandraObject[_], fields)) /* if cached.ml == MixedStrong */ =>
+				case Some((cached : MixedCassandraObject[_], changedFields)) /* if cached.ml == MixedStrong */
+					// if any strong field was changed then write batch (all changed fields) with strong consistency
+					if changedFields.map(f => cached.fieldLevels.getOrElse(f, throw new IllegalStateException())).exists(l => l == Strong) =>
 					val builder = txContext.getCommitStatementBuilder
-					store.CassandraBinding.writeFieldEntry(builder, cached.addr, fields, cached.state, CassandraLevel.ALL)
-				case Some((cached : MixedCassandraObject[_], fields)) /* if cached.ml == MixedWeak */ =>
+					store.CassandraBinding.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ALL)
+				case Some((cached : MixedCassandraObject[_], changedFields)) /* if cached.ml == MixedWeak */ =>
 					val builder = txContext.getCommitStatementBuilder
-					store.CassandraBinding.writeFieldEntry(builder, cached.addr, fields, cached.state, CassandraLevel.ONE)
+					store.CassandraBinding.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ONE)
 				case cached =>
 					throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 			}
@@ -172,7 +174,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				clazz.getField(entry._1.getName).set(instance, entry._2)
 			})
 
-			val cassObj = new MixedCassandraObject[T](storedObj.addr, instance, Map.empty, storedObj.timestamps, fetchedLevel)
+			val cassObj = new MixedCassandraObject[T](storedObj.addr, instance, Utils.getMixedFieldLevels[T], storedObj.timestamps, fetchedLevel)
 			cassObj
 		}
 

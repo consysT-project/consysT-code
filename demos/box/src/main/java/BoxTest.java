@@ -1,3 +1,4 @@
+import de.tuda.stg.consys.annotations.MethodWriteList;
 import de.tuda.stg.consys.annotations.MixedField;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -29,11 +30,13 @@ public class BoxTest {
         }
 
         @StrongOp
+        @MethodWriteList({"v"})
         public void set(int v) {
             this.v = v;
         }
 
         @WeakOp
+        @MethodWriteList()
         public int get() {
             return v;
         }
