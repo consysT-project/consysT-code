@@ -23,6 +23,11 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
 		}
 
+		def writeNewEntry(addr : StoreType#Addr, obj : CachedType[_ <: StoreType#ObjType], fields : Iterable[Field]) : Unit  = buffer.put(addr, CacheElement(obj, true, fields)) match {
+			case None =>
+			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
+		}
+
 		def updateEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedObject : Boolean, changedFields : Iterable[Field]) : Option[CachedType[T]]  = {
 			buffer.get(addr) match {
 				case None =>

@@ -8,7 +8,7 @@ import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 import java.lang.reflect.Field
 import org.checkerframework.dataflow.qual.SideEffectFree
-import org.graalvm.compiler.hotspot.nodes.`type`.MethodPointerStamp.method
+//import org.graalvm.compiler.hotspot.nodes.`type`.MethodPointerStamp.method
 import scala.reflect.ClassTag
 
 /** Consistency level for strong, sequential consistency. */

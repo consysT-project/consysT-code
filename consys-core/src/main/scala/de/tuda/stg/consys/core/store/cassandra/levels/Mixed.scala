@@ -26,10 +26,11 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			addr : CassandraStore#Addr,
 			obj : T
 		) : CassandraStore#RefType[T] = {
+			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
 			val cassObj = new MixedCassandraObject[T](addr, obj, Map.empty,
-				Reflect.getFields(implicitly[ClassTag[T]].runtimeClass).map(f => (f, -1L)).toMap, FetchedStrong
+				fields.map(f => (f, -1L)).toMap, FetchedStrong
 			)
-			txContext.Cache.writeNewEntry(addr, cassObj)
+			txContext.Cache.writeNewEntry(addr, cassObj, fields)
 			new CassandraRef[T](addr, Mixed)
 		}
 
