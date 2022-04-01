@@ -97,7 +97,7 @@ object Reflect {
 
 
 	def getField[T](clazz: Class[T], fieldName : String): Field = {
-		val field : Field = Try { clazz.getField(fieldName) }.getOrElse(null)
+		val field : Field = Try { clazz.getDeclaredField(fieldName) }.getOrElse(null)
 
 		if (field == null)
 			throw new IllegalArgumentException(s"no matching field found on $clazz with name $fieldName")
@@ -107,7 +107,7 @@ object Reflect {
 
 
 	def getFields[T](clazz: Class[T]): Iterable[Field] = {
-		clazz.getFields()
+		clazz.getDeclaredFields()
 	}
 
 	private def safeGetClass(a: Any): Class[_] =

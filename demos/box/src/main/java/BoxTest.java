@@ -19,15 +19,7 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 
 public class BoxTest {
     public static class Box implements Serializable {
-        public @MixedField(consistencyForWeakDefault = "strong") int v = 0;
-
-        public Box() {
-            this.v = 0;
-        }
-
-        public Box(int v) {
-            this.v = v;
-        }
+        private @MixedField(consistencyForWeakDefault = "strong") int v = 0;
 
         @StrongOp
         @MethodWriteList({"v"})

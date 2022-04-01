@@ -171,7 +171,9 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			val instance : T = constr.newInstance().asInstanceOf[T]
 
 			storedObj.fields.foreach(entry => {
-				clazz.getField(entry._1.getName).set(instance, entry._2)
+				val field = Reflect.getField(clazz, entry._1.getName)
+				field.setAccessible(true)
+				field.set(instance, entry._2)
 			})
 
 			val cassObj = new MixedCassandraObject[T](storedObj.addr, instance, Utils.getMixedFieldLevels[T], storedObj.timestamps, fetchedLevel)

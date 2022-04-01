@@ -158,6 +158,7 @@ trait CassandraStore extends DistributedStore
 			import QueryBuilder._
 
 			for (field <- fields) {
+				field.setAccessible(true)
 				val builder : Insert = insertInto(s"$objectTableName")
 					.value("id", literal(id))
 					.value("fieldid", literal(field.getName))
@@ -167,6 +168,7 @@ trait CassandraStore extends DistributedStore
 
 				val statement = builder.build().setConsistencyLevel(clevel)
 				batchBuilder.addStatement(statement)
+				field.setAccessible(false)
 			}
 		}
 
