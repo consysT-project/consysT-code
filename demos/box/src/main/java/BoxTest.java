@@ -1,4 +1,3 @@
-import de.tuda.stg.consys.annotations.MixedField;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
@@ -19,7 +18,7 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 @SuppressWarnings({"consistency"})
 public class BoxTest {
     public static class Box implements Serializable {
-        private @MixedField(consistencyForWeakDefault = "strong") int v = 0;
+        private int v = 0;
 
         @StrongOp
         public void set(int v) {

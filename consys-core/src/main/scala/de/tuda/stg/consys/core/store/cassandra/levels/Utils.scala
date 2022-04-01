@@ -37,10 +37,12 @@ object Utils {
 	def getMixedFieldLevels[T <: CassandraStore#ObjType : ClassTag]: Map[Field, CassandraStore#Level] = {
 		val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
 		// assumes @WeakOp as default for mixed class
-		fields.map(f => (f, f.getAnnotation(classOf[MixedField]).consistencyForWeakDefault() match {
-			case "weak" => Weak
-			case "strong" => Strong
-			case _@s => throw new IllegalStateException(s"invalid parameter <$s> in @MixedField")
-		})).toMap
+		fields.map(f => (f, f.getAnnotation(classOf[MixedField]) match {
+			case null => Strong // TODO
+			case value => value.consistencyForWeakDefault() match {
+				case "Weak" => Weak
+				case "Strong" => Strong
+				case _@s => throw new IllegalStateException(s"invalid parameter <$s> in @MixedField")
+			}})).toMap
 	}
 }
