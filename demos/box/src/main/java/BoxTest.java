@@ -1,4 +1,3 @@
-import de.tuda.stg.consys.annotations.MethodWriteList;
 import de.tuda.stg.consys.annotations.MixedField;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -17,18 +16,17 @@ import java.util.concurrent.Executors;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
+@SuppressWarnings({"consistency"})
 public class BoxTest {
     public static class Box implements Serializable {
         private @MixedField(consistencyForWeakDefault = "strong") int v = 0;
 
         @StrongOp
-        @MethodWriteList({"v"})
         public void set(int v) {
             this.v = v;
         }
 
         @WeakOp
-        @MethodWriteList()
         public int get() {
             return v;
         }

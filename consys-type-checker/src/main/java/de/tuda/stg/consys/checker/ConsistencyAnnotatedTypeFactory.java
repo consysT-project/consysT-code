@@ -136,9 +136,8 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				for (var field : CollectionConverters.asJava(fieldSet.get())) {
 					// for some reason we have to provide the string array annotation value
 					// as a List of AnnotationValues of strings
-					annotationValue.add(AnnotationBuilder.elementNamesValues(
-							"", TypeFactoryUtils.getQualifiedName(field)).
-							get(""));
+					annotationValue.add(AnnotationBuilder.
+							elementNamesValues("", field.getSimpleName().toString()).get(""));
 				}
 
 				result.add(AnnotationBuilder.fromClass(getElementUtils(), MethodWriteList.class,
