@@ -16,6 +16,8 @@ public class Group implements Serializable {
 
     private final Ref<User>[] users = new Ref[100];
 
+    public Group() {}
+
     //Message delivery
     @WeakOp
     @Transactional

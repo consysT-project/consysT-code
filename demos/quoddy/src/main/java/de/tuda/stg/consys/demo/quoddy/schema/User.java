@@ -11,34 +11,31 @@ import java.util.stream.Collectors;
 
 public @Mixed class User implements Serializable {
     private @Immutable final String id;
-    private String name;
-    private String email;
+    private String name = "";
+    private String email = "";
     // socials
     // location
     // birthday
     // profile pic
-    private String phone;
-    private String profileText;
-    private final Map<String, Ref<User>> friends;
-    private final Map<String, Ref<User>> followers;
-    private final Map<String, Ref<User>> following;
-    private final Map<String, Ref<User>> receivedFriendRequests;
-    private final Map<String, Ref<User>> sentFriendRequests;
+    private String phone = "";
+    private String profileText = "";
+    private final Map<String, Ref<User>> friends = new HashMap<>();
+    private final Map<String, Ref<User>> followers = new HashMap<>();
+    private final Map<String, Ref<User>> following = new HashMap<>();
+    private final Map<String, Ref<User>> receivedFriendRequests = new HashMap<>();
+    private final Map<String, Ref<User>> sentFriendRequests = new HashMap<>();
     // education history
     // employment history
-    private final List<Ref<? extends Post>> feed;
-    private final List<Ref<Group>> participatingGroups;
+    private final List<Ref<? extends Post>> feed = new LinkedList<>();
+    private final List<Ref<Group>> participatingGroups = new LinkedList<>();
+
+    public User() {
+        id = null;
+    }
 
     public User(@Local @Immutable String id, @Mutable @Weak String name) {
         this.id = id;
         this.name = name;
-        this.friends = new HashMap<>();
-        this.followers = new HashMap<>();
-        this.following = new HashMap<>();
-        this.receivedFriendRequests = new HashMap<>();
-        this.sentFriendRequests = new HashMap<>();
-        this.feed = new LinkedList<>();
-        this.participatingGroups = new LinkedList<>();
     }
 
     public void addPost(Ref<? extends Post> post) {

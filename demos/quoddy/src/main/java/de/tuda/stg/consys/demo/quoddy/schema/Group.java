@@ -19,6 +19,14 @@ public @Mixed class Group implements Serializable {
     private final Map<String, Ref<User>> pendingMembers;
     private final List<Ref<? extends Post>> feed;
 
+    public Group() {
+        this.id = null;
+        this.owners = null;
+        this.members = null;
+        this.pendingMembers = null;
+        this.feed = null;
+    }
+
     @Transactional
     public Group(@Local @Immutable String id, @Weak @Mutable String name, @Weak @Mutable String description,
                  @Strong boolean requiresJoinConfirmation, Ref<User> owner) {

@@ -17,7 +17,7 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 
 @SuppressWarnings({"consistency"})
 public class TestRunner {
-    private static final int msReplicaTimeout = 50;
+    private static final int msReplicaTimeout = 500;
     private static final int msServerSleep = 1000;
     private static final boolean enableLog = true;
     private static final int nReplicas = 3;

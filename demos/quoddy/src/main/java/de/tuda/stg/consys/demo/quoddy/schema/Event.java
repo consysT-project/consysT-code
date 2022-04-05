@@ -16,6 +16,10 @@ public @Mixed class Event extends Post {
     private final List<Ref<User>> subscribers;
     private Ref<Event> self; // not ideal, as it must be set after creation
 
+    public Event() {
+        subscribers = null;
+    }
+
     public Event(@Local @Immutable UUID id, Ref<User> owner, @Strong @Mutable Date date, @Weak @Mutable String text) {
         super(id, owner);
         this.date = date;

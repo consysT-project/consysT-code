@@ -16,13 +16,13 @@ public class Demo extends DemoExecutor<QuoddyBenchmark> {
                 "    warmupIterations = 5\n" +
                 "    measureIterations = 5\n" +
                 "    operationsPerIteration = 100\n" +
-                "    outputFile = \"./bench-results/mixed/quoddy\"\n" +
+                "    outputFile = \"./bench-results/strong/quoddy\"\n" +
                 "    demo {\n" +
                 "      quoddy {\n" +
                 "        users = 100\n" +
                 "        groups = 10\n" +
                 "      }\n" +
-                "      type = \"op_mixed\"\n" +
+                "      type = \"strong\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";

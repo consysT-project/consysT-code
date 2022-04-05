@@ -16,6 +16,8 @@ public class Tweet implements Serializable {
     private Date created = new Date();
     private Ref<@Strong Counter> retweetCount;
 
+    public Tweet() {}
+
     public Tweet(Ref<User>  user, String body, Ref<@Strong Counter> retweetCount) {
         this.user = user;
         this.body = body;

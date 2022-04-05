@@ -13,14 +13,17 @@ import java.util.UUID;
 public @Mixed class Post implements Serializable {
     private final @Immutable UUID id;
     private final Ref<User> owner;
-    private final Date creationTimestamp;
-    private final List<Comment> comments;
+    private final Date creationTimestamp = new Date();
+    private final List<Comment> comments = new LinkedList<>();
+
+    public Post() {
+        this.id = null;
+        this.owner = null;
+    }
 
     public Post(@Local @Immutable UUID id, Ref<User> owner) {
         this.id = id;
         this.owner = owner;
-        this.comments = new LinkedList<>();
-        this.creationTimestamp = new Date();
     }
 
     public void addComment(Comment comment) {

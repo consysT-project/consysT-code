@@ -18,6 +18,11 @@ public class User implements Serializable {
     private final Ref<Inbox> inbox;
     private final String name;
 
+    public User() {
+        inbox = null;
+        name = "";
+    }
+
     public User(Ref<Inbox> inbox, String name) {
         this.inbox = inbox;
         this.name = name;

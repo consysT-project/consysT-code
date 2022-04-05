@@ -8,6 +8,8 @@ public class Counter implements Serializable {
 
     private int value;
 
+    public Counter() {}
+
     @StrongOp
     public void inc() {
         value++;

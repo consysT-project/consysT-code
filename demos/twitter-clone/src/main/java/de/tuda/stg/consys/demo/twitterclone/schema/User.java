@@ -21,6 +21,8 @@ public class User implements Serializable {
     private List<Ref<Tweet>> timeline = new ArrayList<>();
     private List<Ref<Tweet>> retweets = new ArrayList<>();
 
+    public User() {}
+
     public User(String name) {
         this.name = name;
     }
