@@ -41,7 +41,7 @@ object Utils {
 			case null => Strong // TODO
 			case value => value.consistencyForWeakDefault() match {
 				case "Weak" => Weak
-				case "Strong" => Strong
+				case "Strong" | "Local" => Strong
 				case _@s => throw new IllegalStateException(s"invalid parameter <$s> in @MixedField")
 			}})).toMap
 	}

@@ -97,7 +97,16 @@ object Reflect {
 
 
 	def getField[T](clazz: Class[T], fieldName : String): Field = {
-		val field : Field = Try { clazz.getDeclaredField(fieldName) }.getOrElse(null)
+		def getFieldTransitive(clazz: Class[_]): Field = {
+			if (clazz == null) return null
+			Try {
+				clazz.getDeclaredField(fieldName)
+			}.getOrElse(getFieldTransitive(clazz.getSuperclass))
+		}
+
+		val field : Field = Try {
+			getFieldTransitive(clazz)
+		}.getOrElse(null)
 
 		if (field == null)
 			throw new IllegalArgumentException(s"no matching field found on $clazz with name $fieldName")
@@ -107,7 +116,11 @@ object Reflect {
 
 
 	def getFields[T](clazz: Class[T]): Iterable[Field] = {
-		clazz.getDeclaredFields()
+		def getAllFields(clazz: Class[_]): Iterable[Field] = {
+			if (clazz == null) List.empty
+			else clazz.getDeclaredFields ++ getAllFields(clazz.getSuperclass)
+		}
+		getAllFields(clazz)
 	}
 
 	private def safeGetClass(a: Any): Class[_] =

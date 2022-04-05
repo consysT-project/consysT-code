@@ -164,7 +164,7 @@ trait CassandraStore extends DistributedStore
 					.value("fieldid", literal(field.getName))
 					.value("type", literal(TYPE_FIELD))
 					.value("consistency", literal(CONSISTENCY_ANY))
-					.value("state", literal(CassandraStore.serializeObject(field.get(obj).asInstanceOf[Serializable])))
+					.value("state", literal(CassandraStore.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
 
 				val statement = builder.build().setConsistencyLevel(clevel)
 				batchBuilder.addStatement(statement)
