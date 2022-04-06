@@ -1,0 +1,3 @@
+;file;normalized_mean;normalized_conf_1_low;normalized_conf_1_high;normalized_conf_2_low;normalized_conf_2_high
+0;../results/default/local-bench-results/mixed/counter/;0.5316246509451287;0.5178137926548426;0.5454355092354147;0.5039896695798324;0.5592596323104249
+0;../results/default/local-bench-results/mixed/message-groups/;0.18214863302522097;0.17992191924770823;0.1843753468027337;0.17769306679942792;0.18660419925101399
