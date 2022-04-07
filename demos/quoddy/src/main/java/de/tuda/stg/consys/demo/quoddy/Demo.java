@@ -13,16 +13,12 @@ public class Demo extends DemoExecutor<QuoddyBenchmark> {
     protected Config benchmarkConfig() {
         var configString = "consys {\n" +
                 "  bench {\n" +
-                "    warmupIterations = 5\n" +
-                "    measureIterations = 5\n" +
-                "    operationsPerIteration = 100\n" +
-                "    outputFile = \"./bench-results/strong/quoddy\"\n" +
                 "    demo {\n" +
                 "      quoddy {\n" +
                 "        users = 100\n" +
                 "        groups = 10\n" +
                 "      }\n" +
-                "      type = \"strong\"\n" +
+                "      type = \"op_mixed\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";

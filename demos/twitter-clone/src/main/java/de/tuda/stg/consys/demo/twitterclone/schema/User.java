@@ -1,6 +1,10 @@
 package de.tuda.stg.consys.demo.twitterclone.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Immutable;
+import de.tuda.stg.consys.checker.qual.Local;
+import de.tuda.stg.consys.checker.qual.Mixed;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -9,10 +13,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class User implements Serializable {
+@SuppressWarnings({"consistency"})
+public @Mixed class User implements Serializable {
 
-    private UUID id = UUID.randomUUID();
-    private String username = id.hashCode() + "";
+    private @Immutable UUID id = UUID.randomUUID();
+    private @Immutable String username = id.hashCode() + "";
     private String name;
     private Date created = new Date();
 
@@ -23,7 +28,7 @@ public class User implements Serializable {
 
     public User() {}
 
-    public User(String name) {
+    public User(@Mutable @Local String name) {
         this.name = name;
     }
 

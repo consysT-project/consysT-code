@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public @Mixed class User implements Serializable {
-    private @Immutable final String id;
+    private final @Immutable String id;
     private String name = "";
     private String email = "";
     // socials

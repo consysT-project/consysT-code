@@ -13,10 +13,6 @@ public class Demo extends DemoExecutor<MessageGroupsBenchmark> {
     protected Config benchmarkConfig() {
         var configString = "consys {\n" +
                 "  bench {\n" +
-                "    warmupIterations = 1\n" +
-                "    measureIterations = 1\n" +
-                "    operationsPerIteration = 100\n" +
-                "    outputFile = \"./bench-results/mixed/message-groups\"\n" +
                 "    demo {\n" +
                 "      messagegroups {\n" +
                 "        groups = 100\n" +

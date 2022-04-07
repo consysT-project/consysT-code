@@ -12,6 +12,7 @@ import java.util.Objects;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class Group implements Serializable {
 
     private final Ref<User>[] users = new Ref[100];

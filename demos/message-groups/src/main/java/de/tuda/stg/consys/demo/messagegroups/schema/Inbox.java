@@ -9,6 +9,7 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class Inbox implements Serializable {
 
     private final Set<String> entries = new HashSet<>();

@@ -13,6 +13,7 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class User implements Serializable {
 
     private final Ref<Inbox> inbox;

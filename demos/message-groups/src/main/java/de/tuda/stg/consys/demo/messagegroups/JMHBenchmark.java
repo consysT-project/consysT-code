@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 //Note: Currently not working. Use Demo.java instead.
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
