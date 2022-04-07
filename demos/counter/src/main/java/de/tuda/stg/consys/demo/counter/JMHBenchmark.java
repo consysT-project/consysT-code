@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings({"consistency"})
 @Warmup(iterations = 4)
 @Measurement(iterations = 4)
 @BenchmarkMode(Mode.SampleTime)

@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.MIXED;
 
+@SuppressWarnings({"consistency"})
 public class BoxTest {
     public static class Box implements Serializable {
         private int v = 0;
@@ -34,14 +35,14 @@ public class BoxTest {
     private static CassandraStoreBinding r1;
     private static CassandraStoreBinding r2;
     private static final int nRuns = 5;
-    private static final int msReplicaTimeout = 50;
+    private static final int msReplicaTimeout = 60000;
 
     public static void main(String[] args) throws Exception {
         r0 = Cassandra.newReplica("127.0.0.1", 9042, 2181,
                 Duration.apply(msReplicaTimeout, "ms"), true);
-        r1 = Cassandra.newReplica("127.0.0.2", 9042, 2181,
+        r1 = Cassandra.newReplica("127.0.0.2", 9042, 2182,
                 Duration.apply(msReplicaTimeout, "ms"), false);
-        r2 = Cassandra.newReplica("127.0.0.3", 9042, 2181,
+        r2 = Cassandra.newReplica("127.0.0.3", 9042, 2183,
                 Duration.apply(msReplicaTimeout, "ms"), false);
 
         int[] results = new int[nRuns];

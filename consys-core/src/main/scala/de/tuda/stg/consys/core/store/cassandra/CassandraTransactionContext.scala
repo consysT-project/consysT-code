@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.store.cassandra
 
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
 import de.tuda.stg.consys.core.store.TransactionContext
+import de.tuda.stg.consys.core.store.cassandra.objects.CassandraObject
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import scala.language.implicitConversions
@@ -29,7 +30,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 
 	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
 		def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
-			val constructor = Reflect.findConstructor(clazz.runtimeClass, args : _*)
+			val constructor = Reflect.getConstructor(clazz.runtimeClass, args : _*)
 			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]
 		}
 
@@ -61,15 +62,15 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 			* 2. Use the start timestamp of the transaction if it is newer
 			*/
 			val timestamp = Cache.buffer.valuesIterator.foldLeft(startTimestamp)(
-				(timestamp, cassObj) => if (timestamp > cassObj.timestamp) timestamp else cassObj.timestamp + 1
+				(timestamp, cassObj) => if (timestamp > cassObj.data.newestTimestamp) timestamp else cassObj.data.newestTimestamp + 1
 			)
 
 			//Create a batch statement to batch all the writes
 			commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
 			//Commit every object and gather the writes
 			Cache.buffer.valuesIterator.foreach(obj => {
-				val protocol = obj.consistencyLevel.toProtocol(store)
-				protocol.commit(this, obj.toRef)
+				val protocol = obj.data.consistencyLevel.toProtocol(store)
+				protocol.commit(this, obj.data.toRef)
 			})
 
 			//Execute the batch statement
@@ -86,8 +87,8 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 		} finally {
 			/* Execute the post commits */
 			Cache.buffer.valuesIterator.foreach(obj => {
-				val protocol = obj.consistencyLevel.toProtocol(store)
-				protocol.postCommit(this, obj.toRef)
+				val protocol = obj.data.consistencyLevel.toProtocol(store)
+				protocol.postCommit(this, obj.data.toRef)
 			})
 		}
 	}

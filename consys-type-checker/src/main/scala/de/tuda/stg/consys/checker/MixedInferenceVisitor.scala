@@ -284,11 +284,10 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
 
                 // update write access table
                 maybeMethod match {
-                    case Some(method) => accessMode match {
-                        case Write => methodWriteTable.get(method) match {
-                            case Some(value) => methodWriteTable.update(method, value + field)
-                            case None => methodWriteTable.update(method, Set(field))
-                        }
+                    case Some(method) => (accessMode, methodWriteTable.get(method)) match {
+                        case (Write, Some(value)) => methodWriteTable.update(method, value + field)
+                        case (Write, None) => methodWriteTable.update(method, Set(field))
+                        case (Read, None) => methodWriteTable.update(method, Set.empty)
                         case _ =>
                     }
                     case None =>

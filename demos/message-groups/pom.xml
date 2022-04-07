@@ -36,18 +36,17 @@
                             <version>3.0.0-alpha</version>
                         </path>
                     </annotationProcessorPaths>
-                    <!--                    <annotationProcessors>-->
-                    <!--                        &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->
-                    <!--                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
-                    <!--                    </annotationProcessors>-->
+
+                    <annotationProcessors>
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
+                    </annotationProcessors>
+
                     <compilerArgs>
-                        <!--                        <arg>-AprintErrorStack</arg>-->
-                        <!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
-                        <!--                        <arg>-Xbootclasspath/p:${annotatedJdk}</arg>-->
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
                         <!-- Add the consys compiler plugin for preprocessing sources -->
                         <arg>-Xplugin:consys-compiler</arg>
+                        <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

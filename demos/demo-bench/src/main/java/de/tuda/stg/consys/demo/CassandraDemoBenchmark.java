@@ -81,10 +81,17 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	}
 
 	@Override
+	public void setup() {
+		if (store() == null) {
+			store_$eq(storeCreator().apply(address(), processId(), system()));
+		}
+	}
+
+	@Override
 	public void cleanup() {
 		try {
 			store().close();
-			store_$eq(storeCreator().apply(address(), processId(), system()));
+			store_$eq(null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("error cleaning up store");

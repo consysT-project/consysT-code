@@ -5,7 +5,9 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import de.tuda.stg.consys.annotations.MethodWriteList;
-import de.tuda.stg.consys.annotations.MixedField;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.checker.jdk.Utils;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.*;
@@ -136,36 +138,41 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 				for (var field : CollectionConverters.asJava(fieldSet.get())) {
 					// for some reason we have to provide the string array annotation value
 					// as a List of AnnotationValues of strings
-					annotationValue.add(AnnotationBuilder.elementNamesValues(
-							"", TypeFactoryUtils.getQualifiedName(field)).
-							get(""));
+					annotationValue.add(AnnotationBuilder.
+							elementNamesValues("", field.getSimpleName().toString()).get(""));
 				}
 
 				result.add(AnnotationBuilder.fromClass(getElementUtils(), MethodWriteList.class,
 						AnnotationBuilder.elementNamesValues("value", annotationValue)));
 			}
-		} else if (elt.getKind() == ElementKind.FIELD) { // TODO: doesn't work
+		} else if (elt.getKind() == ElementKind.FIELD) {
 			// add runtime @MixedField annotation
-			var withWeakDefault = mixedInferenceVisitor.
-					getInferred((TypeElement) elt.getEnclosingElement(), TypeFactoryUtils.weakAnnotation(this), (VariableElement) elt);
-			var withStrongDefault = mixedInferenceVisitor.
-					getInferred((TypeElement) elt.getEnclosingElement(), TypeFactoryUtils.strongAnnotation(this), (VariableElement) elt);
+			var withWeakDefault = mixedInferenceVisitor.getInferred(
+					(TypeElement) elt.getEnclosingElement(),
+					TypeFactoryUtils.mixedAnnotation(WeakOp.class, this), (VariableElement) elt);
+			var withStrongDefault = mixedInferenceVisitor.getInferred(
+					(TypeElement) elt.getEnclosingElement(),
+					TypeFactoryUtils.mixedAnnotation(StrongOp.class, this), (VariableElement) elt);
 
 			var values = new HashMap<String, AnnotationValue>();
 			if (withWeakDefault.isDefined()) {
-				var map = AnnotationBuilder.
-						elementNamesValues("consistencyForWeakDefault", withWeakDefault.get().getAnnotationType().asElement().getSimpleName().toString());
+				var map = AnnotationBuilder.elementNamesValues(
+						"consistencyForWeakDefault",
+						withWeakDefault.get().getAnnotationType().asElement().getSimpleName().toString());
 				values.putAll(map);
 			}
 			if (withStrongDefault.isDefined()) {
-				var map = AnnotationBuilder.
-						elementNamesValues("consistencyForStrongDefault", withWeakDefault.get().getAnnotationType().asElement().getSimpleName().toString());
+				var map = AnnotationBuilder.elementNamesValues(
+						"consistencyForStrongDefault",
+						withStrongDefault.get().getAnnotationType().asElement().getSimpleName().toString());
 				values.putAll(map);
 			}
 
-			result.add(AnnotationBuilder.fromClass(getElementUtils(), MixedField.class, values));
+			// only add if annotation s fully constructable
+			if (values.size() > 1) {
+				Utils.storeDeclarationAnnotation(elt, values, this);
+			}
 		}
-
 		return result;
 	}
 

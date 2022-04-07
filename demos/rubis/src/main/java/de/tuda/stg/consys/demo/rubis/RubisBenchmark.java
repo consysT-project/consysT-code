@@ -97,7 +97,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "RubisBenchmark";
+    }
+
+    @Override
     public void setup() {
+        super.setup();
+
         for (int i = 0; i < numOfUsersPerReplica; i++) {
             localSessions.add(new Session(store()));
         }

@@ -14,6 +14,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class CounterBenchmark extends CassandraDemoBenchmark {
 	public static void main(String[] args) {
 		start(CounterBenchmark.class, args);
@@ -27,7 +28,14 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 	private Ref<Counter> counter;
 
 	@Override
+	public String getName() {
+		return "CounterBenchmark";
+	}
+
+	@Override
 	public void setup() {
+		super.setup();
+
 		if (processId() == 0) {
 			counter = store().transaction(ctx -> Option.apply(ctx.replicate("counter", getWeakLevel(), Counter.class, 0))).get();
 		}

@@ -102,7 +102,7 @@ public class Session {
                     category, user);
 
             user.ref().addOwnAuction(item);
-            auctionStore.ref().addItem(item, Category.MISC);
+            auctionStore.ref().addItem(item, category);
 
             return Option.apply(itemId);
         }).get();

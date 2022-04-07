@@ -11,4 +11,13 @@
 
     <artifactId>consys-annotations</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>${checkerframework.version}</version>
+        </dependency>
+    </dependencies>
+
+
 </project>

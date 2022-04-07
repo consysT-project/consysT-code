@@ -15,19 +15,24 @@ import java.util.stream.Collectors;
 public @Mixed class User implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable String nickname;
-    private String name;
-    private @Weak String password; // TODO: ?
-    private @Weak String email;
+    private String name = "";
+    private @Weak String password = ""; // TODO: ?
+    private @Weak String email = "";
     private float rating;
     private int nRatings;
-    private final List<Comment> comments;
+    private final List<Comment> comments = new LinkedList<>();
     private float balance;
-    private final Date creationDate;
-    private final Map<UUID, Ref<Item>> buyerAuctions;
-    private final Map<UUID, Ref<Item>> buyerHistory;
-    private final Map<UUID, Ref<Item>> sellerAuctions;
-    private final Map<UUID, Ref<Item>> sellerHistory;
-    private final Map<UUID, Ref<Item>> sellerFailedHistory;
+    private final Date creationDate = new Date();
+    private final Map<UUID, Ref<Item>> buyerAuctions = new HashMap<>();
+    private final Map<UUID, Ref<Item>> buyerHistory = new HashMap<>();
+    private final Map<UUID, Ref<Item>> sellerAuctions = new HashMap<>();
+    private final Map<UUID, Ref<Item>> sellerHistory = new HashMap<>();
+    private final Map<UUID, Ref<Item>> sellerFailedHistory = new HashMap<>();
+
+    public User() {
+        this.id = null;
+        this.nickname = "";
+    }
 
     public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
                 @Weak @Mutable String email) {
@@ -36,13 +41,6 @@ public @Mixed class User implements Serializable {
         this.name = name;
         this.password = password;
         this.email = email;
-        this.creationDate = new Date();
-        this.buyerAuctions = new HashMap<>();
-        this.buyerHistory = new HashMap<>();
-        this.sellerAuctions = new HashMap<>();
-        this.sellerHistory = new HashMap<>();
-        this.sellerFailedHistory = new HashMap<>();
-        this.comments = new LinkedList<>();
     }
 
     @StrongOp

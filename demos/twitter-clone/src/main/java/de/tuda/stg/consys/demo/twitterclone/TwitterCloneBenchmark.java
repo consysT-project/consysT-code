@@ -24,6 +24,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     public static void main(String[] args) {
@@ -87,7 +88,14 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "TwitterCloneBenchmark";
+    }
+
+    @Override
     public void setup() {
+        super.setup();
+
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
@@ -98,6 +106,12 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
                     addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(), Counter.class, 0))).get();
             Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
                     addr("tweet", finalGrpIndex, processId()), getWeakLevel(), Tweet.class, user, generateRandomText(3), retweetCount))).get();
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             store().transaction(ctx -> {
                 user.ref().addToTimeline(tweet);

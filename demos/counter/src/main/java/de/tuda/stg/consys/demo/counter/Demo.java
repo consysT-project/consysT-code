@@ -13,10 +13,6 @@ public class Demo extends DemoExecutor<CounterBenchmark> {
     protected Config benchmarkConfig() {
         var configString = "consys {\n" +
                 "  bench {\n" +
-                "    warmupIterations = 5\n" +
-                "    measureIterations = 5\n" +
-                "    operationsPerIteration = 100\n" +
-                "    outputFile = \"./bench-results/mixed/counter\"\n" +
                 "    demo {\n" +
                 "      type = \"op_mixed\"\n" +
                 "    }\n" +

@@ -9,7 +9,9 @@ import java.util.UUID;
 
 
 public @Mixed class StatusUpdate extends Post {
-    private String text;
+    private String text = "";
+
+    public StatusUpdate() {}
 
     public StatusUpdate(@Local @Immutable UUID id, Ref<User> owner, @Weak @Mutable String text) {
         super(id, owner);

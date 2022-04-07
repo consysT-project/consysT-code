@@ -85,7 +85,14 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "QuoddyBenchmark";
+    }
+
+    @Override
     public void setup() {
+        super.setup();
+
         for (int i = 0; i < numOfUsersPerReplica; i++) {
             localSessions.add(new Session(store()));
         }
@@ -108,6 +115,13 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             Ref<Event> event = localSessions.get(grpIndex % numOfUsersPerReplica).
                     postEventToGroup(null, generateRandomText(20), new Date(), group);
             events.add(event);
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             // every event has some subscribers
             for (int i = 0; i < 5; i++) {
                 store().transaction(ctx -> {

@@ -36,12 +36,50 @@
                     </annotationProcessors>
 
                     <compilerArgs>
-                        <arg>-AprintErrorStack</arg>
                         <arg>-Xplugin:consys-compiler</arg>
                         <arg>-AstubWarnIfNotFound</arg>
                         <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
                     </compilerArgs>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${plugins.shade.version}</version>
+                <executions>
+                    <execution>
+                        <id>add-akka-conf</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>allinone</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="de.tuda.stg.consys.maven.plugins.shade.resource.ReverseAppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+
+                <dependencies>
+                    <dependency>
+                        <groupId>de.tuda.stg.consys</groupId>
+                        <artifactId>consys-core</artifactId>
+                        <version>3.0.0-alpha</version>
+                    </dependency>
+                </dependencies>
+
             </plugin>
         </plugins>
     </build>

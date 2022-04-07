@@ -21,6 +21,7 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     public static void main(String[] args) {
         start(MessageGroupsBenchmark.class, args);
@@ -47,7 +48,14 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "MessageGroupsBenchmark";
+    }
+
+    @Override
     public void setup() {
+        super.setup();
+
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             try {

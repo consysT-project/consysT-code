@@ -37,10 +37,11 @@
                             <version>3.0.0-alpha</version>
                         </path>
                     </annotationProcessorPaths>
-                    <!--                    <annotationProcessors>-->
-                    <!--                        &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->
-                    <!--                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
-                    <!--                    </annotationProcessors>-->
+
+                    <annotationProcessors>
+                        <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                    </annotationProcessors>
+
                     <compilerArgs>
                         <!--                        <arg>-AprintErrorStack</arg>-->
                         <!--                        &lt;!&ndash; location of the annotated JDK, which comes from a Maven dependency &ndash;&gt;-->
@@ -49,6 +50,7 @@
                         <!-- <arg>-Awarns</arg> -->
                         <!-- Add the consys compiler plugin for preprocessing sources -->
                         <arg>-Xplugin:consys-compiler</arg>
+                        <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -67,11 +69,13 @@
                         </goals>
                         <configuration>
                             <finalName>benchmarks</finalName>
-                            <!--                            <transformers>-->
-                            <!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                            <!--                                    <mainClass>org.openjdk.jmh.de.tuda.stg.consys.invariants.Main</mainClass>-->
-                            <!--                                </transformer>-->
-                            <!--                            </transformers>-->
+                            <!--
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.de.tuda.stg.consys.invariants.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                            -->
                             <filters>
                                 <filter>
                                     <!--
@@ -108,12 +112,14 @@
                                         implementation="de.tuda.stg.consys.maven.plugins.shade.resource.ReverseAppendingTransformer">
                                     <resource>reference.conf</resource>
                                 </transformer>
-                                <!--                                <transformer-->
-                                <!--                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                                <!--                                    <manifestEntries>-->
-                                <!--                                        <de.tuda.stg.consys.invariants.Main-Class>akka.de.tuda.stg.consys.invariants.Main</de.tuda.stg.consys.invariants.Main-Class>-->
-                                <!--                                    </manifestEntries>-->
-                                <!--                                </transformer>-->
+                                <!--
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <de.tuda.stg.consys.invariants.Main-Class>akka.de.tuda.stg.consys.invariants.Main</de.tuda.stg.consys.invariants.Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                                -->
                             </transformers>
                         </configuration>
                     </execution>
@@ -139,6 +145,11 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-core</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-japi</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
         <dependency>

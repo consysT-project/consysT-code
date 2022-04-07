@@ -1,5 +1,8 @@
 package de.tuda.stg.consys.japi;
 
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -15,11 +18,15 @@ import java.io.Serializable;
  */
 public class Demo {
 
-	public static class Box implements Serializable {
-		private int i = 0;
+	public static @Mixed class Box implements Serializable {
+		public int i = 0;
+
+		@StrongOp
 		public void inc() {
 			i++;
 		}
+
+		@WeakOp
 		public int get() {
 			return i;
 		}
@@ -54,14 +61,14 @@ public class Demo {
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.replicate("box1", CassandraConsistencyLevels.STRONG, Box.class);
+			Ref<Box> box1 = ctx.replicate("box1", CassandraConsistencyLevels.MIXED, Box.class);
 			box1.invoke("inc"); //No compiler plugin => we have to use this syntax
 			return Option.apply(2);
 		});
 
 		System.out.println("transaction 2");
 		replica1.transaction(ctx -> {
-			Ref<Box> box1 = ctx.lookup("box1", CassandraConsistencyLevels.STRONG, Box.class);
+			Ref<Box> box1 = ctx.lookup("box1", CassandraConsistencyLevels.MIXED, Box.class);
 			box1.invoke("inc");
 			int i = box1.invoke("get");
 			System.out.println(i);

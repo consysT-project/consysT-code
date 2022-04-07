@@ -18,8 +18,9 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
     public void runDemo() {
         MultiPortAddress[] addresses = new MultiPortAddress[] {
                 new MultiPortAddress("127.0.0.1", 9042, 2181),
-                new MultiPortAddress("127.0.0.2", 9042, 2181),
-                new MultiPortAddress("127.0.0.3", 9042, 2181),
+                new MultiPortAddress("127.0.0.2", 9042, 2182),
+                new MultiPortAddress("127.0.0.3", 9042, 2183),
+                new MultiPortAddress("127.0.0.4", 9042, 2184),
         };
 
         var exec = Executors.newFixedThreadPool(addresses.length + 1);
@@ -37,7 +38,9 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
                         benchmark = benchConstructor.newInstance(config, Option.empty());
                         benchmark.runBenchmark();
                         try {
-                            benchmark.store().close();
+                            if (benchmark.store() != null) {
+                                benchmark.store().close();
+                            }
                         } catch (Exception e) {
                             System.out.println("error closing cassandra store: ");
                             e.printStackTrace();

@@ -2,19 +2,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>consys-type-checker</artifactId>
-    <version>3.0.0-alpha</version>
-
-    <packaging>jar</packaging>
-
     <parent>
         <groupId>de.tuda.stg.consys</groupId>
         <artifactId>consys</artifactId>
         <version>3.0.0-alpha</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
+    <artifactId>consys-type-checker</artifactId>
+    <packaging>jar</packaging>
 
     <build>
         <plugins>
@@ -22,14 +18,29 @@
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>--add-modules=jdk.compiler</arg>
+                        <arg>--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                        <arg>--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-
 
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-annotations</artifactId>
+            <version>3.0.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-type-checker-jdk-utils</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
 

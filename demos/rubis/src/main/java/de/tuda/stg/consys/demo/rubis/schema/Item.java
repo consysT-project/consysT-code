@@ -24,6 +24,18 @@ public @Mixed class Item implements Serializable {
     private final Ref<@Mutable User> seller;
     private final List<Bid> bids;
 
+    public Item() {
+        this.id = null;
+        this.name = "";
+        this.reservePrice = 0;
+        this.initialPrice = 0;
+        this.buyNowPrice = 0;
+        this.startDate = null;
+        this.category = null;
+        this.seller = null;
+        this.bids = null;
+    }
+
     public Item(@Local UUID id, @Local @Mutable String name, @Mutable @Weak String description,
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
                 @Local Date startDate, @Strong @Mutable Date endDate, @Local @Mutable Category category,
