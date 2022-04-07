@@ -1,0 +1,52 @@
+# Connect
+
+Connect to the EC2 instance with ssh
+
+	ssh -i ".pki/consys-benchmarks.pem" ubuntu@ec2-3-65-40-121.eu-central-1.compute.amazonaws.com
+
+
+# Install Cassandra
+
+	echo "deb https://downloads.apache.org/cassandra/debian 40x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+
+	curl https://downloads.apache.org/cassandra/KEYS | sudo apt-key add -
+
+	sudo apt-get update
+
+	sudo apt-get install cassandra
+
+	sudo service cassandra start
+
+If necessary, you may need to add a key for installation
+
+	sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-key A278B781FE4B2BDA
+
+Check if cassandra is running (Does this work?)
+
+	nodetool status
+
+
+
+# Configure Cassandra
+
+Configuration file is found in /etc/cassandra
+
+
+
+# Install Cassandra via docker
+
+	sudo apt install docker.io
+
+	docker pull cassandra:latest
+
+Start cassandra
+
+	docker network create cassandra
+
+	docker run --rm -d --name cassandra --hostname cassandra --network cassandra cassandra
+
+	docker run --rm -it --network cassandra nuvo/docker-cqlsh cqlsh cassandra 9042 --cqlversion='3.4.4'
+
+	docker kill cassandra
+	
+	docker network rm cassandra
