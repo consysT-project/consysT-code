@@ -85,6 +85,11 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "QuoddyBenchmark";
+    }
+
+    @Override
     public void setup() {
         super.setup();
 

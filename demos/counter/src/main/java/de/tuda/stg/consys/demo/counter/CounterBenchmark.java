@@ -28,6 +28,11 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 	private Ref<Counter> counter;
 
 	@Override
+	public String getName() {
+		return "CounterBenchmark";
+	}
+
+	@Override
 	public void setup() {
 		super.setup();
 

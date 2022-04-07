@@ -48,6 +48,11 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "MessageGroupsBenchmark";
+    }
+
+    @Override
     public void setup() {
         super.setup();
 

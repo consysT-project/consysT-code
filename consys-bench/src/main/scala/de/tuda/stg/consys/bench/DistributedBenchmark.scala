@@ -43,7 +43,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	val system : BarrierSystem = new BarrierSystem(new Address(address.hostname, address.port2), nReplicas)
 	var store : StoreType = storeCreator(address, processId, system)
 
-	println("All replicas found")
+	println(s"+++++++++++ Process $processId of $getName ready")
 
 	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver],
 			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
@@ -86,6 +86,8 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 
 	/** Cleans up all data structures after the measurement. This is not measured. */
 	protected def cleanup() : Unit
+
+	protected def getName : String = "default"
 
 	private def busyWait(ms : Long) : Unit = {
 		val start = System.currentTimeMillis

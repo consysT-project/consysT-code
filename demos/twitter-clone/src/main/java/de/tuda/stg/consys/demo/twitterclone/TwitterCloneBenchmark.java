@@ -88,6 +88,11 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
+    public String getName() {
+        return "TwitterCloneBenchmark";
+    }
+
+    @Override
     public void setup() {
         super.setup();
 
