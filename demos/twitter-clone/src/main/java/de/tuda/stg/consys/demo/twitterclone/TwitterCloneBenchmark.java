@@ -102,6 +102,12 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
             Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
                     addr("tweet", finalGrpIndex, processId()), getWeakLevel(), Tweet.class, user, generateRandomText(3), retweetCount))).get();
 
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             store().transaction(ctx -> {
                 user.ref().addToTimeline(tweet);
                 return Option.empty();
