@@ -40,9 +40,9 @@ public class BoxTest {
     public static void main(String[] args) throws Exception {
         r0 = Cassandra.newReplica("127.0.0.1", 9042, 2181,
                 Duration.apply(msReplicaTimeout, "ms"), true);
-        r1 = Cassandra.newReplica("127.0.0.2", 9042, 2181,
+        r1 = Cassandra.newReplica("127.0.0.2", 9042, 2182,
                 Duration.apply(msReplicaTimeout, "ms"), false);
-        r2 = Cassandra.newReplica("127.0.0.3", 9042, 2181,
+        r2 = Cassandra.newReplica("127.0.0.3", 9042, 2183,
                 Duration.apply(msReplicaTimeout, "ms"), false);
 
         int[] results = new int[nRuns];

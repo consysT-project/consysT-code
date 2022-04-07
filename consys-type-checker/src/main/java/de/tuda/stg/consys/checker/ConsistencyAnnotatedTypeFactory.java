@@ -4,12 +4,10 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.util.List;
 import de.tuda.stg.consys.annotations.MethodWriteList;
-import de.tuda.stg.consys.annotations.MixedField;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.checker.jdk.Utils;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.*;
@@ -19,7 +17,6 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypeAnnotationUtils;
 import scala.Tuple2;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -173,17 +170,7 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 			// only add if annotation s fully constructable
 			if (values.size() > 1) {
-				var sym = (Symbol.VarSymbol) elt;
-				for (var a : sym.getDeclarationAttributes()) {
-					// only add if not already present
-					if (a.getAnnotationType().asElement().getSimpleName().toString().equals("MixedField")) {
-						return result;
-					}
-				}
-
-				var annotation = AnnotationBuilder.fromClass(getElementUtils(), MixedField.class, values);
-				sym.appendAttributes(List.of(
-						TypeAnnotationUtils.createCompoundFromAnnotationMirror(annotation, getProcessingEnv())));
+				Utils.storeDeclarationAnnotation(elt, values, this);
 			}
 		}
 		return result;

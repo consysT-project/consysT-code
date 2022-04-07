@@ -24,6 +24,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
+@SuppressWarnings({"consistency"})
 public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     public static void main(String[] args) {
@@ -88,6 +89,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void setup() {
+        super.setup();
+
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
