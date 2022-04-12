@@ -11,6 +11,7 @@ trait DistributedZookeeperStore extends DistributedStore {
 
 	val curator : CuratorFramework
 	curator.start()
+	curator.blockUntilConnected()
 
 	override def close() : Unit = {
 		super.close()
