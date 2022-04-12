@@ -97,7 +97,11 @@ Start zookeeper
     apache-zookeeper-3.8.0-bin/bin/zkServer.sh --config aws-bench-configs/zoo stop
     apache-zookeeper-3.8.0-bin/bin/zkServer.sh --config aws-bench-configs/zoo start
 
-
+STart zookeeper (for myid = 1)
+   
+    bin/zkServer.sh --config conf/aws/server1 stop
+    bin/zkServer-initialize.sh --configfile=conf/aws/server1/zoo.cfg --myid=1 --force
+    bin/zkServer.sh --config conf/aws/server1 start
 
 
 
