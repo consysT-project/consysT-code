@@ -303,7 +303,7 @@ object CassandraStore {
 
 		val cassandraSession = CqlSession.builder()
 			.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
-			.withLocalDatacenter("datacenter1")
+//			.withLocalDatacenter("datacenter1")
 			.build()
 
 		val curator = CuratorFrameworkFactory
