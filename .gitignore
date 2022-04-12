@@ -147,7 +147,8 @@ Temporary Items
 gen/
 
 # Exclude opt. Include them manually if needed.
-/opt/
+opt/
+!opt/zookeeper
 
 # Cassandra specific
 opt/cassandra/data/
