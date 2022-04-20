@@ -5,7 +5,6 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.ddata.LWWRegister
 import akka.cluster.ddata.typed.scaladsl.DistributedData
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import de.tuda.stg.consys.core.legacy.akka.DEFAULT_ACTORSYSTEM_NAME
 
 object Main {
 
@@ -20,7 +19,7 @@ object Main {
       .resolve()
 
     //Creates the actor system
-    val internalSystem = akka.actor.ActorSystem(DEFAULT_ACTORSYSTEM_NAME, config)
+    val internalSystem = akka.actor.ActorSystem("MY_ACTOR_SYSTEM", config)
     internalSystem.log.info(s"created replica actor system at ${internalSystem.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 
     val system = ActorSystem.wrap(internalSystem)

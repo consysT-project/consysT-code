@@ -8,7 +8,6 @@ import de.tuda.stg.consys.demo.twitterclone.schema.User;
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
-import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
 import de.tuda.stg.consys.japi.Ref;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.*;

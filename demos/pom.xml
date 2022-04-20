@@ -6,10 +6,10 @@
     <parent>
         <artifactId>consys</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
-        <version>3.0.0-alpha</version>
+        <version>4.0.0</version>
     </parent>
     <artifactId>demos</artifactId>
-    <version>3.0.0-alpha</version>
+    <version>4.0.0</version>
     
     <packaging>pom</packaging>
 
@@ -19,8 +19,6 @@
         <module>message-groups</module>
         <module>counter</module>
         <module>twitter-clone</module>
-        <module>eshop</module>
-        <module>invariant-demos</module>
         <module>rubis</module>
         <module>quoddy</module>
         <module>box</module>

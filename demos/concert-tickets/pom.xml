@@ -5,7 +5,7 @@
     <parent>
         <artifactId>demos</artifactId>
         <groupId>de.tuda.stg.consys</groupId>
-        <version>3.0.0-alpha</version>
+        <version>4.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -122,7 +122,7 @@
                     <dependency>
                         <groupId>de.tuda.stg.consys</groupId>
                         <artifactId>consys-core</artifactId>
-                        <version>3.0.0-alpha</version>
+                        <version>4.0.0</version>
                     </dependency>
                 </dependencies>
 
@@ -134,17 +134,17 @@
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
-            <version>3.0.0-alpha</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-type-checker</artifactId>
-            <version>3.0.0-alpha</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>demo-bench</artifactId>
-            <version>3.0.0-alpha</version>
+            <version>4.0.0</version>
             <scope>compile</scope>
         </dependency>
 
