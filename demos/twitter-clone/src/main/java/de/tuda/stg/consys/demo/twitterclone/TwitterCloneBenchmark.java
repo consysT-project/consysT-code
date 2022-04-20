@@ -39,7 +39,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
             "occupy", "irony", "slow-carb", "heirloom", "YOLO", "tofu", "ethical", "tattooed",
             "vinyl", "artisan", "kale", "selfie"));
     private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
-    private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
+    private static final List<String> L4AST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
 
     private final List<Ref<User>> users;
     private final List<Ref<Tweet>> tweets;
