@@ -31,7 +31,7 @@ public class Main {
    
     runChecker(config,
             /* libs */ new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") },
-            /* checked classes */ Examples.REPLICATED_CREDIT_ACCOUNT
+            /* checked classes */ Examples.REPLICATED_CREDIT_ACCOUNT_OLD
     );
 
 

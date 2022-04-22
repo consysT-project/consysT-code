@@ -50,45 +50,46 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 		Expr otherConst = model.ctx.mkFreshConst("s_other", classModel.getClassSort());
 		var parser = new MergeMethodPreconditionExpressionParser(model, classModel, methodModel, thisConst, otherConst);
 		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
+		expr = expr.simplify();
 
-		for (var mergedField : parser.mergedFields) {
-			ReplicatedClassModel mergeableClassModel = mergedField.classModel;
-
-			var baseMergeableConstraints = model.getClassConstraints(mergedField.classModel.getBinding()).orElseThrow(
-					() -> new IllegalStateException("constraints for class not found: " + mergeableClassModel )
-			);
-
-			if (!(baseMergeableConstraints instanceof ReplicatedClassConstraints))
-				throw new IllegalStateException("constraints for mergebale class expected to be replicated constraints: " + mergeableClassModel);
-
-			ReplicatedClassConstraints<?> mergeableConstraints = (ReplicatedClassConstraints<?>) baseMergeableConstraints;
-
-			// Assumption: M is the underlying, mergeable class (e.g. a CRDT) and C is the current class (e.g. the bank account).
-			// The field f is merged.
-//			//Formula: forall s1 : C, s_m : M. post_merge_M(this.f, other.f, s_m) && s1.f == s_m => I_C(s1)
-			var fieldDecls = classModel.getClassSort().getFieldDecls();
-			Expr sm = model.ctx.mkFreshConst("s_m", mergeableClassModel.getClassSort());
-			Expr s0 = model.ctx.mkFreshConst("s0", classModel.getClassSort());
-			Expr s1 = model.ctx.mkFreshConst("s1", classModel.getClassSort());
-			Expr result = model.ctx.mkForall(
-					new Expr[] { sm, s0, s1 },
-					model.ctx.mkImplies(
-							model.ctx.mkAnd(
-									getInvariant().apply(s0),
-									mergeableConstraints.getInvariant().apply(sm),
-									mergeableConstraints.getMergePostcondition().apply(mergedField.declaration.apply(thisConst), mergedField.declaration.apply(otherConst), sm),
-									// TODO: s1 must equal a valid state s0 except for the field mergedField. (valid state s0 <=> I(s0))
-									model.ctx.mkEq(mergedField.declaration.apply(s1), sm)
-									),
-							getInvariant().apply(s1)
-					),
-					1,
-					null, null, null, null
-			);
-
-			expr = model.ctx.mkAnd(expr, result);
-
-		}
+//		for (var mergedField : parser.mergedFields) {
+//			ReplicatedClassModel mergeableClassModel = mergedField.classModel;
+//
+//			var baseMergeableConstraints = model.getClassConstraints(mergedField.classModel.getBinding()).orElseThrow(
+//					() -> new IllegalStateException("constraints for class not found: " + mergeableClassModel )
+//			);
+//
+//			if (!(baseMergeableConstraints instanceof ReplicatedClassConstraints))
+//				throw new IllegalStateException("constraints for mergebale class expected to be replicated constraints: " + mergeableClassModel);
+//
+//			ReplicatedClassConstraints<?> mergeableConstraints = (ReplicatedClassConstraints<?>) baseMergeableConstraints;
+//
+//			// Assumption: M is the underlying, mergeable class (e.g. a CRDT) and C is the current class (e.g. the bank account).
+//			// The field f is merged.
+////			//Formula: forall s1 : C, s_m : M. post_merge_M(this.f, other.f, s_m) && s1.f == s_m => I_C(s1)
+//			var fieldDecls = classModel.getClassSort().getFieldDecls();
+//			Expr sm = model.ctx.mkFreshConst("s_m", mergeableClassModel.getClassSort());
+//			Expr s0 = model.ctx.mkFreshConst("s0", classModel.getClassSort());
+//			Expr s1 = model.ctx.mkFreshConst("s1", classModel.getClassSort());
+//			Expr result = model.ctx.mkForall(
+//					new Expr[] { sm, s0, s1 },
+//					model.ctx.mkImplies(
+//							model.ctx.mkAnd(
+//									getInvariant().apply(s0),
+//									mergeableConstraints.getInvariant().apply(sm),
+//									mergeableConstraints.getMergePostcondition().apply(mergedField.declaration.apply(thisConst), mergedField.declaration.apply(otherConst), sm),
+//									// TODO: s1 must equal a valid state s0 except for the field mergedField. (valid state s0 <=> I(s0))
+//									model.ctx.mkEq(mergedField.declaration.apply(s1), sm)
+//									),
+//							getInvariant().apply(s1)
+//					),
+//					1,
+//					null, null, null, null
+//			);
+//
+//			expr = model.ctx.mkAnd(expr, result);
+//
+//		}
 
 		return new MergePreconditionModel(thisConst, otherConst, expr);
 	}

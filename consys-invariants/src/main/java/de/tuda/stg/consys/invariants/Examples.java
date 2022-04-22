@@ -43,6 +43,11 @@ public class Examples {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/ReplicatedCreditAccount.java")
 	};
 
+	public static final Path[] REPLICATED_CREDIT_ACCOUNT_OLD = new Path[] {
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccountold/ReplicatedCreditAccount.java")
+	};
+
 	public static final Path[] GSET = new Path[] {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/gset/GSet.java")
 	};

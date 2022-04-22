@@ -58,7 +58,7 @@ public class CompilerBinding {
         Path[] classPath = new Path[additionalClassPath.length + 2];
         System.arraycopy(additionalClassPath, 0, classPath, 2, additionalClassPath.length);
         classPath[0] = Paths.get("consys-invariants","src", "main", "resources", "rt.jar");
-        classPath[1] = Paths.get("consys-annotations", "target", "consys-annotations-3.0.0-alpha.jar");
+        classPath[1] = Paths.get("consys-annotations", "target", "consys-annotations-4.0.0.jar");
 
         String[] compilerOpts = new String[] {
                 "-cp", Arrays.stream(classPath).map(Path::toString).reduce( (acc, e) -> acc + File.pathSeparator + e).orElse(".")

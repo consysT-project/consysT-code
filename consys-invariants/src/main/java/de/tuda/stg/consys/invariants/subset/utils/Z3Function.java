@@ -12,6 +12,7 @@ public class Z3Function {
 	protected final Expr[] parameters;
 	protected final Expr body;
 
+
 	public Z3Function(String name, Expr[] parameters, Expr body) {
 		this.name = name;
 		this.parameters = parameters;
