@@ -6,6 +6,8 @@ import com.microsoft.z3.Context;
 import com.microsoft.z3.Solver;
 import de.tuda.stg.consys.invariants.CompilerBinding;
 import de.tuda.stg.consys.invariants.subset.*;
+import de.tuda.stg.consys.invariants.subset.constraints.BaseClassConstraints;
+import de.tuda.stg.consys.invariants.subset.constraints.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;

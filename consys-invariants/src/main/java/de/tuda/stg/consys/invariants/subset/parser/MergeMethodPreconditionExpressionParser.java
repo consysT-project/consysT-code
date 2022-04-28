@@ -8,7 +8,7 @@ import de.tuda.stg.consys.invariants.subset.model.MergeMethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Function1;
+import de.tuda.stg.consys.invariants.subset.utils.Z3SubstitutionFunction1;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.jmlspecs.jml4.ast.JmlMessageSend;
@@ -63,7 +63,7 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 
 			// Add the merge to the merges
 			mergedFields.add( new MergeDeclaration(
-					new Z3Function1("merge", getThisConst(), thisMergeable),
+					new Z3SubstitutionFunction1("merge", getThisConst(), thisMergeable),
 					replicatedClassModel)
 			);
 
@@ -102,10 +102,10 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 
 
 	public static class MergeDeclaration {
-		public final Z3Function1 declaration;
+		public final Z3SubstitutionFunction1 declaration;
 		public final ReplicatedClassModel classModel;
 
-		public MergeDeclaration(Z3Function1 declaration, ReplicatedClassModel classModel) {
+		public MergeDeclaration(Z3SubstitutionFunction1 declaration, ReplicatedClassModel classModel) {
 			this.declaration = declaration;
 			this.classModel = classModel;
 		}

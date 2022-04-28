@@ -2,13 +2,15 @@ package de.tuda.stg.consys.invariants.subset.utils;
 
 import com.microsoft.z3.Expr;
 
-public class Z3Function1 extends Z3Function {
+public interface Z3Function1 extends Z3Function {
 
-	public Z3Function1(String name, Expr par1, Expr body) {
-		super(name, new Expr[] { par1 }, body);
-	}
+	/**
+	 * Substitutes all parameters of the predicate with the given arguments.
+	 * If an argument is null, then the parameter will not be substituted.
+	 * The list of arguments needs to the same size as the the list of parameters.
+	 *
+	 * @return An expression where the parameters have been substituted by the arguments.
+	 */
+	Expr apply(Expr par1);
 
-	public Expr apply(Expr arg1) {
-		return super.apply(arg1);
-	}
 }

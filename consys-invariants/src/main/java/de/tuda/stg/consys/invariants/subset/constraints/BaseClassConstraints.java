@@ -1,18 +1,16 @@
-package de.tuda.stg.consys.invariants.subset;
+package de.tuda.stg.consys.invariants.subset.constraints;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.types.ObjectModel;
 import de.tuda.stg.consys.invariants.subset.parser.*;
-import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Function1;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Function3;
-import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
+import de.tuda.stg.consys.invariants.subset.utils.*;
 import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -24,8 +22,10 @@ import java.util.stream.Collectors;
 
 public class BaseClassConstraints<CModel extends BaseClassModel> {
 
-	final ProgramModel model;
-	final CModel classModel;
+	public final ProgramModel model;
+	public final CModel classModel;
+
+	protected final ConstraintsFactory constraintsFactory;
 
 	/** The invariant of the class */
 	private final InvariantModel invariant;
@@ -35,66 +35,16 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 	private final InitialConditionModel initial;
 
 	/** Method preconditions */
-	private final Map<MethodBinding, PreconditionModel> preconditions;
+	private final Map<MethodBinding, MethodPreconditionModel> preconditions;
 	/** Method postconditions */
-	private final Map<MethodBinding, PostconditionModel> postconditions;
-
-
-	/* Helper classes for predicate models. */
-	/** Handles the user-defined invariant */
-	public static class InvariantModel extends Z3Function1 {
-		InvariantModel(Expr thisConst, Expr body) {
-			super("I", thisConst, body);
-		}
-	}
-
-	public static class FieldInvariantModel extends Z3Function1 {
-		FieldInvariantModel(Expr thisConst, Expr body) {
-			super("I_fields", thisConst, body);
-		}
-	}
-
-	public static class InitialConditionModel extends Z3Function1 {
-		InitialConditionModel(Expr thisConst, Expr body) {
-			super("init", thisConst, body);
-		}
-	}
-
-	public static class PreconditionModel extends Z3Function1 {
-		PreconditionModel(Expr thisConst, Expr body) {
-			super("pre", thisConst, body);
-		}
-	}
-
-	public static class PostconditionModel extends Z3Function3 {
-		private final Expr[] bodyElements;
-
-		PostconditionModel(Expr oldConst, Expr thisConst, Expr resultConst, Expr body, Expr[] bodyElements) {
-			super("post", oldConst, thisConst, resultConst, body);
-			this.bodyElements = bodyElements;
-		}
-
-		@Override
-		public Expr apply(Expr arg1, Expr arg2, Expr arg3) {
-//			throw new UnsupportedOperationException();
-			return super.apply(arg1, arg2, arg3);
-		}
-
-		public Expr[] applyWithSplitBody(Expr oldArg, Expr thisArg, Expr resultArg) {
-			var result = new Expr[bodyElements.length];
-			for (int i = 0; i < bodyElements.length; i++) {
-				Z3Function3 pred = new Z3Function3("post_" + i, parameters[0], parameters[1], parameters[2], bodyElements[i]);
-				result[i] = pred.apply(oldArg, thisArg, resultArg);
-			}
-
-			return result;
-		}
-	}
+	private final Map<MethodBinding, MethodPostconditionModel> postconditions;
 
 
 	public BaseClassConstraints(ProgramModel model, CModel classModel) {
 		this.model = model;
 		this.classModel = classModel;
+
+		this.constraintsFactory = new ConstraintsFactory(classModel.getClassName(), new Z3CallFunctionFactory(model));
 
 		JmlTypeDeclaration typ = classModel.getJmlType();
 
@@ -103,7 +53,9 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
 		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
 
-		invariant = new InvariantModel(invariantVar, invariantExpr);
+
+
+		invariant = constraintsFactory.makeInvariantModel(invariantVar, invariantExpr);
 
 		// Setup the field invariants
 		Expr fieldInvariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
@@ -126,7 +78,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 			}
 		}
-		fieldInvariant = new FieldInvariantModel(fieldInvariantVar, fieldInvariantExpr);
+		fieldInvariant = constraintsFactory.makeFieldInvariantModel(fieldInvariantVar, fieldInvariantExpr);
 
 
 		// Setup the initial condition
@@ -194,19 +146,19 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		}
 
 		var initialCondition = model.ctx.mkAnd(initialConditions.toArray(Expr[]::new));
-		return new InitialConditionModel(thisConst, initialCondition);
+		return constraintsFactory.makeInitialConditionModel(thisConst, initialCondition);
 	}
 
-	private PreconditionModel handlePrecondition(MethodModel methodModel) {
+	private MethodPreconditionModel handlePrecondition(MethodModel methodModel) {
 		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
 		var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
 		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
-		return new PreconditionModel(thisConst, expr);
+		return constraintsFactory.makeMethodPreconditionModel(methodModel.getName(),thisConst, expr);
 	}
 
 
 
-	private PostconditionModel handlePostcondition(MethodModel methodModel) {
+	private MethodPostconditionModel handlePostcondition(MethodModel methodModel) {
 		// Var for `\old(this)` references
 		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
 		// Var for `this` references
@@ -227,7 +179,6 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 			exprs[i + 1] = e;
 		}
 
-
 		// Parse the assignable clause
 		BoolExpr assignable;
 		var maybeClause = methodModel.getAssignableClause();
@@ -239,7 +190,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		}
 		// Combine the exprs for the postcondition
 		exprs[0] = assignable;
-		return new PostconditionModel(oldConst, thisConst, resultConst, model.ctx.mkAnd(exprs), exprs);
+		return constraintsFactory.makeMethodPostconditionModel(methodModel.getName(), oldConst, thisConst, resultConst, model.ctx.mkAnd(exprs), exprs);
 	}
 
 	public InvariantModel getInvariant() {
@@ -252,11 +203,11 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	public InitialConditionModel getInitialCondition() { return initial; }
 
-	public PreconditionModel getPrecondition(MethodBinding method) {
+	public MethodPreconditionModel getPrecondition(MethodBinding method) {
 		return preconditions.get(method);
 	}
 
-	public PostconditionModel getPostcondition(MethodBinding method) {
+	public MethodPostconditionModel getPostcondition(MethodBinding method) {
 		return postconditions.get(method);
 	}
 

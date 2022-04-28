@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.constraints.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.model.ReplicatedClassModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -104,11 +105,13 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
+		Expr ret = model.ctx.mkFreshConst("ret", constraints.getClassModel().getMethod(binding).get().getReturnType().toSort());
+
 
 		return new MethodProperty("mergability/method",
 				binding,
 				model.ctx.mkForall(
-						new Expr[] {s0, s1, s0_new},
+						new Expr[] {s0, s1, s0_new, ret},
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
@@ -119,7 +122,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 										constraints.getFieldInvariant().apply(s0_new),
 										constraints.getPrecondition(binding).apply(s0),
 										constraints.getMergePrecondition().apply(s0, s1),
-										constraints.getPostcondition(binding).apply(s0, s0_new, null)
+										constraints.getPostcondition(binding).apply(s0, s0_new, ret)
 								),
 								constraints.getMergePrecondition().apply(s0_new, s1)
 						),

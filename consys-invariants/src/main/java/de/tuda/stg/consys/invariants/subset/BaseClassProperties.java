@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.subset;
 
 import com.microsoft.z3.Expr;
+import de.tuda.stg.consys.invariants.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -51,17 +52,18 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 	private Property methodSatisfiesInvariant(MethodBinding binding) {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
+		Expr ret = model.ctx.mkFreshConst("ret", constraints.getClassModel().getMethod(binding).get().getReturnType().toSort());
 
 		var result = new MethodProperty("invariant/method",
 				binding,
 				model.ctx.mkForall(
-						new Expr[] {s0, s0_new},
+						new Expr[] {s0, s0_new, ret},
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getInvariant().apply(s0),
 										constraints.getFieldInvariant().apply(s0),
 										constraints.getPrecondition(binding).apply(s0),
-										constraints.getPostcondition(binding).apply(s0, s0_new, null)
+										constraints.getPostcondition(binding).apply(s0, s0_new, ret)
 								),
 								constraints.getInvariant().apply(s0_new)
 						),

@@ -69,8 +69,12 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 		return Optional.of(method.getSpecification().getPostcondition());
 	}
 
-	public String getName() {
+	public String getFullyQualifiedName() {
 		return JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
+	}
+
+	public String getName() {
+		return String.valueOf(method.binding.selector);
 	}
 
 	public MethodBinding getBinding() {
