@@ -27,12 +27,14 @@
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>3.0.0-alpha</version>
+                            <version>4.0.0</version>
                         </path>
                     </annotationProcessorPaths>
+
                     <annotationProcessors>
                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
+
                     <compilerArgs>
                         <arg>-Xplugin:consys-compiler</arg>
                     </compilerArgs>
