@@ -286,8 +286,9 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	@Override
 	public Void visitMethodInvocation(MethodInvocationTree tree, Modificator modificator) {
 		scan(tree.getTypeArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getTypeArguments(), l -> ((JCTree.JCMethodInvocation) tree).typeargs = l));
-		scan(tree.getMethodSelect(), newTree -> ((JCTree.JCMethodInvocation) tree).meth = (JCTree.JCExpression) newTree);
+		// scan arguments before method-select, so that ref calls inside other ref calls get transformed
 		scan(tree.getArguments(), ModifyingTreePathScanner.<JCTree.JCExpression>getModificators(tree.getArguments(), l -> ((JCTree.JCMethodInvocation) tree).args = l));
+		scan(tree.getMethodSelect(), newTree -> ((JCTree.JCMethodInvocation) tree).meth = (JCTree.JCExpression) newTree);
 		return null;
 	}
 
