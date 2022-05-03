@@ -15,9 +15,7 @@ import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Names;
 
 import javax.lang.model.element.Name;
-import javax.lang.model.type.TypeKind;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 
@@ -28,7 +26,8 @@ import java.util.Optional;
  */
 public class ConsysJavacPlugin implements Plugin {
 
-	public final static boolean DEBUG = false;
+	public final static boolean DEBUG = true;
+	static Log logger;
 
 	@Override
 	public String getName() {
@@ -38,12 +37,13 @@ public class ConsysJavacPlugin implements Plugin {
 	@Override
 	public void init(JavacTask task, String... args) {
 		Context context = ((BasicJavacTask) task).getContext();
-		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "using " + getName());
+		ConsysJavacPlugin.logger = Log.instance(context);
+
+		log("using " + getName());
 
 		task.addTaskListener(new TaskListener() {
 			@Override
-			public void started(TaskEvent taskEvent) {
-			}
+			public void started(TaskEvent taskEvent) {}
 
 			@Override
 			public void finished(TaskEvent taskEvent) {
@@ -59,81 +59,57 @@ public class ConsysJavacPlugin implements Plugin {
 
 						Optional<CRefUsage> maybeRefUsage = classifyRef(getCurrentPath(), context);
 						if (maybeRefUsage.isPresent()) {
-//							Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Path to ref: " + getCurrentPath());
-//							Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Tree of ref: " + ((JCTree)tree));
-//							Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Type of ref: " + ((JCTree)tree).type);
-//							Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Sym of ref: " + ((JCTree.JCFieldAccess)tree).sym);
+							logDebug("Path to ref: " + getCurrentPath());
+							logDebug("Tree of ref: " + tree);
+							logDebug("Type of ref: " + ((JCTree)tree).type);
+							logDebug("Sym of ref: " + ((JCTree.JCFieldAccess)tree).sym);
+
+							TreeMaker factory = TreeMaker.instance(context);
+							Names names = Names.instance(context);
+							Types types = Types.instance(context);
+							Symtab symtab = Symtab.instance(context);
 
 							CRefUsage refUsage = maybeRefUsage.get();
-
-
 							if (refUsage instanceof CMethodInv) {
 								CMethodInv methodInv = (CMethodInv) refUsage;
 
-								TreeMaker factory = TreeMaker.instance(context);
-								Names names = Names.instance(context);
-
-								JCTree.JCExpression[] args = new JCTree.JCExpression[1 + methodInv.arguments.size()];
-								args[0] = factory.Literal(methodInv.methodName.toString());
-								for (int i = 1; i < args.length; i++) {
-//									Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "i = " + i + ", length = " + args.length);
-									args[i] = (JCTree.JCExpression) methodInv.arguments.get(i - 1);
-								}
-
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "old tree: " + tree);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "old type: " + ((JCTree)tree).type);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "old symbol: " + ((JCTree.JCFieldAccess)tree).sym);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "old symbol type: " + ((JCTree.JCFieldAccess)tree).sym.type);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "old symbol flags: " + Flags.asFlagSet(((JCTree.JCFieldAccess)tree).sym.flags()));
-
-
 								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) methodInv.expr, names.fromString("invoke"));
 
-								//Type newType = Types.instance(context).createMethodTypeWithParameters(
-								//		methodInv.type, methodInv.type.getParameterTypes().prepend(Symtab.instance(context).stringType));
-								Type newType = Types.instance(context).createMethodTypeWithReturn(methodInv.type, Symtab.instance(context).objectType);
-								Type.ArrayType arrayType = new Type.ArrayType(Symtab.instance(context).objectType, Symtab.instance(context).arrayClass);
-								newType = Types.instance(context).createMethodTypeWithParameters(
-										newType, com.sun.tools.javac.util.List.of(Symtab.instance(context).stringType, arrayType));
+								// adapt old 'Ref.ref()' to new 'Ref.invoke(String, Object[])' method type
+								Type selectType = types.createMethodTypeWithReturn(methodInv.memberSelectType, symtab.objectType);
+								selectType = types.createMethodTypeWithParameters(selectType,
+										com.sun.tools.javac.util.List.of(
+												symtab.stringType,
+												// we must directly construct the transformed form of the varargs parameter type, i.e. Object[]
+												new Type.ArrayType(symtab.objectType, symtab.arrayClass)));
+								newSelect.setType(selectType);
 
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "new arg types: " + newType.getParameterTypes().toString(","));
-								newSelect.setType(newType);
+								newSelect.sym = ((JCTree.JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("invoke"));
 
-								newSelect.sym = //((JCTree.JCFieldAccess)tree).sym;
-									new Symbol.MethodSymbol(Flags.PUBLIC | Flags.ABSTRACT, names.fromString("invoke"), newType, ((JCTree.JCFieldAccess)tree).sym.owner);
-										//new Symbol.ClassSymbol(0L, names.fromString("de.tuda.stg.consys.objects.japi.Ref"), ((JCTree.JCFieldAccess) tree).selected.type,
-										//		((JCTree.JCFieldAccess)tree).sym.owner.owner));
-
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "new type: " + newType);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "new symbol: " + newSelect.sym);
-
-								var argList = com.sun.tools.javac.util.List.from(args);
-								JCTree.JCExpression arrayArg = factory.NewArray(factory.Type(Symtab.instance(context).objectType), com.sun.tools.javac.util.List.nil(), argList.tail);
-								arrayArg.setType(arrayType);
-								argList = com.sun.tools.javac.util.List.from(new JCTree.JCExpression[]{args[0], arrayArg});
+								// construct invocation arguments in transformed form of varargs, i.e. Objects... -> new Object[]{...}
+								JCTree.JCExpression arrayArg = factory.NewArray(
+										factory.Type(symtab.objectType),
+										com.sun.tools.javac.util.List.nil(),
+										com.sun.tools.javac.util.List.from(methodInv.arguments.toArray(new JCTree.JCExpression[0])));
+								arrayArg.setType(new Type.ArrayType(symtab.objectType, symtab.arrayClass));
 
 								JCTree.JCMethodInvocation newInvoke = factory.at( ((JCTree) methodInv.originalPath.getLeaf()).pos )
 								.Apply(null,
-									newSelect,
-									argList //com.sun.tools.javac.util.List.from(args)
+										newSelect,
+										com.sun.tools.javac.util.List.of(factory.Literal(methodInv.methodName.toString()), arrayArg)
 								);
-								newInvoke.type = ((JCTree) methodInv.originalPath.getLeaf()).type; // TODO: correct return type or must be Object?
-								//newInvoke.type = newType.getReturnType();
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New invoke: " + newInvoke);
-								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New invoke type: " + newInvoke.type);
+								// set the return type of invoke() as the return type of the original method
+								newInvoke.setType(((JCTree) methodInv.originalPath.getLeaf()).type);
 
-								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old invoke: " + methodInv.originalPath.getLeaf());
-//								Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Path: " + methodInv.originalPath);
+								logDebug("Old invoke: " + methodInv.originalPath.getLeaf());
 								methodInv.originalPath.getModificator().accept(newInvoke);
-								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New invoke: " + newInvoke);
+								logDebug("New invoke: " + newInvoke);
 //
 							} else if (refUsage instanceof CAssign) {
 								CAssign assign = (CAssign) refUsage;
 
-								TreeMaker factory = TreeMaker.instance(context);
-								Names names = Names.instance(context);
-
 								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) assign.expr, names.fromString("setField"));
+								// TODO: set type and symbol for newSelect
 
 								JCTree.JCMethodInvocation newSetField = factory.at(((JCTree) assign.originalPath.getLeaf()).pos)
 									.Apply(null,
@@ -143,18 +119,17 @@ public class ConsysJavacPlugin implements Plugin {
 											(JCTree.JCExpression) assign.newValue
 											)
 									);
+								// TODO: set type for newSetField
 
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old assign: " + assign.originalPath.getLeaf());
-								//assign.originalPath.getModificator().accept(newSetField);
+								//assign.originalPath.getModificator().accept(newSetField); // TODO
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New assign: " + newSetField);
 
 							} else if (refUsage instanceof CFieldAcc) {
 								CFieldAcc fieldAcc = (CFieldAcc) refUsage;
 
-								TreeMaker factory = TreeMaker.instance(context);
-								Names names = Names.instance(context);
-
 								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) fieldAcc.expr, names.fromString("getField"));
+								// TODO: set type and symbol for newSelect
 
 								JCTree.JCMethodInvocation newGetField = factory.at(((JCTree) fieldAcc.originalPath.getLeaf()).pos)
 									.Apply(null,
@@ -163,14 +138,15 @@ public class ConsysJavacPlugin implements Plugin {
 											factory.Literal(fieldAcc.fieldName.toString())
 										)
 									);
+								// TODO: set type for newGetField
 
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old access: " + fieldAcc.originalPath.getLeaf());
-								//fieldAcc.originalPath.getModificator().accept(newGetField);
+								//fieldAcc.originalPath.getModificator().accept(newGetField); // TODO
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New access: " + newGetField);
 
 							}
 
-							if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Unit after change: " + taskEvent.getCompilationUnit());
+							//logDebug("Unit after change: " + taskEvent.getCompilationUnit());
 						}
 
 						return result;
@@ -186,25 +162,23 @@ public class ConsysJavacPlugin implements Plugin {
 
 	private static Optional<CRefUsage> classifyRef(ModifyingTreePath path, Context context) {
 		if (path == null) {
-			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"Cannont classify ref for null\n=> empty1");
+			logDebug("Cannont classify ref for null\n=> empty1");
 			return Optional.empty();
 		}
 
-		if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"# " + path.getLeaf());
+		//logDebug("# " + path.getLeaf());
 		Tree curr = path.getLeaf();
 
 		//Check for a call to ref(), i.e. there is a MemberSelect and a MethodInvocation
 		if (!(curr instanceof MemberSelectTree
 			&& ((MemberSelectTree) curr).getIdentifier().contentEquals("ref"))) {
-			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty1");
+			//logDebug("=> empty1");
 			return Optional.empty();
 		}
 
 		ExpressionTree expr = ((MemberSelectTree) curr).getExpression();
-		//TODO: Types are not available in PARSE phase, but in ANALYZE phase we have to provide types when creating new expressions
-//		Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Type of expr: " + ((JCTree.JCExpression) expr).type);
 
-		//Move to parent leaf -> Ref.ref()
+		//Move to parent leaf, i.e. Ref.ref()
 		path = path.getParentPath();
 		if (path == null) {
 			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty2");
@@ -219,7 +193,7 @@ public class ConsysJavacPlugin implements Plugin {
 			return Optional.empty();
 		}
 
-		//Move to parent leaf -> Ref.ref().method
+		//Move to parent leaf, i.e Ref.ref().method
 		path = path.getParentPath();
 		if (path == null) {
 			if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE,"=> empty4");
@@ -231,20 +205,14 @@ public class ConsysJavacPlugin implements Plugin {
 		if (curr instanceof MemberSelectTree) {
 			Name name = ((MemberSelectTree) curr).getIdentifier();
 
-			// move to parent -> Ref.ref().method()
+			// move to parent, i.e. Ref.ref().method()
 			ModifyingTreePath methodPath = path.getParentPath();
 			if (methodPath == null) return Optional.empty();
 			Tree methodCurr = methodPath.getLeaf();
 
 			if (methodCurr instanceof MethodInvocationTree && ((MethodInvocationTree) methodCurr).getMethodSelect() == curr) {
 				List<? extends ExpressionTree> args = ((MethodInvocationTree) methodCurr).getArguments();
-				if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "=> method: " + expr + "." + name + "(" + args + ")");
-				//Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "-- expr: " + methodCurr);
-				//Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "-- Type of expr: " + ((JCTree.JCExpression) methodCurr).type);
-
-				//Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "-- Type of expr: " + ((JCTree.JCExpression)expr).type);
-				//Type.ClassType t = (Type.ClassType) ((JCTree.JCExpression)expr).type;
-
+				logDebug("=> method: " + expr + "." + name + "(" + args + ")");
 
 				return Optional.of(new CMethodInv(methodPath, expr, name, args, ((JCTree.JCFieldAccess)curr).type));
 			}
@@ -275,6 +243,13 @@ public class ConsysJavacPlugin implements Plugin {
 		return Optional.empty();
 	}
 
+	private static void log(String msg) {
+		logger.printRawLines(Log.WriterKind.NOTICE, msg);
+	}
+
+	private static void logDebug(String msg) {
+		if (DEBUG) logger.printRawLines(Log.WriterKind.NOTICE, msg);
+	}
 
 	private interface CRefUsage {
 		ModifyingTreePath getOriginalPath();
@@ -285,14 +260,16 @@ public class ConsysJavacPlugin implements Plugin {
 		final ExpressionTree expr;
 		final Name methodName;
 		final List<? extends ExpressionTree> arguments;
-		final Type type;
+		/** Executable type of the 'Ref.ref' member-select-tree **/
+		final Type memberSelectType;
 
-		private CMethodInv(ModifyingTreePath originalPath, ExpressionTree expr, Name methodName, List<? extends ExpressionTree> arguments, Type type) {
+		private CMethodInv(ModifyingTreePath originalPath, ExpressionTree expr, Name methodName,
+						   List<? extends ExpressionTree> arguments, Type memberSelectType) {
 			this.originalPath = originalPath;
 			this.expr = expr;
 			this.methodName = methodName;
 			this.arguments = arguments;
-			this.type = type;
+			this.memberSelectType = memberSelectType;
 		}
 
 		@Override
