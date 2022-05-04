@@ -59,10 +59,10 @@ public class ConsysJavacPlugin implements Plugin {
 
 						Optional<CRefUsage> maybeRefUsage = classifyRef(getCurrentPath(), context);
 						if (maybeRefUsage.isPresent()) {
-							logDebug("Path to ref: " + getCurrentPath());
-							logDebug("Tree of ref: " + tree);
-							logDebug("Type of ref: " + ((JCTree)tree).type);
-							logDebug("Sym of ref: " + ((JCTree.JCFieldAccess)tree).sym);
+							//logDebug("Path to ref: " + getCurrentPath());
+							//logDebug("Tree of ref: " + tree);
+							//logDebug("Type of ref: " + ((JCTree)tree).type);
+							//logDebug("Sym of ref: " + ((JCTree.JCFieldAccess)tree).sym);
 
 							TreeMaker factory = TreeMaker.instance(context);
 							Names names = Names.instance(context);
@@ -72,11 +72,12 @@ public class ConsysJavacPlugin implements Plugin {
 							CRefUsage refUsage = maybeRefUsage.get();
 							if (refUsage instanceof CMethodInv) {
 								CMethodInv methodInv = (CMethodInv) refUsage;
+								Type originalReturnType = ((JCTree) methodInv.originalPath.getLeaf()).type;
 
 								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) methodInv.expr, names.fromString("invoke"));
 
 								// adapt old 'Ref.ref()' to new 'Ref.invoke(String, Object[])' method type
-								Type selectType = types.createMethodTypeWithReturn(methodInv.memberSelectType, symtab.objectType);
+								Type selectType = types.createMethodTypeWithReturn(methodInv.memberSelectType, originalReturnType);
 								selectType = types.createMethodTypeWithParameters(selectType,
 										com.sun.tools.javac.util.List.of(
 												symtab.stringType,
@@ -93,13 +94,18 @@ public class ConsysJavacPlugin implements Plugin {
 										com.sun.tools.javac.util.List.from(methodInv.arguments.toArray(new JCTree.JCExpression[0])));
 								arrayArg.setType(new Type.ArrayType(symtab.objectType, symtab.arrayClass));
 
+								// explicitly re-construct annotations of the return type for annotating the <>invoke() type parameter
+								com.sun.tools.javac.util.List<Attribute.Compound> returnTypeAnnotations = com.sun.tools.javac.util.List.nil();
+								for (var elem : ((TypeMetadata.Annotations)originalReturnType.getMetadataOfKind(TypeMetadata.Entry.Kind.ANNOTATIONS)).getAnnotations())
+									returnTypeAnnotations = returnTypeAnnotations.append(elem);
+
 								JCTree.JCMethodInvocation newInvoke = factory.at( ((JCTree) methodInv.originalPath.getLeaf()).pos )
-								.Apply(null,
+								.Apply(com.sun.tools.javac.util.List.of(factory.AnnotatedType(factory.Annotations(returnTypeAnnotations), factory.Type(originalReturnType))),
 										newSelect,
 										com.sun.tools.javac.util.List.of(factory.Literal(methodInv.methodName.toString()), arrayArg)
 								);
-								// set the return type of invoke() as the return type of the original method
-								newInvoke.setType(((JCTree) methodInv.originalPath.getLeaf()).type);
+
+								newInvoke.setType(originalReturnType);
 
 								logDebug("Old invoke: " + methodInv.originalPath.getLeaf());
 								methodInv.originalPath.getModificator().accept(newInvoke);

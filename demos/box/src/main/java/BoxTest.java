@@ -1,3 +1,4 @@
+/*
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
@@ -121,3 +122,4 @@ public class BoxTest {
         return result;
     }
 }
+*/
