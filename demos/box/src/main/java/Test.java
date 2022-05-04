@@ -16,7 +16,7 @@ import java.io.PrintStream;
 import java.io.Serializable;
 
 public @Strong class Test implements Serializable {
-    Test f;
+    public int x = 0;
 
     public static void main(String[] args) {
         CassandraStoreBinding r0 = (@Inconsistent @Mutable CassandraStoreBinding)Cassandra.newReplica("127.0.0.1", 9042, 2181, Duration.apply(60000L, "ms"), true);
@@ -24,8 +24,13 @@ public @Strong class Test implements Serializable {
             Ref<Test> r = ctx.replicate("t", CassandraConsistencyLevels.STRONG, Test.class);
 
             @Strong int i = r.ref().getI() + r.ref().getI();
-
             ((@Mutable @Inconsistent PrintStream)System.out).println(i);
+
+            r.ref().x = 42;
+
+            int j = r.ref().x;
+            ((@Mutable @Inconsistent PrintStream)System.out).println(j);
+
             return Option.empty();
         });
 
