@@ -140,21 +140,27 @@ public class ConsysJavacPlugin implements Plugin {
 
 							} else if (refUsage instanceof CFieldAcc) {
 								CFieldAcc fieldAcc = (CFieldAcc) refUsage;
+								Type originalFieldType = ((JCTree) fieldAcc.originalPath.getLeaf()).type;
 
 								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) fieldAcc.expr, names.fromString("getField"));
-								// TODO: set type and symbol for newSelect
+
+								// adapt old 'Ref.ref()' to new 'Ref.getField(String)' method type
+								Type selectType = types.createMethodTypeWithReturn(fieldAcc.refMemberSelectType, originalFieldType);
+								selectType = types.createMethodTypeWithParameters(selectType,
+										com.sun.tools.javac.util.List.of(symtab.stringType));
+								newSelect.setType(selectType);
+
+								newSelect.sym = ((JCTree.JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("getField"));
 
 								JCTree.JCMethodInvocation newGetField = factory.at(((JCTree) fieldAcc.originalPath.getLeaf()).pos)
-									.Apply(null,
+									.Apply(typeArgTreeFromType(originalFieldType),
 										newSelect,
-										com.sun.tools.javac.util.List.of(
-											factory.Literal(fieldAcc.fieldName.toString())
-										)
+										com.sun.tools.javac.util.List.of(factory.Literal(fieldAcc.fieldName.toString()))
 									);
-								// TODO: set type for newGetField
+								newGetField.setType(originalFieldType);
 
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old access: " + fieldAcc.originalPath.getLeaf());
-								//fieldAcc.originalPath.getModificator().accept(newGetField); // TODO
+								fieldAcc.originalPath.getModificator().accept(newGetField);
 								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New access: " + newGetField);
 
 							}
