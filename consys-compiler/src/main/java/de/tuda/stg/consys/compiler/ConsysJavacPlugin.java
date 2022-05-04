@@ -9,6 +9,10 @@ import com.sun.source.util.TaskListener;
 import com.sun.tools.javac.api.BasicJavacTask;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.JCAnnotation;
+import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
+import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.Log;
@@ -71,14 +75,14 @@ public class ConsysJavacPlugin implements Plugin {
 							//logDebug("Path to ref: " + getCurrentPath());
 							//logDebug("Tree of ref: " + tree);
 							//logDebug("Type of ref: " + ((JCTree)tree).type);
-							//logDebug("Sym of ref: " + ((JCTree.JCFieldAccess)tree).sym);
+							//logDebug("Sym of ref: " + ((JCFieldAccess)tree).sym);
 
 							CRefUsage refUsage = maybeRefUsage.get();
 							if (refUsage instanceof CMethodInv) {
 								CMethodInv methodInv = (CMethodInv) refUsage;
 								Type originalReturnType = ((JCTree) methodInv.originalPath.getLeaf()).type;
 
-								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) methodInv.expr, names.fromString("invoke"));
+								JCTree.JCFieldAccess newSelect = factory.Select((JCExpression) methodInv.expr, names.fromString("invoke"));
 
 								// adapt old 'Ref.ref()' to new 'Ref.invoke(String, Object[])' method type
 								Type selectType = types.createMethodTypeWithReturn(methodInv.refMemberSelectType, originalReturnType);
@@ -89,17 +93,17 @@ public class ConsysJavacPlugin implements Plugin {
 												new Type.ArrayType(symtab.objectType, symtab.arrayClass)));
 								newSelect.setType(selectType);
 
-								newSelect.sym = ((JCTree.JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("invoke"));
+								newSelect.sym = ((JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("invoke"));
 
 								// construct invocation arguments in transformed form of varargs, i.e. Objects... -> new Object[]{...}
-								JCTree.JCExpression arrayArg = factory.NewArray(
+								JCExpression arrayArg = factory.NewArray(
 										factory.Type(symtab.objectType),
 										com.sun.tools.javac.util.List.nil(),
 										com.sun.tools.javac.util.List.from(methodInv.arguments.toArray(new JCTree.JCExpression[0])));
 								arrayArg.setType(new Type.ArrayType(symtab.objectType, symtab.arrayClass));
 
 								// construct new Ref.<...>invoke("...", new Object[]{...}) expression
-								JCTree.JCMethodInvocation newInvoke = factory.at( ((JCTree) methodInv.originalPath.getLeaf()).pos )
+								JCMethodInvocation newInvoke = factory.at( ((JCTree) methodInv.originalPath.getLeaf()).pos )
 								.Apply(typeArgTreeFromType(originalReturnType),
 										newSelect,
 										com.sun.tools.javac.util.List.of(factory.Literal(methodInv.methodName.toString()), arrayArg)
@@ -114,7 +118,7 @@ public class ConsysJavacPlugin implements Plugin {
 								CAssign assign = (CAssign) refUsage;
 								Type originalFieldType = ((JCTree) assign.originalPath.getLeaf()).type;
 
-								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) assign.expr, names.fromString("setField"));
+								JCFieldAccess newSelect = factory.Select((JCExpression) assign.expr, names.fromString("setField"));
 
 								// adapt old 'Ref.ref()' to new 'Ref.setField(String, R)' method type
 								Type selectType = types.createMethodTypeWithReturn(assign.refMemberSelectType, symtab.voidType);
@@ -122,15 +126,15 @@ public class ConsysJavacPlugin implements Plugin {
 										com.sun.tools.javac.util.List.of(symtab.stringType, originalFieldType));
 								newSelect.setType(selectType);
 
-								newSelect.sym = ((JCTree.JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("setField"));
+								newSelect.sym = ((JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("setField"));
 
 								// construct new Ref.<...>setField("...", ...) expression
-								JCTree.JCMethodInvocation newSetField = factory.at(((JCTree) assign.originalPath.getLeaf()).pos)
+								JCMethodInvocation newSetField = factory.at(((JCTree) assign.originalPath.getLeaf()).pos)
 									.Apply(typeArgTreeFromType(originalFieldType),
 										newSelect,
 										com.sun.tools.javac.util.List.of(
 											factory.Literal(assign.fieldName.toString()),
-											(JCTree.JCExpression) assign.newValue)
+											(JCExpression) assign.newValue)
 									);
 								newSetField.setType(symtab.voidType);
 
@@ -142,7 +146,7 @@ public class ConsysJavacPlugin implements Plugin {
 								CFieldAcc fieldAcc = (CFieldAcc) refUsage;
 								Type originalFieldType = ((JCTree) fieldAcc.originalPath.getLeaf()).type;
 
-								JCTree.JCFieldAccess newSelect = factory.Select((JCTree.JCExpression) fieldAcc.expr, names.fromString("getField"));
+								JCFieldAccess newSelect = factory.Select((JCExpression) fieldAcc.expr, names.fromString("getField"));
 
 								// adapt old 'Ref.ref()' to new 'Ref.getField(String)' method type
 								Type selectType = types.createMethodTypeWithReturn(fieldAcc.refMemberSelectType, originalFieldType);
@@ -150,19 +154,18 @@ public class ConsysJavacPlugin implements Plugin {
 										com.sun.tools.javac.util.List.of(symtab.stringType));
 								newSelect.setType(selectType);
 
-								newSelect.sym = ((JCTree.JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("getField"));
+								newSelect.sym = ((JCFieldAccess)tree).sym.owner.members().findFirst(names.fromString("getField"));
 
-								JCTree.JCMethodInvocation newGetField = factory.at(((JCTree) fieldAcc.originalPath.getLeaf()).pos)
+								JCMethodInvocation newGetField = factory.at(((JCTree) fieldAcc.originalPath.getLeaf()).pos)
 									.Apply(typeArgTreeFromType(originalFieldType),
 										newSelect,
 										com.sun.tools.javac.util.List.of(factory.Literal(fieldAcc.fieldName.toString()))
 									);
 								newGetField.setType(originalFieldType);
 
-								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "Old access: " + fieldAcc.originalPath.getLeaf());
+								logDebug("Old access: " + fieldAcc.originalPath.getLeaf());
 								fieldAcc.originalPath.getModificator().accept(newGetField);
-								if (DEBUG) Log.instance(context).printRawLines(Log.WriterKind.NOTICE, "New access: " + newGetField);
-
+								logDebug("New access: " + newGetField);
 							}
 
 							//logDebug("Unit after change: " + taskEvent.getCompilationUnit());
@@ -186,10 +189,20 @@ public class ConsysJavacPlugin implements Plugin {
 		}
 
 		com.sun.tools.javac.util.List<Attribute.Compound> annotations = com.sun.tools.javac.util.List.nil();
-		for (var elem : metadata.getAnnotations())
+		for (var elem : metadata.getAnnotations()) {
 			annotations = annotations.append(elem);
+		}
+		com.sun.tools.javac.util.List<JCAnnotation> annotationTrees = factory.Annotations(annotations);
 
-		return com.sun.tools.javac.util.List.of(factory.AnnotatedType(factory.Annotations(annotations), factory.Type(type)));
+		com.sun.tools.javac.util.List<JCAnnotation> i = annotationTrees;
+		com.sun.tools.javac.util.List<Attribute.Compound> j = annotations;
+		while (i.nonEmpty()) {
+			i.head.attribute = j.head;
+			i = i.tail;
+			j = j.tail;
+		}
+
+		return com.sun.tools.javac.util.List.of(factory.AnnotatedType(annotationTrees, factory.Type(type)));
 	}
 
 	private static Optional<CRefUsage> classifyRef(ModifyingTreePath path, Context context) {
