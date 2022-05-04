@@ -43,7 +43,7 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 	}
 	
 
-	private final Context context;
+	protected final Context context;
 
 	private ModifyingTreePath path;
 
