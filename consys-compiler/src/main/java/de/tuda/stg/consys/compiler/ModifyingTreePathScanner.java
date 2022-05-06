@@ -29,15 +29,29 @@ class ModifyingTreePathScanner extends TreeScanner<Void, ModifyingTreePathScanne
 		return com.sun.tools.javac.util.List.from((A[]) asArray);
 	}
 
+	/**
+	 *  Used for creating a com.sun.tool.javac.util.List<? extends JCTree> from a java.util.List<? extends Tree> while
+	 *  bypassing ClassCastExceptions.
+	 */
+	@SuppressWarnings("unchecked")
+	private static <A> com.sun.tools.javac.util.List<A> newList(List<?> list) {
+		Object[] asArray = list.toArray();
+		return com.sun.tools.javac.util.List.from((A[]) asArray);
+	}
+
+	@SuppressWarnings("unchecked")
 	private static <A extends JCTree> List<Modificator> getModificators(List<? extends Tree> originalList, Consumer<com.sun.tools.javac.util.List<A>> setter) {
 		List<Modificator> mods = new LinkedList<>();
 		if (originalList == null) return mods;
 
-		int i = 0;
-		for (Object t : originalList) {
+		var wrapper = new Object(){ com.sun.tools.javac.util.List<A> list = newList(originalList); };
+
+		for (int i = 0; i < originalList.size(); i++) {
 			final int finalI = i;
-			mods.add(newTree -> setter.accept((com.sun.tools.javac.util.List<A>) setIndex(originalList, finalI, newTree)));
-			i++;
+			mods.add(newTree -> {
+				wrapper.list = (com.sun.tools.javac.util.List<A>) setIndex(wrapper.list, finalI, newTree);
+				setter.accept(wrapper.list);
+			});
 		}
 		return mods;
 	}
