@@ -40,7 +40,7 @@ public class TestRunner {
 
     private static void initConnections() {
         for (int i = 0; i < replicas.length; i++) {
-            replicas[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181,
+            replicas[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181 + i,
                     Duration.apply(msReplicaTimeout, "ms"), i == 0);
         }
 
@@ -96,12 +96,18 @@ public class TestRunner {
         boolean end = false;
         while (!end) {
             try {
-                for (var item : items)
+                for (var item : items) {
+                    System.out.println(item);
+                    System.out.println(SESSIONS[1].printUserInfo(null, false));
                     sellerInterface.endAuctionImmediately(null, item);
+                    System.out.println("ended");
+                    System.out.println(SESSIONS[1].printUserInfo(null, false));
+                }
                 end = true;
             } catch (Exception ignored) {
                 if (!(ignored instanceof RuntimeException))
                     throw ignored;
+                throw ignored;
             }
         }
 
@@ -143,6 +149,7 @@ public class TestRunner {
 
             session.registerUser(null, userName, "", "", "");
             session.addBalance(null, 1000);
+            System.out.println(session.printUserInfo(null, false));
         }
 
         @Override
