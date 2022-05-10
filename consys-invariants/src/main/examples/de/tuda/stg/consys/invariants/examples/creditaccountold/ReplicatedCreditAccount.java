@@ -28,14 +28,12 @@ public class ReplicatedCreditAccount {
         return credits.getValue();
     }
 
-
     //@ requires val >= 0;
     //@ assignable credits;
     //@ ensures stateful( credits.inc(val) );
     public void deposit(int val) {
         credits.inc(val);
     }
-
 
     //@ requires 0 <= val && val <= getValue();
     //@ assignable credits;

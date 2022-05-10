@@ -10,6 +10,7 @@ import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class ClassProperties<CModel extends BaseClassModel, CConstraints extends BaseClassConstraints<CModel>> {
@@ -53,10 +54,10 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		switch (status) {
 			case UNSATISFIABLE:
+				Logger.info(Arrays.toString(model.solver.getUnsatCore()));
 				return true;
 			case SATISFIABLE:
-				//System.out.println(expr);
-				//System.out.println(solver.getModel());
+				Logger.info(model.solver.getModel());
 				return false;
 			case UNKNOWN:
 				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);

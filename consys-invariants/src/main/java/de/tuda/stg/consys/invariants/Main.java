@@ -24,18 +24,15 @@ public class Main {
 
 
   public static void main(String[] args) throws IOException {
-
     //ProgramConfig config = Examples.DEFAULT_CONFIG;
     ProgramConfig config = Examples.STATEFUL_CONFIG;
 
-   
     runChecker(config,
             /* libs */ new Path[] { Paths.get("consys-invariants","src", "main", "resources", "guava-14.0.1.jar") },
             /* checked classes */ Examples.REPLICATED_CREDIT_ACCOUNT_OLD
     );
-
-
   }
+
   public static void runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
     // Compile the file to ASTs
     var compileResult = CompilerBinding.compile(additionalClasspath, sources);
