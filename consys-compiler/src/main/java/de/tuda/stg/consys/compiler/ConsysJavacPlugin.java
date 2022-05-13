@@ -7,6 +7,7 @@ import com.sun.source.util.Plugin;
 import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskListener;
 import com.sun.tools.javac.api.BasicJavacTask;
+import com.sun.tools.javac.api.MultiTaskListener;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
@@ -30,8 +31,9 @@ import java.util.Optional;
  */
 public class ConsysJavacPlugin implements Plugin {
 
-	public final static boolean DEBUG = true;
+	public final static boolean DEBUG = false;
 	static Log logger;
+	private boolean switchedListeners = false;
 
 	@Override
 	public String getName() {
@@ -51,6 +53,13 @@ public class ConsysJavacPlugin implements Plugin {
 
 			@Override
 			public void finished(TaskEvent taskEvent) {
+				// wait for type-checker to register its task listener
+				if (!switchedListeners && taskEvent.getKind() == TaskEvent.Kind.ANNOTATION_PROCESSING) {
+					// switch order of task listeners so that the type-checker runs before the compiler-plugin
+					switchTaskListeners(context);
+					switchedListeners = true;
+				}
+
 				//We need to listen to the ANALYZE phase because we need type information
 				if (taskEvent.getKind() != TaskEvent.Kind.ANALYZE) return;
 
@@ -58,6 +67,30 @@ public class ConsysJavacPlugin implements Plugin {
 				new RefModifyingTreePathScanner(context).scan(taskEvent.getCompilationUnit(), null);
 			}
 		});
+	}
+
+	private static void switchTaskListeners(Context context) {
+		var multiTaskListener = MultiTaskListener.instance(context);
+
+		logDebug("--- switching task listeners");
+		logDebug(" > before: " + multiTaskListener);
+
+		var lst = (List<TaskListener>)multiTaskListener.getTaskListeners();
+		// TODO: don't switch if type-checker is disabled
+		int pluginIndex = -1;
+		int checkerIndex = -1;
+		for (int i = 0; i < lst.size(); i++) {
+			if (lst.get(i).toString().contains("de.tuda.stg.consys.compiler.ConsysJavacPlugin")) pluginIndex = i;
+			if (lst.get(i).toString().contains("org.checkerframework.javacutil.AbstractTypeProcessor")) checkerIndex = i;
+		}
+		if (checkerIndex < 0) return;
+
+		var tmp = lst.get(pluginIndex);
+		lst.set(pluginIndex, lst.get(checkerIndex));
+		lst.set(checkerIndex, tmp);
+
+		logDebug(" > after: " + multiTaskListener);
+		logDebug("--- switched task listeners");
 	}
 
 	private static class RefModifyingTreePathScanner extends ModifyingTreePathScanner {
@@ -292,10 +325,12 @@ public class ConsysJavacPlugin implements Plugin {
 	}
 
 	private static void log(String msg) {
+		// TODO: does not log if same message was already logged before
 		logger.printRawLines(Log.WriterKind.NOTICE, msg);
 	}
 
 	private static void logDebug(String msg) {
+		// TODO: does not log if same message was already logged before
 		if (DEBUG) logger.printRawLines(Log.WriterKind.NOTICE, msg);
 	}
 

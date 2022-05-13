@@ -181,6 +181,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				checker.reportError(node, "invocation.method.transaction", node)
 		}
 
+		if (methodInvocationIsCompiledRef(node))
+			checker.reportWarning(node, "compiler.ref")
+
 		node.getMethodSelect match {
 			case memberSelectTree : MemberSelectTree =>
 				val expr : ExpressionTree = memberSelectTree.getExpression
@@ -295,6 +298,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField"))
+
+	private def methodInvocationIsCompiledRef(node: MethodInvocationTree): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("invoke", "getField", "setField"))
 
 	private def methodDeclarationIsTransactional(node: MethodTree) : Boolean = {
 		val execElem = TreeUtils.elementFromDeclaration(node)
