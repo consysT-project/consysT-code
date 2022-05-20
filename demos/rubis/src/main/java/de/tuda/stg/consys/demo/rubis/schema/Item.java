@@ -60,7 +60,7 @@ public @Mixed class Item implements Serializable {
             throw new AppException.DateException("Auction has already ended.");
         }
 
-        if ((@Weak float)bid.getBid() <= getTopBidPrice()) {
+        if (bid.getBid() <= getTopBidPrice()) {
             throw new AppException("Minimum necessary bid amount (" + getTopBidPrice() + ") not met with bid (" +
                     bid.getBid() + ")");
         }
@@ -68,7 +68,7 @@ public @Mixed class Item implements Serializable {
         bids.add(0, bid);
         nBids++;
 
-        return (float)bid.getBid() >= reservePrice;
+        return bid.getBid() >= reservePrice;
     }
 
     @Transactional

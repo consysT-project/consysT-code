@@ -32,10 +32,7 @@ public class Util {
 
         seller.ref().closeOwnAuction(item, hasWinner);
         closeWatchedItemsForBidders(item);
-
-        @Immutable UUID id = item.ref().getId();
-        @Immutable Category cat = item.ref().getCategory();
-        rubis.ref().closeAuction(id, cat);
+        rubis.ref().closeAuction(item.ref().getId(), item.ref().getCategory());
     }
 
     @Transactional
@@ -56,9 +53,7 @@ public class Util {
 
         buyer.ref().notifyWinner(item, price);
 
-        @Immutable UUID id = item.ref().getId();
-        @Immutable Category cat = item.ref().getCategory();
-        rubis.ref().closeAuction(id, cat);
+        rubis.ref().closeAuction(item.ref().getId(), item.ref().getCategory());
     }
 
     @Transactional
@@ -68,8 +63,8 @@ public class Util {
 
         for (var item : watched) {
             @Immutable @Strong Optional<Bid> bid = item.ref().getTopBid();
-            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)((Ref<User>)bid.get().getUser()).ref().refEquals(buyer)) {
-                potentialBalance -= (float)bid.get().getBid();
+            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)(bid.get().getUser()).ref().refEquals(buyer)) {
+                potentialBalance -= bid.get().getBid();
             }
         }
 

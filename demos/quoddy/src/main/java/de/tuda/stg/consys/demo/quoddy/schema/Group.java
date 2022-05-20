@@ -4,6 +4,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
@@ -109,30 +110,37 @@ public @Mixed class Group implements Serializable {
         this.requiresJoinConfirmation = requiresJoinConfirmation;
     }
 
+    @SideEffectFree
     public String getId() {
         return id;
     }
 
+    @SideEffectFree
     public String getName() {
         return name;
     }
 
+    @SideEffectFree
     public String getDescription() {
         return description;
     }
 
+    @SideEffectFree
     public boolean isRequiresJoinConfirmation() {
         return requiresJoinConfirmation;
     }
 
+    @SideEffectFree
     public List<Ref<User>> getOwners() {
         return new ArrayList<>(owners.values());
     }
 
+    @SideEffectFree
     public List<Ref<User>> getMembers() {
         return new ArrayList<>(members.values());
     }
 
+    @SideEffectFree
     public List<Ref<? extends Post>> getNewestPosts(int n) {
         return (@Weak @Immutable List<Ref<? extends Post>>) feed.subList(0, Math.min(n, feed.size()));
     }

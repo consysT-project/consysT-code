@@ -176,7 +176,7 @@ public class Session {
             @Immutable List<Ref<Item>> items = auctionStore.ref().browseItems(category);
             sb.append("Items in category '").append(category).append("':\n");
             for (int i = 0; i < Math.min(items.size(), count); i++) {
-                sb.append((String)items.get(i).ref().toString());
+                sb.append(items.get(i).ref().toString());
             }
             return Option.apply(sb.toString());
         }).get();
@@ -203,7 +203,7 @@ public class Session {
         checkLogin();
 
         doTransaction(tr, ctx -> {
-            if (!((Ref<User>)item.ref().getSeller()).ref().getNickname().equals(user.ref().getNickname())) {
+            if (!item.ref().getSeller().ref().getNickname().equals(user.ref().getNickname())) {
                 throw new AppException("You can only end your own auctions.");
             }
 
@@ -220,7 +220,7 @@ public class Session {
 
         return doTransaction(tr, ctx -> {
             var sb = new StringBuilder();
-            sb.append((String)user.ref().toString());
+            sb.append(user.ref().toString());
 
             if (!full) {
                 return Option.apply(sb.toString());
@@ -231,35 +231,35 @@ public class Session {
             if ((@Weak boolean)!watched.isEmpty())
                 sb.append("Watched items:\n");
             for (var item : watched) {
-                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+                sb.append("  ").append(item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             @Immutable @Weak List<Ref<Item>> open = user.ref().getOpenSellerAuctions();
             if ((@Weak boolean)!open.isEmpty())
                 sb.append("Open auctions:\n");
             for (var item : open) {
-                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+                sb.append("  ").append(item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             @Immutable @Weak List<Ref<Item>> bought = user.ref().getBuyerHistory();
             if ((@Weak boolean)!bought.isEmpty())
                 sb.append("Bought items:\n");
             for (var item : bought) {
-                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+                sb.append("  ").append(item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             @Immutable @Weak List<Ref<Item>> sold = user.ref().getSellerHistory(true);
             if ((@Weak boolean)!sold.isEmpty())
                 sb.append("Sold items:\n");
             for (var item : sold) {
-                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+                sb.append("  ").append(item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             @Immutable @Weak List<Ref<Item>> unsold = user.ref().getSellerHistory(false);
             if ((@Weak boolean)!unsold.isEmpty())
                 sb.append("Unsold items:\n");
             for (var item : unsold) {
-                sb.append("  ").append((String)item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
+                sb.append("  ").append(item.ref().getName()).append(" (").append(item.ref().getId().toString()).append(")\n");
             }
 
             return Option.apply(sb.toString());
@@ -273,11 +273,11 @@ public class Session {
             Optional<Bid> bid = item.ref().getTopBid();
             if (bid.isPresent())
                 return Option.apply(new Tuple2<>(
-                        Optional.of(((Ref<User>)bid.get().getUser()).ref().getNickname().toString()),
-                        (float)bid.get().getBid()));
+                        Optional.of((bid.get().getUser()).ref().getNickname().toString()),
+                        bid.get().getBid()));
             return Option.apply(new Tuple2<>(
                     Optional.<String>empty(),
-                    (float)item.ref().getTopBidPrice()));
+                    item.ref().getTopBidPrice()));
         }).get();
     }
 
@@ -290,13 +290,13 @@ public class Session {
                                    UUID itemId) {
         return doTransaction(tr, ctx -> {
             var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, Item.class);
-            return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
+            return Option.apply((item.ref().getEndDate()).before(new Date()));
         }).get();
     }
     public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
                                    Ref<Item> item) {
         return doTransaction(tr, ctx -> {
-            return Option.apply(((Date)item.ref().getEndDate()).before(new Date()));
+            return Option.apply((item.ref().getEndDate()).before(new Date()));
         }).get();
     }
 

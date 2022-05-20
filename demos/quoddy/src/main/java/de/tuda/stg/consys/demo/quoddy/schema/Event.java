@@ -13,7 +13,7 @@ import java.util.UUID;
 public @Mixed class Event extends Post {
     private Date date;
     private @Weak String text;
-    private final List<Ref<User>> subscribers;
+    private final List<Ref<@Mutable User>> subscribers;
     private Ref<Event> self; // not ideal, as it must be set after creation
 
     public Event() {
@@ -31,7 +31,7 @@ public @Mixed class Event extends Post {
         this.self = self;
     }
 
-    public void addSubscriber(Ref<User> user) {
+    public void addSubscriber(Ref<@Mutable User> user) {
         this.subscribers.add(user);
     }
 
@@ -39,7 +39,7 @@ public @Mixed class Event extends Post {
     @StrongOp
     public void postUpdate(@Weak @Mutable String text) {
         this.text += "Update (" + new Date() + "): " + text;
-        for (@Mixed Ref<User> user : subscribers) {
+        for (@Mixed Ref<@Mutable User> user : subscribers) { // TODO
             user.ref().notifyOfEventUpdate(self);
         }
     }
@@ -49,7 +49,7 @@ public @Mixed class Event extends Post {
     public void postUpdate(@Weak @Mutable String text, @Strong @Mutable Date newDate) {
         this.text += "Update (" + new Date() + "): " + text;
         this.date = newDate;
-        for (@Mixed Ref<User> user : subscribers) {
+        for (@Mixed Ref<@Mutable User> user : subscribers) { // TODO
             user.ref().notifyOfEventUpdate(self);
         }
     }

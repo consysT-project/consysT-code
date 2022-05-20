@@ -30,14 +30,17 @@ public @Mixed class Post implements Serializable {
         comments.add(comment);
     }
 
+    @SideEffectFree
     public UUID getId() {
         return id;
     }
 
+    @SideEffectFree
     public Ref<User> getOwner() {
         return owner;
     }
 
+    @SideEffectFree
     public Date getCreationTimestamp() {
         return creationTimestamp;
     }
