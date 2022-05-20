@@ -136,25 +136,8 @@
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-core</artifactId>
+            <artifactId>consys-bench</artifactId>
             <version>4.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-core</artifactId>
-            <version>1.21</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-generator-annprocess</artifactId>
-            <version>1.21</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-japi</artifactId>
-            <version>4.0.0</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
@@ -166,26 +149,17 @@
             <artifactId>consys-compiler</artifactId>
             <version>4.0.0</version>
         </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-bench</artifactId>
-            <version>4.0.0</version>
-        </dependency>
 
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-remote_${scala.binary.version}</artifactId>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>1.21</version>
         </dependency>
         <dependency>
-            <groupId>io.aeron</groupId>
-            <artifactId>aeron-driver</artifactId>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>1.21</version>
+            <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>io.aeron</groupId>
-            <artifactId>aeron-client</artifactId>
-        </dependency>
-
     </dependencies>
-
-
 </project>
