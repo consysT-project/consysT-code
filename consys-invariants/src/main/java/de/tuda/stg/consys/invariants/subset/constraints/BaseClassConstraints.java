@@ -44,7 +44,7 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		this.model = model;
 		this.classModel = classModel;
 
-		this.constraintsFactory = new ConstraintsFactory(classModel.getClassName(), new Z3CallFunctionFactory(model));
+		this.constraintsFactory = new ConstraintsFactory(classModel.getClassName(), new Z3SubstitutionFunctionFactory());
 
 		JmlTypeDeclaration typ = classModel.getJmlType();
 
@@ -100,12 +100,12 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 						.toArray(Expr[]::new);
 
 				var s0 = classModel.toFreshConst("s0");
-				var s1 = classModel.toFreshConst("s1");
+//				var s1 = classModel.toFreshConst("s1");
 
 				var appToState = methodModel.makeApplyReturnState(s0, args).orElseThrow();
 				var appToValue = methodModel.makeApplyReturnValue(s0, args).orElseThrow();
 
-				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0, s1);
+				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
 
 				var conds =  postCondition.applyWithSplitBody(
 						s0,

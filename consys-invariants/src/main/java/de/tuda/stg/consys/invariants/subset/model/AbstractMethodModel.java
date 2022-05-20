@@ -49,9 +49,9 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 				JDTUtils.simpleNameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector) :
 				JDTUtils.nameOfClass(method.binding.declaringClass) + "." + String.valueOf(method.binding.selector);
 
-		var stateMethodName = methodNamePrefix + "_STATE";
+		var stateMethodName = methodNamePrefix + "$state";
 		var valueMethodName = model.config.SOLVER__SIMPLE_NAMES ?
-				methodNamePrefix : methodNamePrefix + "_VALUE";
+				methodNamePrefix : methodNamePrefix + "$value";
 
 		var funcState = model.ctx.mkFreshFuncDecl(stateMethodName, argSortsAndThis, clazz.getClassSort());
 		var funcValue = model.ctx.mkFreshFuncDecl(valueMethodName, argSortsAndThis, retType.toSort());

@@ -1,15 +1,153 @@
-(declare-datatypes ((T_PNCounter 0)) (((T_PNCounter (incs (Array Int Int)) (decs (Array Int Int))))))
-(declare-datatypes ((T_ReplicatedCreditAccount 0)) (((T_ReplicatedCreditAccount (credits T_PNCounter)))))
-(declare-fun PNCounter.sumIncs_STATE!0 (T_PNCounter) T_PNCounter)
-(declare-fun PNCounter.sumIncs!1 (T_PNCounter) Int)
-(declare-fun PNCounter.sumDecs_STATE!2 (T_PNCounter) T_PNCounter)
-(declare-fun PNCounter.sumDecs!3 (T_PNCounter) Int)
-(declare-fun PNCounter.getValue_STATE!4 (T_PNCounter) T_PNCounter)
-(declare-fun PNCounter.getValue!5 (T_PNCounter) Int)
-(declare-fun PNCounter.inc_STATE!7 (T_PNCounter) T_PNCounter)
-(declare-fun PNCounter.inc_STATE!10 (T_PNCounter Int) T_PNCounter)
-(declare-fun PNCounter.dec_STATE!12 (T_PNCounter) T_PNCounter)
-(declare-fun PNCounter.dec_STATE!15 (T_PNCounter Int) T_PNCounter)
+(declare-datatype Counter ( (Counter (incs (Array Int Int)) (decs (Array Int Int))) ))
+(declare-datatype Account ( (Account (credits Counter)) ))
+
+(declare-fun Counter.sumIncs_state (Counter) Counter)
+(declare-fun Counter.sumIncs_value (Counter) Int)
+
+(declare-fun Counter.sumDecs_state (Counter) Counter)
+(declare-fun Counter.sumDecs_value (Counter) Int)
+
+(declare-fun Counter.getValue_state (Counter) Counter)
+(declare-fun Counter.getValue_value (Counter) Int)
+
+(declare-fun Counter.inc_state (Counter Int) Counter)
+
+(declare-fun Counter.dec_state (Counter Int) Counter)
+
+(declare-fun Counter.merge_state (Counter Counter) Counter)
+
+
+
+; sumIncs_state
+(assert (forall ((s0 Counter))
+	(= (Counter.sumIncs_state s0) s0)))
+
+; sumIncs_value
+(assert
+	(forall ((s0 Counter))
+		(=
+			(Counter.sumIncs_value s0)
+			(+
+				(select (incs (Counter.sumIncs_state s0)) 0)
+				(select (incs (Counter.sumIncs_state s0)) 1)
+				(select (incs (Counter.sumIncs_state s0)) 2)
+			)
+		)
+	)
+)
+
+
+; sumDecs_state
+(assert (forall ((s0 Counter))
+	(= (Counter.sumDecs_state s0) s0)))
+
+; sumDecs_value
+(assert
+	(forall ((s0 Counter))
+		(=
+			(Counter.sumDecs_value s0)
+			(+
+				(select (decs (Counter.sumDecs_state s0)) 0)
+				(select (decs (Counter.sumDecs_state s0)) 1)
+				(select (decs (Counter.sumDecs_state s0)) 2)
+			)
+		)
+	)
+)
+
+
+; getValue_state
+(assert (forall ((s0 Counter))
+  (= s0 (Counter.getValue_state s0))))
+
+; getValue_value
+(assert (forall ((s0 Counter))
+	(=
+		(Counter.getValue_value s0)
+		(+
+			(Counter.sumIncs_value (Counter.getValue_state s0))
+			(* (- 1) (Counter.sumDecs_value (Counter.getValue_state s0)))
+		)
+	)
+))
+
+
+; inc_state
+; TODO: We have to redesign assignables from this
+(assert (forall ((s0 Counter) (n Int))
+  (and
+		(forall ((i Int))
+			(or
+				(= i 1)
+				(=
+					(select (incs (Counter.inc_state s0 n)) i)
+					(select (incs s0) i)
+				)
+			)
+		)
+		(= (decs s0) (decs (Counter.inc_state s0 n)))
+	)
+))
+(assert (forall ((s0 Counter) (n Int))
+	(= (select (incs (Counter.inc_state s0 n)) 1)
+		(+ (select (incs s0) 1) n)
+	)
+))
+; TODO: to this:
+(assert (forall ((s0 Counter) (n Int))
+	(=
+		(Counter.inc_state s0 n)
+		(Counter
+			(store (incs s0) 1 (+ (select (incs s0) 1) n))
+			(decs s0)
+		)
+	)
+))
+
+
+; decs
+(assert (forall ((s0 Counter) (n Int))
+	(=
+		(Counter.dec_state s0 n)
+		(Counter
+			(incs s0)
+			(store (decs s0) 1 (+ (select (decs s0) 1) n))
+		)
+	)
+))
+
+
+(declare-fun max ((Array Int Int) (Array Int Int)) (Array Int Int))
+(assert (forall ((a1 (Array Int Int)) (a2 (Array Int Int)))
+	(=
+		(max a1 a2)
+		???
+	)
+))
+
+
+
+; merge
+(assert (forall ((s0 Counter) (s1 Counter))
+	(=
+		(Counter.merge_state s0 s1)
+		(Counter
+			(ite (incs s0) (incs s0)
+			(store (decs s0) 1 (+ (select (decs s0) 1) n))
+		)
+	)
+))
+
+
+(check-sat)
+(exit)
+
+
+
+
+
+
+
 (declare-fun ReplicatedCreditAccount.getValue_STATE!20
              (T_ReplicatedCreditAccount)
              T_ReplicatedCreditAccount)
@@ -22,6 +160,7 @@
 (declare-fun ReplicatedCreditAccount.withdraw_STATE!26
              (T_ReplicatedCreditAccount Int)
              T_ReplicatedCreditAccount)
+
 (declare-fun res!38 () Int)
 (declare-fun res!45 () Int)
 (declare-fun res!52 () Int)
@@ -30,217 +169,163 @@
 (declare-fun res!97 () Int)
 (declare-fun val!22 () Int)
 (declare-fun val!25 () Int)
-(declare-fun PNCounter.merge_STATE!18 (T_PNCounter T_PNCounter) T_PNCounter)
-(assert (forall ((s0!40 T_PNCounter) (s1!41 T_PNCounter))
-  (= s0!40 (PNCounter.sumIncs_STATE!0 s0!40))))
-(assert (forall ((s0!40 T_PNCounter) (s1!41 T_PNCounter))
-  (let ((a!1 (+ (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 0)
-                (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 1)
-                (select (incs (PNCounter.sumIncs_STATE!0 s0!40)) 2))))
-    (= (PNCounter.sumIncs!1 s0!40) a!1))))
-(assert (forall ((s0!47 T_PNCounter) (s1!48 T_PNCounter))
-  (= s0!47 (PNCounter.sumDecs_STATE!2 s0!47))))
-(assert (forall ((s0!47 T_PNCounter) (s1!48 T_PNCounter))
-  (let ((a!1 (+ (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 0)
-                (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 1)
-                (select (decs (PNCounter.sumDecs_STATE!2 s0!47)) 2))))
-    (= (PNCounter.sumDecs!3 s0!47) a!1))))
-(assert (forall ((s0!53 T_PNCounter) (s1!54 T_PNCounter))
-  (= s0!53 (PNCounter.getValue_STATE!4 s0!53))))
-(assert (forall ((s0!53 T_PNCounter) (s1!54 T_PNCounter))
-  (let ((a!1 (+ (PNCounter.sumIncs!1 (PNCounter.getValue_STATE!4 s0!53))
-                (* (- 1)
-                   (PNCounter.sumDecs!3 (PNCounter.getValue_STATE!4 s0!53))))))
-    (= (PNCounter.getValue!5 s0!53) a!1))))
-(assert (forall ((s0!60 T_PNCounter) (s1!61 T_PNCounter))
-  (and (forall ((i!59 Int))
-         (let ((a!1 (= (select (incs (PNCounter.inc_STATE!7 s0!60)) i!59)
-                       (select (incs s0!60) i!59))))
-           (or (= i!59 1) a!1)))
-       (= (decs s0!60) (decs (PNCounter.inc_STATE!7 s0!60))))))
-(assert (forall ((s0!60 T_PNCounter) (s1!61 T_PNCounter))
-  (= (select (incs (PNCounter.inc_STATE!7 s0!60)) 1)
-     (+ 1 (select (incs s0!60) 1)))))
-(assert (forall ((s0!67 T_PNCounter) (s1!68 T_PNCounter) (n!9 Int))
-  (and (forall ((i!66 Int))
-         (let ((a!1 (= (select (incs (PNCounter.inc_STATE!10 s0!67 n!9)) i!66)
-                       (select (incs s0!67) i!66))))
-           (or (= i!66 1) a!1)))
-       (= (decs s0!67) (decs (PNCounter.inc_STATE!10 s0!67 n!9))))))
-(assert (forall ((s0!67 T_PNCounter) (s1!68 T_PNCounter) (n!9 Int))
-  (= (select (incs (PNCounter.inc_STATE!10 s0!67 n!9)) 1)
-     (+ (select (incs s0!67) 1) n!9))))
-(assert (forall ((s0!74 T_PNCounter) (s1!75 T_PNCounter))
-  (and (= (incs s0!74) (incs (PNCounter.dec_STATE!12 s0!74)))
-       (forall ((i!73 Int))
-         (let ((a!1 (= (select (decs (PNCounter.dec_STATE!12 s0!74)) i!73)
-                       (select (decs s0!74) i!73))))
-           (or (= i!73 1) a!1))))))
-(assert (forall ((s0!74 T_PNCounter) (s1!75 T_PNCounter))
-  (= (select (decs (PNCounter.dec_STATE!12 s0!74)) 1)
-     (+ 1 (select (decs s0!74) 1)))))
-(assert (forall ((s0!81 T_PNCounter) (s1!82 T_PNCounter) (n!14 Int))
-  (and (= (incs s0!81) (incs (PNCounter.dec_STATE!15 s0!81 n!14)))
-       (forall ((i!80 Int))
-         (let ((a!1 (= (select (decs (PNCounter.dec_STATE!15 s0!81 n!14)) i!80)
-                       (select (decs s0!81) i!80))))
-           (or (= i!80 1) a!1))))))
-(assert (forall ((s0!81 T_PNCounter) (s1!82 T_PNCounter) (n!14 Int))
-  (= (select (decs (PNCounter.dec_STATE!15 s0!81 n!14)) 1)
-     (+ (select (decs s0!81) 1) n!14))))
-(assert (forall ((s0!98 T_ReplicatedCreditAccount) (s1!99 T_ReplicatedCreditAccount))
-  (= s0!98 (ReplicatedCreditAccount.getValue_STATE!20 s0!98))))
-(assert (forall ((s0!98 T_ReplicatedCreditAccount) (s1!99 T_ReplicatedCreditAccount))
-  (= (ReplicatedCreditAccount.getValue!21 s0!98)
-     (PNCounter.getValue!5 (credits s0!98)))))
-(assert (forall ((s0!104 T_ReplicatedCreditAccount)
-         (s1!105 T_ReplicatedCreditAccount)
-         (val!22 Int))
-  true))
-(assert (forall ((s0!104 T_ReplicatedCreditAccount)
-         (s1!105 T_ReplicatedCreditAccount)
-         (val!22 Int))
-  (= (credits (ReplicatedCreditAccount.deposit_STATE!23 s0!104 val!22))
-     (PNCounter.inc_STATE!10 (credits s0!104) val!22))))
-(assert (forall ((s0!110 T_ReplicatedCreditAccount)
-         (s1!111 T_ReplicatedCreditAccount)
-         (val!25 Int))
-  true))
-(assert (forall ((s0!110 T_ReplicatedCreditAccount)
-         (s1!111 T_ReplicatedCreditAccount)
-         (val!25 Int))
-  (= (credits (ReplicatedCreditAccount.withdraw_STATE!26 s0!110 val!25))
-     (PNCounter.dec_STATE!15 (credits s0!110) val!25))))
-(assert (let ((a!1 (forall ((s0!117 T_PNCounter))
+
+
+
+
+
+(assert (forall ((s0!91 T_ReplicatedCreditAccount))
+  (= s0!91 (ReplicatedCreditAccount.getValue_STATE!20 s0!91))))
+(assert (forall ((s0!91 T_ReplicatedCreditAccount))
+  (= (ReplicatedCreditAccount.getValue!21 s0!91)
+     (PNCounter.getValue!5 (credits s0!91)))))
+(assert (forall ((s0!96 T_ReplicatedCreditAccount) (val!22 Int)) true))
+(assert (forall ((s0!96 T_ReplicatedCreditAccount) (val!22 Int))
+  (= (credits (ReplicatedCreditAccount.deposit_STATE!23 s0!96 val!22))
+     (PNCounter.inc_STATE!10 (credits s0!96) val!22))))
+(assert (forall ((s0!101 T_ReplicatedCreditAccount) (val!25 Int)) true))
+(assert (forall ((s0!101 T_ReplicatedCreditAccount) (val!25 Int))
+  (= (credits (ReplicatedCreditAccount.withdraw_STATE!26 s0!101 val!25))
+     (PNCounter.dec_STATE!15 (credits s0!101) val!25))))
+(assert (let ((a!1 (forall ((s0!108 T_PNCounter))
              (=> (and (forall ((i!34 Int))
                         (let ((a!1 (not (and (>= i!34 0) (not (<= 3 i!34)))))
-                              (a!2 (and (= (select (incs s0!117) i!34) 0)
-                                        (= (select (decs s0!117) i!34) 0))))
+                              (a!2 (and (= (select (incs s0!108) i!34) 0)
+                                        (= (select (decs s0!108) i!34) 0))))
                           (or a!1 a!2)))
                       true)
                  true))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!118 T_PNCounter) (s0_new!119 T_PNCounter))
-             (let ((a!1 (= res!38
-                           (+ (select (incs s0_new!119) 0)
-                              (select (incs s0_new!119) 1)
-                              (select (incs s0_new!119) 2)))))
-               (=> (and true true true (= s0!118 s0_new!119) a!1) true)))))
+(assert (let ((a!1 (forall ((s0!109 T_PNCounter) (s0_new!110 T_PNCounter) (ret!111 Int))
+             (let ((a!1 (= ret!111
+                           (+ (select (incs s0_new!110) 0)
+                              (select (incs s0_new!110) 1)
+                              (select (incs s0_new!110) 2)))))
+               (=> (and true true true (= s0!109 s0_new!110) a!1) true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!120 T_PNCounter) (s0_new!121 T_PNCounter))
-             (let ((a!1 (= res!45
-                           (+ (select (decs s0_new!121) 0)
-                              (select (decs s0_new!121) 1)
-                              (select (decs s0_new!121) 2)))))
-               (=> (and true true true (= s0!120 s0_new!121) a!1) true)))))
+(assert (let ((a!1 (forall ((s0!112 T_PNCounter) (s0_new!113 T_PNCounter) (ret!114 Int))
+             (let ((a!1 (= ret!114
+                           (+ (select (decs s0_new!113) 0)
+                              (select (decs s0_new!113) 1)
+                              (select (decs s0_new!113) 2)))))
+               (=> (and true true true (= s0!112 s0_new!113) a!1) true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!122 T_PNCounter) (s0_new!123 T_PNCounter))
-             (let ((a!1 (= res!52
-                           (+ (PNCounter.sumIncs!1 s0_new!123)
-                              (* (- 1) (PNCounter.sumDecs!3 s0_new!123))))))
-               (=> (and true true true (= s0!122 s0_new!123) a!1) true)))))
+(assert (let ((a!1 (forall ((s0!115 T_PNCounter) (s0_new!116 T_PNCounter) (ret!117 Int))
+             (let ((a!1 (= ret!117
+                           (+ (PNCounter.sumIncs!1 s0_new!116)
+                              (* (- 1) (PNCounter.sumDecs!3 s0_new!116))))))
+               (=> (and true true true (= s0!115 s0_new!116) a!1) true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!124 T_PNCounter) (s0_new!125 T_PNCounter))
-             (let ((a!1 (forall ((i!59 Int))
-                          (or (= i!59 1)
-                              (= (select (incs s0_new!125) i!59)
-                                 (select (incs s0!124) i!59)))))
-                   (a!2 (= (select (incs s0_new!125) 1)
-                           (+ 1 (select (incs s0!124) 1)))))
+(assert (let ((a!1 (forall ((s0!118 T_PNCounter)
+                    (s0_new!119 T_PNCounter)
+                    (ret!120 T_void))
+             (let ((a!1 (forall ((i!56 Int))
+                          (or (= i!56 1)
+                              (= (select (incs s0_new!119) i!56)
+                                 (select (incs s0!118) i!56)))))
+                   (a!2 (= (select (incs s0_new!119) 1)
+                           (+ 1 (select (incs s0!118) 1)))))
                (=> (and true
                         true
                         true
                         a!1
-                        (= (decs s0!124) (decs s0_new!125))
+                        (= (decs s0!118) (decs s0_new!119))
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!126 T_PNCounter) (s0_new!127 T_PNCounter))
-             (let ((a!1 (forall ((i!66 Int))
-                          (or (= i!66 1)
-                              (= (select (incs s0_new!127) i!66)
-                                 (select (incs s0!126) i!66)))))
-                   (a!2 (= (select (incs s0_new!127) 1)
-                           (+ (select (incs s0!126) 1) n!9))))
+(assert (let ((a!1 (forall ((s0!121 T_PNCounter)
+                    (s0_new!122 T_PNCounter)
+                    (ret!123 T_void))
+             (let ((a!1 (forall ((i!62 Int))
+                          (or (= i!62 1)
+                              (= (select (incs s0_new!122) i!62)
+                                 (select (incs s0!121) i!62)))))
+                   (a!2 (= (select (incs s0_new!122) 1)
+                           (+ (select (incs s0!121) 1) n!9))))
                (=> (and true
                         true
                         (>= n!9 0)
                         a!1
-                        (= (decs s0!126) (decs s0_new!127))
+                        (= (decs s0!121) (decs s0_new!122))
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!128 T_PNCounter) (s0_new!129 T_PNCounter))
-             (let ((a!1 (forall ((i!73 Int))
-                          (or (= i!73 1)
-                              (= (select (decs s0_new!129) i!73)
-                                 (select (decs s0!128) i!73)))))
-                   (a!2 (= (select (decs s0_new!129) 1)
-                           (+ 1 (select (decs s0!128) 1)))))
+(assert (let ((a!1 (forall ((s0!124 T_PNCounter)
+                    (s0_new!125 T_PNCounter)
+                    (ret!126 T_void))
+             (let ((a!1 (forall ((i!68 Int))
+                          (or (= i!68 1)
+                              (= (select (decs s0_new!125) i!68)
+                                 (select (decs s0!124) i!68)))))
+                   (a!2 (= (select (decs s0_new!125) 1)
+                           (+ 1 (select (decs s0!124) 1)))))
                (=> (and true
                         true
                         true
-                        (= (incs s0!128) (incs s0_new!129))
+                        (= (incs s0!124) (incs s0_new!125))
                         a!1
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!130 T_PNCounter) (s0_new!131 T_PNCounter))
-             (let ((a!1 (forall ((i!80 Int))
-                          (or (= i!80 1)
-                              (= (select (decs s0_new!131) i!80)
-                                 (select (decs s0!130) i!80)))))
-                   (a!2 (= (select (decs s0_new!131) 1)
-                           (+ (select (decs s0!130) 1) n!14))))
+(assert (let ((a!1 (forall ((s0!127 T_PNCounter)
+                    (s0_new!128 T_PNCounter)
+                    (ret!129 T_void))
+             (let ((a!1 (forall ((i!74 Int))
+                          (or (= i!74 1)
+                              (= (select (decs s0_new!128) i!74)
+                                 (select (decs s0!127) i!74)))))
+                   (a!2 (= (select (decs s0_new!128) 1)
+                           (+ (select (decs s0!127) 1) n!14))))
                (=> (and true
                         true
                         (>= n!14 0)
-                        (= (incs s0!130) (incs s0_new!131))
+                        (= (incs s0!127) (incs s0_new!128))
                         a!1
                         a!2)
                    true)))))
   (not a!1)))
-(assert (not (forall ((s0!132 T_PNCounter)
-              (s1!133 T_PNCounter)
-              (s0_new!134 T_PNCounter))
+(assert (not (forall ((s0!130 T_PNCounter)
+              (s1!131 T_PNCounter)
+              (s0_new!132 T_PNCounter))
        (let ((a!1 (and true
                        true
                        true
                        true
                        true
-                       (forall ((i!88 Int))
-                         (let ((a!1 (not (and (>= i!88 0) (not (<= 3 i!88)))))
-                               (a!2 (ite (>= (select (incs s0!132) i!88)
-                                             (select (incs s1!133) i!88))
-                                         (= (select (incs s0_new!134) i!88)
-                                            (select (incs s0!132) i!88))
-                                         (= (select (incs s0_new!134) i!88)
-                                            (select (incs s1!133) i!88))))
-                               (a!3 (ite (>= (select (decs s0!132) i!88)
-                                             (select (decs s1!133) i!88))
-                                         (= (select (decs s0_new!134) i!88)
-                                            (select (decs s0!132) i!88))
-                                         (= (select (decs s0_new!134) i!88)
-                                            (select (decs s1!133) i!88)))))
+                       (forall ((i!81 Int))
+                         (let ((a!1 (not (and (>= i!81 0) (not (<= 3 i!81)))))
+                               (a!2 (ite (>= (select (incs s0!130) i!81)
+                                             (select (incs s1!131) i!81))
+                                         (= (select (incs s0_new!132) i!81)
+                                            (select (incs s0!130) i!81))
+                                         (= (select (incs s0_new!132) i!81)
+                                            (select (incs s1!131) i!81))))
+                               (a!3 (ite (>= (select (decs s0!130) i!81)
+                                             (select (decs s1!131) i!81))
+                                         (= (select (decs s0_new!132) i!81)
+                                            (select (decs s0!130) i!81))
+                                         (= (select (decs s0_new!132) i!81)
+                                            (select (decs s1!131) i!81)))))
                            (or a!1 (and a!2 a!3)))))))
          (=> a!1 true)))))
-(assert (let ((a!1 (forall ((s0!135 T_PNCounter))
+(assert (let ((a!1 (forall ((s0!133 T_PNCounter))
              (=> (and (forall ((i!34 Int))
                         (let ((a!1 (not (and (>= i!34 0) (not (<= 3 i!34)))))
-                              (a!2 (and (= (select (incs s0!135) i!34) 0)
-                                        (= (select (decs s0!135) i!34) 0))))
+                              (a!2 (and (= (select (incs s0!133) i!34) 0)
+                                        (= (select (decs s0!133) i!34) 0))))
                           (or a!1 a!2)))
                       true
                       true)
                  true))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!136 T_PNCounter)
-                    (s1!137 T_PNCounter)
-                    (s0_new!138 T_PNCounter))
-             (let ((a!1 (= res!38
-                           (+ (select (incs s0_new!138) 0)
-                              (select (incs s0_new!138) 1)
-                              (select (incs s0_new!138) 2)))))
+(assert (let ((a!1 (forall ((s0!134 T_PNCounter)
+                    (s1!135 T_PNCounter)
+                    (s0_new!136 T_PNCounter)
+                    (ret!137 Int))
+             (let ((a!1 (= ret!137
+                           (+ (select (incs s0_new!136) 0)
+                              (select (incs s0_new!136) 1)
+                              (select (incs s0_new!136) 2)))))
                (=> (and true
                         true
                         true
@@ -249,17 +334,18 @@
                         true
                         true
                         true
-                        (= s0!136 s0_new!138)
+                        (= s0!134 s0_new!136)
                         a!1)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!139 T_PNCounter)
-                    (s1!140 T_PNCounter)
-                    (s0_new!141 T_PNCounter))
-             (let ((a!1 (= res!45
-                           (+ (select (decs s0_new!141) 0)
-                              (select (decs s0_new!141) 1)
-                              (select (decs s0_new!141) 2)))))
+(assert (let ((a!1 (forall ((s0!138 T_PNCounter)
+                    (s1!139 T_PNCounter)
+                    (s0_new!140 T_PNCounter)
+                    (ret!141 Int))
+             (let ((a!1 (= ret!141
+                           (+ (select (decs s0_new!140) 0)
+                              (select (decs s0_new!140) 1)
+                              (select (decs s0_new!140) 2)))))
                (=> (and true
                         true
                         true
@@ -268,14 +354,15 @@
                         true
                         true
                         true
-                        (= s0!139 s0_new!141)
+                        (= s0!138 s0_new!140)
                         a!1)
                    true)))))
   (not a!1)))
 (assert (let ((a!1 (forall ((s0!142 T_PNCounter)
                     (s1!143 T_PNCounter)
-                    (s0_new!144 T_PNCounter))
-             (let ((a!1 (= res!52
+                    (s0_new!144 T_PNCounter)
+                    (ret!145 Int))
+             (let ((a!1 (= ret!145
                            (+ (PNCounter.sumIncs!1 s0_new!144)
                               (* (- 1) (PNCounter.sumDecs!3 s0_new!144))))))
                (=> (and true
@@ -290,15 +377,16 @@
                         a!1)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!145 T_PNCounter)
-                    (s1!146 T_PNCounter)
-                    (s0_new!147 T_PNCounter))
-             (let ((a!1 (forall ((i!59 Int))
-                          (or (= i!59 1)
-                              (= (select (incs s0_new!147) i!59)
-                                 (select (incs s0!145) i!59)))))
-                   (a!2 (= (select (incs s0_new!147) 1)
-                           (+ 1 (select (incs s0!145) 1)))))
+(assert (let ((a!1 (forall ((s0!146 T_PNCounter)
+                    (s1!147 T_PNCounter)
+                    (s0_new!148 T_PNCounter)
+                    (ret!149 T_void))
+             (let ((a!1 (forall ((i!56 Int))
+                          (or (= i!56 1)
+                              (= (select (incs s0_new!148) i!56)
+                                 (select (incs s0!146) i!56)))))
+                   (a!2 (= (select (incs s0_new!148) 1)
+                           (+ 1 (select (incs s0!146) 1)))))
                (=> (and true
                         true
                         true
@@ -308,19 +396,20 @@
                         true
                         true
                         a!1
-                        (= (decs s0!145) (decs s0_new!147))
+                        (= (decs s0!146) (decs s0_new!148))
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!148 T_PNCounter)
-                    (s1!149 T_PNCounter)
-                    (s0_new!150 T_PNCounter))
-             (let ((a!1 (forall ((i!66 Int))
-                          (or (= i!66 1)
-                              (= (select (incs s0_new!150) i!66)
-                                 (select (incs s0!148) i!66)))))
-                   (a!2 (= (select (incs s0_new!150) 1)
-                           (+ (select (incs s0!148) 1) n!9))))
+(assert (let ((a!1 (forall ((s0!150 T_PNCounter)
+                    (s1!151 T_PNCounter)
+                    (s0_new!152 T_PNCounter)
+                    (ret!153 T_void))
+             (let ((a!1 (forall ((i!62 Int))
+                          (or (= i!62 1)
+                              (= (select (incs s0_new!152) i!62)
+                                 (select (incs s0!150) i!62)))))
+                   (a!2 (= (select (incs s0_new!152) 1)
+                           (+ (select (incs s0!150) 1) n!9))))
                (=> (and true
                         true
                         true
@@ -330,19 +419,20 @@
                         (>= n!9 0)
                         true
                         a!1
-                        (= (decs s0!148) (decs s0_new!150))
+                        (= (decs s0!150) (decs s0_new!152))
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!151 T_PNCounter)
-                    (s1!152 T_PNCounter)
-                    (s0_new!153 T_PNCounter))
-             (let ((a!1 (forall ((i!73 Int))
-                          (or (= i!73 1)
-                              (= (select (decs s0_new!153) i!73)
-                                 (select (decs s0!151) i!73)))))
-                   (a!2 (= (select (decs s0_new!153) 1)
-                           (+ 1 (select (decs s0!151) 1)))))
+(assert (let ((a!1 (forall ((s0!154 T_PNCounter)
+                    (s1!155 T_PNCounter)
+                    (s0_new!156 T_PNCounter)
+                    (ret!157 T_void))
+             (let ((a!1 (forall ((i!68 Int))
+                          (or (= i!68 1)
+                              (= (select (decs s0_new!156) i!68)
+                                 (select (decs s0!154) i!68)))))
+                   (a!2 (= (select (decs s0_new!156) 1)
+                           (+ 1 (select (decs s0!154) 1)))))
                (=> (and true
                         true
                         true
@@ -351,20 +441,21 @@
                         true
                         true
                         true
-                        (= (incs s0!151) (incs s0_new!153))
+                        (= (incs s0!154) (incs s0_new!156))
                         a!1
                         a!2)
                    true)))))
   (not a!1)))
-(assert (let ((a!1 (forall ((s0!154 T_PNCounter)
-                    (s1!155 T_PNCounter)
-                    (s0_new!156 T_PNCounter))
-             (let ((a!1 (forall ((i!80 Int))
-                          (or (= i!80 1)
-                              (= (select (decs s0_new!156) i!80)
-                                 (select (decs s0!154) i!80)))))
-                   (a!2 (= (select (decs s0_new!156) 1)
-                           (+ (select (decs s0!154) 1) n!14))))
+(assert (let ((a!1 (forall ((s0!158 T_PNCounter)
+                    (s1!159 T_PNCounter)
+                    (s0_new!160 T_PNCounter)
+                    (ret!161 T_void))
+             (let ((a!1 (forall ((i!74 Int))
+                          (or (= i!74 1)
+                              (= (select (decs s0_new!160) i!74)
+                                 (select (decs s0!158) i!74)))))
+                   (a!2 (= (select (decs s0_new!160) 1)
+                           (+ (select (decs s0!158) 1) n!14))))
                (=> (and true
                         true
                         true
@@ -373,14 +464,14 @@
                         true
                         (>= n!14 0)
                         true
-                        (= (incs s0!154) (incs s0_new!156))
+                        (= (incs s0!158) (incs s0_new!160))
                         a!1
                         a!2)
                    true)))))
   (not a!1)))
-(assert (not (forall ((s0!157 T_PNCounter)
-              (s1!158 T_PNCounter)
-              (s0_new!159 T_PNCounter))
+(assert (not (forall ((s0!162 T_PNCounter)
+              (s1!163 T_PNCounter)
+              (s0_new!164 T_PNCounter))
        (let ((a!1 (and true
                        true
                        true
@@ -388,143 +479,19 @@
                        true
                        true
                        true
-                       (forall ((i!88 Int))
-                         (let ((a!1 (not (and (>= i!88 0) (not (<= 3 i!88)))))
-                               (a!2 (ite (>= (select (incs s0!157) i!88)
-                                             (select (incs s1!158) i!88))
-                                         (= (select (incs s0_new!159) i!88)
-                                            (select (incs s0!157) i!88))
-                                         (= (select (incs s0_new!159) i!88)
-                                            (select (incs s1!158) i!88))))
-                               (a!3 (ite (>= (select (decs s0!157) i!88)
-                                             (select (decs s1!158) i!88))
-                                         (= (select (decs s0_new!159) i!88)
-                                            (select (decs s0!157) i!88))
-                                         (= (select (decs s0_new!159) i!88)
-                                            (select (decs s1!158) i!88)))))
+                       (forall ((i!81 Int))
+                         (let ((a!1 (not (and (>= i!81 0) (not (<= 3 i!81)))))
+                               (a!2 (ite (>= (select (incs s0!162) i!81)
+                                             (select (incs s1!163) i!81))
+                                         (= (select (incs s0_new!164) i!81)
+                                            (select (incs s0!162) i!81))
+                                         (= (select (incs s0_new!164) i!81)
+                                            (select (incs s1!163) i!81))))
+                               (a!3 (ite (>= (select (decs s0!162) i!81)
+                                             (select (decs s1!163) i!81))
+                                         (= (select (decs s0_new!164) i!81)
+                                            (select (decs s0!162) i!81))
+                                         (= (select (decs s0_new!164) i!81)
+                                            (select (decs s1!163) i!81)))))
                            (or a!1 (and a!2 a!3)))))))
-         (=> a!1 true)))))
-(assert (let ((a!1 (forall ((s0!160 T_ReplicatedCreditAccount))
-             (let ((a!1 (forall ((i!92 Int))
-                          (= (select (incs (credits s0!160)) i!92) 0)))
-                   (a!2 (forall ((i!93 Int))
-                          (= (select (decs (credits s0!160)) i!93) 0))))
-               (=> (and (= (ReplicatedCreditAccount.getValue!21 s0!160) 0)
-                        a!1
-                        a!2
-                        true)
-                   (>= (ReplicatedCreditAccount.getValue!21 s0!160) 0))))))
-  (not a!1)))
-(assert (let ((a!1 (forall ((s0!161 T_ReplicatedCreditAccount)
-                    (s0_new!162 T_ReplicatedCreditAccount))
-             (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!161) 0)
-                             true
-                             true
-                             (= s0!161 s0_new!162)
-                             (= res!97 (PNCounter.getValue!5 (credits s0!161))))))
-               (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!162) 0))))))
-  (not a!1)))
-(assert (let ((a!1 (forall ((s0!163 T_ReplicatedCreditAccount)
-                    (s0_new!164 T_ReplicatedCreditAccount))
-             (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!163) 0)
-                             true
-                             (>= val!22 0)
-                             (= (credits s0_new!164)
-                                (PNCounter.inc_STATE!10 (credits s0!163) val!22)))))
-               (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!164) 0))))))
-  (not a!1)))
-(assert (let ((a!1 (forall ((s0!165 T_ReplicatedCreditAccount)
-                    (s0_new!166 T_ReplicatedCreditAccount))
-             (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!165) 0)
-                             true
-                             (<= 0 val!25)
-                             (<= val!25
-                                 (ReplicatedCreditAccount.getValue!21 s0!165))
-                             (= (credits s0_new!166)
-                                (PNCounter.dec_STATE!15 (credits s0!165) val!25)))))
-               (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!166) 0))))))
-  (not a!1)))
-(assert (let ((a!1 (forall ((s0!167 T_ReplicatedCreditAccount)
-                    (s1!168 T_ReplicatedCreditAccount)
-                    (s0_new!169 T_ReplicatedCreditAccount))
-             (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!167) 0)
-                             true
-                             (>= (ReplicatedCreditAccount.getValue!21 s1!168) 0)
-                             true
-                             true
-                             (= (credits s0_new!169)
-                                (PNCounter.merge_STATE!18
-                                  (credits s0!167)
-                                  (credits s1!168))))))
-               (=> a!1 (>= (ReplicatedCreditAccount.getValue!21 s0_new!169) 0))))))
-  (not a!1)))
-(assert (let ((a!1 (forall ((s0!170 T_ReplicatedCreditAccount))
-             (let ((a!1 (forall ((i!92 Int))
-                          (= (select (incs (credits s0!170)) i!92) 0)))
-                   (a!2 (forall ((i!93 Int))
-                          (= (select (decs (credits s0!170)) i!93) 0))))
-               (=> (and (= (ReplicatedCreditAccount.getValue!21 s0!170) 0)
-                        a!1
-                        a!2
-                        (>= (ReplicatedCreditAccount.getValue!21 s0!170) 0)
-                        true)
-                   true)))))
-  (not a!1)))
-(assert (not (forall ((s0!171 T_ReplicatedCreditAccount)
-              (s1!172 T_ReplicatedCreditAccount)
-              (s0_new!173 T_ReplicatedCreditAccount))
-       (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!171) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s1!172) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s0_new!173) 0)
-                       true
-                       true
-                       true
-                       (= s0!171 s0_new!173)
-                       (= res!97 (PNCounter.getValue!5 (credits s0!171))))))
-         (=> a!1 true)))))
-(assert (not (forall ((s0!174 T_ReplicatedCreditAccount)
-              (s1!175 T_ReplicatedCreditAccount)
-              (s0_new!176 T_ReplicatedCreditAccount))
-       (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!174) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s1!175) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s0_new!176) 0)
-                       true
-                       (>= val!22 0)
-                       true
-                       (= (credits s0_new!176)
-                          (PNCounter.inc_STATE!10 (credits s0!174) val!22)))))
-         (=> a!1 true)))))
-(assert (not (forall ((s0!177 T_ReplicatedCreditAccount)
-              (s1!178 T_ReplicatedCreditAccount)
-              (s0_new!179 T_ReplicatedCreditAccount))
-       (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!177) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s1!178) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s0_new!179) 0)
-                       true
-                       (<= 0 val!25)
-                       (<= val!25 (ReplicatedCreditAccount.getValue!21 s0!177))
-                       true
-                       (= (credits s0_new!179)
-                          (PNCounter.dec_STATE!15 (credits s0!177) val!25)))))
-         (=> a!1 true)))))
-(assert (not (forall ((s0!180 T_ReplicatedCreditAccount)
-              (s1!181 T_ReplicatedCreditAccount)
-              (s0_new!182 T_ReplicatedCreditAccount))
-       (let ((a!1 (and (>= (ReplicatedCreditAccount.getValue!21 s0!180) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s1!181) 0)
-                       true
-                       (>= (ReplicatedCreditAccount.getValue!21 s0_new!182) 0)
-                       true
-                       true
-                       (= (credits s0_new!182)
-                          (PNCounter.merge_STATE!18
-                            (credits s0!180)
-                            (credits s1!181))))))
          (=> a!1 true)))))
