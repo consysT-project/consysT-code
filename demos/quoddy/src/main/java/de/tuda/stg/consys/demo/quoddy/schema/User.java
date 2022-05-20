@@ -4,6 +4,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
@@ -129,50 +130,62 @@ public @Mixed class User implements Serializable {
         this.email = email;
     }
 
+    @SideEffectFree
     public String getId() {
         return id;
     }
 
+    @SideEffectFree
     public String getName() {
         return name;
     }
 
+    @SideEffectFree
     public String getEmail() {
         return email;
     }
 
+    @SideEffectFree
     public String getPhone() {
         return phone;
     }
 
+    @SideEffectFree
     public String getProfileText() {
         return profileText;
     }
 
+    @SideEffectFree
     public List<Ref<User>> getFriends() {
         return new ArrayList<>(friends.values());
     }
 
+    @SideEffectFree
     public List<Ref<User>> getFollowers() {
         return new ArrayList<>(followers.values());
     }
 
+    @SideEffectFree
     public List<Ref<User>> getFollowing() {
         return new ArrayList<>(following.values());
     }
 
+    @SideEffectFree
     public List<Ref<User>> getReceivedFriendRequests() {
         return new ArrayList<>(receivedFriendRequests.values());
     }
 
+    @SideEffectFree
     public List<Ref<User>> getSentFriendRequests() {
         return new ArrayList<>(sentFriendRequests.values());
     }
 
+    @SideEffectFree
     public List<Ref<? extends Post>> getNewestPosts(int n) {
         return (@Weak @Immutable List<Ref<? extends Post>>) feed.subList(0, Math.min(n, feed.size()));
     }
 
+    @SideEffectFree
     public List<Ref<Group>> getParticipatingGroups() {
         return participatingGroups;
     }

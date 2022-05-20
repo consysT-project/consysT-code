@@ -14,11 +14,11 @@ public @Mixed class Tweet implements Serializable {
     private Ref<User> user;
     private @Weak String body;
     private Date created = new Date();
-    private Ref<@Strong Counter> retweetCount;
+    private Ref<@Mutable @Strong Counter> retweetCount;
 
     public Tweet() {}
 
-    public Tweet(Ref<User> user, @Mutable @Weak String body, Ref<@Strong Counter> retweetCount) {
+    public Tweet(Ref<User> user, @Mutable @Weak String body, Ref<@Mutable @Strong Counter> retweetCount) {
         this.user = user;
         this.body = body;
         this.retweetCount = retweetCount;
