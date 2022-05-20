@@ -42,8 +42,8 @@
                         <!-- Uncomment the following line to turn type-checking warnings into errors. -->
                         <!-- <arg>-Awarns</arg> -->
 
-                        <!-- <arg>-AstubWarnIfNotFound</arg> -->
-                        <!-- <arg>-AsuppressWarnings=inconsistent.constructor.type</arg> -->
+                        <arg>-AstubWarnIfNotFound</arg>
+                        <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
 
                         <!-- Add the consys compiler plugin for preprocessing sources -->
                         <arg>-Xplugin:consys-compiler</arg>
