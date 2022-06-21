@@ -96,7 +96,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	}
 
 
-	private def warmup() : Unit = {
+	private def warmup(skipCleanup: Boolean = false) : Unit = {
 		try {
 			system.barrier("warmup")
 			println("## START WARMUP ##")
@@ -114,8 +114,10 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 				closeOperations()
 				BenchmarkUtils.printDone()
 				system.barrier("cleanup")
-				println(s"### WARMUP $i : CLEANUP ###")
-				cleanup()
+				if (i < warmupIterations || !skipCleanup) {
+					println(s"### WARMUP $i : CLEANUP ###")
+					cleanup()
+				}
 			}
 			system.barrier("warmup-done")
 			println("## WARMUP DONE ##")
@@ -191,6 +193,10 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	def runBenchmark() : Unit = {
 		warmup()
 		measure()
+	}
+
+	def runWarmupOnlyWithoutCleanup() : Unit = {
+		warmup(true)
 	}
 }
 

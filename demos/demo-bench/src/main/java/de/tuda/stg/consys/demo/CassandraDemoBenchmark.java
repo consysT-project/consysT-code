@@ -12,7 +12,9 @@ import scala.Option;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import scala.concurrent.duration.Duration;
 
-import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Created on 19.11.19.
@@ -118,5 +120,44 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			e.printStackTrace();
 		}
 		*/
+	}
+
+	public void test() {
+		throw new UnsupportedOperationException();
+	}
+
+	private final Map<String, Boolean> checkResults = new HashMap<>();
+	private final Map<String, String> checkResultsMessage = new HashMap<>();
+	public void check(String name, Supplier<Boolean> code) {
+		if (checkResults.containsKey(name))
+			throw new IllegalArgumentException("check '" + name + "' already exists");
+		checkResults.put(name, code.get());
+	}
+
+	public <T> void checkEquals(String name, T expected, T actual) {
+		if (checkResults.containsKey(name))
+			throw new IllegalArgumentException("check '" + name + "' already exists");
+		checkResults.put(name, expected.equals(actual));
+		checkResultsMessage.put(name, "expected: " + expected + ", but actual: " + actual);
+	}
+
+	public void printTestResult() {
+		if (processId() != 0) return;
+
+		int nFailedChecks = 0;
+		for (var val : checkResults.values()) {
+			if (!val) nFailedChecks++;
+		}
+
+		System.out.println("- TEST RESULTS ---------");
+		System.out.println("Failed checks (" + nFailedChecks + "/" + checkResults.size() + "):");
+		for (var pair : checkResults.entrySet()) {
+			if (!pair.getValue()) {
+				System.out.println("  " + pair.getKey());
+				if (checkResultsMessage.containsKey(pair.getKey()))
+					System.out.println("     " + checkResultsMessage.get(pair.getKey()));
+			}
+		}
+		System.out.println("------------------------");
 	}
 }

@@ -23,6 +23,7 @@ public @Mixed class Item implements Serializable {
     private final @Immutable Category category;
     private final Ref<@Mutable User> seller;
     private final List<Bid> bids;
+    private boolean soldViaBuyNow;
 
     public Item() {
         this.id = null;
@@ -34,6 +35,7 @@ public @Mixed class Item implements Serializable {
         this.category = null;
         this.seller = null;
         this.bids = null;
+        this.soldViaBuyNow = false;
     }
 
     public Item(@Local UUID id, @Local @Mutable String name, @Mutable @Weak String description,
@@ -51,6 +53,7 @@ public @Mixed class Item implements Serializable {
         this.category = category;
         this.seller = seller;
         this.bids = new LinkedList<>();
+        this.soldViaBuyNow = false;
     }
 
     @Transactional
@@ -78,6 +81,7 @@ public @Mixed class Item implements Serializable {
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
         } else {
             endAuctionNow();
+            soldViaBuyNow = true;
             return buyNowPrice;
         }
     }
@@ -157,6 +161,11 @@ public @Mixed class Item implements Serializable {
     @WeakOp @SideEffectFree
     public Ref<@Mutable User> getSeller() {
         return seller;
+    }
+
+    @WeakOp @SideEffectFree
+    public boolean getSoldViaBuyNow() {
+        return soldViaBuyNow;
     }
 
     @Transactional @SideEffectFree

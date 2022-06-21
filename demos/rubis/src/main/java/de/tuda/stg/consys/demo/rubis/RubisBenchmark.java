@@ -96,6 +96,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         return element;
     }
 
+    protected float getInitialBalance() {
+        return numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f;
+    }
+
     @Override
     public String getName() {
         return "RubisBenchmark";
@@ -131,7 +135,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             localSessions.get(grpIndex).registerUser(null, addr("user", grpIndex, processId()), generateRandomName(),
                     generateRandomPassword(), "mail@example.com");
 
-            localSessions.get(grpIndex).addBalance(null, numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
+            localSessions.get(grpIndex).addBalance(null, getInitialBalance());
 
             localItems.add(localSessions.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
                     getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300));
@@ -187,7 +191,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             System.out.println(e.getMessage());
         } catch (Exception e) {
             if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof AppException) {
-                System.out.println(e.getMessage());
+                System.out.println(((InvocationTargetException)e).getTargetException().getMessage());
             } else {
                 throw e;
             }
@@ -221,6 +225,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         store().transaction(ctx -> {
             List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            if (openAuctions.isEmpty()) {
+                System.out.println("no open auctions for placeBid operation");
+                return Option.empty();
+            }
+
             Ref<Item> item = getRandomElement(openAuctions);
             Session session = getRandomElement(localSessions);
             float bid = session.getBidPrice(ctx, item);
@@ -235,6 +244,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         store().transaction(ctx -> {
             List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            if (openAuctions.isEmpty()) {
+                System.out.println("no open auctions for buyNow operation");
+                return Option.empty();
+            }
+
             Ref<Item> item = getRandomElement(openAuctions);
             session.buyNow(ctx, item);
             return Option.empty();
@@ -246,6 +260,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         store().transaction(ctx -> {
             List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            if (openAuctions.isEmpty()) {
+                System.out.println("no open auctions for closeAuction operation");
+                return Option.empty();
+            }
+
             Ref<Item> item = getRandomElement(openAuctions);
             item.ref().endAuctionNow();
             Util.closeAuction(item, auctionStore);
@@ -267,5 +286,76 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             user1.ref().rate(new Comment(rating, generateRandomText(10), user2, user1));
             return Option.empty();
         });
+    }
+
+    /**
+     * Checked invariants:
+     *  - ´user.balance´ is non-negative
+     *  - ´user.balance´ corresponds to bought and sold items
+     *  - auction winners corresponds to bought items
+     *  - auction sellers correspond to sold items
+     *  - winner is the highest bidder
+     */
+    @Override
+    public void test() {
+        if (processId() != 0) return;
+        System.out.println("## TEST ##");
+
+        check("users non empty", () -> !users.isEmpty());
+
+        for (Ref<User> user : users) {
+            store().transaction(ctx -> {
+                String name = user.ref().getNickname();
+
+                float userBalance = user.ref().getBalance();
+                check(name + " : balance >= 0", () -> userBalance >= 0);
+
+                float balance = getInitialBalance();
+                for (Ref<Item> boughtItem : user.ref().getBuyerHistory()) {
+                    String item = boughtItem.ref().getId().toString();
+
+                    if (boughtItem.ref().getSoldViaBuyNow()) {
+                        balance -= boughtItem.ref().getBuyNowPrice();
+                    } else {
+                        var winningBidOption = boughtItem.ref().getTopBid();
+                        check(name + "|" + item + " : buyer bid non null", winningBidOption::isPresent);
+                        if (winningBidOption.isEmpty()) continue;
+
+                        var winningBid = winningBidOption.get();
+                        checkEquals(name + "|" + item + " : bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
+
+                        var allBids = boughtItem.ref().getAllBids();
+                        for (var bid : allBids) {
+                            if (bid.getBid() >= winningBid.getBid())
+                                check(item + " : winner bid is highest bid", () -> false);
+                        }
+
+                        balance -= winningBid.getBid();
+                    }
+                }
+
+                for (Ref<Item> soldItem : user.ref().getSellerHistory(true)) {
+                    String item = soldItem.ref().getId().toString();
+
+                    checkEquals(name + "|" + item + " : bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
+
+                    if (soldItem.ref().getSoldViaBuyNow()) {
+                        balance += soldItem.ref().getBuyNowPrice();
+                    } else {
+                        var winningBidOption = soldItem.ref().getTopBid();
+                        check(name+ "|" + item + " : seller bid non null", winningBidOption::isPresent);
+                        if (winningBidOption.isEmpty()) continue;
+
+                        balance += winningBidOption.get().getBid();
+                    }
+                }
+
+                checkEquals(name + " : balance correct", balance, userBalance);
+
+                return Option.empty();
+            });
+        }
+
+        System.out.println("## TEST SUCCESS ##");
     }
 }

@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.demo.rubis.schema;
 
-import de.tuda.stg.consys.annotations.methods.*;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
@@ -9,7 +8,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
-public @Mixed class Bid implements Serializable {
+public @Strong class Bid implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable Date date;
     private final @Immutable float bid;
@@ -22,25 +21,21 @@ public @Mixed class Bid implements Serializable {
         this.date = new Date();
     }
 
-    @WeakOp
     @SideEffectFree
     public @Strong UUID getId() {
         return id;
     }
 
-    @WeakOp
     @SideEffectFree
     public @Strong Date getDate() {
         return date;
     }
 
-    @WeakOp
     @SideEffectFree
     public Ref<@Mutable User> getUser() {
         return user;
     }
 
-    @WeakOp
     @SideEffectFree
     public @Strong float getBid() {
         return bid;
