@@ -301,33 +301,29 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         if (processId() != 0) return;
         System.out.println("## TEST ##");
 
-        check("users non empty", () -> !users.isEmpty());
+        check("users non empty", !users.isEmpty());
 
         for (Ref<User> user : users) {
             store().transaction(ctx -> {
-                String name = user.ref().getNickname();
-
                 float userBalance = user.ref().getBalance();
-                check(name + " : balance >= 0", () -> userBalance >= 0);
+                check("balance >= 0", userBalance >= 0);
 
                 float balance = getInitialBalance();
                 for (Ref<Item> boughtItem : user.ref().getBuyerHistory()) {
-                    String item = boughtItem.ref().getId().toString();
-
                     if (boughtItem.ref().getSoldViaBuyNow()) {
                         balance -= boughtItem.ref().getBuyNowPrice();
                     } else {
                         var winningBidOption = boughtItem.ref().getTopBid();
-                        check(name + "|" + item + " : buyer bid non null", winningBidOption::isPresent);
+                        check("buyer bid non null", winningBidOption.isPresent());
                         if (winningBidOption.isEmpty()) continue;
 
                         var winningBid = winningBidOption.get();
-                        checkEquals(name + "|" + item + " : bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
+                        checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
 
                         var allBids = boughtItem.ref().getAllBids();
                         for (var bid : allBids) {
                             if (bid.getBid() >= winningBid.getBid())
-                                check(item + " : winner bid is highest bid", () -> false);
+                                check("winner bid is highest bid", false);
                         }
 
                         balance -= winningBid.getBid();
@@ -335,22 +331,20 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 }
 
                 for (Ref<Item> soldItem : user.ref().getSellerHistory(true)) {
-                    String item = soldItem.ref().getId().toString();
-
-                    checkEquals(name + "|" + item + " : bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
+                    checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
 
                     if (soldItem.ref().getSoldViaBuyNow()) {
                         balance += soldItem.ref().getBuyNowPrice();
                     } else {
                         var winningBidOption = soldItem.ref().getTopBid();
-                        check(name+ "|" + item + " : seller bid non null", winningBidOption::isPresent);
+                        check("seller bid non null", winningBidOption.isPresent());
                         if (winningBidOption.isEmpty()) continue;
 
                         balance += winningBidOption.get().getBid();
                     }
                 }
 
-                checkEquals(name + " : balance correct", balance, userBalance);
+                checkFloatEquals("balance correct", balance, userBalance);
 
                 return Option.empty();
             });

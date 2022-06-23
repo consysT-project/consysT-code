@@ -12,8 +12,7 @@ import scala.Option;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import scala.concurrent.duration.Duration;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 
 /**
@@ -126,36 +125,58 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		throw new UnsupportedOperationException();
 	}
 
-	private final Map<String, Boolean> checkResults = new HashMap<>();
-	private final Map<String, String> checkResultsMessage = new HashMap<>();
+	private final Map<String, List<Boolean>> checkResults = new HashMap<>();
+	private final Map<String, List<String>> checkResultsMessage = new HashMap<>();
+
 	public void check(String name, Supplier<Boolean> code) {
-		if (checkResults.containsKey(name))
-			throw new IllegalArgumentException("check '" + name + "' already exists");
-		checkResults.put(name, code.get());
+		putCheck(name, code.get());
+	}
+
+	public void check(String name, boolean result) {
+		putCheck(name, result);
 	}
 
 	public <T> void checkEquals(String name, T expected, T actual) {
-		if (checkResults.containsKey(name))
-			throw new IllegalArgumentException("check '" + name + "' already exists");
-		checkResults.put(name, expected.equals(actual));
-		checkResultsMessage.put(name, "expected: " + expected + ", but actual: " + actual);
+		boolean result = expected.equals(actual);
+		putCheck(name, result);
+		if (!result) {
+			checkResultsMessage.putIfAbsent(name, new ArrayList<>());
+			checkResultsMessage.get(name).add("expected: " + expected + ", but actual: " + actual);
+		}
+	}
+
+	public void checkFloatEquals(String name, float expected, float actual) {
+		checkFloatEquals(name, expected, actual, 0.000001f);
+	}
+	public void checkFloatEquals(String name, float expected, float actual, float eps) {
+		boolean result = Math.abs(expected - actual) < eps;
+		putCheck(name, result);
+		if (!result) {
+			checkResultsMessage.putIfAbsent(name, new ArrayList<>());
+			checkResultsMessage.get(name).add("expected: " + expected + ", but actual: " + actual);
+		}
+	}
+
+	private void putCheck(String name, boolean result) {
+		checkResults.putIfAbsent(name, new ArrayList<>());
+		checkResults.get(name).add(result);
 	}
 
 	public void printTestResult() {
 		if (processId() != 0) return;
 
-		int nFailedChecks = 0;
-		for (var val : checkResults.values()) {
-			if (!val) nFailedChecks++;
-		}
+		long nFailedChecks = checkResults.values().stream().flatMap(Collection::stream).filter(b -> !b).count();
 
 		System.out.println("- TEST RESULTS ---------");
-		System.out.println("Failed checks (" + nFailedChecks + "/" + checkResults.size() + "):");
+		System.out.println("Failed checks (" + nFailedChecks + "/" + checkResults.values().stream().mapToLong(Collection::size).sum() + "):");
 		for (var pair : checkResults.entrySet()) {
-			if (!pair.getValue()) {
-				System.out.println("  " + pair.getKey());
-				if (checkResultsMessage.containsKey(pair.getKey()))
-					System.out.println("     " + checkResultsMessage.get(pair.getKey()));
+			nFailedChecks = pair.getValue().stream().filter(b -> !b).count();
+			if (nFailedChecks > 0) {
+				System.out.println("  " + pair.getKey() + " (failed " + nFailedChecks + "/" + pair.getValue().size() + ")");
+				if (checkResultsMessage.containsKey(pair.getKey())) {
+					for (String msg : checkResultsMessage.get(pair.getKey()))
+						System.out.println("     " + msg);
+				}
 			}
 		}
 		System.out.println("------------------------");

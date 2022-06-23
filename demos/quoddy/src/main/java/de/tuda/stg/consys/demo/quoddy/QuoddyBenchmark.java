@@ -336,4 +336,59 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             return Option.empty();
         });
     }
+
+    /**
+     * Checked invariants:
+     *  - friends relation
+     *  - group-member relation
+     *  -
+     *  -
+     */
+    public void test() {
+        if (processId() != 0) return;
+        System.out.println("## TEST ##");
+
+        check("users non empty", () -> !users.isEmpty());
+
+        for (var user : users) {
+            // check friendship relation
+            for (var friend : store().transaction(ctx -> Option.apply(user.ref().getFriends())).get()) {
+                boolean isMutualFriends = false;
+                for (var f : store().transaction(ctx -> Option.apply(friend.ref().getFriends())).get())
+                    isMutualFriends |= store().transaction(ctx -> Option.apply(Util.equalsUser(f, user))).get();
+
+                check("users are mutual friends", isMutualFriends);
+            }
+
+            // check group membership relation
+            for (var group : store().transaction(ctx -> Option.apply(user.ref().getParticipatingGroups())).get()) {
+                var members = store().transaction(cty -> Option.apply(group.ref().getMembers())).get();
+                var owners = store().transaction(cty -> Option.apply(group.ref().getOwners())).get();
+                members.addAll(owners);
+
+                boolean isMember = false;
+                for (var member : members)
+                    isMember |= store().transaction(ctx -> Option.apply(Util.equalsUser(member, user))).get();
+
+                check("user is member of groups they are participating in", isMember);
+            }
+        }
+
+        // check group membership relation
+        for (var group : groups) {
+            var members = store().transaction(cty -> Option.apply(group.ref().getMembers())).get();
+            var owners = store().transaction(cty -> Option.apply(group.ref().getOwners())).get();
+            members.addAll(owners);
+
+            for (var member : members) {
+                boolean isInGroup = false;
+                for (var pg : store().transaction(ctx -> Option.apply(member.ref().getParticipatingGroups())).get())
+                    isInGroup |= store().transaction(ctx -> Option.apply(group.ref().getId().equals(pg.ref().getId()))).get();
+
+                check("user participates in group they are a member of", isInGroup);
+            }
+        }
+
+        System.out.println("## TEST SUCCESS ##");
+    }
 }

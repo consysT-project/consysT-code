@@ -7,8 +7,12 @@ import scala.Option;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
@@ -41,12 +45,13 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
         }
 
         var exec = Executors.newFixedThreadPool(addresses.length + 1);
+        List<Future<?>> futures = new ArrayList<>();
 
         for (int i = 0; i < addresses.length; i++) {
             var address = addresses[i];
             var config = benchmarkConfig().withFallback(createConfig(address, i, addresses.length));
 
-            exec.submit(() -> {
+            futures.add(exec.submit(() -> {
                 CassandraDemoBenchmark benchmark;
                 try {
                     benchmark = benchConstructor.newInstance(config, Option.empty());
@@ -70,13 +75,16 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
-            });
+            }));
         }
 
         try {
             exec.shutdown();
             exec.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+            for (var future : futures) {
+                future.get(); // gets exceptions not caught inside thread
+            }
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
