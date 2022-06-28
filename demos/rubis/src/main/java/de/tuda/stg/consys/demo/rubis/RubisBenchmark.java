@@ -189,12 +189,6 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 - auction has already ended (common)
             */
             System.out.println(e.getMessage());
-        } catch (Exception e) {
-            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof AppException) {
-                System.out.println(((InvocationTargetException)e).getTargetException().getMessage());
-            } else {
-                throw e;
-            }
         }
     }
 
@@ -320,7 +314,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                         var winningBid = winningBidOption.get();
                         checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
 
-                        var allBids = boughtItem.ref().getAllBids();
+                        var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
+                        allBids.remove(winningBid);
                         for (var bid : allBids) {
                             if (bid.getBid() >= winningBid.getBid())
                                 check("winner bid is highest bid", false);

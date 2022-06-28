@@ -131,19 +131,9 @@ public class Session {
             }
 
             var bid = new Bid(bidId, bidAmount, user);
-
-            try {
-                boolean reserveMet = item.ref().placeBid(bid);
-                user.ref().addWatchedAuction(item);
-                return Option.apply(reserveMet);
-            } catch (Exception e) {
-                if (e instanceof InvocationTargetException &&
-                        ((InvocationTargetException)e).getCause() instanceof RuntimeException) {
-                    throw (RuntimeException) e.getCause();
-                } else {
-                    throw e;
-                }
-            }
+            boolean reserveMet = item.ref().placeBid(bid);
+            user.ref().addWatchedAuction(item);
+            return Option.apply(reserveMet);
         }).get();
     }
 

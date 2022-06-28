@@ -168,10 +168,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             randomTransaction();
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
-        } catch (Exception e) {
-            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof IllegalArgumentException) {
-                System.out.println(e.getMessage());
-            } else throw e;
         }
     }
 
