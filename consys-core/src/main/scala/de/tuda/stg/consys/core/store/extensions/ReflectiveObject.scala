@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.core.store.extensions
 
 import de.tuda.stg.consys.core.store.utils.Reflect
-import java.lang.reflect.Field
+
+import java.lang.reflect.{Field, InvocationTargetException}
 import scala.reflect.ClassTag
 
 abstract class ReflectiveObject[Addr, T : ClassTag] {
@@ -38,9 +39,11 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 			val clazz = implicitly[ClassTag[T]]
 			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
 
-			method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]
-
-
+			try {
+				method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]
+			} catch {
+				case e: InvocationTargetException => if (e.getCause.isInstanceOf[Exception]) throw e.getCause else throw e
+			}
 		}
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
