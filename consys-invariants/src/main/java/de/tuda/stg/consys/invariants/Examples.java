@@ -79,11 +79,15 @@ public class Examples {
 			//Paths.get("consys-invariants/crdtlib/GSet.java"),
 			//Paths.get("consys-invariants/crdtlib/TwoPhaseSet.java"),
 			//Paths.get("consys-invariants/crdtlib/ORSet.java")
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/GCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/GSet.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/TwoPhaseSet.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/ORSet.java")
+			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/GCounter.java"),
+			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
+			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/GSet.java"),
+			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/TwoPhaseSet.java"),
+			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/ORSet.java"),
+
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/Mergeable.java"),
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/GMap.java"),
+			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/ORMap.java")
 	};
 
 
