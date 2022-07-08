@@ -16,11 +16,12 @@ public class Demo extends DemoExecutor<RubisBenchmark> {
     protected Config benchmarkConfig() {
         var configString = "consys {\n" +
                 "  bench {\n" +
+                "    operationsPerIteration = 100\n" +
                 "    demo {\n" +
                 "      rubis {\n" +
                 "        users = 100\n" +
                 "      }\n" +
-                "      type = \"op_mixed\"\n" +
+                "      type = \"strong\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";
