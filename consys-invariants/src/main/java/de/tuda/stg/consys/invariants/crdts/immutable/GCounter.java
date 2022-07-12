@@ -1,25 +1,23 @@
-<<<<<<<< HEAD:consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/GCounter.java
-package de.tuda.stg.consys.invariants.lib.crdts;
-========
-package de.tuda.stg.consys.invariants.crdts;
->>>>>>>> 76b7042f (fixed some installations and added new invariants dem):consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/GCounter.java
+package de.tuda.stg.consys.invariants.crdts.immutable;
 // Grow-only Counter CRDT
 
+import com.google.common.collect.ImmutableMap;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
 
 @ReplicatedModel public class GCounter implements Mergeable<GCounter> {
 
-    public int[] incs;
+    public ImmutableMap<Integer, Integer> increments;
 
 
     /* Constructors */
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0);
     public GCounter() {
-        this.incs = new int[numOfReplicas()];
+        this.increments = ImmutableMap.of();
     }
 
 
@@ -29,7 +27,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
     @*/
     public int sumIncs() {
         int res = 0;
-        for (int inc : incs) {
+        for (int inc : increments.values()) {
             res += inc;
         }
         return res;
@@ -46,7 +44,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
     @*/
     public Void inc() {
-        incs[replicaId()] = incs[replicaId()] + 1;
+//        incs[replicaId()] = incs[replicaId()] + 1;
         return null;
     }
 
@@ -56,7 +54,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + n;
     @*/
     public Void inc(int n) {
-        incs[replicaId()] = incs[replicaId()] + n;
+//        incs[replicaId()] = incs[replicaId()] + n;
         return null;
     }
 
@@ -66,7 +64,7 @@ import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
     @*/
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
-            incs[i] = Math.max(incs[i], other.incs[i]);
+//            incs[i] = Math.max(incs[i], other.incs[i]);
         }
         return null;
     }

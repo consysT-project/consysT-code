@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java
 package de.tuda.stg.consys.invariants.lib.crdts;
+========
+package de.tuda.stg.consys.invariants.crdts;
+>>>>>>>> 76b7042f (fixed some installations and added new invariants dem):consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/PNCounter.java
 // Positive Negative Counter CRDT
 // TODO: we can re-implement it using GCounter and have less annotations here. Shall we consider it?
 
