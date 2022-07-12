@@ -22,7 +22,7 @@ import java.util.function.Supplier;
  */
 public abstract class CassandraDemoBenchmark extends DistributedBenchmark<CassandraStoreBinding> {
 
-	private enum BenchmarkType {
+	protected enum BenchmarkType {
 		WEAK, MIXED, STRONG, OP_MIXED
 	}
 
@@ -79,6 +79,10 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			case OP_MIXED: return CassandraConsistencyLevels.MIXED;
 			default: return CassandraConsistencyLevels.WEAK;
 		}
+	}
+
+	protected BenchmarkType getBenchType() {
+		return benchType;
 	}
 
 	@Override

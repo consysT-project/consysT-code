@@ -1,4 +1,6 @@
 import org.checkerframework.dataflow.qual.*;
+import org.checkerframework.framework.qual.HasQualifierParameter;
+import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.*;
 
 package java.lang;
@@ -24,10 +26,21 @@ class StringBuilder {
     @Mutable StringBuilder append(String str);
 }
 
+@HasQualifierParameter(Inconsistent.class)
+class Number {
+     @PolyConsistent float floatValue();
+}
+
+@HasQualifierParameter(Inconsistent.class)
+class Float {
+    @PolyConsistent float floatValue();
+}
+
 package java.util;
 
 @Immutable class Optional<T> {
     <T> @Immutable @Local Optional<T> of(T t);
+    <T> @Immutable @Local Optional<T> ofNullable(T t);
     <T> @Immutable @Local Optional<T> empty();
 
     @SideEffectFree
@@ -60,6 +73,11 @@ interface List<T> {
 
     @SideEffectFree
     int size();
+}
+
+interface Map<K, V> {
+    @SideEffectFree
+    java.util.Collection<V> values();
 }
 
 interface Collection<T> {

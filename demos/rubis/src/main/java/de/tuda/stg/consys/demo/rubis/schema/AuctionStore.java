@@ -5,15 +5,13 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
-import scala.Tuple2;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public @Mixed class AuctionStore implements Serializable {
-    private final Map<UUID, Ref<Item>> openAuctions;
-    private final Map<Category, @Mutable Map<UUID, Ref<Item>>> openAuctionsByCategory;
+    private final Map<UUID, Ref<? extends IItem>> openAuctions;
+    private final Map<Category, @Mutable Map<UUID, Ref<? extends IItem>>> openAuctionsByCategory;
 
     public AuctionStore() {
         this.openAuctions = new HashMap<>();
@@ -25,7 +23,7 @@ public @Mixed class AuctionStore implements Serializable {
 
     @Transactional
     @StrongOp
-    public void addItem(Ref<Item> item, Category category) {
+    public void addItem(Ref<? extends IItem> item, Category category) {
         openAuctionsByCategory.get(category).put(item.ref().getId(), item);
         openAuctions.put(item.ref().getId(), item);
     }
@@ -38,12 +36,12 @@ public @Mixed class AuctionStore implements Serializable {
     }
 
     @WeakOp
-    public List<Ref<Item>> browseItems(Category category) {
+    public List<Ref<? extends IItem>> browseItems(Category category) {
         return new ArrayList<>(openAuctionsByCategory.get(category).values());
     }
 
     @WeakOp
-    public List<Ref<Item>> getOpenAuctions() {
+    public List<Ref<? extends IItem>> getOpenAuctions() {
         return new ArrayList<>(openAuctions.values());
     }
 }

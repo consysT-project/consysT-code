@@ -12,9 +12,9 @@ public @Strong class Bid implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable Date date;
     private final @Immutable float bid;
-    private final @Immutable Ref<@Mutable User> user;
+    private final @Immutable Ref<? extends @Mutable IUser> user;
 
-    public Bid(@Immutable @Local UUID id, @Immutable @Local float bid, Ref<@Mutable User> user) {
+    public Bid(@Immutable @Local UUID id, @Immutable @Local float bid, Ref<? extends @Mutable IUser> user) {
         this.id = id;
         this.bid = bid;
         this.user = user;
@@ -32,7 +32,7 @@ public @Strong class Bid implements Serializable {
     }
 
     @SideEffectFree
-    public Ref<@Mutable User> getUser() {
+    public Ref<? extends @Mutable IUser> getUser() {
         return user;
     }
 

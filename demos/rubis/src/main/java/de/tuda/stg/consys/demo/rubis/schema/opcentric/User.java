@@ -1,18 +1,21 @@
-package de.tuda.stg.consys.demo.rubis.schema;
+package de.tuda.stg.consys.demo.rubis.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.AppException;
+import de.tuda.stg.consys.demo.rubis.schema.Bid;
+import de.tuda.stg.consys.demo.rubis.schema.Comment;
+import de.tuda.stg.consys.demo.rubis.schema.IItem;
+import de.tuda.stg.consys.demo.rubis.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
-public @Mixed class User implements Serializable {
+public @Mixed class User implements Serializable, IUser {
     private final @Immutable UUID id;
     private final @Immutable String nickname;
     private String name = "";
@@ -45,54 +48,59 @@ public @Mixed class User implements Serializable {
 
     @StrongOp
     @Transactional
-    public void addOwnAuction(Ref<Item> item) {
-        this.sellerAuctions.put(item.ref().getId(), item);
+    public void addOwnAuction(Ref<? extends IItem> item) {
+        this.sellerAuctions.put(item.ref().getId(), (Ref<Item>) item);
     }
 
     @StrongOp
     @Transactional
-    public void closeOwnAuction(Ref<Item> item, @Strong boolean sold) {
-        sellerAuctions.remove(item.ref().getId());
+    public void closeOwnAuction(UUID id, @Strong boolean sold) {
+        Ref<Item> item = sellerAuctions.remove(id);
+        if (item == null)
+            throw new IllegalArgumentException("id not found: " + id);
+
         if (sold) {
-            sellerHistory.put(item.ref().getId(), item);
+            sellerHistory.put(id, item);
         } else {
-            sellerFailedHistory.put(item.ref().getId(), item);
+            sellerFailedHistory.put(id, item);
         }
     }
 
     @StrongOp
     @Transactional
-    public void addWatchedAuction(Ref<Item> item) {
-        buyerAuctions.putIfAbsent(item.ref().getId(), item);
+    public void addWatchedAuction(Ref<? extends IItem> item) {
+        buyerAuctions.putIfAbsent(item.ref().getId(), (Ref<Item>) item);
     }
 
     @StrongOp
-    @Transactional
-    public void closeWatchedAuction(Ref<Item> item, @Strong boolean bought) {
-        buyerAuctions.remove(item.ref().getId());
-        if (bought)
-            buyerHistory.put(item.ref().getId(), item);
+    public void closeWatchedAuction(UUID id) {
+        buyerAuctions.remove(id);
+    }
+
+    @StrongOp
+    public void addBoughtItem(Ref<? extends IItem> item) {
+        buyerHistory.put(id, (Ref<Item>) item);
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<Item>> getOpenSellerAuctions() {
+    public List<Ref<? extends IItem>> getOpenSellerAuctions() {
         return new ArrayList<>(sellerAuctions.values());
     }
 
     @StrongOp @SideEffectFree
     // StrongOp necessary for calculating potential budget
-    public List<Ref<Item>> getOpenBuyerAuctions() {
+    public List<Ref<? extends IItem>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.values());
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<Item>> getSellerHistory(boolean sold) {
+    public List<Ref<? extends IItem>> getSellerHistory(boolean sold) {
         if (sold) return new ArrayList<>(sellerHistory.values());
         return new ArrayList<>(sellerFailedHistory.values());
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<Item>> getBuyerHistory() {
+    public List<Ref<? extends IItem>> getBuyerHistory() {
         return new ArrayList<>(buyerHistory.values());
     }
 
@@ -171,12 +179,12 @@ public @Mixed class User implements Serializable {
     }
 
     @WeakOp
-    public void notifyWinner(Ref<Item> item, float price) {
+    public void notifyWinner(Ref<? extends IItem> item, float price) {
         // send email
     }
 
     @Transactional @SideEffectFree
-    public @Local boolean refEquals(Ref<User> other) {
+    public @Local boolean refEquals(Ref<? extends IUser> other) {
         return other.ref().getNickname().equals(this.nickname);
     }
 
@@ -189,5 +197,19 @@ public @Mixed class User implements Serializable {
                 " | rating: " + rating +
                 " | balance: " + balance +
                 " | since: " + creationDate;
+    }
+
+    @StrongOp @Transactional @SideEffectFree
+    public @Strong boolean hasEnoughCredits(@Strong float price) {
+        @Strong float potentialBalance = balance;
+
+        for (var item : getOpenBuyerAuctions()) {
+            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO
+            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
+                potentialBalance -= bid.get().getBid();
+            }
+        }
+
+        return potentialBalance >= price;
     }
 }

@@ -7,13 +7,13 @@ import java.io.Serializable;
 import java.util.Date;
 
 public class Comment implements Serializable {
-    int rating;
+    public int rating;
     @Immutable String message;
-    Ref<User> fromUser;
-    Ref<User> toUser;
+    Ref<? extends IUser> fromUser;
+    Ref<? extends IUser> toUser;
     Date date;
 
-    public Comment(int rating, String message, Ref<User> fromUser, Ref<User> toUser) {
+    public Comment(int rating, String message, Ref<? extends IUser> fromUser, Ref<? extends IUser> toUser) {
         this.rating = rating;
         this.message = message;
         this.fromUser = fromUser;

@@ -2,7 +2,8 @@ package de.tuda.stg.consys.demo.rubis;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;
-import de.tuda.stg.consys.demo.rubis.schema.Item;
+import de.tuda.stg.consys.demo.rubis.schema.IItem;
+import de.tuda.stg.consys.demo.rubis.schema.opcentric.Item;
 import de.tuda.stg.consys.demo.rubis.schema.Util;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -43,8 +44,8 @@ public class BackgroundTask implements Runnable {
     @Override
     public void run() {
         while (!stop) {
-            Tuple3<List<Ref<Item>>, Integer, Integer> result = store.transaction(ctx -> {
-                List<Ref<Item>> items = auctionStore.ref().getOpenAuctions();
+            Tuple3<List<Ref<? extends IItem>>, Integer, Integer> result = store.transaction(ctx -> {
+                List<Ref<? extends IItem>> items = auctionStore.ref().getOpenAuctions();
                 int nItems = items.size();
                 int batchSize = 1 + (nItems / nReplicas);
                 int startIndex = id * batchSize;
@@ -62,14 +63,14 @@ public class BackgroundTask implements Runnable {
         }
     }
 
-    private void closeAuctions(List<Ref<Item>> auctions, int start, int end) {
+    private void closeAuctions(List<Ref<? extends IItem>> auctions, int start, int end) {
         for (int i = start; i < end; i++) {
             int finalI = i;
             var now = new Date();
             store.transaction(ctx -> {
-                Ref<Item> auction = auctions.get(finalI);
+                var auction = auctions.get(finalI);
                 if (now.after(auction.ref().getEndDate())) {
-                    Util.closeAuction(auction, auctionStore);
+                    auction.ref().closeAuction(auction);
                 }
                 return Option.empty();
             });

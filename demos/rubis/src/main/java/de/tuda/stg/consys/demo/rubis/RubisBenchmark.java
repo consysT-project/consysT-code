@@ -6,10 +6,11 @@ import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.rubis.schema.*;
+import de.tuda.stg.consys.demo.rubis.schema.opcentric.Item;
+import de.tuda.stg.consys.demo.rubis.schema.opcentric.User;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
@@ -22,9 +23,9 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     private final float percentOfAuctionItems;
     private final List<Session> localSessions;
     private final List<UUID> localItems;
-    private final List<Ref<Item>> allAuctionItems;
-    private final List<Ref<Item>> allDirectBuyItems;
-    private final List<Ref<User>> users;
+    private final List<Ref<? extends IItem>> allAuctionItems;
+    private final List<Ref<? extends IItem>> allDirectBuyItems;
+    private final List<Ref<? extends IUser>> users;
     private Ref<AuctionStore> auctionStore;
 
     private static final float maxPrice = 100;
@@ -109,8 +110,18 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     public void setup() {
         super.setup();
 
+        Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
+
         for (int i = 0; i < numOfUsersPerReplica; i++) {
             localSessions.add(new Session(store()));
+
+            if (getBenchType() == BenchmarkType.MIXED) {
+                localSessions.get(i).userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
+                localSessions.get(i).itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
+            } else {
+                localSessions.get(i).userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
+                localSessions.get(i).itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
+            }
         }
 
         if (processId() == 0) {
@@ -149,15 +160,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
                 int localGrpIndex = grpIndex;
                 int localReplIndex = replIndex;
-                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
-                        "user:" + addr("user", localGrpIndex, localReplIndex), Session.userConsistencyLevel, User.class))).get());
+                users.add(localSessions.get(0).findUser(null, addr("user", localGrpIndex, localReplIndex)));
                 for (var cat : Category.values()) {
                     allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
                 }
             }
         }
         for (int i = 0; i < percentOfAuctionItems * numOfUsersPerReplica; i++) {
-            Ref<Item> item = allAuctionItems.remove(i);
+            Ref<? extends IItem> item = allAuctionItems.remove(i);
             allDirectBuyItems.add(item);
         }
         BenchmarkUtils.printDone();
@@ -218,13 +228,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         //Session session = getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for placeBid operation");
                 return Option.empty();
             }
 
-            Ref<Item> item = getRandomElement(openAuctions);
+            Ref<? extends IItem> item = getRandomElement(openAuctions);
             Session session = getRandomElement(localSessions);
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
@@ -237,31 +247,29 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         Session session = getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for buyNow operation");
                 return Option.empty();
             }
 
-            Ref<Item> item = getRandomElement(openAuctions);
+            var item = getRandomElement(openAuctions);
             session.buyNow(ctx, item);
             return Option.empty();
         });
     }
 
     private void closeAuction() {
-        //Ref<Item> item = getRandomElement(allAuctionItems);
-
         store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for closeAuction operation");
                 return Option.empty();
             }
 
-            Ref<Item> item = getRandomElement(openAuctions);
+            Ref<? extends IItem> item = getRandomElement(openAuctions);
             item.ref().endAuctionNow();
-            Util.closeAuction(item, auctionStore);
+            item.ref().closeAuction(item);
             return Option.empty();
         });
     }
@@ -274,8 +282,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     private void rateUser() {
         int rating = 1 + random.nextInt(5);
-        Ref<User> user1 = getRandomElement(users);
-        Ref<User> user2 = getRandomElementExcept(users, user1);
+        Ref<? extends IUser> user1 = getRandomElement(users);
+        Ref<? extends IUser> user2 = getRandomElementExcept(users, user1);
         store().transaction(ctx -> {
             user1.ref().rate(new Comment(rating, generateRandomText(10), user2, user1));
             return Option.empty();
@@ -297,13 +305,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         check("users non empty", !users.isEmpty());
 
-        for (Ref<User> user : users) {
+        for (var user : users) {
             store().transaction(ctx -> {
                 float userBalance = user.ref().getBalance();
                 check("balance >= 0", userBalance >= 0);
 
                 float balance = getInitialBalance();
-                for (Ref<Item> boughtItem : user.ref().getBuyerHistory()) {
+                for (var boughtItem : user.ref().getBuyerHistory()) {
                     if (boughtItem.ref().getSoldViaBuyNow()) {
                         balance -= boughtItem.ref().getBuyNowPrice();
                     } else {
@@ -325,7 +333,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                     }
                 }
 
-                for (Ref<Item> soldItem : user.ref().getSellerHistory(true)) {
+                for (var soldItem : user.ref().getSellerHistory(true)) {
                     checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
 
                     if (soldItem.ref().getSoldViaBuyNow()) {
