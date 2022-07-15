@@ -126,7 +126,7 @@ public @Mixed class Item implements Serializable, IItem {
 
     @Transactional
     @StrongOp
-    public void closeAuction(Ref<? extends @Mutable IItem> item) {
+    public boolean closeAuction(Ref<? extends @Mutable IItem> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item different from this");
 
@@ -152,6 +152,8 @@ public @Mixed class Item implements Serializable, IItem {
         seller.ref().closeOwnAuction(id, hasWinner);
         closeWatchedItemsForBidders();
         auctionsStore.ref().closeAuction(id, category);
+
+        return hasWinner;
     }
 
     @WeakOp

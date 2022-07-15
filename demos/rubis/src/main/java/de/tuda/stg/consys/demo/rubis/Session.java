@@ -333,4 +333,8 @@ public class Session<ItemImpl extends IItem & Serializable, UserImpl extends IUs
             throw new AppException("You must be logged in.");
         }
     }
+
+    public Ref<? extends IUser> getLoggedInUser() {
+        return user;
+    }
 }

@@ -6,10 +6,9 @@ import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.demo.rubis.schema.opcentric.Item;
-import de.tuda.stg.consys.demo.rubis.schema.opcentric.User;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
+import scala.Tuple3;
 
 import java.util.*;
 
@@ -37,6 +36,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             "vinyl", "artisan", "kale", "selfie"));
     private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
     private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
+
+    private final boolean isTest = true; // TODO
 
     private final Random random = new Random();
 
@@ -246,7 +247,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         //Ref<Item> item = getRandomElement(allDirectBuyItems);
         Session session = getRandomElement(localSessions);
 
-        store().transaction(ctx -> {
+        Option<Tuple3<Ref<? extends IItem>, Float, Float>> result = store().transaction(ctx ->
+        {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for buyNow operation");
@@ -254,13 +256,35 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             }
 
             var item = getRandomElement(openAuctions);
+
+            Ref<? extends IUser> user = session.getLoggedInUser();
+            float prevBuyerBalance = user.ref().getBalance();
+            float prevSellerBalance = item.ref().getSeller().ref().getBalance();
+
             session.buyNow(ctx, item);
+
+            return Option.apply(Tuple3.apply(item, prevBuyerBalance, prevSellerBalance));
+        });
+
+        // test
+        if (!isTest || result.isEmpty())
+            return;
+
+        store().transaction(ctx -> {
+            Ref<? extends IUser> buyer = session.getLoggedInUser();
+            Ref<? extends IItem> item = result.get()._1();
+            Ref<? extends IUser> seller = item.ref().getSeller();
+            float prevBuyerBal = result.get()._2();
+            float prevSellerBal = result.get()._3();
+            checkEquals("seller balance after buy-now", prevSellerBal + item.ref().getBuyNowPrice(), seller.ref().getBalance());
+            checkEquals("buyer balance after buy-now", prevBuyerBal - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
             return Option.empty();
         });
     }
 
     private void closeAuction() {
-        store().transaction(ctx -> {
+        Option<Tuple3<Ref<? extends IItem>, Float, Boolean>> result = store().transaction(ctx ->
+        {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for closeAuction operation");
@@ -268,8 +292,25 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             }
 
             Ref<? extends IItem> item = getRandomElement(openAuctions);
+            float bal = item.ref().getSeller().ref().getBalance(); // TODO: only when testing
+
             item.ref().endAuctionNow();
-            item.ref().closeAuction(item);
+            boolean wasSold = item.ref().closeAuction(item); // TODO: only when testing
+
+            return Option.apply(Tuple3.apply(item, bal, wasSold));
+        });
+
+        // test
+        if (!isTest || result.isEmpty())
+            return;
+
+        store().transaction(ctx -> {
+            Ref<? extends IItem> item = result.get()._1();
+            Ref<? extends IUser> seller = item.ref().getSeller();
+            float prevBal = result.get()._2();
+            boolean wasSold = result.get()._3();
+            float price = wasSold ? item.ref().getTopBidPrice() : 0;
+            checkEquals("seller balance after closing auction", prevBal + price, seller.ref().getBalance());
             return Option.empty();
         });
     }

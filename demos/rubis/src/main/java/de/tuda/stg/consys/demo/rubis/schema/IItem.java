@@ -25,7 +25,7 @@ public interface IItem {
 
     @Transactional
     @StrongOp
-    void closeAuction(Ref<? extends @Mutable IItem> item);
+    boolean closeAuction(Ref<? extends @Mutable IItem> item);
 
     @WeakOp
     void setDescription(@Mutable @Weak String description);
