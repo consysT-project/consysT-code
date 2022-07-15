@@ -19,11 +19,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfUsersPerReplica;
-    private final float percentOfAuctionItems;
+    //private final float percentOfAuctionItems;
     private final List<Session> localSessions;
-    private final List<UUID> localItems;
-    private final List<Ref<? extends IItem>> allAuctionItems;
-    private final List<Ref<? extends IItem>> allDirectBuyItems;
+    //private final List<UUID> localItems;
+    //private final List<Ref<? extends IItem>> allAuctionItems;
+    //private final List<Ref<? extends IItem>> allDirectBuyItems;
     private final List<Ref<? extends IUser>> users;
     private Ref<AuctionStore> auctionStore;
 
@@ -45,16 +45,16 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
-        percentOfAuctionItems = 0.5f;
+        //percentOfAuctionItems = 0.5f;
 
         Session.userConsistencyLevel = getStrongLevel();
         Session.itemConsistencyLevel = getStrongLevel();
         Session.storeConsistencyLevel = getStrongLevel();
 
         localSessions = new ArrayList<>();
-        allAuctionItems = new ArrayList<>();
-        allDirectBuyItems = new ArrayList<>();
-        localItems = new ArrayList<>();
+        //allAuctionItems = new ArrayList<>();
+        //allDirectBuyItems = new ArrayList<>();
+        //localItems = new ArrayList<>();
         users = new ArrayList<>();
     }
 
@@ -72,10 +72,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private String generateRandomText(int n) {
-        String body = WORDS.get(random.nextInt(WORDS.size()));
+        StringBuilder body = new StringBuilder(WORDS.get(random.nextInt(WORDS.size())));
         for (int i = 0; i < n - 1; i++)
-            body += " " + WORDS.get(random.nextInt(WORDS.size()));
-        return body;
+            body.append(" ").append(WORDS.get(random.nextInt(WORDS.size())));
+        return body.toString();
     }
 
     private Category getRandomCategory() {
@@ -141,36 +141,39 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             });
         }
 
-        System.out.println("Adding users and items");
+        System.out.println("Adding local users and items");
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
-
             localSessions.get(grpIndex).registerUser(null, addr("user", grpIndex, processId()), generateRandomName(),
                     generateRandomPassword(), "mail@example.com");
 
             localSessions.get(grpIndex).addBalance(null, getInitialBalance());
 
-            localItems.add(localSessions.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
-                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300));
+            localSessions.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300);
 
             BenchmarkUtils.printProgress(grpIndex);
         }
 
         barrier("users_added");
 
+        System.out.println("Getting all users and items");
         for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
-                int localGrpIndex = grpIndex;
-                int localReplIndex = replIndex;
-                users.add(localSessions.get(0).findUser(null, addr("user", localGrpIndex, localReplIndex)));
+                users.add(localSessions.get(0).findUser(null, addr("user", grpIndex, replIndex)));
+                /*
                 for (var cat : Category.values()) {
                     allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
                 }
+                */
             }
+            BenchmarkUtils.printProgress(grpIndex);
         }
+        /*
         for (int i = 0; i < percentOfAuctionItems * numOfUsersPerReplica; i++) {
             Ref<? extends IItem> item = allAuctionItems.remove(i);
             allDirectBuyItems.add(item);
         }
+        */
         BenchmarkUtils.printDone();
     }
 
@@ -178,9 +181,9 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     public void cleanup() {
         super.cleanup();
         localSessions.clear();
-        localItems.clear();
-        allAuctionItems.clear();
-        allDirectBuyItems.clear();
+        //localItems.clear();
+        //allAuctionItems.clear();
+        //allDirectBuyItems.clear();
         users.clear();
 
         try {
@@ -257,16 +260,19 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
             var item = getRandomElement(openAuctions);
 
-            Ref<? extends IUser> user = session.getLoggedInUser();
-            float prevBuyerBalance = user.ref().getBalance();
-            float prevSellerBalance = item.ref().getSeller().ref().getBalance();
-
-            session.buyNow(ctx, item);
-
-            return Option.apply(Tuple3.apply(item, prevBuyerBalance, prevSellerBalance));
+            if (isTest) {
+                Ref<? extends IUser> user = session.getLoggedInUser();
+                float prevBuyerBalance = user.ref().getBalance();
+                float prevSellerBalance = item.ref().getSeller().ref().getBalance();
+                session.buyNow(ctx, item);
+                return Option.apply(Tuple3.apply(item, prevBuyerBalance, prevSellerBalance));
+            } else {
+                session.buyNow(ctx, item);
+                return Option.empty();
+            }
         });
 
-        // test
+        // test -------------------------
         if (!isTest || result.isEmpty())
             return;
 
@@ -276,8 +282,25 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IUser> seller = item.ref().getSeller();
             float prevBuyerBal = result.get()._2();
             float prevSellerBal = result.get()._3();
-            checkEquals("seller balance after buy-now", prevSellerBal + item.ref().getBuyNowPrice(), seller.ref().getBalance());
-            checkEquals("buyer balance after buy-now", prevBuyerBal - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
+            checkEquals("seller balance after buy-now",
+                    prevSellerBal + item.ref().getBuyNowPrice(), seller.ref().getBalance());
+            checkEquals("buyer balance after buy-now",
+                    prevBuyerBal - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
+
+            check("buy-now closed for seller",
+                    seller.ref().getSellerHistory(true).stream().anyMatch(auction -> auction.ref().refEquals(item)));
+            check("buy-now closed for seller (negated)",
+                    seller.ref().getSellerHistory(false).stream().noneMatch(auction -> auction.ref().refEquals(item)));
+
+            check("buyer gets item",
+                    buyer.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
+
+            var bids = item.ref().getAllBids();
+            for (var bid : bids) {
+                var bidder = bid.getUser();
+                check("buy-now closed for bidder",
+                        bidder.ref().getOpenBuyerAuctions().stream().noneMatch(auction -> auction.ref().refEquals(item)));
+            }
             return Option.empty();
         });
     }
@@ -292,15 +315,21 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             }
 
             Ref<? extends IItem> item = getRandomElement(openAuctions);
-            float bal = item.ref().getSeller().ref().getBalance(); // TODO: only when testing
 
-            item.ref().endAuctionNow();
-            boolean wasSold = item.ref().closeAuction(item); // TODO: only when testing
-
-            return Option.apply(Tuple3.apply(item, bal, wasSold));
+            if (isTest) {
+                float bal = item.ref().getSeller().ref().getBalance();
+                item.ref().endAuctionNow();
+                boolean wasSold = item.ref().closeAuction(item);
+                if (wasSold) System.out.println("auction closed");
+                return Option.apply(Tuple3.apply(item, bal, wasSold));
+            } else {
+                item.ref().endAuctionNow();
+                item.ref().closeAuction(item);
+                return Option.empty();
+            }
         });
 
-        // test
+        // test -------------------------
         if (!isTest || result.isEmpty())
             return;
 
@@ -311,6 +340,25 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             boolean wasSold = result.get()._3();
             float price = wasSold ? item.ref().getTopBidPrice() : 0;
             checkEquals("seller balance after closing auction", prevBal + price, seller.ref().getBalance());
+
+            check("auction closed for seller",
+                    seller.ref().getSellerHistory(wasSold).stream().anyMatch(auction -> auction.ref().refEquals(item)));
+            check("auction closed for seller (negated)",
+                    seller.ref().getSellerHistory(!wasSold).stream().noneMatch(auction -> auction.ref().refEquals(item)));
+
+            var bids = item.ref().getAllBids();
+            for (var bid : bids) {
+                var bidder = bid.getUser();
+                check("auction closed for bidder",
+                        bidder.ref().getOpenBuyerAuctions().stream().noneMatch(auction -> auction.ref().refEquals(item)));
+            }
+
+            if (wasSold) {
+                var winner = item.ref().getTopBid().get().getUser();
+                check("winner gets item",
+                        winner.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
+            }
+
             return Option.empty();
         });
     }

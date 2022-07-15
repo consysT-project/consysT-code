@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.extras;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.schema.AuctionStore;

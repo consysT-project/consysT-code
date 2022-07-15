@@ -10,10 +10,11 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-public interface IUser {
+public interface IUser extends Serializable {
     @StrongOp
     void addOwnAuction(Ref<? extends IItem> item);
 

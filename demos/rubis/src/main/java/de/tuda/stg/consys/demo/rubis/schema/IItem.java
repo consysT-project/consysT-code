@@ -6,12 +6,13 @@ import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface IItem {
+public interface IItem extends Serializable {
     @Transactional
     @StrongOp
     boolean placeBid(Bid bid);
