@@ -1,10 +1,11 @@
-package de.tuda.stg.consys.core.store.cassandra.levels
+package de.tuda.stg.consys.core.store.akka.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject, WeakCassandraObject}
+import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, WeakCassandraObject}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+
 import scala.reflect.ClassTag
 
 
@@ -81,12 +82,13 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = txContext.Cache.getData(ref.addr) match {
 			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
-				// Add a new statement to the batch of write statements
-				if (!txContext.Cache.hasChanges(ref.addr)) return
-
-				val builder = txContext.getCommitStatementBuilder
-				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
+			// TODO: Reimplement
+//			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
+//				// Add a new statement to the batch of write statements
+//				if (!txContext.Cache.hasChanges(ref.addr)) return
+//
+//				val builder = txContext.getCommitStatementBuilder
+//				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
@@ -97,9 +99,11 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 
 
 		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : WeakCassandraObject[T] = {
-			val entry = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ONE)
-			val cassObj = new WeakCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
-			cassObj
+			// TODO: Reimplement
+//			val entry = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ONE)
+//			val cassObj = new WeakCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
+//			cassObj
+			null
 		}
 	}
 }

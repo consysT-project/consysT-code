@@ -1,13 +1,10 @@
-package de.tuda.stg.consys.core.store.cassandra.levels
+package de.tuda.stg.consys.core.store.akka.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
-import java.lang.reflect.Field
-import org.checkerframework.dataflow.qual.SideEffectFree
 //import org.graalvm.compiler.hotspot.nodes.`type`.MethodPointerStamp.method
 import scala.reflect.ClassTag
 
@@ -107,12 +104,13 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			case None =>
 				throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 
-			case Some(cassObj : CassandraObject[_, Strong.type]) if cassObj.consistencyLevel == Strong =>
-				// Add a new statement to the batch of write statements
-				if (!txContext.Cache.hasChanges(ref.addr)) return
-
-				val builder = txContext.getCommitStatementBuilder
-				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
+				// TODO: Reimplement
+//			case Some(cassObj : CassandraObject[_, Strong.type]) if cassObj.consistencyLevel == Strong =>
+//				// Add a new statement to the batch of write statements
+//				if (!txContext.Cache.hasChanges(ref.addr)) return
+//
+//				val builder = txContext.getCommitStatementBuilder
+//				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
@@ -122,9 +120,11 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		}
 
 		private def strongRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : StrongCassandraObject[T] = {
-			val entry = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ALL)
-			val cassObj = new StrongCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
-			cassObj
+			//TODO: Reimplement
+//			val entry : T = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ALL)
+//			val cassObj = new StrongCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
+//			cassObj
+			null
 		}
 
 	}

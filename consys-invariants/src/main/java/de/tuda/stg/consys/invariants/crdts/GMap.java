@@ -49,6 +49,10 @@ import java.util.Map;
         return underlying.get(key);
     }
 
+    public int size() {
+        return underlying.size();
+    }
+
     /*@
     @ ensures (\forall K k0; \old(underlying).containsKey(k0) || other.underlying.containsKey(k0); underlying.containsKey(k0));
     @ ensures (\forall K k1; underlying.containsKey(k1); \old(underlying).containsKey(k1) || other.underlying.containsKey(k1));

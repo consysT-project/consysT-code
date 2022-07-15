@@ -1,7 +1,9 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.*;
+import de.tuda.stg.consys.invariants.crdts.GCounter;
 import de.tuda.stg.consys.invariants.crdts.GMap;
 import de.tuda.stg.consys.japi.Ref;
 
@@ -14,11 +16,18 @@ import java.util.Objects;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class Group implements Serializable {
+public class Group implements Serializable, Mergeable<Group> {
+
+    private final GCounter counter = new GCounter();
 
     private final GMap<Integer, User> users = new GMap();
 
-    public Group() {}
+    // invariant number of users == counter value
+    // counter value < 100
+
+    public Group() {
+
+    }
 
     //Message delivery
     @WeakOp
@@ -31,8 +40,13 @@ public class Group implements Serializable {
 
     //Join group
     @StrongOp
-    public void addUser(User user) {
-        users.put(user.hashCode(), user);
+    public int addUser(User user) {
+        if (counter.getValue() < 100) {
+            counter.inc();
+            users.put(counter.getValue(), user);
+        }
+
+        return counter.getValue();
     }
 
     @WeakOp
@@ -41,5 +55,11 @@ public class Group implements Serializable {
         Objects.requireNonNull(user, "no user at index " + index);
 
         return user;
+    }
+
+    @Override
+    public Void merge(Group other) {
+        counter.merge(other.counter);
+        users.merge(other.users);
     }
 }
