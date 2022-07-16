@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.demo.rubis;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
@@ -206,7 +205,6 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         }
     }
 
-    @Transactional
     private void randomTransaction() {
         int rand = random.nextInt(100);
         if (rand < 44) {
@@ -354,9 +352,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             }
 
             if (wasSold) {
-                var winner = item.ref().getTopBid().get().getUser();
-                check("winner gets item",
-                        winner.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
+                var topBid = item.ref().getTopBid();
+                if (topBid.isEmpty()) {
+                    check("winning bid not found", false);
+                } else {
+                    var winner = topBid.get().getUser();
+                    check("winner gets item",
+                            winner.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
+                }
             }
 
             return Option.empty();
@@ -394,6 +397,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         check("users non empty", !users.isEmpty());
 
+        // TODO: should be able to run whole test in on transaction, since no data is written.
+        //       Compiler seems to output correct WriteLists, need to look into middleware
         for (var user : users) {
             store().transaction(ctx -> {
                 float userBalance = user.ref().getBalance();

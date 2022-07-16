@@ -24,20 +24,20 @@ public @Weak class User implements Serializable, IUser {
     private final List<Comment> comments = new LinkedList<>();
     private Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance;
     private final Date creationDate = new Date();
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerAuctions;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerHistory;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerAuctions;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerHistory;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerFailedHistory;
+    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerAuctions;
+    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerHistory;
+    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerAuctions;
+    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerHistory;
+    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
 
     public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
                 @Weak @Mutable String email,
                 Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerAuctions,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerHistory,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerAuctions,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerHistory,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerFailedHistory) {
+                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerAuctions,
+                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerHistory,
+                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerAuctions,
+                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerHistory,
+                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
         this.id = id;
         this.nickname = nickname;
         this.name = name;
@@ -52,13 +52,13 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addOwnAuction(Ref<? extends IItem> item) {
-        this.sellerAuctions.ref().put(item.ref().getId(), (Ref<Item>) item);
+    public void addOwnAuction(Ref<? extends @Mutable IItem> item) {
+        this.sellerAuctions.ref().put(item.ref().getId(), toItemImpl(item));
     }
 
     @Transactional
     public void closeOwnAuction(UUID id, @Strong boolean sold) {
-        Ref<Item> item = sellerAuctions.ref().remove(id);
+        Ref<@Mutable Item> item = sellerAuctions.ref().remove(id);
         if (item == null)
             throw new IllegalArgumentException("id not found: " + id);
 
@@ -70,8 +70,8 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addWatchedAuction(Ref<? extends IItem> item) {
-        buyerAuctions.ref().putIfAbsent(item.ref().getId(), (Ref<Item>) item);
+    public void addWatchedAuction(Ref<? extends @Mutable IItem> item) {
+        buyerAuctions.ref().putIfAbsent(item.ref().getId(), toItemImpl(item));
     }
 
     @Transactional
@@ -80,29 +80,29 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addBoughtItem(Ref<? extends IItem> item) {
-        buyerHistory.ref().put(id, (Ref<Item>) item);
+    public void addBoughtItem(Ref<? extends @Mutable IItem> item) {
+        buyerHistory.ref().put(item.ref().getId(), toItemImpl(item));
     }
 
     @Transactional @SideEffectFree
-    public List<Ref<? extends IItem>> getOpenSellerAuctions() {
+    public List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions() {
         return new ArrayList<>(sellerAuctions.ref().values());
     }
 
     @Transactional @SideEffectFree
     // StrongOp necessary for calculating potential budget
-    public @Strong List<Ref<? extends IItem>> getOpenBuyerAuctions() {
+    public @Strong List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.ref().values());
     }
 
     @Transactional @SideEffectFree
-    public List<Ref<? extends IItem>> getSellerHistory(boolean sold) {
+    public List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold) {
         if ((@Strong boolean) sold) return new ArrayList<>(sellerHistory.ref().values());
         return new ArrayList<>(sellerFailedHistory.ref().values());
     }
 
     @Transactional @SideEffectFree
-    public List<Ref<? extends IItem>> getBuyerHistory() {
+    public List<Ref<? extends @Mutable IItem>> getBuyerHistory() {
         return new ArrayList<>(buyerHistory.ref().values());
     }
 
@@ -207,5 +207,9 @@ public @Weak class User implements Serializable, IUser {
         }
 
         return potentialBalance >= price;
+    }
+
+    private Ref<@Mutable Item> toItemImpl(Ref<? extends @Mutable IItem> item) {
+        return (Ref<@Mutable Item>) item;  // TODO
     }
 }

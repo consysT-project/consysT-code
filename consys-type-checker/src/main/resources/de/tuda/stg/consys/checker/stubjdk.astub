@@ -73,11 +73,17 @@ interface List<T> {
 
     @SideEffectFree
     int size();
+
+    @SideEffectFree
+    T get(int index);
 }
 
 interface Map<K, V> {
     @SideEffectFree
     java.util.Collection<V> values();
+
+    @SideEffectFree
+    V get(Object Key);
 }
 
 interface Collection<T> {

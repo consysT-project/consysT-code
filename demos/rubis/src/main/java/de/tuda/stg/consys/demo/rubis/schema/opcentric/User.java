@@ -26,11 +26,11 @@ public @Mixed class User implements Serializable, IUser {
     private final List<Comment> comments = new LinkedList<>();
     private float balance;
     private final Date creationDate = new Date();
-    private final Map<UUID, Ref<Item>> buyerAuctions = new HashMap<>();
-    private final Map<UUID, Ref<Item>> buyerHistory = new HashMap<>();
-    private final Map<UUID, Ref<Item>> sellerAuctions = new HashMap<>();
-    private final Map<UUID, Ref<Item>> sellerHistory = new HashMap<>();
-    private final Map<UUID, Ref<Item>> sellerFailedHistory = new HashMap<>();
+    private final Map<UUID, Ref<@Mutable Item>> buyerAuctions = new HashMap<>();
+    private final Map<UUID, Ref<@Mutable Item>> buyerHistory = new HashMap<>();
+    private final Map<UUID, Ref<@Mutable Item>> sellerAuctions = new HashMap<>();
+    private final Map<UUID, Ref<@Mutable Item>> sellerHistory = new HashMap<>();
+    private final Map<UUID, Ref<@Mutable Item>> sellerFailedHistory = new HashMap<>();
 
     public User() {
         this.id = null;
@@ -48,16 +48,16 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp
     @Transactional
-    public void addOwnAuction(Ref<? extends IItem> item) {
-        this.sellerAuctions.put(item.ref().getId(), (Ref<Item>) item);
+    public void addOwnAuction(Ref<? extends @Mutable IItem> item) {
+        this.sellerAuctions.put(item.ref().getId(), toItemImpl(item));
     }
 
     @StrongOp
     @Transactional
     public void closeOwnAuction(UUID id, @Strong boolean sold) {
-        Ref<Item> item = sellerAuctions.remove(id);
+        Ref<@Mutable Item> item = sellerAuctions.remove(id);
         if (item == null)
-            throw new IllegalArgumentException("id not found: " + id);
+            throw new IllegalArgumentException("id not found: " + id); // TODO: problem for weak benchmark, leads to crash
 
         if (sold) {
             sellerHistory.put(id, item);
@@ -68,8 +68,8 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp
     @Transactional
-    public void addWatchedAuction(Ref<? extends IItem> item) {
-        buyerAuctions.putIfAbsent(item.ref().getId(), (Ref<Item>) item);
+    public void addWatchedAuction(Ref<? extends @Mutable IItem> item) {
+        buyerAuctions.putIfAbsent(item.ref().getId(), toItemImpl(item));
     }
 
     @StrongOp
@@ -78,29 +78,30 @@ public @Mixed class User implements Serializable, IUser {
     }
 
     @StrongOp
-    public void addBoughtItem(Ref<? extends IItem> item) {
-        buyerHistory.put(id, (Ref<Item>) item);
+    @Transactional
+    public void addBoughtItem(Ref<? extends @Mutable IItem> item) {
+        buyerHistory.put(item.ref().getId(), toItemImpl(item));
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<? extends IItem>> getOpenSellerAuctions() {
+    public List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions() {
         return new ArrayList<>(sellerAuctions.values());
     }
 
     @StrongOp @SideEffectFree
     // StrongOp necessary for calculating potential budget
-    public List<Ref<? extends IItem>> getOpenBuyerAuctions() {
+    public List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.values());
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<? extends IItem>> getSellerHistory(boolean sold) {
+    public List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold) {
         if (sold) return new ArrayList<>(sellerHistory.values());
         return new ArrayList<>(sellerFailedHistory.values());
     }
 
     @WeakOp @SideEffectFree
-    public List<Ref<? extends IItem>> getBuyerHistory() {
+    public List<Ref<? extends @Mutable IItem>> getBuyerHistory() {
         return new ArrayList<>(buyerHistory.values());
     }
 
@@ -211,5 +212,9 @@ public @Mixed class User implements Serializable, IUser {
         }
 
         return potentialBalance >= price;
+    }
+
+    private Ref<@Mutable Item> toItemImpl(Ref<? extends @Mutable IItem> item) {
+        return (Ref<@Mutable Item>) item;  // TODO
     }
 }
