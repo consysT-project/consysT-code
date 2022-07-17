@@ -8,6 +8,7 @@ import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 import scala.Tuple3;
+import scala.Tuple4;
 
 import java.util.*;
 
@@ -248,7 +249,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         //Ref<Item> item = getRandomElement(allDirectBuyItems);
         Session session = getRandomElement(localSessions);
 
-        Option<Tuple3<Ref<? extends IItem>, Float, Float>> result = store().transaction(ctx ->
+        Option<Tuple4<Ref<? extends IItem>, Float, Float, Boolean>> result = store().transaction(ctx ->
         {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
@@ -262,10 +263,18 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 Ref<? extends IUser> user = session.getLoggedInUser();
                 float prevBuyerBalance = user.ref().getBalance();
                 float prevSellerBalance = item.ref().getSeller().ref().getBalance();
-                session.buyNow(ctx, item);
-                return Option.apply(Tuple3.apply(item, prevBuyerBalance, prevSellerBalance));
+                try {
+                    session.buyNow(ctx, item);
+                    return Option.apply(Tuple4.apply(item, prevBuyerBalance, prevSellerBalance, false));
+                } catch (IllegalArgumentException ignored) {
+                    return Option.apply(Tuple4.apply(item, prevBuyerBalance, prevSellerBalance, true));
+                }
             } else {
-                session.buyNow(ctx, item);
+                try {
+                    session.buyNow(ctx, item);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Exception raised by app: " + e.getMessage());
+                }
                 return Option.empty();
             }
         });
@@ -273,6 +282,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         // test -------------------------
         if (!isTest || result.isEmpty())
             return;
+
+        if (result.get()._4()) {
+            check("app exception occurred", false);
+            return;
+        } else {
+            check("app exception occurred", true);
+        }
 
         store().transaction(ctx -> {
             Ref<? extends IUser> buyer = session.getLoggedInUser();
@@ -304,7 +320,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void closeAuction() {
-        Option<Tuple3<Ref<? extends IItem>, Float, Boolean>> result = store().transaction(ctx ->
+        Option<Tuple4<Ref<? extends IItem>, Float, Boolean, Boolean>> result = store().transaction(ctx ->
         {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
@@ -317,12 +333,19 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             if (isTest) {
                 float bal = item.ref().getSeller().ref().getBalance();
                 item.ref().endAuctionNow();
-                boolean wasSold = item.ref().closeAuction(item);
-                if (wasSold) System.out.println("auction closed");
-                return Option.apply(Tuple3.apply(item, bal, wasSold));
+                try {
+                    boolean wasSold = item.ref().closeAuction(item);
+                    return Option.apply(Tuple4.apply(item, bal, wasSold, false));
+                } catch (IllegalArgumentException ignored) {
+                    return Option.apply(Tuple4.apply(item, bal, false, true));
+                }
             } else {
                 item.ref().endAuctionNow();
-                item.ref().closeAuction(item);
+                try {
+                    item.ref().closeAuction(item);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Exception raised by app: " + e.getMessage());
+                }
                 return Option.empty();
             }
         });
@@ -330,6 +353,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         // test -------------------------
         if (!isTest || result.isEmpty())
             return;
+
+        if (result.get()._4()) {
+            check("app exception occurred", false);
+            return;
+        } else {
+            check("app exception occurred", true);
+        }
 
         store().transaction(ctx -> {
             Ref<? extends IItem> item = result.get()._1();

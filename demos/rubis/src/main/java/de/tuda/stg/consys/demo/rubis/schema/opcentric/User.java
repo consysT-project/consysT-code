@@ -57,7 +57,7 @@ public @Mixed class User implements Serializable, IUser {
     public void closeOwnAuction(UUID id, @Strong boolean sold) {
         Ref<@Mutable Item> item = sellerAuctions.remove(id);
         if (item == null)
-            throw new IllegalArgumentException("id not found: " + id); // TODO: problem for weak benchmark, leads to crash
+            throw new IllegalArgumentException("id not found: " + id);
 
         if (sold) {
             sellerHistory.put(id, item);
