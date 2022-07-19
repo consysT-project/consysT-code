@@ -42,7 +42,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : CassandraStore#RefType[T] = {
 			txContext.acquireLock(addr)
 			val cassObj = new StrongCassandraObject[T](addr, obj, -1)
-			txContext.Cache.writeNewEntry(addr, cassObj)
+			txContext.Cache.addEntry(addr, cassObj)
 			new CassandraRef[T](addr, Strong)
 		}
 
@@ -61,7 +61,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
+			val cached = txContext.Cache.readEntry[T](addr, strongRead[T](addr))
 				.asInstanceOf[StrongCassandraObject[T]]
 			val result = cached.invoke[R](methodId, args)
 
@@ -83,7 +83,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
+			val cached = txContext.Cache.readEntry[T](addr, strongRead[T](addr))
 			val result = cached.getField[R](fieldName)
 			result
 		}
@@ -95,7 +95,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		) : Unit = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val cached = txContext.Cache.getOrFetch[T](addr, strongRead[T](addr))
+			val cached = txContext.Cache.readEntry[T](addr, strongRead[T](addr))
 			cached.setField[R](fieldName, value)
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
@@ -103,18 +103,20 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		override def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
-		) : Unit = txContext.Cache.getData(ref.addr) match {
+		) : Unit = {
+		  txContext.Cache.readLocalEntry(ref.addr) match {
 			case None =>
-				throw new IllegalStateException(s"cannot commit $ref. Object not available.")
+			  throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 
 			case Some(cassObj : CassandraObject[_, Strong.type]) if cassObj.consistencyLevel == Strong =>
-				// Add a new statement to the batch of write statements
-				if (!txContext.Cache.hasChanges(ref.addr)) return
+			  // Add a new statement to the batch of write statements
+			  if (!txContext.Cache.hasChanges(ref.addr)) return
 
-				val builder = txContext.getCommitStatementBuilder
-				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
+			  val builder = txContext.getCommitStatementBuilder
+			  store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
 			case cached =>
-				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
+			  throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
+		  }
 		}
 
 		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {

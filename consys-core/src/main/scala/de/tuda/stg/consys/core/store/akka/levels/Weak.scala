@@ -1,8 +1,7 @@
 package de.tuda.stg.consys.core.store.akka.levels
 
-import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
-import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, WeakCassandraObject}
-import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
+import de.tuda.stg.consys.core.store.akka.{AkkaRef, AkkaStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 
@@ -10,39 +9,38 @@ import scala.reflect.ClassTag
 
 
 /** Consistency level for weak, eventual consistency with last-writer-wins conflict resolution. */
-case object Weak extends ConsistencyLevel[CassandraStore] {
-	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Weak.type] =
+case object Weak extends ConsistencyLevel[AkkaStore] {
+	override def toProtocol(store : AkkaStore) : ConsistencyProtocol[AkkaStore, Weak.type] =
 		new WeakProtocol(store)
 
-	private class WeakProtocol(val store : CassandraStore) extends ConsistencyProtocol[CassandraStore, Weak.type] {
+	private class WeakProtocol(val store : AkkaStore) extends ConsistencyProtocol[AkkaStore, Weak.type] {
 		override def toLevel : Weak.type = Weak
 
-		override def replicate[T <: CassandraStore#ObjType : ClassTag](
-			txContext : CassandraStore#TxContext,
-			addr : CassandraStore#Addr,
+		override def replicate[T <: AkkaStore#ObjType : ClassTag](
+			txContext : AkkaStore#TxContext,
+			addr : AkkaStore#Addr,
 			obj : T
-		) : CassandraStore#RefType[T] = {
-			val cassObj = new WeakCassandraObject[T](addr, obj,-1)
-			txContext.Cache.writeNewEntry(addr, cassObj)
-			new CassandraRef[T](addr, Weak)
+		) : AkkaStore#RefType[T] = {
+			txContext.Cache.addEntry(addr, new AkkaObject(addr, obj, Weak))
+			AkkaRef[T](addr, Weak)
 		}
 
-		override def lookup[T <: CassandraStore#ObjType : ClassTag](
-			txContext : CassandraStore#TxContext,
-			addr : CassandraStore#Addr
-		) : CassandraStore#RefType[T] = {
-			new CassandraRef[T](addr, Weak)
+		override def lookup[T <: AkkaStore#ObjType : ClassTag](
+			txContext : AkkaStore#TxContext,
+			addr : AkkaStore#Addr
+		) : AkkaStore#RefType[T] = {
+			AkkaRef[T](addr, Weak)
 		}
 
-		override def invoke[T <: CassandraStore#ObjType : ClassTag, R](
-			txContext : CassandraStore#TxContext,
-			receiver : CassandraStore#RefType[T],
+		override def invoke[T <: AkkaStore#ObjType : ClassTag, R](
+			txContext : AkkaStore#TxContext,
+			receiver : AkkaStore#RefType[T],
 			methodId : String,
 			args : Seq[Seq[Any]]
 		) : R = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
-			val result = cached.invoke[R](methodId, args)
+			val entry  = txContext.Cache.readEntry[T](addr, weakRead[T](addr))
+			val result = entry.invoke[R](methodId, args)
 
 			//If method call is not side effect free, then set the changed flag
 			val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
@@ -53,57 +51,56 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			result
 		}
 
-		override def getField[T <: CassandraStore#ObjType : ClassTag, R](
-			txContext : CassandraStore#TxContext,
-			receiver : CassandraStore#RefType[T],
+		override def getField[T <: AkkaStore#ObjType : ClassTag, R](
+			txContext : AkkaStore#TxContext,
+			receiver : AkkaStore#RefType[T],
 			fieldName : String
 		) : R = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
-			val result = cached.getField[R](fieldName)
+			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
+			val result = entry.getField[R](fieldName)
 			result
 		}
 
-		override def setField[T <: CassandraStore#ObjType : ClassTag, R](
-			txContext : CassandraStore#TxContext,
-			receiver : CassandraStore#RefType[T],
+		override def setField[T <: AkkaStore#ObjType : ClassTag, R](
+			txContext : AkkaStore#TxContext,
+			receiver : AkkaStore#RefType[T],
 			fieldName : String,
 			value : R
 		) : Unit = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
-			cached.setField[R](fieldName, value)
+			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
+			entry.setField[R](fieldName, value)
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
 
 
 		override def commit(
-			txContext : CassandraStore#TxContext,
-			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
-		) : Unit = txContext.Cache.getData(ref.addr) match {
-			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-			// TODO: Reimplement
-//			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
-//				// Add a new statement to the batch of write statements
-//				if (!txContext.Cache.hasChanges(ref.addr)) return
-//
-//				val builder = txContext.getCommitStatementBuilder
-//				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
-			case cached =>
-				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
+			txContext : AkkaStore#TxContext,
+			ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]
+		) : Unit = {
+//		  txContext.Cache.getData(ref.addr) match {
+//			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
+//			// TODO: Reimplement
+//			//			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
+//			//				// Add a new statement to the batch of write statements
+//			//				if (!txContext.Cache.hasChanges(ref.addr)) return
+//			//
+//			//				val builder = txContext.getCommitStatementBuilder
+//			//				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
+//			case cached =>
+//			  throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
+//		  }
 		}
 
-		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {
+		override def postCommit(txContext : AkkaStore#TxContext, ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]) : Unit = {
 			//Do nothing
 		}
 
 
-		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : WeakCassandraObject[T] = {
-			// TODO: Reimplement
-//			val entry = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ONE)
-//			val cassObj = new WeakCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
-//			cassObj
-			null
+		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaObject[T] = {
+			val entry = store.replica.read[T](addr, Weak)
+			entry
 		}
 	}
 }

@@ -37,7 +37,7 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
 
   override val timeout: FiniteDuration = FiniteDuration.apply(30, TimeUnit.SECONDS)
 
-  private val replica : BackendReplica = new BackendReplica(system, timeout)
+  private[akka] val replica : BackendReplica = new BackendReplica(system, timeout)
 
 
   /**
@@ -52,6 +52,7 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
   override def transaction[T](body: TxContext => Option[T]): Option[T] = {
     val context = new AkkaTransactionContext(this)
     val result = body(context)
+    context.commit()
     result
   }
 }

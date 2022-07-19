@@ -3,14 +3,13 @@ package de.tuda.stg.consys.core.store.akka.backend
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import de.tuda.stg.consys.Mergeable
-import de.tuda.stg.consys.core.store.akka.backend.BackendReplica.{Addr, ExecuteBatch, LocalObject, ReadObject, ReplicaActor, TransactionOp}
+import de.tuda.stg.consys.core.store.ConsistencyLevel
+import de.tuda.stg.consys.core.store.akka.AkkaStore
+import de.tuda.stg.consys.core.store.akka.backend.BackendReplica._
 
-import java.util.concurrent.{CountDownLatch, TimeUnit}
 import scala.collection.mutable
 import scala.concurrent.Await
-import scala.concurrent.duration.{Duration, FiniteDuration, SECONDS}
-import scala.util.Success
+import scala.concurrent.duration.FiniteDuration
 
 class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 
@@ -41,12 +40,12 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 		//	}
 	}
 
-	def read[T](addr : Addr) : T  = {
+	def read[T <: ObjType](addr : Addr, level : Level) : AkkaObject[T]  = {
 		implicit val akkaTimeout : Timeout = timeout
-		val result = actor ? ReadObject(addr, "")
+		val result = actor ? ReadObject(addr, level)
 
-		val obj : LocalObject = Await.result(result, timeout).asInstanceOf[LocalObject]
-		obj.state.asInstanceOf[T]
+		val obj : AkkaObject[T] = Await.result(result, timeout).asInstanceOf[AkkaObject[T]]
+		obj
 	}
 
 
@@ -57,13 +56,8 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 object BackendReplica {
 
 	type Addr = String
-	type ObjType = Any
-	type Level = String
-
-	case class LocalObject(addr : Addr, state : ObjType, level : Level) {
-		def merge(newState : ObjType) : LocalObject =
-			LocalObject(addr, state, level)
-	}
+	type ObjType = Serializable
+	type Level = ConsistencyLevel[AkkaStore]
 
 	case class WriteObjectsOp(objects : Map[Addr, (ObjType, Level)], waitFor : Int)
 	case class SyncWrite(objects : Map[Addr, (ObjType, Level)])
@@ -71,6 +65,7 @@ object BackendReplica {
 	sealed trait TransactionOp
 	case class CreateObject(addr : Addr, state : ObjType, level : Level) extends TransactionOp
 	case class UpdateObject(addr : Addr, newState : ObjType, level : Level) extends TransactionOp
+	case class CreateOrUpdateObject(addr : Addr, newState : ObjType, level : Level) extends TransactionOp
 
 	sealed trait Op
 	case class ExecuteBatch(ops : Seq[TransactionOp]) extends Op
@@ -80,7 +75,7 @@ object BackendReplica {
 	class ReplicaActor extends Actor {
 
 		/*The replicated objects stored by this replica*/
-		private val localObjects : mutable.HashMap[Addr, LocalObject] = mutable.HashMap.empty
+		private val localObjects : mutable.HashMap[Addr, AkkaObject[_ <: ObjType]] = mutable.HashMap.empty
 
 		override def receive : Receive = {
 			case ExecuteBatch(ops) =>
@@ -88,13 +83,22 @@ object BackendReplica {
 					case CreateObject(addr, state, level) =>
 						if (localObjects.contains(addr))
 							throw new IllegalStateException("object already exists: " + addr)
-						localObjects.put(addr, new LocalObject(addr, state, level))
+						localObjects.put(addr, new AkkaObject(addr, state, level))
 
 					case UpdateObject(addr, state, level) =>
-						if (!localObjects.contains(addr))
-							throw new IllegalStateException("object does not exist: " + addr)
 						//TODO: Add merge semantics
-						localObjects.put(addr, new LocalObject(addr, state, level))
+						localObjects.put(addr, new AkkaObject(addr, state, level)) match {
+						  case None => throw new IllegalStateException("object does not exist: " + addr)
+						  case Some(obj) if obj.level != level => throw new IllegalStateException(s"object has wrong consistency level. expected : $level, but was ${obj.level}")
+						  case Some(_) =>
+						}
+
+					case CreateOrUpdateObject(addr, state, level) =>
+					  localObjects.put(addr, new AkkaObject(addr, state, level)) match {
+						case None =>
+						case Some(obj) if obj.level != level => throw new IllegalStateException(s"object has wrong consistency level. expected : $level, but was ${obj.level}")
+						case Some(_) =>
+					  }
 				}
 
 			case ReadObject(addr, level) =>
