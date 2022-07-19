@@ -1,5 +1,8 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.extras;
 
+import de.tuda.stg.consys.demo.rubis.AppException;
+import de.tuda.stg.consys.demo.rubis.Session;
+import de.tuda.stg.consys.demo.rubis.extras.BackgroundTask;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;

@@ -19,12 +19,12 @@ import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
-public class Session<ItemImpl extends IItem & Serializable, UserImpl extends IUser & Serializable> {
+public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
-    public Class<ItemImpl> itemImpl;
-    public Class<UserImpl> userImpl;
+    public Class<? extends IItem> itemImpl;
+    public Class<? extends IUser> userImpl;
 
     public static boolean dataCentric;
 
@@ -332,5 +332,9 @@ public class Session<ItemImpl extends IItem & Serializable, UserImpl extends IUs
         if (user == null) {
             throw new AppException("You must be logged in.");
         }
+    }
+
+    public Ref<? extends IUser> getLoggedInUser() {
+        return user;
     }
 }

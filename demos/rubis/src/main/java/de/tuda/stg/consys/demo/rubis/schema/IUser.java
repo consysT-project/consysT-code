@@ -10,37 +10,38 @@ import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-public interface IUser {
+public interface IUser extends Serializable {
     @StrongOp
-    void addOwnAuction(Ref<? extends IItem> item);
+    void addOwnAuction(Ref<? extends @Mutable IItem> item);
 
     @StrongOp
     void closeOwnAuction(UUID id, @Strong boolean sold);
 
     @StrongOp
-    void addWatchedAuction(Ref<? extends IItem> item);
+    void addWatchedAuction(Ref<? extends @Mutable IItem> item);
 
     @StrongOp
     void closeWatchedAuction(UUID id);
     
     @StrongOp
-    void addBoughtItem(Ref<? extends IItem> item);
+    void addBoughtItem(Ref<? extends @Mutable IItem> item);
 
     @SideEffectFree
-    List<Ref<? extends IItem>> getOpenSellerAuctions();
+    List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions();
 
     @StrongOp @SideEffectFree
     // StrongOp necessary for calculating potential budget
-    @Strong List<Ref<? extends IItem>> getOpenBuyerAuctions();
+    @Strong List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions();
 
     @SideEffectFree
-    List<Ref<? extends IItem>> getSellerHistory(boolean sold);
+    List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold);
 
     @SideEffectFree
-    List<Ref<? extends IItem>> getBuyerHistory();
+    List<Ref<? extends @Mutable IItem>> getBuyerHistory();
 
     @SideEffectFree
     // If this is WeakOp you could log in with an outdated password. Security concern?

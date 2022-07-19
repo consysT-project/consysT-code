@@ -103,7 +103,7 @@ public @Mixed class Item implements Serializable, IItem {
 
 
         endAuctionNow();
-        this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply((Ref<@Mutable User>)buyer);
+        this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(toUserImpl(buyer));
         soldViaBuyNow = true;
 
         buyer.ref().removeBalance(buyNowPrice);
@@ -126,7 +126,7 @@ public @Mixed class Item implements Serializable, IItem {
 
     @Transactional
     @StrongOp
-    public void closeAuction(Ref<? extends @Mutable IItem> item) {
+    public boolean closeAuction(Ref<? extends @Mutable IItem> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item different from this");
 
@@ -137,7 +137,7 @@ public @Mixed class Item implements Serializable, IItem {
         @Strong boolean hasWinner = !(@Strong boolean)bids.isEmpty() && getTopBidPrice() >= reservePrice;
         if (hasWinner) {
             @Immutable @Strong Bid winningBid = bids.get(0);
-            Ref<@Mutable User> buyer = (Ref<@Mutable User>) winningBid.getUser();
+            Ref<@Mutable User> buyer = toUserImpl(winningBid.getUser());
             this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(buyer);
             @Strong float price = winningBid.getBid();
 
@@ -152,6 +152,8 @@ public @Mixed class Item implements Serializable, IItem {
         seller.ref().closeOwnAuction(id, hasWinner);
         closeWatchedItemsForBidders();
         auctionsStore.ref().closeAuction(id, category);
+
+        return hasWinner;
     }
 
     @WeakOp
@@ -166,7 +168,7 @@ public @Mixed class Item implements Serializable, IItem {
 
     @StrongOp @SideEffectFree
     public List<Bid> getAllBids() {
-        return bids;
+        return new ArrayList<>(bids);
     }
 
     @WeakOp @SideEffectFree
@@ -242,5 +244,9 @@ public @Mixed class Item implements Serializable, IItem {
             Ref<? extends @Mutable IUser> bidder = bid.getUser();
             bidder.ref().closeWatchedAuction(id);
         }
+    }
+
+    private Ref<@Mutable User> toUserImpl(Ref<? extends @Mutable IUser> user) {
+        return (Ref<@Mutable User>) user;  // TODO
     }
 }
