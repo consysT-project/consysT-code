@@ -18,12 +18,7 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 	protected[store] object Cache {
 		val buffer : mutable.Map[StoreType#Addr, CacheElement[_ <: StoreType#ObjType]] = mutable.HashMap.empty
 
-		def writeNewEntry(addr : StoreType#Addr, obj : CachedType[_ <: StoreType#ObjType]) : Unit  = buffer.put(addr, CacheElement(obj, true, Iterable.empty)) match {
-			case None =>
-			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
-		}
-
-		def writeNewEntry(addr : StoreType#Addr, obj : CachedType[_ <: StoreType#ObjType], fields : Iterable[Field]) : Unit  = buffer.put(addr, CacheElement(obj, true, fields)) match {
+		def addEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedFields : Iterable[Field] = Iterable.empty) : Unit  = buffer.put(addr, CacheElement(obj, true, changedFields)) match {
 			case None =>
 			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
 		}
@@ -37,18 +32,19 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			}
 		}
 
+		def readEntry[T <: StoreType#ObjType](addr : StoreType#Addr,  elseFetch : => CachedType[T]) : CachedType[T] = {
+				println("test")
+		  	buffer.getOrElseUpdate(addr, CacheElement[T](elseFetch, false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
+		}
 
-		def getData[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[CachedType[T]] =
+	  def readLocalEntry[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[CachedType[T]] =
 			buffer.get(addr).map(_.data).asInstanceOf[Option[CachedType[T]]]
 
-		def getFields(addr : StoreType#Addr) : Option[Iterable[Field]] =
+		def getChangedFields(addr : StoreType#Addr) : Option[Iterable[Field]] =
 			buffer.get(addr).map(_.changedFields)
 
-		def getDataAndFields[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[(CachedType[T], Iterable[Field])] =
-			buffer.get(addr).map(f => (f.data.asInstanceOf[CachedType[T]], f.changedFields))
-
-		def getOrFetch[T <: StoreType#ObjType](addr : StoreType#Addr,  fetchedObject : => CachedType[T]) : CachedType[T] =
-			buffer.getOrElseUpdate(addr, CacheElement[T](fetchedObject, false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
+//		def getDataAndFields[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[(CachedType[T], Iterable[Field])] =
+//			buffer.get(addr).map(f => (f.data.asInstanceOf[CachedType[T]], f.changedFields))
 
 		def setObjectChanged(addr : StoreType#Addr) : Unit = {
 			val prev = buffer.getOrElse(addr, throw new IllegalStateException())

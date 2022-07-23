@@ -22,7 +22,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			obj : T
 		) : CassandraStore#RefType[T] = {
 			val cassObj = new WeakCassandraObject[T](addr, obj,-1)
-			txContext.Cache.writeNewEntry(addr, cassObj)
+			txContext.Cache.addEntry(addr, cassObj)
 			new CassandraRef[T](addr, Weak)
 		}
 
@@ -40,7 +40,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			args : Seq[Seq[Any]]
 		) : R = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
+			val cached = txContext.Cache.readEntry(addr, weakRead[T](addr))
 			val result = cached.invoke[R](methodId, args)
 
 			//If method call is not side effect free, then set the changed flag
@@ -58,7 +58,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			fieldName : String
 		) : R = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
+			val cached = txContext.Cache.readEntry(addr, weakRead[T](addr))
 			val result = cached.getField[R](fieldName)
 			result
 		}
@@ -70,7 +70,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			value : R
 		) : Unit = {
 			val addr = receiver.addr
-			val cached = txContext.Cache.getOrFetch(addr, weakRead[T](addr))
+			val cached = txContext.Cache.readEntry(addr, weakRead[T](addr))
 			cached.setField[R](fieldName, value)
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
@@ -79,7 +79,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		override def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
-		) : Unit = txContext.Cache.getData(ref.addr) match {
+		) : Unit = txContext.Cache.readLocalEntry(ref.addr) match {
 			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
 				// Add a new statement to the batch of write statements

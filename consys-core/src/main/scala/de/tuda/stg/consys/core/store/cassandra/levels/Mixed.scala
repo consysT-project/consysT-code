@@ -30,7 +30,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			val cassObj = new MixedCassandraObject[T](addr, obj, Reflect.getMixedFieldLevels[T],
 				fields.map(f => (f, -1L)).toMap, FetchedStrong
 			)
-			txContext.Cache.writeNewEntry(addr, cassObj, fields)
+			txContext.Cache.addEntry(addr, cassObj, fields)
 			new CassandraRef[T](addr, Mixed)
 		}
 
@@ -61,7 +61,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				//Lookup the object in the cache
 				val addr = receiver.addr
 
-				var cachedObj = txContext.Cache.getOrFetch(addr, readStrong[T](addr))
+				var cachedObj = txContext.Cache.readEntry(addr, readStrong[T](addr))
 
 				if (cachedObj.asInstanceOf[MixedCassandraObject[T]].readLevel == FetchedWeak) {
 					val obj = readStrong[T](addr)
@@ -88,7 +88,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				val addr = receiver.addr
 				val fields = Reflect.getFields(clazz.runtimeClass)/* TODO: Get fields from method */
 
-				val cachedObj = txContext.Cache.getOrFetch(addr, readWeak[T](addr))
+				val cachedObj = txContext.Cache.readEntry(addr, readWeak[T](addr))
 
 				//If method call is not side effect free, then set the changed flag
 				val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
@@ -124,7 +124,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 
 			//TODO: Set consistency level per field
 
-			txContext.Cache.getDataAndFields(ref.addr) match {
+			txContext.Cache.readLocalEntry(ref.addr) zip txContext.Cache.getChangedFields(ref.addr) match {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
 				case Some((cached : MixedCassandraObject[_], changedFields)) /* if cached.ml == MixedStrong */
