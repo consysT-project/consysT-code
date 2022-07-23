@@ -27,7 +27,10 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	}
 
 	private final BenchmarkType benchType;
+	protected boolean isTestMode = false;
 	private static final int msTimeout = 60000;
+	// utility for benchmarks
+	protected final Random random = new Random();
 
 
 	public CassandraDemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
@@ -85,6 +88,10 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		return benchType;
 	}
 
+	void enableTestMode() {
+		this.isTestMode = true;
+	}
+
 	@Override
 	public void setup() {
 		if (store() == null) {
@@ -123,6 +130,27 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			e.printStackTrace();
 		}
 		*/
+	}
+
+	// Utility method for benchmarks
+	protected <E> E getRandomElement(List<E> list) {
+		return list.get(random.nextInt(list.size()));
+	}
+
+	// Utility method for benchmarks
+	protected <E> E getRandomElementExcept(List<E> list, E object) {
+		E element;
+		do {
+			element = list.get(random.nextInt(list.size()));
+		} while (element == object);
+		return element;
+	}
+
+	protected String generateRandomText(int nWords, List<String> words) {
+		StringBuilder body = new StringBuilder(words.get(random.nextInt(words.size())));
+		for (int i = 0; i < nWords - 1; i++)
+			body.append(" ").append(words.get(random.nextInt(words.size())));
+		return body.toString();
 	}
 
 	public void test() {

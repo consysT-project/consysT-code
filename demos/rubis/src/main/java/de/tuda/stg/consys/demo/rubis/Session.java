@@ -23,8 +23,8 @@ public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
-    public Class<? extends IItem> itemImpl;
-    public Class<? extends IUser> userImpl;
+    public static Class<? extends IItem> itemImpl;
+    public static Class<? extends IUser> userImpl;
 
     public static boolean dataCentric;
 

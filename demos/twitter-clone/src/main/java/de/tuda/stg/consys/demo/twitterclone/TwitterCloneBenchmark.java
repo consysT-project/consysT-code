@@ -71,22 +71,6 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         return body;
     }
 
-    private Ref<User> randomUser() {
-        return users.get(random.nextInt(users.size()));
-    }
-
-    private <E> E getRandomElement(List<E> list) {
-        return list.get(random.nextInt(list.size()));
-    }
-
-    private <E> E getRandomElementExcept(List<E> list, E object) {
-        E element;
-        do {
-            element = list.get(random.nextInt(list.size()));
-        } while (element == object);
-        return element;
-    }
-
     @Override
     public String getName() {
         return "TwitterCloneBenchmark";
@@ -195,8 +179,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private int transaction2() {
-        Ref<User> follower = randomUser();
-        Ref<User> following = randomUser();
+        Ref<User> follower = getRandomElement(users);
+        Ref<User> following = getRandomElement(users);
 
         follower.ref().removeFollower(following);
         following.ref().removeFollowing(follower);
@@ -206,8 +190,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private int transaction3() {
-        Ref<Tweet> tweet = tweets.get(random.nextInt(tweets.size()));
-        Ref<User> user = randomUser();
+        Ref<Tweet> tweet = getRandomElement(tweets);
+        Ref<User> user = getRandomElement(users);
 
         tweet.ref().retweet();
         user.ref().addRetweet(tweet);
@@ -217,7 +201,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Transactional
     private int transaction4() {
-        Ref<User> user = randomUser();
+        Ref<User> user = getRandomElement(users);
 
         List<Ref<Tweet>> timeline = user.ref().getTimeline();
 

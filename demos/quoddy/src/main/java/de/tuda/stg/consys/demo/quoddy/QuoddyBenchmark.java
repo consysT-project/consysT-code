@@ -72,18 +72,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         return localSessions.get(random.nextInt(localSessions.size()));
     }
 
-    private <E> E getRandomElement(List<E> list) {
-        return list.get(random.nextInt(list.size()));
-    }
-
-    private <E> E getRandomElementExcept(List<E> list, E object) {
-        E element;
-        do {
-            element = list.get(random.nextInt(list.size()));
-        } while (element == object);
-        return element;
-    }
-
     @Override
     public String getName() {
         return "QuoddyBenchmark";
