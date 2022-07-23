@@ -249,7 +249,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         //Ref<Item> item = getRandomElement(allDirectBuyItems);
         Session session = getRandomElement(localSessions);
 
-        Option<Tuple4<Ref<? extends IItem>, Float, Float, Boolean>> result = store().transaction(ctx ->
+        Option<TransactionResult> result = store().transaction(ctx ->
         {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
@@ -259,47 +259,46 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
             var item = getRandomElement(openAuctions);
 
-            if (isTest) {
-                Ref<? extends IUser> user = session.getLoggedInUser();
-                float prevBuyerBalance = user.ref().getBalance();
-                float prevSellerBalance = item.ref().getSeller().ref().getBalance();
-                try {
-                    session.buyNow(ctx, item);
-                    return Option.apply(Tuple4.apply(item, prevBuyerBalance, prevSellerBalance, false));
-                } catch (IllegalArgumentException ignored) {
-                    return Option.apply(Tuple4.apply(item, prevBuyerBalance, prevSellerBalance, true));
-                }
-            } else {
-                try {
-                    session.buyNow(ctx, item);
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Exception raised by app: " + e.getMessage());
-                }
-                return Option.empty();
+            var trxResult = !isTest ? new TransactionResult() : new TransactionResult(
+                    new UserState[] {
+                            new UserState(session.getLoggedInUser()),
+                            new UserState(item.ref().getSeller()) },
+                    new ItemState[] { new ItemState(item) });
+
+            try {
+                session.buyNow(ctx, item);
+                return Option.apply(trxResult);
+            } catch (IllegalArgumentException e) {
+                trxResult.appExceptions = new Exception[] { e };
+                System.out.println("Exception raised by app: " + e.getMessage());
+                return Option.apply(trxResult);
             }
         });
 
-        // test -------------------------
-        if (!isTest || result.isEmpty())
-            return;
+        if (isTest && result.isDefined())
+            buyNowTest(result.get());
+    }
 
-        if (result.get()._4()) {
-            check("app exception occurred", false);
+    private void buyNowTest(TransactionResult result) {
+        if (result.appExceptions.length > 0) {
+            check("no app exception occurred", false);
             return;
         } else {
-            check("app exception occurred", true);
+            check("ano pp exception occurred", true);
         }
 
         store().transaction(ctx -> {
-            Ref<? extends IUser> buyer = session.getLoggedInUser();
-            Ref<? extends IItem> item = result.get()._1();
-            Ref<? extends IUser> seller = item.ref().getSeller();
-            float prevBuyerBal = result.get()._2();
-            float prevSellerBal = result.get()._3();
+            UserState buyerPrev = result.users[0];
+            Ref<? extends IUser> buyer = buyerPrev.ref;
+            UserState sellerPrev = result.users[1];
+            Ref<? extends IUser> seller = sellerPrev.ref;
+            ItemState itemPrev = result.items[0];
+            Ref<? extends IItem> item = itemPrev.ref;
+
             checkEquals("seller balance after buy-now",
-                    prevSellerBal + item.ref().getBuyNowPrice(), seller.ref().getBalance());
+                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance());
             checkEquals("buyer balance after buy-now",
-                    prevBuyerBal - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
+                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
 
             check("buy-now closed for seller",
                     seller.ref().getSellerHistory(true).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -320,7 +319,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void closeAuction() {
-        Option<Tuple4<Ref<? extends IItem>, Float, Boolean, Boolean>> result = store().transaction(ctx ->
+        Option<TransactionResult> result = store().transaction(ctx ->
         {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
             if (openAuctions.isEmpty()) {
@@ -330,44 +329,41 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
             Ref<? extends IItem> item = getRandomElement(openAuctions);
 
-            if (isTest) {
-                float bal = item.ref().getSeller().ref().getBalance();
-                item.ref().endAuctionNow();
-                try {
-                    boolean wasSold = item.ref().closeAuction(item);
-                    return Option.apply(Tuple4.apply(item, bal, wasSold, false));
-                } catch (IllegalArgumentException ignored) {
-                    return Option.apply(Tuple4.apply(item, bal, false, true));
-                }
-            } else {
-                item.ref().endAuctionNow();
-                try {
-                    item.ref().closeAuction(item);
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Exception raised by app: " + e.getMessage());
-                }
-                return Option.empty();
+            var trxResult = !isTest ? new TransactionResult() : new TransactionResult(
+                    new UserState[] { new UserState(item.ref().getSeller()) },
+                    new ItemState[] { new ItemState(item) });
+
+            item.ref().endAuctionNow();
+            try {
+                item.ref().closeAuction(item);
+            } catch (IllegalArgumentException e) {
+                trxResult.appExceptions = new Exception[] { e };
+                System.out.println("Exception raised by app: " + e.getMessage());
             }
+            return Option.apply(trxResult);
         });
 
-        // test -------------------------
-        if (!isTest || result.isEmpty())
-            return;
+        if (isTest && result.isDefined())
+            closeAuctionTest(result.get());
+    }
 
-        if (result.get()._4()) {
-            check("app exception occurred", false);
+    private void closeAuctionTest(TransactionResult result) {
+        if (result.appExceptions.length > 0) {
+            check("no app exception occurred", false);
             return;
         } else {
-            check("app exception occurred", true);
+            check("no app exception occurred", true);
         }
 
         store().transaction(ctx -> {
-            Ref<? extends IItem> item = result.get()._1();
-            Ref<? extends IUser> seller = item.ref().getSeller();
-            float prevBal = result.get()._2();
-            boolean wasSold = result.get()._3();
+            ItemState itemPrev = result.items[0];
+            Ref<? extends IItem> item = itemPrev.ref;
+            UserState sellerPrev = result.users[0];
+            Ref<? extends IUser> seller = sellerPrev.ref;
+
+            boolean wasSold = item.ref().getStatus() == IItem.Status.SOLD_VIA_AUCTION;
             float price = wasSold ? item.ref().getTopBidPrice() : 0;
-            checkEquals("seller balance after closing auction", prevBal + price, seller.ref().getBalance());
+            checkEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance());
 
             check("auction closed for seller",
                     seller.ref().getSellerHistory(wasSold).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -478,5 +474,36 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         }
 
         System.out.println("## TEST SUCCESS ##");
+    }
+
+    private static class TransactionResult {
+        Exception[] appExceptions = new Exception[] {};
+        UserState[] users = new UserState[] {};
+        ItemState[] items = new ItemState[] {};
+
+        TransactionResult() {}
+
+        TransactionResult(UserState[] users, ItemState[] items) {
+            this.users = users;
+            this.items = items;
+        }
+    }
+
+    private static class UserState {
+        final Ref<? extends IUser> ref;
+        final float balance;
+
+        UserState(Ref<? extends IUser> ref) {
+            this.ref = ref;
+            this.balance = ref.ref().getBalance();
+        }
+    }
+
+    private static class ItemState {
+        final Ref<? extends IItem> ref;
+
+        ItemState(Ref<? extends IItem> ref) {
+            this.ref = ref;
+        }
     }
 }

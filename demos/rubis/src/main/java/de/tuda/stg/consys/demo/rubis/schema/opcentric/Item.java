@@ -26,7 +26,8 @@ public @Mixed class Item implements Serializable, IItem {
     private final Ref<@Mutable User> seller;
     private Option<Ref<@Mutable User>> buyer; // cannot be null since we are serializing fields individually
     private final List<Bid> bids;
-    private boolean soldViaBuyNow;
+    // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
+    private @Mutable @Weak Status status = (@MutableBottom @Local Status) Status.OPEN;
     private final Ref<@Mutable AuctionStore> auctionsStore;
 
     public Item() {
@@ -39,7 +40,6 @@ public @Mixed class Item implements Serializable, IItem {
         this.category = null;
         this.seller = null;
         this.bids = null;
-        this.soldViaBuyNow = false;
         this.auctionsStore = null;
     }
 
@@ -58,7 +58,6 @@ public @Mixed class Item implements Serializable, IItem {
         this.category = category;
         this.seller = seller;
         this.bids = new LinkedList<>();
-        this.soldViaBuyNow = false;
         this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.<Ref<@Mutable User>>empty(); // TODO
         this.auctionsStore = auctionsStore;
     }
@@ -104,7 +103,7 @@ public @Mixed class Item implements Serializable, IItem {
 
         endAuctionNow();
         this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(toUserImpl(buyer));
-        soldViaBuyNow = true;
+        status = (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
 
         buyer.ref().removeBalance(buyNowPrice);
         seller.ref().addBalance(buyNowPrice);
@@ -136,6 +135,8 @@ public @Mixed class Item implements Serializable, IItem {
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.isEmpty() && getTopBidPrice() >= reservePrice;
         if (hasWinner) {
+            status = (@MutableBottom @Local Status) Status.SOLD_VIA_AUCTION;
+
             @Immutable @Strong Bid winningBid = bids.get(0);
             Ref<@Mutable User> buyer = toUserImpl(winningBid.getUser());
             this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(buyer);
@@ -147,6 +148,8 @@ public @Mixed class Item implements Serializable, IItem {
             buyer.ref().addBoughtItem(item);
 
             buyer.ref().notifyWinner(item, price);
+        } else {
+            status = (@MutableBottom @Local Status) Status.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
@@ -221,7 +224,12 @@ public @Mixed class Item implements Serializable, IItem {
 
     @WeakOp @SideEffectFree
     public boolean getSoldViaBuyNow() {
-        return soldViaBuyNow;
+        return status == (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+    }
+
+    @WeakOp @SideEffectFree
+    public Status getStatus() {
+        return status;
     }
 
     @Transactional @SideEffectFree

@@ -26,7 +26,8 @@ public @Weak class Item implements Serializable, IItem {
     private final Ref<@Mutable User> seller;
     private Ref<@Mutable User> buyer;
     private final Ref<@Strong @Mutable LinkedList<Bid>> bids;
-    private boolean soldViaBuyNow;
+    // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
+    private Status status = (@MutableBottom @Local Status) Status.OPEN;
     private final Ref<@Mutable AuctionStore> auctionsStore;
 
     public Item(@Local UUID id, @Weak @Mutable String name, @Mutable @Weak String description,
@@ -45,7 +46,6 @@ public @Weak class Item implements Serializable, IItem {
         this.category = category;
         this.seller = seller;
         this.bids = bids;
-        this.soldViaBuyNow = false;
         this.buyer = null;
         this.auctionsStore = auctionsStore;
     }
@@ -91,7 +91,7 @@ public @Weak class Item implements Serializable, IItem {
 
         endAuctionNow();
         this.buyer = (Ref<@Mutable User>) buyer;
-        soldViaBuyNow = true;
+        status = (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
 
         buyer.ref().removeBalance((@Strong float) buyNowPrice);
         seller.ref().addBalance((@Strong float) buyNowPrice);
@@ -124,6 +124,8 @@ public @Weak class Item implements Serializable, IItem {
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice;
         if (hasWinner) {
+            status = (@MutableBottom @Local Status) Status.SOLD_VIA_AUCTION;
+
             @Immutable @Strong Bid winningBid = bids.ref().get(0);
             buyer = (Ref<@Mutable User>) winningBid.getUser();
             @Strong float price = winningBid.getBid();
@@ -134,6 +136,8 @@ public @Weak class Item implements Serializable, IItem {
             buyer.ref().addBoughtItem(item);
 
             buyer.ref().notifyWinner(item, price);
+        } else {
+            status = (@MutableBottom @Local Status) Status.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
@@ -211,7 +215,12 @@ public @Weak class Item implements Serializable, IItem {
 
     @WeakOp @SideEffectFree
     public boolean getSoldViaBuyNow() {
-        return soldViaBuyNow;
+        return status == (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+    }
+
+    @SideEffectFree
+    public Status getStatus() {
+        return status;
     }
 
     @Transactional @SideEffectFree

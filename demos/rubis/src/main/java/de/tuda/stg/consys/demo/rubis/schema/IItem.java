@@ -5,6 +5,7 @@ import de.tuda.stg.consys.annotations.methods.*;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.checkerframework.framework.qual.DefaultQualifierForUse;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -13,6 +14,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface IItem extends Serializable {
+    enum Status {
+        OPEN,
+        NOT_SOLD,
+        SOLD_VIA_AUCTION,
+        SOLD_VIA_BUY_NOW,
+    }
+
     @Transactional
     @StrongOp
     boolean placeBid(Bid bid);
@@ -68,6 +76,9 @@ public interface IItem extends Serializable {
 
     @WeakOp @SideEffectFree
     boolean getSoldViaBuyNow();
+
+    @WeakOp @SideEffectFree
+    Status getStatus();
 
     @Transactional @SideEffectFree
     boolean refEquals(Ref<? extends IItem> o);

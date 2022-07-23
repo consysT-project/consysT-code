@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, japiPackageName}
-import de.tuda.stg.consys.checker.qual.{Local, MutableBottom}
+import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, MutableBottom}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils
@@ -79,7 +79,8 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
 			sys.error("ConSysT type checker bug: consistency qualifier is missing from type")
 
 		if (subtype.hasAnnotation(classOf[MutableBottom]) && !subtype.hasAnnotation(classOf[Local]))
-			sys.error("ConSysT type checker bug: @MutableBottom found on non-@Local qualifier")
+			sys.error(s"ConSysT type checker bug: @MutableBottom found on non-@Local qualifier, " +
+				s"was ${subtype.getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation)}")
 		else if (subtype.hasAnnotation(classOf[MutableBottom]) && subtype.hasAnnotation(classOf[Local]))
 			true
 		else if (isSameType(mutabilitySupertype, immutableAnnotation))
