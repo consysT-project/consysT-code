@@ -61,5 +61,6 @@ public class Group implements Serializable, Mergeable<Group> {
     public Void merge(Group other) {
         counter.merge(other.counter);
         users.merge(other.users);
+        return null;
     }
 }
