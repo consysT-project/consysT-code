@@ -129,26 +129,30 @@ public class Session {
         float buyNowPrice = reservePrice * 1.3f;
 
         @Immutable @Local UUID itemId = UUID.randomUUID();
-        return doTransaction(tr, ctx -> {
-            Ref<? extends IItem> item;
+        Ref<? extends IItem> item = doTransaction(tr, ctx -> {
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> endDateRef =
                         ctx.replicate("item:" + itemId + ":ed", STRONG, Date.class, endDate.getTime());
                 Ref<@Strong @Mutable LinkedList<Bid>> bids =
                         ctx.replicate("item:" + itemId + ":bids", STRONG, (Class<LinkedList<Bid>>)(Class)LinkedList.class);
 
-                item = ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,
-                        category, user, auctionStore, bids);
+                        category, user, auctionStore, bids));
             } else {
-                item = ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
-                        category, user, auctionStore);
+                        category, user, auctionStore));
             }
+        }).get();
 
+        doTransaction(tr, cty -> {
             user.ref().addOwnAuction(item);
-            auctionStore.ref().addItem(item, category);
+            return Option.empty();
+        });
 
+        return doTransaction(tr, ctx -> {
+            auctionStore.ref().addItem(item, category);
             return Option.apply(itemId);
         }).get();
     }
