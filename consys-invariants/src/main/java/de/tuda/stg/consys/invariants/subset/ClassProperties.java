@@ -8,6 +8,7 @@ import com.microsoft.z3.Status;
 import de.tuda.stg.consys.invariants.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
+import de.tuda.stg.consys.utils.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 import java.util.Arrays;

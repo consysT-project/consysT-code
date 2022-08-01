@@ -3,7 +3,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.subset.Logger;
+import de.tuda.stg.consys.utils.Logger;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import org.eclipse.jdt.internal.compiler.ast.*;

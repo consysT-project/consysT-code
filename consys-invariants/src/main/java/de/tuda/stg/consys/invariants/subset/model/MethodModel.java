@@ -1,14 +1,11 @@
 package de.tuda.stg.consys.invariants.subset.model;
 
 import com.microsoft.z3.*;
-import de.tuda.stg.consys.invariants.subset.Logger;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModel;
-import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;
 import org.jmlspecs.jml4.ast.*;
 
-import java.util.List;
 import java.util.Optional;
 
 public class MethodModel extends AbstractMethodModel<JmlMethodDeclaration>{

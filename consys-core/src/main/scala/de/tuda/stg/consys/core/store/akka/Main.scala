@@ -16,25 +16,22 @@ object Main {
 
   def main(args : Array[String]) {
 
-    val config = ConfigFactory.load()
-      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef("127.0.0.1"))
-      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(4445))
-      .resolve()
+    val store1 = AkkaStore.fromAddress("127.0.0.1", 4445)
+    val store2 = AkkaStore.fromAddress("127.0.0.2", 4446)
 
-    //Creates the actor system
-    val system = akka.actor.ActorSystem("MY_ACTOR_SYSTEM", config)
-    system.log.info(s"created replica actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+    store1.replica.addOtherReplica(store2.getAddress)
+    store2.replica.addOtherReplica(store1.getAddress)
 
-    val store = new AkkaStore(system)
-
-    store.transaction(ctx => {
+    store1.transaction(ctx => {
       val box1 = ctx.replicate[Box]("box1", Weak, 42)
+      println("Done 1")
       Some(())
     })
 
-    val result = store.transaction(ctx => {
+    val result = store2.transaction(ctx => {
       val box1 = ctx.lookup[Box]("box1", Weak)
       val value = box1.resolve(ctx).invoke("get", Seq())
+      println("Done 2")
       Some(value)
     })
 

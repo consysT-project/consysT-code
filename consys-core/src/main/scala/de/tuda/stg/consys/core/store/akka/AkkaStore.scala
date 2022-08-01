@@ -1,9 +1,13 @@
 package de.tuda.stg.consys.core.store.akka
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, ExtendedActorSystem}
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.backend.BackendReplica
+import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
+import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
 import de.tuda.stg.consys.core.store.extensions.store.DistributedStore
+import de.tuda.stg.consys.utils.Logger
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -55,4 +59,28 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
     context.commit()
     result
   }
+
+  def getAddress : AkkaAddress =
+    AkkaUtils.getActorSystemAddress(system)
+}
+
+object AkkaStore {
+
+  final val DEFAULT_ACTOR_SYSTEM_NAME : String = "consys-actors"
+  final val DEFAULT_ACTOR_NAME = "consys-replica"
+
+
+  def fromAddress(hostname : String, port : Int) : AkkaStore = {
+    val config = ConfigFactory.load()
+      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(hostname))
+      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(port))
+      .resolve()
+
+    //Creates the actor system
+    val system = akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, config)
+    Logger.info(s"created actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+
+    new AkkaStore(system)
+  }
+
 }
