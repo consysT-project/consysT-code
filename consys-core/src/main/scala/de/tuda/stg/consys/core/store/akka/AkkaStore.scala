@@ -55,9 +55,17 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
    */
   override def transaction[T](body: TxContext => Option[T]): Option[T] = {
     val context = new AkkaTransactionContext(this)
-    val result = body(context)
-    context.commit()
-    result
+    try {
+      val result = body(context)
+      context.commit()
+      result
+    } catch {
+      case e =>
+        Logger.err("transaction failed executing")
+        e.printStackTrace(Logger.err)
+        None
+    }
+
   }
 
   def getAddress : AkkaAddress =

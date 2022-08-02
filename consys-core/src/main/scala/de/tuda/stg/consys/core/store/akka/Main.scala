@@ -22,20 +22,22 @@ object Main {
     store1.replica.addOtherReplica(store2.getAddress)
     store2.replica.addOtherReplica(store1.getAddress)
 
+
+
     store1.transaction(ctx => {
       val box1 = ctx.replicate[Box]("box1", Weak, 42)
       println("Done 1")
       Some(())
     })
 
-    val result = store2.transaction(ctx => {
-      val box1 = ctx.lookup[Box]("box1", Weak)
-      val value = box1.resolve(ctx).invoke("get", Seq())
-      println("Done 2")
-      Some(value)
-    })
+//    val result = store2.transaction(ctx => {
+//      val box1 = ctx.lookup[Box]("box1", Weak)
+//      val value = box1.resolve(ctx).invoke("get", Seq())
+//      println("Done 2")
+//      Some(value)
+//    })
 
-    println(result)
+//    println(result)
 
 
 

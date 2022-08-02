@@ -100,7 +100,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 
 		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaObject[T] = {
 			val entry = store.replica.read[T](addr, Weak)
-			entry
+			entry.getOrElse(throw new IllegalStateException(s"can not read object $addr"))
 		}
 	}
 }

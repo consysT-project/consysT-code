@@ -12,18 +12,17 @@ import de.tuda.stg.consys.utils.Logger
 import scala.collection.mutable
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
-
-	/*Other replicas known to this replica.*/
 
 
 	private val actor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor]), AkkaStore.DEFAULT_ACTOR_NAME)
 	Logger.info("created backend replica actor " + actor.path.toString)
 
-	private def addOtherReplica(actor : ActorRef) : Unit = {
-		actor ! AddReplica(actor)
+
+	private def addOtherReplica(otherActor : ActorRef) : Unit = {
+		this.actor ! AddReplica(otherActor)
 	}
 
 	private def addOtherReplica(path : ActorPath) : Unit = {
@@ -78,6 +77,9 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 
 
 	def write(ops : Seq[TransactionOp]): Unit = {
+
+		implicit val akkaTimeout : Timeout = timeout
+
 		actor ! ExecuteBatch(ops, pushChanges = true)
 
 		//TODO: Synchronous write?
@@ -95,12 +97,13 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 		//	}
 	}
 
-	def read[T <: ObjType](addr : Addr, level : Level) : AkkaObject[T]  = {
+	def read[T <: ObjType](addr : Addr, level : Level) : Option[AkkaObject[T]]  = {
 		implicit val akkaTimeout : Timeout = timeout
 		val result = actor ? ReadObject(addr, level)
 
-		val obj : AkkaObject[T] = Await.result(result, timeout).asInstanceOf[AkkaObject[T]]
-		obj
+		val obj : Try[AkkaObject[T]] = Await.result(result, timeout).asInstanceOf[Try[AkkaObject[T]]]
+
+		obj.toOption
 	}
 
 
@@ -125,9 +128,11 @@ object BackendReplica {
 	case class ExecuteBatch(ops : Seq[TransactionOp], pushChanges : Boolean) extends Op
 	case class ReadObject(addr : Addr, level : Level) extends Op
 	case class AddReplica(actor : ActorRef) extends Op
+	case class SynchronizeChanges(changes : Map[Addr, AkkaObject[_ <: ObjType]]) extends Op
 
 
 	class ReplicaActor extends Actor {
+		Logger.info(s"created actor $self")
 
 		/* The replicated objects stored by this replica */
 		private val localObjects : mutable.HashMap[Addr, AkkaObject[_ <: ObjType]] = mutable.HashMap.empty
@@ -136,41 +141,77 @@ object BackendReplica {
 		private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 		override def receive : Receive = {
-			case AddReplica(actor) =>
-				otherReplicas.add(actor)
+
+			case AddReplica(otherActor) =>
+				otherReplicas.add(otherActor)
+				Logger.info(s"added replica $otherActor to $self")
 
 			case ExecuteBatch(ops, pushChanges) =>
+				Logger.info(s"execute batch on $self: $ops" )
+				/* Tracks the changes done by this batch */
+				val changes = mutable.Map.empty[Addr, AkkaObject[_ <: ObjType]]
+
 				ops.foreach {
 					case CreateObject(addr, state, level) =>
 						if (localObjects.contains(addr))
 							Logger.err("object already exists: " + addr)
-						localObjects.put(addr, new AkkaObject(addr, state, level))
+
+						val newObject = new AkkaObject(addr, state, level)
+						localObjects.put(addr, newObject)
+						changes.put(addr, newObject)
 
 					case UpdateObject(addr, state, level) =>
 						//TODO: Add merge semantics
-						localObjects.put(addr, new AkkaObject(addr, state, level)) match {
+						val newObject = new AkkaObject(addr, state, level)
+						localObjects.put(addr, newObject) match {
 						  case None =>
 								Logger.err("object does not exist: " + addr)
-						  case Some(obj) if obj.level != level =>
-								Logger.err(s"object has wrong consistency level. expected : $level, but was ${obj.level}")
-						  case Some(obj) =>
+						  case Some(oldObject) if oldObject.level != level =>
+								Logger.err(s"object has wrong consistency level. expected : ${oldObject.level}, but was $level")
+						  case Some(oldObject) =>
+								changes.put(addr, newObject)
 						}
 
 					case CreateOrUpdateObject(addr, state, level) =>
-					  localObjects.put(addr, new AkkaObject(addr, state, level)) match {
+						val newObject = new AkkaObject(addr, state, level)
+					  localObjects.put(addr, newObject) match {
 							case None =>
-							case Some(obj) if obj.level != level =>
-								Logger.err(s"object has wrong consistency level. expected : $level, but was ${obj.level}")
-							case Some(obj) =>
+								changes.put(addr, newObject)
+							case Some(oldObject) if oldObject.level != level =>
+								Logger.err(s"object has wrong consistency level. expected : $level, but was ${oldObject.level}")
+							case Some(oldObject) =>
+								changes.put(addr, newObject)
+
 					  }
 				}
-				if (pushChanges)
-					otherReplicas.foreach(actor => actor ! ExecuteBatch(ops, false))
+
+				if (pushChanges) {
+					Logger.info(s"send batch from $self")
+					val changesMap = changes.toMap
+					otherReplicas.foreach{ otherActor =>
+						try {
+							Logger.info(s"synchronize from $self to $otherActor")
+							otherActor.tell(SynchronizeChanges(changesMap), self)
+						} catch {
+							case e => e.printStackTrace()
+						}
+					}
+				}
+
+
+			case SynchronizeChanges(changes) =>
+				Logger.info(s"synchronized changes on $self: $changes")
+				localObjects.addAll(changes)
 
 
 			case ReadObject(addr, level) =>
-				val result = localObjects.getOrElse(addr, throw new IllegalStateException("object does not exist"))
-				sender() ! result // Return local object
+				Logger.info(s"read object on $self: $addr")
+				localObjects.get(addr) match {
+					case None =>
+						sender() ! Failure(new IllegalStateException(s"object $addr not found"))
+					case Some(result) =>
+						sender() ! Success(result) // Return local object
+				}
 		}
 	}
 
