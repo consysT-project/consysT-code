@@ -21,7 +21,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			addr : AkkaStore#Addr,
 			obj : T
 		) : AkkaStore#RefType[T] = {
-			txContext.Cache.addEntry(addr, new AkkaObject(addr, obj, Weak))
+			txContext.Cache.addEntry(addr, AkkaObject[T](addr, obj, Weak))
 			AkkaRef[T](addr, Weak)
 		}
 

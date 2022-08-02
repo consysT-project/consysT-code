@@ -30,14 +30,13 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 	/**
 	 * This private object encapsulates the reflective access to the stored state.
 	 */
-	private final object ReflectiveAccess {
-
+	private final case object ReflectiveAccess {
 		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			//Arguments from multiple parameter lists are flattened in classes
 			val flattenedArgs = args.flatten
 
-			val clazz = implicitly[ClassTag[T]]
-			val method = Reflect.getMethod[T](clazz.runtimeClass.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
+			val clazz = state.getClass
+			val method = Reflect.getMethod[T](clazz.asInstanceOf[Class[T]], methodName, flattenedArgs : _*) // clazz.runtimeClass.getMethod(methodName, flattenedArgs.map(e => e.getClass): _*)
 
 			try {
 				method.invoke(state, flattenedArgs.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[R]
