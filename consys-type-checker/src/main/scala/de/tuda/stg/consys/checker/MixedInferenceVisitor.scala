@@ -18,7 +18,11 @@ object MixedInferenceVisitor {
     case object Read extends AccessType
 
     type DefaultOp = String
-    type State = (Option[TypeElement], Option[DefaultOp], Option[AnnotationMirror], Option[AccessType], Option[ExecutableElement])
+    case class State(clazz: Option[TypeElement],
+                     defaultOp: Option[DefaultOp],
+                     methodLevel: Option[AnnotationMirror],
+                     accessMode: Option[AccessType],
+                     method: Option[ExecutableElement])
 }
 
 class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extends TreeScanner[Void, State] {
@@ -57,14 +61,13 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         readAccessTable.get(tree)
 
     def processClass(tree: ClassTree, qualifier: AnnotationMirror): Unit =
-        processClass(tree, (None, Some(getNameForMixedDefaultOp(qualifier)), None, None, None))
+        processClass(tree, State(None, Some(getNameForMixedDefaultOp(qualifier)), None, None, None))
 
     def processClass(elt: TypeElement, qualifier: AnnotationMirror): Unit =
-        processClass(elt, (None, Some(getNameForMixedDefaultOp(qualifier)), None, None, None))
+        processClass(elt, State(None, Some(getNameForMixedDefaultOp(qualifier)), None, None, None))
 
     private def processClass(node: ClassTree, state: State): Unit = {
-        val (_, maybeDefaultOp, _, _, _) = state
-        val defaultOp = maybeDefaultOp match {
+        val defaultOp = state.defaultOp match {
             case None => sys.error("ConSysT type checker bug: no default level for mixed inference given")
             case Some(value) => value
         }
@@ -83,7 +86,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         }
         inferenceTable.put((className, defaultOp), (Full, mutable.Map.empty))
 
-        val newState = (Some(classElement), maybeDefaultOp, None, Some(Read), None)
+        val newState = State(Some(classElement), state.defaultOp, None, Some(Read), None)
         checkSuperclass(getSuperclassElement(node), newState)
         processPublicFields(newState)
         processExplicitFields(newState)
@@ -94,8 +97,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     }
 
     private def processClass(classElement: TypeElement, state: State): Unit = {
-        val (_, maybeDefaultOp, _, _, _) = state
-        val defaultOp = maybeDefaultOp match {
+        val defaultOp = state.defaultOp match {
             case None => sys.error("ConSysT type checker bug: no default level for mixed inference")
             case Some(value) => value
         }
@@ -105,13 +107,12 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
             return
         inferenceTable.put((className, defaultOp), (Partial, mutable.Map.empty))
 
-        val newState = (Some(classElement), maybeDefaultOp, None, Some(Read), None)
+        val newState = State(Some(classElement), state.defaultOp, None, Some(Read), None)
         checkSuperclass(getSuperclassElement(classElement), newState)
         processClassDeclaration(classElement, state)
     }
 
     private def checkSuperclass(superclass: Option[TypeElement], state: State): Unit = {
-        val (_, Some(defaultOp), _, _, _) = state
         superclass match {
             case Some(elt) =>
                 // if the superclass is declared in the same compilation unit, we can immediately visit the tree
@@ -120,14 +121,17 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                     case tree => processClass(tree, state)
                 }
                 // type check the superclass for the mixed qualifier of the subclass
-                tf.getVisitor.queueClassVisit(elt, mixedAnnotation(Class.forName(defaultOp).asInstanceOf[Class[_ <: Annotation]]))
+                tf.getVisitor.queueClassVisit(elt,
+                    mixedAnnotation(Class.forName(state.defaultOp.get).asInstanceOf[Class[_ <: Annotation]]))
             case None =>
         }
     }
 
     private def checkSubclasses(state: State): Unit = {
         // returns a set of tuples with a class and field qualifier for all subclasses with an explicit entry for that field
-        def getInferredFieldInSubclasses(field: VariableElement, clazz: TypeElement, defaultOpLevel: String): Set[(ClassName, AnnotationName)] = {
+        def getInferredFieldInSubclasses(field: VariableElement,
+                                         clazz: TypeElement,
+                                         defaultOpLevel: String): Set[(ClassName, AnnotationName)] = {
             val className = getQualifiedName(clazz)
             val fieldName = getQualifiedName(field)
             inferenceTable.filter(entry => {
@@ -142,8 +146,8 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
             }).toSet
         }
 
-        val (Some(clazz), Some(defaultOp), _, _, _) = state
-
+        val clazz = state.clazz.get
+        val defaultOp = state.defaultOp.get
         // check subclass fields for inheritance violations, in case we process classes out of order
         getOwnFields(clazz).foreach(field => {
             getInferredFieldInSubclasses(field, clazz, defaultOp).foreach(entry => {
@@ -157,8 +161,8 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     }
 
     private def processPublicFields(state: State): Unit = {
-        val (Some(clazz), Some(defaultOp), _, _, _) = state
-
+        val clazz = state.clazz.get
+        val defaultOp = state.defaultOp.get
         // set public and package fields to the default level
         getOwnFields(clazz).
             filter(field => !isPrivateOrProtected(field)).
@@ -168,23 +172,23 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                         tf.getChecker.reportError(field, "mixed.field.public.incompatible", defaultOp)
                     case _ =>
                 }
-                updateField(field, (Some(clazz), Some(defaultOp), getQualifierForOp(defaultOp), Some(Write), None), field)
+                updateField(field,
+                    State(state.clazz, state.defaultOp, getQualifierForOp(defaultOp), Some(Write), None), field)
             })
     }
 
     private def processUnusedFields(state: State): Unit = {
-        val (Some(clazz), Some(defaultOp), _, _, _) = state
         // set all unused unannotated fields to Local
-        getOwnFields(clazz).
-            filter(field => !inferenceTable.get(clazz.getQualifiedName.toString, defaultOp).get._2.
+        getOwnFields(state.clazz.get).
+            filter(field => !inferenceTable.get(state.clazz.get.getQualifiedName.toString, state.defaultOp.get).get._2.
                 contains(getQualifiedName(field)) && getExplicitConsistencyAnnotation(field).isEmpty).
-            foreach(field => updateField(field, (Some(clazz), Some(defaultOp), Some(localAnnotation), Some(Write), None), field))
+            foreach(field =>
+                updateField(field, State(state.clazz, state.defaultOp, Some(localAnnotation), Some(Write), None), field))
     }
 
     private def processStaticFields(state: State): Unit = {
-        val (Some(clazz), Some(defaultOp), _, _, _) = state
         // set all static fields to Inconsistent and check for forbidden explicit annotations
-        getOwnFields(clazz).
+        getOwnFields(state.clazz.get).
             filter(field => field.getModifiers.contains(Modifier.STATIC)).
             foreach(field => {
                 getExplicitConsistencyAnnotation(field) match {
@@ -192,16 +196,17 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                         tf.getChecker.reportError(field, "mixed.field.static.incompatible")
                     case _ =>
                 }
-                updateField(field, (Some(clazz), Some(defaultOp), Some(inconsistentAnnotation), Some(Write), None), field)
+                updateField(field,
+                    State(state.clazz, state.defaultOp, Some(inconsistentAnnotation), Some(Write), None), field)
             })
     }
 
     private def processExplicitFields(state: State): Unit = {
-        val (Some(clazz), Some(defaultOp), _, _, _) = state
         // set all fields with explicit annotations to the given annotation
-        getOwnFields(clazz).foreach(field => getExplicitConsistencyAnnotation(field) match {
-                case Some(annotation) => inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp)._2.
-                    update(getQualifiedName(field), getQualifiedName(annotation))
+        getOwnFields(state.clazz.get).foreach(field => getExplicitConsistencyAnnotation(field) match {
+                case Some(annotation) =>
+                    inferenceTable.apply(state.clazz.get.getQualifiedName.toString, state.defaultOp.get)._2.
+                        update(getQualifiedName(field), getQualifiedName(annotation))
                 case None =>
         })
     }
@@ -211,35 +216,33 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         if (TreeUtils.isConstructor(node) || node.getModifiers.getFlags.contains(Modifier.STATIC))
             return null
 
-        val (_, Some(defaultOp), _, _, _) = state
-
         val methodElt = TreeUtils.elementFromDeclaration(node)
-        val methodLevel = getQualifierForOp(getMixedOpForMethod(methodElt, defaultOp))
+        val methodLevel = getQualifierForOp(getMixedOpForMethod(methodElt, state.defaultOp.get))
 
-        super.visitMethod(node, state.copy(_3 = methodLevel, _5 = Some(methodElt)))
+        super.visitMethod(node, state.copy(methodLevel = methodLevel, method = Some(methodElt)))
     }
 
     override def visitAssignment(node: AssignmentTree, state: State): Void = {
-        val r = scan(node.getVariable, state.copy(_4 = Some(Write)))
-        reduce(scan(node.getExpression, state.copy(_4 = Some(Read))), r)
+        val r = scan(node.getVariable, state.copy(accessMode = Some(Write)))
+        reduce(scan(node.getExpression, state.copy(accessMode = Some(Read))), r)
     }
 
     override def visitUnary(node: UnaryTree, state: State): Void = {
-        super.visitUnary(node, state.copy(_4 = Some(Write)))
+        super.visitUnary(node, state.copy(accessMode = Some(Write)))
     }
 
     override def visitCompoundAssignment(node: CompoundAssignmentTree, state: State): Void = {
-        val r = scan(node.getVariable, state.copy(_4 = Some(Write)))
-        reduce(scan(node.getExpression, state.copy(_4 = Some(Read))), r)
+        val r = scan(node.getVariable, state.copy(accessMode = Some(Write)))
+        reduce(scan(node.getExpression, state.copy(accessMode = Some(Read))), r)
     }
 
     override def visitMethodInvocation(node: MethodInvocationTree, state: State): Void = {
         val method = TreeUtils.elementFromUse(node)
         if (isSideEffectFree(method))
-            super.visitMethodInvocation(node, state.copy(_4 = Some(Read)))
+            super.visitMethodInvocation(node, state.copy(accessMode = Some(Read)))
         else {
-            var r = scan(node.getTypeArguments, state.copy(_4 = Some(Write)))
-            r = reduce(scan(node.getMethodSelect, state.copy(_4 = Some(Write))), r)
+            var r = scan(node.getTypeArguments, state.copy(accessMode = Some(Write)))
+            r = reduce(scan(node.getMethodSelect, state.copy(accessMode = Some(Write))), r)
             node.getArguments.zipWithIndex.foldLeft(r)((r, elem) => {
                 val (arg, index) = elem
                 val method = TreeUtils.elementFromUse(node)
@@ -251,9 +254,9 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                 if (TypesUtils.isPrimitiveOrBoxed(TreeUtils.typeOf(arg)) ||
                     tf.getAnnotatedType(param).hasAnnotation(classOf[Immutable])
                 )
-                    reduce(scan(arg, state.copy(_4 = Some(Read))), r)
+                    reduce(scan(arg, state.copy(accessMode = Some(Read))), r)
                 else
-                    reduce(scan(arg, state.copy(_4 = Some(Write))), r)
+                    reduce(scan(arg, state.copy(accessMode = Some(Write))), r)
             })
         }
 
@@ -271,18 +274,17 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     }
 
     private def processField(node: ExpressionTree, state: State): Unit = {
-        val (Some(clazz), _, maybeMethodLevel, Some(accessMode), maybeMethod) = state
         // ignore fields outside methods (i.e. field declarations)
-        if (maybeMethodLevel.isEmpty)
+        if (state.methodLevel.isEmpty)
             return
-        val methodLevel = maybeMethodLevel.get
+        val methodLevel = state.methodLevel.get
 
         TreeUtils.elementFromUse(node) match {
             case field: VariableElement if field.getKind == ElementKind.FIELD
-                && ElementUtils.getAllFieldsIn(clazz, tf.getElementUtils).contains(field) => // ignore element if it is a field of a field
+                && ElementUtils.getAllFieldsIn(state.clazz.get, tf.getElementUtils).contains(field) => // ignore element if it is a field of a field
 
                 // update inference table
-                (getExplicitOrPublicQualifier(field, state), accessMode) match {
+                (getExplicitOrPublicQualifier(field, state), state.accessMode.get) match {
                     // check compatibility between explicit type and operation level
                     case (Some(explicitAnnotation), Write) if !tf.getQualifierHierarchy.isSubtype(methodLevel, explicitAnnotation) =>
                         tf.getChecker.reportError(node, "mixed.field.incompatible",
@@ -296,14 +298,14 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
                 }
 
                 // update read access table
-                accessMode match {
+                state.accessMode.get match {
                     case Read => readAccessTable.update(node, methodLevel)
                     case _ =>
                 }
 
                 // update write access table
-                maybeMethod match {
-                    case Some(method) => (accessMode, methodWriteTable.get(method)) match {
+                state.method match {
+                    case Some(method) => (state.accessMode.get, methodWriteTable.get(method)) match {
                         case (Write, Some(value)) => methodWriteTable.update(method, value + field)
                         case (Write, None) => methodWriteTable.update(method, Set(field))
                         case (Read, None) => methodWriteTable.update(method, Set.empty)
@@ -320,31 +322,35 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         if (field.getKind != ElementKind.FIELD)
             return
 
-        val (Some(clazz), Some(defaultOp), Some(annotation), Some(accessMode), _) = state
+        val clazz = state.clazz.get
+        val defaultOp = state.defaultOp.get
+        val accessMode = state.accessMode.get
+        val methodLevel = state.methodLevel.get
         val className = getQualifiedName(clazz)
         val fieldName = getQualifiedName(field)
 
         (getInferredFieldOrFromSuperclass(field, clazz, defaultOp), accessMode) match {
             case (Some((fieldLevel, superclass, _)), Write) if superclass == className =>
                 // field is not inherited, so update inference result
-                val lup = tf.getQualifierHierarchy.leastUpperBound(fieldLevel, annotation)
-                inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp)._2.update(getQualifiedName(field), getQualifiedName(lup))
+                val lup = tf.getQualifierHierarchy.leastUpperBound(fieldLevel, methodLevel)
+                inferenceTable.apply(clazz.getQualifiedName.toString, defaultOp)._2.
+                    update(getQualifiedName(field), getQualifiedName(lup))
 
             case (Some((fieldLevel, superclass, Full)), Write) if superclass != className =>
                 // field is inherited, so only check compatibility, i.e. if field would be weakened
-                if (!tf.getQualifierHierarchy.isSubtype(annotation, fieldLevel))
+                if (!tf.getQualifierHierarchy.isSubtype(methodLevel, fieldLevel))
                     tf.getChecker.reportError(source, "mixed.inheritance.field.overwrite",
-                        fieldLevel, field.getSimpleName, annotation, className)
+                        fieldLevel, field.getSimpleName, methodLevel, className)
 
             case (Some((fieldLevel, superclass, Partial)), Write) if !isInProjectPackage(superclass) =>
                 // field is inherited, but from a third-party class
-                if (!tf.getQualifierHierarchy.isSubtype(annotation, fieldLevel))
+                if (!tf.getQualifierHierarchy.isSubtype(methodLevel, fieldLevel))
                     tf.getChecker.reportWarning(source, "mixed.inheritance.field.overwrite",
-                        fieldLevel, field.getSimpleName, annotation, className)
+                        fieldLevel, field.getSimpleName, methodLevel, className)
 
             case (None, Write) =>
                 // field is encountered for the first time
-                inferenceTable.apply(className, defaultOp)._2.update(fieldName, getQualifiedName(annotation))
+                inferenceTable.apply(className, defaultOp)._2.update(fieldName, getQualifiedName(methodLevel))
 
             case (None, Read) =>
                 // field is encountered for the first time
@@ -355,13 +361,12 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     }
 
     private def processClassDeclaration(clazz: TypeElement, state: State): Unit = {
-        val (_, Some(defaultOp), _, _, _) = state
-        getQualifierNameForOp(defaultOp) match {
+        getQualifierNameForOp(state.defaultOp.get) match {
             case Some(qualifier) =>
                 // set inherited fields to default level
                 val level = AnnotationBuilder.fromName(tf.getElementUtils, qualifier)
                 getOwnFields(clazz).foreach(f => {
-                    updateField(f, (Some(clazz), Some(defaultOp), Some(level), Some(Write), None), f)
+                    updateField(f, State(Some(clazz), state.defaultOp, Some(level), Some(Write), None), f)
                 })
             case None =>
                 sys.error("ConSysT type checker bug: invalid default operation on Mixed qualifier")
@@ -414,11 +419,10 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
 
     // returns the explicit or public qualifier for a field if it exists
     private def getExplicitOrPublicQualifier(field: VariableElement, state: State): Option[AnnotationMirror] = {
-        val (_, Some(defaultOp), _, _, _) = state
         field.getEnclosingElement match {
             case clazz: TypeElement =>
                 if (!isPrivateOrProtected(field)) {
-                    getInferredFieldOrFromSuperclass(field, clazz, defaultOp) match {
+                    getInferredFieldOrFromSuperclass(field, clazz, state.defaultOp.get) match {
                         case Some((qualifier, _, _)) => Some(qualifier)
                         case None => None
                     }
