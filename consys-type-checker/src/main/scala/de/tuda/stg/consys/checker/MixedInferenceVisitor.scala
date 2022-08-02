@@ -2,12 +2,12 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.qual.{Inconsistent, Local}
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils}
+import de.tuda.stg.consys.checker.qual.{Immutable, Inconsistent, Local}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import de.tuda.stg.consys.checker.MixedInferenceVisitor._
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.DeclaredType
+import javax.lang.model.`type`.{DeclaredType, TypeKind}
 import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
@@ -237,8 +237,27 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         val method = TreeUtils.elementFromUse(node)
         if (isSideEffectFree(method))
             super.visitMethodInvocation(node, state.copy(_4 = Some(Read)))
-        else
-            super.visitMethodInvocation(node, state.copy(_4 = Some(Write)))
+        else {
+            var r = scan(node.getTypeArguments, state.copy(_4 = Some(Write)))
+            r = reduce(scan(node.getMethodSelect, state.copy(_4 = Some(Write))), r)
+            node.getArguments.zipWithIndex.foldLeft(r)((r, elem) => {
+                val (arg, index) = elem
+                val method = TreeUtils.elementFromUse(node)
+                val param =
+                    if (method.isVarArgs && index >= method.getParameters.size)
+                        method.getParameters.get(method.getParameters.size - 1)
+                    else method.getParameters.get(index)
+
+                if (TypesUtils.isPrimitiveOrBoxed(TreeUtils.typeOf(arg)) ||
+                    tf.getAnnotatedType(param).hasAnnotation(classOf[Immutable])
+                )
+                    reduce(scan(arg, state.copy(_4 = Some(Read))), r)
+                else
+                    reduce(scan(arg, state.copy(_4 = Some(Write))), r)
+            })
+        }
+
+        // TODO: what about methods on same object, should we lift these writes to the original caller?
     }
 
     override def visitMemberSelect(node: MemberSelectTree, state: State): Void = {
