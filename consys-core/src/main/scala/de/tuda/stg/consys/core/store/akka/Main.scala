@@ -5,12 +5,14 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.ddata.LWWRegister
 import akka.cluster.ddata.typed.scaladsl.DistributedData
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import de.tuda.stg.consys.core.store.akka.backend.BackendReplica.Loop
 import de.tuda.stg.consys.core.store.akka.levels.Weak
+import org.checkerframework.dataflow.qual.SideEffectFree
 
 object Main {
 
   case class Box(var f : Any) extends java.io.Serializable {
-    def get : Any = f
+    @SideEffectFree def get : Any = f
   }
 
 
@@ -22,15 +24,23 @@ object Main {
     store1.replica.addOtherReplica(store2.getAddress)
     store2.replica.addOtherReplica(store1.getAddress)
 
+//    store1.replica.actor ! Loop
+
+
+
+
     store1.transaction(ctx => {
       val box1 = ctx.replicate[Box]("box1", Weak, 42)
       println("Done 1")
       Some(())
     })
 
+    println("hello")
+    Thread.sleep(2000)
+
     val result = store2.transaction(ctx => {
       val box1 = ctx.lookup[Box]("box1", Weak)
-      val value = box1.resolve(ctx).invoke("get", Seq())
+      val value = box1.resolve(ctx).invoke[Int]("get", Seq())
       println("Done 2")
       Some(value)
     })

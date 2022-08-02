@@ -5,8 +5,7 @@ import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
 
 import scala.reflect.ClassTag
 
-class AkkaObject[T <: ObjType : ClassTag](
+case class AkkaObject[T <: ObjType : ClassTag](
     override val addr : Addr, override val state : T, val level : Level
-) extends ReflectiveObject[Addr, T] {
+) extends ReflectiveObject[Addr, T] with Serializable
 
-}

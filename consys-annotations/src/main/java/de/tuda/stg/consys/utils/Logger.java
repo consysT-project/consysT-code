@@ -45,7 +45,7 @@ public class Logger {
 		// Indicates whether the last output to this writer was a new line
 		private AtomicBoolean first = new AtomicBoolean(true);
 
-		private final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+		private final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
 		private TaggedWriter(Writer stream, String tag) {
 			this.stream = stream;

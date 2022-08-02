@@ -21,7 +21,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			addr : AkkaStore#Addr,
 			obj : T
 		) : AkkaStore#RefType[T] = {
-			txContext.Cache.addEntry(addr, new AkkaObject(addr, obj, Weak))
+			txContext.Cache.addEntry(addr, AkkaObject[T](addr, obj, Weak))
 			AkkaRef[T](addr, Weak)
 		}
 
@@ -100,7 +100,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 
 		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaObject[T] = {
 			val entry = store.replica.read[T](addr, Weak)
-			entry
+			entry.getOrElse(throw new IllegalStateException(s"can not read object $addr"))
 		}
 	}
 }
