@@ -208,6 +208,7 @@ public @Mixed class Item implements Serializable, IItem {
         return Optional.of(bids.get(0));
     }
 
+    @SideEffectFree
     public boolean isReserveMet() {
         return getTopBidPrice() >= reservePrice;
     }

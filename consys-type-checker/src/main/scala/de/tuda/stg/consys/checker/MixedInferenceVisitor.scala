@@ -237,6 +237,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     }
 
     override def visitMethodInvocation(node: MethodInvocationTree, state: State): Void = {
+        // TODO: for ref calls, this should only regard the call after ref()
         val method = TreeUtils.elementFromUse(node)
         if (isSideEffectFree(method))
             super.visitMethodInvocation(node, state.copy(accessMode = Some(Read)))

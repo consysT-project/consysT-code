@@ -5,6 +5,7 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
@@ -35,12 +36,12 @@ public @Mixed class AuctionStore implements Serializable {
         openAuctionsByCategory.get(category).remove(id);
     }
 
-    @WeakOp
+    @WeakOp @SideEffectFree
     public List<Ref<? extends IItem>> browseItems(Category category) {
         return new ArrayList<>(openAuctionsByCategory.get(category).values());
     }
 
-    @WeakOp
+    @WeakOp @SideEffectFree
     public List<Ref<? extends IItem>> getOpenAuctions() {
         return new ArrayList<>(openAuctions.values());
     }

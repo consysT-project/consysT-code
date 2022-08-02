@@ -25,7 +25,7 @@ public @Weak class Item implements Serializable, IItem {
     private final @Immutable Category category;
     private final Ref<@Mutable User> seller;
     private Ref<@Mutable User> buyer;
-    private final Ref<@Strong @Mutable LinkedList<Bid>> bids;
+    private final Ref<@Strong @Mutable RefList<Bid>> bids;
     // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
     private Status status = (@MutableBottom @Local Status) Status.OPEN;
     private final Ref<@Mutable AuctionStore> auctionsStore;
@@ -34,7 +34,7 @@ public @Weak class Item implements Serializable, IItem {
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
                 @Local Date startDate, Ref<@Strong @Mutable Date> endDate, @Local @Mutable Category category,
                 Ref<@Mutable User> seller, Ref<@Mutable AuctionStore> auctionsStore,
-                Ref<@Strong @Mutable LinkedList<Bid>> bids) {
+                Ref<@Strong @Mutable RefList<Bid>> bids) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -198,7 +198,7 @@ public @Weak class Item implements Serializable, IItem {
         return Optional.of(bids.ref().get(0));
     }
 
-    @Transactional
+    @Transactional @SideEffectFree
     public boolean isReserveMet() {
         return getTopBidPrice() >= reservePrice;
     }

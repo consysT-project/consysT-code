@@ -24,20 +24,20 @@ public @Weak class User implements Serializable, IUser {
     private final List<Comment> comments = new LinkedList<>();
     private Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance;
     private final Date creationDate = new Date();
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerAuctions;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerHistory;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerAuctions;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerHistory;
-    private final Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
+    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerAuctions;
+    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerHistory;
+    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerAuctions;
+    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerHistory;
+    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
 
     public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
                 @Weak @Mutable String email,
-                Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerAuctions,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> buyerHistory,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerAuctions,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerHistory,
-                Ref<@Strong @Mutable HashMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
+                Ref<@Mutable NumberBox<@Mutable @Strong Float>> balance,
+                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerAuctions,
+                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerHistory,
+                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerAuctions,
+                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerHistory,
+                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
         this.id = id;
         this.nickname = nickname;
         this.name = name;
@@ -195,7 +195,7 @@ public @Weak class User implements Serializable, IUser {
                 " | since: " + creationDate;
     }
 
-    @Transactional
+    @Transactional @SideEffectFree
     public @Strong boolean hasEnoughCredits(@Strong float price) {
         @Strong float potentialBalance = balance.ref().floatValue();
 

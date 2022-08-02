@@ -6,6 +6,8 @@ import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.demo.rubis.schema.datacentric.Item;
 import de.tuda.stg.consys.demo.rubis.schema.datacentric.NumberBox;
+import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefList;
+import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefMap;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
@@ -53,16 +55,16 @@ public class Session {
             if (dataCentric) {
                 Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance =
                         ctx.replicate("user:" + nickname + ":bal", STRONG, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerAuctions =
-                        ctx.replicate("user:" + nickname + ":ba", STRONG, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerHistory =
-                        ctx.replicate("user:" + nickname + ":bh", STRONG, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerAuctions =
-                        ctx.replicate("user:" + nickname + ":sa", STRONG, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerHistory =
-                        ctx.replicate("user:" + nickname + ":sh", STRONG, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
-                Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerFailedHistory =
-                        ctx.replicate("user:" + nickname + ":sfh", STRONG, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerAuctions =
+                        ctx.replicate("user:" + nickname + ":ba", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerHistory =
+                        ctx.replicate("user:" + nickname + ":bh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerAuctions =
+                        ctx.replicate("user:" + nickname + ":sa", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerHistory =
+                        ctx.replicate("user:" + nickname + ":sh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerFailedHistory =
+                        ctx.replicate("user:" + nickname + ":sfh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
 
                 user = ctx.replicate("user:" + nickname, userConsistencyLevel, userImpl,
                         userId, nickname, name, password, email,
@@ -133,8 +135,8 @@ public class Session {
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> endDateRef =
                         ctx.replicate("item:" + itemId + ":ed", STRONG, Date.class, endDate.getTime());
-                Ref<@Strong @Mutable LinkedList<Bid>> bids =
-                        ctx.replicate("item:" + itemId + ":bids", STRONG, (Class<LinkedList<Bid>>)(Class)LinkedList.class);
+                Ref<@Strong @Mutable RefList<Bid>> bids =
+                        ctx.replicate("item:" + itemId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class);
 
                 return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,

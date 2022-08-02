@@ -375,56 +375,54 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         check("users non empty", !users.isEmpty());
 
-        // TODO: should be able to run whole test in on transaction, since no data is written.
-        //       Compiler seems to output correct WriteLists, need to look into middleware
+        store().transaction(ctx -> {
         for (var user : users) {
-            store().transaction(ctx -> {
-                float userBalance = user.ref().getBalance();
-                check("balance >= 0", userBalance >= 0);
 
-                float balance = getInitialBalance();
-                for (var boughtItem : user.ref().getBuyerHistory()) {
-                    if (boughtItem.ref().getSoldViaBuyNow()) {
-                        balance -= boughtItem.ref().getBuyNowPrice();
-                    } else {
-                        var winningBidOption = boughtItem.ref().getTopBid();
-                        check("buyer bid non null", winningBidOption.isPresent());
-                        if (winningBidOption.isEmpty()) continue;
+            float userBalance = user.ref().getBalance();
+            check("balance >= 0", userBalance >= 0);
 
-                        var winningBid = winningBidOption.get();
-                        checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
+            float balance = getInitialBalance();
+            for (var boughtItem : user.ref().getBuyerHistory()) {
+                if (boughtItem.ref().getSoldViaBuyNow()) {
+                    balance -= boughtItem.ref().getBuyNowPrice();
+                } else {
+                    var winningBidOption = boughtItem.ref().getTopBid();
+                    check("buyer bid non null", winningBidOption.isPresent());
+                    if (winningBidOption.isEmpty()) continue;
 
-                        var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
-                        allBids.remove(winningBid);
-                        for (var bid : allBids) {
-                            if (bid.getBid() >= winningBid.getBid())
-                                check("winner bid is highest bid", false);
-                        }
+                    var winningBid = winningBidOption.get();
+                    checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
 
-                        balance -= winningBid.getBid();
+                    var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
+                    allBids.remove(winningBid);
+                    for (var bid : allBids) {
+                        if (bid.getBid() >= winningBid.getBid())
+                            check("winner bid is highest bid", false);
                     }
+
+                    balance -= winningBid.getBid();
                 }
+            }
 
-                for (var soldItem : user.ref().getSellerHistory(true)) {
-                    checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
+            for (var soldItem : user.ref().getSellerHistory(true)) {
+                checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
 
-                    if (soldItem.ref().getSoldViaBuyNow()) {
-                        balance += soldItem.ref().getBuyNowPrice();
-                    } else {
-                        var winningBidOption = soldItem.ref().getTopBid();
-                        check("seller bid non null", winningBidOption.isPresent());
-                        if (winningBidOption.isEmpty()) continue;
+                if (soldItem.ref().getSoldViaBuyNow()) {
+                    balance += soldItem.ref().getBuyNowPrice();
+                } else {
+                    var winningBidOption = soldItem.ref().getTopBid();
+                    check("seller bid non null", winningBidOption.isPresent());
+                    if (winningBidOption.isEmpty()) continue;
 
-                        balance += winningBidOption.get().getBid();
-                    }
+                    balance += winningBidOption.get().getBid();
                 }
+            }
 
-                checkFloatEquals("balance correct", balance, userBalance);
+            checkFloatEquals("balance correct", balance, userBalance);
 
-                return Option.empty();
-            });
-        }
-
+            }
+                    return Option.empty();
+    });
         System.out.println("## TEST SUCCESS ##");
     }
 
