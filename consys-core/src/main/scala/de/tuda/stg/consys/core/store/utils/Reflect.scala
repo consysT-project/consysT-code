@@ -155,7 +155,7 @@ object Reflect {
 			else methodWritesAnnotation.value().map(name => Reflect.getField(clazz.runtimeClass, name))
 		}
 
-		(method.getAnnotation(classOf[SideEffectFree]) != null, writes)
+		(method.getAnnotation(classOf[SideEffectFree]) == null, writes)
 	}
 
 	def getMixedFieldLevels[T <: CassandraStore#ObjType : ClassTag]: Map[Field, CassandraStore#Level] = {
