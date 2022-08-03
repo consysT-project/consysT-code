@@ -33,7 +33,6 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 		}
 
 		def readEntry[T <: StoreType#ObjType](addr : StoreType#Addr,  elseFetch : => CachedType[T]) : CachedType[T] = {
-				println("test")
 		  	buffer.getOrElseUpdate(addr, CacheElement[T](elseFetch, false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
 		}
 
@@ -42,9 +41,6 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 
 		def getChangedFields(addr : StoreType#Addr) : Option[Iterable[Field]] =
 			buffer.get(addr).map(_.changedFields)
-
-//		def getDataAndFields[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[(CachedType[T], Iterable[Field])] =
-//			buffer.get(addr).map(f => (f.data.asInstanceOf[CachedType[T]], f.changedFields))
 
 		def setObjectChanged(addr : StoreType#Addr) : Unit = {
 			val prev = buffer.getOrElse(addr, throw new IllegalStateException())

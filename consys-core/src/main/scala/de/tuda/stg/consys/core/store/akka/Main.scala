@@ -5,14 +5,30 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.ddata.LWWRegister
 import akka.cluster.ddata.typed.scaladsl.DistributedData
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import de.tuda.stg.consys.Mergeable
 import de.tuda.stg.consys.core.store.akka.backend.BackendReplica.Loop
 import de.tuda.stg.consys.core.store.akka.levels.Weak
 import org.checkerframework.dataflow.qual.SideEffectFree
+
+import scala.collection.mutable
 
 object Main {
 
   case class Box(var f : Any) extends java.io.Serializable {
     @SideEffectFree def get : Any = f
+  }
+
+  class MergeableSet(elems : Iterable[Int]) extends Mergeable[MergeableSet] with java.io.Serializable {
+
+    val underlying : mutable.Set[Int] = mutable.HashSet.empty
+    underlying.addAll(elems)
+
+    override def merge(other : MergeableSet) : Void = {
+      underlying.addAll(other.underlying)
+      null
+    }
+
+    override def toString : String = s"Mergeable<$underlying>"
   }
 
 
@@ -24,31 +40,29 @@ object Main {
     store1.replica.addOtherReplica(store2.getAddress)
     store2.replica.addOtherReplica(store1.getAddress)
 
-//    store1.replica.actor ! Loop
-
-
 
 
     store1.transaction(ctx => {
-      val box1 = ctx.replicate[Box]("box1", Weak, 42)
+      val set1 = ctx.replicate[MergeableSet]("set1", Weak, List(23,42))
       println("Done 1")
       Some(())
     })
 
-    println("hello")
-    Thread.sleep(2000)
+    Thread.sleep(1000)
 
-    val result = store2.transaction(ctx => {
-      val box1 = ctx.lookup[Box]("box1", Weak)
-      val value = box1.resolve(ctx).invoke[Int]("get", Seq())
+    store2.transaction(ctx => {
+      val set1 = ctx.replicate[MergeableSet]("set1", Weak, List(24,43))
       println("Done 2")
-      Some(value)
+      Some(())
     })
 
-    println(result)
+    Thread.sleep(1000)
 
-
-
-
+    store1.transaction(ctx => {
+      val set1 = ctx.lookup[MergeableSet]("set1", Weak)
+      val result = set1.resolve(ctx).invoke[String]("toString", Seq())
+      println(result)
+      Some(())
+    })
   }
 }

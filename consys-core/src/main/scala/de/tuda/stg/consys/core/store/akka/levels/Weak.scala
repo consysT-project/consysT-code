@@ -1,14 +1,13 @@
 package de.tuda.stg.consys.core.store.akka.levels
 
 import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
-import de.tuda.stg.consys.core.store.akka.{AkkaRef, AkkaStore}
+import de.tuda.stg.consys.core.store.akka.{AkkaRef, AkkaStore, CachedObject}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 
 import scala.reflect.ClassTag
 
 
-/** Consistency level for weak, eventual consistency with last-writer-wins conflict resolution. */
 case object Weak extends ConsistencyLevel[AkkaStore] {
 	override def toProtocol(store : AkkaStore) : ConsistencyProtocol[AkkaStore, Weak.type] =
 		new WeakProtocol(store)
@@ -21,7 +20,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			addr : AkkaStore#Addr,
 			obj : T
 		) : AkkaStore#RefType[T] = {
-			txContext.Cache.addEntry(addr, AkkaObject[T](addr, obj, Weak))
+			txContext.Cache.addEntry(addr, CachedObject[T](addr, obj, Weak))
 			AkkaRef[T](addr, Weak)
 		}
 
@@ -79,28 +78,17 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			txContext : AkkaStore#TxContext,
 			ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]
 		) : Unit = {
-//		  txContext.Cache.getData(ref.addr) match {
-//			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
-//			// TODO: Reimplement
-//			//			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
-//			//				// Add a new statement to the batch of write statements
-//			//				if (!txContext.Cache.hasChanges(ref.addr)) return
-//			//
-//			//				val builder = txContext.getCommitStatementBuilder
-//			//				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
-//			case cached =>
-//			  throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
-//		  }
+			throw new NotImplementedError("do nothing")
 		}
 
 		override def postCommit(txContext : AkkaStore#TxContext, ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]) : Unit = {
-			//Do nothing
+			throw new NotImplementedError("do nothing")
 		}
 
 
-		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaObject[T] = {
-			val entry = store.replica.read[T](addr, Weak)
-			entry.getOrElse(throw new IllegalStateException(s"can not read object $addr"))
+		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : CachedObject[T] = {
+			val state = store.replica.read[T](addr, Weak)
+			CachedObject(addr, state, Weak)
 		}
 	}
 }

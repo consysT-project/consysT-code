@@ -10,9 +10,7 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 	def addr : Addr
 	def state : T
 
-	lazy val getClassTag : ClassTag[T] = implicitly[ClassTag[T]]
-
-	lazy val getFields : Iterable[Field] = Reflect.getFields(getClassTag.runtimeClass)
+	@inline def getClassTag : ClassTag[T] = implicitly[ClassTag[T]]
 
 	def invoke[R](methodId : String, args : Seq[Seq[Any]]) : R = {
 		ReflectiveAccess.doInvoke[R](methodId, args)
@@ -30,7 +28,7 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 	/**
 	 * This private object encapsulates the reflective access to the stored state.
 	 */
-	private final case object ReflectiveAccess {
+	private case object ReflectiveAccess {
 		def doInvoke[R](methodName : String, args : Seq[Seq[Any]]) : R = ReflectiveAccess.synchronized {
 			//Arguments from multiple parameter lists are flattened in classes
 			val flattenedArgs = args.flatten
@@ -46,13 +44,13 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 		}
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
-			val clazz = implicitly[ClassTag[T]]
-			clazz.runtimeClass.getField(fieldName).get(state).asInstanceOf[R]
+			val clazz = state.getClass
+			clazz.getField(fieldName).get(state).asInstanceOf[R]
 		}
 
 		def doSetField(fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
-			val clazz = implicitly[ClassTag[T]]
-			clazz.runtimeClass.getField(fieldName).set(state, value.asInstanceOf[AnyRef])
+			val clazz = state.getClass
+			clazz.getField(fieldName).set(state, value.asInstanceOf[AnyRef])
 		}
 	}
 
