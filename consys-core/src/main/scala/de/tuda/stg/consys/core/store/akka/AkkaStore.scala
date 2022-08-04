@@ -3,16 +3,18 @@ package de.tuda.stg.consys.core.store.akka
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.ConsistencyLevel
-import de.tuda.stg.consys.core.store.akka.backend.BackendReplica
+import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
 import de.tuda.stg.consys.core.store.extensions.store.DistributedStore
 import de.tuda.stg.consys.utils.Logger
+import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.curator.retry.ExponentialBackoffRetry
 
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
-class AkkaStore(val system : ActorSystem) extends DistributedStore {
+trait AkkaStore extends DistributedStore {
 
 
   /** Type for ids to identify different replicas of the store. */
@@ -37,11 +39,12 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
 
   /** Returns an identifier of this replica of the store. It has to be
    * unique for each replica. */
-  override def id: Id = system.name
+  override def id: Id = actorSystem.name
 
-  override val timeout: FiniteDuration = FiniteDuration.apply(30, TimeUnit.SECONDS)
+  def actorSystem : ActorSystem
+  def curator : CuratorFramework
 
-  private[akka] val replica : BackendReplica = new BackendReplica(system, timeout)
+  private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, curator, timeout)
 
 
   /**
@@ -60,16 +63,15 @@ class AkkaStore(val system : ActorSystem) extends DistributedStore {
       context.commit()
       result
     } catch {
-      case e =>
+      case e : Exception =>
         Logger.err("transaction failed executing")
         e.printStackTrace(Logger.err)
         None
     }
-
   }
 
   def getAddress : AkkaAddress =
-    AkkaUtils.getActorSystemAddress(system)
+    AkkaUtils.getActorSystemAddress(actorSystem)
 }
 
 object AkkaStore {
@@ -78,17 +80,29 @@ object AkkaStore {
   final val DEFAULT_ACTOR_NAME = "consys-replica"
 
 
-  def fromAddress(hostname : String, port : Int) : AkkaStore = {
+  def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS)) : AkkaStore = {
+
+    class AkkaStoreImpl(
+      override val actorSystem : ActorSystem,
+      override val curator : CuratorFramework,
+      override val timeout : FiniteDuration
+    ) extends AkkaStore
+
+
     val config = ConfigFactory.load()
-      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(hostname))
-      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(port))
+      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef(host))
+      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(akkaPort))
       .resolve()
 
     //Creates the actor system
     val system = akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, config)
-    Logger.info(s"created actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
+    Logger.info(s"started actor system at ${system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress}")
 
-    new AkkaStore(system)
+    val curator = CuratorFrameworkFactory
+      .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
+
+    new AkkaStoreImpl(system, curator, timeout)
+
   }
 
 }

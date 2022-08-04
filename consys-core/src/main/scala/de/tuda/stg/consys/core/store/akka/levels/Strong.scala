@@ -7,18 +7,19 @@ import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 import scala.reflect.ClassTag
 
 
-case object Weak extends ConsistencyLevel[AkkaStore] {
-	override def toProtocol(store : AkkaStore) : ConsistencyProtocol[AkkaStore, Weak.type] =
-		new WeakProtocol(store)
+case object Strong extends ConsistencyLevel[AkkaStore] {
+	override def toProtocol(store : AkkaStore) : ConsistencyProtocol[AkkaStore, Strong.type] =
+		new StrongProtocol(store)
 
-	private class WeakProtocol(val store : AkkaStore) extends ConsistencyProtocol[AkkaStore, Weak.type] {
-		override def toLevel : Weak.type = Weak
+	private class StrongProtocol(val store : AkkaStore) extends ConsistencyProtocol[AkkaStore, Strong.type] {
+		override def toLevel : Strong.type = Strong
 
 		override def replicate[T <: AkkaStore#ObjType : ClassTag](
 			txContext : AkkaStore#TxContext,
 			addr : AkkaStore#Addr,
 			obj : T
 		) : AkkaStore#RefType[T] = {
+			txContext.acquireLock(addr)
 			txContext.Cache.addEntry(addr, AkkaCachedObject[T](addr, obj, Weak))
 			AkkaRef[T](addr, Weak)
 		}
@@ -27,6 +28,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			txContext : AkkaStore#TxContext,
 			addr : AkkaStore#Addr
 		) : AkkaStore#RefType[T] = {
+			txContext.acquireLock(addr)
 			AkkaRef[T](addr, Weak)
 		}
 
@@ -37,6 +39,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			args : Seq[Seq[Any]]
 		) : R = {
 			val addr = receiver.addr
+			txContext.acquireLock(addr)
 			val entry  = txContext.Cache.readEntry[T](addr, weakRead[T](addr))
 			val result = entry.invoke[R](methodId, args)
 
@@ -55,6 +58,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			fieldName : String
 		) : R = {
 			val addr = receiver.addr
+			txContext.acquireLock(addr)
 			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
 			val result = entry.getField[R](fieldName)
 			result
@@ -67,6 +71,7 @@ case object Weak extends ConsistencyLevel[AkkaStore] {
 			value : R
 		) : Unit = {
 			val addr = receiver.addr
+			txContext.acquireLock(addr)
 			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
 			entry.setField[R](fieldName, value)
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))

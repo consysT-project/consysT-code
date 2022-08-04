@@ -86,7 +86,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 				if (!txContext.Cache.hasChanges(ref.addr)) return
 
 				val builder = txContext.getCommitStatementBuilder
-				store.CassandraBinding.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
+				store.cassandra.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
@@ -97,7 +97,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 
 
 		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : WeakCassandraObject[T] = {
-			val entry = store.CassandraBinding.readObjectEntry[T](addr, CassandraLevel.ONE)
+			val entry = store.cassandra.readObjectEntry[T](addr, CassandraLevel.ONE)
 			val cassObj = new WeakCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
 			cassObj
 		}

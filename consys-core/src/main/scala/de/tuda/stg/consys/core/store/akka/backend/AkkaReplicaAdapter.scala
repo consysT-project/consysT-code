@@ -3,27 +3,35 @@ package de.tuda.stg.consys.core.store.akka.backend
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Props, RootActorPath}
 import akka.pattern.ask
 import akka.util.Timeout
-import de.tuda.stg.consys.Mergeable
-import de.tuda.stg.consys.core.demo.CassandraStoreDemo.level
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.AkkaStore
-import de.tuda.stg.consys.core.store.akka.backend.BackendReplica._
+import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter._
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.{AkkaAddress, getActorSystemAddress}
+import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, ZookeeperLocking}
+
 import de.tuda.stg.consys.utils.Logger
+import org.apache.curator.framework.CuratorFramework
+import org.apache.curator.framework.recipes.locks.InterProcessMutex
 
 import java.util.concurrent.TimeUnit
 import scala.collection.mutable
-import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
-class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
+private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
-
+	Logger.info(s"initialize actor")
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor]), AkkaStore.DEFAULT_ACTOR_NAME)
-	Logger.info("created backend replica actor " + replicaActor.path.toString)
 
+	Logger.info(s"initialize locking")
+	val locking = new ZookeeperLocking[Addr](curator)
+
+
+	def createLockFor(addr : Addr) : DistributedLock = {
+		locking.createLockFor(addr, timeout)
+	}
 
 	private def addOtherReplica(otherActor : ActorRef) : Unit = {
 		this.replicaActor ! AddReplica(otherActor)
@@ -57,7 +65,7 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 
 				case Some(Failure(exc)) =>
 					if (System.nanoTime() > start + timeout.toNanos)
-						throw new TimeoutException(s"actor path $path was not resolved in the given time ($timeout).")
+						throw new TimeoutException(s"actor path $path was not resolved in the given time ($timeout). Cause: ${exc.toString} ")
 			}
 		}
 	}
@@ -115,7 +123,7 @@ class BackendReplica(val system : ActorSystem, val timeout : FiniteDuration) {
 
 }
 
-object BackendReplica {
+object AkkaReplicaAdapter {
 
 
 	type Addr = String
@@ -132,13 +140,11 @@ object BackendReplica {
 	case class ExecuteBatch(timestamp : Long, ops : Seq[TransactionOp]) extends Op
 	case class ReadObject(addr : Addr, level : Level) extends Op
 	case class AddReplica(actor : ActorRef) extends Op
-	case class SynchronizeChanges(changes : List[(Addr, ObjType, Level, Long)]) extends Op
+	case class PushChanges(changes : Iterable[(Addr, ObjType, Level, Long)]) extends Op
 	case object Loop extends Op
 
 
 	class ReplicaActor extends Actor {
-		Logger.info(s"created actor $self")
-
 		/* The replicated objects stored by this replica */
 		private val localObjects : mutable.HashMap[Addr, AkkaObject[_ <: ObjType]] = mutable.HashMap.empty
 
@@ -146,49 +152,33 @@ object BackendReplica {
 		private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
 
 		override def receive : Receive = { message =>
-			Logger.info(s"received message $message")
 			try {
 				message match {
 
 					case AddReplica(otherActor) =>
 						otherReplicas.add(otherActor)
-						Logger.info(s"added replica $otherActor to $self")
 
 					case ExecuteBatch(timestamp, ops) =>
-						Logger.info(s"execute batch on $self: $ops")
-						/* Tracks the changes done by this batch */
-						val changes = mutable.Map.empty[Addr, (Addr, ObjType, Level, Long)]
+						// Apply the operations in the batch
+						val changes = applyBatch(timestamp, ops)
 
-						ops.foreach {
-							case CreateOrUpdateObject(addr, state, level) =>
-								val newObject = putOrMerge(addr, state, level, timestamp)
-								changes.put(addr, (newObject.addr, newObject.state, newObject.level, timestamp))
-						}
-
-						// Push changes to other replicas
-						Logger.info(s"broadcast changes from $self")
-						val changesMap = changes.values.toList
+						// Push changes to the other replicas
 						otherReplicas.foreach { otherActor =>
 							try {
-								otherActor ! SynchronizeChanges(changesMap)
+								otherActor ! PushChanges(changes)
 								sender() ! 42
 							} catch {
 								case e => e.printStackTrace()
 							}
 						}
 
-
-					case SynchronizeChanges(changes) =>
-						Logger.info(s"merge changes on $self: $changes")
+					case PushChanges(changes) =>
 						changes.foreach(change => {
 							val (addr, state, level, timestamp) = change
 							putOrMerge(addr, state, level, timestamp)
 						})
 
-
 					case ReadObject(addr, level) =>
-						Logger.info(s"read object on $self: $addr")
-
 						localObjects.get(addr) match {
 							case None =>
 								sender() ! Failure(new IllegalStateException(s"object $addr not found"))
@@ -216,6 +206,21 @@ object BackendReplica {
 					newObject
 			}
 		}
+
+		private def applyBatch(timestamp : Long, ops : Seq[TransactionOp]): Iterable[(Addr, ObjType, Level, Long)] = {
+			/* Tracks the changes done by this batch */
+			val changes = mutable.Map.empty[Addr, (Addr, ObjType, Level, Long)]
+
+			ops.foreach {
+				case CreateOrUpdateObject(addr, state, level) =>
+					val newObject = putOrMerge(addr, state, level, timestamp)
+					changes.put(addr, (newObject.addr, newObject.state, newObject.level, timestamp))
+			}
+
+			// Push changes to other replicas
+			changes.values
+		}
+
 	}
 
 

@@ -1,10 +1,8 @@
 package de.tuda.stg.consys.core.store.extensions.transaction
 
-import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{Store, TransactionContext}
 import java.lang.reflect.Field
 import scala.collection.mutable
-import scala.language.higherKinds
 
 /**
  * Created on 11.12.19.

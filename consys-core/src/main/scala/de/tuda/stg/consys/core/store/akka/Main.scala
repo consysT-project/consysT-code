@@ -6,8 +6,8 @@ import akka.cluster.ddata.LWWRegister
 import akka.cluster.ddata.typed.scaladsl.DistributedData
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.Mergeable
-import de.tuda.stg.consys.core.store.akka.backend.BackendReplica.Loop
-import de.tuda.stg.consys.core.store.akka.levels.Weak
+import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.Loop
+import de.tuda.stg.consys.core.store.akka.levels.{Strong, Weak}
 import org.checkerframework.dataflow.qual.SideEffectFree
 
 import scala.collection.mutable
@@ -34,8 +34,8 @@ object Main {
 
   def main(args : Array[String]) {
 
-    val store1 = AkkaStore.fromAddress("127.0.0.1", 4445)
-    val store2 = AkkaStore.fromAddress("127.0.0.2", 4446)
+    val store1 = AkkaStore.fromAddress("127.0.0.1", 4445, 2181)
+    val store2 = AkkaStore.fromAddress("127.0.0.2", 4446, 2182)
 
     store1.replica.addOtherReplica(store2.getAddress)
     store2.replica.addOtherReplica(store1.getAddress)
@@ -43,7 +43,7 @@ object Main {
 
 
     store1.transaction(ctx => {
-      val set1 = ctx.replicate[MergeableSet]("set1", Weak, List(23,42))
+      val set1 = ctx.replicate[MergeableSet]("set1", Strong, List(23,42))
       println("Done 1")
       Some(())
     })
@@ -51,7 +51,7 @@ object Main {
     Thread.sleep(1000)
 
     store2.transaction(ctx => {
-      val set1 = ctx.replicate[MergeableSet]("set1", Weak, List(24,43))
+      val set1 = ctx.replicate[MergeableSet]("set1", Strong, List(24,43))
       println("Done 2")
       Some(())
     })
@@ -59,7 +59,7 @@ object Main {
     Thread.sleep(1000)
 
     store1.transaction(ctx => {
-      val set1 = ctx.lookup[MergeableSet]("set1", Weak)
+      val set1 = ctx.lookup[MergeableSet]("set1", Strong)
       val result = set1.resolve(ctx).invoke[String]("toString", Seq())
       println(result)
       Some(())

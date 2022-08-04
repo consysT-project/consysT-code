@@ -123,7 +123,6 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 		) : Unit = {
 
 			//TODO: Set consistency level per field
-
 			txContext.Cache.readLocalEntry(ref.addr) zip txContext.Cache.getChangedFields(ref.addr) match {
 				case None =>
 					throw new IllegalStateException(s"cannot commit $ref. Object not available.")
@@ -131,10 +130,10 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 					// if any strong field was changed then write batch (all changed fields) with strong consistency
 					if changedFields.map(f => cached.fieldLevels.getOrElse(f, throw new IllegalStateException())).exists(l => l == Strong) =>
 					val builder = txContext.getCommitStatementBuilder
-					store.CassandraBinding.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ALL)
+					store.cassandra.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ALL)
 				case Some((cached : MixedCassandraObject[_], changedFields)) /* if cached.ml == MixedWeak */ =>
 					val builder = txContext.getCommitStatementBuilder
-					store.CassandraBinding.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ONE)
+					store.cassandra.writeFieldEntry(builder, cached.addr, changedFields, cached.state, CassandraLevel.ONE)
 				case cached =>
 					throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 			}
@@ -150,7 +149,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
 
 
-			val storedObj = store.CassandraBinding.readFieldEntry[T](addr, CassandraLevel.ALL)
+			val storedObj = store.cassandra.readFieldEntry[T](addr, CassandraLevel.ALL)
 			storedObjToMixedObj[T](storedObj, FetchedStrong)
 		}
 
@@ -158,13 +157,13 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 
 			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
 
-			val storedObj = store.CassandraBinding.readFieldEntry[T](addr, CassandraLevel.ONE)
+			val storedObj = store.cassandra.readFieldEntry[T](addr, CassandraLevel.ONE)
 			storedObjToMixedObj[T](storedObj, FetchedWeak)
 		}
 
 
 
-		private def storedObjToMixedObj[T <: CassandraStore#ObjType : ClassTag](storedObj : store.CassandraBinding.StoredFieldEntry, fetchedLevel : FetchedLevel) : MixedCassandraObject[T] = {
+		private def storedObjToMixedObj[T <: CassandraStore#ObjType : ClassTag](storedObj : store.cassandra.StoredFieldEntry, fetchedLevel : FetchedLevel) : MixedCassandraObject[T] = {
 			val clazz = implicitly[ClassTag[T]].runtimeClass
 
 			val constr = Reflect.getConstructor(clazz)
