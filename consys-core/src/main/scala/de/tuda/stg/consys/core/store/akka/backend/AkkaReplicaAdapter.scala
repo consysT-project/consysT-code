@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.core.store.akka.backend
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Props, RootActorPath}
+import akka.cluster.ddata.{DistributedData, Replicator}
 import akka.pattern.ask
 import akka.util.Timeout
 import de.tuda.stg.consys.core.store.ConsistencyLevel
@@ -8,11 +9,12 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter._
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.{AkkaAddress, getActorSystemAddress}
 import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, ZookeeperLocking}
-
 import de.tuda.stg.consys.utils.Logger
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
+import akka.cluster.ddata.typed.scaladsl.Replicator._
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
@@ -23,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
 	Logger.info(s"initialize actor")
-	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor]), AkkaStore.DEFAULT_ACTOR_NAME)
+	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
 
 	Logger.info(s"initialize locking")
 	val locking = new ZookeeperLocking[Addr](curator)
@@ -88,13 +90,19 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 
 
 
-	def write(timestamp : Long, ops : Seq[TransactionOp]): Unit = {
+	def writeAsync(timestamp : Long, ops : Seq[TransactionOp]): Unit = {
 		implicit val akkaTimeout : Timeout = timeout
-		val result = replicaActor ? ExecuteBatch(timestamp, ops)
+		val result = replicaActor ? ExecuteBatchAsync(timestamp, ops)
 		Await.ready(result, timeout)
 	}
 
-	def read[T <: ObjType](addr : Addr, level : Level) : T  = {
+	def writeSync(timestamp : Long, ops : Seq[TransactionOp]): Unit = {
+		implicit val akkaTimeout : Timeout = timeout
+		val result = replicaActor ? ExecuteBatchSync(timestamp, ops)
+		Await.ready(result, timeout)
+	}
+
+	def read[T <: ObjType](addr : Addr) : T  = {
 		implicit val akkaTimeout : Timeout = timeout
 
 		val startTime = System.nanoTime()
@@ -107,7 +115,7 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 				throw new TimeoutException(s"reference to $addr was not resolved")
 			}
 
-			val result = replicaActor ? ReadObject(addr, level)
+			val result = replicaActor ? ReadObject(addr)
 			obj = Await.result(result, timeout - FiniteDuration(timeTaken, TimeUnit.NANOSECONDS) ).asInstanceOf[Try[AkkaObject[T]]].toOption
 
 			if (obj.nonEmpty) {
@@ -128,28 +136,37 @@ object AkkaReplicaAdapter {
 
 	type Addr = String
 	type ObjType = Serializable
-	type Level = ConsistencyLevel[AkkaStore]
 
-	case class WriteObjectsOp(objects : Map[Addr, (ObjType, Level)], waitFor : Int)
-	case class SyncWrite(objects : Map[Addr, (ObjType, Level)])
+	/* A list of changes of the replica. Each change has a key, new state, consistency level, and timestamp */
+	type ChangeList = Iterable[(Addr, ObjType, Long)]
+
 
 	sealed trait TransactionOp
-	case class CreateOrUpdateObject(addr : Addr, newState : ObjType, level : Level) extends TransactionOp
+	case class CreateOrUpdateObject(addr : Addr, newState : ObjType) extends TransactionOp
 
 	sealed trait Op
-	case class ExecuteBatch(timestamp : Long, ops : Seq[TransactionOp]) extends Op
-	case class ReadObject(addr : Addr, level : Level) extends Op
+	case class ExecuteBatchAsync(timestamp : Long, ops : Seq[TransactionOp]) extends Op
+	case class ExecuteBatchSync(timestamp : Long, ops : Seq[TransactionOp]) extends Op
+	case class ReadObject(addr : Addr) extends Op
 	case class AddReplica(actor : ActorRef) extends Op
-	case class PushChanges(changes : Iterable[(Addr, ObjType, Level, Long)]) extends Op
-	case object Loop extends Op
+	case class PushChangesAsync(changes : ChangeList) extends Op
+	case class PrepareChangesSync(key : String, changes : ChangeList) extends Op
+	case class CommitChanges(key : String) extends Op
 
 
-	class ReplicaActor extends Actor {
+	class ReplicaActor(val timeout : FiniteDuration) extends Actor {
 		/* The replicated objects stored by this replica */
 		private val localObjects : mutable.HashMap[Addr, AkkaObject[_ <: ObjType]] = mutable.HashMap.empty
 
+		/* Changes that are prepared for a commit, but have not been committed yet. */
+		private val preparedChanges : mutable.HashMap[String, ChangeList] = mutable.HashMap.empty
+
+		// TODO: Can we use replicated data instead?
+		// private val replicatedData = DistributedData.apply(context.system).selfUniqueAddress
+
 		/* The replica actors of all replicas in the system (can include self) */
 		private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty
+
 
 		override def receive : Receive = { message =>
 			try {
@@ -158,27 +175,75 @@ object AkkaReplicaAdapter {
 					case AddReplica(otherActor) =>
 						otherReplicas.add(otherActor)
 
-					case ExecuteBatch(timestamp, ops) =>
+					/* Protocol for asynchronous writes */
+					case ExecuteBatchAsync(timestamp, ops) =>
 						// Apply the operations in the batch
 						val changes = applyBatch(timestamp, ops)
 
 						// Push changes to the other replicas
-						otherReplicas.foreach { otherActor =>
+						otherReplicas.filter(ref => ref != self).foreach { otherActor =>
 							try {
-								otherActor ! PushChanges(changes)
+								otherActor ! PushChangesAsync(changes)
 								sender() ! 42
 							} catch {
 								case e => e.printStackTrace()
 							}
 						}
 
-					case PushChanges(changes) =>
+					case PushChangesAsync(changes) =>
 						changes.foreach(change => {
-							val (addr, state, level, timestamp) = change
-							putOrMerge(addr, state, level, timestamp)
+							val (addr, state, timestamp) = change
+							putOrMerge(addr, state, timestamp)
 						})
 
-					case ReadObject(addr, level) =>
+					/* Protocol for synchronous writes */
+					case ExecuteBatchSync(timestamp, ops) =>
+						// Apply the operations in the batch
+						val changes = applyBatch(timestamp, ops)
+
+
+						implicit val akkaTimeout : Timeout = timeout
+						// The key for the commit
+						val key = context.system.name + "::" + UUID.randomUUID().toString
+
+						val receivingReplicas = otherReplicas.filter(ref => ref != self)
+
+						val prepared = receivingReplicas.map { otherActor =>
+							otherActor ? PrepareChangesSync(key,changes)
+						}
+
+						prepared.foreach(future => Await.ready(future, timeout))
+
+						val committed = receivingReplicas.map { otherActor =>
+							otherActor ? CommitChanges(key)
+						}
+
+						committed.foreach(future => Await.ready(future, timeout))
+
+						sender() ! 45
+
+					case PrepareChangesSync(key, changes) =>
+						preparedChanges.put(key, changes)
+						sender() ! 43
+
+					case CommitChanges(key) =>
+						preparedChanges.get(key) match {
+							case Some(changes) =>
+								changes.foreach(change => {
+									val (addr, state, timestamp) = change
+									putOrMerge(addr, state, timestamp)
+								})
+							case None => Logger.err(s"cannot commit changes $key")
+						}
+
+						preparedChanges.remove(key)
+
+						sender() !44
+
+
+
+
+					case ReadObject(addr) =>
 						localObjects.get(addr) match {
 							case None =>
 								sender() ! Failure(new IllegalStateException(s"object $addr not found"))
@@ -196,8 +261,8 @@ object AkkaReplicaAdapter {
 		 *
 		 * @return the new object stored at the location
 		 */
-		private def putOrMerge[T <: Serializable : ClassTag](addr : Addr, state : T, level : Level, timestamp : Long) : AkkaObject[T] = {
-			val newObject = AkkaObject.create(addr, state, level, timestamp)
+		private def putOrMerge[T <: Serializable : ClassTag](addr : Addr, state : T, timestamp : Long) : AkkaObject[T] = {
+			val newObject = AkkaObject.create(addr, state, timestamp)
 
 			localObjects.put(addr, newObject) match {
 				case None => newObject
@@ -207,14 +272,14 @@ object AkkaReplicaAdapter {
 			}
 		}
 
-		private def applyBatch(timestamp : Long, ops : Seq[TransactionOp]): Iterable[(Addr, ObjType, Level, Long)] = {
+		private def applyBatch(timestamp : Long, ops : Seq[TransactionOp]): ChangeList = {
 			/* Tracks the changes done by this batch */
-			val changes = mutable.Map.empty[Addr, (Addr, ObjType, Level, Long)]
+			val changes = mutable.Map.empty[Addr, (Addr, ObjType, Long)]
 
 			ops.foreach {
-				case CreateOrUpdateObject(addr, state, level) =>
-					val newObject = putOrMerge(addr, state, level, timestamp)
-					changes.put(addr, (newObject.addr, newObject.state, newObject.level, timestamp))
+				case CreateOrUpdateObject(addr, state) =>
+					val newObject = putOrMerge(addr, state, timestamp)
+					changes.put(addr, (newObject.addr, newObject.state, timestamp))
 			}
 
 			// Push changes to other replicas

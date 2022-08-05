@@ -3,6 +3,7 @@ package de.tuda.stg.consys.core.store.akka
 import de.tuda.stg.consys.core.store.TransactionContext
 import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.{CreateOrUpdateObject, TransactionOp}
+import de.tuda.stg.consys.core.store.akka.levels.Strong
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
 import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext}
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
@@ -43,16 +44,21 @@ class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransa
   override private[store] def commit() : Unit = {
     val ops = mutable.Buffer.empty[TransactionOp]
 
+    var containsStrong = false
     Cache.buffer.values.foreach(cacheElement => {
       if (cacheElement.changedObject) {
-        ops.append(CreateOrUpdateObject(cacheElement.data.addr, cacheElement.data.state, cacheElement.data.level))
+        containsStrong = containsStrong || cacheElement.data.level == Strong
+        ops.append(CreateOrUpdateObject(cacheElement.data.addr, cacheElement.data.state))
       }
     })
 
     val timestamp = System.currentTimeMillis()
 
     //TODO: Add synchronized write for Strong objects
-    store.replica.write(timestamp, ops.toSeq)
+    if (containsStrong)
+      store.replica.writeSync(timestamp, ops.toSeq)
+    else
+      store.replica.writeAsync(timestamp, ops.toSeq)
 
     // release locks
     locks.foreach(lock => lock.release())
