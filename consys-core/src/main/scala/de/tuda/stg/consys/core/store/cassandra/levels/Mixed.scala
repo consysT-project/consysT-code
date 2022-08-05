@@ -139,10 +139,6 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			}
 		}
 
-		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {
-			txContext.releaseLock(ref.addr)
-		}
-
 		//TODO: Make strong read all parts of the object, but weak only the weak parts
 		private def readStrong[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : MixedCassandraObject[T] = {
 

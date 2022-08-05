@@ -58,42 +58,38 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	}
 
 	override private[store] def commit() : Unit = {
-		try {
-			/* Compute the timestamp for the batch.
-			* 1. Ensure that it is newer than all read timestamps of objects in the buffer.
-			* 2. Use the start timestamp of the transaction if it is newer
-			*/
-			val timestamp = Cache.buffer.valuesIterator.foldLeft(startTimestamp)(
-				(timestamp, cassObj) => if (timestamp > cassObj.data.newestTimestamp) timestamp else cassObj.data.newestTimestamp + 1
-			)
+		/* Compute the timestamp for the batch.
+		* 1. Ensure that it is newer than all read timestamps of objects in the buffer.
+		* 2. Use the start timestamp of the transaction if it is newer
+		*/
+		val timestamp = Cache.buffer.valuesIterator.foldLeft(startTimestamp)(
+			(timestamp, cassObj) => if (timestamp > cassObj.data.newestTimestamp) timestamp else cassObj.data.newestTimestamp + 1
+		)
 
-			//Create a batch statement to batch all the writes
-			commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
-			//Commit every object and gather the writes
-			Cache.buffer.valuesIterator.foreach(obj => {
-				val protocol = obj.data.consistencyLevel.toProtocol(store)
-				protocol.commit(this, obj.data.toRef)
-			})
+		//Create a batch statement to batch all the writes
+		commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
+		//Commit every object and gather the writes
+		Cache.buffer.valuesIterator.foreach(obj => {
+			val protocol = obj.data.consistencyLevel.toProtocol(store)
+			protocol.commit(this, obj.data.toRef)
+		})
 
-			//Execute the batch statement
-			store.cassandra.executeStatement(
-				commitStatementBuilder
-					.build()
-					// Set the timestamp to the creation timestamp of the transactions
-					// This avoids "storing" values in weak transactions
-					.setQueryTimestamp(timestamp)
-			)
+		//Execute the batch statement
+		store.cassandra.executeStatement(
+			commitStatementBuilder
+				.build()
+				// Set the timestamp to the creation timestamp of the transactions
+				// This avoids "storing" values in weak transactions
+				.setQueryTimestamp(timestamp)
+		)
 
-			// Reset the batch statement builder
-			commitStatementBuilder = null
-		} finally {
-			/* Execute the post commits */
-			Cache.buffer.valuesIterator.foreach(obj => {
-				val protocol = obj.data.consistencyLevel.toProtocol(store)
-				protocol.postCommit(this, obj.data.toRef)
-			})
-		}
+		// Reset the batch statement builder
+		commitStatementBuilder = null
 	}
+
+
+
+
 
 	override def toString : String = s"CassandraTxContext(${store.id}//$startTimestamp)"
 

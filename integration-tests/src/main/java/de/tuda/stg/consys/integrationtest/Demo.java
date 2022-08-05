@@ -1,13 +1,12 @@
 package de.tuda.stg.consys.integrationtest;
 
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
@@ -80,8 +79,8 @@ public class Demo {
 
         CassandraRunner() {
             super(
-                Cassandra.newReplica("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true),
-                Cassandra.newReplica("127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false)
+                CassandraReplica.create("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true),
+                CassandraReplica.create("127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false)
             );
         }
 

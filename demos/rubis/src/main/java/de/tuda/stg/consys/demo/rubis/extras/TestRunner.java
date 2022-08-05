@@ -2,9 +2,8 @@ package de.tuda.stg.consys.demo.rubis.extras;
 
 import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.demo.rubis.Session;
-import de.tuda.stg.consys.demo.rubis.extras.BackgroundTask;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 import scala.Tuple2;
@@ -43,7 +42,7 @@ public class TestRunner {
 
     private static void initConnections() {
         for (int i = 0; i < replicas.length; i++) {
-            replicas[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181 + i,
+            replicas[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, 2181 + i,
                     Duration.apply(msReplicaTimeout, "ms"), i == 0);
         }
 

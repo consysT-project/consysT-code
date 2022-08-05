@@ -184,11 +184,11 @@ object AkkaReplicaAdapter {
 						otherReplicas.filter(ref => ref != self).foreach { otherActor =>
 							try {
 								otherActor ! PushChangesAsync(changes)
-								sender() ! 42
 							} catch {
 								case e => e.printStackTrace()
 							}
 						}
+						sender() ! 42
 
 					case PushChangesAsync(changes) =>
 						changes.foreach(change => {
@@ -276,10 +276,15 @@ object AkkaReplicaAdapter {
 			/* Tracks the changes done by this batch */
 			val changes = mutable.Map.empty[Addr, (Addr, ObjType, Long)]
 
-			ops.foreach {
-				case CreateOrUpdateObject(addr, state) =>
-					val newObject = putOrMerge(addr, state, timestamp)
-					changes.put(addr, (newObject.addr, newObject.state, timestamp))
+			try {
+				ops.foreach {
+					case CreateOrUpdateObject(addr, state) =>
+						val newObject = putOrMerge(addr, state, timestamp)
+						changes.put(addr, (newObject.addr, newObject.state, timestamp))
+				}
+			} catch {
+				case e =>
+					e.printStackTrace()
 			}
 
 			// Push changes to other replicas

@@ -85,10 +85,6 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 			throw new NotImplementedError("do nothing")
 		}
 
-		override def postCommit(txContext : AkkaStore#TxContext, ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]) : Unit = {
-			throw new NotImplementedError("do nothing")
-		}
-
 
 		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaCachedObject[T] = {
 			val state = store.replica.read[T](addr)

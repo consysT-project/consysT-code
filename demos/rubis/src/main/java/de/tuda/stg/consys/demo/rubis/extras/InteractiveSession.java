@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo.rubis.extras;
 import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.demo.rubis.Session;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 
@@ -155,7 +155,7 @@ public class InteractiveSession {
 
     private static void initConnections(boolean clear) {
         for (int i = 0; i < replicas.length; i++)
-            replicas[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181,
+            replicas[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, 2181,
                 Duration.apply(msTimeout, "ms"), i == 0 && clear);
 
         if (clear) {

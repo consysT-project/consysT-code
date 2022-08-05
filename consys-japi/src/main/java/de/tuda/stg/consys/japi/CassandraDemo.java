@@ -3,7 +3,7 @@ package de.tuda.stg.consys.japi;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
@@ -16,7 +16,7 @@ import java.io.Serializable;
  *
  * @author Mirko Köhler
  */
-public class Demo {
+public class CassandraDemo {
 
 	public static @Mixed class Box implements Serializable {
 		public int i = 0;
@@ -33,31 +33,13 @@ public class Demo {
 	}
 
 	public static void main(String[] args) throws Exception {
-		CassandraStoreBinding replica1 = Cassandra.newReplica(
+		CassandraStoreBinding replica1 = CassandraReplica.create(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
 		);
 
-		CassandraStoreBinding replica2 = Cassandra.newReplica(
+		CassandraStoreBinding replica2 = CassandraReplica.create(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
-
-//		Akka.ReplicaBinding replica1 = Akka.newReplica(
-//				"127.0.0.1", 4121, 2181,
-//				Arrays.asList(
-//						Address.apply("127.0.0.1", 4121),
-//						Address.apply("127.0.0.2", 4122)
-//				),
-//				Duration.apply(60, "s")
-//		);
-//
-//		Akka.ReplicaBinding replica2 = Akka.newReplica(
-//				"127.0.0.2", 4122, 2182,
-//				Arrays.asList(
-//						Address.apply("127.0.0.1", 4121),
-//						Address.apply("127.0.0.2", 4122)
-//				),
-//				Duration.apply(60, "s")
-//		);
 
 		System.out.println("transaction 1");
 		replica1.transaction(ctx -> {

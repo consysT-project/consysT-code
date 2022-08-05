@@ -59,9 +59,6 @@ class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransa
       store.replica.writeSync(timestamp, ops.toSeq)
     else
       store.replica.writeAsync(timestamp, ops.toSeq)
-
-    // release locks
-    locks.foreach(lock => lock.release())
   }
 
   override protected def createLockFor(addr : AkkaStore#Addr) : DistributedLock = {

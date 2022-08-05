@@ -30,6 +30,10 @@ trait LockingTransactionContext[StoreType <: Store] extends TransactionContext[S
 			acquiredLocks.remove(addr)
 	}
 
-	def locks : Iterator[DistributedLock] = acquiredLocks.valuesIterator
+	def releaseAllLocks() : Unit = {
+		acquiredLocks.valuesIterator.foreach(lock => lock.release())
+		acquiredLocks.clear()
+	}
+
 }
 

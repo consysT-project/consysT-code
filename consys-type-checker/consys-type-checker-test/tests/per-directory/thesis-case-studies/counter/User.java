@@ -12,7 +12,7 @@ public class User {
     private Ref<@Mutable @Mixed Counter> counter;
 
     public User(String host, @Local boolean init) {
-        store = Cassandra.newReplica(host, 9042, 2181, Duration.apply(60, "s"), init);
+        store = CassandraReplica.create(host, 9042, 2181, Duration.apply(60, "s"), init);
         store.transaction(ctx -> {
             if (init) {
                 counter = ctx.replicate("counter", MIXED, Counter.class, 0);

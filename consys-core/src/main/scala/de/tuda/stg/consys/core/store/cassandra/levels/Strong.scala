@@ -119,10 +119,6 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 		  }
 		}
 
-		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {
-			txContext.releaseLock(ref.addr)
-		}
-
 		private def strongRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : StrongCassandraObject[T] = {
 			val entry = store.cassandra.readObjectEntry[T](addr, CassandraLevel.ALL)
 			val cassObj = new StrongCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)

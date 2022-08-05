@@ -56,18 +56,17 @@ trait CassandraStore extends DistributedStore {
 	protected def initializing : Boolean
 
 	override def transaction[U](body : TxContext => Option[U]) : Option[U] = this.synchronized {
-		CassandraStores.currentStore.withValue(this) {
-			val tx = new CassandraTransactionContext(this)
-			CassandraStores.currentTransaction.withValue(tx) {
-				try {
-					body(tx) match {
-						case None => None
-						case res@Some(_) =>
-							res
-					}
-				} finally {
-					tx.commit()
+		val tx = new CassandraTransactionContext(this)
+		CassandraStores.currentTransaction.withValue(tx) {
+			try {
+				body(tx) match {
+					case None => None
+					case res@Some(_) =>
+						tx.commit()
+						res
 				}
+			} finally {
+				tx.releaseAllLocks()
 			}
 		}
 	}

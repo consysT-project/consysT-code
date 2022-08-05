@@ -91,11 +91,6 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
 
-		override def postCommit(txContext : CassandraStore#TxContext, ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]) : Unit = {
-			//Do nothing
-		}
-
-
 		private def weakRead[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : WeakCassandraObject[T] = {
 			val entry = store.cassandra.readObjectEntry[T](addr, CassandraLevel.ONE)
 			val cassObj = new WeakCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)

@@ -1,7 +1,7 @@
 package compiler;
 
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
@@ -29,11 +29,11 @@ public class BoxTest {
 
 
 	public static void main(String[] args) throws Exception {
-		CassandraStoreBinding replica1 = Cassandra.newReplica(
+		CassandraStoreBinding replica1 = CassandraReplica.create(
 			"127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true
 		);
 
-		CassandraStoreBinding replica2 = Cassandra.newReplica(
+		CassandraStoreBinding replica2 = CassandraReplica.create(
 			"127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false
 		);
 

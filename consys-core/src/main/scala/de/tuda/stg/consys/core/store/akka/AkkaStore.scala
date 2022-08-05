@@ -57,21 +57,41 @@ trait AkkaStore extends DistributedStore {
    *         not produce a result or has been aborted by the system.
    */
   override def transaction[T](body: TxContext => Option[T]): Option[T] = {
-    val context = new AkkaTransactionContext(this)
-    try {
-      val result = body(context)
-      context.commit()
-      result
-    } catch {
-      case e : Exception =>
-        Logger.err("transaction failed executing")
-        e.printStackTrace(Logger.err)
-        None
+    val tx = new AkkaTransactionContext(this)
+
+    AkkaStores.currentTransaction.withValue(tx) {
+      try {
+        body(tx) match {
+          case None => None
+          case res@Some(_) =>
+            tx.commit()
+            res
+        }
+      } catch {
+        case e : Exception =>
+          Logger.err("transaction failed executing")
+          e.printStackTrace(Logger.err)
+          None
+      } finally {
+        // Always release the locks after the trnasaction is done.
+        tx.releaseAllLocks()
+      }
     }
   }
 
   def getAddress : AkkaAddress =
     AkkaUtils.getActorSystemAddress(actorSystem)
+
+  def addOtherReplica(hostname : String, port : Int) : Unit = {
+    replica.addOtherReplica(hostname, port)
+  }
+
+  override def close() : Unit = {
+    curator.close()
+    //TODO: Complete correct termination logic
+    val terminated = actorSystem.terminate()
+  }
+
 }
 
 object AkkaStore {
@@ -102,7 +122,8 @@ object AkkaStore {
       .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
 
     new AkkaStoreImpl(system, curator, timeout)
-
   }
+
+
 
 }

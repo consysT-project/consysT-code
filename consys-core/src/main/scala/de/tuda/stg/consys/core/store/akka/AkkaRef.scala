@@ -12,4 +12,10 @@ case class AkkaRef[T <: AkkaStore#ObjType : ClassTag](
   def resolve(tx : AkkaTransactionContext) : AkkaStore#HandlerType[T] =
     new AkkaHandler(tx, this)
 
+  /* This method is for convenience use in transactions or when TxContext is not passed around */
+  def resolve() : AkkaStore#HandlerType[T] = AkkaStores.getCurrentTransaction match {
+    case None => throw new IllegalStateException(s"can not resolve handler for <$addr>. no active transaction.")
+    case Some(tx) => resolve(tx)
+  }
+
 }

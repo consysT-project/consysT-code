@@ -5,7 +5,7 @@ import de.tuda.stg.consys.bench.DistributedBenchmark;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 
@@ -38,7 +38,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			CassandraStoreBinding store = null;
 
 			if ((int)processId == 0) {
-				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
+				store = CassandraReplica.create(address.hostname(), address.port1(), address.port2(),
 						Duration.apply(msTimeout, "ms"), true);
 			}
 
@@ -50,7 +50,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			}
 
 			if ((int)processId != 0) {
-				store = Cassandra.newReplica(address.hostname(), address.port1(), address.port2(),
+				store = CassandraReplica.create(address.hostname(), address.port1(), address.port2(),
 						Duration.apply(msTimeout, "ms"), false);
 			}
 
