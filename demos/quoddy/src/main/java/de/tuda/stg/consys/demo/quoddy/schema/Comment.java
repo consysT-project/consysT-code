@@ -9,10 +9,10 @@ import java.util.Date;
 
 public class Comment implements Serializable {
     private final @Immutable String text;
-    private final @Immutable Ref<User> owner;
+    private final @Immutable Ref<? extends IUser> owner;
     private final @Immutable Date timestamp;
 
-    public Comment(@Weak @Immutable String text, Ref<User> owner, @Weak @Immutable Date timestamp) {
+    public Comment(@Weak @Immutable String text, Ref<? extends IUser> owner, @Weak @Immutable Date timestamp) {
         this.text = text;
         this.owner = owner;
         this.timestamp = timestamp;
@@ -24,7 +24,7 @@ public class Comment implements Serializable {
     }
 
     @SideEffectFree
-    public Ref<User> getOwner() {
+    public Ref<? extends IUser> getOwner() {
         return owner;
     }
 

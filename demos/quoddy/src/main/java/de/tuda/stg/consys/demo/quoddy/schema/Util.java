@@ -6,17 +6,17 @@ import de.tuda.stg.consys.japi.Ref;
 
 public class Util {
     @Transactional
-    public static boolean equalsUser(Ref<User> a, Ref<User> b) {
+    public static boolean equalsUser(Ref<? extends IUser> a, Ref<? extends IUser> b) {
         return a.ref().getId().equals(b.ref().getId());
     }
 
     @Transactional
-    public static boolean equalsActivity(Ref<? extends Post> a, Ref<? extends Post> b) {
+    public static boolean equalsActivity(Ref<? extends IPost> a, Ref<? extends IPost> b) {
         return a.ref().getId().equals(b.ref().getId());
     }
 
     @Transactional
-    public static void acceptFriendRequest(Ref<@Mutable User> receiver, Ref<@Mutable User> sender) {
+    public static void acceptFriendRequest(Ref<? extends @Mutable IUser> receiver, Ref<? extends @Mutable IUser> sender) {
         receiver.ref().removeReceivedFriendRequest(sender);
         sender.ref().removeSentFriendRequest(receiver);
         receiver.ref().addFriend(sender);
@@ -24,13 +24,13 @@ public class Util {
     }
 
     @Transactional
-    public static void stopFollowingUser(Ref<@Mutable User> following, Ref<@Mutable User> follower) {
+    public static void stopFollowingUser(Ref<? extends @Mutable IUser> following, Ref<? extends @Mutable IUser> follower) {
         following.ref().removeFollower(follower);
         follower.ref().removeFollowing(following);
     }
 
     @Transactional
-    public void acceptMembershipRequest(Ref<@Mutable Group> group, Ref<@Mutable User> user, Ref<User> sessionUser) {
+    public void acceptMembershipRequest(Ref<? extends @Mutable IGroup> group, Ref<? extends @Mutable IUser> user, Ref<? extends IUser> sessionUser) {
         group.ref().acceptMembershipRequest(user, sessionUser);
         user.ref().notifyOfGroupMembershipAcceptance(group);
     }

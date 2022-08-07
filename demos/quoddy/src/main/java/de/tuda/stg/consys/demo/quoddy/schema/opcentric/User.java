@@ -1,16 +1,19 @@
-package de.tuda.stg.consys.demo.quoddy.schema;
+package de.tuda.stg.consys.demo.quoddy.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.demo.quoddy.schema.IEvent;
+import de.tuda.stg.consys.demo.quoddy.schema.IGroup;
+import de.tuda.stg.consys.demo.quoddy.schema.IPost;
+import de.tuda.stg.consys.demo.quoddy.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
-public @Mixed class User implements Serializable {
+public @Mixed class User implements IUser {
     private final @Immutable String id;
     private String name = "";
     private String email = "";
@@ -27,8 +30,8 @@ public @Mixed class User implements Serializable {
     private final Map<String, Ref<User>> sentFriendRequests = new HashMap<>();
     // education history
     // employment history
-    private final List<Ref<? extends Post>> feed = new LinkedList<>();
-    private final List<Ref<Group>> participatingGroups = new LinkedList<>();
+    private final List<Ref<? extends IPost>> feed = new LinkedList<>();
+    private final List<Ref<? extends IGroup>> participatingGroups = new LinkedList<>();
 
     public User() {
         id = null;
@@ -39,78 +42,78 @@ public @Mixed class User implements Serializable {
         this.name = name;
     }
 
-    public void addPost(Ref<? extends Post> post) {
+    public void addPost(Ref<? extends IPost> post) {
         feed.add(0, post);
     }
 
     @Transactional
-    public void notifyOfEventUpdate(Ref<Event> event) {
+    public void notifyOfEventUpdate(Ref<? extends IEvent> event) {
         feed.add(0, event);
     }
 
     @Transactional
-    public void notifyOfGroupMembershipAcceptance(Ref<Group> group) {
+    public void notifyOfGroupMembershipAcceptance(Ref<? extends IGroup> group) {
         participatingGroups.add(group);
     }
 
     @Transactional
-    public void addReceivedFriendRequest(Ref<User> sender) {
-        receivedFriendRequests.put(sender.ref().getId(), sender);
+    public void addReceivedFriendRequest(Ref<? extends IUser> sender) {
+        receivedFriendRequests.put(sender.ref().getId(), toUserImpl(sender));
     }
 
     @Transactional
-    public void removeReceivedFriendRequest(Ref<User> sender) {
+    public void removeReceivedFriendRequest(Ref<? extends IUser> sender) {
         receivedFriendRequests.remove(sender.ref().getId());
     }
 
     @Transactional
-    public void addSentFriendRequest(Ref<User> sender) {
-        sentFriendRequests.put(sender.ref().getId(), sender);
+    public void addSentFriendRequest(Ref<? extends IUser> sender) {
+        sentFriendRequests.put(sender.ref().getId(), toUserImpl(sender));
     }
 
     @Transactional
-    public void removeSentFriendRequest(Ref<User> receiver) {
+    public void removeSentFriendRequest(Ref<? extends IUser> receiver) {
         sentFriendRequests.remove(receiver.ref().getId());
     }
 
     @StrongOp
     @Transactional
-    public void addFriend(Ref<User> user) {
-        friends.put(user.ref().getId(), user);
+    public void addFriend(Ref<? extends IUser> user) {
+        friends.put(user.ref().getId(), toUserImpl(user));
     }
 
     @StrongOp
     @Transactional
-    public void removeFriend(Ref<User> user) {
+    public void removeFriend(Ref<? extends IUser> user) {
         friends.remove(user.ref().getId());
     }
 
     @StrongOp
     @Transactional
-    public void addFollower(Ref<User> user) {
-        followers.put(user.ref().getId(), user);
+    public void addFollower(Ref<? extends IUser> user) {
+        followers.put(user.ref().getId(), toUserImpl(user));
     }
 
     @StrongOp
     @Transactional
-    public void removeFollower(Ref<User> user) {
+    public void removeFollower(Ref<? extends IUser> user) {
         followers.remove(user.ref().getId());
     }
 
     @StrongOp
     @Transactional
-    public void addFollowing(Ref<User> user) {
-        following.put(user.ref().getId(), user);
+    public void addFollowing(Ref<? extends IUser> user) {
+        following.put(user.ref().getId(), toUserImpl(user));
     }
 
     @StrongOp
     @Transactional
-    public void removeFollowing(Ref<User> user) {
+    public void removeFollowing(Ref<? extends IUser> user) {
         following.remove(user.ref().getId());
     }
 
     @StrongOp
-    public void addParticipatingGroup(Ref<Group> group) {
+    public void addParticipatingGroup(Ref<? extends IGroup> group) {
         participatingGroups.add(group);
     }
 
@@ -156,37 +159,41 @@ public @Mixed class User implements Serializable {
     }
 
     @SideEffectFree
-    public List<Ref<User>> getFriends() {
+    public List<Ref<? extends IUser>> getFriends() {
         return new ArrayList<>(friends.values());
     }
 
     @SideEffectFree
-    public List<Ref<User>> getFollowers() {
+    public List<Ref<? extends IUser>> getFollowers() {
         return new ArrayList<>(followers.values());
     }
 
     @SideEffectFree
-    public List<Ref<User>> getFollowing() {
+    public List<Ref<? extends IUser>> getFollowing() {
         return new ArrayList<>(following.values());
     }
 
     @SideEffectFree
-    public List<Ref<User>> getReceivedFriendRequests() {
+    public List<Ref<? extends IUser>> getReceivedFriendRequests() {
         return new ArrayList<>(receivedFriendRequests.values());
     }
 
     @SideEffectFree
-    public List<Ref<User>> getSentFriendRequests() {
+    public List<Ref<? extends IUser>> getSentFriendRequests() {
         return new ArrayList<>(sentFriendRequests.values());
     }
 
     @SideEffectFree
-    public List<Ref<? extends Post>> getNewestPosts(int n) {
-        return (@Weak @Immutable List<Ref<? extends Post>>) feed.subList(0, Math.min(n, feed.size()));
+    public List<Ref<? extends IPost>> getNewestPosts(int n) {
+        return (@Weak @Immutable List<Ref<? extends IPost>>) feed.subList(0, Math.min(n, feed.size()));
     }
 
     @SideEffectFree
-    public List<Ref<Group>> getParticipatingGroups() {
-        return participatingGroups;
+    public List<Ref<? extends IGroup>> getParticipatingGroups() {
+        return (List<Ref<? extends IGroup>>) participatingGroups;
+    }
+
+    private Ref<User> toUserImpl(Ref<? extends IUser> user) {
+        return (Ref<User>) user;
     }
 }

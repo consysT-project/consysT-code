@@ -9,7 +9,6 @@ import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
@@ -22,9 +21,9 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private final int numOfGroupsPerReplica;
 
     private final List<Session> localSessions;
-    private final List<Ref<User>> users;
-    private final List<Ref<Group>> groups;
-    private final List<Ref<Event>> events;
+    private final List<Ref<? extends IUser>> users;
+    private final List<Ref<? extends IGroup>> groups;
+    private final List<Ref<? extends IEvent>> events;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -81,6 +80,19 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     public void setup() {
         super.setup();
 
+        Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
+        if (getBenchType() == BenchmarkType.MIXED) {
+            //Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
+            //Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Item.class;
+            //Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
+            //Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
+        } else {
+            Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.User.class;
+            Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Group.class;
+            Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.StatusUpdate.class;
+            Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Event.class;
+        }
+
         for (int i = 0; i < numOfUsersPerReplica; i++) {
             localSessions.add(new Session(store()));
         }
@@ -94,13 +106,13 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
         System.out.println("Adding groups");
         for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-            Ref<Group> group = localSessions.get(grpIndex % numOfUsersPerReplica).createGroup(
+            Ref<? extends IGroup> group = localSessions.get(grpIndex % numOfUsersPerReplica).createGroup(
                     null, addr("group", grpIndex, processId()), generateRandomName(),
                     generateRandomText(10), false);
             // every group starts with one post
             localSessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, generateRandomText(20), group);
             // every group starts with one event
-            Ref<Event> event = localSessions.get(grpIndex % numOfUsersPerReplica).
+            Ref<? extends IEvent> event = localSessions.get(grpIndex % numOfUsersPerReplica).
                     postEventToGroup(null, generateRandomText(20), new Date(), group);
             events.add(event);
 
@@ -137,7 +149,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             // every user starts as a member of one group
             session.joinGroup(null, getRandomElement(groups));
             // every user starts with one friend
-            Ref<User> friend = getRandomElementExcept(users, session.getUser());
+            Ref<? extends IUser> friend = getRandomElementExcept(users, session.getUser());
             session.sendFriendRequest(null, friend);
             store().transaction(ctx -> {
                 Util.acceptFriendRequest(friend, session.getUser());
@@ -156,6 +168,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             randomTransaction();
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
+            throw e;
         }
     }
 
@@ -216,9 +229,9 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private void readPersonalFeed() {
         // render feed, where the first few comments are shown
         store().transaction(ctx -> {
-            Ref<User> user = randomLocalSession().getUser();
-            List<Ref<? extends Post>> feed = user.ref().getNewestPosts(5);
-            for (Ref<? extends Post> post : feed) {
+            Ref<? extends IUser> user = randomLocalSession().getUser();
+            List<Ref<? extends IPost>> feed = user.ref().getNewestPosts(5);
+            for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
             }
             return Option.empty();
@@ -227,9 +240,9 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void readGroupFeed() {
         store().transaction(ctx -> {
-            Ref<Group> group = getRandomElement(groups);
-            List<Ref<? extends Post>> feed = group.ref().getNewestPosts(5);
-            for (Ref<? extends Post> post : feed) {
+            Ref<? extends IGroup> group = getRandomElement(groups);
+            List<Ref<? extends IPost>> feed = group.ref().getNewestPosts(5);
+            for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
             }
             return Option.empty();
@@ -243,7 +256,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private void postStatusToGroup() {
         Session session = randomLocalSession();
         store().transaction(ctx -> {
-            List<Ref<Group>> groups = session.getUser().ref().getParticipatingGroups();
+            List<Ref<? extends IGroup>> groups = session.getUser().ref().getParticipatingGroups();
             session.postStatusToGroup(ctx, generateRandomText(20), getRandomElement(groups));
             return Option.empty();
         });
@@ -251,7 +264,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void followUser() {
         Session session = randomLocalSession();
-        Ref<User> target = getRandomElement(users);
+        Ref<? extends IUser> target = getRandomElement(users);
         store().transaction(ctx -> {
             session.follow(ctx, target);
             return Option.empty();
@@ -261,7 +274,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     // also immediately accepts friend request
     private void addFriend() {
         Session session = randomLocalSession();
-        Ref<User> target = getRandomElement(users);
+        Ref<? extends IUser> target = getRandomElement(users);
         store().transaction(ctx -> {
             session.sendFriendRequest(ctx, target);
             Util.acceptFriendRequest(target, session.getUser());
@@ -271,7 +284,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void joinGroup() {
         Session session = randomLocalSession();
-        Ref<Group> group = getRandomElement(groups);
+        Ref<? extends IGroup> group = getRandomElement(groups);
         store().transaction(ctx -> {
             session.joinGroup(ctx, group);
             return Option.empty();
@@ -280,11 +293,11 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void share() {
         Session session = randomLocalSession();
-        Ref<User> user = session.getUser();
+        Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends Post> post = getRandomElement(group.ref().getNewestPosts(5));
-            Ref<User> friend = getRandomElement(user.ref().getFriends());
+            Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
+            Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
             session.sharePostWithFriend(ctx, friend, post);
             return Option.empty();
         });
@@ -293,9 +306,9 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private void commentOnGroupPost() {
         Session session = randomLocalSession();
         store().transaction(ctx -> {
-            Ref<User> user = session.getUser();
-            Ref<Group> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends Post> post = getRandomElement(group.ref().getNewestPosts(5));
+            Ref<? extends IUser> user = session.getUser();
+            Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
             return Option.empty();
         });
@@ -303,10 +316,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void commentOnFriendPost() {
         Session session = randomLocalSession();
-        Ref<User> user = session.getUser();
+        Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<User> friend = getRandomElement(user.ref().getFriends());
-            Ref<? extends Post> post = getRandomElement(friend.ref().getNewestPosts(5));
+            Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
+            Ref<? extends IPost> post = getRandomElement(friend.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
             return Option.empty();
         });
@@ -314,7 +327,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     // TODO: model event updates with strong consistency?
     private void postEventUpdate() {
-        Ref<Event> event = getRandomElement(events);
+        Ref<? extends IEvent> event = getRandomElement(events);
         store().transaction(ctx -> {
             event.ref().postUpdate(generateRandomText(10));
             return Option.empty();

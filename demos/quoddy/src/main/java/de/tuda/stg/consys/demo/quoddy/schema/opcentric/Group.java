@@ -1,24 +1,25 @@
-package de.tuda.stg.consys.demo.quoddy.schema;
+package de.tuda.stg.consys.demo.quoddy.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.demo.quoddy.schema.IGroup;
+import de.tuda.stg.consys.demo.quoddy.schema.IPost;
+import de.tuda.stg.consys.demo.quoddy.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
-public @Mixed class Group implements Serializable {
+public @Mixed class Group implements IGroup {
     private final @Immutable String id;
     private String name;
     private String description;
     private boolean requiresJoinConfirmation;
-    private final Map<String, Ref<User>> owners;
-    private final Map<String, Ref<User>> members;
-    private final Map<String, Ref<User>> pendingMembers;
-    private final List<Ref<? extends Post>> feed;
+    private final Map<String, Ref<? extends IUser>> owners;
+    private final Map<String, Ref<? extends IUser>> members;
+    private final Map<String, Ref<? extends IUser>> pendingMembers;
+    private final List<Ref<? extends IPost>> feed;
 
     public Group() {
         this.id = null;
@@ -42,24 +43,24 @@ public @Mixed class Group implements Serializable {
         this.feed = new LinkedList<>();
     }
 
-    public void addPost(Ref<? extends Post> activity) {
+    public void addPost(Ref<? extends IPost> activity) {
         feed.add(0, activity);
     }
 
     @Transactional
-    public boolean isUserInGroup(Ref<User> user) {
+    public boolean isUserInGroup(Ref<? extends IUser> user) {
         return members.containsKey(user.ref().getId()) || owners.containsKey(user.ref().getId());
     }
 
     @Transactional
     @StrongOp
-    public @Strong boolean isOwner(Ref<User> user) {
+    public @Strong boolean isOwner(Ref<? extends IUser> user) {
         return (@Strong boolean) owners.containsKey(user.ref().getId());
     }
 
     @StrongOp
     @Transactional
-    public void join(Ref<User> user) {
+    public void join(Ref<? extends IUser> user) {
         if (!requiresJoinConfirmation) {
             members.put(user.ref().getId(), user);
         } else {
@@ -69,7 +70,7 @@ public @Mixed class Group implements Serializable {
 
     @StrongOp
     @Transactional
-    public void acceptMembershipRequest(Ref<User> user, Ref<User> sessionUser) {
+    public void acceptMembershipRequest(Ref<? extends IUser> user, Ref<? extends IUser> sessionUser) {
         if (isOwner(sessionUser)) {
             throw new IllegalArgumentException("user is not privileged to accept membership requests");
         }
@@ -83,7 +84,7 @@ public @Mixed class Group implements Serializable {
 
     @Transactional
     @StrongOp
-    public void promoteToOwner(Ref<User> member) {
+    public void promoteToOwner(Ref<? extends IUser> member) {
         if ((@Strong boolean) (members.remove(member.ref().getId()) != null)) {
             owners.put(member.ref().getId(), member);
         } else {
@@ -93,7 +94,7 @@ public @Mixed class Group implements Serializable {
 
     @Transactional
     @StrongOp
-    public void removeOwner(Ref<User> user) {
+    public void removeOwner(Ref<? extends IUser> user) {
         this.owners.remove(user.ref().getId());
     }
 
@@ -131,17 +132,17 @@ public @Mixed class Group implements Serializable {
     }
 
     @SideEffectFree
-    public List<Ref<User>> getOwners() {
+    public List<Ref<? extends IUser>> getOwners() {
         return new ArrayList<>(owners.values());
     }
 
     @SideEffectFree
-    public List<Ref<User>> getMembers() {
+    public List<Ref<? extends IUser>> getMembers() {
         return new ArrayList<>(members.values());
     }
 
     @SideEffectFree
-    public List<Ref<? extends Post>> getNewestPosts(int n) {
-        return (@Weak @Immutable List<Ref<? extends Post>>) feed.subList(0, Math.min(n, feed.size()));
+    public List<Ref<? extends IPost>> getNewestPosts(int n) {
+        return (@Weak @Immutable List<Ref<? extends IPost>>) feed.subList(0, Math.min(n, feed.size()));
     }
 }

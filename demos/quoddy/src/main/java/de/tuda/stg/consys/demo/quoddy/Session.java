@@ -18,14 +18,22 @@ public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
     public static ConsistencyLevel<CassandraStore> groupConsistencyLevel;
     public static ConsistencyLevel<CassandraStore> activityConsistencyLevel;
+
+    public static Class<? extends IGroup> groupImpl;
+    public static Class<? extends IUser> userImpl;
+    public static Class<? extends IStatusUpdate> statusUpdateImpl;
+    public static Class<? extends IEvent> eventImpl;
+
+    public static boolean dataCentric;
+
     private CassandraStoreBinding store;
-    private Ref<User> user;
+    private Ref<? extends IUser> user;
 
     public Session(CassandraStoreBinding store) {
         this.store = store;
     }
 
-    public void switchStore(CassandraStoreBinding store) {
+    public void setStore(CassandraStoreBinding store) {
         this.store = store;
     }
 
@@ -34,40 +42,40 @@ public class Session {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
-    public Ref<User> getUser() {
+    public Ref<? extends IUser> getUser() {
         return user;
     }
 
-    public Ref<User> registerUser(CassandraTransactionContextBinding tr,
+    public Ref<? extends IUser> registerUser(CassandraTransactionContextBinding tr,
                                   String id, String name) {
         this.user = doTransaction(tr,
-                ctx -> Option.apply(ctx.replicate(id, userConsistencyLevel, User.class, id, name))).get();
+                ctx -> Option.apply(ctx.replicate(id, userConsistencyLevel, userImpl, id, name))).get();
         return this.user;
     }
 
-    public Option<Ref<User>> lookupUser(CassandraTransactionContextBinding tr,
+    public Option<Ref<? extends IUser>> lookupUser(CassandraTransactionContextBinding tr,
                                 String id) {
-        return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, userConsistencyLevel, User.class)));
+        return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, userConsistencyLevel, userImpl)));
     }
 
-    public Ref<Group> createGroup(CassandraTransactionContextBinding tr,
+    public Ref<? extends IGroup> createGroup(CassandraTransactionContextBinding tr,
                                   String id, String name, String description, boolean requiresJoinConfirmation) {
         checkLogin();
         return doTransaction(tr, ctx -> {
-            Ref<Group> group = ctx.replicate(id, groupConsistencyLevel, Group.class, id, name, description,
+            Ref<? extends IGroup> group = ctx.replicate(id, groupConsistencyLevel, groupImpl, id, name, description,
                     requiresJoinConfirmation, this.user);
             user.ref().addParticipatingGroup(group);
             return Option.apply(group);
         }).get();
     }
 
-    public Option<Ref<Group>> lookupGroup(CassandraTransactionContextBinding tr,
+    public Option<Ref<? extends IGroup>> lookupGroup(CassandraTransactionContextBinding tr,
                                         String id) {
-        return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, groupConsistencyLevel, Group.class)));
+        return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, groupConsistencyLevel, groupImpl)));
     }
 
     public void joinGroup(CassandraTransactionContextBinding tr,
-                          Ref<Group> group) {
+                          Ref<? extends IGroup> group) {
         checkLogin();
         doTransaction(tr, ctx -> {
             group.ref().join(user);
@@ -82,14 +90,14 @@ public class Session {
         var id = UUID.randomUUID();
 
         doTransaction(tr, ctx -> {
-            Ref<StatusUpdate> status =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, StatusUpdate.class, id, this.user, text);
+            Ref<? extends IStatusUpdate> status =
+                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
             this.user.ref().addPost(status);
-            for (Ref<User> follower : (List<Ref<User>>)user.ref().getFollowers()) {
+            for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
                 follower.ref().addPost(status); // TODO: could lead to batch too large
             }
-            for (Ref<User> friend : (List<Ref<User>>)user.ref().getFriends()) {
+            for (Ref<? extends IUser> friend : user.ref().getFriends()) {
                 friend.ref().addPost(status); // TODO: could lead to batch too large
             }
 
@@ -98,13 +106,13 @@ public class Session {
     }
 
     public void postStatusToGroup(CassandraTransactionContextBinding tr,
-                                  String text, Ref<Group> group) {
+                                  String text, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
 
         doTransaction(tr, ctx -> {
-            Ref<StatusUpdate> status =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, StatusUpdate.class, id, this.user, text);
+            Ref<? extends IStatusUpdate> status =
+                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
             if (!(boolean)group.ref().isUserInGroup(this.user))
                 throw new IllegalArgumentException("can only post in groups you are a member of");
@@ -115,14 +123,14 @@ public class Session {
         });
     }
 
-    public Ref<Event> postEventToGroup(CassandraTransactionContextBinding tr,
-                                 String text, Date date, Ref<Group> group) {
+    public Ref<? extends IEvent> postEventToGroup(CassandraTransactionContextBinding tr,
+                                       String text, Date date, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
 
         return doTransaction(tr, ctx -> {
-            Ref<Event> event =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, Event.class, id, this.user, date, text);
+            Ref<? extends IEvent> event =
+                    ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, date, text);
             event.ref().initSelf(event);
 
             if (!(boolean)group.ref().isUserInGroup(this.user))
@@ -135,10 +143,10 @@ public class Session {
     }
 
     public void sharePostWithFriend(CassandraTransactionContextBinding tr,
-                                    Ref<User> friend, Ref<? extends Post> post) {
+                                    Ref<? extends IUser> friend, Ref<? extends IPost> post) {
         checkLogin();
         doTransaction(tr, ctx -> {
-            if (((List<Ref<User>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
+            if (((List<Ref<? extends IUser>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
                 throw new IllegalArgumentException("target is not friend of user");
             friend.ref().addPost(post);
             return Option.empty();
@@ -146,7 +154,7 @@ public class Session {
     }
 
     public void sendFriendRequest(CassandraTransactionContextBinding tr,
-                                  Ref<User> receiver) {
+                                  Ref<? extends IUser> receiver) {
         checkLogin();
         doTransaction(tr, ctx -> {
             receiver.ref().addReceivedFriendRequest(this.user);
@@ -158,19 +166,19 @@ public class Session {
     public boolean acceptFriendRequest(CassandraTransactionContextBinding tr, int requestIndex) {
         checkLogin();
         return doTransaction(tr, ctx -> {
-            List<Ref<User>> requests = this.user.ref().getReceivedFriendRequests();
+            List<Ref<? extends IUser>> requests = this.user.ref().getReceivedFriendRequests();
             if (requestIndex >= requests.size()) {
                 return Option.apply(false);
             }
 
-            Ref<User> sender = requests.get(requestIndex);
+            Ref<? extends IUser> sender = requests.get(requestIndex);
             Util.acceptFriendRequest(this.user, sender);
 
             return Option.apply(true);
         }).get();
     }
 
-    public void follow(CassandraTransactionContextBinding tr, Ref<User> target) {
+    public void follow(CassandraTransactionContextBinding tr, Ref<? extends IUser> target) {
         checkLogin();
         doTransaction(tr, ctx -> {
             target.ref().addFollower(this.user);
