@@ -6,7 +6,8 @@ import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
-import de.tuda.stg.consys.core.store.extensions.store.DistributedStore
+import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
 import de.tuda.stg.consys.utils.Logger
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
@@ -14,8 +15,14 @@ import org.apache.curator.retry.ExponentialBackoffRetry
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-trait AkkaStore extends DistributedStore {
+trait AkkaStore extends DistributedStore
+  with ZookeeperStore
+  with ZookeeperBarrierStore {
 
+  /** The actor system to use for this store. */
+  def actorSystem : ActorSystem
+  /** The zookeeper curator to use for all zookeeper calls in this store. */
+  def curator : CuratorFramework
 
   /** Type for ids to identify different replicas of the store. */
   override type Id = String
@@ -41,9 +48,7 @@ trait AkkaStore extends DistributedStore {
    * unique for each replica. */
   override def id: Id = actorSystem.name
 
-  def actorSystem : ActorSystem
-  def curator : CuratorFramework
-
+  /** The backend replica implementation. */
   private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, curator, timeout)
 
 
@@ -120,6 +125,9 @@ object AkkaStore {
 
     val curator = CuratorFrameworkFactory
       .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
+
+    curator.start()
+    curator.blockUntilConnected()
 
     new AkkaStoreImpl(system, curator, timeout)
   }

@@ -25,6 +25,10 @@ public class AkkaReplica {
 		return new AkkaStoreBinding(store);
 	}
 
+	public static AkkaStoreBinding create(AkkaStore store) {
+		return new AkkaStoreBinding(store);
+	}
+
 }
 
 

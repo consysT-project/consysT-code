@@ -8,7 +8,7 @@ import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter._
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.{AkkaAddress, getActorSystemAddress}
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, ZookeeperLocking}
+import de.tuda.stg.consys.core.store.extensions.coordination.DistributedLock
 import de.tuda.stg.consys.utils.Logger
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
@@ -26,14 +26,6 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 
 	Logger.info(s"initialize actor")
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
-
-	Logger.info(s"initialize locking")
-	val locking = new ZookeeperLocking[Addr](curator)
-
-
-	def createLockFor(addr : Addr) : DistributedLock = {
-		locking.createLockFor(addr, timeout)
-	}
 
 	private def addOtherReplica(otherActor : ActorRef) : Unit = {
 		this.replicaActor ! AddReplica(otherActor)

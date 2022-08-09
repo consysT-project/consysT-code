@@ -1,28 +1,23 @@
 package de.tuda.stg.consys.core.store.extensions.coordination
 
 import akka.util.Timeout
-import org.apache.curator.framework.CuratorFramework
+import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.{Store, TransactionContext}
 import org.apache.curator.framework.recipes.locks.{InterProcessLock, InterProcessMutex}
 
 import java.util.concurrent.{TimeUnit, TimeoutException}
+import scala.collection.mutable
 
-class ZookeeperLocking[Addr](val curator : CuratorFramework) {
+/**
+ * Created on 16.01.20.
+ *
+ * @author Mirko Köhler
+ */
+trait ZookeeperLockingTransactionContext[StoreType <: ZookeeperStore with DistributedStore] extends LockingTransactionContext[StoreType] {
 
-	curator.start()
-	curator.blockUntilConnected()
-
-	//Create path for locks
-	curator.create().orSetData().forPath("/consys")
-	curator.create().orSetData().forPath("/consys/locks")
-
-	def createLockFor(addr : Addr, timeout : Timeout) : DistributedLock = {
-		val processLock = new InterProcessMutex(curator, s"/consys/locks/$addr")
-		new ZookeeperLock(processLock, timeout)
-	}
-
-
-	def close() : Unit = {
-		curator.close()
+	override protected def createLockFor(addr : StoreType#Addr) : DistributedLock = {
+		val processLock = new InterProcessMutex(store.curator, s"/consys/locks/$addr")
+		new ZookeeperLock(processLock, store.timeout)
 	}
 
 
@@ -37,4 +32,6 @@ class ZookeeperLocking[Addr](val curator : CuratorFramework) {
 		}
 	}
 
+
 }
+

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.bench;
+package de.tuda.stg.consys.bench.legacy;
 
 import de.tuda.stg.consys.core.store.utils.Address;
 import org.apache.curator.framework.CuratorFramework;

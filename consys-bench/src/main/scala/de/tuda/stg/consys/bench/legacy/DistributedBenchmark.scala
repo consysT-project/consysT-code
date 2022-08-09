@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.bench
+package de.tuda.stg.consys.bench.legacy
 
 /**
  * Created on 29.10.19.
@@ -6,7 +6,7 @@ package de.tuda.stg.consys.bench
  * @author Mirko Köhler
  */
 import com.typesafe.config.{Config, ConfigFactory}
-import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
+import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
 import de.tuda.stg.consys.core.store.utils.{Address, MultiPortAddress}
 import de.tuda.stg.consys.japi.Store
 import de.tuda.stg.consys.utils.InvariantUtils

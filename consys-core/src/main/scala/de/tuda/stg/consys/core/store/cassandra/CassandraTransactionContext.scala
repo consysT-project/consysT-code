@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.store.cassandra
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
 import de.tuda.stg.consys.core.store.TransactionContext
 import de.tuda.stg.consys.core.store.cassandra.objects.CassandraObject
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext, ZookeeperLockingTransactionContext}
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -18,7 +18,7 @@ import scala.reflect.ClassTag
 class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext[CassandraStore]
 	with CommitableTransactionContext[CassandraStore]
 	with CachedTransactionContext[CassandraStore]
-	with LockingTransactionContext[CassandraStore] {
+	with ZookeeperLockingTransactionContext[CassandraStore] {
 
 	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]
 
@@ -88,14 +88,8 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	}
 
 
-
-
-
 	override def toString : String = s"CassandraTxContext(${store.id}//$startTimestamp)"
 
-	override protected def createLockFor(addr : CassandraStore#Addr) : DistributedLock = {
-		store.locking.createLockFor(addr, store.timeout)
-	}
 
 	/** Implicitly resolves handlers in this transaction context. */
 	implicit def resolveHandler[T <: CassandraStore#ObjType : ClassTag](ref : CassandraStore#RefType[T]) : CassandraStore#HandlerType[T] =

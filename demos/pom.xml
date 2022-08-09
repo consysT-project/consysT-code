@@ -23,6 +23,7 @@
         <module>rubis</module>
         <module>quoddy</module>
         <module>box</module>
+        <module>crdt-benchmarks</module>
     </modules>
 
 

@@ -9,8 +9,8 @@ import com.datastax.oss.driver.api.querybuilder.select.Selector
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore.CassandraStoreId
 import de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaAdapter
-import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperLocking
-import de.tuda.stg.consys.core.store.extensions.store.DistributedStore
+import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
 import de.tuda.stg.consys.core.store.utils.Reflect
 import io.aeron.exceptions.DriverTimeoutException
 
@@ -31,7 +31,9 @@ import scala.reflect.ClassTag
  *
  * @author Mirko Köhler
  */
-trait CassandraStore extends DistributedStore {
+trait CassandraStore extends DistributedStore
+	with ZookeeperStore
+	with ZookeeperBarrierStore {
 
 	override final type Id = CassandraStoreId
 
@@ -45,11 +47,10 @@ trait CassandraStore extends DistributedStore {
 
 	override final type Level = ConsistencyLevel[CassandraStore]
 
+	override protected[store] val curator : CuratorFramework
 
 	protected[cassandra] val cassandraSession : CqlSession
-	protected[cassandra] val curator : CuratorFramework
 
-	private[cassandra] val locking : ZookeeperLocking[Addr] = new ZookeeperLocking[Addr](curator)
 	private[cassandra] val cassandra = new CassandraReplicaAdapter(cassandraSession, timeout, initializing)
 
 	//This flag states whether the creation should initialize tables etc.
@@ -103,6 +104,9 @@ object CassandraStore {
 
 		val curator = CuratorFrameworkFactory
 			.newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
+
+		curator.start()
+		curator.blockUntilConnected()
 
 		new CassandraStoreImpl(
 			cassandraSession,

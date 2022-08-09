@@ -1,6 +1,7 @@
-package de.tuda.stg.consys.core.store.extensions.store
+package de.tuda.stg.consys.core.store.extensions
 
 import de.tuda.stg.consys.core.store.Store
+
 import scala.concurrent.duration.FiniteDuration
 
 /**

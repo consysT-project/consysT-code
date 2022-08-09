@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.DistributedBenchmark;
+import de.tuda.stg.consys.bench.legacy.DistributedBenchmark;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
