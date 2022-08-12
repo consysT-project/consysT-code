@@ -5,7 +5,7 @@ package de.tuda.stg.consys.core.store.utils
  *
  * @author Mirko Köhler
  */
-case class Address(hostname : String, port : Int) {
+case class SinglePortAddress(hostname : String, port : Int) {
 	override def toString : String = s"$hostname:$port"
 }
 
@@ -13,10 +13,10 @@ case class MultiPortAddress(hostname : String, port1 : Int, port2 : Int) {
 	override def toString : String = s"$hostname:$port1:$port2"
 }
 
-object Address {
-	def parse(addressString : String) : Address = {
+object SinglePortAddress {
+	def parse(addressString : String) : SinglePortAddress = {
 		val splitted = addressString.split(":", 2)
-		Address(splitted(0), splitted(1).toInt)
+		SinglePortAddress(splitted(0), splitted(1).toInt)
 	}
 }
 

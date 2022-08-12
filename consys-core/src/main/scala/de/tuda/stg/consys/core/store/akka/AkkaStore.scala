@@ -13,6 +13,7 @@ import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 trait AkkaStore extends DistributedStore
@@ -89,6 +90,10 @@ trait AkkaStore extends DistributedStore
 
   def addOtherReplica(hostname : String, port : Int) : Unit = {
     replica.addOtherReplica(hostname, port)
+  }
+
+  def addOtherReplicaAsync(hostname : String, port : Int) : Future[Unit] = {
+    replica.addOtherReplicaAsync(hostname, port)
   }
 
   override def close() : Unit = {

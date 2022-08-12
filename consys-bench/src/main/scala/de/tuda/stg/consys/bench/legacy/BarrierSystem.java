@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.bench.legacy;
 
-import de.tuda.stg.consys.core.store.utils.Address;
+import de.tuda.stg.consys.core.store.utils.SinglePortAddress;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
@@ -14,7 +14,7 @@ public class BarrierSystem {
     private final int nReplicas;
     private final CuratorFramework curator;
 
-    public BarrierSystem(Address address, int nReplicas) {
+    public BarrierSystem(SinglePortAddress address, int nReplicas) {
         this.nReplicas = nReplicas;
         curator = CuratorFrameworkFactory.newClient(address.hostname() + ":" + address.port(),
                 new ExponentialBackoffRetry(250, 3));

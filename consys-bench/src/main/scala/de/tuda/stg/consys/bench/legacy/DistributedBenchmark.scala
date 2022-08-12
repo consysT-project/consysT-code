@@ -7,7 +7,7 @@ package de.tuda.stg.consys.bench.legacy
  */
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
-import de.tuda.stg.consys.core.store.utils.{Address, MultiPortAddress}
+import de.tuda.stg.consys.core.store.utils.{SinglePortAddress, MultiPortAddress}
 import de.tuda.stg.consys.japi.Store
 import de.tuda.stg.consys.utils.InvariantUtils
 
@@ -40,7 +40,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	/** Constructs the underlying replica store **/
 	val storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType
 ) {
-	val system : BarrierSystem = new BarrierSystem(new Address(address.hostname, address.port2), nReplicas)
+	val system : BarrierSystem = new BarrierSystem(new SinglePortAddress(address.hostname, address.port2), nReplicas)
 	var store : StoreType = storeCreator(address, processId, system)
 
 	println(s"+++++++++++ Process $processId of $getName ready")

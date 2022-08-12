@@ -10,7 +10,7 @@ import de.tuda.stg.consys.bench.OutputFileResolver.DateTimeOutputResolver
 import de.tuda.stg.consys.bench.legacy.BarrierSystem
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
-import de.tuda.stg.consys.core.store.utils.{Address, MultiPortAddress}
+import de.tuda.stg.consys.core.store.utils.{SinglePortAddress, MultiPortAddress}
 import de.tuda.stg.consys.japi.Store
 import de.tuda.stg.consys.utils.InvariantUtils
 
@@ -31,6 +31,8 @@ trait StoreBenchmark[StoreType <: DistributedStore with BarrierStore] {
 	/** The underlying store for the benchmark */
 	def store : StoreType
 
+	def processId : Int
+
 	def numberOfReplicas : Int
 
 	/** Defines how often the benchmark is repeated during warmup. */
@@ -47,38 +49,9 @@ trait StoreBenchmark[StoreType <: DistributedStore with BarrierStore] {
 	def barrierTimeout : FiniteDuration
 
 	/** Defines where the measurement output is stored. */
-	val outputResolver : OutputFileResolver
-
-	println(s"+++++++++++ Process $processId of $getName ready")
-
-	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
-		this(
-			name,
-			MultiPortAddress.parse(config.getString("consys.bench.hostname")),
-			config.getInt("consys.bench.nReplicas"),
-			config.getInt("consys.bench.processId"),
-			config.getInt("consys.bench.warmupIterations"),
-			config.getInt("consys.bench.measureIterations"),
-			config.getInt("consys.bench.operationsPerIteration"),
-			config.getDuration("consys.bench.waitPerOperation"),
-			outputResolver match {
-				case None => new DateTimeOutputResolver(name, config.getString("consys.bench.outputFile"))
-				case Some(e) => e
-			},
-			storeCreator
-		)
-
-		InvariantUtils.setReplicaId(processId)
-		InvariantUtils.setNumOfReplicas(nReplicas)
-		InvariantUtils.setReplicaName(address.toString)
-	}
+	def outputResolver : OutputFileResolver
 
 
-	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
-		this(name, ConfigFactory.load(configName), outputResolver, storeCreator)
-	}
 
 
 	/** Sets up the benchmark before measuring iterations. This includes, e.g., creating data structures. */
@@ -93,7 +66,7 @@ trait StoreBenchmark[StoreType <: DistributedStore with BarrierStore] {
 	/** Cleans up all data structures after the measurement. This is not measured. */
 	protected def cleanup() : Unit
 
-	protected def getName : String = "default"
+
 
 	private def busyWait(ms : Long) : Unit = {
 		val start = System.currentTimeMillis

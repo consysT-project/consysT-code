@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.extensions.coordination
 
 import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
-import de.tuda.stg.consys.core.store.utils.Address
+import de.tuda.stg.consys.core.store.utils.SinglePortAddress
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier
 import org.apache.curator.retry.ExponentialBackoffRetry

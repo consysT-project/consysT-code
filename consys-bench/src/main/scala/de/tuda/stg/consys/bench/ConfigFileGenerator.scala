@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.bench
 
-import de.tuda.stg.consys.core.store.utils.Address
+import de.tuda.stg.consys.core.store.utils.SinglePortAddress
 
 import java.io.PrintWriter
 import java.nio.file.{Path, Paths}
@@ -11,7 +11,7 @@ import java.nio.file.{Path, Paths}
  * @author Mirko Köhler
  */
 class ConfigFileGenerator(
-	val hosts : Seq[Address],
+	val hosts : Seq[SinglePortAddress],
 	val warmupIterations : Int,
 	val measureIterations : Int,
 	val outputFile : Path
@@ -63,7 +63,7 @@ object ConfigFileGenerator {
 		val outputFile = Paths.get(args(1))
 		val warmupIterations = args(2).toInt
 		val measureIterations = args(3).toInt
-		val hosts = args.drop(4).map(addrString => Address.parse(addrString))
+		val hosts = args.drop(4).map(addrString => SinglePortAddress.parse(addrString))
 
 
 		new ConfigFileGenerator(hosts, warmupIterations, measureIterations, outputFile)
