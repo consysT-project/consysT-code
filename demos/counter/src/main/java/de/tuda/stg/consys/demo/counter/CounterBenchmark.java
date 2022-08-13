@@ -54,7 +54,7 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 			} else {
 				counter.ref().get();
 			}
-			return Option.empty();
+			return Option.apply(0);
 		});
 		System.out.print(".");
 	}

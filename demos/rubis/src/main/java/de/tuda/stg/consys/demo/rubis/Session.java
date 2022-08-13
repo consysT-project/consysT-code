@@ -113,7 +113,7 @@ public class Session {
         checkLogin();
         doTransaction(tr, ctx -> {
             user.ref().addBalance(amount);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -150,7 +150,7 @@ public class Session {
 
         doTransaction(tr, cty -> {
             user.ref().addOwnAuction(item);
-            return Option.empty();
+            return Option.apply(0);
         });
 
         return doTransaction(tr, ctx -> {
@@ -191,7 +191,7 @@ public class Session {
 
         doTransaction(tr, ctx -> {
             item.ref().buyNow(user, item);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -237,7 +237,7 @@ public class Session {
             item.ref().endAuctionNow();
             item.ref().closeAuction(item);
 
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 

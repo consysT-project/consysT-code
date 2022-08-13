@@ -3,6 +3,7 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 import scala.Option;
 import scala.concurrent.duration.Duration;
 
@@ -25,7 +26,7 @@ public class BoxTest {
             this.v = v;
         }
 
-        @WeakOp
+        @WeakOp @SideEffectFree
         public int get() {
             return v;
         }
@@ -91,7 +92,7 @@ public class BoxTest {
             r1.transaction(ctx -> {
                 box.ref().set(1);
                 try { Thread.sleep(500); } catch (InterruptedException e) { e.printStackTrace(); }
-                return Option.empty();
+                return Option.apply(0);
             });
             System.out.println("  " + new Date().toInstant() + " | end T1");
             return null;
@@ -102,7 +103,7 @@ public class BoxTest {
             System.out.println("  " + new Date().toInstant() + " | start T2");
             r2.transaction(ctx -> {
                 box.ref().get();
-                return Option.empty();
+                return Option.apply(0);
             });
             System.out.println("  " + new Date().toInstant() + " | end T2");
             return null;

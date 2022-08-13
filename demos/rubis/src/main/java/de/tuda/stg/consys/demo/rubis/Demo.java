@@ -19,9 +19,9 @@ public class Demo extends DemoExecutor<RubisBenchmark> {
                 "    operationsPerIteration = 100\n" +
                 "    demo {\n" +
                 "      rubis {\n" +
-                "        users = 1000\n" +
+                "        users = 100\n" +
                 "      }\n" +
-                "      type = \"op_mixed\"\n" +
+                "      type = \"strong\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";

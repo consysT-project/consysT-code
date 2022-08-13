@@ -63,7 +63,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
                 store().transaction(ctx -> {
                     ctx.replicate(addr("group", finalGrpIndex, processId()), getWeakLevel(), Group.class);
-                    return Option.empty();
+                    return Option.apply(0);
                 });
                 Thread.sleep(33);
 
@@ -75,7 +75,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
                 store().transaction(ctx -> {
                     ctx.replicate(addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class,
                             inbox, addr("alice", finalGrpIndex, processId()));
-                    return Option.empty();
+                    return Option.apply(0);
                 });
                 Thread.sleep(33);
 
@@ -106,7 +106,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
                 if (replIndex == processId()) {
                     store().transaction(ctx -> {
                         group.ref().addUser(user);
-                        return Option.empty();
+                        return Option.apply(0);
                     });
                 }
 
@@ -134,7 +134,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     public void operation() {
         store().transaction(ctx -> {
             randomTransaction();
-           return Option.empty();
+           return Option.apply(0);
         });
         System.out.print(".");
     }

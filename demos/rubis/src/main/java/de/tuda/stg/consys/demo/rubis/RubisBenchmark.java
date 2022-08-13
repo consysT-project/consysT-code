@@ -95,14 +95,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         if (processId() == 0) {
             store().transaction(ctx -> {
                 auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.empty();
+                return Option.apply(0);
             });
         }
         barrier("auction_store_setup");
         if (processId() != 0) {
             store().transaction(ctx -> {
                 auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.empty();
+                return Option.apply(0);
             });
         }
 
@@ -194,7 +194,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IItem> item = getRandomElement(openAuctions);
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -266,7 +266,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 check("buy-now closed for bidder",
                         bidder.ref().getOpenBuyerAuctions().stream().noneMatch(auction -> auction.ref().refEquals(item)));
             }
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -340,7 +340,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 }
             }
 
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -356,7 +356,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         Ref<? extends IUser> user2 = getRandomElementExcept(users, user1);
         store().transaction(ctx -> {
             user1.ref().rate(new Comment(rating, generateRandomText(10, WORDS), user2, user1));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -421,7 +421,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             checkFloatEquals("balance correct", balance, userBalance);
 
             }
-                    return Option.empty();
+                    return Option.apply(0);
     });
         System.out.println("## TEST SUCCESS ##");
     }

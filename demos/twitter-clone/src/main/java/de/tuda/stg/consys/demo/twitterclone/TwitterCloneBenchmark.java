@@ -99,7 +99,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
             store().transaction(ctx -> {
                 user.ref().addToTimeline(tweet);
-                return Option.empty();
+                return Option.apply(0);
             });
 
             BenchmarkUtils.printProgress(grpIndex);
@@ -142,7 +142,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     public void operation() {
         store().transaction(ctx -> {
             randomTransaction();
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
