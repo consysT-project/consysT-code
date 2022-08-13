@@ -82,10 +82,10 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
         Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
         if (getBenchType() == BenchmarkType.MIXED) {
-            //Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
-            //Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Item.class;
-            //Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
-            //Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
+            Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
+            Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
+            Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
+            Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
         } else {
             Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.User.class;
             Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Group.class;
@@ -126,7 +126,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             for (int i = 0; i < 5; i++) {
                 store().transaction(ctx -> {
                     event.ref().addSubscriber(getRandomElement(localSessions).getUser());
-                    return Option.empty();
+                    return Option.apply(0);
                 });
             }
 
@@ -153,7 +153,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             session.sendFriendRequest(null, friend);
             store().transaction(ctx -> {
                 Util.acceptFriendRequest(friend, session.getUser());
-                return Option.empty();
+                return Option.apply(0);
             });
             // every user starts with one post
             session.postStatusToProfile(null, generateRandomText(20));
@@ -234,7 +234,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
             }
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -245,7 +245,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
             }
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -258,7 +258,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         store().transaction(ctx -> {
             List<Ref<? extends IGroup>> groups = session.getUser().ref().getParticipatingGroups();
             session.postStatusToGroup(ctx, generateRandomText(20), getRandomElement(groups));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -267,7 +267,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Ref<? extends IUser> target = getRandomElement(users);
         store().transaction(ctx -> {
             session.follow(ctx, target);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -278,7 +278,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         store().transaction(ctx -> {
             session.sendFriendRequest(ctx, target);
             Util.acceptFriendRequest(target, session.getUser());
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -287,7 +287,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Ref<? extends IGroup> group = getRandomElement(groups);
         store().transaction(ctx -> {
             session.joinGroup(ctx, group);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -299,7 +299,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
             Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
             session.sharePostWithFriend(ctx, friend, post);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -310,7 +310,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
             Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -321,7 +321,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
             Ref<? extends IPost> post = getRandomElement(friend.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -330,7 +330,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Ref<? extends IEvent> event = getRandomElement(events);
         store().transaction(ctx -> {
             event.ref().postUpdate(generateRandomText(10));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 

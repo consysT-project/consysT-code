@@ -1,8 +1,13 @@
 package de.tuda.stg.consys.demo.quoddy;
 
+import de.tuda.stg.consys.checker.qual.Mutable;
+import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
+import de.tuda.stg.consys.demo.quoddy.schema.datacentric.BoolBox;
+import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefList;
+import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefMap;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
@@ -12,6 +17,8 @@ import scala.Option;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
 
 @SuppressWarnings({"consistency"})
 public class Session {
@@ -48,8 +55,22 @@ public class Session {
 
     public Ref<? extends IUser> registerUser(CassandraTransactionContextBinding tr,
                                   String id, String name) {
-        this.user = doTransaction(tr,
-                ctx -> Option.apply(ctx.replicate(id, userConsistencyLevel, userImpl, id, name))).get();
+        if (dataCentric) {
+            this.user = doTransaction(tr, ctx -> {
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> friends =
+                        ctx.replicate(id + ":friends", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> followers =
+                        ctx.replicate(id + ":followers", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> following =
+                        ctx.replicate(id + ":following", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefList<Ref<? extends IGroup>>> groups =
+                        ctx.replicate(id + ":groups", STRONG, (Class<RefList<Ref<? extends IGroup>>>)(Class)RefList.class);
+                return Option.apply(ctx.replicate(id, userConsistencyLevel, userImpl, id, name, friends, followers, following, groups));
+            }).get();
+        } else {
+            this.user = doTransaction(tr,
+                    ctx -> Option.apply(ctx.replicate(id, userConsistencyLevel, userImpl, id, name))).get();
+        }
         return this.user;
     }
 
@@ -62,8 +83,22 @@ public class Session {
                                   String id, String name, String description, boolean requiresJoinConfirmation) {
         checkLogin();
         return doTransaction(tr, ctx -> {
-            Ref<? extends IGroup> group = ctx.replicate(id, groupConsistencyLevel, groupImpl, id, name, description,
-                    requiresJoinConfirmation, this.user);
+            Ref<? extends IGroup> group;
+            if (dataCentric) {
+                Ref<@Strong @Mutable BoolBox> requires =
+                        ctx.replicate(id + ":requires", STRONG, BoolBox.class, requiresJoinConfirmation);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> owners =
+                        ctx.replicate(id + ":owners", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> members =
+                        ctx.replicate(id + ":members", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> pending =
+                        ctx.replicate(id + ":pending", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                group = ctx.replicate(id, groupConsistencyLevel, groupImpl, id, name, description,
+                        requires, this.user, owners, members, pending);
+            } else {
+                group = ctx.replicate(id, groupConsistencyLevel, groupImpl, id, name, description,
+                        requiresJoinConfirmation, this.user);
+            }
             user.ref().addParticipatingGroup(group);
             return Option.apply(group);
         }).get();
@@ -80,7 +115,7 @@ public class Session {
         doTransaction(tr, ctx -> {
             group.ref().join(user);
             user.ref().addParticipatingGroup(group);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -93,6 +128,7 @@ public class Session {
             Ref<? extends IStatusUpdate> status =
                     ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
+
             this.user.ref().addPost(status);
             for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
                 follower.ref().addPost(status); // TODO: could lead to batch too large
@@ -101,7 +137,7 @@ public class Session {
                 friend.ref().addPost(status); // TODO: could lead to batch too large
             }
 
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -119,7 +155,7 @@ public class Session {
 
             group.ref().addPost(status);
 
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -129,8 +165,14 @@ public class Session {
         var id = UUID.randomUUID();
 
         return doTransaction(tr, ctx -> {
-            Ref<? extends IEvent> event =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, date, text);
+            Ref<? extends IEvent> event;
+            if (dataCentric) {
+                Ref<@Strong @Mutable Date> eventDate =
+                        ctx.replicate(id.toString() + ":date", STRONG, Date.class, date.getTime());
+                event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, eventDate, text);
+            } else {
+                event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, date, text);
+            }
             event.ref().initSelf(event);
 
             if (!(boolean)group.ref().isUserInGroup(this.user))
@@ -149,7 +191,7 @@ public class Session {
             if (((List<Ref<? extends IUser>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
                 throw new IllegalArgumentException("target is not friend of user");
             friend.ref().addPost(post);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -159,7 +201,7 @@ public class Session {
         doTransaction(tr, ctx -> {
             receiver.ref().addReceivedFriendRequest(this.user);
             this.user.ref().addSentFriendRequest(receiver);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
@@ -183,7 +225,7 @@ public class Session {
         doTransaction(tr, ctx -> {
             target.ref().addFollower(this.user);
             this.user.ref().addFollowing(target);
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
