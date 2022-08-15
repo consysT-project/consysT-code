@@ -6,8 +6,9 @@ package de.tuda.stg.consys.bench.legacy
  * @author Mirko Köhler
  */
 import com.typesafe.config.{Config, ConfigFactory}
+import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
 import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
-import de.tuda.stg.consys.core.store.utils.{SinglePortAddress, MultiPortAddress}
+import de.tuda.stg.consys.core.store.utils.{MultiPortAddress, SinglePortAddress}
 import de.tuda.stg.consys.japi.Store
 import de.tuda.stg.consys.utils.InvariantUtils
 

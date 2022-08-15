@@ -2,9 +2,9 @@ package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
-import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.User;

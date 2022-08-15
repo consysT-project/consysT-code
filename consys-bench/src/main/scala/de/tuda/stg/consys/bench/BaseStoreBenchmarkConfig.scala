@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
  *
  * @author Mirko Köhler
  */
-abstract class BaseStoreBenchmark[StoreType <: DistributedStore with BarrierStore](
+class BaseStoreBenchmarkConfig[StoreType <: DistributedStore with BarrierStore](
 	override val name : String,
 	override val store : StoreType,
 	override val processId : Int,
@@ -33,7 +33,7 @@ abstract class BaseStoreBenchmark[StoreType <: DistributedStore with BarrierStor
 	override val waitBetweenOperations : FiniteDuration,
 	override val barrierTimeout : FiniteDuration,
 	override val outputResolver : OutputFileResolver
-) extends StoreBenchmark[StoreType] {
+) extends StoreBenchmarkConfig[StoreType] {
 
 	def this(name : String, config : Config, storeFactory : Config => StoreType) {
 		this(
@@ -44,8 +44,8 @@ abstract class BaseStoreBenchmark[StoreType <: DistributedStore with BarrierStor
 			warmupIterations = config.getInt("consys.bench.warmupIterations"),
 			measureIterations = config.getInt("consys.bench.measureIterations"),
 			operationsPerIteration = config.getInt("consys.bench.operationsPerIteration"),
-			waitBetweenOperations = config.getDuration("consys.bench.waitPerOperation"),
-			barrierTimeout = config.getDuration("consys.bench.barrierTimeout"),
+			waitBetweenOperations = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.waitPerOperation")),
+			barrierTimeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.barrierTimeout")),
 			outputResolver = new DateTimeOutputResolver(name, config.getString("consys.bench.outputPath"))
 		)
 

@@ -4,11 +4,8 @@ import com.typesafe.config.Config
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.utils.SinglePortAddress
-import de.tuda.stg.consys.japi.binding.cassandra.{CassandraReplica, CassandraStoreBinding}
 
-import scala.concurrent.duration.Duration
-
-object StoreAdapterFactories {
+object BenchmarkStoreFactories {
 
 	object AkkaStoreFactory extends (Config => AkkaStore) {
 		override def apply(config : Config) : AkkaStore = {
@@ -17,7 +14,7 @@ object StoreAdapterFactories {
 				host = config.getString("consys.bench.akka.host"),
 				akkaPort = config.getInt("consys.bench.akka.akkaPort"),
 				zookeeperPort = config.getInt("consys.bench.akka.zookeeperPort"),
-				timeout = config.getDuration("consys.bench.akka.timeout")
+				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout"))
 			)
 
 			val otherReplicas = config.getStringList("consys.bench.akka.otherReplicas")
@@ -40,7 +37,7 @@ object StoreAdapterFactories {
 					host = config.getString("consys.bench.cassandra.host"),
 					cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
 					zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
-					timeout = config.getDuration("consys.bench.cassandra.timeout"),
+					timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 					initialize = true
 				)
 			} else {
@@ -49,7 +46,7 @@ object StoreAdapterFactories {
 					host = config.getString("consys.bench.cassandra.host"),
 					cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
 					zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
-					timeout = config.getDuration("consys.bench.cassandra.timeout"),
+					timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 					initialize = false
 				)
 			}
