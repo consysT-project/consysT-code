@@ -5,20 +5,20 @@ import de.tuda.stg.consys.bench.StoreBenchmarkOps;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.japi.Store;
 
-public abstract class JStoreBenchmarkOps<StoreType extends Store> implements StoreBenchmarkOps {
+public abstract class JBenchOperation<StoreType extends Store> implements StoreBenchmarkOps {
 
-    private final JStoreAdapter<StoreType> adapter;
+    private final JBenchStore<StoreType> store;
     private final StoreBenchmarkConfig config;
 
 
-    protected JStoreBenchmarkOps(JStoreAdapter<StoreType> adapter, StoreBenchmarkConfig config) {
+    protected JBenchOperation(JBenchStore<StoreType> store, StoreBenchmarkConfig config) {
         super();
-        this.adapter = adapter;
+        this.store = store;
         this.config = config;
     }
 
     protected StoreType store() {
-        return adapter.store();
+        return store.javaStore();
     }
 
     protected int processId() {
@@ -26,15 +26,15 @@ public abstract class JStoreBenchmarkOps<StoreType extends Store> implements Sto
     }
 
     protected void barrier(String name) {
-        adapter.barrier(name, config.numberOfReplicas(), config.barrierTimeout());
+        store.barrier(name, config.numberOfReplicas(), config.barrierTimeout());
     }
 
     protected ConsistencyLevel getWeakLevel() {
-        return adapter.getWeakLevel();
+        return store.getWeakLevel();
     }
 
     protected ConsistencyLevel getStrongLevel() {
-        return adapter.getStrongLevel();
+        return store.getStrongLevel();
     }
 
 

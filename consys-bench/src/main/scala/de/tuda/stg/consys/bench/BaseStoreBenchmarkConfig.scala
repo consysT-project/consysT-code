@@ -22,47 +22,35 @@ import scala.concurrent.duration.FiniteDuration
  *
  * @author Mirko Köhler
  */
-class BaseStoreBenchmarkConfig[StoreType <: DistributedStore with BarrierStore](
+class BaseStoreBenchmarkConfig(
 	override val name : String,
-	override val store : StoreType,
-	override val processId : Int,
-	override val numberOfReplicas : Int,
-	override val warmupIterations : Int,
-	override val measureIterations : Int,
-	override val operationsPerIteration : Int,
-	override val waitBetweenOperations : FiniteDuration,
-	override val barrierTimeout : FiniteDuration,
-	override val outputResolver : OutputFileResolver
-) extends StoreBenchmarkConfig[StoreType] {
+	val config : Config
+) extends StoreBenchmarkConfig {
 
-	def this(name : String, config : Config, storeFactory : Config => StoreType) {
-		this(
-			name = name,
-			store = storeFactory(config),
-			processId = config.getInt("consys.bench.processId"),
-			numberOfReplicas = config.getInt("consys.bench.numberOfReplicas"),
-			warmupIterations = config.getInt("consys.bench.warmupIterations"),
-			measureIterations = config.getInt("consys.bench.measureIterations"),
-			operationsPerIteration = config.getInt("consys.bench.operationsPerIteration"),
-			waitBetweenOperations = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.waitPerOperation")),
-			barrierTimeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.barrierTimeout")),
-			outputResolver = new DateTimeOutputResolver(name, config.getString("consys.bench.outputPath"))
-		)
+	override val processId : Int = config.getInt("consys.bench.processId")
+	override val numberOfReplicas : Int = config.getInt("consys.bench.numberOfReplicas")
+	override val warmupIterations : Int = config.getInt("consys.bench.warmupIterations")
+	override val measureIterations : Int = config.getInt("consys.bench.measureIterations")
+	override val operationsPerIteration : Int = config.getInt("consys.bench.operationsPerIteration")
+	override val waitBetweenOperations : FiniteDuration = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.waitPerOperation"))
+	override val barrierTimeout : FiniteDuration = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.barrierTimeout"))
+	override val outputResolver : OutputFileResolver  = new DateTimeOutputResolver(name, config.getString("consys.bench.outputPath"))
 
-		InvariantUtils.setReplicaId(processId)
-		InvariantUtils.setNumOfReplicas(numberOfReplicas)
-		InvariantUtils.setReplicaName(store.id.toString)
+	InvariantUtils.setReplicaId(processId)
+	InvariantUtils.setNumOfReplicas(numberOfReplicas)
+//TODO: Do we need this?		InvariantUtils.setReplicaName(store.id.toString)
 
-		Logger.info(s"Benchmark created: $processId of $name ready")
-	}
-
-	def this(name : String, configName : String, storeFactory : Config => StoreType) {
-		this(name, ConfigFactory.load(configName), storeFactory)
-	}
 
 	override def toString : String =
-		s"Benchmark($name, $store, $processId, $warmupIterations, $measureIterations, $operationsPerIteration, $waitBetweenOperations, $barrierTimeout, $outputResolver)"
+		s"Benchmark($name, $processId, $warmupIterations, $measureIterations, $operationsPerIteration, $waitBetweenOperations, $barrierTimeout, $outputResolver) with config"
 
+	override def createStore[StoreType <: DistributedStore with BarrierStore](storeFactory : BenchmarkStoreFactory[StoreType]) : StoreType =
+		storeFactory.apply(config)
+}
+
+object BaseStoreBenchmarkConfig {
+	def load(name : String, configName : String) : BaseStoreBenchmarkConfig =
+		new BaseStoreBenchmarkConfig(name, ConfigFactory.load(configName))
 }
 
 

@@ -23,14 +23,12 @@ import scala.concurrent.duration.FiniteDuration
  *
  * @author Mirko Köhler
  */
-trait StoreBenchmarkConfig[StoreType <: DistributedStore with BarrierStore] {
+trait StoreBenchmarkConfig {
 
 	/** The name of the benchark, for identification purposes. */
 	def name : String
 
 	/** The underlying store for the benchmark */
-	def store : StoreType
-
 	def processId : Int
 
 	def numberOfReplicas : Int
@@ -50,6 +48,10 @@ trait StoreBenchmarkConfig[StoreType <: DistributedStore with BarrierStore] {
 
 	/** Defines where the measurement output is stored. */
 	def outputResolver : OutputFileResolver
+
+
+	/** Creates a store from this benchmark configuration */
+	def createStore[StoreType <: DistributedStore with BarrierStore](storeFactory : BenchmarkStoreFactory[StoreType]) : StoreType
 
 
 

@@ -7,13 +7,11 @@ import de.tuda.stg.consys.utils.Logger
 import java.io.{FileNotFoundException, PrintWriter}
 
 class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
-	val config : StoreBenchmarkConfig[StoreType],
+	val store : StoreType,
+	val config : StoreBenchmarkConfig,
 	val ops : StoreBenchmarkOps
 ) {
 
-	protected def store : StoreType = config.store
-
-	
 	private def busyWait(ms : Long) : Unit = {
 		val start = System.currentTimeMillis
 		while (System.currentTimeMillis < start + ms) {}

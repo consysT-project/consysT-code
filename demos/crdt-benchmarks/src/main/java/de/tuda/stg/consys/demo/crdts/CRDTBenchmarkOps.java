@@ -1,11 +1,10 @@
 package de.tuda.stg.consys.demo.crdts;
 
 import de.tuda.stg.consys.bench.StoreBenchmarkConfig;
-import de.tuda.stg.consys.demo.JStoreAdapter;
-import de.tuda.stg.consys.demo.JStoreBenchmarkOps;
+import de.tuda.stg.consys.demo.JBenchStore;
+import de.tuda.stg.consys.demo.JBenchOperation;
 import de.tuda.stg.consys.demo.crdts.schema.GCounter;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.Store;
 import scala.Option;
 
 import java.util.Random;
@@ -16,12 +15,12 @@ import java.util.Random;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class CRDTBenchmarkOps<StoreType extends Store> extends JStoreBenchmarkOps<StoreType> {
+public class CRDTBenchmarkOps extends JBenchOperation {
 
 	private final Random random = new Random();
 	private Ref<GCounter> counter;
 
-	protected CRDTBenchmarkOps(JStoreAdapter<StoreType> adapter, StoreBenchmarkConfig config) {
+	protected CRDTBenchmarkOps(JBenchStore adapter, StoreBenchmarkConfig config) {
 		super(adapter, config);
 	}
 
