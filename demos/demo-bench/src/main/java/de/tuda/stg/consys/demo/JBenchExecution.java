@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.demo;
 
-import de.tuda.stg.consys.bench.BaseStoreBenchmarkConfig;
+import de.tuda.stg.consys.bench.BaseBenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkStoreFactory;
-import de.tuda.stg.consys.bench.StoreBenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.utils.Logger;
 import org.apache.commons.cli.*;
@@ -58,27 +58,28 @@ public class JBenchExecution {
         String[] configNames = cmd.getOptionValues("config");
 
         if (configNames.length == 1) {
-            StoreBenchmarkConfig config = BaseStoreBenchmarkConfig.load(name, configNames[0]);
+            BenchmarkConfig config = BaseBenchmarkConfig.load(name, configNames[0], false);
             JBenchExecutor executor = createExecutor(cmd, name, clazz, config);
             executor.runBenchmark();
         } else if (configNames.length > 1) {
-            runDemo(cmd, name, clazz, configNames);
+            runMultiThread(cmd, name, clazz, configNames);
         } else {
             throw new IllegalArgumentException("not enough configs given: " + Arrays.toString(configNames));
         }
     }
 
-    private static void runDemo(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, String[] configNames) {
+    private static void runMultiThread(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, String[] configNames) {
         int numberOfThreads = configNames.length;
 
         var exec = Executors.newFixedThreadPool(numberOfThreads);
         List<Future<?>> futures = new ArrayList<>();
 
         for (int i = 0; i < numberOfThreads; i++) {
+            final String configName = configNames[i];
             futures.add(exec.submit(() -> {
-                StoreBenchmarkConfig config = BaseStoreBenchmarkConfig.load(name, configNames[0]);
-                JBenchExecutor executor = createExecutor(cmd, name, clazz, config);
                 try {
+                    BenchmarkConfig config = BaseBenchmarkConfig.load(name, configName, true);
+                    JBenchExecutor executor = createExecutor(cmd, name, clazz, config);
                     executor.runBenchmark();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -99,7 +100,7 @@ public class JBenchExecution {
 
 
 
-    private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, StoreBenchmarkConfig config) {
+    private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, BenchmarkConfig config) {
         String backend = cmd.getOptionValue("backend");
 
         if ("akka".equals(backend)) {
@@ -109,9 +110,9 @@ public class JBenchExecution {
         }
     }
 
-    private static JBenchExecutor akkaExecutor(String name, Class<? extends JBenchOperation> clazz, StoreBenchmarkConfig config) {
+    private static JBenchExecutor akkaExecutor(String name, Class<? extends JBenchOperation> clazz, BenchmarkConfig config) {
         BenchmarkStoreFactory<AkkaStore> factory = BenchmarkStoreFactory.akkaStoreFactory();
-        AkkaStore scalaStore = config.<AkkaStore>createStore(factory);
+        AkkaStore scalaStore = factory.apply(config.toConfig());
         JBenchStore store = JBenchStore.fromAkkaStore(scalaStore);
 
         return new JBenchExecutor(

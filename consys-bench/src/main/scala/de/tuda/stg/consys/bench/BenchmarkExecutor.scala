@@ -6,10 +6,10 @@ import de.tuda.stg.consys.utils.Logger
 
 import java.io.{FileNotFoundException, PrintWriter}
 
-class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
-	val store : StoreType,
-	val config : StoreBenchmarkConfig,
-	val ops : StoreBenchmarkOps
+class BenchmarkExecutor(
+	val store : DistributedStore with BarrierStore,
+	val config : BenchmarkConfig,
+	val ops : BenchmarkOperation
 ) {
 
 	private def busyWait(ms : Long) : Unit = {
@@ -25,13 +25,13 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 		import config._
 		try {
 			barrier("warmup")
-			Logger.info("## START WARMUP ##")
+			Logger.info(store.id, "Start warmup")
 			for (i <- 1 to warmupIterations) {
 				barrier("setup")
-				Logger.info(s"### WARMUP $i : SETUP ###")
+				Logger.info(store.id, s"Warmup $i: setup")
 				ops.setup()
 				barrier("iterations")
-				Logger.info(s"### WARMUP $i : ITERATIONS ###")
+				Logger.info(store.id,s"Warmup $i: iterations")
 				for (j <- 1 to operationsPerIteration) {
 					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
 					ops.operation()
@@ -41,16 +41,16 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 				BenchmarkUtils.printDone()
 				barrier("cleanup")
 				if (i < warmupIterations || !skipCleanup) {
-					Logger.info(s"### WARMUP $i : CLEANUP ###")
+					Logger.info(store.id,s"Warmup $i: cleanup")
 					ops.cleanup()
 				}
 			}
 			barrier("warmup-done")
-			Logger.info("## WARMUP DONE ##")
+			Logger.info(store.id, "Warmup done")
 		} catch {
 			case e : Exception =>
 				e.printStackTrace()
-				Logger.err("Warmup failed. Retry.")
+				Logger.err(store.id, "Warmup failed")
 		}
 	}
 
@@ -60,10 +60,10 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 		import config._
 
 		barrier("measure")
-		Logger.info("## START MEASUREMENT ##")
+		Logger.info(store.id,"Start measure")
 
-		val latencyWriter = new PrintWriter(outputResolver.resolveLatencyFile(processId).toFile)
-		val runtimeWriter = new PrintWriter(outputResolver.resolveRuntimeFile(processId).toFile)
+		val latencyWriter = outputResolver.latencyWriter(processId)
+		val runtimeWriter = outputResolver.runtimeWriter(processId)
 
 		try {
 			latencyWriter.println("iteration,operation,ns")
@@ -72,12 +72,12 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 			for (i <- 1 to config.measureIterations) {
 				//Setup the measurement
 				barrier("setup")
-				Logger.info(s"### MEASURE $i : SETUP ###")
+				Logger.info(store.id,s"Measure $i: setup")
 				ops.setup()
 
 				//Run the measurement
 				barrier("iterations")
-				Logger.info(s"### MEASURE $i : OPERATIONS ###")
+				Logger.info(store.id, s"Measure $i: iterations")
 				val startIt = System.nanoTime()
 				for (j <- 1 to operationsPerIteration) {
 					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
@@ -98,7 +98,7 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 
 				//Cleanup the iteration
 				barrier("cleanup")
-				Logger.info(s"### MEASURE $i : CLEANUP ###")
+				Logger.info(store.id,s"Measure $i: cleanup")
 				ops.cleanup()
 			}
 		} catch {
@@ -106,7 +106,7 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 				throw new IllegalStateException("file not found", e)
 			case e : Exception =>
 				e.printStackTrace()
-				Logger.err("Measure failed. Retry.")
+				Logger.err(store.id,"Measure failed")
 		} finally {
 			latencyWriter.close()
 			runtimeWriter.close()
@@ -114,7 +114,7 @@ class StoreBenchmarkExecutor[StoreType <: DistributedStore with BarrierStore](
 
 		//Wait for measurement being done.
 		barrier("measure-done")
-		Logger.info("## MEASUREMENT DONE ##")
+		Logger.info(store.id, "Measure done")
 	}
 
 

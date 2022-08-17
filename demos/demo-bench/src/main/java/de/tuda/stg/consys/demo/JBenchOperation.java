@@ -1,17 +1,17 @@
 package de.tuda.stg.consys.demo;
 
-import de.tuda.stg.consys.bench.StoreBenchmarkConfig;
-import de.tuda.stg.consys.bench.StoreBenchmarkOps;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperation;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.japi.Store;
 
-public abstract class JBenchOperation<StoreType extends Store> implements StoreBenchmarkOps {
+public abstract class JBenchOperation<StoreType extends Store> implements BenchmarkOperation {
 
     private final JBenchStore<StoreType> store;
-    private final StoreBenchmarkConfig config;
+    private final BenchmarkConfig config;
 
 
-    protected JBenchOperation(JBenchStore<StoreType> store, StoreBenchmarkConfig config) {
+    protected JBenchOperation(JBenchStore<StoreType> store, BenchmarkConfig config) {
         super();
         this.store = store;
         this.config = config;

@@ -5,7 +5,10 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
-import de.tuda.stg.consys.core.store.utils.SinglePortAddress
+import de.tuda.stg.consys.core.store.utils.{MultiPortAddress, SinglePortAddress}
+
+import scala.collection.JavaConverters
+import scala.jdk.CollectionConverters
 
 
 trait BenchmarkStoreFactory[StoreType <: DistributedStore with BarrierStore] extends (Config => StoreType)
@@ -13,17 +16,23 @@ trait BenchmarkStoreFactory[StoreType <: DistributedStore with BarrierStore] ext
 object BenchmarkStoreFactory {
 
 	val akkaStoreFactory : BenchmarkStoreFactory[AkkaStore] = (config : Config) => {
+		import CollectionConverters._
+
+		val replicas =  config.getStringList("consys.bench.akka.replicas").asScala.map(s => MultiPortAddress.parse(s))
+		val processId = config.getInt("consys.bench.processId")
+		val address = replicas(processId)
+
 		val store = AkkaStore.fromAddress(
-			host = config.getString("consys.bench.akka.host"),
-			akkaPort = config.getInt("consys.bench.akka.akkaPort"),
-			zookeeperPort = config.getInt("consys.bench.akka.zookeeperPort"),
+			host = address.hostname,
+			akkaPort = address.port1,
+			zookeeperPort = address.port2,
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout"))
 		)
-		val otherReplicas = config.getStringList("consys.bench.akka.otherReplicas")
-		otherReplicas.forEach(s => {
-			val addr = SinglePortAddress.parse(s)
-			store.addOtherReplica(addr.hostname, addr.port)
+
+		replicas.foreach(addr => {
+			store.addOtherReplica(addr.hostname, addr.port1)
 		})
+
 		store
 	}
 

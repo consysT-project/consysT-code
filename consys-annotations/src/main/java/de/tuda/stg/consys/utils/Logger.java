@@ -10,14 +10,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Logger {
 
-	public final static PrintWriter info = newTaggedPrinter(System.out, "INFO");
-	public final static PrintWriter warn = newTaggedPrinter(System.err, "WARN");
-	public final static PrintWriter err = newTaggedPrinter(System.err, "ERR!");
+	public final static TaggedWriter infoWriter = new TaggedWriter(System.out, new String[] { "INFO" });
+	public final static TaggedWriter warnWriter = new TaggedWriter(System.out, new String[] { "WARN" });
+	public final static TaggedWriter errWriter = new TaggedWriter(System.err, new String[] { "FAIL" });
+
+	public final static PrintWriter info = new PrintWriter(infoWriter, true);
+	public final static PrintWriter warn = new PrintWriter(warnWriter, true);
+	public final static PrintWriter err = new PrintWriter(errWriter, true);
 
 	private static AtomicInteger identation = new AtomicInteger(0);
 
 	public static void info(Object msg) {
 		info.println(msg);
+	}
+
+	public static void info(Object tag, Object msg) {
+		info.println("[" + tag.toString() + "] " + msg);
 	}
 
 	public static void warn(Object msg) {
@@ -28,32 +36,32 @@ public class Logger {
 		err.println(msg);
 	}
 
+	public static void err(Object tag, Object msg) {
+		err.println("[" + tag.toString() + "] " + msg);
+	}
+
 	public static void withIdentation(Runnable f) {
 		identation.incrementAndGet();
 		f.run();
 		identation.decrementAndGet();
 	}
 
-	private static PrintWriter newTaggedPrinter(OutputStream out, String tag) {
-		return new PrintWriter(new TaggedWriter(out, tag), true);
-	}
-
 	private static class TaggedWriter extends Writer {
 		private final Writer stream;
-		private final String tag;
+		private final String[] tags;
 
 		// Indicates whether the last output to this writer was a new line
 		private AtomicBoolean first = new AtomicBoolean(true);
 
-		private final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+		private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
-		private TaggedWriter(Writer stream, String tag) {
+		private TaggedWriter(Writer stream, String[] tags) {
 			this.stream = stream;
-			this.tag = tag;
+			this.tags = tags;
 		}
 
-		private TaggedWriter(OutputStream stream, String tag) {
-			this(new OutputStreamWriter(stream), tag);
+		private TaggedWriter(OutputStream stream, String[] tags) {
+			this(new OutputStreamWriter(stream), tags);
 		}
 
 		@Override
@@ -65,7 +73,13 @@ public class Logger {
 		public void write(char[] cbuf, int off, int len) throws IOException {
 			var msg = String.valueOf(cbuf, off, len);
 
-			var prefix = "[" + sdf.format(new Date()) + "][" + tag + "]" + Strings.repeat("  |", identation.get()) + " ";
+			var prefix = "[" + sdf.format(new Date()) + "]";
+
+			for (String tag : tags) {
+				prefix += "[" + tag + "]";
+			}
+
+			prefix += Strings.repeat("  |", identation.get()) + " ";
 
 			var s = String.valueOf(msg);
 

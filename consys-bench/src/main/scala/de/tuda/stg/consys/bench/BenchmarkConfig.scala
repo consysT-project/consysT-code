@@ -5,16 +5,10 @@ package de.tuda.stg.consys.bench
  *
  * @author Mirko Köhler
  */
-import com.typesafe.config.{Config, ConfigFactory}
-import de.tuda.stg.consys.bench.OutputFileResolver.DateTimeOutputResolver
-import de.tuda.stg.consys.bench.legacy.BarrierSystem
+import com.typesafe.config.Config
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
-import de.tuda.stg.consys.core.store.utils.{SinglePortAddress, MultiPortAddress}
-import de.tuda.stg.consys.japi.Store
-import de.tuda.stg.consys.utils.InvariantUtils
 
-import java.io.{FileNotFoundException, PrintWriter}
 import scala.concurrent.duration.FiniteDuration
 
 
@@ -23,7 +17,7 @@ import scala.concurrent.duration.FiniteDuration
  *
  * @author Mirko Köhler
  */
-trait StoreBenchmarkConfig {
+trait BenchmarkConfig {
 
 	/** The name of the benchark, for identification purposes. */
 	def name : String
@@ -47,7 +41,9 @@ trait StoreBenchmarkConfig {
 	def barrierTimeout : FiniteDuration
 
 	/** Defines where the measurement output is stored. */
-	def outputResolver : OutputFileResolver
+	def outputResolver : OutputResolver
+
+	def toConfig : Config
 
 
 	/** Creates a store from this benchmark configuration */

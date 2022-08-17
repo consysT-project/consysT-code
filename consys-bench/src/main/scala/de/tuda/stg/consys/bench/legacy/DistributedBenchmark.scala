@@ -6,8 +6,8 @@ package de.tuda.stg.consys.bench.legacy
  * @author Mirko Köhler
  */
 import com.typesafe.config.{Config, ConfigFactory}
-import de.tuda.stg.consys.bench.OutputFileResolver.{DateTimeOutputResolver, SimpleOutputResolver}
-import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputFileResolver}
+import de.tuda.stg.consys.bench.OutputResolver.{DateTimeOutputResolver, SimpleOutputResolver}
+import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputResolver}
 import de.tuda.stg.consys.core.store.utils.{MultiPortAddress, SinglePortAddress}
 import de.tuda.stg.consys.japi.Store
 import de.tuda.stg.consys.utils.InvariantUtils
@@ -20,6 +20,7 @@ import java.io.{FileNotFoundException, PrintWriter}
  *
  * @author Mirko Köhler
  */
+@Deprecated
 abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	val name : String,
 	/** The address and cassandra port of this replica. */
@@ -37,7 +38,7 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 	/** Defines how long we wait between operations. */
 	val waitBetweenOperations : java.time.Duration,
 	/** Defines where the measurement output is stored. */
-	val outputResolver : OutputFileResolver,
+	val outputResolver : OutputResolver,
 	/** Constructs the underlying replica store **/
 	val storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType
 ) {
@@ -46,8 +47,8 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 
 	println(s"+++++++++++ Process $processId of $getName ready")
 
-	def this(name : String, config : Config, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
+	def this(name : String, config : Config, outputResolver : Option[OutputResolver],
+					 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
 		this(
 			name,
 			MultiPortAddress.parse(config.getString("consys.bench.hostname")),
@@ -66,12 +67,11 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 
 		InvariantUtils.setReplicaId(processId)
 		InvariantUtils.setNumOfReplicas(nReplicas)
-		InvariantUtils.setReplicaName(address.toString)
 	}
 
 
-	def this(name : String, configName : String, outputResolver : Option[OutputFileResolver],
-			 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
+	def this(name : String, configName : String, outputResolver : Option[OutputResolver],
+					 storeCreator : (MultiPortAddress, Int, BarrierSystem) => StoreType) {
 		this(name, ConfigFactory.load(configName), outputResolver, storeCreator)
 	}
 
@@ -135,8 +135,8 @@ abstract class DistributedBenchmark[StoreType <: Store[_,_,_,_]](
 		system.barrier("measure")
 		println("## START MEASUREMENT ##")
 
-		val latencyWriter = new PrintWriter(outputResolver.resolveLatencyFile(processId).toFile)
-		val runtimeWriter = new PrintWriter(outputResolver.resolveRuntimeFile(processId).toFile)
+		val latencyWriter = outputResolver.latencyWriter(processId)
+		val runtimeWriter = outputResolver.runtimeWriter(processId)
 
 		try {
 			latencyWriter.println("iteration,operation,ns")
@@ -213,8 +213,8 @@ object DistributedBenchmark {
 		}
 	}
 
-	def start(benchmark : Class[_ <: DistributedBenchmark[_]], configName : String, outputResolver : Option[OutputFileResolver]) : Unit = {
-		val constructor = benchmark.getConstructor(classOf[Config], classOf[Option[OutputFileResolver]])
+	def start(benchmark : Class[_ <: DistributedBenchmark[_]], configName : String, outputResolver : Option[OutputResolver]) : Unit = {
+		val constructor = benchmark.getConstructor(classOf[Config], classOf[Option[OutputResolver]])
 		val bench = constructor.newInstance(ConfigFactory.load(configName), outputResolver)
 
 		bench.runBenchmark()

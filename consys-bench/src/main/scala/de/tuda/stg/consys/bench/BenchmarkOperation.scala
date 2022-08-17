@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.bench
 
-trait StoreBenchmarkOps {
+trait BenchmarkOperation {
 
 	/** Sets up the benchmark before measuring iterations. This includes, e.g., creating data structures. */
 	def setup() : Unit

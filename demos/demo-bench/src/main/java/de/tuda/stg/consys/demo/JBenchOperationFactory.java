@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo;
 
-import de.tuda.stg.consys.bench.StoreBenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.japi.Store;
 
 import java.lang.reflect.Constructor;
@@ -8,7 +8,7 @@ import java.lang.reflect.InvocationTargetException;
 
 public abstract class JBenchOperationFactory<StoreType extends Store> {
 
-    public abstract JBenchOperation<StoreType> create(JBenchStore<StoreType> store, StoreBenchmarkConfig config);
+    public abstract JBenchOperation<StoreType> create(JBenchStore<StoreType> store, BenchmarkConfig config);
 
 
     public static JBenchOperationFactory fromClass(Class<? extends JBenchOperation> clazz) {
@@ -24,11 +24,11 @@ public abstract class JBenchOperationFactory<StoreType extends Store> {
         }
 
         @Override
-        public JBenchOperation create(JBenchStore store, StoreBenchmarkConfig config) {
+        public JBenchOperation create(JBenchStore store, BenchmarkConfig config) {
 
             Constructor<? extends JBenchOperation> benchConstructor;
             try {
-                benchConstructor = clazz.getDeclaredConstructor(JBenchStore.class, StoreBenchmarkConfig.class);
+                benchConstructor = clazz.getDeclaredConstructor(JBenchStore.class, BenchmarkConfig.class);
 
                 var benchmark = benchConstructor.newInstance(store, config);
                 return benchmark;

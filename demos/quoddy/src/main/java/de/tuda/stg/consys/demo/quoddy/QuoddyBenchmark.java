@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo.quoddy;
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
@@ -35,7 +35,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private final Random random = new Random();
 
-    public QuoddyBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+    public QuoddyBenchmark(Config config, Option<OutputResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.quoddy.users");

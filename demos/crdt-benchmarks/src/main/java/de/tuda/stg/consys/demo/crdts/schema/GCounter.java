@@ -4,11 +4,13 @@ package de.tuda.stg.consys.demo.crdts.schema;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
 
-
-@ReplicatedModel public class GCounter implements Mergeable<GCounter> {
+@SuppressWarnings("consistency")
+@ReplicatedModel public class GCounter implements Mergeable<GCounter>, Serializable {
 
     public int[] incs;
 

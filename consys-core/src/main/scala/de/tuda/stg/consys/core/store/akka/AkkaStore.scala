@@ -47,7 +47,7 @@ trait AkkaStore extends DistributedStore
 
   /** Returns an identifier of this replica of the store. It has to be
    * unique for each replica. */
-  override def id: Id = actorSystem.name
+  override def id: Id = s"${actorSystem.name}[$getAddress]"
 
   /** The backend replica implementation. */
   private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, curator, timeout)

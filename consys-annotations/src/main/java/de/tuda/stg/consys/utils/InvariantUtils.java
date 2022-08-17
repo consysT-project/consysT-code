@@ -11,15 +11,10 @@ public class InvariantUtils {
 	}
 
 	private static int replicaId = 2;
-	private static String replicaName = "replica-02@192.0.0.1";
 	private static int numOfReplicas = 5;
 
 	public static void setReplicaId(int i) {
 		replicaId = i;
-	}
-
-	public static void setReplicaName(String s) {
-		replicaName = s;
 	}
 
 	public static void setNumOfReplicas(int i) {
@@ -28,10 +23,6 @@ public class InvariantUtils {
 
 	public static int replicaId() {
 		return replicaId;
-	}
-
-	public static String replica() {
-		return replicaName;
 	}
 
 	public static int numOfReplicas() {

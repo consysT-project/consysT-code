@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
+@Deprecated
 public class BarrierSystem {
     private final int nReplicas;
     private final CuratorFramework curator;

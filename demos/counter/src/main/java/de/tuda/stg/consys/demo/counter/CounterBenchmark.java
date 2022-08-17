@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.Ref;
@@ -20,7 +20,7 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 		start(CounterBenchmark.class, args);
 	}
 
-	public CounterBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+	public CounterBenchmark(Config config, Option<OutputResolver> outputResolver) {
 		super(config, outputResolver);
 	}
 

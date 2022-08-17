@@ -24,7 +24,6 @@ import scala.util.{Failure, Success, Try}
 
 private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
-	Logger.info(s"initialize actor")
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
 
 	private def addOtherReplica(otherActor : ActorRef) : Unit = {
@@ -194,7 +193,6 @@ object AkkaReplicaAdapter {
 
 					case AddReplica(otherActor) =>
 						otherReplicas.add(otherActor)
-						Logger.info(s"$self: replica added: $otherActor")
 
 					/* Protocol for asynchronous writes */
 					case ExecuteBatchAsync(timestamp, ops) =>

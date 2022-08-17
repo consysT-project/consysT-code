@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+@Deprecated
 public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
 
     protected abstract Config benchmarkConfig();
