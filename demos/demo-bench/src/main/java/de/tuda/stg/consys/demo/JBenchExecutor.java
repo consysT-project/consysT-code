@@ -8,7 +8,7 @@ public class JBenchExecutor {
     private final BenchmarkExecutor executor;
     private final BenchmarkConfig config;
 
-    public JBenchExecutor(String name, BenchmarkConfig config, JBenchStore store, JBenchOperation operation) {
+    public JBenchExecutor(String name, BenchmarkConfig config, JBenchStore store, JBenchRunnable operation) {
         this.config = config;
         this.executor = new BenchmarkExecutor(store.scalaStore(), config, operation);
     }

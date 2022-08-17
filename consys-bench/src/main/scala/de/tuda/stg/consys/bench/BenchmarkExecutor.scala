@@ -9,7 +9,7 @@ import java.io.{FileNotFoundException, PrintWriter}
 class BenchmarkExecutor(
 	val store : DistributedStore with BarrierStore,
 	val config : BenchmarkConfig,
-	val ops : BenchmarkOperation
+	val runnable : BenchmarkRunnable
 ) {
 
 	private def busyWait(ms : Long) : Unit = {
@@ -29,20 +29,25 @@ class BenchmarkExecutor(
 			for (i <- 1 to warmupIterations) {
 				barrier("setup")
 				Logger.info(store.id, s"Warmup $i: setup")
-				ops.setup()
+				runnable.setup()
 				barrier("iterations")
 				Logger.info(store.id,s"Warmup $i: iterations")
+				val operations = runnable.operations
+
 				for (j <- 1 to operationsPerIteration) {
 					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
-					ops.operation()
+					val op = operations.getOperation
+					op.run()
 					BenchmarkUtils.printProgress(j)
 				}
-				ops.closeOperations()
+
+				runnable.closeOperations()
+
 				BenchmarkUtils.printDone()
 				barrier("cleanup")
 				if (i < warmupIterations || !skipCleanup) {
 					Logger.info(store.id,s"Warmup $i: cleanup")
-					ops.cleanup()
+					runnable.cleanup()
 				}
 			}
 			barrier("warmup-done")
@@ -73,25 +78,33 @@ class BenchmarkExecutor(
 				//Setup the measurement
 				barrier("setup")
 				Logger.info(store.id,s"Measure $i: setup")
-				ops.setup()
+				runnable.setup()
 
 				//Run the measurement
 				barrier("iterations")
 				Logger.info(store.id, s"Measure $i: iterations")
+				val operations = runnable.operations
+
 				val startIt = System.nanoTime()
 				for (j <- 1 to operationsPerIteration) {
 					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
+					val op = operations.getOperation
+
 					val startOp = System.nanoTime
-					ops.operation()
+					op.run()
 					val latency = System.nanoTime - startOp
+
 					latencyWriter.println(s"$i,$j,$latency")
 					BenchmarkUtils.printProgress(j)
 				}
-				ops.closeOperations() // TODO: still necessary?
+
+				runnable.closeOperations() // TODO: still necessary?
+
 				//Measure total runtime (~ time to consistency)
 				val runtime = System.nanoTime - startIt
 				runtimeWriter.println(s"$i,$runtime")
 				BenchmarkUtils.printDone()
+
 				//Flush writers
 				runtimeWriter.flush()
 				latencyWriter.flush()
@@ -99,7 +112,7 @@ class BenchmarkExecutor(
 				//Cleanup the iteration
 				barrier("cleanup")
 				Logger.info(store.id,s"Measure $i: cleanup")
-				ops.cleanup()
+				runnable.cleanup()
 			}
 		} catch {
 			case e : FileNotFoundException =>

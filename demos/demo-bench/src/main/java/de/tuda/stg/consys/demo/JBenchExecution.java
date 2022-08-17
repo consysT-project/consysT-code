@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public class JBenchExecution {
 
-    public static void execute(String name, Class<? extends JBenchOperation> clazz, String[] args) {
+    public static void execute(String name, Class<? extends JBenchRunnable> clazz, String[] args) {
 
         Options options = new Options();
 
@@ -68,7 +68,7 @@ public class JBenchExecution {
         }
     }
 
-    private static void runMultiThread(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, String[] configNames) {
+    private static void runMultiThread(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, String[] configNames) {
         int numberOfThreads = configNames.length;
 
         var exec = Executors.newFixedThreadPool(numberOfThreads);
@@ -100,7 +100,7 @@ public class JBenchExecution {
 
 
 
-    private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchOperation> clazz, BenchmarkConfig config) {
+    private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, BenchmarkConfig config) {
         String backend = cmd.getOptionValue("backend");
 
         if ("akka".equals(backend)) {
@@ -110,7 +110,7 @@ public class JBenchExecution {
         }
     }
 
-    private static JBenchExecutor akkaExecutor(String name, Class<? extends JBenchOperation> clazz, BenchmarkConfig config) {
+    private static JBenchExecutor akkaExecutor(String name, Class<? extends JBenchRunnable> clazz, BenchmarkConfig config) {
         BenchmarkStoreFactory<AkkaStore> factory = BenchmarkStoreFactory.akkaStoreFactory();
         AkkaStore scalaStore = factory.apply(config.toConfig());
         JBenchStore store = JBenchStore.fromAkkaStore(scalaStore);

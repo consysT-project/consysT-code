@@ -27,7 +27,7 @@ object OutputResolver {
 
 	class DateTimeOutputResolver(className : String, basePath : String) extends OutputResolver {
 		private val sdf = new SimpleDateFormat("YY-MM-dd_kk-mm-ss")
- 		private val outputDir = Paths.get("results", className, basePath, sdf.format(new Date))
+ 		private val outputDir = Paths.get("benchmark", "measurements", className, basePath, sdf.format(new Date))
 
 		//Initialize output dir
 		try {
@@ -64,7 +64,7 @@ object OutputResolver {
 
 
 	class SimpleOutputResolver(className : String, basePath : String) extends OutputResolver {
-		private val outputDir = Paths.get("results", className, basePath)
+		private val outputDir = Paths.get("benchmark", "measurements", className, basePath)
 		//Initialize output dir
 		try {
 			Files.createDirectories(outputDir)

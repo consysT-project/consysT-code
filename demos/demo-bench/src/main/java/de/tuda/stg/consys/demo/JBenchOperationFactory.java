@@ -8,25 +8,25 @@ import java.lang.reflect.InvocationTargetException;
 
 public abstract class JBenchOperationFactory<StoreType extends Store> {
 
-    public abstract JBenchOperation<StoreType> create(JBenchStore<StoreType> store, BenchmarkConfig config);
+    public abstract JBenchRunnable<StoreType> create(JBenchStore<StoreType> store, BenchmarkConfig config);
 
 
-    public static JBenchOperationFactory fromClass(Class<? extends JBenchOperation> clazz) {
+    public static JBenchOperationFactory fromClass(Class<? extends JBenchRunnable> clazz) {
         return new JStoreBenchmarkOpsClassFactory(clazz);
     }
 
 
     private static class JStoreBenchmarkOpsClassFactory extends JBenchOperationFactory {
-        private final Class<? extends JBenchOperation> clazz;
+        private final Class<? extends JBenchRunnable> clazz;
 
-        private JStoreBenchmarkOpsClassFactory(Class<? extends JBenchOperation> clazz) {
+        private JStoreBenchmarkOpsClassFactory(Class<? extends JBenchRunnable> clazz) {
             this.clazz = clazz;
         }
 
         @Override
-        public JBenchOperation create(JBenchStore store, BenchmarkConfig config) {
+        public JBenchRunnable create(JBenchStore store, BenchmarkConfig config) {
 
-            Constructor<? extends JBenchOperation> benchConstructor;
+            Constructor<? extends JBenchRunnable> benchConstructor;
             try {
                 benchConstructor = clazz.getDeclaredConstructor(JBenchStore.class, BenchmarkConfig.class);
 
