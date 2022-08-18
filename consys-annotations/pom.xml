@@ -23,6 +23,10 @@
             <version>30.0-jre</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+        </dependency>
     </dependencies>
 
 

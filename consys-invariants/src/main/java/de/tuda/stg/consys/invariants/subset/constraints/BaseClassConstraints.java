@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;

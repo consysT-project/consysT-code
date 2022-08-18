@@ -2,7 +2,7 @@ package de.tuda.stg.consys.invariants.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;

@@ -9,7 +9,7 @@ import com.datastax.oss.driver.api.querybuilder.select.Selector
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore.CassandraStoreId
 import de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaAdapter
-import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ZookeeperStore}
 import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
 import de.tuda.stg.consys.core.store.utils.Reflect
 import io.aeron.exceptions.DriverTimeoutException
@@ -33,7 +33,8 @@ import scala.reflect.ClassTag
  */
 trait CassandraStore extends DistributedStore
 	with ZookeeperStore
-	with ZookeeperBarrierStore {
+	with ZookeeperBarrierStore
+	with ClearableStore {
 
 	override final type Id = CassandraStoreId
 
@@ -51,7 +52,8 @@ trait CassandraStore extends DistributedStore
 
 	protected[cassandra] val cassandraSession : CqlSession
 
-	private[cassandra] val cassandra = new CassandraReplicaAdapter(cassandraSession, timeout, initializing)
+	private[cassandra] val cassandra = new CassandraReplicaAdapter(cassandraSession, timeout)
+	if (initializing) cassandra.setup()
 
 	//This flag states whether the creation should initialize tables etc.
 	protected def initializing : Boolean
@@ -79,6 +81,10 @@ trait CassandraStore extends DistributedStore
 	}
 
 	override def id : CassandraStoreId = CassandraStoreId(s"cassandra-store@${cassandraSession.getContext.getSessionName}")
+
+	override def clear() : Unit = {
+		cassandra.setup()
+	}
 }
 
 object CassandraStore {

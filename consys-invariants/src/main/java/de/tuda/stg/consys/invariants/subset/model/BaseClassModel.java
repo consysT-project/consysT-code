@@ -4,7 +4,7 @@ import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.TupleSort;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.subset.parser.ExpressionParser;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;

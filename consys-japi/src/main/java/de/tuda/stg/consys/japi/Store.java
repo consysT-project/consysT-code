@@ -12,4 +12,6 @@ public interface Store<Addr, Obj, Consistency, TxContext extends TransactionCont
 	<U> Option<U> transaction(Transaction<TxContext, U, Addr, Obj, Consistency> tx);
 
 	void close() throws Exception;
+
+	void clear();
 }

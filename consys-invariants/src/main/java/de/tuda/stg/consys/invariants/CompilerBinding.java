@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants;
 
 import com.google.common.collect.Lists;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.core.compiler.CompilationProgress;
 import org.eclipse.jdt.core.compiler.InvalidInputException;

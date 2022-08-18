@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkRunnable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.core.store.extensions.ClearableStore;
 import de.tuda.stg.consys.japi.Store;
 
 public abstract class JBenchRunnable<StoreType extends Store> implements BenchmarkRunnable {

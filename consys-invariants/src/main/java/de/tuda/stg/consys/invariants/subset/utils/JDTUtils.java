@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.invariants.subset.utils;
 
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.*;
 
 import java.util.Arrays;

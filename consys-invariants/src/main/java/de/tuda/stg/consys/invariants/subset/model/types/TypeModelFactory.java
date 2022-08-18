@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.subset.model.types;
 
 import com.google.common.collect.Maps;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.subset.utils.Lazy;

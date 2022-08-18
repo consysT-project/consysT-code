@@ -3,8 +3,7 @@ package de.tuda.stg.consys.demo;
 import de.tuda.stg.consys.bench.BaseBenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkStoreFactory;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
-import de.tuda.stg.consys.core.store.akka.AkkaStore;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import org.apache.commons.cli.*;
 
 import java.util.ArrayList;
@@ -23,17 +22,17 @@ public class JBenchExecution {
         Options options = new Options();
 
         Option backendOption = Option.builder()
-                .argName("store backend")
+                .argName("store")
                 .option("b")
                 .longOpt("backend")
                 .hasArg()
-                .desc("The backend to execute this benchmark.")
+                .desc("The backend to execute this benchmark. Possible stores: akka, cassandra")
                 .required()
                 .build();
         options.addOption(backendOption);
 
         Option configOption = Option.builder()
-                .argName("configuration files")
+                .argName("files")
                 .option("c")
                 .longOpt("config")
                 .hasArgs()
@@ -104,23 +103,23 @@ public class JBenchExecution {
         String backend = cmd.getOptionValue("backend");
 
         if ("akka".equals(backend)) {
-            return akkaExecutor(name, clazz, config);
+            return new JBenchExecutor(
+                    name,
+                    config,
+                    BenchmarkStoreFactory.akkaStoreFactory(),
+                    JBenchRunnableFactory.fromClass(clazz, JBenchStoreConverter.AKKA_STORE_CONVERTER)
+            );
+        } if ("cassandra".equals(backend)) {
+            return new JBenchExecutor(
+                    name,
+                    config,
+                    BenchmarkStoreFactory.cassandraStoreFactory(),
+                    JBenchRunnableFactory.fromClass(clazz, JBenchStoreConverter.CASSANDRA_STORE_CONVERTER)
+            );
         } else {
             throw new IllegalArgumentException("unknown backend: " + backend);
         }
     }
 
-    private static JBenchExecutor akkaExecutor(String name, Class<? extends JBenchRunnable> clazz, BenchmarkConfig config) {
-        BenchmarkStoreFactory<AkkaStore> factory = BenchmarkStoreFactory.akkaStoreFactory();
-        AkkaStore scalaStore = factory.apply(config.toConfig());
-        JBenchStore store = JBenchStore.fromAkkaStore(scalaStore);
-
-        return new JBenchExecutor(
-                name,
-                config,
-                store,
-                JBenchOperationFactory.fromClass(clazz).create(store, config)
-        );
-    }
 
 }

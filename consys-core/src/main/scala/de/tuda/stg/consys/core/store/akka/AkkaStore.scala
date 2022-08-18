@@ -6,19 +6,20 @@ import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
-import de.tuda.stg.consys.core.store.extensions.{DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ZookeeperStore}
 import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
-import de.tuda.stg.consys.utils.Logger
+import de.tuda.stg.consys.logging.Logger
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
 import java.util.concurrent.TimeUnit
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 trait AkkaStore extends DistributedStore
   with ZookeeperStore
-  with ZookeeperBarrierStore {
+  with ZookeeperBarrierStore
+  with ClearableStore {
 
   /** The actor system to use for this store. */
   def actorSystem : ActorSystem
@@ -98,8 +99,12 @@ trait AkkaStore extends DistributedStore
 
   override def close() : Unit = {
     curator.close()
-    //TODO: Complete correct termination logic
-    val terminated = actorSystem.terminate()
+    replica.close()
+    Await.ready(actorSystem.whenTerminated, timeout)
+  }
+
+  override def clear() : Unit = {
+    replica.clear()
   }
 
 }

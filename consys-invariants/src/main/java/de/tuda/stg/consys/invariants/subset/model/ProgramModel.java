@@ -10,7 +10,7 @@ import de.tuda.stg.consys.invariants.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.subset.constraints.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.subset.model.types.TypeModelFactory;
 import de.tuda.stg.consys.invariants.subset.utils.JDTUtils;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.CompilationUnitScope;
 import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;

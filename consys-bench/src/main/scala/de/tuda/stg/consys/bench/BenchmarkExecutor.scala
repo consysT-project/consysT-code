@@ -2,14 +2,14 @@ package de.tuda.stg.consys.bench
 
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
-import de.tuda.stg.consys.utils.Logger
+import de.tuda.stg.consys.logging.Logger
 
 import java.io.{FileNotFoundException, PrintWriter}
 
 class BenchmarkExecutor(
-	val store : DistributedStore with BarrierStore,
 	val config : BenchmarkConfig,
-	val runnable : BenchmarkRunnable
+	val storeFactory : BenchmarkStoreFactory[_ <: DistributedStore with BarrierStore],
+	val runnableFactory : BenchmarkRunnableFactory
 ) {
 
 	private def busyWait(ms : Long) : Unit = {
@@ -18,44 +18,70 @@ class BenchmarkExecutor(
 		//		Thread.sleep(ms)
 	}
 
-	private def barrier(name : String) : Unit =
+	private def barrier(store : BarrierStore, name : String) : Unit =
 		store.barrier(name, config.numberOfReplicas, config.barrierTimeout)
 
+	private def withStore(f : (DistributedStore with BarrierStore) => Any) : Unit = {
+		var store = config.createStore(storeFactory)
+		try {
+			f(store)
+		} finally {
+			store.close()
+			store = null
+			System.gc()	
+		}		
+	}
+	
+	private val procName : String = "proc-" + config.processId
+		
+	
 	private def warmup(skipCleanup: Boolean = false) : Unit = {
 		import config._
-		try {
-			barrier("warmup")
-			Logger.info(store.id, "Start warmup")
+		
+		Logger.info(procName, "Start warmup")
+		
+		try {						
 			for (i <- 1 to warmupIterations) {
-				barrier("setup")
-				Logger.info(store.id, s"Warmup $i: setup")
-				runnable.setup()
-				barrier("iterations")
-				Logger.info(store.id,s"Warmup $i: iterations")
-				val operations = runnable.operations
+				withStore { store =>
+					// Init
+					barrier(store, "warmup-initialize")
+					val runnable = runnableFactory.create(store, config)
 
-				for (j <- 1 to operationsPerIteration) {
-					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
-					val op = operations.getOperation
-					op.run()
-					BenchmarkUtils.printProgress(j)
+					// Setup
+					barrier(store, "setup")
+					Logger.info(procName, s"Warmup $i: setup")
+					runnable.setup()
+
+					// Execute
+					barrier(store, "execute")
+					Logger.info(procName, s"Warmup $i: iterations")
+					val operations = runnable.operations
+
+					for (j <- 1 to operationsPerIteration) {
+						if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
+						val op = operations.getOperation
+						op.run()
+						BenchmarkUtils.printProgress(j)
+					}
+
+					runnable.closeOperations()
+					BenchmarkUtils.printDone()
+
+					// Cleanup
+					barrier(store, "cleanup")
+					if (i < warmupIterations || !skipCleanup) {
+						Logger.info(procName, s"Warmup $i: cleanup")
+						runnable.cleanup()
+					}
+
+					// Done
+					barrier(store, "warmup-done")
 				}
-
-				runnable.closeOperations()
-
-				BenchmarkUtils.printDone()
-				barrier("cleanup")
-				if (i < warmupIterations || !skipCleanup) {
-					Logger.info(store.id,s"Warmup $i: cleanup")
-					runnable.cleanup()
-				}
-			}
-			barrier("warmup-done")
-			Logger.info(store.id, "Warmup done")
+			}			
 		} catch {
 			case e : Exception =>
 				e.printStackTrace()
-				Logger.err(store.id, "Warmup failed")
+				Logger.err(procName, "Warmup failed")
 		}
 	}
 
@@ -64,8 +90,7 @@ class BenchmarkExecutor(
 	private def measure() : Unit = {
 		import config._
 
-		barrier("measure")
-		Logger.info(store.id,"Start measure")
+		Logger.info(procName, "Start measure")
 
 		val latencyWriter = outputResolver.latencyWriter(processId)
 		val runtimeWriter = outputResolver.runtimeWriter(processId)
@@ -75,59 +100,67 @@ class BenchmarkExecutor(
 			runtimeWriter.println("iteration,ns")
 
 			for (i <- 1 to config.measureIterations) {
-				//Setup the measurement
-				barrier("setup")
-				Logger.info(store.id,s"Measure $i: setup")
-				runnable.setup()
+				withStore { store =>
+					//Init
+					barrier(store, "warmup-initialize")
+					val runnable = runnableFactory.create(store, config)
 
-				//Run the measurement
-				barrier("iterations")
-				Logger.info(store.id, s"Measure $i: iterations")
-				val operations = runnable.operations
+					//Setup the measurement
+					barrier(store, "setup")
+					Logger.info(procName, s"Measure $i: setup")
+					runnable.setup()
 
-				val startIt = System.nanoTime()
-				for (j <- 1 to operationsPerIteration) {
-					if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
-					val op = operations.getOperation
+					//Run the measurement
+					barrier(store, "iterations")
+					Logger.info(procName, s"Measure $i: iterations")
+					val operations = runnable.operations
 
-					val startOp = System.nanoTime
-					op.run()
-					val latency = System.nanoTime - startOp
+					val startIt = System.nanoTime()
+					for (j <- 1 to operationsPerIteration) {
+						if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
+						val op = operations.getOperation
 
-					latencyWriter.println(s"$i,$j,$latency")
-					BenchmarkUtils.printProgress(j)
+						val startOp = System.nanoTime
+						op.run()
+						val latency = System.nanoTime - startOp
+
+						latencyWriter.println(s"$i,$j,$latency")
+						BenchmarkUtils.printProgress(j)
+					}
+
+					runnable.closeOperations() // TODO: still necessary?
+
+					//Measure total runtime (~ time to consistency)
+					val runtime = System.nanoTime - startIt
+					runtimeWriter.println(s"$i,$runtime")
+					BenchmarkUtils.printDone()
+
+					//Flush writers
+					runtimeWriter.flush()
+					latencyWriter.flush()
+
+					//Cleanup the iteration
+					barrier(store, "cleanup")
+					Logger.info(procName, s"Measure $i: cleanup")
+					runnable.cleanup()
+
+					//Done
+					barrier(store, "measure-done")
 				}
-
-				runnable.closeOperations() // TODO: still necessary?
-
-				//Measure total runtime (~ time to consistency)
-				val runtime = System.nanoTime - startIt
-				runtimeWriter.println(s"$i,$runtime")
-				BenchmarkUtils.printDone()
-
-				//Flush writers
-				runtimeWriter.flush()
-				latencyWriter.flush()
-
-				//Cleanup the iteration
-				barrier("cleanup")
-				Logger.info(store.id,s"Measure $i: cleanup")
-				runnable.cleanup()
 			}
 		} catch {
 			case e : FileNotFoundException =>
 				throw new IllegalStateException("file not found", e)
 			case e : Exception =>
 				e.printStackTrace()
-				Logger.err(store.id,"Measure failed")
+				Logger.err(procName,"Measure failed")
 		} finally {
 			latencyWriter.close()
 			runtimeWriter.close()
 		}
 
 		//Wait for measurement being done.
-		barrier("measure-done")
-		Logger.info(store.id, "Measure done")
+		Logger.info(procName, "Measure done")
 	}
 
 

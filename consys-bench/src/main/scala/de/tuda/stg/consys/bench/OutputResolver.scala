@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.bench
 
-import de.tuda.stg.consys.utils.Logger
-
+import de.tuda.stg.consys.logging.Logger
 import java.io.{IOException, OutputStream, PrintWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.text.SimpleDateFormat

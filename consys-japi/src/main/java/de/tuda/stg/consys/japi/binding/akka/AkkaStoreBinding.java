@@ -37,4 +37,9 @@ public class AkkaStoreBinding implements Store<String, Serializable, Consistency
     public void close() throws Exception {
         store.close();
     }
+
+    @Override
+    public void clear() {
+        store.clear();
+    }
 }

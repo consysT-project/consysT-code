@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
+import de.tuda.stg.consys.core.store.extensions.ClearableStore;
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore;
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.binding.akka.AkkaConsistencyLevels;
@@ -18,7 +19,7 @@ public abstract class JBenchStore<StoreType extends Store> {
     private final BarrierStore scalaStore;
     private final StoreType javaStore;
 
-    private JBenchStore(BarrierStore scalaStore, StoreType javaStore) {
+    public JBenchStore(BarrierStore scalaStore, StoreType javaStore) {
         this.scalaStore = scalaStore;
         this.javaStore = javaStore;
     }
@@ -45,35 +46,4 @@ public abstract class JBenchStore<StoreType extends Store> {
     public abstract ConsistencyLevel getStrongLevel();
 
 
-    public static JBenchStore<AkkaStoreBinding> fromAkkaStore(AkkaStore store) {
-        var storeBinding = AkkaReplica.create(store);
-
-        return new JBenchStore<>(store, storeBinding) {
-            @Override
-            public ConsistencyLevel getWeakLevel() {
-                return AkkaConsistencyLevels.WEAK;
-            }
-
-            @Override
-            public ConsistencyLevel getStrongLevel() {
-                return AkkaConsistencyLevels.STRONG;
-            }
-        };
-    }
-
-    public static JBenchStore<CassandraStoreBinding> fromCassandraStore(CassandraStore store) {
-        var storeBinding = CassandraReplica.create(store);
-
-        return new JBenchStore<>(store, storeBinding) {
-            @Override
-            public ConsistencyLevel getWeakLevel() {
-                return CassandraConsistencyLevels.WEAK;
-            }
-
-            @Override
-            public ConsistencyLevel getStrongLevel() {
-                return CassandraConsistencyLevels.STRONG;
-            }
-        };
-    }
 }

@@ -2,15 +2,17 @@ package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkExecutor;
+import de.tuda.stg.consys.bench.BenchmarkRunnableFactory;
+import de.tuda.stg.consys.bench.BenchmarkStoreFactory;
 
 public class JBenchExecutor {
 
     private final BenchmarkExecutor executor;
     private final BenchmarkConfig config;
 
-    public JBenchExecutor(String name, BenchmarkConfig config, JBenchStore store, JBenchRunnable operation) {
+    public JBenchExecutor(String name, BenchmarkConfig config, BenchmarkStoreFactory storeFactory, BenchmarkRunnableFactory runnableFactory) {
         this.config = config;
-        this.executor = new BenchmarkExecutor(store.scalaStore(), config, operation);
+        this.executor = new BenchmarkExecutor(config, storeFactory, runnableFactory);
     }
 
     public BenchmarkConfig getConfig() {

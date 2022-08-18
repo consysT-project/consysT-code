@@ -9,10 +9,10 @@ import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter._
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.{AkkaAddress, getActorSystemAddress}
 import de.tuda.stg.consys.core.store.extensions.coordination.DistributedLock
-import de.tuda.stg.consys.utils.Logger
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
 import akka.cluster.ddata.typed.scaladsl.Replicator._
+import de.tuda.stg.consys.logging.Logger
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -45,6 +45,7 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 					addOtherReplica(actorRef)
 					Success(())
 				case Failure(exc) =>
+					//TODO: Implement correct error handling
 					Logger.err(s"actor path $path was not resolved. Cause: ${exc.toString} ")
 					Failure(new IllegalStateException(s"actor path $path was not resolved in the given time ($timeout). Cause: ${exc.toString} "))
 			}
@@ -102,13 +103,6 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 		addOtherReplica(address)
 	}
 
-
-
-
-
-
-
-
 	def writeAsync(timestamp : Long, ops : Seq[TransactionOp]): Unit = {
 		implicit val akkaTimeout : Timeout = timeout
 		val result = replicaActor ? ExecuteBatchAsync(timestamp, ops)
@@ -147,6 +141,17 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 		throw new NotImplementedError()
 	}
 
+	def clear() : Unit = {
+		implicit val akkaTimeout : Timeout = timeout
+		val result = replicaActor ? ClearStore
+		Await.ready(result, timeout)
+	}
+
+	def close() : Unit = {
+		replicaActor ! TerminateStore
+	}
+
+
 
 }
 
@@ -171,6 +176,8 @@ object AkkaReplicaAdapter {
 	case class PushChangesAsync(changes : ChangeList) extends Op
 	case class PrepareChangesSync(key : String, changes : ChangeList) extends Op
 	case class CommitChanges(key : String) extends Op
+	case object ClearStore extends Op
+	case object TerminateStore extends Op
 
 
 	class ReplicaActor(val timeout : FiniteDuration) extends Actor {
@@ -207,7 +214,7 @@ object AkkaReplicaAdapter {
 								case e => e.printStackTrace()
 							}
 						}
-						sender() ! 42
+						sender() ! "ack"
 
 					case PushChangesAsync(changes) =>
 						changes.foreach(change => {
@@ -239,11 +246,11 @@ object AkkaReplicaAdapter {
 
 						committed.foreach(future => Await.ready(future, timeout))
 
-						sender() ! 45
+						sender() ! "ack"
 
 					case PrepareChangesSync(key, changes) =>
 						preparedChanges.put(key, changes)
-						sender() ! 43
+						sender() ! "ack"
 
 					case CommitChanges(key) =>
 						preparedChanges.get(key) match {
@@ -257,7 +264,7 @@ object AkkaReplicaAdapter {
 
 						preparedChanges.remove(key)
 
-						sender() !44
+						sender() ! "ack"
 
 
 
@@ -269,6 +276,13 @@ object AkkaReplicaAdapter {
 							case Some(result) =>
 								sender() ! Success(result) // Return local object
 						}
+
+					case ClearStore =>
+						localObjects.clear()
+						sender() ! "ack"
+
+					case TerminateStore =>
+						context.system.terminate()
 				}
 			} catch {
 				case e => Logger.err(e.getMessage)
