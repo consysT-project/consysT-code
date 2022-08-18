@@ -1,22 +1,20 @@
-package de.tuda.stg.consys.demo.twitterclone.schema;
+package de.tuda.stg.consys.demo.twitterclone.schema.datacentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.japi.Ref;
 
-import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
-public @Mixed class Tweet implements Serializable {
+public @Mixed class Tweet implements ITweet {
 
-    private @Immutable UUID id = UUID.randomUUID();
-    private Ref<User> user;
-    private @Weak String body;
-    private Date created = new Date();
-    private Ref<@Mutable @Strong Counter> retweetCount;
-
-    public Tweet() {}
+    private final @Immutable UUID id = UUID.randomUUID();
+    private final Ref<User> user;
+    private final @Weak String body;
+    private final Date created = new Date();
+    private final Ref<@Mutable @Strong Counter> retweetCount;
 
     public Tweet(Ref<User> user, @Mutable @Weak String body, Ref<@Mutable @Strong Counter> retweetCount) {
         this.user = user;
@@ -38,6 +36,11 @@ public @Mixed class Tweet implements Serializable {
 
     public Date getCreated() {
         return created;
+    }
+
+    @Transactional
+    public int getRetweets() {
+        return retweetCount.ref().get();
     }
 
     @Transactional

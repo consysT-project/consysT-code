@@ -1,15 +1,11 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
-import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
-import de.tuda.stg.consys.demo.twitterclone.schema.User;
+import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
+import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
@@ -32,6 +28,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     }
 
     private final int numOfGroupsPerReplica;
+    private final Class<? extends IUser> userImpl;
+    private final Class<? extends ITweet> tweetImpl;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -41,8 +39,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
     private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
 
-    private final List<Ref<User>> users;
-    private final List<Ref<Tweet>> tweets;
+    private final List<Ref<? extends IUser>> users;
+    private final List<Ref<? extends ITweet>> tweets;
 
     private final Random random = new Random();
 
@@ -50,6 +48,14 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");
+
+        if (getBenchType() == BenchmarkType.MIXED) {
+            userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
+            tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet.class;
+        } else {
+            userImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.User.class;
+            tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.Tweet.class;
+        }
 
         tweets = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
         users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
@@ -80,21 +86,31 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     public void setup() {
         super.setup();
 
-        System.out.println("Adding users");
+        System.out.println("Adding users and tweets");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
 
-            Ref<User> user = store().transaction(ctx -> Option.apply(ctx.replicate(
-                    addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class, generateRandomName()))).get();
-            Ref<Counter> retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
-                    addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(), Counter.class, 0))).get();
-            Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
-                    addr("tweet", finalGrpIndex, processId()), getWeakLevel(), Tweet.class, user, generateRandomText(3), retweetCount))).get();
+            Ref<? extends IUser> user;
+            Ref<? extends ITweet> tweet;
 
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if (getBenchType() == BenchmarkType.MIXED) {
+                user = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("user", finalGrpIndex, processId()), getWeakLevel(), userImpl,
+                        generateRandomName()))).get();
+                var retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(),
+                        de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class,
+                        0))).get();
+                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("tweet", finalGrpIndex, processId()), getWeakLevel(), tweetImpl,
+                        user, generateRandomText(3), retweetCount))).get();
+            } else {
+                user = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("user", finalGrpIndex, processId()), getWeakLevel(), userImpl,
+                        generateRandomName()))).get();
+                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("tweet", finalGrpIndex, processId()), getWeakLevel(), tweetImpl,
+                        user, generateRandomText(3)))).get();
             }
 
             store().transaction(ctx -> {
@@ -107,16 +123,17 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
         barrier("twitter_setup");
 
+        System.out.println("Collecting remote objects");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
                 int finalGrpIndex = grpIndex;
                 int finalReplIndex = replIndex;
 
-                Ref<User> user = store().transaction(ctx -> Option.apply(ctx.lookup(
-                        addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))).get();
+                Ref<? extends IUser> user = store().transaction(ctx -> Option.apply(ctx.lookup(
+                            addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), userImpl))).get();
 
-                Ref<Tweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
-                        addr("tweet", finalGrpIndex, finalReplIndex), getWeakLevel(), Tweet.class))).get();
+                Ref<? extends ITweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
+                            addr("tweet", finalGrpIndex, finalReplIndex), getWeakLevel(), tweetImpl))).get();
 
                 users.add(user);
                 tweets.add(tweet);
@@ -140,71 +157,81 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
+        randomTransaction();
+    }
+
+    private void randomTransaction() {
+        int rand = random.nextInt(100);
+        if (rand < 12) {
+            follow();
+        } else if (rand < 58) {
+            unfollow();
+        } else if (rand < 80) {
+            retweet();
+        } else {
+            readTimeline();
+        }
+    }
+
+    private void follow() {
+        Ref<? extends IUser> follower = getRandomElement(users);
+        Ref<? extends IUser> following = getRandomElementExcept(users, follower);
+
         store().transaction(ctx -> {
-            randomTransaction();
+            follower.ref().addFollower(following);
+            following.ref().addFollowing(follower);
+
             return Option.apply(0);
         });
     }
 
-    @Transactional
-    private int randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 12) /*12*/ {
-            // follow
-            return transaction1();
-        } else if (rand < 58) {
-            // unfollow
-            return transaction2();
-        } else if (rand < 80) {
-            // retweet
-            return transaction3();
-        } else if (rand < 100) {
-            // read timeline
-            return transaction4();
+    private void unfollow() {
+        Ref<? extends IUser> follower = getRandomElement(users);
+        Ref<? extends IUser> following = getRandomElement(users);
+
+        store().transaction(ctx -> {
+            follower.ref().removeFollower(following);
+            following.ref().removeFollowing(follower);
+
+            return Option.apply(0);
+        });
+    }
+
+    private void retweet() {
+        Ref<? extends ITweet> tweet = getRandomElement(tweets);
+        Ref<? extends IUser> user = getRandomElement(users);
+
+        Option<Integer> result = store().transaction(ctx -> {
+            int prevRetweets = -1;
+            if (isTestMode)
+                prevRetweets = tweet.ref().getRetweets();
+
+            tweet.ref().retweet();
+            user.ref().addRetweet(tweet);
+
+            return Option.apply(prevRetweets);
+        });
+
+        if (isTestMode) {
+            store().transaction(ctx -> {
+                check("retweet was incremented", result.get().equals(tweet.ref().getRetweets() - 1));
+                return Option.apply(0);
+            });
         }
-
-        throw new IllegalStateException("cannot be here");
     }
 
-    @Transactional
-    private int transaction1() {
-        Ref<User> follower = getRandomElement(users);
-        Ref<User> following = getRandomElementExcept(users, follower);
+    private void readTimeline() {
+        Ref<? extends IUser> user = getRandomElement(users);
 
-        follower.ref().addFollower(following);
-        following.ref().addFollowing(follower);
+        store().transaction(ctx -> {
+            List<Ref<? extends ITweet>> timeline = user.ref().getTimeline();
 
-        return 0;
+            return Option.apply(0);
+        });
     }
 
-    @Transactional
-    private int transaction2() {
-        Ref<User> follower = getRandomElement(users);
-        Ref<User> following = getRandomElement(users);
-
-        follower.ref().removeFollower(following);
-        following.ref().removeFollowing(follower);
-
-        return 1;
-    }
-
-    @Transactional
-    private int transaction3() {
-        Ref<Tweet> tweet = getRandomElement(tweets);
-        Ref<User> user = getRandomElement(users);
-
-        tweet.ref().retweet();
-        user.ref().addRetweet(tweet);
-
-        return 2;
-    }
-
-    @Transactional
-    private int transaction4() {
-        Ref<User> user = getRandomElement(users);
-
-        List<Ref<Tweet>> timeline = user.ref().getTimeline();
-
-        return 3;
+    @Override
+    public void test() {
+        // nothing to do
     }
 }
