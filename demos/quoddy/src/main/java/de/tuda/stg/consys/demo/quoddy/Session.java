@@ -128,11 +128,13 @@ public class Session {
             Ref<? extends IStatusUpdate> status =
                     ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
-
             this.user.ref().addPost(status);
             for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
                 follower.ref().addPost(status); // TODO: could lead to batch too large
             }
+            // cyclic dependency for all-strong case: if two friends post simultaneously, they end up waiting for each
+            // other's locks here
+            // TODO: for some reason also happens for data-centric mixed case?
             for (Ref<? extends IUser> friend : user.ref().getFriends()) {
                 friend.ref().addPost(status); // TODO: could lead to batch too large
             }

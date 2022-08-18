@@ -97,14 +97,13 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             localSessions.add(new Session(store()));
         }
 
-        System.out.println("Adding users");
+        System.out.println("Adding users and groups");
         for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
             localSessions.get(usrIndex).registerUser(
                     null, addr("user", usrIndex, processId()), generateRandomName());
             BenchmarkUtils.printProgress(usrIndex);
         }
 
-        System.out.println("Adding groups");
         for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
             Ref<? extends IGroup> group = localSessions.get(grpIndex % numOfUsersPerReplica).createGroup(
                     null, addr("group", grpIndex, processId()), generateRandomName(),
@@ -135,6 +134,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
         barrier("users_added");
 
+        System.out.println("Getting users and items from other replicas");
         for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
                 users.add(localSessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
@@ -145,6 +145,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             }
         }
 
+        System.out.println("Setting up initial configuration");
         for (Session session : localSessions) {
             // every user starts as a member of one group
             session.joinGroup(null, getRandomElement(groups));
@@ -345,46 +346,53 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         if (processId() != 0) return;
         System.out.println("## TEST ##");
 
-        check("users non empty", () -> !users.isEmpty());
+        check("users non empty", !users.isEmpty());
 
-        for (var user : users) {
-            // check friendship relation
-            for (var friend : store().transaction(ctx -> Option.apply(user.ref().getFriends())).get()) {
-                boolean isMutualFriends = false;
-                for (var f : store().transaction(ctx -> Option.apply(friend.ref().getFriends())).get())
-                    isMutualFriends |= store().transaction(ctx -> Option.apply(Util.equalsUser(f, user))).get();
+        store().transaction(ctx -> {
+            for (var user : users) {
+                // check friendship relation
+                check("friends non empty", !user.ref().getFriends().isEmpty());
+                for (var friend : user.ref().getFriends()) {
+                    boolean isMutualFriends = false;
+                    for (var f : friend.ref().getFriends())
+                        isMutualFriends |= Util.equalsUser(f, user);
 
-                check("users are mutual friends", isMutualFriends);
+                    check("users are mutual friends", isMutualFriends);
+                }
+
+                // check group membership relation
+                check("groups non empty", !user.ref().getParticipatingGroups().isEmpty());
+                for (var group : user.ref().getParticipatingGroups()) {
+                    var members = group.ref().getMembers();
+                    var owners = group.ref().getOwners();
+                    members.addAll(owners);
+
+                    boolean isMember = false;
+                    for (var member : members)
+                        isMember |= Util.equalsUser(member, user);
+
+                    check("user is member of groups they are participating in", isMember);
+                }
             }
 
             // check group membership relation
-            for (var group : store().transaction(ctx -> Option.apply(user.ref().getParticipatingGroups())).get()) {
-                var members = store().transaction(cty -> Option.apply(group.ref().getMembers())).get();
-                var owners = store().transaction(cty -> Option.apply(group.ref().getOwners())).get();
+            for (var group : groups) {
+                var members = group.ref().getMembers();
+                var owners = group.ref().getOwners();
                 members.addAll(owners);
+                check("group has owner", !owners.isEmpty());
 
-                boolean isMember = false;
-                for (var member : members)
-                    isMember |= store().transaction(ctx -> Option.apply(Util.equalsUser(member, user))).get();
+                for (var member : members) {
+                    boolean isInGroup = false;
+                    for (var pg : member.ref().getParticipatingGroups())
+                        isInGroup |= group.ref().getId().equals(pg.ref().getId());
 
-                check("user is member of groups they are participating in", isMember);
+                    check("user participates in group they are a member of", isInGroup);
+                }
             }
-        }
 
-        // check group membership relation
-        for (var group : groups) {
-            var members = store().transaction(cty -> Option.apply(group.ref().getMembers())).get();
-            var owners = store().transaction(cty -> Option.apply(group.ref().getOwners())).get();
-            members.addAll(owners);
-
-            for (var member : members) {
-                boolean isInGroup = false;
-                for (var pg : store().transaction(ctx -> Option.apply(member.ref().getParticipatingGroups())).get())
-                    isInGroup |= store().transaction(ctx -> Option.apply(group.ref().getId().equals(pg.ref().getId()))).get();
-
-                check("user participates in group they are a member of", isInGroup);
-            }
-        }
+            return Option.apply(0);
+        });
 
         System.out.println("## TEST SUCCESS ##");
     }

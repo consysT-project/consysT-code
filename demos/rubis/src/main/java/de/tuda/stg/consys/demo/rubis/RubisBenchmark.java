@@ -185,7 +185,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         Session session = getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for placeBid operation");
                 return Option.empty();
@@ -203,7 +203,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
+            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
             if (openAuctions.isEmpty()) {
                 System.out.println("no open auctions for buyNow operation");
                 return Option.empty();
@@ -376,53 +376,52 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         check("users non empty", !users.isEmpty());
 
         store().transaction(ctx -> {
-        for (var user : users) {
+            for (var user : users) {
 
-            float userBalance = user.ref().getBalance();
-            check("balance >= 0", userBalance >= 0);
+                float userBalance = user.ref().getBalance();
+                check("balance >= 0", userBalance >= 0);
 
-            float balance = getInitialBalance();
-            for (var boughtItem : user.ref().getBuyerHistory()) {
-                if (boughtItem.ref().getSoldViaBuyNow()) {
-                    balance -= boughtItem.ref().getBuyNowPrice();
-                } else {
-                    var winningBidOption = boughtItem.ref().getTopBid();
-                    check("buyer bid non null", winningBidOption.isPresent());
-                    if (winningBidOption.isEmpty()) continue;
+                float balance = getInitialBalance();
+                for (var boughtItem : user.ref().getBuyerHistory()) {
+                    if (boughtItem.ref().getSoldViaBuyNow()) {
+                        balance -= boughtItem.ref().getBuyNowPrice();
+                    } else {
+                        var winningBidOption = boughtItem.ref().getTopBid();
+                        check("buyer bid non null", winningBidOption.isPresent());
+                        if (winningBidOption.isEmpty()) continue;
 
-                    var winningBid = winningBidOption.get();
-                    checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
+                        var winningBid = winningBidOption.get();
+                        checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
 
-                    var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
-                    allBids.remove(winningBid);
-                    for (var bid : allBids) {
-                        if (bid.getBid() >= winningBid.getBid())
-                            check("winner bid is highest bid", false);
+                        var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
+                        allBids.remove(winningBid);
+                        for (var bid : allBids) {
+                            if (bid.getBid() >= winningBid.getBid())
+                                check("winner bid is highest bid", false);
+                        }
+
+                        balance -= winningBid.getBid();
                     }
-
-                    balance -= winningBid.getBid();
                 }
-            }
 
-            for (var soldItem : user.ref().getSellerHistory(true)) {
-                checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
+                for (var soldItem : user.ref().getSellerHistory(true)) {
+                    checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
 
-                if (soldItem.ref().getSoldViaBuyNow()) {
-                    balance += soldItem.ref().getBuyNowPrice();
-                } else {
-                    var winningBidOption = soldItem.ref().getTopBid();
-                    check("seller bid non null", winningBidOption.isPresent());
-                    if (winningBidOption.isEmpty()) continue;
+                    if (soldItem.ref().getSoldViaBuyNow()) {
+                        balance += soldItem.ref().getBuyNowPrice();
+                    } else {
+                        var winningBidOption = soldItem.ref().getTopBid();
+                        check("seller bid non null", winningBidOption.isPresent());
+                        if (winningBidOption.isEmpty()) continue;
 
-                    balance += winningBidOption.get().getBid();
+                        balance += winningBidOption.get().getBid();
+                    }
                 }
-            }
 
-            checkFloatEquals("balance correct", balance, userBalance);
-
+                checkFloatEquals("balance correct", balance, userBalance);
             }
-                    return Option.apply(0);
-    });
+            return Option.apply(0);
+        });
         System.out.println("## TEST SUCCESS ##");
     }
 

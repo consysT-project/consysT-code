@@ -21,7 +21,7 @@ public class Demo extends DemoExecutor<RubisBenchmark> {
                 "      rubis {\n" +
                 "        users = 100\n" +
                 "      }\n" +
-                "      type = \"strong\"\n" +
+                "      type = \"op_mixed\"\n" +
                 "    }\n" +
                 "  }\n" +
                 "}";
