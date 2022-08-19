@@ -45,8 +45,8 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			try {
 				barrier.barrier("init-store");
 			} catch (Exception e) {
-				e.printStackTrace();
-				throw new RuntimeException("error executing barrier during store construction");
+				throw new RuntimeException("error executing barrier during store construction in process " + processId +
+						". Reason: " + e.getMessage());
 			}
 
 			if ((int)processId != 0) {

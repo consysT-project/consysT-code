@@ -9,6 +9,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class BarrierSystem {
     private final int nReplicas;
@@ -23,8 +24,10 @@ public class BarrierSystem {
 
     public void barrier(String name, Duration timeout) throws Exception {
         var barrier = new DistributedDoubleBarrier(curator, "/consys/bench/barrier/" + name, nReplicas);
-        barrier.enter(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        barrier.leave(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        var success = barrier.enter(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (!success) throw new TimeoutException("timeout trying to enter barrier");
+        success = barrier.leave(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (!success) throw new TimeoutException("timeout trying to leave barrier");
     }
 
     public void barrier(String name) throws Exception {
