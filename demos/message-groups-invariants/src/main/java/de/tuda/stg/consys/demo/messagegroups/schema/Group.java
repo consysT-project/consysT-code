@@ -3,9 +3,8 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.*;
-import de.tuda.stg.consys.invariants.crdts.GCounter;
-import de.tuda.stg.consys.invariants.crdts.GMap;
-import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.invariants.lib.crdts.GCounter;
+import de.tuda.stg.consys.invariants.lib.crdts.GMap;
 
 import java.io.Serializable;
 import java.util.Objects;

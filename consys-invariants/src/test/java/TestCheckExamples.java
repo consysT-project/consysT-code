@@ -1,6 +1,5 @@
-import de.tuda.stg.consys.invariants.Examples;
-import de.tuda.stg.consys.invariants.Main;
-import de.tuda.stg.consys.invariants.subset.ProgramConfig;
+import de.tuda.stg.consys.invariants.solver.Examples;
+import de.tuda.stg.consys.invariants.solver.Main;
 import org.junit.Test;
 
 import java.nio.file.Path;

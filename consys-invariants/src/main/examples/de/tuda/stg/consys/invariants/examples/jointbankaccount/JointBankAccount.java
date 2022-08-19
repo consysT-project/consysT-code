@@ -1,12 +1,7 @@
 package de.tuda.stg.consys.invariants.examples.jointbankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-import de.tuda.stg.consys.invariants.examples.pncounter.PNCounterCRDT;
-import de.tuda.stg.consys.invariants.crdtlib.PNCounter;
-import static de.tuda.stg.consys.utils.InvariantUtils.stateful;
-
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
 
 @ReplicatedModel public class JointBankAccount {
