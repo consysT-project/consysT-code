@@ -181,9 +181,6 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		}
 
 		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
-
-
-
 	}
 
 	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredFieldEntry = {
@@ -198,28 +195,30 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		//TODO: Add failure handling
 		val startTime = System.nanoTime()
 		while (System.nanoTime() < startTime + timeout.toNanos) {
-
-			var fields : Map[Field, Any] = Map.empty
-			var timestamps : Map[Field, Long] = Map.empty
-
 			val response = cassandraSession.execute(query)
 
-			response.forEach(row => {
-				val typ = row.get("type", TypeCodecs.INT)
-				if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
+			if (response.iterator().hasNext) {
+				var fields: Map[Field, Any] = Map.empty
+				var timestamps: Map[Field, Long] = Map.empty
 
-				val fieldName : String = row.get("fieldid", TypeCodecs.TEXT)
-				val field : Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
+				response.forEach(row => {
+					val typ = row.get("type", TypeCodecs.INT)
+					if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
 
-				val state : Any = CassandraReplicaAdapter.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
-				val timestamp : Long = row.get("writetime", TypeCodecs.BIGINT)
+					val fieldName: String = row.get("fieldid", TypeCodecs.TEXT)
+					val field: Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
 
-				fields = fields + (field -> state)
-				timestamps = timestamps + (field -> timestamp)
-			})
+					val state: Any = CassandraReplicaAdapter.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
+					val timestamp: Long = row.get("writetime", TypeCodecs.BIGINT)
 
-			return new StoredFieldEntry(addr, fields, timestamps)
+					fields = fields + (field -> state)
+					timestamps = timestamps + (field -> timestamp)
+				})
 
+				return new StoredFieldEntry(addr, fields, timestamps)
+			}
+
+			// the address has not been found. retry.
 			Thread.sleep(10)
 		}
 		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
