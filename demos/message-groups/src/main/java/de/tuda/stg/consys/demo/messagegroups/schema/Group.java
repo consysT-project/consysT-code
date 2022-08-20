@@ -2,49 +2,48 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.*;
+import de.tuda.stg.consys.checker.qual.Mixed;
+import de.tuda.stg.consys.checker.qual.Mutable;
+import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
-import java.util.Objects;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created on 04.04.19.
  *
  * @author Mirko Köhler
  */
-@SuppressWarnings({"consistency"})
-public class Group implements Serializable {
+public @Mixed class Group implements Serializable {
+    private final List<Ref<@Mutable User>> users = new LinkedList<>();
 
-    private final Ref<User>[] users = new Ref[100];
+    private int capacity = 100;
 
-    public Group() {}
-
-    //Message delivery
-    @WeakOp
     @Transactional
-    public void addPost(String msg) {
-        for (Ref<User> user : users) {
-            if (user != null) user.ref().send(msg);
+    public void postMessage(String msg) {
+        for (Ref<@Mutable User> user : users) {
+            user.ref().send(msg);
         }
     }
 
-    //Join group
     @StrongOp
-    public void addUser(Ref<User> user) {
-        for (int i = 0; i < users.length; i++) {
-            if (users[i] == null) {
-                users[i] = user;
-                return;
-            }
-        }
-        throw new IllegalArgumentException("no space for users");
+    public void addUser(Ref<@Mutable User> user) {
+        if (users.size() < capacity)
+            users.add(user);
+        else
+            throw new IllegalArgumentException("no space for users");
     }
 
-    @WeakOp
-    public Ref<User> getUser(int index) {
-        Ref<User> user = users[index];
-        Objects.requireNonNull(user, "no user at index " + index);
+    @StrongOp
+    public void setCapacity(@Strong int capacity) {
+        this.capacity = capacity;
+    }
 
-        return user;
+    @SideEffectFree
+    public int getCapacity() {
+        return capacity;
     }
 }

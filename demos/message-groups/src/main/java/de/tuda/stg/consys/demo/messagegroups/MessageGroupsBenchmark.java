@@ -14,7 +14,6 @@ import scala.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 /**
  * Created on 10.10.19.
@@ -58,31 +57,24 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
         System.out.println("Adding users");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            try {
-                int finalGrpIndex = grpIndex;
+            int finalGrpIndex = grpIndex;
 
-                store().transaction(ctx -> {
-                    ctx.replicate(addr("group", finalGrpIndex, processId()), getWeakLevel(), Group.class);
-                    return Option.apply(0);
-                });
-                Thread.sleep(33);
+            store().transaction(ctx -> {
+                ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
+                return Option.apply(0);
+            });
 
-                Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
-                        ctx.replicate(addr("inbox", finalGrpIndex, processId()), getWeakLevel(), Inbox.class))
-                ).get();
-                Thread.sleep(33);
+            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
+                    ctx.replicate(addr("inbox", finalGrpIndex, processId()), getWeakLevel(), Inbox.class))
+            ).get();
 
-                store().transaction(ctx -> {
-                    ctx.replicate(addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class,
-                            inbox, addr("alice", finalGrpIndex, processId()));
-                    return Option.apply(0);
-                });
-                Thread.sleep(33);
+            store().transaction(ctx -> {
+                ctx.replicate(addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class,
+                        addr("alice", finalGrpIndex, processId()), inbox);
+                return Option.apply(0);
+            });
 
-                BenchmarkUtils.printProgress(grpIndex);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            BenchmarkUtils.printProgress(grpIndex);
         }
         BenchmarkUtils.printDone();
 
@@ -103,6 +95,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
                         ctx.lookup(addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))
                 ).get();
 
+                // every group starts with one user
                 if (replIndex == processId()) {
                     store().transaction(ctx -> {
                         group.ref().addUser(user);
@@ -132,62 +125,63 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        store().transaction(ctx -> {
-            randomTransaction();
-           return Option.apply(0);
-        });
+        randomTransaction();
         System.out.print(".");
     }
 
-    @Transactional
-    private int randomTransaction() {
+    private List<Double> zipf(int n, double s) {
+        double e = 0;
+        for (int i = 1; i < n + 1; i++) {
+            e += 1 / Math.pow(i, s);
+        }
+
+        List<Double> result = new ArrayList<>(n);
+        for (int k = 1; k < n + 1; k++) {
+            double z = (1 / Math.pow(k, s)) / e;
+            double sum = result.isEmpty() ? z : result.get(result.size() - 1) + z;
+            result.add(sum);
+        }
+
+        return result;
+    }
+
+    private void randomTransaction() {
         int rand = random.nextInt(100);
         if (rand < 58) /*12*/ {
-            // inbox checking
-            return transaction2();
+            checkInbox();
         } else if (rand < 80) {
-            // message posting
-            return transaction1();
-        } else if (rand < 100) {
-            // group joining
-            return transaction3();
+            postMessage();
+        } else {
+            joinGroup();
         }
         //user creation: left out
-
-        throw new IllegalStateException("cannot be here");
     }
 
-    @Transactional
-    private int transaction1() {
-        int i = random.nextInt(groups.size());
-        Ref<Group> group = groups.get(i);
-        //   System.out.println(Thread.currentThread().getName() +  ": tx1 " + group);
-        group.ref().addPost("Hello " + i);
-        return 0;
+    private void postMessage() {
+        Ref<Group> group = getRandomElement(groups);
+
+        store().transaction(ctx -> {
+            group.ref().postMessage("Hello");
+            return Option.apply(0);
+        });
     }
 
-    @Transactional
-    private int transaction2() {
-        int i = random.nextInt(users.size());
-        Ref<User> user = users.get(i);
-        // System.out.println(Thread.currentThread().getName() + ": tx2 " + user);
+    private void checkInbox() {
+        Ref<User> user = getRandomElement(users);
 
-        Set<String> inbox = user.ref().getInbox();
-
-        return 1;
+        store().transaction(ctx -> {
+            List<String> inbox = user.ref().getInbox();
+            return Option.apply(0);
+        });
     }
 
-    @Transactional
-    private int transaction3() {
-        int i = random.nextInt(groups.size());
-        int j = random.nextInt(users.size());
+    private void joinGroup() {
+        Ref<Group> group = getRandomElement(groups);
+        Ref<User> user = getRandomElement(users);
 
-        Ref<Group> group = groups.get(i);
-        Ref<User> user = users.get(j);
-
-        // System.out.println(Thread.currentThread().getName() + ": tx3 " + group + " " + user);
-        group.ref().addUser(user);
-
-        return 2;
+        store().transaction(ctx -> {
+            group.ref().addUser(user);
+            return Option.apply(0);
+        });
     }
 }

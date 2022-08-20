@@ -107,3 +107,10 @@ interface Stream<T> {
 
     @Mutable Stream<T> filter(java.util.function.Predicate<? super T> predicate);
 }
+
+package java.io;
+
+class PrintStream {
+    @SideEffectFree
+    void println(String x);
+}
