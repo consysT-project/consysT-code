@@ -132,6 +132,39 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		*/
 	}
 
+	protected List<Double> zipfSummed(int n, double s) {
+		double e = 0;
+		for (int i = 1; i < n + 1; i++) {
+			e += 1 / Math.pow(i, s);
+		}
+
+		List<Double> result = new ArrayList<>(n);
+		for (int k = 1; k < n + 1; k++) {
+			double z = (1 / Math.pow(k, s)) / e;
+			double sum = result.isEmpty() ? z : result.get(result.size() - 1) + z;
+			result.add(sum);
+		}
+
+		return result;
+	}
+
+	protected List<Double> zipfSummed(int n) {
+		return zipfSummed(n, 1);
+	}
+
+	protected void randomTransaction(List<Runnable> operations, List<Double> zipf) {
+		float rand = random.nextFloat();
+
+		for (int i = 0; i < zipf.size(); i++) {
+			if (rand < zipf.get(i)) {
+				operations.get(i).run();
+				return;
+			}
+		}
+		// in case of rounding errors
+		operations.get(operations.size() - 1).run();
+	}
+
 	// Utility method for benchmarks
 	protected <E> E getRandomElement(List<E> list) {
 		return list.get(random.nextInt(list.size()));

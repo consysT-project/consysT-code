@@ -17,6 +17,22 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         start(QuoddyBenchmark.class, args);
     }
 
+    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
+            this::readPersonalFeed,
+            this::readGroupFeed,
+            this::postStatusToProfile,
+            this::postStatusToGroup,
+            this::followUser,
+            this::addFriend,
+            this::share,
+            this::commentOnFriendPost,
+            this::commentOnGroupPost,
+            this::joinGroup,
+            this::postEventUpdate
+    ));
+
+    private final List<Double> zipf;
+
     private final int numOfUsersPerReplica;
     private final int numOfGroupsPerReplica;
 
@@ -40,6 +56,8 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.quoddy.groups");
+
+        zipf = zipfSummed(operations.size());
 
         Session.userConsistencyLevel = getStrongLevel();
         Session.groupConsistencyLevel = getStrongLevel();
@@ -115,12 +133,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
                     postEventToGroup(null, generateRandomText(20), new Date(), group);
             events.add(event);
 
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
             // every event has some subscribers
             for (int i = 0; i < 5; i++) {
                 store().transaction(ctx -> {
@@ -166,7 +178,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     @Override
     public void operation() {
         try {
-            randomTransaction();
+            randomTransaction(operations, zipf);
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             throw e;
@@ -185,45 +197,6 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
-    }
-
-    @Transactional
-    private void randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 33) {
-            // 33%
-            readPersonalFeed();
-        } else if (rand < 50) {
-            // 17%
-            readGroupFeed();
-        } else if (rand < 61) {
-            // 11%
-            postStatusToProfile();
-        } else if (rand < 69) {
-            // 8%
-            postStatusToGroup();
-        } else if (rand < 76) {
-            // 7%
-            followUser();
-        } else if (rand < 82) {
-            // 6%
-            addFriend();
-        } else if (rand < 87) {
-            // 5%
-            share();
-        } else if (rand < 91) {
-            // 4%
-            commentOnFriendPost();
-        } else if (rand < 95) {
-            // 4%
-            commentOnGroupPost();
-        } else if (rand < 98) {
-            // 3%
-            joinGroup();
-        } else {
-            // 3%
-            postEventUpdate();
         }
     }
 

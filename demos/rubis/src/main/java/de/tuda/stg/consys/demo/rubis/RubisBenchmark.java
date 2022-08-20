@@ -16,6 +16,16 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         start(RubisBenchmark.class, args);
     }
 
+    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
+            this::browseCategory,
+            this::placeBid,
+            this::buyNow,
+            this::rateUser,
+            this::closeAuction
+    ));
+
+    private final List<Double> zipf;
+
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
             "brunch", "authentic", "hella", "street art", "Tumblr", "Blue Bottle", "readymade",
@@ -36,6 +46,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
+
+        zipf = zipfSummed(operations.size());
 
         Session.userConsistencyLevel = getStrongLevel();
         Session.itemConsistencyLevel = getStrongLevel();
@@ -151,33 +163,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     @Override
     public void operation() {
         try {
-            randomTransaction();
+            randomTransaction(operations, zipf);
         } catch (AppException e) {
             /* possible/acceptable errors:
                 - bidding on own item (rare)
                 - auction has already ended (common)
             */
             System.out.println(e.getMessage());
-        }
-    }
-
-    private void randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 44) {
-            // 44%
-            browseCategory();
-        } else if (rand < 66) {
-            // 22%
-            placeBid();
-        } else if (rand < 81) {
-            // 15%
-            buyNow();
-        } else if (rand < 92){
-            // 11%
-            rateUser();
-        } else {
-            // 9%
-            closeAuction();
         }
     }
 

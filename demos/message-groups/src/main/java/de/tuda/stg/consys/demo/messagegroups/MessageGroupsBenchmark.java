@@ -12,8 +12,11 @@ import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Created on 10.10.19.
@@ -26,17 +29,25 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         start(MessageGroupsBenchmark.class, args);
     }
 
+    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
+            this::checkInbox,
+            this::postMessage,
+            this::joinGroup
+    ));
+
+    private final List<Double> zipf;
+
     private final int numOfGroupsPerReplica;
 
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
 
-    private final Random random = new Random();
-
     public MessageGroupsBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
+
+        zipf = zipfSummed(operations.size());
 
         groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
         users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
@@ -125,36 +136,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        randomTransaction();
-        System.out.print(".");
-    }
-
-    private List<Double> zipf(int n, double s) {
-        double e = 0;
-        for (int i = 1; i < n + 1; i++) {
-            e += 1 / Math.pow(i, s);
-        }
-
-        List<Double> result = new ArrayList<>(n);
-        for (int k = 1; k < n + 1; k++) {
-            double z = (1 / Math.pow(k, s)) / e;
-            double sum = result.isEmpty() ? z : result.get(result.size() - 1) + z;
-            result.add(sum);
-        }
-
-        return result;
-    }
-
-    private void randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 58) /*12*/ {
-            checkInbox();
-        } else if (rand < 80) {
-            postMessage();
-        } else {
-            joinGroup();
-        }
-        //user creation: left out
+        randomTransaction(operations, zipf);
     }
 
     private void postMessage() {

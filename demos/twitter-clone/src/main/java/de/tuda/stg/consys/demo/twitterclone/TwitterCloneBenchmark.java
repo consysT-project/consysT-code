@@ -27,6 +27,15 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         start(TwitterCloneBenchmark.class, args);
     }
 
+    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
+            this::readTimeline,
+            this::retweet,
+            this::follow,
+            this::unfollow
+    ));
+
+    private final List<Double> zipf;
+
     private final int numOfGroupsPerReplica;
     private final Class<? extends IUser> userImpl;
     private final Class<? extends ITweet> tweetImpl;
@@ -48,6 +57,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");
+
+        zipf = zipfSummed(operations.size());
 
         if (getBenchType() == BenchmarkType.MIXED) {
             userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
@@ -157,20 +168,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void operation() {
-        randomTransaction();
-    }
-
-    private void randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 12) {
-            follow();
-        } else if (rand < 58) {
-            unfollow();
-        } else if (rand < 80) {
-            retweet();
-        } else {
-            readTimeline();
-        }
+        randomTransaction(operations, zipf);
     }
 
     private void follow() {
