@@ -200,9 +200,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         Ref<? extends IUser> user = getRandomElement(users);
 
         Option<Integer> result = store().transaction(ctx -> {
-            int prevRetweets = -1;
-            if (isTestMode)
-                prevRetweets = tweet.ref().getRetweets();
+            int prevRetweets = isTestMode ? tweet.ref().getRetweets() : -1;
 
             tweet.ref().retweet();
             user.ref().addRetweet(tweet);
@@ -226,10 +224,5 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
             return Option.apply(0);
         });
-    }
-
-    @Override
-    public void test() {
-        // nothing to do
     }
 }

@@ -186,9 +186,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		return body.toString();
 	}
 
-	public void test() {
-		throw new UnsupportedOperationException();
-	}
+	public void test() {}
 
 	private final Map<String, List<Boolean>> checkResults = new HashMap<>();
 	private final Map<String, List<String>> checkResultsMessage = new HashMap<>();

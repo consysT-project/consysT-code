@@ -46,4 +46,9 @@ public @Mixed class Group implements Serializable {
     public int getCapacity() {
         return capacity;
     }
+
+    @SideEffectFree
+    public List<Ref<@Mutable User>> getUsers() {
+        return users;
+    }
 }

@@ -18,7 +18,8 @@ public class Demo extends DemoExecutor<MessageGroupsBenchmark> {
                 "  bench {\n" +
                 "    demo {\n" +
                 "      messagegroups {\n" +
-                "        groups = 100\n" +
+                "        users = 100\n" +
+                "        groups = 10\n" +
                 "      }\n" +
                 "      type = \"op_mixed\"\n" +
                 "    }\n" +

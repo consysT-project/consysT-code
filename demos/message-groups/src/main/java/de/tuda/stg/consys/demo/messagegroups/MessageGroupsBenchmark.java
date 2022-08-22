@@ -11,10 +11,7 @@ import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,6 +34,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
     private final List<Double> zipf;
 
+    private final int numOfUsersPerReplica;
     private final int numOfGroupsPerReplica;
 
     private final List<Ref<Group>> groups;
@@ -45,12 +43,13 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     public MessageGroupsBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
         super(config, outputResolver);
 
+        numOfUsersPerReplica = config.getInt("consys.bench.demo.messagegroups.users");
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
 
         zipf = zipfSummed(operations.size());
 
+        users = new ArrayList<>(numOfUsersPerReplica * nReplicas());
         groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
-        users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
@@ -67,57 +66,65 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         super.setup();
 
         System.out.println("Adding users");
-        for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
+        for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+            int finalUserIndex = userIndex;
+
+            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
+                    ctx.replicate(addr("inbox", finalUserIndex, processId()), getWeakLevel(), Inbox.class))
+            ).get();
+
+            store().transaction(ctx -> {
+                ctx.replicate(addr("user", finalUserIndex, processId()), getWeakLevel(), User.class,
+                        addr("user", finalUserIndex, processId()), inbox);
+                return Option.apply(0);
+            });
+            BenchmarkUtils.printProgress(userIndex);
+        }
+
+        for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
 
             store().transaction(ctx -> {
                 ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
                 return Option.apply(0);
             });
-
-            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
-                    ctx.replicate(addr("inbox", finalGrpIndex, processId()), getWeakLevel(), Inbox.class))
-            ).get();
-
-            store().transaction(ctx -> {
-                ctx.replicate(addr("user", finalGrpIndex, processId()), getWeakLevel(), User.class,
-                        addr("alice", finalGrpIndex, processId()), inbox);
-                return Option.apply(0);
-            });
-
             BenchmarkUtils.printProgress(grpIndex);
         }
         BenchmarkUtils.printDone();
 
-        barrier("users_added");
+        barrier("objects_added");
 
-        for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+        for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+            int finalReplIndex = replIndex;
+
+            for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
                 int finalGrpIndex = grpIndex;
-                int finalReplIndex = replIndex;
 
-                Ref<Group> group;
-
-                group = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getWeakLevel(), Group.class))
+                Ref<Group> group = store().transaction(ctx -> Option.apply(
+                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getStrongLevel(), Group.class))
                 ).get();
+                groups.add(group);
+            }
+
+            for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+                int finalUserIndex = userIndex;
 
                 Ref<User> user = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), User.class))
+                        ctx.lookup(addr("user", finalUserIndex, finalReplIndex), getWeakLevel(), User.class))
                 ).get();
+                users.add(user);
 
-                // every group starts with one user
+                // every user starts in one group
                 if (replIndex == processId()) {
                     store().transaction(ctx -> {
-                        group.ref().addUser(user);
+                        try {
+                            getRandomElement(groups).ref().addUser(user);
+                        } catch (IllegalArgumentException ignored) {}
                         return Option.apply(0);
                     });
                 }
-
-                groups.add(group);
-                users.add(user);
             }
-            BenchmarkUtils.printProgress(grpIndex);
+            BenchmarkUtils.printProgress(replIndex);
         }
         BenchmarkUtils.printDone();
     }
@@ -161,9 +168,26 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         Ref<Group> group = getRandomElement(groups);
         Ref<User> user = getRandomElement(users);
 
-        store().transaction(ctx -> {
-            group.ref().addUser(user);
-            return Option.apply(0);
+        Option<Integer> result = store().transaction(ctx -> {
+            int groupSize = isTestMode ? group.ref().getUsers().size() : -1;
+
+            try {
+                group.ref().addUser(user);
+            } catch (IllegalArgumentException ignored) {}
+
+            return Option.apply(groupSize);
         });
+
+        if (isTestMode) {
+            store().transaction(ctx -> {
+                int prevGroupSize = result.get();
+                int capacity = group.ref().getCapacity();
+                if (prevGroupSize < capacity)
+                    check("user was added", prevGroupSize + 1 == group.ref().getUsers().size());
+                else
+                    check("capacity was respected", capacity == group.ref().getUsers().size());
+                return Option.apply(0);
+            });
+        }
     }
 }
