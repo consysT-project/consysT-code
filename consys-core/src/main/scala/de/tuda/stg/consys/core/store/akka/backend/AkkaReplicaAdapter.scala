@@ -208,11 +208,7 @@ object AkkaReplicaAdapter {
 
 						// Push changes to the other replicas
 						otherReplicas.filter(ref => ref != self).foreach { otherActor =>
-							try {
 								otherActor ! PushChangesAsync(changes)
-							} catch {
-								case e => e.printStackTrace()
-							}
 						}
 						sender() ! "ack"
 
@@ -285,7 +281,7 @@ object AkkaReplicaAdapter {
 						context.system.terminate()
 				}
 			} catch {
-				case e => Logger.err(e.getMessage)
+				case e : Throwable => Logger.err(self, e.getMessage)
 			}
 		}
 
