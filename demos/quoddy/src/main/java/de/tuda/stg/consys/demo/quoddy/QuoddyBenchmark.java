@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.demo.quoddy;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputFileResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
@@ -245,13 +244,42 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         });
     }
 
-    // also immediately accepts friend request
     private void addFriend() {
+        // also immediately accepts friend request
         Session session = randomLocalSession();
         Ref<? extends IUser> target = getRandomElement(users);
-        store().transaction(ctx -> {
+
+        Option<TransactionResult> result = store().transaction(ctx -> {
+            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
+                    new UserState[] {
+                            new UserState(session.getUser()),
+                            new UserState(target) },
+                    new GroupState[0]);
+
             session.sendFriendRequest(ctx, target);
             Util.acceptFriendRequest(target, session.getUser());
+
+            return Option.apply(trxResult);
+        });
+
+        if (isTestMode && result.isDefined())
+            addFriendTest(result.get());
+    }
+
+    private void addFriendTest(TransactionResult result) {
+        store().transaction(ctx -> {
+            var sender = result.users[0].ref;
+            var target = result.users[1].ref;
+
+            boolean isFriend1 = false;
+            for (var f : sender.ref().getFriends())
+                isFriend1 |= Util.equalsUser(f, target);
+            boolean isFriend2 = false;
+            for (var f : target.ref().getFriends())
+                isFriend2 |= Util.equalsUser(f, sender);
+
+            check("mutual friends after 'add friend'", isFriend1 && isFriend2);
+
             return Option.apply(0);
         });
     }
@@ -259,9 +287,35 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private void joinGroup() {
         Session session = randomLocalSession();
         Ref<? extends IGroup> group = getRandomElement(groups);
-        store().transaction(ctx -> {
+
+        Option<TransactionResult> result = store().transaction(ctx -> {
+            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
+                    new UserState[] {
+                            new UserState(session.getUser())},
+                    new GroupState[] {
+                            new GroupState(group)});
+
             session.joinGroup(ctx, group);
-            return Option.apply(0);
+
+            return Option.apply(trxResult);
+        });
+
+        if (isTestMode && result.isDefined())
+            joinGroupTest(result.get());
+    }
+
+    public void joinGroupTest(TransactionResult result) {
+        store().transaction(ctx -> {
+            var user = result.users[0].ref;
+            var group = result.groups[0].ref;
+
+            boolean isMember = false;
+            for (var member : group.ref().getMembers())
+                isMember |= Util.equalsUser(member, user);
+
+            check("user is member after 'join'", isMember);
+
+            return Option.empty();
         });
     }
 
@@ -315,6 +369,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
      *  -
      *  -
      */
+    @Override
     public void test() {
         if (processId() != 0) return;
         System.out.println("## TEST ##");
@@ -368,5 +423,34 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         });
 
         System.out.println("## TEST SUCCESS ##");
+    }
+
+    private static class TransactionResult {
+        Exception[] appExceptions = new Exception[] {};
+        UserState[] users = new UserState[] {};
+        GroupState[] groups = new GroupState[] {};
+
+        TransactionResult() {}
+
+        TransactionResult(UserState[] users, GroupState[] groups) {
+            this.users = users;
+            this.groups = groups;
+        }
+    }
+
+    private static class UserState {
+        final Ref<? extends IUser> ref;
+
+        UserState(Ref<? extends IUser> ref) {
+            this.ref = ref;
+        }
+    }
+
+    private static class GroupState {
+        final Ref<? extends IGroup> ref;
+
+        GroupState(Ref<? extends IGroup> ref) {
+            this.ref = ref;
+        }
     }
 }

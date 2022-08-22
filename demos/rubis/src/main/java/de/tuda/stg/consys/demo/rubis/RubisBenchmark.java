@@ -228,7 +228,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             check("no app exception occurred", false);
             return;
         } else {
-            check("ano pp exception occurred", true);
+            check("no app exception occurred", true);
         }
 
         store().transaction(ctx -> {
