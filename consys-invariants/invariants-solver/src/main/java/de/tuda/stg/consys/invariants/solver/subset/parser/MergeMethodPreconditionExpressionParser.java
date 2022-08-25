@@ -39,7 +39,7 @@ public class MergeMethodPreconditionExpressionParser extends MethodExpressionPar
 		var methodBinding = jmlMessageSend.binding;
 
 		/* resolve stateful methods */
-		if (JDTUtils.methodMatchesSignature(jmlMessageSend.actualReceiverType, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "__merge", "java.lang.Object")) {
+		if (JDTUtils.methodMatchesSignature(jmlMessageSend.actualReceiverType, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "__merge", "java.lang.Object")) {
 			if (!model.config.MODEL__INCLUDE_IMPURE_METHODS) {
 				throw new UnsupportedJMLExpression(jmlMessageSend, "merge only usable when include_impure_methods is true in config");
 			}

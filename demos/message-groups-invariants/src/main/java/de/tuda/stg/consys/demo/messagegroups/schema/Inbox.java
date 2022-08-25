@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.Mergeable;
-import de.tuda.stg.consys.invariants.crdts.*;
 import de.tuda.stg.consys.invariants.lib.crdts.GSet;
+
 
 import java.io.Serializable;
 import java.util.Set;

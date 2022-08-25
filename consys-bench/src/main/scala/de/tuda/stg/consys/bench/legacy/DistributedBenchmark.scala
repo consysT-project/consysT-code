@@ -9,8 +9,8 @@ import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.OutputResolver.{DateTimeOutputResolver, SimpleOutputResolver}
 import de.tuda.stg.consys.bench.{BenchmarkUtils, OutputResolver}
 import de.tuda.stg.consys.core.store.utils.{MultiPortAddress, SinglePortAddress}
+import de.tuda.stg.consys.invariants.utils.InvariantUtils
 import de.tuda.stg.consys.japi.Store
-import de.tuda.stg.consys.utils.InvariantUtils
 
 import java.io.{FileNotFoundException, PrintWriter}
 

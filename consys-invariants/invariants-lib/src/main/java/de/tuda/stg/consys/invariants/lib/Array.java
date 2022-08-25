@@ -67,6 +67,7 @@ public class Array<T> implements Iterable<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return CollectionConverters.asJava(elements.valuesIterator());
+        return null;
+        //return CollectionConverters.asJava(elements.valuesIterator());
     }
 }

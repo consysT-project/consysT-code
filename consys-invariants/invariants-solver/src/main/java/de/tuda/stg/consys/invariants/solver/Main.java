@@ -31,7 +31,7 @@ public class Main {
 
   public static void runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
     // Compile the file to ASTs
-    var compileResult = CompilerBinding.compile(additionalClasspath, sources);
+    var compileResult = EclipseCompilerBinding.compile(additionalClasspath, sources);
 
     // Create the program model
     var model = new ProgramModel(compileResult, config);

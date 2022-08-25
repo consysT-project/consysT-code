@@ -8,11 +8,10 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-;
 
 public class Logger {
 
-	private final static TaggedWriter nullWriter = new TaggedWriter(PrintStream.nullOutputStream(), new String[0]);
+	private final static TaggedWriter nullWriter = null; //new TaggedWriter(PrintStream.nullOutputStream(), new String[0]);
 	private final static TaggedWriter debugWriter = new TaggedWriter(System.out, new String[] { "DEBUG" });
 	private final static TaggedWriter infoWriter = new TaggedWriter(System.out, new String[] { "INFO" });
 	private final static TaggedWriter warnWriter = new TaggedWriter(System.out, new String[] { "WARN" });
@@ -93,8 +92,8 @@ public class Logger {
 
 		public void withTags(String[] additionalTags, Runnable f) {
 			synchronized (lock) {
-				var oldTags = tags;
-				var newTags = new String[tags.length + additionalTags.length];
+				String[] oldTags = tags;
+				String[] newTags = new String[tags.length + additionalTags.length];
 				System.arraycopy(tags, 0, newTags, 0, tags.length);
 				System.arraycopy(additionalTags, 0, newTags, tags.length, additionalTags.length);
 
@@ -114,9 +113,9 @@ public class Logger {
 		@Override
 		public void write(char[] cbuf, int off, int len) throws IOException {
 			synchronized (lock) {
-				var msg = String.valueOf(cbuf, off, len);
+				String msg = String.valueOf(cbuf, off, len);
 
-				var prefix = "[" + sdf.format(new Date()) + "]";
+				String prefix = "[" + sdf.format(new Date()) + "]";
 
 				for (String tag : tags) {
 					prefix += "[" + tag + "]";
@@ -124,7 +123,7 @@ public class Logger {
 
 				prefix += Strings.repeat("  |", identation.get()) + " ";
 
-				var s = String.valueOf(msg);
+				String s = String.valueOf(msg);
 
 				if (first.compareAndSet(true, false)) {
 					s = prefix + s;

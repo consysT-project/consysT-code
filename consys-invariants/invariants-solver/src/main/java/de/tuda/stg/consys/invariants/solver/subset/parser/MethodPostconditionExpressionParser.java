@@ -48,7 +48,7 @@ public class MethodPostconditionExpressionParser extends MethodExpressionParser 
 		var methodBinding = jmlMessageSend.binding;
 
 		/* resolve stateful methods */
-		if (JDTUtils.methodMatchesSignature(jmlMessageSend.actualReceiverType, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "stateful", "java.lang.Object")) {
+		if (JDTUtils.methodMatchesSignature(jmlMessageSend.actualReceiverType, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "stateful", "java.lang.Object")) {
 			if (!model.config.MODEL__INCLUDE_IMPURE_METHODS) {
 				throw new UnsupportedJMLExpression(jmlMessageSend, "stateful only usable when include_impure_methods is true in config");
 			}

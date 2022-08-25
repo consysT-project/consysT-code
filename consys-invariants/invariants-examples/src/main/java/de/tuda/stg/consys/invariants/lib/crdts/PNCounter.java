@@ -8,8 +8,9 @@ package de.tuda.stg.consys.invariants.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
 @ReplicatedModel public class PNCounter implements Mergeable<PNCounter> {

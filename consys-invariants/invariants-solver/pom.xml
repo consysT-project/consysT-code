@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.sosy-lab</groupId>
             <artifactId>java-smt</artifactId>
-            <version>3.7.0</version>
+            <version>3.13.3</version>
         </dependency>
 
         <dependency>
@@ -44,6 +44,14 @@
             <version>1.0.0</version>
             <scope>system</scope>
             <systemPath>${pom.basedir}/lib/jml_compiler.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjml</groupId>
+            <artifactId>openjml</artifactId>
+            <version>0.8.59</version>
+            <scope>system</scope>
+            <systemPath>${pom.basedir}/lib/openjml.jar</systemPath>
         </dependency>
 
 

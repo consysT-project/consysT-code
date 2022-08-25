@@ -3,8 +3,8 @@ package de.tuda.stg.consys.invariants.lib.crdts.immutable;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 import de.tuda.stg.consys.invariants.lib.Array;
 

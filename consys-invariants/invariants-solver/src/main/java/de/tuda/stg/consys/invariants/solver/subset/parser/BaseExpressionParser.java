@@ -453,11 +453,11 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
     // System methods
-    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replicaId")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "replicaId")) {
       return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "replica")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "replica")) {
       return model.ctx.mkString(model.config.SYSTEM__REPLICA);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.utils.InvariantUtils", "numOfReplicas")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "numOfReplicas")) {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
 

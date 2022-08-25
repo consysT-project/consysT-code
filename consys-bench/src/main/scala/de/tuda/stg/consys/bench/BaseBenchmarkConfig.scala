@@ -7,14 +7,10 @@ package de.tuda.stg.consys.bench
  */
 import com.typesafe.config.{Config, ConfigFactory}
 import de.tuda.stg.consys.bench.OutputResolver.{ConsoleOutputResolver, DateTimeOutputResolver}
-import de.tuda.stg.consys.bench.legacy.BarrierSystem
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
-import de.tuda.stg.consys.core.store.utils.MultiPortAddress
-import de.tuda.stg.consys.logging.Logger
-import de.tuda.stg.consys.utils.InvariantUtils
+import de.tuda.stg.consys.invariants.utils.InvariantUtils
 
-import java.io.{FileNotFoundException, PrintWriter}
 import scala.concurrent.duration.FiniteDuration
 
 

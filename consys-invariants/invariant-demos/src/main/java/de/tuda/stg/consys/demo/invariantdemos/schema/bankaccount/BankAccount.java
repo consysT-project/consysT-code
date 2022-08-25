@@ -6,8 +6,9 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 import java.io.Serializable;
 
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+
 
 @ReplicatedModel public class BankAccount implements Serializable {
     /* Constants */

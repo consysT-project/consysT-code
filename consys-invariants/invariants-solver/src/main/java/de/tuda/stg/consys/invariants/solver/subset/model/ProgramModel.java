@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Solver;
-import de.tuda.stg.consys.invariants.solver.CompilerBinding;
+import de.tuda.stg.consys.invariants.solver.EclipseCompilerBinding;
 import de.tuda.stg.consys.invariants.solver.subset.*;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.ReplicatedClassConstraints;
@@ -171,7 +171,7 @@ public class ProgramModel {
 
 	public final TypeModelFactory types;
 
-	private final CompilerBinding.CompileResult compileResult;
+	private final EclipseCompilerBinding.CompileResult compileResult;
 
 	public final ProgramConfig config;
 
@@ -183,7 +183,7 @@ public class ProgramModel {
 	// Stores the sequence in which the models have been added.
 	private final List<ReferenceBinding> modelSequence;
 
-	public ProgramModel(Context ctx, CompilerBinding.CompileResult compileResult, ProgramConfig config) {
+	public ProgramModel(Context ctx, EclipseCompilerBinding.CompileResult compileResult, ProgramConfig config) {
 		this.ctx = ctx;
 		this.solver =  ctx.mkSolver();
 //			ctx.mkSolver(ctx.mkTactic("default"));
@@ -201,7 +201,7 @@ public class ProgramModel {
 		this.modelSequence = Lists.newLinkedList();
 	}
 
-	public ProgramModel(CompilerBinding.CompileResult compileResult, ProgramConfig config) {
+	public ProgramModel(EclipseCompilerBinding.CompileResult compileResult, ProgramConfig config) {
 		this(
 				new Context(
 					/*Map.of("model", "true",
