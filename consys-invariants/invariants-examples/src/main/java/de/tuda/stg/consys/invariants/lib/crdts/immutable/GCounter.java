@@ -7,22 +7,23 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 import de.tuda.stg.consys.invariants.lib.Array;
+import de.tuda.stg.consys.invariants.utils.InvariantUtils;
 
 
 @ReplicatedModel public class GCounter implements Mergeable<GCounter> {
 
-    public Array<Integer> increments = Array.emptyIntArray(numOfReplicas());
+    public Array<Integer> increments = Array.emptyIntArray(InvariantUtils.numOfReplicas());
 
 
     /* Constructors */
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); increments.get(i) == 0);
+    //@ ensures (\forall int i; i >= 0 && i < InvariantUtils.numOfReplicas(); increments.get(i) == 0);
     public GCounter() {
 
     }
 
 
     //@ assignable \nothing;
-    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); increments.get(i));
+    //@ ensures \result == (\sum int i; i >= 0 && i < InvariantUtils.numOfReplicas(); (int) increments.get(i));
     public int getValue() {
         int res = 0;
         for (int inc : increments) {
@@ -32,7 +33,7 @@ import de.tuda.stg.consys.invariants.lib.Array;
     }
 
     //@ assignable increments;
-    //@ ensures increments == \old(increments.set(replicaId(), increments.get(replicaId()) + 1);
+    //@ ensures increments == \old(increments.set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + 1) );
     public Void inc() {
         inc(1);
         return null;
@@ -40,7 +41,7 @@ import de.tuda.stg.consys.invariants.lib.Array;
 
 
     //@ assignable increments;
-    //@ ensures increments == \old(increments.set(replicaId(), increments.get(replicaId()) + n);
+    //@ ensures increments == \old(increments.set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + n) );
     public Void inc(int n) {
         increments = increments.set(replicaId(), increments.get(replicaId()) + n);
         return null;
@@ -48,7 +49,7 @@ import de.tuda.stg.consys.invariants.lib.Array;
 
 
     //@ assignable increments;
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); increments == \old(increments.set(i, Math.max(increments.get(i), other.increments.get(i)))) );
+    //@ ensures (\forall int i; i >= 0 && i < InvariantUtils.numOfReplicas(); increments == \old(increments.set(i, Math.max(increments.get(i), other.increments.get(i)))) );
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             increments = increments.set(i, Math.max(increments.get(i), other.increments.get(i)));

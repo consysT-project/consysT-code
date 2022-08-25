@@ -5,25 +5,23 @@ import scala.Tuple2;
 import scala.collection.immutable.HashMap;
 import scala.collection.immutable.Map;
 import scala.collection.mutable.ReusableBuilder;
-import scala.jdk.javaapi.CollectionConverters;
 
 import java.util.Iterator;
-import java.util.function.Supplier;
 
 public class Array<T> implements Iterable<T> {
 
     private final scala.collection.immutable.Map<Integer, T> elements;
     public final int length;
-    private final Supplier<T> empty;
+    private final T empty;
 
-    private Array(Map<Integer, T> elements, int length, Supplier<T> empty) {
+    private Array(Map<Integer, T> elements, int length, T empty) {
         this.elements = elements;
         this.length = length;
         this.empty = empty;
     }
 
     private Array(Map<Integer, T> elements, int length) {
-        this(elements, length, () -> null);
+        this(elements, length, null);
     }
 
     public static <T> Array<T> from(T... elems) {
@@ -41,7 +39,7 @@ public class Array<T> implements Iterable<T> {
     }
 
     public static Array<Integer> emptyIntArray(int length) {
-        return new Array(HashMap.<Integer, Integer>newBuilder().result(), length, () -> 0);
+        return new Array(HashMap.<Integer, Integer>newBuilder().result(), length, 0);
     }
 
     public Array<T> set(int index, T element) {
@@ -61,7 +59,7 @@ public class Array<T> implements Iterable<T> {
             return result.get();
         }
 
-        return empty.get();
+        return empty;
     }
 
 

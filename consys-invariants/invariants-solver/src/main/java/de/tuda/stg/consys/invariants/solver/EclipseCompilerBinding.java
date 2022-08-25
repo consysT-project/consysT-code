@@ -21,12 +21,10 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created on 23.06.21.
@@ -67,12 +65,24 @@ public class EclipseCompilerBinding {
                 "-classpath", Arrays.stream(classPath).map(Path::toString).reduce( (acc, e) -> acc + File.pathSeparator + e).orElse(".")
         };
 
-        String[] argv = new String[sourceFileStrings.length + compilerOpts.length];
-        System.arraycopy(compilerOpts, 0, argv, 0, compilerOpts.length);
-        System.arraycopy(sourceFileStrings, 0, argv, compilerOpts.length, sourceFileStrings.length);
+        List<String> argv = new LinkedList<>();
 
-        Logger.info("exec javac with argv: " + Arrays.toString(argv));
-        compilerStarter.compile(argv);
+        argv.addAll(Arrays.asList(compilerOpts));
+        argv.addAll(Arrays.asList("-target", "1.7"));
+        argv.addAll(Arrays.asList("-source", "1.7"));
+
+        argv.addAll(Arrays.asList(sourceFileStrings));
+
+//        String[] argv = new String[sourceFileStrings.length + compilerOpts.length];
+//        System.arraycopy(compilerOpts, 0, argv, 0, compilerOpts.length);
+//        System.arraycopy(sourceFileStrings, 0, argv, compilerOpts.length, sourceFileStrings.length);
+
+        String[] argvArray = new String[argv.size()];
+        argv.toArray(argvArray);
+
+
+        Logger.info("exec javac with argv: " + Arrays.toString(argvArray));
+        compilerStarter.compile(argvArray);
 
         return compilerStarter.getResult();
     }
