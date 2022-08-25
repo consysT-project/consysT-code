@@ -1,9 +1,4 @@
-<<<<<<<< HEAD:consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/GSet.java
 package de.tuda.stg.consys.invariants.lib.crdts;
-========
-package de.tuda.stg.consys.invariants.crdts;
->>>>>>>> 76b7042f (fixed some installations and added new invariants dem):consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/GSet.java
-// Grow-only Set CRDT
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;

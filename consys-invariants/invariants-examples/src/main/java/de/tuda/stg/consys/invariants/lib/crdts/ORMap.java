@@ -1,8 +1,5 @@
-<<<<<<<< HEAD:consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/ORMap.java
 package de.tuda.stg.consys.invariants.lib.crdts;
-========
-package de.tuda.stg.consys.invariants.crdts;
->>>>>>>> 76b7042f (fixed some installations and added new invariants dem):consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/ORMap.java
+
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
