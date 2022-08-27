@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.Ref;
@@ -14,7 +15,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
-@SuppressWarnings({"consistency"})
+//@SuppressWarnings({"consistency"})
 public class CounterBenchmark extends CassandraDemoBenchmark {
 	public static void main(String[] args) {
 		start(CounterBenchmark.class, args);
@@ -25,7 +26,7 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 	}
 
 	private final Random random = new Random();
-	private Ref<Counter> counter;
+	private Ref<@Mutable Counter> counter;
 
 	@Override
 	public String getName() {
@@ -37,11 +38,15 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 		super.setup();
 
 		if (processId() == 0) {
-			counter = store().transaction(ctx -> Option.apply(ctx.replicate("counter", getWeakLevel(), Counter.class, 0))).get();
+			counter = store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
+					ctx.replicate("counter", getWeakLevel(), Counter.class, 0)
+			)).get();
 		}
 		barrier("counter_added");
 		if (processId() != 0) {
-			counter = store().transaction(ctx -> Option.apply(ctx.lookup("counter", getWeakLevel(), Counter.class))).get();
+			counter = store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
+					ctx.lookup("counter", getWeakLevel(), Counter.class)
+			)).get();
 		}
 	}
 

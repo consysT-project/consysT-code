@@ -2,6 +2,7 @@ import org.checkerframework.dataflow.qual.*;
 import org.checkerframework.framework.qual.HasQualifierParameter;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.*;
+import scala.Option;
 
 package java.lang;
 
@@ -40,6 +41,7 @@ class Float {
     @PolyConsistent float floatValue();
 }
 
+
 package java.util;
 
 @Immutable class Optional<T> {
@@ -49,8 +51,10 @@ package java.util;
 
     @SideEffectFree
     boolean isPresent();
+
     @SideEffectFree
     boolean isEmpty();
+
     @SideEffectFree
     T get();
 }
@@ -99,6 +103,7 @@ interface Collection<T> {
     @Mutable Stream<T> stream();
 }
 
+
 package java.util.stream;
 
 interface Stream<T> {
@@ -108,9 +113,57 @@ interface Stream<T> {
     @Mutable Stream<T> filter(java.util.function.Predicate<? super T> predicate);
 }
 
+
 package java.io;
 
 class PrintStream {
     @SideEffectFree
     void println(String x);
+}
+
+
+package scala;
+
+class Option<A> {
+    @SideEffectFree
+    boolean isEmpty();
+
+    @SideEffectFree
+    boolean isDefined();
+
+    @SideEffectFree
+    T get();
+
+    <A> @Immutable @Local Option<A> empty();
+    <A> @Immutable @Local Option<A> apply(A a);
+}
+
+
+package de.tuda.stg.consys.japi;
+
+interface Store<Addr, Obj, Consistency, TxContext extends TransactionContext<Addr, Obj, Consistency>> {
+
+    <U> Option<U> transaction(Transaction<TxContext, U, Addr, Obj, Consistency> tx);
+
+    void close();
+}
+
+interface TransactionContext<Addr, Obj, Consistency> {
+
+    <T extends Obj> Ref<@Mutable T> replicate(Addr addr, Consistency level, Class<T> clazz, java.lang.Object... constructorArgs);
+
+    <T extends Obj> Ref<@Mutable T> lookup(Addr addr, Consistency level, Class<T> clazz);
+}
+
+
+package de.tuda.stg.consys.japi.binding.cassandra;
+@Mutable class CassandraStoreBinding {
+
+}
+
+
+package de.tuda.stg.consys.bench;
+
+class DistributedBenchmark<StoreType extends @Mutable Store<?,?,?,?>> {
+    StoreType store();
 }
