@@ -68,7 +68,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			//If method call is not side effect free, then set the changed flag
 			val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
 			if (objectChanged) txContext.Cache.setObjectChanged(addr)
-			if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
+			//if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
 
 			result
 		}
