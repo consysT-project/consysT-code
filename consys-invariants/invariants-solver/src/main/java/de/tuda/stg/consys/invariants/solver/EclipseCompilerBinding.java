@@ -56,7 +56,7 @@ public class EclipseCompilerBinding {
         Path[] classPath = new Path[additionalClassPath.length + 4];
         System.arraycopy(additionalClassPath, 0, classPath, 4, additionalClassPath.length);
 
-        classPath[0] = Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "rt.jar");
+        classPath[0] = Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "rt-1.7.jar");
         classPath[1] = Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "scala-library-2.13.8.jar");
         classPath[2] = Paths.get("consys-annotations", "target", "consys-annotations-4.0.0.jar");
         classPath[3] = Paths.get("consys-invariants", "invariants-lib", "target", "invariants-lib-4.0.0.jar");

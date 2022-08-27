@@ -96,6 +96,10 @@ public abstract class ExpressionParser {
 			return parseConditionalExpression((ConditionalExpression) expression, depth);
 		}
 
+		if (expression instanceof CastExpression) {
+			return parseCastExpression((CastExpression) expression, depth);
+		}
+
 		throw new UnsupportedJMLExpression(expression, "expression type not supported. depth: " + depth);
 	}
 
@@ -104,6 +108,10 @@ public abstract class ExpressionParser {
 	}
 
 	protected Expr parseBinaryExpression(BinaryExpression expression, int depth) {
+		throw new UnsupportedJMLExpression(expression);
+	}
+
+	protected Expr parseCastExpression(CastExpression expression, int depth) {
 		throw new UnsupportedJMLExpression(expression);
 	}
 

@@ -316,6 +316,24 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSelect(receiverExpr, argExpr);
     }
+    //Consys Arrays
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "de.tuda.stg.consys.invariants.lib.Array", "get", "int")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+
+      var result = model.ctx.mkSelect(receiverExpr, argExpr);
+
+      return result;
+    }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "de.tuda.stg.consys.invariants.lib.Array", "set", "int", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var indexExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var valueExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      var result = model.ctx.mkStore(receiverExpr, indexExpr, valueExpr);
+
+      return result;
+    }
 	// com.google.common.collect.Multimap
 	else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "isEmpty")) {
 		var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
@@ -453,17 +471,24 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
     // System methods
-    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "replicaId")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "replicaId")) {
       return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "replica")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "replica")) {
       return model.ctx.mkString(model.config.SYSTEM__REPLICA);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.InvariantUtils", "numOfReplicas")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "numOfReplicas")) {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
 
 
 
     return super.parseJmlMessageSend(jmlMessageSend, depth);
+  }
+
+
+  @Override
+  protected Expr parseCastExpression(CastExpression expression, int depth) {
+    var inner = expression.expression;
+    return parseExpression(inner, depth + 1);
   }
 
   /**

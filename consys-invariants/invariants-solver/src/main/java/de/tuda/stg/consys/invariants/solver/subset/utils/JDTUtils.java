@@ -66,8 +66,8 @@ public class JDTUtils {
 				parent = refBinding.superclass();
 			} catch (NullPointerException e) {
 				//TODO: There is a null pointerexception sometimes in this code?
-				Logger.err("there was a null pointer exception while getting the superclass for: " + binding.debugName());
-				e.printStackTrace(Logger.err);
+				Logger.warn("there was a null pointer exception while getting the superclass for: " + binding.debugName());
+				e.printStackTrace(Logger.warn);
 			}
 
 			// Check super class
@@ -85,8 +85,8 @@ public class JDTUtils {
 				superInterfaces = refBinding.superInterfaces();
 			} catch (NullPointerException e) {
 				//TODO: There is a null pointerexception sometimes in this code?
-				Logger.err("there was a null pointer exception while getting the superinterface for: " + binding.debugName());
-				e.printStackTrace(Logger.err);
+				Logger.warn("there was a null pointer exception while getting the superinterface for: " + binding.debugName());
+				e.printStackTrace(Logger.warn);
 			}
 			if (superInterfaces == null) {
 				return false;
@@ -104,6 +104,9 @@ public class JDTUtils {
 	}
 
 	public static boolean methodMatchesSignature(TypeBinding receiverBinding, MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
+		if (binding == null)
+			throw new NullPointerException("binding was null. receiver: " + receiverBinding + ", method: " + methodName);
+
 		if (binding.isStatic() != isStatic) {
 			return false;
 		}
@@ -118,6 +121,10 @@ public class JDTUtils {
 
 		if (binding.parameters.length != argumentTypeNames.length) {
 			return false;
+		}
+
+		if (binding instanceof ParameterizedMethodBinding) {
+			binding = binding.original();
 		}
 
 		for (int i = 0; i < argumentTypeNames.length; i++) {
