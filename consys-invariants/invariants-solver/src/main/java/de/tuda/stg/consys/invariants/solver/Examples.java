@@ -84,7 +84,7 @@ public class Examples {
 
 	public static final Path[] IMMUTABLE_CRDTLIB = new Path[] {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/immutable/GCounter.java"),
-//			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/immutable/PNCounter.java")
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/immutable/PNCounter.java")
 	};
 
 

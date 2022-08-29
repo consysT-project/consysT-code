@@ -33,8 +33,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.__merge;
         return null;
     }
 
-    //@ assignable incCounter;
     //@ requires n >= 0;
+    //@ assignable incCounter;
     //@ ensures stateful( incCounter.inc(n) );
     public Void inc(int n) {
         if (n < 0) throw new IllegalArgumentException();
@@ -51,8 +51,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.__merge;
     }
 
 
-    //@ assignable decCounter;
     //@ requires n >= 0;
+    //@ assignable decCounter;
     //@ ensures stateful( decCounter.inc(n) );
     public Void dec(int n) {
         if (n < 0) throw new IllegalArgumentException();

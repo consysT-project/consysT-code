@@ -26,7 +26,6 @@ import de.tuda.stg.consys.invariants.utils.InvariantUtils;
     }
 
 
-    //@ assignable \nothing;
     //@ requires true;
     //@ ensures \result == (\sum int i; i >= 0 && i < InvariantUtils.numOfReplicas(); (int) increments.get(i));
     public int getValue() {
@@ -37,17 +36,19 @@ import de.tuda.stg.consys.invariants.utils.InvariantUtils;
         return res;
     }
 
-    //@ assignable increments;
+
     //@ requires true;
-    //@ ensures increments == \old(increments.set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + 1) );
+    //@ assignable increments;
+    //@ ensures increments == \old(increments).set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + 1) ;
     public Void inc() {
         inc(1);
         return null;
     }
 
 
-    //@ assignable increments;
+
     //@ requires n >= 0;
+    //@ assignable increments;
     //@ ensures increments == \old(increments.set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + n) );
     public Void inc(int n) {
         if (n < 0) throw new IllegalArgumentException();
@@ -57,9 +58,9 @@ import de.tuda.stg.consys.invariants.utils.InvariantUtils;
     }
 
 
-    //@ assignable increments;
-    //@ requires true;
-    //@ ensures (\forall int i; i >= 0 && i < InvariantUtils.numOfReplicas(); increments == \old(increments.set(i, Math.max(increments.get(i), other.increments.get(i)))) );
+    // assignable increments;
+    // requires true;
+    // ensures (\forall int i; i >= 0 && i < InvariantUtils.numOfReplicas(); increments == \old(increments.set(i, Math.max(increments.get(i), other.increments.get(i)))) );
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             increments = increments.set(i, Math.max(increments.get(i), other.increments.get(i)));
