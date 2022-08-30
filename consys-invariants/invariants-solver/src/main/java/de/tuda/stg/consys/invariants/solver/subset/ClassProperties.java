@@ -49,9 +49,11 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 
 	private boolean isValid(Model z3Model, Expr<BoolSort> expr) {
-		model.solver.add(model.ctx.mkNot(expr));
-		Status status = model.solver.check();
-
+		// a property is valid if the inverse is unsatisfiable.
+		Status status = model.solver.check(
+				//create the inverse
+				model.ctx.mkNot(expr)
+		);
 
 		switch (status) {
 			case UNSATISFIABLE:

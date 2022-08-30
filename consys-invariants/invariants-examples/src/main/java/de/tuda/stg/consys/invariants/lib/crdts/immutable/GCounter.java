@@ -40,7 +40,7 @@ import de.tuda.stg.consys.invariants.utils.InvariantUtils;
 
     //@ requires true;
     //@ assignable increments;
-    //@ ensures increments == \old(increments).set(InvariantUtils.replicaId(), increments.get(InvariantUtils.replicaId()) + 1) ;
+    //@ ensures increments == \old(increments).set(InvariantUtils.replicaId(), \old(increments).get(InvariantUtils.replicaId()) + 1) ;
     public Void inc() {
         inc(1);
         return null;

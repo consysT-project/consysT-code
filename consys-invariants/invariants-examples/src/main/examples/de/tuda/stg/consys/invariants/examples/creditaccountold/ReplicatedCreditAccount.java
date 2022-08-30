@@ -3,6 +3,10 @@ package de.tuda.stg.consys.invariants.examples.creditaccountold;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+
 @ReplicatedModel
 public class ReplicatedCreditAccount {
 

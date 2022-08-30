@@ -246,6 +246,7 @@ public class ProgramModel {
 			});
 		}
 
+		Logger.info("done checking");
 
 	}
 

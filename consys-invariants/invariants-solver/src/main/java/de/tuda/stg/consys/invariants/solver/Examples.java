@@ -45,8 +45,8 @@ public class Examples {
 	};
 
 	public static final Path[] REPLICATED_CREDIT_ACCOUNT_OLD = new Path[] {
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccountold/ReplicatedCreditAccount.java")
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccountold/ReplicatedCreditAccount.java")
 	};
 
 	public static final Path[] GSET = new Path[] {

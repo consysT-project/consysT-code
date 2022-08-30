@@ -8,6 +8,8 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+
 
 
 @ReplicatedModel public class PNCounter implements Mergeable<PNCounter> {
@@ -25,7 +27,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int incInd; incInd >= 0 && incInd < numOfReplicas(); incs[incInd]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
     @*/
     int sumIncs() {
         int res = 0;
@@ -58,7 +60,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     /*@
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
-    @ ensures incs == \old(incs)
     @*/
     public Void inc() {
         incs[replicaId()] = incs[replicaId()] + 1;
@@ -86,11 +87,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         return null;
     }
 
-    /*@
-    @ requires n >= 0;
-    @ assignable decs[replicaId()];
-    @ ensures decs[replicaId()] == \old(decs[replicaId()]) + n;
-    @*/
+
+    //@ requires n >= 0;
+    //@ assignable decs[replicaId()];
+    //@ ensures decs[replicaId()] == \old(decs[replicaId()]) + n;
     public Void dec(int n) {
         if (n > getValue())
             throw new IllegalArgumentException("not enough balance to withdraw");
@@ -98,11 +98,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         return null;
     }
 
-    /*@
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas();
+    /*@ ensures (\forall int i; i >= 0 && i < numOfReplicas();
                      (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i])
                   && (\old(decs[i]) >= other.decs[i] ? decs[i] == \old(decs[i]) : decs[i] == other.decs[i]));
-    @*/
+    */
     public Void merge(PNCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i] = Math.max(incs[i], other.incs[i]);
