@@ -1,8 +1,8 @@
 #!/bin/bash
 
-CONF_PATH='new-local/mixed/'
+CONF_PATH='new-local/op_mixed/'
 CLASS_NAME='de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark'
-JAR_NAME='target/message-groups-3.0.0-alpha-allinone.jar'
+JAR_NAME='target/message-groups-4.0.0-allinone.jar'
 
 if [ -n "$1" ]; then
   CONF_PATH="$1"

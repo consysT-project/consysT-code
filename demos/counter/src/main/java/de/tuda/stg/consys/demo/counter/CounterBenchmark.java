@@ -15,7 +15,7 @@ import java.util.Random;
  *
  * @author Mirko Köhler
  */
-//@SuppressWarnings({"consistency"})
+@SuppressWarnings({"consistency"})
 public class CounterBenchmark extends CassandraDemoBenchmark {
 	public static void main(String[] args) {
 		start(CounterBenchmark.class, args);
