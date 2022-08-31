@@ -2,6 +2,8 @@ import org.checkerframework.dataflow.qual.*;
 import org.checkerframework.framework.qual.HasQualifierParameter;
 import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.annotations.methods.*;
 import scala.Option;
 
 package java.lang;
@@ -31,14 +33,12 @@ class StringBuilder {
     @Mutable StringBuilder append(String str);
 }
 
-@HasQualifierParameter(Inconsistent.class)
 class Number {
-     @PolyConsistent float floatValue();
+     @ThisConsistent float floatValue();
 }
 
-@HasQualifierParameter(Inconsistent.class)
 class Float {
-    @PolyConsistent float floatValue();
+    @ThisConsistent float floatValue();
 }
 
 

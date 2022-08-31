@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.quoddy.schema.datacentric;
 
+import de.tuda.stg.consys.annotations.ThisConsistent;
 import de.tuda.stg.consys.checker.qual.Strong;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
@@ -17,7 +18,7 @@ public @Strong class BoolBox implements Serializable {
     }
 
     @SideEffectFree
-    public boolean get() {
+    public @ThisConsistent boolean get() {
         return value;
     }
 }

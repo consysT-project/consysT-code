@@ -5,6 +5,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import de.tuda.stg.consys.annotations.MethodWriteList;
+import de.tuda.stg.consys.annotations.ThisConsistent;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.jdk.Utils;
@@ -16,6 +17,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import scala.Tuple2;
 import scala.jdk.javaapi.CollectionConverters;
@@ -74,8 +76,9 @@ public class ConsistencyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
 	@Override
 	public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
-		if (tree.getKind() == Tree.Kind.METHOD && ((MethodTree)tree).getName().toString().toLowerCase().startsWith("get")) {
-			// disable cache when querying methods, so that we don't skip the return type adaptation
+		if (tree.getKind() == Tree.Kind.METHOD &&
+				AnnotationUtils.containsSameByClass(TreeUtils.elementFromDeclaration((MethodTree) tree).getReturnType().getAnnotationMirrors(), ThisConsistent.class)) {
+			// disable cache when querying methods, so that we don't skip the @ThisConsistent return type adaptation
 			// fields are never cached, so we don't need additional rules there
 			boolean prevShouldCache = super.shouldCache;
 			super.shouldCache = false;

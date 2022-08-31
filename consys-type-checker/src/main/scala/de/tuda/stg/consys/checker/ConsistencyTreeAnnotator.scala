@@ -2,6 +2,7 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess
+import de.tuda.stg.consys.annotations.ThisConsistent
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
@@ -181,11 +182,8 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		}
 	}
 
-
 	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
 		val method = TreeUtils.elementFromUse(node)
-		val methodType = tf.getAnnotatedType(method)
-		val methodName = method.getSimpleName.toString.toLowerCase
 		val recvQualifier = node.getMethodSelect match {
 			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
 				val typ = tf.getAnnotatedType(mst.getExpression)
@@ -194,9 +192,9 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				tf.peekVisitClassContext()._2
 		}
 
-		// return type inference for mixed getters
-		if (getExplicitConsistencyAnnotation(methodType.getReturnType).isEmpty &&
-			methodName.startsWith("get")) {
+		// replace @ThisConsistent return types with receiver type or op-level for mixed receivers
+		if (AnnotationUtils.containsSameByClass(method.getReturnType.getAnnotationMirrors, classOf[ThisConsistent])) {
+			// return type inference for mixed getters
 			val inferred =
 				if (isMixedQualifier(recvQualifier)) getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
 				else recvQualifier

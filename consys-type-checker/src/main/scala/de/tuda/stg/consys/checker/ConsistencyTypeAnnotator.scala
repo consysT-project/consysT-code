@@ -1,8 +1,9 @@
 package de.tuda.stg.consys.checker
 
+import de.tuda.stg.consys.annotations.ThisConsistent
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
-import org.checkerframework.javacutil.{AnnotationUtils, TypesUtils}
+import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TypesUtils}
 
 /**
 	* Created on 23.07.19.
@@ -31,12 +32,10 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 	override def visitExecutable(method: AnnotatedExecutableType, aVoid: Void): Void = {
 		val r = super.visitExecutable(method, aVoid)
 
-		// return type adaptation for getters
+		// return type adaptation for @ThisConsistent inside method body context
 		if (tf.getMethodReceiverContext != null) {
-			val methodName = method.getElement.getSimpleName.toString.toLowerCase
 			val recvQualifier = tf.getMethodReceiverContext
-			if (getExplicitConsistencyAnnotation(method.getReturnType).isEmpty &&
-				methodName.startsWith("get")) {
+			if (AnnotationUtils.containsSameByClass(method.getUnderlyingType.getReturnType.getAnnotationMirrors, classOf[ThisConsistent])) {
 				val inferred =
 					if (isMixedQualifier(recvQualifier)) getQualifierForMethodOp(method.getElement, recvQualifier).get
 					else recvQualifier
