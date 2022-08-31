@@ -74,6 +74,7 @@ trait CassandraStore extends DistributedStore {
 
 	override def close(): Unit = {
 		super.close()
+		curator.close()
 		cassandraSession.close()
 	}
 
