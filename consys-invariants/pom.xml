@@ -17,6 +17,7 @@
         <module>invariants-solver</module>
         <module>invariants-lib</module>
         <module>invariants-examples</module>
+        <module>invariants-lang</module>
     </modules>
 
 

@@ -11,21 +11,8 @@
 
     <artifactId>invariants-solver</artifactId>
 
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
-
-
 
     <dependencies>
-
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-annotations</artifactId>
