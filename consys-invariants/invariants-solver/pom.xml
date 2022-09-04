@@ -33,13 +33,13 @@
             <systemPath>${pom.basedir}/lib/jml_compiler.jar</systemPath>
         </dependency>
 
-        <dependency>
-            <groupId>org.openjml</groupId>
-            <artifactId>openjml</artifactId>
-            <version>0.8.59</version>
-            <scope>system</scope>
-            <systemPath>${pom.basedir}/lib/openjml.jar</systemPath>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.openjml</groupId>-->
+<!--            <artifactId>openjml</artifactId>-->
+<!--            <version>0.8.59</version>-->
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${pom.basedir}/lib/openjml.jar</systemPath>-->
+<!--        </dependency>-->
 
 
         <dependency>

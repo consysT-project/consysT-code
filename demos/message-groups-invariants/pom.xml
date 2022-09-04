@@ -135,11 +135,6 @@
     </build>
 
     <dependencies>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-invariants</artifactId>
-            <version>4.0.0</version>
-        </dependency>
 
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
