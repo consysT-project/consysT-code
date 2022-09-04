@@ -2,6 +2,8 @@ package de.tuda.stg.consys.invariants.lang
 
 import de.tuda.stg.consys.invariants.lang.Cls.{FieldDef, MethodDef}
 import de.tuda.stg.consys.invariants.lang.Expr._
+import de.tuda.stg.consys.invariants.lang.Interpreter.interpProg
+import de.tuda.stg.consys.invariants.lang.Prog.Tx
 import de.tuda.stg.consys.invariants.lang.Stmt.{DoCallMethod, DoGetField, DoNew, DoSetField, Return}
 import de.tuda.stg.consys.invariants.lang.Type.{TInt, TUnit}
 
@@ -29,17 +31,19 @@ object Main {
 			)
 		)
 
-		val stmt =
-			DoNew("counter", "Counter" , Map("i" -> IntVal(42)),
-				DoCallMethod("x1", Var("counter"), "inc", Seq(),
-					Return(Var("counter"))
+		val program = Prog(
+			Tx(
+				DoNew("counter", "Counter", Map("i" -> IntVal(42)),
+					DoCallMethod("x1", Var("counter"), "inc", Seq(),
+						Return(Var("counter"))
+					)
 				)
 			)
+		)
 
-
-		val v = Stmt.interp(ct, Map(), Map(), stmt)
-
-		println(v)
+		TypeSystem.checkProg(ct, program)
+		val store = interpProg(ct, Map(), program)
+		println(store)
 
 	}
 

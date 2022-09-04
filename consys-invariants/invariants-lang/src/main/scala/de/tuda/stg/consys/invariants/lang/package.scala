@@ -20,5 +20,8 @@ package object lang {
 	val thsVar = Var(thsId)
 
 
+	type TypeEnv = Map[VarId, Type]
+
+
 
 }
