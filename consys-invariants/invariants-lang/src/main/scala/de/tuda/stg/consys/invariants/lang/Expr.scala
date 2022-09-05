@@ -14,6 +14,7 @@ object Expr {
 	case class SetVal(t : Type, xs : Set[Val]) extends Val
 	case class PairVal(x1 : Val, x2 : Val) extends Val
 	case class RefVal(c : ClassId, ref : RefId) extends Val
+	case class StringVal(s : String) extends Val
 
 	case class Var(x : VarId) extends Expr
 	case class LetExpr(x : VarId, e : Expr, body : Expr) extends Expr

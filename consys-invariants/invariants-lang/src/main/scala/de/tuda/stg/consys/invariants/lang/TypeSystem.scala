@@ -128,9 +128,9 @@ object TypeSystem {
       }
    }
 
-  def checkProg(ct : ClsTable, prog : Prog) : Unit = {
+  def checkProg( prog : Prog) : Unit = {
     prog.txs.foreach(tx => {
-      checkStmt(ct, Map(), tx.stmt)
+      checkStmt(prog.ct, Map(), tx.stmt)
     })
   }
 

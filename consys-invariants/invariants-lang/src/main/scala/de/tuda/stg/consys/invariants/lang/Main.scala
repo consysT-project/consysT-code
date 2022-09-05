@@ -2,10 +2,11 @@ package de.tuda.stg.consys.invariants.lang
 
 import de.tuda.stg.consys.invariants.lang.Cls.{FieldDef, MethodDef}
 import de.tuda.stg.consys.invariants.lang.Expr._
-import de.tuda.stg.consys.invariants.lang.Interpreter.interpProg
+import de.tuda.stg.consys.invariants.lang.interpreter.SimpleInterpreter.interpProg
 import de.tuda.stg.consys.invariants.lang.Prog.Tx
 import de.tuda.stg.consys.invariants.lang.Stmt.{DoCallMethod, DoGetField, DoNew, DoSetField, Return}
 import de.tuda.stg.consys.invariants.lang.Type.{TInt, TUnit}
+import de.tuda.stg.consys.invariants.lang.interpreter.SimpleExec
 
 object Main {
 
@@ -31,7 +32,7 @@ object Main {
 			)
 		)
 
-		val program = Prog(
+		val program = Prog(ct,
 			Tx(
 				DoNew("counter", "Counter", Map("i" -> IntVal(42)),
 					DoCallMethod("x1", Var("counter"), "inc", Seq(),
@@ -41,8 +42,7 @@ object Main {
 			)
 		)
 
-		TypeSystem.checkProg(ct, program)
-		val store = interpProg(ct, Map(), program)
+		val store = SimpleExec.exec(program)
 		println(store)
 
 	}

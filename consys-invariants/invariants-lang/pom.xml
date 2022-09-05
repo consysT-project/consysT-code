@@ -30,6 +30,12 @@
         </dependency>
 
         <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>consys-core</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
