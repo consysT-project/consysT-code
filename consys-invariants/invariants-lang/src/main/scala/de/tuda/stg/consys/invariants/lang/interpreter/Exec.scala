@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.invariants.lang.interpreter
 
-import de.tuda.stg.consys.invariants.lang.{Prog, TypeSystem}
+import de.tuda.stg.consys.invariants.lang.{Program, TypeSystem}
 
 trait Exec {
 
@@ -11,7 +11,7 @@ trait Exec {
 
   def interp : Interp
 
-  def exec(prog : Prog) : Store = {
+  def exec(prog : Program) : Store = {
     TypeSystem.checkProg(prog)
     interp.interpProg(store, prog)
   }

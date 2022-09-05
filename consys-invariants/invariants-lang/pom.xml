@@ -39,6 +39,20 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.sosy-lab</groupId>
+            <artifactId>java-smt</artifactId>
+            <version>3.13.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.z3</groupId>
+            <artifactId>z3</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${pom.basedir}/lib/com.microsoft.z3.jar</systemPath>
+        </dependency>
     </dependencies>
 
 

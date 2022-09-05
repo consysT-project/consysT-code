@@ -1,4 +1,6 @@
-package de.tuda.stg.consys.invariants.lang
+package de.tuda.stg.consys.invariants.lang.ast
+
+import de.tuda.stg.consys.invariants.lang.ClassId
 
 sealed trait Type
 

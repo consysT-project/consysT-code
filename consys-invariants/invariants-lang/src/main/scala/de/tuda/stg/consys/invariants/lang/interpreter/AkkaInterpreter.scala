@@ -1,10 +1,11 @@
 package de.tuda.stg.consys.invariants.lang.interpreter
 import de.tuda.stg.consys.core.store.akka.levels.Weak
 import de.tuda.stg.consys.core.store.akka.{AkkaStore, AkkaTransactionContext}
-import de.tuda.stg.consys.invariants.lang.Expr.{RefVal, Val}
-import de.tuda.stg.consys.invariants.lang.Stmt.{DoCallMethod, DoGetField, DoNew, Return}
+import de.tuda.stg.consys.invariants.lang.ast.Expression._
+import de.tuda.stg.consys.invariants.lang.ast.Statement._
 import de.tuda.stg.consys.invariants.lang.interpreter.Interpreter.VarEnv
-import de.tuda.stg.consys.invariants.lang.{ClassId, ClsTable, Expr, FieldId, Prog, Stmt}
+import de.tuda.stg.consys.invariants.lang._
+import de.tuda.stg.consys.invariants.lang.ast.Statement
 
 object AkkaInterpreter extends Interpreter {
 
@@ -17,20 +18,20 @@ object AkkaInterpreter extends Interpreter {
   override type TxContext = AkkaTransactionContext
 
 
-  override def interpStmt(ct : ClsTable, env : VarEnv, txContext : TxContext, stmt : Stmt) : (Val, TxContext) = stmt match {
+  override def interpStmt(ct : ClassTable, env : VarEnv, txContext : TxContext, stmt : Statement) : (Val, TxContext) = stmt match {
     case Return(e) => (interpExpr(env, e), txContext)
 
     case DoNew(x, c, fields, body) =>
       val cls = ct(c)
-      val objFields : Map[FieldId, Val] = fields.map(t => (t._1, interpExpr(env, t._2)))
+      val objFields : Map[FieldId, Val] = cls.fields.zip(fields).map(f => (f._1.name, interpExpr(env, f._2))).toMap
 
       val ref = txContext.replicate[Obj](x, Weak, c, objFields)
-      val env1 = env + (x -> RefVal(c, ref.addr))
+      val env1 = env + (x -> VRef(c, ref.addr))
 
       interpStmt(ct, env1, txContext, body)
 
     case DoCallMethod(x, recv, m, args, body) =>
-      val ths@RefVal(c, ref) = interpExpr(env, recv)
+      val ths@VRef(c, ref) = interpExpr(env, recv)
       val thsRef = txContext.lookup[Obj](ref, Weak)
 
 //      val argVals = args.map(e => interpExpr(env, e))
@@ -48,5 +49,5 @@ object AkkaInterpreter extends Interpreter {
 
   }
 
-  override def interpTx(ct : ClsTable, store : Store, tx : Prog.Tx) : Store = ???
+  override def interpTx(ct : ClassTable, store : Store, tx : Program.Tx) : Store = ???
 }

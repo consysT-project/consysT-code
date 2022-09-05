@@ -1,6 +1,5 @@
 package de.tuda.stg.consys.invariants
 
-import de.tuda.stg.consys.invariants.lang.Expr.{Val, Var}
 
 package object lang {
 
@@ -10,14 +9,11 @@ package object lang {
 	type MethodId = String
 	type RefId = String
 
-	type ClsTable = Map[ClassId, Cls]
-
 
 	val thsId : VarId = "$this"
-	val thsVar = Var(thsId)
 
 
-	type TypeEnv = Map[VarId, Type]
+
 
 
 
