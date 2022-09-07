@@ -39,13 +39,13 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 
 		if (processId() == 0) {
 			counter = store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
-					ctx.replicate("counter", getWeakLevel(), Counter.class, 0)
+					ctx.replicate("counter", getStrongLevel(), Counter.class, 0)
 			)).get();
 		}
 		barrier("counter_added");
 		if (processId() != 0) {
 			counter = store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
-					ctx.lookup("counter", getWeakLevel(), Counter.class)
+					ctx.lookup("counter", getStrongLevel(), Counter.class)
 			)).get();
 		}
 	}
