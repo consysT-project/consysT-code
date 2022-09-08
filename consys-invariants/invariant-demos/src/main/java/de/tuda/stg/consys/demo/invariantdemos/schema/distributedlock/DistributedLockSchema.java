@@ -3,7 +3,7 @@
 //import de.tuda.stg.consys.bench.legacy.DistributedBenchmark;
 //import de.tuda.stg.consys.demo.invariantdemos.Schema;
 //import de.tuda.stg.consys.japi.legacy.JRef;
-//import de.tuda.stg.consys.utils.InvariantUtils;
+//import de.tuda.stg.consys.invariants.lib.InvariantUtils;
 //
 //import java.util.Random;
 //

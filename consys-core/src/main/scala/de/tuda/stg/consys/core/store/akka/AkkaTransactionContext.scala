@@ -5,7 +5,7 @@ import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.{CreateOrUpdateObject, TransactionOp}
 import de.tuda.stg.consys.core.store.akka.levels.Strong
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext, ZookeeperLockingTransactionContext}
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -14,7 +14,7 @@ import scala.reflect.ClassTag
 
 class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransactionContext[AkkaStore]
   with CommitableTransactionContext[AkkaStore]
-  with LockingTransactionContext[AkkaStore] {
+  with ZookeeperLockingTransactionContext[AkkaStore] {
 
   override type CachedType[T <: AkkaStore#ObjType] = AkkaCachedObject[T]
 
@@ -59,10 +59,6 @@ class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransa
       store.replica.writeSync(timestamp, ops.toSeq)
     else
       store.replica.writeAsync(timestamp, ops.toSeq)
-  }
-
-  override protected def createLockFor(addr : AkkaStore#Addr) : DistributedLock = {
-    store.replica.createLockFor(addr)
   }
 }
 

@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.invariantdemos.schema.distributedlock;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.utils.InvariantUtils;
+import de.tuda.stg.consys.invariants.utils.InvariantUtils;
 
 import java.io.Serializable;
 

@@ -30,4 +30,9 @@ public class CassandraStoreBinding implements Store<String, Serializable, Consis
     public void close() throws Exception {
         store.close();
     }
+
+    @Override
+    public void clear() {
+        store.clear();
+    }
 }

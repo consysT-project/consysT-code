@@ -1,9 +1,9 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.bench.OutputResolver;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
@@ -53,7 +53,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     private final Random random = new Random();
 
-    public TwitterCloneBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+    public TwitterCloneBenchmark(Config config, Option<OutputResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");

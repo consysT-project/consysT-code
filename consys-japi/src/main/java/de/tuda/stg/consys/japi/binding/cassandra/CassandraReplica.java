@@ -15,6 +15,10 @@ public class CassandraReplica {
 		return new CassandraStoreBinding(store);
 	}
 
+	public static CassandraStoreBinding create(CassandraStore store) {
+		return new CassandraStoreBinding(store);
+	}
+
 }
 
 

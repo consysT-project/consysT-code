@@ -2,9 +2,9 @@ package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.annotations.Transactional;
-import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.bench.OutputResolver;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
@@ -12,8 +12,6 @@ import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Created on 10.10.19.
@@ -40,7 +38,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
 
-    public MessageGroupsBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+    public MessageGroupsBenchmark(Config config, Option<OutputResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.messagegroups.users");

@@ -6,16 +6,25 @@ import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
-import de.tuda.stg.consys.core.store.extensions.store.DistributedStore
-import de.tuda.stg.consys.utils.Logger
+import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
+import de.tuda.stg.consys.logging.Logger
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-trait AkkaStore extends DistributedStore {
+trait AkkaStore extends DistributedStore
+  with ZookeeperStore
+  with ZookeeperBarrierStore
+  with ClearableStore {
 
+  /** The actor system to use for this store. */
+  def actorSystem : ActorSystem
+  /** The zookeeper curator to use for all zookeeper calls in this store. */
+  def curator : CuratorFramework
 
   /** Type for ids to identify different replicas of the store. */
   override type Id = String
@@ -39,11 +48,9 @@ trait AkkaStore extends DistributedStore {
 
   /** Returns an identifier of this replica of the store. It has to be
    * unique for each replica. */
-  override def id: Id = actorSystem.name
+  override def id: Id = s"${actorSystem.name}[$getAddress]"
 
-  def actorSystem : ActorSystem
-  def curator : CuratorFramework
-
+  /** The backend replica implementation. */
   private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, curator, timeout)
 
 
@@ -86,10 +93,18 @@ trait AkkaStore extends DistributedStore {
     replica.addOtherReplica(hostname, port)
   }
 
+  def addOtherReplicaAsync(hostname : String, port : Int) : Future[Unit] = {
+    replica.addOtherReplicaAsync(hostname, port)
+  }
+
   override def close() : Unit = {
     curator.close()
-    //TODO: Complete correct termination logic
-    val terminated = actorSystem.terminate()
+    replica.close()
+    Await.ready(actorSystem.whenTerminated, timeout)
+  }
+
+  override def clear() : Unit = {
+    replica.clear()
   }
 
 }
@@ -120,6 +135,9 @@ object AkkaStore {
 
     val curator = CuratorFrameworkFactory
       .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
+
+    curator.start()
+    curator.blockUntilConnected()
 
     new AkkaStoreImpl(system, curator, timeout)
   }

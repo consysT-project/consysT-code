@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo.counter;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
@@ -21,12 +21,12 @@ public class CounterBenchmark extends CassandraDemoBenchmark {
 		start(CounterBenchmark.class, args);
 	}
 
-	public CounterBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+	public CounterBenchmark(Config config, Option<OutputResolver> outputResolver) {
 		super(config, outputResolver);
 	}
 
 	private final Random random = new Random();
-	private Ref<@Mutable Counter> counter;
+	private Ref<Counter> counter;
 
 	@Override
 	public String getName() {

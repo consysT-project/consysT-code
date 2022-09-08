@@ -2,9 +2,9 @@ package de.tuda.stg.consys.demo.messagegroups;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.annotations.Transactional;
-import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.bench.OutputResolver;
+import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
@@ -34,7 +34,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
     private final Random random = new Random();
 
-    public MessageGroupsBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+    public MessageGroupsBenchmark(Config config, Option<OutputResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");

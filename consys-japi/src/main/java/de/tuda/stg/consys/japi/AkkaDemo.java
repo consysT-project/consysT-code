@@ -2,25 +2,17 @@ package de.tuda.stg.consys.japi;
 
 import com.google.common.collect.Sets;
 import de.tuda.stg.consys.Mergeable;
-import de.tuda.stg.consys.annotations.methods.StrongOp;
-import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.japi.binding.akka.AkkaReplica;
 import de.tuda.stg.consys.japi.binding.akka.AkkaStoreBinding;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
-import de.tuda.stg.consys.utils.Logger;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
-import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;
 import java.util.Set;
 
 import static de.tuda.stg.consys.japi.binding.akka.AkkaConsistencyLevels.STRONG;
-import static de.tuda.stg.consys.japi.binding.akka.AkkaConsistencyLevels.WEAK;
 
 /**
  * Created on 27.01.20.

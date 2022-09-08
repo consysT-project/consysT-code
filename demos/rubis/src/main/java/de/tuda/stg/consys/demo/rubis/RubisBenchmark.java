@@ -2,7 +2,7 @@ package de.tuda.stg.consys.demo.rubis;
 
 import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
@@ -42,7 +42,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     private Ref<AuctionStore> auctionStore;
 
 
-    public RubisBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+    public RubisBenchmark(Config config, Option<OutputResolver> outputResolver) {
         super(config, outputResolver);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");

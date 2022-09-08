@@ -22,15 +22,14 @@ import scala.reflect.ClassTag
 /**
  * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
  */
-private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration, initializing : Boolean) {
+private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration) {
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
 
 	/* Initialize tables, if not available... */
-	if (initializing) initialize()
 	cassandraSession.execute(s"USE $keyspaceName")
 
-	private def initialize() : Unit = {
+	def setup() : Unit = {
 		try {
 			cassandraSession.execute(
 				SimpleStatement.builder(s"""DROP KEYSPACE IF EXISTS $keyspaceName""")
@@ -62,7 +61,6 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		consistency : the consistency level of the entry, e.g., STRONG or WEAK
 		state : the stored data
 		 */
-
 		try {
 			cassandraSession.execute(
 				SimpleStatement.builder(
@@ -85,10 +83,8 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	}
 
 	private final val FIELD_ALL = "$ALL"
-
 	private final val TYPE_FIELD = 1
 	private final val TYPE_OBJECT = 2
-
 	private final val CONSISTENCY_ANY = "$ANY"
 
 

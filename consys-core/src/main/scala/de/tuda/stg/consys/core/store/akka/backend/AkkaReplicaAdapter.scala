@@ -8,11 +8,11 @@ import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter._
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.{AkkaAddress, getActorSystemAddress}
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, ZookeeperLocking}
-import de.tuda.stg.consys.utils.Logger
+import de.tuda.stg.consys.core.store.extensions.coordination.DistributedLock
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
 import akka.cluster.ddata.typed.scaladsl.Replicator._
+import de.tuda.stg.consys.logging.Logger
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -24,50 +24,75 @@ import scala.util.{Failure, Success, Try}
 
 private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
-	Logger.info(s"initialize actor")
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
-
-	Logger.info(s"initialize locking")
-	val locking = new ZookeeperLocking[Addr](curator)
-
-
-	def createLockFor(addr : Addr) : DistributedLock = {
-		locking.createLockFor(addr, timeout)
-	}
 
 	private def addOtherReplica(otherActor : ActorRef) : Unit = {
 		this.replicaActor ! AddReplica(otherActor)
 	}
 
-	private def addOtherReplica(path : ActorPath) : Unit = {
+	private def addOtherReplicaAsync(path : ActorPath) : Future[Unit] = {
 		//Skip adding the replica if the path is the path to the current replica
 		if (path.address.host == getActorSystemAddress(system).host
 			&& path.address.port == getActorSystemAddress(system).port) {
-			return
+			return Future.successful(())
 		}
 
 		val selection = system.actorSelection(path)
 
+		selection.resolveOne(timeout).transform(result => {
+			result match {
+				case Success(actorRef) =>
+					addOtherReplica(actorRef)
+					Success(())
+				case Failure(exc) =>
+					//TODO: Implement correct error handling
+					Logger.err(s"actor path $path was not resolved. Cause: ${exc.toString} ")
+					Failure(new IllegalStateException(s"actor path $path was not resolved in the given time ($timeout). Cause: ${exc.toString} "))
+			}
+		})(system.dispatchers.defaultGlobalDispatcher)
+
+
 		//Search for the other replica until it is found or the timeout is reached
+
+	}
+
+	def addOtherReplicaAsync(hostname : String, port : Int) : Future[Unit] = {
+		val sysname = AkkaStore.DEFAULT_ACTOR_SYSTEM_NAME
+		val address = akka.actor.Address("akka", sysname, hostname, port)
+		addOtherReplicaAsync(address)
+	}
+
+	def addOtherReplicaAsync(address : AkkaAddress) : Future[Unit] = {
+		/*
+		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
+		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
+		 */
+		val path : ActorPath = RootActorPath(address) / "user" / AkkaStore.DEFAULT_ACTOR_NAME
+		addOtherReplicaAsync(path)
+	}
+
+	def addOtherReplica(address : AkkaAddress) : Unit = {
 		val start = System.nanoTime()
 		var loop = true
 		while (loop) {
-			val resolved : Future[ActorRef] = selection.resolveOne(timeout)
+			val replicaResolved : Future[Unit] = addOtherReplicaAsync(address)
 
 			//Wait for resolved to be ready
-			Await.ready(selection.resolveOne(timeout), timeout)
+			Await.ready(replicaResolved, timeout)
 
-			resolved.value match {
+			replicaResolved.value match {
 				case None =>
-					Logger.err("Future not ready yet. But we waited for it to be ready. How?")
+					throw new IllegalStateException("Future not ready yet. But we waited for it to be ready. How?")
 
-				case Some(Success(actorRef)) =>
+				case Some(Success(())) =>
+					// We are done. We can leave the loop.
 					loop = false
-					addOtherReplica(actorRef)
 
 				case Some(Failure(exc)) =>
-					if (System.nanoTime() > start + timeout.toNanos)
-						throw new TimeoutException(s"actor path $path was not resolved in the given time ($timeout). Cause: ${exc.toString} ")
+					if (System.nanoTime() > start + timeout.toNanos) {
+						// Throw an exception if timeout, else try to resolve the path again
+						throw new TimeoutException(s"actor $address was not resolved in the given time ($timeout). Cause: ${exc.toString} ")
+					}
 			}
 		}
 	}
@@ -77,18 +102,6 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 		val address = akka.actor.Address("akka", sysname, hostname, port)
 		addOtherReplica(address)
 	}
-
-	def addOtherReplica(address : AkkaAddress) : Unit = {
-		/*
-		Paths of actors are: akka.<protocol>://<actor system>@<hostname>:<port>/<actor path>
-		Example: akka.tcp://actorSystemName@10.0.0.1:2552/user/actorName
-		 */
-		addOtherReplica(RootActorPath(address) / "user" / AkkaStore.DEFAULT_ACTOR_NAME)
-	}
-
-
-
-
 
 	def writeAsync(timestamp : Long, ops : Seq[TransactionOp]): Unit = {
 		implicit val akkaTimeout : Timeout = timeout
@@ -128,6 +141,17 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 		throw new NotImplementedError()
 	}
 
+	def clear() : Unit = {
+		implicit val akkaTimeout : Timeout = timeout
+		val result = replicaActor ? ClearStore
+		Await.ready(result, timeout)
+	}
+
+	def close() : Unit = {
+		replicaActor ! TerminateStore
+	}
+
+
 
 }
 
@@ -152,6 +176,8 @@ object AkkaReplicaAdapter {
 	case class PushChangesAsync(changes : ChangeList) extends Op
 	case class PrepareChangesSync(key : String, changes : ChangeList) extends Op
 	case class CommitChanges(key : String) extends Op
+	case object ClearStore extends Op
+	case object TerminateStore extends Op
 
 
 	class ReplicaActor(val timeout : FiniteDuration) extends Actor {
@@ -182,13 +208,9 @@ object AkkaReplicaAdapter {
 
 						// Push changes to the other replicas
 						otherReplicas.filter(ref => ref != self).foreach { otherActor =>
-							try {
 								otherActor ! PushChangesAsync(changes)
-							} catch {
-								case e => e.printStackTrace()
-							}
 						}
-						sender() ! 42
+						sender() ! "ack"
 
 					case PushChangesAsync(changes) =>
 						changes.foreach(change => {
@@ -220,11 +242,11 @@ object AkkaReplicaAdapter {
 
 						committed.foreach(future => Await.ready(future, timeout))
 
-						sender() ! 45
+						sender() ! "ack"
 
 					case PrepareChangesSync(key, changes) =>
 						preparedChanges.put(key, changes)
-						sender() ! 43
+						sender() ! "ack"
 
 					case CommitChanges(key) =>
 						preparedChanges.get(key) match {
@@ -238,7 +260,7 @@ object AkkaReplicaAdapter {
 
 						preparedChanges.remove(key)
 
-						sender() !44
+						sender() ! "ack"
 
 
 
@@ -250,9 +272,16 @@ object AkkaReplicaAdapter {
 							case Some(result) =>
 								sender() ! Success(result) // Return local object
 						}
+
+					case ClearStore =>
+						localObjects.clear()
+						sender() ! "ack"
+
+					case TerminateStore =>
+						context.system.terminate()
 				}
 			} catch {
-				case e => Logger.err(e.getMessage)
+				case e : Throwable => Logger.err(self, e.getMessage)
 			}
 		}
 

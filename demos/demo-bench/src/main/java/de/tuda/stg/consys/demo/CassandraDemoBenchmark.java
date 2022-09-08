@@ -1,8 +1,8 @@
 package de.tuda.stg.consys.demo;
 
 import com.typesafe.config.Config;
-import de.tuda.stg.consys.bench.DistributedBenchmark;
-import de.tuda.stg.consys.bench.OutputFileResolver;
+import de.tuda.stg.consys.bench.legacy.DistributedBenchmark;
+import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
@@ -20,6 +20,7 @@ import java.util.function.Supplier;
  *
  * @author Mirko Köhler
  */
+@Deprecated
 public abstract class CassandraDemoBenchmark extends DistributedBenchmark<CassandraStoreBinding> {
 
 	protected enum BenchmarkType {
@@ -33,7 +34,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 	protected final Random random = new Random();
 
 
-	public CassandraDemoBenchmark(String name, Config config, Option<OutputFileResolver> outputResolver) {
+	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver) {
 		super(name, config, outputResolver, (address, processId, barrier) -> {
 			CassandraStoreBinding store = null;
 
@@ -64,7 +65,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
-	public CassandraDemoBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
+	public CassandraDemoBenchmark(Config config, Option<OutputResolver> outputResolver) {
 		this("default", config, outputResolver);
 	}
 

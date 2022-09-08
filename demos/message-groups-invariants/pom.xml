@@ -72,7 +72,7 @@
                             <finalName>benchmarks</finalName>
                             <!--                            <transformers>-->
                             <!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                            <!--                                    <mainClass>org.openjdk.jmh.de.tuda.stg.consys.invariants.Main</mainClass>-->
+                            <!--                                    <mainClass>org.openjdk.jmh.de.tuda.stg.consys.invariants.solver.Main</mainClass>-->
                             <!--                                </transformer>-->
                             <!--                            </transformers>-->
                             <filters>
@@ -114,7 +114,7 @@
                                 <!--                                <transformer-->
                                 <!--                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
                                 <!--                                    <manifestEntries>-->
-                                <!--                                        <de.tuda.stg.consys.invariants.Main-Class>akka.de.tuda.stg.consys.invariants.Main</de.tuda.stg.consys.invariants.Main-Class>-->
+                                <!--                                        <de.tuda.stg.consys.invariants.solver.Main-Class>akka.de.tuda.stg.consys.invariants.solver.Main</de.tuda.stg.consys.invariants.solver.Main-Class>-->
                                 <!--                                    </manifestEntries>-->
                                 <!--                                </transformer>-->
                             </transformers>
@@ -135,9 +135,10 @@
     </build>
 
     <dependencies>
+
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-invariants</artifactId>
+            <artifactId>invariants-examples</artifactId>
             <version>4.0.0</version>
         </dependency>
 

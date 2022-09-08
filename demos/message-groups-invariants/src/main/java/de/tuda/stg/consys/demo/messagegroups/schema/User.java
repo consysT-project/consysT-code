@@ -3,7 +3,6 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.Set;

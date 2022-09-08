@@ -3,7 +3,7 @@
 //import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 //import de.tuda.stg.consys.annotations.methods.WeakOp;
 //import de.tuda.stg.consys.core.legacy.CanBeMerged;
-//import de.tuda.stg.consys.utils.InvariantUtils;
+//import de.tuda.stg.consys.invariants.lib.InvariantUtils;
 //
 //import java.io.Serializable;
 //
