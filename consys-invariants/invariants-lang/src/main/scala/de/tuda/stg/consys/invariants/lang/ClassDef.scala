@@ -8,7 +8,16 @@ case class ClassDef(
 	name : ClassId,
 	fields : Seq[FieldDef],
 	methods : Seq[MethodDef]
-)
+) {
+
+	def getMethod(methodId : MethodId) : Option[MethodDef] =
+		methods.find(mDef => mDef.name == methodId)
+
+	def getField(fieldId : FieldId) : Option[FieldDef] =
+		fields.find(fDef => fDef.name == fieldId)
+
+
+}
 
 object ClassDef {
 	case class VarDef(typ : Type, name : VarId)

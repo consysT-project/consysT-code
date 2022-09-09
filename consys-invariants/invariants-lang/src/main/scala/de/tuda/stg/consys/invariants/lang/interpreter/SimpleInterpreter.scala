@@ -51,7 +51,7 @@ object SimpleInterpreter extends Interpreter {
 
         val argVals = args.map(e => interpExpr(env, e))
 
-        val mDef = ct(obj.c).methods.find(mDef => mDef.name == m).get
+        val mDef = ct(obj.c).getMethod(m).get
         val mEnv : VarEnv = mDef.parameters.map(vDef => vDef.name).zip(argVals).toMap + (thsId -> ths)
 
         val mRes = interpStmt(ct, mEnv, txContext, mDef.body)

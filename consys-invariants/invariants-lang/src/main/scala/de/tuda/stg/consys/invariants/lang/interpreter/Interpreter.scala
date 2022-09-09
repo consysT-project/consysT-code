@@ -17,9 +17,9 @@ trait Interpreter {
 
     case e : EVar => env(e.x)
 
-    case e : ELet =>
-      val v1 = interpExpr(env, e.namedExpr)
-      interpExpr(env + (e.x -> v1), e.body)
+    case ELet(x, namedExpr, body) =>
+      val v1 = interpExpr(env, namedExpr)
+      interpExpr(env + (x -> v1), body)
 
     case EPair(e1, e2) =>
       val v1 = interpExpr(env, e1)
