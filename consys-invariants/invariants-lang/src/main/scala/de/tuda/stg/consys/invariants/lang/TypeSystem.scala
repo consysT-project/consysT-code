@@ -8,14 +8,16 @@ import de.tuda.stg.consys.invariants.lang.ast.{ASTNode, Expression, Statement, T
 
 object TypeSystem {
 
-  trait TypedASTNode extends ASTNode {
-    def typ : Type
-  }
-
   type TypeEnv = Map[VarId, Type]
+  type TypeMap = Map[Expression, Type]
 
-  def isSubtypeOf(t1 : Type, t2 : Type) : Boolean =
-    t1 == t2
+  def isSubtypeOf(t1 : Type, t2 : Type) : Boolean = (t1, t2) match {
+    case (_, TAny) => true
+    case (TSet(a), TSet(b)) => isSubtypeOf(a, b)
+    case (TPair(a1, a2), TPair(b1, b2)) => isSubtypeOf(a1, b1) && isSubtypeOf(a2, b2)
+    case (a1, a2) if a1 == a2 => true
+    case _ => false
+  }
 
   implicit class TypeOps(t1 : Type) {
     def <=(t2 : Type) : Boolean = isSubtypeOf(t1, t2)
@@ -26,22 +28,74 @@ object TypeSystem {
   private def error(msg : String) : Nothing =
     throw TypeError(msg)
 
-  def checkExpr(env : TypeEnv, expr : Expression) : Type = expr match {
-    case VUnit => TUnit
-    case VBool(b) => TBool
-    case VInt(_) => TInt
-    case VSet(t, _) => TSet(t)
+
+  case class TypeResult(typ : Type, typeMap : TypeMap) {
+    def flatMap(f : Type => TypeResult) : TypeResult = {
+
+      val res = f(typ)
+      val r = TypeResult(res.typ, res.typeMap ++ typeMap)
+      println("flatMap = " + r)
+      r
+    }
+
+    def >>=(f : Type => TypeResult) : TypeResult =
+      flatMap(f)
+
+    def map(f : Type => Type) : TypeResult = {
+
+      val r = TypeResult(f(typ), typeMap)
+      println("map = " + r)
+      r
+    }
+  }
+
+  def unit(value : Val, t : Type) : TypeResult = TypeResult(t, Map(value -> t))
+
+
+  def checkValM(value : Val) : TypeResult = value match {
+    case VInt(_) => unit(value, TInt)
+
     case VPair(x1, x2) =>
-      val t1 = checkExpr(env, x1)
-      val t2 = checkExpr(env, x2)
+      for {
+        t1 <- checkValM(x1)
+        t2 <- checkValM(x2)
+      } yield TPair(t1, t2)
+
+//      checkValM(x1) >>= {
+//        t1 => checkValM(x2) >>= {
+//          t2 => unit(value, TPair(t1, t2))
+//        }
+//      }
+  }
+
+
+  def checkVal(value : Val) : Type = value match {
+    case VUnit => TUnit
+    case VBool(_) => TBool
+    case VInt(_) => TInt
+
+    case VSet(typ, xs) =>
+      xs.foreach(x => {
+        val t = checkVal(x)
+        if (!(t <= typ)) error(s"wrong element type in set of type $typ: $t")
+      })
+      TSet(typ)
+
+    case VPair(x1, x2) =>
+      val t1 = checkVal(x1)
+      val t2 = checkVal(x2)
       TPair(t1, t2)
-    case VRef(c, _) => TRef(c)
 
-    case EVar(x) =>
-      env.getOrElse(x, error("variable not bound: " + x))
+    case VRef(cls, refId) => TRef(cls)
+  }
 
-    case ELet(x, e, body) =>
-      val t = checkExpr(env, e)
+  def checkExpr(env : TypeEnv, expr : Expression) : Type = expr match {
+    case v : Val => checkVal(v)
+
+    case EVar(x) => env.getOrElse(x, error("variable not bound: " + x))
+
+    case ELet(x, namedExpr, body) =>
+      val t = checkExpr(env, namedExpr)
       checkExpr(env + (x -> t), body)
 
     case EPair(e1, e2) =>
@@ -58,44 +112,46 @@ object TypeSystem {
 
       TInt
 
-    case EFst(e) =>
-      checkExpr(env, e) match {
+    case EFst(expr) =>
+      checkExpr(env, expr) match {
         case TPair(t1, t2) => t1
-        case t => error(s"expected TPair, but got: $e (of type $t)")
+        case t => error(s"expected TPair, but got: $expr (of type $t)")
       }
 
-    case ESnd(e) =>
-      checkExpr(env, e) match {
-        case TPair(t1, t2) => t1
-        case t => error(s"expected TPair, but got: $e (of type $t)")
+    case e : ESnd =>
+      checkExpr(env, expr) match {
+        case TPair(t1, t2) => t2
+        case t => error(s"expected TPair, but got: $expr (of type $t)")
       }
   }
 
   def checkStmt(ct : ClassTable, env : TypeEnv, stmt : Statement) : Unit = stmt match {
-    case Return(e) => checkExpr(env, e)
+    case Return(expr) =>
+      checkExpr(env, expr)
 
-    case DoNew(x, c, fields, body) =>
+    case DoNew(x, cls, fields, body) =>
       // Check that the class exists
-      val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
+      val clsDef = ct.getOrElse(cls, error(s"unknown class: $cls"))
 
       // Check the arguements
       val fieldTypes = fields.map(e => checkExpr(env, e))
       val clsFieldTypes = clsDef.fields.map(fDef => fDef.typ)
 
       // Check that the field names match
-      if (clsFieldTypes.length != fieldTypes.length) error(s"incompatible number of fields, expected: $clsFieldTypes, but got: $fieldTypes")
+      if (clsFieldTypes.length != fieldTypes.length) error(s"wrong number of fields, expected: $clsFieldTypes, but got: $fieldTypes")
       // Check that the argument types match
       clsFieldTypes.zip(fieldTypes).foreach(tt => if (!(tt._2 <= tt._1))
         error(s"wrong type for field, expected: ${tt._1}, but was: ${tt._2}")
       )
 
-      checkStmt(ct, env + (x -> TRef(c)), body)
+      checkStmt(ct, env + (x -> TRef(cls)), body)
 
-    case DoGetField(x, f, body) =>
-      env.getOrElse(thsId, error(s"access to field only possible in class context, field was: $f")) match {
+
+    case DoGetField(x, field, body) =>
+      env.getOrElse(thsId, error(s"access to field $field only possible in class context")) match {
         case TRef(c) =>
           val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
-          val fieldDef = clsDef.fields.find(fDef => fDef.name == f).getOrElse(error(s"unknown field in class $c: $f"))
+          val fieldDef = clsDef.fields.find(fDef => fDef.name == field).getOrElse(error(s"unknown field in class $c: $field"))
 
           checkStmt(ct, env + (x -> fieldDef.typ), body)
 

@@ -12,14 +12,14 @@ trait Interpreter {
   type Store
   type TxContext
 
-  def interpExpr(env : VarEnv, expr : Expression) : Val = expr match {
+  def interpExpr[A <: Expression](env : VarEnv, expr : A) : Val = expr match {
     case v : Val => v
 
-    case EVar(x) => env(x)
+    case e : EVar => env(e.x)
 
-    case ELet(x, e, body) =>
-      val v1 = interpExpr(env, e)
-      interpExpr(env + (x -> v1), body)
+    case e : ELet =>
+      val v1 = interpExpr(env, e.namedExpr)
+      interpExpr(env + (e.x -> v1), e.body)
 
     case EPair(e1, e2) =>
       val v1 = interpExpr(env, e1)

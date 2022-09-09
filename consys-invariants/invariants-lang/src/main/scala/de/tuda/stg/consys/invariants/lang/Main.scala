@@ -11,6 +11,11 @@ object Main {
 
 	def main(args : Array[String]) : Unit = {
 
+
+		val tt = TypeSystem.checkValM(VPair(VPair(VInt(42), VInt(23)), VInt(12)))
+		println(tt)
+
+
 		val ct : ClassTable = ClassTable(
 			ClassDef(name = "Counter",
 				fields = Seq(FieldDef(TInt, "i")),

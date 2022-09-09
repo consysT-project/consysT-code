@@ -30,6 +30,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.scala-graph</groupId>
+            <artifactId>graph-core_2.13</artifactId>
+            <version>1.13.5</version>
+        </dependency>
+
+        <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-core</artifactId>
             <version>4.0.0</version>

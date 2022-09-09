@@ -5,6 +5,8 @@ import de.tuda.stg.consys.invariants.lang.ClassId
 sealed trait Type
 
 object Type {
+
+	case object TAny extends Type
 	case object TBool extends Type
 	case object TInt extends Type
 	case object TUnit extends Type
