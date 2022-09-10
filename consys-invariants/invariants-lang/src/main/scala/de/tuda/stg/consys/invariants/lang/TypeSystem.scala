@@ -68,38 +68,49 @@ object TypeSystem {
     case VString(_) => unit(value, TString)
   }
 
-  def checkExpr(env : TypeEnv, expr : Expression) : TypeResult = expr match {
+  def checkExpr(ct : ClassTable, env : TypeEnv, expr : Expression) : TypeResult = expr match {
     case v : Val => checkVal(v)
 
     case EVar(x) =>
       unit(expr, env.getOrElse(x, error("variable not bound: " + x)))
 
+    case EField(f) =>
+      env.getOrElse(thsId, error(s"access to field only possible in class context, field was: $f")) match {
+        case TRef(c) =>
+          val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
+          val fldDef = clsDef.getField(f).getOrElse(error(s"unknown field in class $c: $f"))
+          unit(expr, fldDef.typ)
+
+        case t => error(s"expected TRef for $$this, but got: $t")
+      }
+
+
     case ELet(x, namedExpr, body) =>
-      val tr = checkExpr(env, namedExpr)
-      tr.join(checkExpr(env + (x -> tr.typ), body), expr, (t1, t2) => t2)
+      val tr = checkExpr(ct, env, namedExpr)
+      tr.join(checkExpr(ct, env + (x -> tr.typ), body), expr, (t1, t2) => t2)
 
     case EPair(e1, e2) =>
-      val r1 = checkExpr(env, e1)
-      val r2 = checkExpr(env, e2)
+      val r1 = checkExpr(ct, env, e1)
+      val r2 = checkExpr(ct, env, e2)
       r1.join(r2, expr, (t1, t2) => TPair(t1, t2))
 
     case EPlus(e1, e2) =>
-      val r1 = checkExpr(env, e1)
+      val r1 = checkExpr(ct, env, e1)
       if (r1.typ != TInt) error(s"expected TInt in +, but got: $e1 (of type ${r1.typ})")
 
-      val r2 = checkExpr(env, e2)
+      val r2 = checkExpr(ct, env, e2)
       if (r2.typ != TInt) error(s"expected TInt in +, but got: $e2 (of type ${r2.typ})")
 
       r1.join(r2, expr, (_, _) => TInt)
 
     case EFst(e) =>
-      checkExpr(env, e) match {
+      checkExpr(ct, env, e) match {
         case TypeResult(TPair(t1, t2), map) => TypeResult(t1, map + (expr.nodeId -> t1))
         case t => error(s"expected TPair, but got: $expr (of type ${t.typ})")
       }
 
     case ESnd(e) =>
-      checkExpr(env, e) match {
+      checkExpr(ct, env, e) match {
         case TypeResult(TPair(t1, t2), map) => TypeResult(t2, map + (expr.nodeId -> t2))
         case t => error(s"expected TPair, but got: $expr (of type ${t.typ})")
       }
@@ -107,14 +118,14 @@ object TypeSystem {
 
   def checkStmt(ct : ClassTable, env : TypeEnv, stmt : Statement) : TypeMap = stmt match {
     case Return(expr) =>
-      checkExpr(env, expr).typeMap
+      checkExpr(ct, env, expr).typeMap
 
     case DoNew(x, cls, fields, body) =>
       // Check that the class exists
       val clsDef = ct.getOrElse(cls, error(s"unknown class: $cls"))
 
       // Check the arguements
-      val fieldTypeResults = fields.map(e => checkExpr(env, e))
+      val fieldTypeResults = fields.map(e => checkExpr(ct, env, e))
       val clsFieldTypes = clsDef.fields.map(fDef => fDef.typ)
 
       // Check that the field names match
@@ -128,16 +139,11 @@ object TypeSystem {
       typeMap ++ fieldTypeResults.flatMap(r => r.typeMap)
 
 
-    case DoGetField(x, field, body) =>
-      env.getOrElse(thsId, error(s"access to field $field only possible in class context")) match {
-        case TRef(c) =>
-          val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
-          val fieldDef = clsDef.getField(field).getOrElse(error(s"unknown field in class $c: $field"))
+    case DoExpr(x, expr, body) =>
+      val tr1 = checkExpr(ct, env, expr)
+      val map2 = checkStmt(ct, env + (x -> tr1.typ), body)
 
-          checkStmt(ct, env + (x -> fieldDef.typ), body)
-
-        case t => error(s"expected TRef for $$this, but got: $t")
-      }
+      tr1.typeMap ++ map2
 
     case DoSetField(x, f, e, body) =>
       env.getOrElse(thsId, error(s"access to field only possible in class context, field was: $f")) match {
@@ -145,7 +151,7 @@ object TypeSystem {
           val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
           val fieldDef = clsDef.getField(f).getOrElse(error(s"unknown field in class $c: $f"))
 
-          val fieldTypeResult = checkExpr(env, e)
+          val fieldTypeResult = checkExpr(ct, env, e)
           if (!(fieldTypeResult.typ <= fieldDef.typ)) error(s"type mismatch assigning to $f, expected: ${fieldDef.typ}, but was: $fieldTypeResult")
 
           val typeMap = checkStmt(ct, env + (x -> fieldTypeResult.typ), body)
@@ -155,12 +161,12 @@ object TypeSystem {
       }
 
     case DoCallMethod(x, recv, m, args, body) =>
-      checkExpr(env, recv) match {
+      checkExpr(ct, env, recv) match {
         case TypeResult(TRef(c), map) =>
           val clsDef = ct.getOrElse(c, error(s"unknown class: $c"))
           val methodDef = clsDef.getMethod(m).getOrElse(error(s"unknown method in class $c: $m"))
 
-          val argTypeResults = args.map(e => checkExpr(env, e))
+          val argTypeResults = args.map(e => checkExpr(ct, env, e))
           val methodArgTypes = methodDef.parameters.map(v => v.typ)
 
           if (argTypeResults.size != methodArgTypes.size) error(s"wrong number of arguments for method $m, expected: $methodArgTypes, but got: $argTypeResults")

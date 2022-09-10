@@ -17,12 +17,12 @@ object Main {
 			field("i" :: TInt),
 
 			method("get" :: TInt)() {
-				Do ("x" << Get("i")) in
-					Return("x")
+				Do ("x" << Fld("i")) in
+					Return ("x")
 			},
 
 			method("inc" :: TUnit)() {
-				Do ("x1" << Get("i")) in (
+				Do ("x1" << Fld("i")) in (
 					Do ("x2" << Set("i", Plus(1, "x1"))) in
 						Return ()
 				)
@@ -33,11 +33,11 @@ object Main {
 			field("v" :: TRef("Counter")),
 
 			method("get" :: TRef("Counter"))() {
-				Do ("x" << Get("v")) in Return ("x")
+				Do ("x" << Fld("v")) in Return ("x")
 			},
 
 			method("inc" :: TUnit)() {
-				Do ("x1" << Get("v")) in (
+				Do ("x1" << Fld("v")) in (
 					Do ("x2" << Call("x1", "inc")()) in
 						Return ()
 				)

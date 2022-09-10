@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.lang.solver
 
 import com.microsoft.z3.{ArithSort, Sort, Context => Z3Context, Expr => Z3Expr}
-import de.tuda.stg.consys.invariants.lang.TypeSystem
+import de.tuda.stg.consys.invariants.lang.{ClassTable, TypeSystem}
 import de.tuda.stg.consys.invariants.lang.TypeSystem.TypeMap
 import de.tuda.stg.consys.invariants.lang.ast.{Expression, Type}
 import de.tuda.stg.consys.invariants.lang.ast.Expression._
@@ -49,7 +49,7 @@ object Translator {
 	def main(args : Array[String]) : Unit = {
 
 		val expr = EPlus(VInt(42), VInt(23))()
-		val typeResult = TypeSystem.checkExpr(Map(), expr)
+		val typeResult = TypeSystem.checkExpr(ClassTable(), Map(), expr)
 
 		val z3Ctx = new Z3Context()
 		val trans = new Translator(z3Ctx)
