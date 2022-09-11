@@ -1,32 +1,19 @@
 package de.tuda.stg.consys.invariants.lang.solver
 
-import com.microsoft.z3.{ArithSort, DatatypeSort, Sort, TupleSort, Context => Z3Context, Expr => Z3Expr}
+import com.microsoft.z3.{ArithSort, Sort, Context => Z3Context, Expr => Z3Expr}
 import de.tuda.stg.consys.invariants.lang.ClassDef.FieldDef
 import de.tuda.stg.consys.invariants.lang.TypeSystem.TypeMap
 import de.tuda.stg.consys.invariants.lang.ast.Expression._
 import de.tuda.stg.consys.invariants.lang.ast.Statement._
 import de.tuda.stg.consys.invariants.lang.ast.Type._
-import de.tuda.stg.consys.invariants.lang.ast.{Expression, Statement, Type}
-import de.tuda.stg.consys.invariants.lang.{ClassDef, ClassTable, TypeSystem}
-import org.sosy_lab.java_smt.api.{Formula, SolverContext}
+import de.tuda.stg.consys.invariants.lang.ast.{Expression, Statement}
+import de.tuda.stg.consys.invariants.lang.{ClassDef, ClassTable, TypeSystem, VarId}
 
 
-class Translator(val context : Z3Context) {
+trait ExpressionTranslator { this : BaseTranslator with TypeTranslator =>
 
-	private case class TranslationError(msg : String) extends Exception(msg)
-
-	private def error(msg : String) : Nothing =
-		throw TranslationError(msg)
-
-	def translateType(typ : Type) : Sort = typ match {
-		case TBool => context.getBoolSort
-		case TInt => context.getIntSort
-		case TUnit => context.mkSeqSort(context.getIntSort)
-		case TRef(c) => ???
-		case TPair(t1, t2) => ???
-		case TSet(t) => context.mkSetSort(translateType(t))
-		case TString => context.getStringSort
-	}
+	private def constForVar(x : VarId, sort : Sort) : Z3Expr[_] =
+		context.mkConst(x, sort)
 
 	def translateExpression(typeMap : TypeMap, expr : Expression) : Z3Expr[_] = expr match {
 		case VUnit => context.mkUnit(context.mkEmptySeq(context.getIntSort))
@@ -39,12 +26,18 @@ class Translator(val context : Z3Context) {
 
 		case EVar(x) =>
 			val typ = typeMap.getOrElse(expr.nodeId, error(s"type for $expr cannot be resolved"))
-			val sort = translateType(typ)
-			context.mkConst(x, sort)
+			constForVar(x, translateType(typ))
 
 		case EField(f) => ???
 
-		case ELet(x, namedExpr, body) => ???
+		case ELet(x, namedExpr, body) =>
+			val typ = typeMap.getOrElse(namedExpr.nodeId, error(s"type for $x cannot be resolved"))
+			val xConst = context.mkConst(x, translateType(typ))
+			val z1 = translateExpression(typeMap, namedExpr)
+			val z2 = translateExpression(typeMap, body)
+
+			z2.substitute(xConst, z1)
+
 
 		case EPair(e1, e2) =>
 			val z1 = translateExpression(typeMap, e1)
@@ -72,21 +65,11 @@ class Translator(val context : Z3Context) {
 
 	}
 
-	def translateClass(clsDef : ClassDef) : TupleSort = {
-		val clsName = context.mkSymbol(clsDef.name)
 
-		val (fieldSymbols, fieldSorts) = clsDef.fields.map(f => (context.mkSymbol(f.name), translateType(f.typ))).unzip
-
-		context.mkTupleSort(clsName,
-			fieldSymbols.toArray, fieldSorts.toArray
-		)
-	}
 }
 
-object Translator {
+object ExpressionTranslator {
 
-	System.load("/usr/lib/jni/libz3.so")
-	System.load("/usr/lib/jni/libz3java.so")
 
 	def main(args : Array[String]) : Unit = {
 
@@ -94,13 +77,16 @@ object Translator {
 		val typeResult = TypeSystem.checkExpr(ClassTable(), Map(), expr)
 
 		val z3Ctx = new Z3Context()
-		val trans = new Translator(z3Ctx)
+
+		val translator = new BaseTranslator with TypeTranslator with ClassTableTranslator with ExpressionTranslator {
+			override def context : Z3Context = z3Ctx
+		}
 
 		val c = ClassDef("User", Seq(FieldDef(TString, "name"), FieldDef(TInt, "amount")), Seq())
 
-		val z3Cls = trans.translateClass(c)
+		val z3Cls = translator.translateClass(c)
 
-		val z3Expr = trans.translateExpression(typeResult.typeMap, expr)
+		val z3Expr = translator.translateExpression(typeResult.typeMap, expr)
 		println(z3Expr)
 
 	}

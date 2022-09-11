@@ -29,5 +29,6 @@ object ClassTable {
 	def start(stmts : Statement*) : Program =
 		Program(globalTable, stmts.map(stmt => Tx(stmt)) : _*)
 
+	def getGlobalTable : ClassTable = globalTable
 
 }

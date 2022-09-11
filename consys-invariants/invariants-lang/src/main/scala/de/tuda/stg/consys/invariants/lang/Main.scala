@@ -1,12 +1,15 @@
 package de.tuda.stg.consys.invariants.lang
 
+import com.microsoft.z3.{Context => Z3Context}
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.levels.Weak
 import de.tuda.stg.consys.invariants.lang.ClassTable.start
 import de.tuda.stg.consys.invariants.lang.ast.Type._
 import de.tuda.stg.consys.invariants.lang.interpreter.AkkaInterpreter.StoredObj
 import de.tuda.stg.consys.invariants.lang.interpreter.{AkkaExec, SimpleInterpreter}
+import de.tuda.stg.consys.invariants.lang.solver.{BaseTranslator, ClassTableTranslator, TypeTranslator}
 import de.tuda.stg.consys.logging.Logger
+
 
 object Main {
 
@@ -80,10 +83,15 @@ object Main {
 			Some(42)
 		}
 
+		BaseTranslator.loadLibs()
+		val z3Ctx = new Z3Context()
 
+		val translator = new BaseTranslator with TypeTranslator with ClassTableTranslator {
+			override def context : Z3Context = z3Ctx
+		}
 
-
-
+		val z3ct = translator.translateClassTable(ClassTable.getGlobalTable)
+		println(z3ct)
 	}
 
 }
