@@ -1,13 +1,13 @@
-package de.tuda.stg.consys.checker.testfiles.testfiles;
+package de.tuda.stg.consys.checker.testfiles.testfiles.thisConsistent;
 
-import de.tuda.stg.consys.annotations.ThisConsistent;
+import de.tuda.stg.consys.checker.qual.ThisConsistent;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
-public class ThisConsistentTest {
+public class MethodTest {
     @Transactional
     void test1(Ref<@Mutable @Strong Box> s, Ref<@Mutable @Weak Box> w) {
         @Strong int a;
@@ -29,6 +29,10 @@ class Box {
     private int v;
 
     @ThisConsistent int get() { return v; }
+
+    void set(@ThisConsistent int v) {
+        this.v = v;
+    }
 }
 
 // :: error: consistency.type.use.incompatible

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.quoddy.schema.datacentric;
 
-import de.tuda.stg.consys.annotations.ThisConsistent;
+import de.tuda.stg.consys.checker.qual.ThisConsistent;
 import de.tuda.stg.consys.checker.qual.Strong;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 

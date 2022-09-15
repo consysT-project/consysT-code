@@ -2,9 +2,10 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{MemberSelectTree, MethodInvocationTree, MethodTree, Tree}
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.annotations.{MethodWriteList, ThisConsistent}
+import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.checker.jdk.Utils
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
+import de.tuda.stg.consys.checker.qual.ThisConsistent
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, DefaultTypeHierarchy, QualifierHierarchy, TypeHierarchy}
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
@@ -21,6 +22,7 @@ import scala.jdk.CollectionConverters._
 class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker, false) {
     // force initialization of dependant classes (TreeAnnotator, TypeAnnotator, TypeHierarchy, etc.)
     this.postInit()
+    shouldCache = false
 
     var mixedInferenceVisitor: MixedInferenceVisitor = new MixedInferenceVisitor()(this)
 
@@ -49,8 +51,9 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         new ConsistencyQualifierHierarchy(getSupportedTypeQualifiers, getElementUtils, this)
 
     override def getAnnotatedType(tree: Tree): AnnotatedTypeMirror = tree match {
+        // TODO: disable cache completely, since we can have @ThisConsistent in method body?
         case mt: MethodTree if containsSameByClass(elementFromDeclaration(mt).getReturnType.getAnnotationMirrors, classOf[ThisConsistent]) =>
-            // disable cache when querying methods, so that we don't skip the @ThisConsistent return type adaptation
+            // disable cache when querying methods, so that we don't skip the @ThisConsistent type adaptation
             // fields are never cached, so we don't need additional rules there
             val prevShouldCache = shouldCache
             shouldCache = false
@@ -62,6 +65,22 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
             super.getAnnotatedType(tree)
     }
 
+    def getAnnotatedTypeWithContext(elt: ExecutableElement, context: MethodInvocationTree): AnnotatedTypeMirror.AnnotatedExecutableType = {
+        val prevMethodReceiverContext = methodReceiverContext
+
+        context.getMethodSelect match {
+            case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
+                methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
+                    getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
+            case _ =>
+                methodReceiverContext = Some(visitClassContext.top._2)
+        }
+
+        val result = getAnnotatedType(elt)
+        methodReceiverContext = prevMethodReceiverContext
+        result
+    }
+
     override protected def addComputedTypeAnnotations(tree: Tree, typ: AnnotatedTypeMirror, iUseFlow: Boolean): Unit = {
         val prevMethodReceiverContext = methodReceiverContext
 
@@ -70,9 +89,8 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         tree match {
             case _: MethodTree if visitClassContext.nonEmpty =>
                 methodReceiverContext = Some(visitClassContext.top._2)
-            case _: MethodInvocationTree =>
-                val selectTree = tree.asInstanceOf[MethodInvocationTree].getMethodSelect
-                selectTree match {
+            case mit: MethodInvocationTree =>
+                mit.getMethodSelect match {
                     case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
                         methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
                             getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
@@ -88,12 +106,6 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
 
     override def addComputedTypeAnnotations(elt: Element, typ: AnnotatedTypeMirror): Unit = {
         val prevMethodReceiverContext = methodReceiverContext
-
-        elt match {
-            case _: ExecutableElement if visitClassContext.nonEmpty =>
-                methodReceiverContext = Some(peekVisitClassContext._2)
-            case _ => // nothing to do
-        }
 
         super.addComputedTypeAnnotations(elt, typ)
         methodReceiverContext = prevMethodReceiverContext

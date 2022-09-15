@@ -96,6 +96,13 @@ object TypeFactoryUtils {
 
 	//------------------------------------------------------------------------------------------------------------------
 
+	def inferTypeFromReceiver(recvQualifier: AnnotationMirror, method: ExecutableElement)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
+		if (isMixedQualifier(recvQualifier))
+			getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
+		else
+			recvQualifier
+	}
+
 	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =
 		tf.areSameByClass(qualifier, classOf[Mixed])
 

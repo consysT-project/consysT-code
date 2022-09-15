@@ -35,8 +35,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 	private val classVisitQueueReported: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
-	override def createTypeFactory(): ConsistencyAnnotatedTypeFactory =
-		new ConsistencyAnnotatedTypeFactory(baseChecker)
+	override def createTypeFactory(): ConsistencyAnnotatedTypeFactory = new ConsistencyAnnotatedTypeFactory(baseChecker)
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
@@ -226,7 +225,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		}
 
 		// check arguments w.r.t. implicit context
-		val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
+		val methodType = atypeFactory.getAnnotatedTypeWithContext(TreeUtils.elementFromUse(node), node)
 		(methodType.getParameterTypes zip node.getArguments).foreach(entry => {
 			val (paramType, argExpr) = entry
 			// arguments taken as immutable parameters cannot violate implicit context
@@ -234,6 +233,9 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 				checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
 		})
 
+		// TODO: here, the arguments will be checked. But it does not use the methodType information
+		//  but rather constructs the type again from scratch without calling getAnnotatedType,
+		//  => could try to override the method in question and emulate the getAnnotatedType
 		val r = super.visitMethodInvocation(node, p)
 
 		if (isTransaction(node))

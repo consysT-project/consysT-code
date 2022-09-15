@@ -1,4 +1,4 @@
-import de.tuda.stg.consys.annotations.ThisConsistent;
+import de.tuda.stg.consys.checker.qual.ThisConsistent;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
