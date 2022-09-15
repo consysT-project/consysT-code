@@ -9,40 +9,46 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.Supplier;
 
 public @Mixed class AuctionStore implements Serializable {
-    private final Map<UUID, Ref<? extends IItem>> openAuctions;
-    private final Map<Category, @Mutable Map<UUID, Ref<? extends IItem>>> openAuctionsByCategory;
+    private final Ref<@Mutable RefMap<UUID, Ref<? extends IItem>>> openAuctions;
+    private final Map<Category, Ref<@Mutable RefMap<UUID, Ref<? extends IItem>>>> openAuctionsByCategory;
 
     public AuctionStore() {
-        this.openAuctions = new HashMap<>();
+        this.openAuctions = null;
+        this.openAuctionsByCategory = null;
+    }
+
+    public AuctionStore(@Mutable Supplier<Ref<@Mutable RefMap<UUID, Ref<? extends IItem>>>> mapSupplier) {
+        this.openAuctions = mapSupplier.get();
         this.openAuctionsByCategory = new HashMap<>();
         for (@Immutable Category cat : Category.values()) {
-            this.openAuctionsByCategory.put(cat, new HashMap<>());
+            this.openAuctionsByCategory.put(cat, mapSupplier.get());
         }
     }
 
     @Transactional
     @StrongOp
     public void addItem(Ref<? extends IItem> item, Category category) {
-        openAuctionsByCategory.get(category).put(item.ref().getId(), item);
-        openAuctions.put(item.ref().getId(), item);
+        openAuctionsByCategory.get(category).ref().put(item.ref().getId(), item);
+        openAuctions.ref().put(item.ref().getId(), item);
     }
 
     @Transactional
     @StrongOp
     public void closeAuction(UUID id, Category category) {
-        openAuctions.remove(id);
-        openAuctionsByCategory.get(category).remove(id);
+        openAuctions.ref().remove(id);
+        openAuctionsByCategory.get(category).ref().remove(id);
     }
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     public List<Ref<? extends IItem>> browseItems(Category category) {
-        return new ArrayList<>(openAuctionsByCategory.get(category).values());
+        return new ArrayList<>(openAuctionsByCategory.get(category).ref().values());
     }
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     public List<Ref<? extends IItem>> getOpenAuctions() {
-        return new ArrayList<>(openAuctions.values());
+        return new ArrayList<>(openAuctions.ref().values());
     }
 }

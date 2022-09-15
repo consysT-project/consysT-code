@@ -9,6 +9,7 @@ import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 @SuppressWarnings({"consistency"})
 public class RubisBenchmark extends CassandraDemoBenchmark {
@@ -106,7 +107,8 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         if (processId() == 0) {
             store().transaction(ctx -> {
-                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
+                Supplier<Ref<RefMap<UUID, Ref<? extends IItem>>>> mapSupplier = () -> RefMap.build(50, store(), getStrongLevel());
+                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class, mapSupplier);
                 return Option.apply(0);
             });
         }
