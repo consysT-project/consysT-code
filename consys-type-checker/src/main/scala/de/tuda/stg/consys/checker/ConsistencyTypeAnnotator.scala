@@ -33,14 +33,13 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		val r = super.visitExecutable(method, aVoid)
 
 		// return type adaptation for @ThisConsistent inside method body context
-		if (tf.getMethodReceiverContext != null) {
-			val recvQualifier = tf.getMethodReceiverContext
-			if (AnnotationUtils.containsSameByClass(method.getUnderlyingType.getReturnType.getAnnotationMirrors, classOf[ThisConsistent])) {
+		tf.getMethodReceiverContext match {
+			case Some(recvQualifier) if AnnotationUtils.containsSameByClass(method.getUnderlyingType.getReturnType.getAnnotationMirrors, classOf[ThisConsistent]) =>
 				val inferred =
 					if (isMixedQualifier(recvQualifier)) getQualifierForMethodOp(method.getElement, recvQualifier).get
 					else recvQualifier
 				method.getReturnType.replaceAnnotation(inferred)
-			}
+			case _ =>
 		}
 
 		r

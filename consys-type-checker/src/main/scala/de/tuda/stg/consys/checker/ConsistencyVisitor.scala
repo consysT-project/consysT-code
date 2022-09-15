@@ -22,10 +22,9 @@ import scala.collection.mutable
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
+class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowTypeVisitor[ConsistencyAnnotatedTypeFactory](baseChecker){
 	import TypeFactoryUtils._
 
-	private implicit val tf: ConsistencyAnnotatedTypeFactory = atypeFactory
 	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
 	private var isInConstructor: Boolean = false
@@ -36,6 +35,8 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 	private val classVisitQueueReported: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
+	override def createTypeFactory(): ConsistencyAnnotatedTypeFactory =
+		new ConsistencyAnnotatedTypeFactory(baseChecker)
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
@@ -210,7 +211,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 				// construct type for implicit this
 				val objectMirror = TypesUtils.typeFromClass(classOf[Object], atypeFactory.types, atypeFactory.getElementUtils)
 				val recvType = AnnotatedTypeMirror.createType(objectMirror, atypeFactory, true)
-				recvType.addAnnotation(tf.peekVisitClassContext()._2)
+				recvType.addAnnotation(tf.peekVisitClassContext._2)
 				recvType.addAnnotation(mutableAnnotation)
 
 				// check receiver w.r.t. implicit context
@@ -271,7 +272,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		}
 
 		// check mutable on return type
-		if (!AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)) {
+		if (!AnnotationUtils.areSame(tf.peekVisitClassContext._2, inconsistentAnnotation)) {
 			val mods = TreeUtils.elementFromDeclaration(node).getModifiers
 			val annotatedReturnType = tf.getAnnotatedType(node.asInstanceOf[Tree]).asInstanceOf[AnnotatedExecutableType].getReturnType
 			val returnType = annotatedReturnType.getUnderlyingType
@@ -319,7 +320,7 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 
 	private def checkMethodInvocationReceiverMutability(receiverType : AnnotatedTypeMirror, methodType: AnnotatedExecutableType, tree : MethodInvocationTree) : Unit = {
 		if (!(transactionContext ||
-			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext()._2, inconsistentAnnotation)))
+			!tf.isVisitClassContextEmpty && !AnnotationUtils.areSame(tf.peekVisitClassContext._2, inconsistentAnnotation)))
 			return
 
 		if (receiverType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !isSideEffectFree(methodType.getElement))
@@ -350,9 +351,9 @@ class ConsistencyVisitorImpl(baseChecker : BaseTypeChecker) extends InformationF
 		typ.getEffectiveAnnotationInHierarchy(getTopAnnotation)
 	}
 
-	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation(atypeFactory)
+	override protected def getEmptyContextAnnotation : AnnotationMirror = localAnnotation
 
-	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation(atypeFactory)
+	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation
 
 	// TODO: this is a hack to circumvent a possible bug in the checkerframework, where type arguments with multiple
 	//		 annotations get erased and can't be inferred. If we remove this, ref() calls crash the checker

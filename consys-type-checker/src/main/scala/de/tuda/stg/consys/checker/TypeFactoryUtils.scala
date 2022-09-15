@@ -14,7 +14,7 @@ import org.jmlspecs.annotation.Pure
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
 import scala.annotation.tailrec
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 06.03.19.
@@ -82,7 +82,7 @@ object TypeFactoryUtils {
 		getExplicitConsistencyAnnotation(tf.getAnnotatedType(elt))
 
 	def hasAnnotation(modifiers: ModifiersTree, annotation: String)(implicit tf : AnnotatedTypeFactory): Boolean = {
-		modifiers.getAnnotations.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
+		modifiers.getAnnotations.asScala.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
 			case adt: AnnotatedDeclaredType => getQualifiedName(adt) == annotation
 			case _ => false
 		})
@@ -106,7 +106,7 @@ object TypeFactoryUtils {
 		if (mixedAnnotation.getElementValues.values().isEmpty)
 			classOf[WeakOp].getCanonicalName
 		else
-			mixedAnnotation.getElementValues.values().head.getValue match {
+			mixedAnnotation.getElementValues.values().asScala.head.getValue match {
 				case v: DeclaredType => getQualifiedName(v)
 				case v: Class[_] => v.getCanonicalName
 				case _ => sys.error("ConSysT type checker bug: mixed annotation value not found")
@@ -195,7 +195,7 @@ object TypeFactoryUtils {
 	private def buildQualifierMap(implicit tf: AnnotatedTypeFactory): Map[String, String] = {
 		// search for QualifierForOperation meta-annotation on all qualifiers in the qual/ directory
 		// and map the qualifiers to the given operation level
-		tf.getSupportedTypeQualifiers.
+		tf.getSupportedTypeQualifiers.asScala.
 			map(q => tf.getAnnotatedType(q) match {
 				case adt: AnnotatedDeclaredType => adt.getUnderlyingType.asElement
 				case _ => null
@@ -205,7 +205,7 @@ object TypeFactoryUtils {
 				tf.getAnnotationByClass(elt.getAnnotationMirrors, classOf[QualifierForOperation]) match {
 					case null => map
 					case annotation =>
-						val value = annotation.getElementValues.values().head
+						val value = annotation.getElementValues.values().asScala.head
 						map + (value.getValue.toString -> elt.toString)
 				}
 			})
@@ -223,7 +223,7 @@ object TypeFactoryUtils {
 			methodNames.map(x => x == methodId).fold(false)(_ || _)
 		}
 		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
+			case te: TypeElement => te.getInterfaces.asScala.exists {
 				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
 					checkMethodName(mst)
 				case interfaceType: DeclaredType =>
@@ -279,7 +279,7 @@ object TypeFactoryUtils {
 	 */
 	def typeIsInstanceOf(typ: DeclaredType, name: String): Boolean = {
 		def checkReceiverNameInInterfaces(dt: DeclaredType, name: String): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
+			case te: TypeElement => te.getInterfaces.asScala.exists {
 				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == name => true
 				case interfaceType: DeclaredType => checkReceiverNameInInterfaces(interfaceType, name)
 				case _ => false

@@ -18,7 +18,7 @@ import scala.collection.convert.ImplicitConversions.`collection asJava`
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
+class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
 	import TypeFactoryUtils._
 
 	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
@@ -114,7 +114,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 	override def visitIdentifier(node: IdentifierTree, typeMirror: AnnotatedTypeMirror): Void = {
 		if (TreeUtils.isExplicitThisDereference(node)) {
 			// adapt 'this' to currently visited context
-			val (_, qualifier) = tf.peekVisitClassContext()
+			val (_, qualifier) = tf.peekVisitClassContext
 			typeMirror.replaceAnnotation(qualifier)
 			// 'this' is always mutable
 			typeMirror.replaceAnnotation(mutableAnnotation)
@@ -123,7 +123,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 
 		val element = TreeUtils.elementFromUse(node)
 		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext()
+			val (receiver, qualifier) = tf.peekVisitClassContext
 			visitField(node, typeMirror, receiver, qualifier)
 		}
 
@@ -135,7 +135,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		val element = TreeUtils.elementFromDeclaration(node)
 		// this might be called outside from a type checking context
 		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext()
+			val (receiver, qualifier) = tf.peekVisitClassContext
 			//visitField(element, typeMirror, receiver, qualifier)
 		}
 
@@ -189,7 +189,7 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				val typ = tf.getAnnotatedType(mst.getExpression)
 				typ.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 			case _ =>
-				tf.peekVisitClassContext()._2
+				tf.peekVisitClassContext._2
 		}
 
 		// replace @ThisConsistent return types with receiver type or op-level for mixed receivers
