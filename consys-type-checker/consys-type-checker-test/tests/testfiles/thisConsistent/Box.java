@@ -6,7 +6,7 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.japi.Ref;
 
 
-public @Strong class Box {
+public class Box {
     private
     int v;
 

@@ -17,7 +17,8 @@ public class ThisConsistentTest extends CheckerFrameworkPerFileTest {
                 //Disable warnings, so that the tests do not fail when there is the warning about using the unannotated jdk
                 "-nowarn",
                 "-AcheckPurityAnnotations",
-                "-AsuppressWarnings=inconsistent.constructor.type");
+                "-AsuppressWarnings=inconsistent.constructor.type",
+                "-Astubs=../src/main/resources/de/tuda/stg/consys/checker/stubjdk.astub");
     }
 
     @Parameterized.Parameters

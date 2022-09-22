@@ -162,7 +162,7 @@ package de.tuda.stg.consys.japi.binding.cassandra;
 }
 
 
-package de.tuda.stg.consys.bench;
+package de.tuda.stg.consys.bench.legacy;
 
 class DistributedBenchmark<StoreType extends @Mutable Store<?,?,?,?>> {
     StoreType store();

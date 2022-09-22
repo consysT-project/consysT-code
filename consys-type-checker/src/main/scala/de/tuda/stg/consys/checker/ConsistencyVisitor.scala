@@ -233,9 +233,6 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 				checkMethodInvocationArgument(atypeFactory.getAnnotatedType(argExpr), node)
 		})
 
-		// TODO: here, the arguments will be checked. But it does not use the methodType information
-		//  but rather constructs the type again from scratch without calling getAnnotatedType,
-		//  => could try to override the method in question and emulate the getAnnotatedType
 		val r = super.visitMethodInvocation(node, p)
 
 		if (isTransaction(node))

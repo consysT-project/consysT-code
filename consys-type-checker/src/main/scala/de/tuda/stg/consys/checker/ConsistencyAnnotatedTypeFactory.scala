@@ -7,7 +7,8 @@ import de.tuda.stg.consys.checker.jdk.Utils
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
 import de.tuda.stg.consys.checker.qual.ThisConsistent
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
-import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, DefaultTypeHierarchy, QualifierHierarchy, TypeHierarchy}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, DefaultTypeHierarchy, QualifierHierarchy, TypeHierarchy}
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
 import org.checkerframework.framework.`type`.typeannotator.{ListTypeAnnotator, TypeAnnotator}
 import org.checkerframework.javacutil.AnnotationBuilder
@@ -65,20 +66,18 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
             super.getAnnotatedType(tree)
     }
 
-    def getAnnotatedTypeWithContext(elt: ExecutableElement, context: MethodInvocationTree): AnnotatedTypeMirror.AnnotatedExecutableType = {
-        val prevMethodReceiverContext = methodReceiverContext
-
-        context.getMethodSelect match {
-            case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
-                methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
-                    getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
-            case _ =>
-                methodReceiverContext = Some(visitClassContext.top._2)
+    def getAnnotatedTypeWithContext(elt: ExecutableElement, context: MethodInvocationTree): AnnotatedExecutableType = {
+        withContext(context){
+            getAnnotatedType(elt)
         }
+    }
 
-        val result = getAnnotatedType(elt)
-        methodReceiverContext = prevMethodReceiverContext
-        result
+    override def methodFromUse(tree: MethodInvocationTree): AnnotatedTypeFactory.ParameterizedExecutableType = {
+        withContext(tree){
+            val typ = super.methodFromUse(tree)
+            replaceThisConsistent(typ.executableType)
+            typ
+        }
     }
 
     override protected def addComputedTypeAnnotations(tree: Tree, typ: AnnotatedTypeMirror, iUseFlow: Boolean): Unit = {
@@ -147,6 +146,45 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         }
 
         result
+    }
+
+    private def withContext[R](context: MethodInvocationTree)(f: => R): R = {
+        val prevMethodReceiverContext = methodReceiverContext
+        context.getMethodSelect match {
+            case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
+                methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
+                    getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
+            case _ =>
+                methodReceiverContext = Some(visitClassContext.top._2)
+        }
+        val result = f
+        methodReceiverContext = prevMethodReceiverContext
+        result
+    }
+
+    def replaceThisConsistent(method: AnnotatedExecutableType): Unit = {
+        // return & parameter type adaptation for @ThisConsistent inside method body context
+        getMethodReceiverContext match {
+            // check for @ThisAnnotation in type and underlying type, i.e. without checker-framework processing,
+            // to allow repeated modification (for classes with multiple potential consistencies)
+            case Some(recvQualifier) =>
+                // return type
+                val returnTypeAnnotations = (method.getReturnType.getAnnotations.asScala ++
+                    method.getUnderlyingType.getReturnType.getAnnotationMirrors.asScala).asJava
+                if (containsSameByClass(returnTypeAnnotations, classOf[ThisConsistent]))
+                    method.getReturnType.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method.getElement)(this))
+
+                // parameter types
+                val argTypesAnnotations = (method.getUnderlyingType.getParameterTypes.asScala.map(_.getAnnotationMirrors.asScala.toSet) zip
+                    method.getParameterTypes.asScala.map(_.getAnnotations.asScala)).map(t => t._1 ++ t._2)
+                (argTypesAnnotations zip method.getParameterTypes.asScala).foreach(e => {
+                    val (annotations, typ) = e
+                    if (containsSameByClass(annotations.asJava, classOf[ThisConsistent]))
+                        typ.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method.getElement)(this))
+                })
+
+            case _ =>
+        }
     }
 
     def isInMixedClassContext: Boolean =
