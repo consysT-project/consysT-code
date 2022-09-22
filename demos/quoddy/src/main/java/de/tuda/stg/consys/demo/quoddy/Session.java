@@ -17,6 +17,7 @@ import scala.Option;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
 
@@ -124,23 +125,27 @@ public class Session {
         checkLogin();
         var id = UUID.randomUUID();
 
-        doTransaction(tr, ctx -> {
-            Ref<? extends IStatusUpdate> status =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
+        try {
+            doTransaction(tr, ctx -> {
+                Ref<? extends IStatusUpdate> status =
+                        ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
-            this.user.ref().addPost(status);
-            for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
-                follower.ref().addPost(status); // TODO: could lead to batch too large
-            }
-            // cyclic dependency for all-strong case: if two friends post simultaneously, they end up waiting for each
-            // other's locks here
-            // TODO: for some reason also happens for data-centric mixed case?
-            for (Ref<? extends IUser> friend : user.ref().getFriends()) {
-                friend.ref().addPost(status); // TODO: could lead to batch too large
-            }
+                this.user.ref().addPost(status);
+                for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
+                    follower.ref().addPost(status); // TODO: could lead to batch too large
+                }
+                // cyclic dependency for all-strong case: if two friends post simultaneously, they end up waiting for each
+                // other's locks here
+                for (Ref<? extends IUser> friend : user.ref().getFriends()) {
+                    friend.ref().addPost(status); // TODO: could lead to batch too large
+                }
 
-            return Option.apply(0);
-        });
+                return Option.apply(0);
+            });
+        } catch (Exception e) {
+            if (!(e instanceof TimeoutException)) throw e;
+            else System.err.println(e.getMessage());
+        }
     }
 
     public void postStatusToGroup(CassandraTransactionContextBinding tr,
@@ -153,7 +158,7 @@ public class Session {
                     ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
             if (!(boolean)group.ref().isUserInGroup(this.user))
-                throw new IllegalArgumentException("can only post in groups you are a member of");
+                throw new AppException("can only post in groups you are a member of");
 
             group.ref().addPost(status);
 
@@ -178,7 +183,7 @@ public class Session {
             event.ref().initSelf(event);
 
             if (!(boolean)group.ref().isUserInGroup(this.user))
-                throw new IllegalArgumentException("can only post in groups you are a member of");
+                throw new AppException("can only post in groups you are a member of");
 
             group.ref().addPost(event);
 
@@ -191,7 +196,7 @@ public class Session {
         checkLogin();
         doTransaction(tr, ctx -> {
             if (((List<Ref<? extends IUser>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
-                throw new IllegalArgumentException("target is not friend of user");
+                throw new AppException("target is not friend of user");
             friend.ref().addPost(post);
             return Option.apply(0);
         });

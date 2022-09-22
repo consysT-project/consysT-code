@@ -51,7 +51,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     private final Random random = new Random();
 
     public QuoddyBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
+        super(config, outputResolver, 5000);
 
         numOfUsersPerReplica = config.getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.getInt("consys.bench.demo.quoddy.groups");
@@ -178,9 +178,8 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     public void operation() {
         try {
             randomTransaction(operations, zipf);
-        } catch (IllegalArgumentException e) {
-            System.out.println(e.getMessage());
-            throw e;
+        } catch (AppException e) {
+            System.err.println(e.getMessage());
         }
     }
 
@@ -230,6 +229,11 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         store().transaction(ctx -> {
             List<Ref<? extends IGroup>> groups = session.getUser().ref().getParticipatingGroups();
+            if (groups.isEmpty()) {
+                // may happen in all-weak case
+                System.err.println("participating groups was empty");
+                return Option.empty();
+            }
             session.postStatusToGroup(ctx, generateRandomText(20), getRandomElement(groups));
             return Option.apply(0);
         });
@@ -323,9 +327,17 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
+            var groups = user.ref().getParticipatingGroups();
+            var friends = user.ref().getFriends();
+            if (groups.isEmpty() || friends.isEmpty()) {
+                // may happen in all-weak case
+                System.err.println("friends or groups was empty");
+                return Option.empty();
+            }
+
+            Ref<? extends IGroup> group = getRandomElement(groups);
             Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
-            Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
+            Ref<? extends IUser> friend = getRandomElement(friends);
             session.sharePostWithFriend(ctx, friend, post);
             return Option.apply(0);
         });
@@ -333,8 +345,15 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private void commentOnGroupPost() {
         Session session = randomLocalSession();
+        Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<? extends IUser> user = session.getUser();
+            var groups = user.ref().getParticipatingGroups();
+            if (groups.isEmpty()) {
+                // may happen in all-weak case
+                System.err.println("groups was empty");
+                return Option.empty();
+            }
+
             Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
             Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
@@ -346,7 +365,14 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         Session session = randomLocalSession();
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
-            Ref<? extends IUser> friend = getRandomElement(user.ref().getFriends());
+            var friends = user.ref().getFriends();
+            if (groups.isEmpty()) {
+                // may happen in all-weak case
+                System.err.println("friends was empty");
+                return Option.empty();
+            }
+
+            Ref<? extends IUser> friend = getRandomElement(friends);
             Ref<? extends IPost> post = getRandomElement(friend.ref().getNewestPosts(5));
             post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
             return Option.apply(0);

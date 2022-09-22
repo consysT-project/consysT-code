@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.quoddy.schema.datacentric;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.demo.quoddy.AppException;
 import de.tuda.stg.consys.demo.quoddy.schema.IGroup;
 import de.tuda.stg.consys.demo.quoddy.schema.IPost;
 import de.tuda.stg.consys.demo.quoddy.schema.IUser;
@@ -67,13 +68,13 @@ public @Weak class Group implements IGroup {
     @Transactional
     public void acceptMembershipRequest(Ref<? extends IUser> user, Ref<? extends IUser> sessionUser) {
         if (isOwner(sessionUser)) {
-            throw new IllegalArgumentException("user is not privileged to accept membership requests");
+            throw new AppException("user is not privileged to accept membership requests");
         }
 
         if ((@Strong boolean) (pendingMembers.ref().remove(user.ref().getId()) != null)) {
             members.ref().put(user.ref().getId(), user);
         } else {
-            throw new IllegalArgumentException("user has not requested membership");
+            throw new AppException("user has not requested membership");
         }
     }
 
@@ -83,7 +84,7 @@ public @Weak class Group implements IGroup {
         if ((@Strong boolean) (members.ref().remove(member.ref().getId()) != null)) {
             owners.ref().put(member.ref().getId(), member);
         } else {
-            throw new IllegalArgumentException("user is not member of group");
+            throw new AppException("user is not member of group");
         }
     }
 

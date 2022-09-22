@@ -171,7 +171,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 - bidding on own item (rare)
                 - auction has already ended (common)
             */
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 
@@ -181,7 +181,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         store().transaction(ctx -> {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
             if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for placeBid operation");
+                System.err.println("no open auctions for placeBid operation");
                 return Option.empty();
             }
 
@@ -199,7 +199,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         {
             List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
             if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for buyNow operation");
+                System.err.println("no open auctions for buyNow operation");
                 return Option.empty();
             }
 
@@ -216,7 +216,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 return Option.apply(trxResult);
             } catch (IllegalArgumentException e) {
                 trxResult.appExceptions = new Exception[] { e };
-                System.out.println("Exception raised by app: " + e.getMessage());
+                System.err.println("Exception raised by app: " + e.getMessage());
                 return Option.apply(trxResult);
             }
         });
@@ -284,7 +284,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 item.ref().closeAuction(item);
             } catch (IllegalArgumentException e) {
                 trxResult.appExceptions = new Exception[] { e };
-                System.out.println("Exception raised by app: " + e.getMessage());
+                System.err.println("Exception raised by app: " + e.getMessage());
             }
             return Option.apply(trxResult);
         });
