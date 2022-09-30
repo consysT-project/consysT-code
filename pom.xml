@@ -42,7 +42,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <java.version>11</java.version>
-        <scala.version>2.13.8</scala.version>
+        <scala.version>2.13.9</scala.version>
         <scala.binary.version>2.13</scala.binary.version>
 
         <akka.version>2.6.17</akka.version>
