@@ -24,6 +24,10 @@ import scala.util.{Failure, Success, Try}
 
 private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
+	// Fetch the distributed data replicator
+	val replicator = DistributedData.get(system).replicator
+
+
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
 
 	private def addOtherReplica(otherActor : ActorRef) : Unit = {
@@ -158,6 +162,8 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 object AkkaReplicaAdapter {
 
 
+
+
 	type Addr = String
 	type ObjType = Serializable
 
@@ -230,6 +236,7 @@ object AkkaReplicaAdapter {
 
 						val receivingReplicas = otherReplicas.filter(ref => ref != self)
 
+						//TODO: What about timeouts?
 						val prepared = receivingReplicas.map { otherActor =>
 							otherActor ? PrepareChangesSync(key,changes)
 						}
@@ -249,6 +256,8 @@ object AkkaReplicaAdapter {
 						sender() ! "ack"
 
 					case CommitChanges(key) =>
+
+
 						preparedChanges.get(key) match {
 							case Some(changes) =>
 								changes.foreach(change => {
@@ -257,6 +266,7 @@ object AkkaReplicaAdapter {
 								})
 							case None => Logger.err(s"cannot commit changes $key")
 						}
+
 
 						preparedChanges.remove(key)
 

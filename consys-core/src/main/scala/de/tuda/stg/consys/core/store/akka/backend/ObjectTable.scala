@@ -1,13 +1,11 @@
 package de.tuda.stg.consys.core.store.akka.backend
 
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ddata.{GCounter, GCounterKey, SelfUniqueAddress}
 import akka.cluster.ddata.typed.scaladsl.{DistributedData, Replicator}
-import akka.cluster.ddata.typed.scaladsl.Replicator._
+import akka.cluster.ddata.{GCounter, GCounterKey, SelfUniqueAddress}
 
-object Counter {
+object ObjectTable {
 
 
   sealed trait Command
@@ -15,6 +13,8 @@ object Counter {
   final case class GetValue(replyTo: ActorRef[Int]) extends Command
   final case class GetCachedValue(replyTo: ActorRef[Int]) extends Command
   case object Unsubscribe extends Command
+
+
   private sealed trait InternalCommand extends Command
   private case class InternalUpdateResponse(rsp: Replicator.UpdateResponse[GCounter]) extends InternalCommand
   private case class InternalGetResponse(rsp: Replicator.GetResponse[GCounter], replyTo: ActorRef[Int])
