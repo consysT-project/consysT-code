@@ -97,8 +97,6 @@ public class JBenchExecution {
         }
     }
 
-
-
     private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, BenchmarkConfig config) {
         String backend = cmd.getOptionValue("backend");
 
@@ -120,6 +118,4 @@ public class JBenchExecution {
             throw new IllegalArgumentException("unknown backend: " + backend);
         }
     }
-
-
 }

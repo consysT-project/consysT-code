@@ -45,12 +45,6 @@ trait BenchmarkConfig {
 
 	def toConfig : Config
 
-
 	/** Creates a store from this benchmark configuration */
 	def createStore[StoreType <: DistributedStore with BarrierStore](storeFactory : BenchmarkStoreFactory[StoreType]) : StoreType
-
-
-
 }
-
-
