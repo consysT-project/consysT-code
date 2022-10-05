@@ -44,6 +44,7 @@ object BenchmarkStoreFactory {
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
 				zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
+				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = true
 			)
@@ -53,11 +54,11 @@ object BenchmarkStoreFactory {
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
 				zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
+				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = false
 			)
 		}
 		store
 	}
-
 }

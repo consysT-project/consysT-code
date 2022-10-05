@@ -95,18 +95,18 @@ object CassandraStore {
 
 	case class AddrNotAvailableException(addr : String) extends Exception(s"address <$addr> not available")
 
-	def fromAddress(host : String, cassandraPort : Int, zookeeperPort : Int, timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS), initialize : Boolean = false) : CassandraStore = {
+	def fromAddress(host : String, cassandraPort : Int, zookeeperPort : Int, datacenter : String = "OSS-dc0", timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS), initialize : Boolean = false) : CassandraStore = {
 
 		class CassandraStoreImpl(
 			override val cassandraSession : CqlSession,
 			override val curator : CuratorFramework,
 			override val timeout : FiniteDuration,
 			override val initializing : Boolean
-    ) extends CassandraStore
+    	) extends CassandraStore
 
 		val cassandraSession = CqlSession.builder()
 			.addContactPoint(InetSocketAddress.createUnresolved(host, cassandraPort))
-			.withLocalDatacenter("OSS-dc0")
+			.withLocalDatacenter(datacenter)
 			.build()
 
 		val curator = CuratorFrameworkFactory
@@ -122,8 +122,5 @@ object CassandraStore {
 			initializing = initialize
 		)
 	}
-
-
-
 
 }

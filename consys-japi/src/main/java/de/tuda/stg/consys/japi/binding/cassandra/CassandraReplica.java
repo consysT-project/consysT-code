@@ -10,8 +10,13 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public class CassandraReplica {
 
+	public static CassandraStoreBinding create(String host, int cassandraPort, int zookeeperPort, String datacenter, FiniteDuration withTimeout, boolean withInitialize) {
+		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, zookeeperPort, datacenter, withTimeout, withInitialize);
+		return new CassandraStoreBinding(store);
+	}
+
 	public static CassandraStoreBinding create(String host, int cassandraPort, int zookeeperPort, FiniteDuration withTimeout, boolean withInitialize) {
-		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, zookeeperPort, withTimeout, withInitialize);
+		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, zookeeperPort, "OSS-dc0", withTimeout, withInitialize);
 		return new CassandraStoreBinding(store);
 	}
 
