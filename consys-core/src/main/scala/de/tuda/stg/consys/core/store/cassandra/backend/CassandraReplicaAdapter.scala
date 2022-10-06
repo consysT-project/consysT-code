@@ -26,9 +26,11 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
 
-	/* Initialize tables, if not available... */
-	cassandraSession.execute(s"USE $keyspaceName")
+	private var sessionInitialized : Boolean = false
 
+	/**
+	 * (Re-)creates keyspace and tables, dropping previous data if it exists.
+	 */
 	def setup() : Unit = {
 		try {
 			cassandraSession.execute(
@@ -133,6 +135,11 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 
 
 	private[cassandra] def executeStatement(statement : Statement[_]) : ResultSet = {
+		if (!sessionInitialized) {
+			cassandraSession.execute(s"USE $keyspaceName")
+			sessionInitialized = true
+		}
+
 		cassandraSession.execute(statement)
 	}
 
