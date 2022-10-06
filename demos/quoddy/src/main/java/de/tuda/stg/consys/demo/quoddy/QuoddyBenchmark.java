@@ -1,9 +1,11 @@
 package de.tuda.stg.consys.demo.quoddy;
 
-import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
@@ -11,26 +13,10 @@ import scala.Option;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
-public class QuoddyBenchmark extends CassandraDemoBenchmark {
+public class QuoddyBenchmark extends DemoRunnable {
     public static void main(String[] args) {
-        start(QuoddyBenchmark.class, args);
+        JBenchExecution.execute("quoddy", QuoddyBenchmark.class, args);
     }
-
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::readPersonalFeed,
-            this::readGroupFeed,
-            this::postStatusToProfile,
-            this::postStatusToGroup,
-            this::followUser,
-            this::addFriend,
-            this::share,
-            this::commentOnFriendPost,
-            this::commentOnGroupPost,
-            this::joinGroup,
-            this::postEventUpdate
-    ));
-
-    private final List<Double> zipf;
 
     private final int numOfUsersPerReplica;
     private final int numOfGroupsPerReplica;
@@ -50,17 +36,15 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
 
     private final Random random = new Random();
 
-    public QuoddyBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver, 5000);
+    public QuoddyBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
 
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.quoddy.users");
-        numOfGroupsPerReplica = config.getInt("consys.bench.demo.quoddy.groups");
+        numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.users");
+        numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.groups");
 
-        zipf = zipfSummed(operations.size());
-
-        Session.userConsistencyLevel = getStrongLevel();
-        Session.groupConsistencyLevel = getStrongLevel();
-        Session.activityConsistencyLevel = getWeakLevel();
+        Session.userConsistencyLevel = getLevel(getStrongLevel());
+        Session.groupConsistencyLevel = getLevel(getStrongLevel());
+        Session.activityConsistencyLevel = getLevel(getWeakLevel());
 
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
@@ -89,16 +73,9 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
-    public String getName() {
-        return "QuoddyBenchmark";
-    }
-
-    @Override
     public void setup() {
-        super.setup();
-
-        Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
-        if (getBenchType() == BenchmarkType.MIXED) {
+        Session.dataCentric = benchType == BenchmarkType.MIXED;
+        if (benchType == BenchmarkType.MIXED) {
             Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
             Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
             Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
@@ -146,7 +123,7 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
         barrier("users_added");
 
         System.out.println("Getting users and items from other replicas");
-        for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+        for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
                 users.add(localSessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
             }
@@ -175,27 +152,38 @@ public class QuoddyBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
-    public void operation() {
-        try {
-            randomTransaction(operations, zipf);
-        } catch (AppException e) {
-            System.err.println(e.getMessage());
-        }
-    }
-
-    @Override
     public void cleanup() {
-        super.cleanup();
         localSessions.clear();
         users.clear();
         groups.clear();
         events.clear();
+    }
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    @Override
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                withExceptionHandling(this::readPersonalFeed),
+                withExceptionHandling(this::readGroupFeed),
+                withExceptionHandling(this::postStatusToProfile),
+                withExceptionHandling(this::postStatusToGroup),
+                withExceptionHandling(this::followUser),
+                withExceptionHandling(this::addFriend),
+                withExceptionHandling(this::share),
+                withExceptionHandling(this::commentOnFriendPost),
+                withExceptionHandling(this::commentOnGroupPost),
+                withExceptionHandling(this::joinGroup),
+                withExceptionHandling(this::postEventUpdate)
+        });
+    }
+
+    private Runnable withExceptionHandling(Runnable op) {
+        return () -> {
+            try {
+                op.run();
+            } catch (AppException e) {
+                System.err.println(e.getMessage());
+            }
+        };
     }
 
     private void readPersonalFeed() {

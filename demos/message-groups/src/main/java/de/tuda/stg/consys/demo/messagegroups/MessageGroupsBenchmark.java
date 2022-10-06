@@ -1,10 +1,12 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
-import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
@@ -19,35 +21,25 @@ import java.util.*;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
+public class MessageGroupsBenchmark extends DemoRunnable {
     public static void main(String[] args) {
-        start(MessageGroupsBenchmark.class, args);
+        JBenchExecution.execute("message-groups", MessageGroupsBenchmark.class, args);
     }
 
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::checkInbox,
-            this::postMessage,
-            this::joinGroup
-    ));
-
-    private final List<Double> zipf;
-
-    private final int numOfUsersPerReplica;
-    private final int numOfGroupsPerReplica;
+    private final int numberOfUsersPerReplica;
+    private final int numberOfGroupsPerReplica;
 
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
 
-    public MessageGroupsBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
+    public MessageGroupsBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
 
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.messagegroups.users");
-        numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
+        numberOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.users");
+        numberOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.groups");
 
-        zipf = zipfSummed(operations.size());
-
-        users = new ArrayList<>(numOfUsersPerReplica * nReplicas());
-        groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
+        users = new ArrayList<>(numberOfUsersPerReplica * config.numberOfReplicas());
+        groups = new ArrayList<>(numberOfGroupsPerReplica * config.numberOfReplicas());
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
@@ -55,35 +47,28 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
-    public String getName() {
-        return "MessageGroupsBenchmark";
-    }
-
-    @Override
     public void setup() {
-        super.setup();
-
         System.out.println("Adding users");
-        for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+        for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
             int finalUserIndex = userIndex;
 
-            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
-                    ctx.replicate(addr("inbox", finalUserIndex, processId()), getWeakLevel(), Inbox.class))
+            Ref<Inbox> inbox = (Ref<Inbox>) store().transaction(ctx -> Option.apply(
+                    ctx.replicate(addr("inbox", finalUserIndex, processId()), getLevel(Inbox.class), Inbox.class))
             ).get();
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("user", finalUserIndex, processId()), getWeakLevel(), User.class,
+                ctx.replicate(addr("user", finalUserIndex, processId()), getLevel(User.class), User.class,
                         addr("user", finalUserIndex, processId()), inbox);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(userIndex);
         }
 
-        for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+        for (int grpIndex = 0; grpIndex < numberOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
+                ctx.replicate(addr("group", finalGrpIndex, processId()), getLevel(Group.class), Group.class);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(grpIndex);
@@ -92,23 +77,23 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
         barrier("objects_added");
 
-        for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+        for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             int finalReplIndex = replIndex;
 
-            for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+            for (int grpIndex = 0; grpIndex < numberOfGroupsPerReplica; grpIndex++) {
                 int finalGrpIndex = grpIndex;
 
-                Ref<Group> group = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getStrongLevel(), Group.class))
+                Ref<Group> group = (Ref<Group>) store().transaction(ctx -> Option.apply(
+                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getLevel(Group.class), Group.class))
                 ).get();
                 groups.add(group);
             }
 
-            for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+            for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
                 int finalUserIndex = userIndex;
 
-                Ref<User> user = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("user", finalUserIndex, finalReplIndex), getWeakLevel(), User.class))
+                Ref<User> user = (Ref<User>) store().transaction(ctx -> Option.apply(
+                        ctx.lookup(addr("user", finalUserIndex, finalReplIndex), getLevel(User.class), User.class))
                 ).get();
                 users.add(user);
 
@@ -127,21 +112,35 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
         BenchmarkUtils.printDone();
     }
 
-    @Override
-    public void cleanup() {
-        super.cleanup();
-        groups.clear();
-        users.clear();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    private <T> ConsistencyLevel getLevel(Class<T> clazz) {
+        switch (benchType) {
+            case WEAK: return getWeakLevel();
+            case STRONG: return getStrongLevel();
+            case OP_MIXED: return getMixedLevel();
+            case MIXED:
+                if (clazz == Inbox.class || clazz == User.class)
+                    return getWeakLevel();
+                else if (clazz == Group.class)
+                    return getStrongLevel();
+                else
+                    throw new UnsupportedOperationException("unknown replicated object type");
+            default: throw new UnsupportedOperationException("unknown bench type");
         }
     }
 
     @Override
-    public void operation() {
-        randomTransaction(operations, zipf);
+    public void cleanup() {
+        groups.clear();
+        users.clear();
+    }
+
+    @Override
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                this::checkInbox,
+                this::postMessage,
+                this::joinGroup
+        });
     }
 
     private void postMessage() {

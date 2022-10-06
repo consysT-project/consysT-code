@@ -12,8 +12,9 @@ import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings("consistency")
-public class RefMap<K, V> implements Serializable {
-    private Option<Ref<RefMap<K, V>>> next;
+@Deprecated
+public class LinkedRefMap<K, V> implements Serializable {
+    private Option<Ref<LinkedRefMap<K, V>>> next;
     private final Map<K, V> underlying;
     private final int batchSize;
 
@@ -22,13 +23,13 @@ public class RefMap<K, V> implements Serializable {
         private static ConsistencyLevel<CassandraStore> consistencyLevel;
     }
 
-    public RefMap() {
+    public LinkedRefMap() {
         this.next = null;
         this.underlying = null;
         this.batchSize = 0;
     }
 
-    public RefMap(int batchSize) {
+    public LinkedRefMap(int batchSize) {
         if (Config.store == null || Config.consistencyLevel == null)
             throw new IllegalStateException("no store or consistency level found for RefMap");
 
@@ -56,7 +57,7 @@ public class RefMap<K, V> implements Serializable {
         } else if (next.isEmpty()) {
             next = Config.store.transaction(ctx ->
                     Option.apply(ctx.replicate("RefMap:" + UUID.randomUUID().toString(), Config.consistencyLevel,
-                            (Class<RefMap<K,V>>)(Class) RefMap.class, batchSize))
+                            (Class<LinkedRefMap<K,V>>)(Class) LinkedRefMap.class, batchSize))
             );
         } else {
             next.get().ref().put(key, value);
@@ -88,15 +89,15 @@ public class RefMap<K, V> implements Serializable {
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V> Ref<RefMap<K, V>> build(int batchSize, CassandraStoreBinding store,
-                                                 ConsistencyLevel<CassandraStore> consistencyLevel) {
+    public static <K, V> Ref<LinkedRefMap<K, V>> build(int batchSize, CassandraStoreBinding store,
+                                                       ConsistencyLevel<CassandraStore> consistencyLevel) {
         if (Config.store == null)
             Config.store = store;
         if (Config.consistencyLevel == null)
             Config.consistencyLevel = consistencyLevel;
 
         return store.transaction(ctx -> Option.apply(ctx.replicate("RefMap:" + UUID.randomUUID().toString(), consistencyLevel,
-                (Class<RefMap<K,V>>)(Class) RefMap.class, batchSize))
+                (Class<LinkedRefMap<K,V>>)(Class) LinkedRefMap.class, batchSize))
         ).get();
     }
 }

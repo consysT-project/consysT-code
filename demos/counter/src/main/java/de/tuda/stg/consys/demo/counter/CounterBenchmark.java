@@ -4,6 +4,7 @@ import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchRunnable;
 import de.tuda.stg.consys.demo.JBenchStore;
@@ -17,7 +18,7 @@ import scala.Option;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class CounterBenchmark extends JBenchRunnable {
+public class CounterBenchmark extends DemoRunnable {
 	public static void main(String[] args) {
 		JBenchExecution.execute("counter", CounterBenchmark.class, args);
 	}
@@ -61,12 +62,12 @@ public class CounterBenchmark extends JBenchRunnable {
 	public void cleanup() {}
 
 	private ConsistencyLevel getLevel() {
-		switch (benchType()) {
+		switch (benchType) {
 			case WEAK: return getWeakLevel();
 			case OP_MIXED: return getMixedLevel();
 			case MIXED:
 			case STRONG: return getStrongLevel();
-			default: throw new UnsupportedOperationException("unknown bench type: " + benchType());
+			default: throw new UnsupportedOperationException("unknown bench type: " + benchType);
 		}
 	}
 }

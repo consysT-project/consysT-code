@@ -9,8 +9,8 @@ import de.tuda.stg.consys.demo.quoddy.schema.datacentric.BoolBox;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefList;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefMap;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 import scala.Function1;
 import scala.Option;
 
@@ -34,19 +34,19 @@ public class Session {
 
     public static boolean dataCentric;
 
-    private CassandraStoreBinding store;
+    private Store store;
     private Ref<? extends IUser> user;
 
-    public Session(CassandraStoreBinding store) {
+    public Session(Store store) {
         this.store = store;
     }
 
-    public void setStore(CassandraStoreBinding store) {
+    public void setStore(Store store) {
         this.store = store;
     }
 
-    private <U> Option<U> doTransaction(CassandraTransactionContextBinding transaction,
-                                  Function1<CassandraTransactionContextBinding, Option<U>> code) {
+    private <U> Option<U> doTransaction(TransactionContext transaction,
+                                  Function1<TransactionContext, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
@@ -54,7 +54,7 @@ public class Session {
         return user;
     }
 
-    public Ref<? extends IUser> registerUser(CassandraTransactionContextBinding tr,
+    public Ref<? extends IUser> registerUser(TransactionContext tr,
                                   String id, String name) {
         if (dataCentric) {
             this.user = doTransaction(tr, ctx -> {
@@ -75,12 +75,12 @@ public class Session {
         return this.user;
     }
 
-    public Option<Ref<? extends IUser>> lookupUser(CassandraTransactionContextBinding tr,
+    public Option<Ref<? extends IUser>> lookupUser(TransactionContext tr,
                                 String id) {
         return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, userConsistencyLevel, userImpl)));
     }
 
-    public Ref<? extends IGroup> createGroup(CassandraTransactionContextBinding tr,
+    public Ref<? extends IGroup> createGroup(TransactionContext tr,
                                   String id, String name, String description, boolean requiresJoinConfirmation) {
         checkLogin();
         return doTransaction(tr, ctx -> {
@@ -105,12 +105,12 @@ public class Session {
         }).get();
     }
 
-    public Option<Ref<? extends IGroup>> lookupGroup(CassandraTransactionContextBinding tr,
+    public Option<Ref<? extends IGroup>> lookupGroup(TransactionContext tr,
                                         String id) {
         return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, groupConsistencyLevel, groupImpl)));
     }
 
-    public void joinGroup(CassandraTransactionContextBinding tr,
+    public void joinGroup(TransactionContext tr,
                           Ref<? extends IGroup> group) {
         checkLogin();
         doTransaction(tr, ctx -> {
@@ -120,7 +120,7 @@ public class Session {
         });
     }
 
-    public void postStatusToProfile(CassandraTransactionContextBinding tr,
+    public void postStatusToProfile(TransactionContext tr,
                                     String text) {
         checkLogin();
         var id = UUID.randomUUID();
@@ -144,11 +144,11 @@ public class Session {
             });
         } catch (Exception e) {
             if (!(e instanceof TimeoutException)) throw e;
-            else System.err.println(e.getMessage());
+            else System.err.println(e.getMessage()); // allow timeouts to break out of cycles
         }
     }
 
-    public void postStatusToGroup(CassandraTransactionContextBinding tr,
+    public void postStatusToGroup(TransactionContext tr,
                                   String text, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
@@ -166,7 +166,7 @@ public class Session {
         });
     }
 
-    public Ref<? extends IEvent> postEventToGroup(CassandraTransactionContextBinding tr,
+    public Ref<? extends IEvent> postEventToGroup(TransactionContext tr,
                                        String text, Date date, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
@@ -191,7 +191,7 @@ public class Session {
         }).get();
     }
 
-    public void sharePostWithFriend(CassandraTransactionContextBinding tr,
+    public void sharePostWithFriend(TransactionContext tr,
                                     Ref<? extends IUser> friend, Ref<? extends IPost> post) {
         checkLogin();
         doTransaction(tr, ctx -> {
@@ -202,7 +202,7 @@ public class Session {
         });
     }
 
-    public void sendFriendRequest(CassandraTransactionContextBinding tr,
+    public void sendFriendRequest(TransactionContext tr,
                                   Ref<? extends IUser> receiver) {
         checkLogin();
         doTransaction(tr, ctx -> {
@@ -212,7 +212,7 @@ public class Session {
         });
     }
 
-    public boolean acceptFriendRequest(CassandraTransactionContextBinding tr, int requestIndex) {
+    public boolean acceptFriendRequest(TransactionContext tr, int requestIndex) {
         checkLogin();
         return doTransaction(tr, ctx -> {
             List<Ref<? extends IUser>> requests = this.user.ref().getReceivedFriendRequests();
@@ -227,7 +227,7 @@ public class Session {
         }).get();
     }
 
-    public void follow(CassandraTransactionContextBinding tr, Ref<? extends IUser> target) {
+    public void follow(TransactionContext tr, Ref<? extends IUser> target) {
         checkLogin();
         doTransaction(tr, ctx -> {
             target.ref().addFollower(this.user);

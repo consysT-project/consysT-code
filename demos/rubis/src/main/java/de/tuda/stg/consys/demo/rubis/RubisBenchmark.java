@@ -1,31 +1,22 @@
 package de.tuda.stg.consys.demo.rubis;
 
-import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.*;
-import java.util.function.Supplier;
 
 @SuppressWarnings({"consistency"})
-public class RubisBenchmark extends CassandraDemoBenchmark {
+public class RubisBenchmark extends DemoRunnable {
     public static void main(String[] args) {
-        start(RubisBenchmark.class, args);
+        JBenchExecution.execute("rubis", RubisBenchmark.class, args);
     }
-
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::browseCategory,
-            this::placeBid,
-            this::buyNow,
-            this::rateUser,
-            this::closeAuction
-    ));
-
-    private final List<Double> zipf;
 
     private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
             "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
@@ -43,16 +34,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     private Ref<AuctionStore> auctionStore;
 
 
-    public RubisBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
+    public RubisBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
 
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
+        numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
-        zipf = zipfSummed(operations.size());
-
-        Session.userConsistencyLevel = getStrongLevel();
-        Session.itemConsistencyLevel = getStrongLevel();
-        Session.storeConsistencyLevel = getStrongLevel();
+        Session.userConsistencyLevel = getLevel(getStrongLevel());
+        Session.itemConsistencyLevel = getLevel(getStrongLevel());
+        Session.storeConsistencyLevel = getLevel(getStrongLevel());
 
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
@@ -84,20 +73,13 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     protected float getInitialBalance() {
-        return numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f;
-    }
-
-    @Override
-    public String getName() {
-        return "RubisBenchmark";
+        return numOfUsersPerReplica * nReplicas * maxPrice * 1.3f;
     }
 
     @Override
     public void setup() {
-        super.setup();
-
-        Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
-        if (getBenchType() == BenchmarkType.MIXED) {
+        Session.dataCentric = benchType == BenchmarkType.MIXED;
+        if (benchType == BenchmarkType.MIXED) {
             Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
         } else {
@@ -105,17 +87,17 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
         }
 
+        // TODO: remove auction store
         if (processId() == 0) {
             store().transaction(ctx -> {
-                Supplier<Ref<RefMap<UUID, Ref<? extends IItem>>>> mapSupplier = () -> RefMap.build(50, store(), getStrongLevel());
-                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class, mapSupplier);
+                auctionStore = ctx.replicate(Util.auctionStoreKey, Session.storeConsistencyLevel, AuctionStore.class);
                 return Option.apply(0);
             });
         }
         barrier("auction_store_setup");
         if (processId() != 0) {
             store().transaction(ctx -> {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
+                auctionStore = ctx.lookup(Util.auctionStoreKey, Session.storeConsistencyLevel, AuctionStore.class);
                 return Option.apply(0);
             });
         }
@@ -140,7 +122,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
         System.out.println("Getting users and items from other replicas");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
-            for (int replicaIndex = 0; replicaIndex < nReplicas(); replicaIndex++) {
+            for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
                 users.add(localSessions.get(0).findUser(null, userAddr(userIndex, replicaIndex)));
             }
             BenchmarkUtils.printProgress(userIndex);
@@ -151,28 +133,33 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void cleanup() {
-        super.cleanup();
         localSessions.clear();
         users.clear();
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
-    public void operation() {
-        try {
-            randomTransaction(operations, zipf);
-        } catch (AppException e) {
-            /* possible/acceptable errors:
-                - bidding on own item (rare)
-                - auction has already ended (common)
-            */
-            System.err.println(e.getMessage());
-        }
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                withExceptionHandling(this::browseCategory),
+                withExceptionHandling(this::placeBid),
+                withExceptionHandling(this::buyNow),
+                withExceptionHandling(this::rateUser),
+                withExceptionHandling(this::closeAuction)
+        });
+    }
+
+    private Runnable withExceptionHandling(Runnable op) {
+        return () -> {
+            try {
+                op.run();
+            } catch (AppException e) {
+                /* possible/acceptable errors:
+                    - bidding on own item (rare)
+                    - auction has already ended (common)
+                */
+                System.err.println(e.getMessage());
+            }
+        };
     }
 
     private void placeBid() {

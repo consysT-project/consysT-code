@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.quoddy;
+package de.tuda.stg.consys.demo.quoddy.extras;
 
 import de.tuda.stg.consys.demo.quoddy.schema.IUser;
 import de.tuda.stg.consys.demo.quoddy.schema.opcentric.StatusUpdate;

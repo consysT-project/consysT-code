@@ -1,9 +1,15 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
 import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputResolver;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
@@ -21,20 +27,11 @@ import java.util.Random;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
+public class TwitterCloneBenchmark extends DemoRunnable {
 
     public static void main(String[] args) {
-        start(TwitterCloneBenchmark.class, args);
+        JBenchExecution.execute("twitter-clone", TwitterCloneBenchmark.class, args);
     }
-
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::readTimeline,
-            this::retweet,
-            this::follow,
-            this::unfollow
-    ));
-
-    private final List<Double> zipf;
 
     private final int numOfGroupsPerReplica;
     private final Class<? extends IUser> userImpl;
@@ -53,14 +50,12 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
     private final Random random = new Random();
 
-    public TwitterCloneBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
+    public TwitterCloneBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
 
-        numOfGroupsPerReplica = config.getInt("consys.bench.demo.twitterclone.users");
+        numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.twitterclone.users");
 
-        zipf = zipfSummed(operations.size());
-
-        if (getBenchType() == BenchmarkType.MIXED) {
+        if (benchType == BenchmarkType.MIXED) {
             userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
             tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet.class;
         } else {
@@ -68,8 +63,8 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
             tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.Tweet.class;
         }
 
-        tweets = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
-        users = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
+        tweets = new ArrayList<>(numOfGroupsPerReplica * nReplicas);
+        users = new ArrayList<>(numOfGroupsPerReplica * nReplicas);
     }
 
     private static String addr(String identifier, int grpIndex, int replIndex) {
@@ -89,14 +84,7 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
     }
 
     @Override
-    public String getName() {
-        return "TwitterCloneBenchmark";
-    }
-
-    @Override
     public void setup() {
-        super.setup();
-
         System.out.println("Adding users and tweets");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
@@ -104,23 +92,23 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
             Ref<? extends IUser> user;
             Ref<? extends ITweet> tweet;
 
-            if (getBenchType() == BenchmarkType.MIXED) {
-                user = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("user", finalGrpIndex, processId()), getWeakLevel(), userImpl,
+            if (benchType == BenchmarkType.MIXED) {
+                user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("user", finalGrpIndex, processId()), getLevel(userImpl), userImpl,
                         generateRandomName()))).get();
                 var retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("retweetCount", finalGrpIndex, processId()), getStrongLevel(),
+                        addr("retweetCount", finalGrpIndex, processId()), getLevel(de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class),
                         de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class,
                         0))).get();
-                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("tweet", finalGrpIndex, processId()), getWeakLevel(), tweetImpl,
+                tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("tweet", finalGrpIndex, processId()), getLevel(tweetImpl), tweetImpl,
                         user, generateRandomText(3), retweetCount))).get();
             } else {
-                user = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("user", finalGrpIndex, processId()), getWeakLevel(), userImpl,
+                user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("user", finalGrpIndex, processId()), getLevel(userImpl), userImpl,
                         generateRandomName()))).get();
-                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("tweet", finalGrpIndex, processId()), getWeakLevel(), tweetImpl,
+                tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
+                        addr("tweet", finalGrpIndex, processId()), getLevel(tweetImpl), tweetImpl,
                         user, generateRandomText(3)))).get();
             }
 
@@ -136,15 +124,15 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
 
         System.out.println("Collecting remote objects");
         for (int grpIndex = 0; grpIndex <= numOfGroupsPerReplica; grpIndex++) {
-            for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+            for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
                 int finalGrpIndex = grpIndex;
                 int finalReplIndex = replIndex;
 
-                Ref<? extends IUser> user = store().transaction(ctx -> Option.apply(ctx.lookup(
-                            addr("user", finalGrpIndex, finalReplIndex), getWeakLevel(), userImpl))).get();
+                Ref<? extends IUser> user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.lookup(
+                            addr("user", finalGrpIndex, finalReplIndex), getLevel(userImpl), userImpl))).get();
 
-                Ref<? extends ITweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
-                            addr("tweet", finalGrpIndex, finalReplIndex), getWeakLevel(), tweetImpl))).get();
+                Ref<? extends ITweet> tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.lookup(
+                            addr("tweet", finalGrpIndex, finalReplIndex), getLevel(tweetImpl), tweetImpl))).get();
 
                 users.add(user);
                 tweets.add(tweet);
@@ -153,22 +141,34 @@ public class TwitterCloneBenchmark extends CassandraDemoBenchmark {
         BenchmarkUtils.printDone();
     }
 
-    @Override
-    public void cleanup() {
-        super.cleanup();
-        users.clear();
-        tweets.clear();
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    private <T> ConsistencyLevel getLevel(Class<T> clazz) {
+        switch (benchType) {
+            case WEAK: return getWeakLevel();
+            case STRONG: return getStrongLevel();
+            case OP_MIXED: return getMixedLevel();
+            case MIXED:
+                if (clazz == de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class)
+                    return getStrongLevel();
+                else
+                    return getWeakLevel();
+            default: throw new UnsupportedOperationException("unknown bench type");
         }
     }
 
     @Override
-    public void operation() {
-        randomTransaction(operations, zipf);
+    public void cleanup() {
+        users.clear();
+        tweets.clear();
+    }
+
+    @Override
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                this::readTimeline,
+                this::retweet,
+                this::follow,
+                this::unfollow
+        });
     }
 
     private void follow() {
