@@ -404,6 +404,7 @@ public class RubisBenchmark extends DemoRunnable {
             return Option.apply(0);
         });
         System.out.println("## TEST SUCCESS ##");
+        printTestResult();
     }
 
     private static class TransactionResult {

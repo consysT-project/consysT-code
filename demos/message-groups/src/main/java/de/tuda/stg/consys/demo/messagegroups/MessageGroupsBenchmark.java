@@ -135,6 +135,12 @@ public class MessageGroupsBenchmark extends DemoRunnable {
     }
 
     @Override
+    public void test() {
+        if (processId() != 0) return;
+        printTestResult();
+    }
+
+    @Override
     public BenchmarkOperations operations() {
         return BenchmarkOperations.withZipfDistribution(new Runnable[] {
                 this::checkInbox,

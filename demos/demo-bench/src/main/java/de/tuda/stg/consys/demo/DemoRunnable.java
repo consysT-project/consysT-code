@@ -32,6 +32,11 @@ public abstract class DemoRunnable extends JBenchRunnable {
         nReplicas = config.numberOfReplicas();
     }
 
+    @Override
+    public void enableTests() {
+        isTestMode = true;
+    }
+
     protected ConsistencyLevel getLevel(ConsistencyLevel mixedLevel) {
         switch (benchType) {
             case WEAK: return getWeakLevel();
@@ -62,8 +67,6 @@ public abstract class DemoRunnable extends JBenchRunnable {
             body.append(" ").append(words.get(random.nextInt(words.size())));
         return body.toString();
     }
-
-    public void test() {}
 
     private final Map<String, List<Boolean>> checkResults = new HashMap<>();
     private final Map<String, List<String>> checkResultsMessage = new HashMap<>();
