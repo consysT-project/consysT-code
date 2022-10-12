@@ -5,6 +5,7 @@ import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
@@ -42,10 +43,6 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         groups = new ArrayList<>(numberOfGroupsPerReplica * config.numberOfReplicas());
     }
 
-    private static String addr(String identifier, int grpIndex, int replIndex) {
-        return identifier + "$" + grpIndex + "$" + replIndex;
-    }
-
     @Override
     public void setup() {
         System.out.println("Adding users");
@@ -53,12 +50,12 @@ public class MessageGroupsBenchmark extends DemoRunnable {
             int finalUserIndex = userIndex;
 
             Ref<Inbox> inbox = (Ref<Inbox>) store().transaction(ctx -> Option.apply(
-                    ctx.replicate(addr("inbox", finalUserIndex, processId()), getLevel(Inbox.class), Inbox.class))
+                    ctx.replicate(DemoUtils.addr("inbox", finalUserIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), Inbox.class))
             ).get();
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("user", finalUserIndex, processId()), getLevel(User.class), User.class,
-                        addr("user", finalUserIndex, processId()), inbox);
+                ctx.replicate(DemoUtils.addr("user", finalUserIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), User.class,
+                        DemoUtils.addr("user", finalUserIndex, processId()), inbox);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(userIndex);
@@ -68,7 +65,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
             int finalGrpIndex = grpIndex;
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("group", finalGrpIndex, processId()), getLevel(Group.class), Group.class);
+                ctx.replicate(DemoUtils.addr("group", finalGrpIndex, processId()), getLevelWithMixedFallback(getStrongLevel()), Group.class);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(grpIndex);
@@ -84,7 +81,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
                 int finalGrpIndex = grpIndex;
 
                 Ref<Group> group = (Ref<Group>) store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getLevel(Group.class), Group.class))
+                        ctx.lookup(DemoUtils.addr("group", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getStrongLevel()), Group.class))
                 ).get();
                 groups.add(group);
             }
@@ -93,7 +90,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
                 int finalUserIndex = userIndex;
 
                 Ref<User> user = (Ref<User>) store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("user", finalUserIndex, finalReplIndex), getLevel(User.class), User.class))
+                        ctx.lookup(DemoUtils.addr("user", finalUserIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), User.class))
                 ).get();
                 users.add(user);
 
@@ -101,7 +98,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
                 if (replIndex == processId()) {
                     store().transaction(ctx -> {
                         try {
-                            getRandomElement(groups).ref().addUser(user);
+                            DemoUtils.getRandomElement(groups).ref().addUser(user);
                         } catch (IllegalArgumentException ignored) {}
                         return Option.apply(0);
                     });
@@ -112,22 +109,6 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         BenchmarkUtils.printDone();
     }
 
-    private <T> ConsistencyLevel getLevel(Class<T> clazz) {
-        switch (benchType) {
-            case WEAK: return getWeakLevel();
-            case STRONG: return getStrongLevel();
-            case OP_MIXED: return getMixedLevel();
-            case MIXED:
-                if (clazz == Inbox.class || clazz == User.class)
-                    return getWeakLevel();
-                else if (clazz == Group.class)
-                    return getStrongLevel();
-                else
-                    throw new UnsupportedOperationException("unknown replicated object type");
-            default: throw new UnsupportedOperationException("unknown bench type");
-        }
-    }
-
     @Override
     public void cleanup() {
         groups.clear();
@@ -136,7 +117,6 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
     @Override
     public void test() {
-        if (processId() != 0) return;
         printTestResult();
     }
 
@@ -150,7 +130,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
     }
 
     private void postMessage() {
-        Ref<Group> group = getRandomElement(groups);
+        Ref<Group> group = DemoUtils.getRandomElement(groups);
 
         store().transaction(ctx -> {
             group.ref().postMessage("Hello");
@@ -159,7 +139,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
     }
 
     private void checkInbox() {
-        Ref<User> user = getRandomElement(users);
+        Ref<User> user = DemoUtils.getRandomElement(users);
 
         store().transaction(ctx -> {
             List<String> inbox = user.ref().getInbox();
@@ -168,8 +148,8 @@ public class MessageGroupsBenchmark extends DemoRunnable {
     }
 
     private void joinGroup() {
-        Ref<Group> group = getRandomElement(groups);
-        Ref<User> user = getRandomElement(users);
+        Ref<Group> group = DemoUtils.getRandomElement(groups);
+        Ref<User> user = DemoUtils.getRandomElement(users);
 
         Option<Integer> result = store().transaction(ctx -> {
             int groupSize = isTestMode ? group.ref().getUsers().size() : -1;

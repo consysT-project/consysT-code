@@ -1,13 +1,11 @@
 package de.tuda.stg.consys.demo.twitterclone;
 
-import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
 import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
@@ -16,7 +14,6 @@ import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -37,18 +34,8 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     private final Class<? extends IUser> userImpl;
     private final Class<? extends ITweet> tweetImpl;
 
-    private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
-            "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
-            "brunch", "authentic", "hella", "street art", "Tumblr", "Blue Bottle", "readymade",
-            "occupy", "irony", "slow-carb", "heirloom", "YOLO", "tofu", "ethical", "tattooed",
-            "vinyl", "artisan", "kale", "selfie"));
-    private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
-    private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
-
     private final List<Ref<? extends IUser>> users;
     private final List<Ref<? extends ITweet>> tweets;
-
-    private final Random random = new Random();
 
     public TwitterCloneBenchmark(JBenchStore adapter, BenchmarkConfig config) {
         super(adapter, config);
@@ -67,22 +54,6 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         users = new ArrayList<>(numOfGroupsPerReplica * nReplicas);
     }
 
-    private static String addr(String identifier, int grpIndex, int replIndex) {
-        return identifier + "$" + grpIndex + "$"+ replIndex;
-    }
-
-    private String generateRandomName() {
-        return FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
-                + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
-    }
-
-    private String generateRandomText(int n) {
-        String body = WORDS.get(random.nextInt(WORDS.size()));
-        for (int i = 0; i < n - 1; i++)
-            body += " " + WORDS.get(random.nextInt(WORDS.size()));
-        return body;
-    }
-
     @Override
     public void setup() {
         System.out.println("Adding users and tweets");
@@ -94,22 +65,22 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
             if (benchType == BenchmarkType.MIXED) {
                 user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("user", finalGrpIndex, processId()), getLevel(userImpl), userImpl,
-                        generateRandomName()))).get();
+                        DemoUtils.addr("user", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), userImpl,
+                        DemoUtils.generateRandomName()))).get();
                 var retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("retweetCount", finalGrpIndex, processId()), getLevel(de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class),
+                        DemoUtils.addr("retweetCount", finalGrpIndex, processId()), getLevelWithMixedFallback(getStrongLevel()),
                         de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class,
                         0))).get();
                 tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("tweet", finalGrpIndex, processId()), getLevel(tweetImpl), tweetImpl,
-                        user, generateRandomText(3), retweetCount))).get();
+                        DemoUtils.addr("tweet", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), tweetImpl,
+                        user, DemoUtils.generateRandomText(3), retweetCount))).get();
             } else {
                 user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("user", finalGrpIndex, processId()), getLevel(userImpl), userImpl,
-                        generateRandomName()))).get();
+                        DemoUtils.addr("user", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), userImpl,
+                        DemoUtils.generateRandomName()))).get();
                 tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        addr("tweet", finalGrpIndex, processId()), getLevel(tweetImpl), tweetImpl,
-                        user, generateRandomText(3)))).get();
+                        DemoUtils.addr("tweet", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), tweetImpl,
+                        user, DemoUtils.generateRandomText(3)))).get();
             }
 
             store().transaction(ctx -> {
@@ -129,30 +100,16 @@ public class TwitterCloneBenchmark extends DemoRunnable {
                 int finalReplIndex = replIndex;
 
                 Ref<? extends IUser> user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.lookup(
-                            addr("user", finalGrpIndex, finalReplIndex), getLevel(userImpl), userImpl))).get();
+                        DemoUtils.addr("user", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), userImpl))).get();
 
                 Ref<? extends ITweet> tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.lookup(
-                            addr("tweet", finalGrpIndex, finalReplIndex), getLevel(tweetImpl), tweetImpl))).get();
+                        DemoUtils.addr("tweet", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), tweetImpl))).get();
 
                 users.add(user);
                 tweets.add(tweet);
             }
         }
         BenchmarkUtils.printDone();
-    }
-
-    private <T> ConsistencyLevel getLevel(Class<T> clazz) {
-        switch (benchType) {
-            case WEAK: return getWeakLevel();
-            case STRONG: return getStrongLevel();
-            case OP_MIXED: return getMixedLevel();
-            case MIXED:
-                if (clazz == de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class)
-                    return getStrongLevel();
-                else
-                    return getWeakLevel();
-            default: throw new UnsupportedOperationException("unknown bench type");
-        }
     }
 
     @Override
@@ -163,7 +120,6 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
     @Override
     public void test() {
-        if (processId() != 0) return;
         printTestResult();
     }
 
@@ -178,8 +134,8 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     }
 
     private void follow() {
-        Ref<? extends IUser> follower = getRandomElement(users);
-        Ref<? extends IUser> following = getRandomElementExcept(users, follower);
+        Ref<? extends IUser> follower = DemoUtils.getRandomElement(users);
+        Ref<? extends IUser> following = DemoUtils.getRandomElementExcept(users, follower);
 
         store().transaction(ctx -> {
             follower.ref().addFollower(following);
@@ -190,8 +146,8 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     }
 
     private void unfollow() {
-        Ref<? extends IUser> follower = getRandomElement(users);
-        Ref<? extends IUser> following = getRandomElement(users);
+        Ref<? extends IUser> follower = DemoUtils.getRandomElement(users);
+        Ref<? extends IUser> following = DemoUtils.getRandomElement(users);
 
         store().transaction(ctx -> {
             follower.ref().removeFollower(following);
@@ -202,8 +158,8 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     }
 
     private void retweet() {
-        Ref<? extends ITweet> tweet = getRandomElement(tweets);
-        Ref<? extends IUser> user = getRandomElement(users);
+        Ref<? extends ITweet> tweet = DemoUtils.getRandomElement(tweets);
+        Ref<? extends IUser> user = DemoUtils.getRandomElement(users);
 
         Option<Integer> result = store().transaction(ctx -> {
             int prevRetweets = isTestMode ? tweet.ref().getRetweets() : -1;
@@ -223,7 +179,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     }
 
     private void readTimeline() {
-        Ref<? extends IUser> user = getRandomElement(users);
+        Ref<? extends IUser> user = DemoUtils.getRandomElement(users);
 
         store().transaction(ctx -> {
             List<Ref<? extends ITweet>> timeline = user.ref().getTimeline();

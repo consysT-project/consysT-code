@@ -4,6 +4,7 @@ import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
@@ -26,50 +27,20 @@ public class QuoddyBenchmark extends DemoRunnable {
     private final List<Ref<? extends IGroup>> groups;
     private final List<Ref<? extends IEvent>> events;
 
-    private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
-            "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
-            "brunch", "authentic", "hella", "street art", "Tumblr", "Blue Bottle", "readymade",
-            "occupy", "irony", "slow-carb", "heirloom", "YOLO", "tofu", "ethical", "tattooed",
-            "vinyl", "artisan", "kale", "selfie"));
-    private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
-    private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
-
-    private final Random random = new Random();
-
     public QuoddyBenchmark(JBenchStore adapter, BenchmarkConfig config) {
         super(adapter, config);
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.groups");
 
-        Session.userConsistencyLevel = getLevel(getStrongLevel());
-        Session.groupConsistencyLevel = getLevel(getStrongLevel());
-        Session.activityConsistencyLevel = getLevel(getWeakLevel());
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+        Session.groupConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+        Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
         groups = new ArrayList<>();
         events = new ArrayList<>();
-    }
-
-    private static String addr(String identifier, int objectIndex, int replicaIndex) {
-        return identifier + "$" + objectIndex + "$"+ replicaIndex;
-    }
-
-    private String generateRandomName() {
-        return FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
-                + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
-    }
-
-    private String generateRandomText(int n) {
-        StringBuilder body = new StringBuilder(WORDS.get(random.nextInt(WORDS.size())));
-        for (int i = 0; i < n - 1; i++)
-            body.append(" ").append(WORDS.get(random.nextInt(WORDS.size())));
-        return body.toString();
-    }
-
-    private Session randomLocalSession() {
-        return localSessions.get(random.nextInt(localSessions.size()));
     }
 
     @Override
@@ -94,25 +65,25 @@ public class QuoddyBenchmark extends DemoRunnable {
         System.out.println("Adding users and groups");
         for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
             localSessions.get(usrIndex).registerUser(
-                    null, addr("user", usrIndex, processId()), generateRandomName());
+                    null, DemoUtils.addr("user", usrIndex, processId()), DemoUtils.generateRandomName());
             BenchmarkUtils.printProgress(usrIndex);
         }
 
         for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
             Ref<? extends IGroup> group = localSessions.get(grpIndex % numOfUsersPerReplica).createGroup(
-                    null, addr("group", grpIndex, processId()), generateRandomName(),
-                    generateRandomText(10), false);
+                    null, DemoUtils.addr("group", grpIndex, processId()), DemoUtils.generateRandomName(),
+                    DemoUtils.generateRandomText(10), false);
             // every group starts with one post
-            localSessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, generateRandomText(20), group);
+            localSessions.get(grpIndex % numOfUsersPerReplica).postStatusToGroup(null, DemoUtils.generateRandomText(20), group);
             // every group starts with one event
             Ref<? extends IEvent> event = localSessions.get(grpIndex % numOfUsersPerReplica).
-                    postEventToGroup(null, generateRandomText(20), new Date(), group);
+                    postEventToGroup(null, DemoUtils.generateRandomText(20), new Date(), group);
             events.add(event);
 
             // every event has some subscribers
             for (int i = 0; i < 5; i++) {
                 store().transaction(ctx -> {
-                    event.ref().addSubscriber(getRandomElement(localSessions).getUser());
+                    event.ref().addSubscriber(DemoUtils.getRandomElement(localSessions).getUser());
                     return Option.apply(0);
                 });
             }
@@ -125,27 +96,27 @@ public class QuoddyBenchmark extends DemoRunnable {
         System.out.println("Getting users and items from other replicas");
         for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
-                users.add(localSessions.get(0).lookupUser(null, addr("user", usrIndex, replIndex)).get());
+                users.add(localSessions.get(0).lookupUser(null, DemoUtils.addr("user", usrIndex, replIndex)).get());
             }
 
             for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
-                groups.add(localSessions.get(0).lookupGroup(null, addr("group", grpIndex, replIndex)).get());
+                groups.add(localSessions.get(0).lookupGroup(null, DemoUtils.addr("group", grpIndex, replIndex)).get());
             }
         }
 
         System.out.println("Setting up initial configuration");
         for (Session session : localSessions) {
             // every user starts as a member of one group
-            session.joinGroup(null, getRandomElement(groups));
+            session.joinGroup(null, DemoUtils.getRandomElement(groups));
             // every user starts with one friend
-            Ref<? extends IUser> friend = getRandomElementExcept(users, session.getUser());
+            Ref<? extends IUser> friend = DemoUtils.getRandomElementExcept(users, session.getUser());
             session.sendFriendRequest(null, friend);
             store().transaction(ctx -> {
                 Util.acceptFriendRequest(friend, session.getUser());
                 return Option.apply(0);
             });
             // every user starts with one post
-            session.postStatusToProfile(null, generateRandomText(20));
+            session.postStatusToProfile(null, DemoUtils.generateRandomText(20));
         }
 
         BenchmarkUtils.printDone();
@@ -189,7 +160,7 @@ public class QuoddyBenchmark extends DemoRunnable {
     private void readPersonalFeed() {
         // render feed, where the first few comments are shown
         store().transaction(ctx -> {
-            Ref<? extends IUser> user = randomLocalSession().getUser();
+            Ref<? extends IUser> user = DemoUtils.getRandomElement(localSessions).getUser();
             List<Ref<? extends IPost>> feed = user.ref().getNewestPosts(5);
             for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
@@ -200,7 +171,7 @@ public class QuoddyBenchmark extends DemoRunnable {
 
     private void readGroupFeed() {
         store().transaction(ctx -> {
-            Ref<? extends IGroup> group = getRandomElement(groups);
+            Ref<? extends IGroup> group = DemoUtils.getRandomElement(groups);
             List<Ref<? extends IPost>> feed = group.ref().getNewestPosts(5);
             for (Ref<? extends IPost> post : feed) {
                 post.ref().toString();
@@ -210,11 +181,11 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void postStatusToProfile() {
-        randomLocalSession().postStatusToProfile(null, generateRandomText(20));
+        DemoUtils.getRandomElement(localSessions).postStatusToProfile(null, DemoUtils.generateRandomText(20));
     }
 
     private void postStatusToGroup() {
-        Session session = randomLocalSession();
+        Session session = DemoUtils.getRandomElement(localSessions);
         store().transaction(ctx -> {
             List<Ref<? extends IGroup>> groups = session.getUser().ref().getParticipatingGroups();
             if (groups.isEmpty()) {
@@ -222,14 +193,14 @@ public class QuoddyBenchmark extends DemoRunnable {
                 System.err.println("participating groups was empty");
                 return Option.empty();
             }
-            session.postStatusToGroup(ctx, generateRandomText(20), getRandomElement(groups));
+            session.postStatusToGroup(ctx, DemoUtils.generateRandomText(20), DemoUtils.getRandomElement(groups));
             return Option.apply(0);
         });
     }
 
     private void followUser() {
-        Session session = randomLocalSession();
-        Ref<? extends IUser> target = getRandomElement(users);
+        Session session = DemoUtils.getRandomElement(localSessions);
+        Ref<? extends IUser> target = DemoUtils.getRandomElement(users);
         store().transaction(ctx -> {
             session.follow(ctx, target);
             return Option.apply(0);
@@ -238,8 +209,8 @@ public class QuoddyBenchmark extends DemoRunnable {
 
     private void addFriend() {
         // also immediately accepts friend request
-        Session session = randomLocalSession();
-        Ref<? extends IUser> target = getRandomElement(users);
+        Session session = DemoUtils.getRandomElement(localSessions);
+        Ref<? extends IUser> target = DemoUtils.getRandomElement(users);
 
         Option<TransactionResult> result = store().transaction(ctx -> {
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
@@ -277,8 +248,8 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void joinGroup() {
-        Session session = randomLocalSession();
-        Ref<? extends IGroup> group = getRandomElement(groups);
+        Session session = DemoUtils.getRandomElement(localSessions);
+        Ref<? extends IGroup> group = DemoUtils.getRandomElement(groups);
 
         Option<TransactionResult> result = store().transaction(ctx -> {
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
@@ -312,7 +283,7 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void share() {
-        Session session = randomLocalSession();
+        Session session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
             var groups = user.ref().getParticipatingGroups();
@@ -323,16 +294,16 @@ public class QuoddyBenchmark extends DemoRunnable {
                 return Option.empty();
             }
 
-            Ref<? extends IGroup> group = getRandomElement(groups);
-            Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
-            Ref<? extends IUser> friend = getRandomElement(friends);
+            Ref<? extends IGroup> group = DemoUtils.getRandomElement(groups);
+            Ref<? extends IPost> post = DemoUtils.getRandomElement(group.ref().getNewestPosts(5));
+            Ref<? extends IUser> friend = DemoUtils.getRandomElement(friends);
             session.sharePostWithFriend(ctx, friend, post);
             return Option.apply(0);
         });
     }
 
     private void commentOnGroupPost() {
-        Session session = randomLocalSession();
+        Session session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
             var groups = user.ref().getParticipatingGroups();
@@ -342,15 +313,15 @@ public class QuoddyBenchmark extends DemoRunnable {
                 return Option.empty();
             }
 
-            Ref<? extends IGroup> group = getRandomElement(user.ref().getParticipatingGroups());
-            Ref<? extends IPost> post = getRandomElement(group.ref().getNewestPosts(5));
-            post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
+            Ref<? extends IGroup> group = DemoUtils.getRandomElement(user.ref().getParticipatingGroups());
+            Ref<? extends IPost> post = DemoUtils.getRandomElement(group.ref().getNewestPosts(5));
+            post.ref().addComment(new Comment(DemoUtils.generateRandomText(10), user, new Date()));
             return Option.apply(0);
         });
     }
 
     private void commentOnFriendPost() {
-        Session session = randomLocalSession();
+        Session session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
             var friends = user.ref().getFriends();
@@ -360,18 +331,18 @@ public class QuoddyBenchmark extends DemoRunnable {
                 return Option.empty();
             }
 
-            Ref<? extends IUser> friend = getRandomElement(friends);
-            Ref<? extends IPost> post = getRandomElement(friend.ref().getNewestPosts(5));
-            post.ref().addComment(new Comment(generateRandomText(10), user, new Date()));
+            Ref<? extends IUser> friend = DemoUtils.getRandomElement(friends);
+            Ref<? extends IPost> post = DemoUtils.getRandomElement(friend.ref().getNewestPosts(5));
+            post.ref().addComment(new Comment(DemoUtils.generateRandomText(10), user, new Date()));
             return Option.apply(0);
         });
     }
 
     // TODO: model event updates with strong consistency?
     private void postEventUpdate() {
-        Ref<? extends IEvent> event = getRandomElement(events);
+        Ref<? extends IEvent> event = DemoUtils.getRandomElement(events);
         store().transaction(ctx -> {
-            event.ref().postUpdate(generateRandomText(10));
+            event.ref().postUpdate(DemoUtils.generateRandomText(10));
             return Option.apply(0);
         });
     }
@@ -385,7 +356,11 @@ public class QuoddyBenchmark extends DemoRunnable {
      */
     @Override
     public void test() {
-        if (processId() != 0) return;
+        if (processId() != 0) {
+            printTestResult();
+            return;
+        }
+
         System.out.println("## TEST ##");
 
         check("users non empty", !users.isEmpty());
@@ -436,7 +411,7 @@ public class QuoddyBenchmark extends DemoRunnable {
             return Option.apply(0);
         });
 
-        System.out.println("## TEST SUCCESS ##");
+        printTestResult();
     }
 
     private static class TransactionResult {

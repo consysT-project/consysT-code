@@ -33,13 +33,13 @@ public class CounterBenchmark extends DemoRunnable {
 	public void setup() {
 		if (processId() == 0) {
 			counter = (Ref<@Mutable Counter>) store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
-					ctx.replicate("counter", getLevel(), Counter.class, 0)
+					ctx.replicate("counter", getLevelWithMixedFallback(getStrongLevel()), Counter.class, 0)
 			)).get();
 		}
 		barrier("counter_added");
 		if (processId() != 0) {
 			counter = (Ref<@Mutable Counter>) store().<Ref<@Mutable Counter>>transaction(ctx -> Option.apply(
-					ctx.lookup("counter", getLevel(), Counter.class)
+					ctx.lookup("counter", getLevelWithMixedFallback(getStrongLevel()), Counter.class)
 			)).get();
 		}
 	}
@@ -60,14 +60,4 @@ public class CounterBenchmark extends DemoRunnable {
 
 	@Override
 	public void cleanup() {}
-
-	private ConsistencyLevel getLevel() {
-		switch (benchType) {
-			case WEAK: return getWeakLevel();
-			case OP_MIXED: return getMixedLevel();
-			case MIXED:
-			case STRONG: return getStrongLevel();
-			default: throw new UnsupportedOperationException("unknown bench type: " + benchType);
-		}
-	}
 }

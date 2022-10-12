@@ -37,7 +37,7 @@ public abstract class DemoRunnable extends JBenchRunnable {
         isTestMode = true;
     }
 
-    protected ConsistencyLevel getLevel(ConsistencyLevel mixedLevel) {
+    protected ConsistencyLevel getLevelWithMixedFallback(ConsistencyLevel mixedLevel) {
         switch (benchType) {
             case WEAK: return getWeakLevel();
             case STRONG: return getStrongLevel();
@@ -45,27 +45,6 @@ public abstract class DemoRunnable extends JBenchRunnable {
             case MIXED: return mixedLevel;
             default: throw new UnsupportedOperationException("unknown bench type");
         }
-    }
-
-    // Utility method for benchmarks
-    protected <E> E getRandomElement(List<E> list) {
-        return list.get(random.nextInt(list.size()));
-    }
-
-    // Utility method for benchmarks
-    protected <E> E getRandomElementExcept(List<E> list, E object) {
-        E element;
-        do {
-            element = list.get(random.nextInt(list.size()));
-        } while (element == object);
-        return element;
-    }
-
-    protected String generateRandomText(int nWords, List<String> words) {
-        StringBuilder body = new StringBuilder(words.get(random.nextInt(words.size())));
-        for (int i = 0; i < nWords - 1; i++)
-            body.append(" ").append(words.get(random.nextInt(words.size())));
-        return body.toString();
     }
 
     private final Map<String, List<Boolean>> checkResults = new HashMap<>();
