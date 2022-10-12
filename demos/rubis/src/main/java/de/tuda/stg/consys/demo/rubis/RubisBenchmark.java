@@ -24,6 +24,7 @@ public class RubisBenchmark extends DemoRunnable {
     private final int numOfUsersPerReplica;
     private final List<Session> localSessions;
     private final List<Ref<? extends IUser>> users;
+    private final List<Ref<? extends IItem>> items;
     private Ref<AuctionStore> auctionStore;
 
 
@@ -38,6 +39,7 @@ public class RubisBenchmark extends DemoRunnable {
 
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
+        items = new ArrayList<>();
     }
 
     private Category getRandomCategory() {

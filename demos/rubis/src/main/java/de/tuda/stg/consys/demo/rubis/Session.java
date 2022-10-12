@@ -18,6 +18,8 @@ import scala.Function1;
 import scala.Option;
 import scala.Tuple2;
 
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
