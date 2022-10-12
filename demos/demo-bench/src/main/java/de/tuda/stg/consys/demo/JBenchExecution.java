@@ -42,7 +42,6 @@ public class JBenchExecution {
         options.addOption(configOption);
 
         Option testOption = Option.builder()
-                .argName("run-tests")
                 .option("t")
                 .longOpt("test")
                 .hasArg(false)
