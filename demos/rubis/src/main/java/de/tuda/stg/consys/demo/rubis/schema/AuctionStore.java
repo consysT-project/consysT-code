@@ -10,6 +10,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
 import java.io.Serializable;
 import java.util.*;
 
+@Deprecated
 public @Mixed class AuctionStore implements Serializable {
     private final Map<UUID, Ref<? extends IItem>> openAuctions;
     private final Map<Category, @Mutable Map<UUID, Ref<? extends IItem>>> openAuctionsByCategory;

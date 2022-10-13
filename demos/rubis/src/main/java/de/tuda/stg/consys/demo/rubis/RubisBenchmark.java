@@ -9,6 +9,7 @@ import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
@@ -25,7 +26,9 @@ public class RubisBenchmark extends DemoRunnable {
     private final List<Session> localSessions;
     private final List<Ref<? extends IUser>> users;
     private final List<Ref<? extends IItem>> items;
-    private Ref<AuctionStore> auctionStore;
+
+    private int itemNoOps;
+    private int itemOps;
 
 
     public RubisBenchmark(JBenchStore adapter, BenchmarkConfig config) {
@@ -65,33 +68,22 @@ public class RubisBenchmark extends DemoRunnable {
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
         }
 
-        // TODO: remove auction store
-        if (processId() == 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.replicate(Util.auctionStoreKey, Session.storeConsistencyLevel, AuctionStore.class);
-                return Option.apply(0);
-            });
-        }
-        barrier("auction_store_setup");
-        if (processId() != 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, Session.storeConsistencyLevel, AuctionStore.class);
-                return Option.apply(0);
-            });
-        }
-
         System.out.println("Adding local users and items");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             var session = new Session(store());
             localSessions.add(session);
 
-            session.registerUser(null, DemoUtils.addr("user", userIndex, processId()), DemoUtils.generateRandomName(),
-                    DemoUtils.generateRandomPassword(), "mail@example.com");
+            session.registerUser(null,
+                    DemoUtils.addr("user", userIndex, processId()),
+                    DemoUtils.generateRandomName(), DemoUtils.generateRandomPassword(), "mail@example.com");
 
             session.addBalance(null, getInitialBalance());
 
-            session.registerItem(null, DemoUtils.generateRandomText(1), DemoUtils.generateRandomText(10),
-                    getRandomCategory(), getRandomPrice(), 300);
+            UUID itemId = UUID.randomUUID();
+            session.registerItem(null,
+                    DemoUtils.addr("item", userIndex, processId()), itemId,
+                    DemoUtils.generateRandomText(1), DemoUtils.generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(), 86400);
 
             BenchmarkUtils.printProgress(userIndex);
         }
@@ -101,7 +93,10 @@ public class RubisBenchmark extends DemoRunnable {
         System.out.println("Getting users and items from other replicas");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
-                users.add(localSessions.get(0).findUser(null, DemoUtils.addr("user", userIndex, replicaIndex)));
+                users.add(localSessions.get(0).findUser(null,
+                        DemoUtils.addr("user", userIndex, replicaIndex)));
+                items.add(localSessions.get(0).getItem(null,
+                        DemoUtils.addr("item", userIndex, replicaIndex)));
             }
             BenchmarkUtils.printProgress(userIndex);
         }
@@ -111,14 +106,18 @@ public class RubisBenchmark extends DemoRunnable {
 
     @Override
     public void cleanup() {
+        Logger.warn("nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
+        Logger.warn("nops w.r.t all operations: " + (float)itemNoOps/100);
+
         localSessions.clear();
         users.clear();
+        items.clear();
     }
 
     @Override
     public BenchmarkOperations operations() {
         return BenchmarkOperations.withZipfDistribution(new Runnable[] {
-                withExceptionHandling(this::browseCategory),
+                withExceptionHandling(this::browseItems),
                 withExceptionHandling(this::placeBid),
                 withExceptionHandling(this::buyNow),
                 withExceptionHandling(this::rateUser),
@@ -144,13 +143,11 @@ public class RubisBenchmark extends DemoRunnable {
         Session session = DemoUtils.getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
-            if (openAuctions.isEmpty()) {
-                System.err.println("no open auctions for placeBid operation");
-                return Option.empty();
-            }
+            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != IItem.Status.OPEN)
+                itemNoOps++;
+            itemOps++;
 
-            Ref<? extends IItem> item = DemoUtils.getRandomElement(openAuctions);
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
             return Option.apply(0);
@@ -162,13 +159,10 @@ public class RubisBenchmark extends DemoRunnable {
 
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
-            if (openAuctions.isEmpty()) {
-                System.err.println("no open auctions for buyNow operation");
-                return Option.empty();
-            }
-
-            var item = DemoUtils.getRandomElement(openAuctions);
+            var item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != IItem.Status.OPEN)
+                itemNoOps++;
+            itemOps++;
 
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] {
@@ -232,13 +226,10 @@ public class RubisBenchmark extends DemoRunnable {
     private void closeAuction() {
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
-            if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for closeAuction operation");
-                return Option.empty();
-            }
-
-            Ref<? extends IItem> item = DemoUtils.getRandomElement(openAuctions);
+            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != IItem.Status.OPEN)
+                itemNoOps++;
+            itemOps++;
 
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] { new UserState(item.ref().getSeller()) },
@@ -303,10 +294,15 @@ public class RubisBenchmark extends DemoRunnable {
         });
     }
 
-    private void browseCategory() {
-        Category category = getRandomCategory();
+    private void browseItems() {
         Session session = DemoUtils.getRandomElement(localSessions);
-        session.browseCategory(null, category, 5);
+        String[] replIds = new String[5];
+        for (int i = 0; i < 5; i++) {
+            int userIndex = random.nextInt(numOfUsersPerReplica);
+            int replicaIndex = random.nextInt(nReplicas);
+            replIds[i] = DemoUtils.addr("item", userIndex, replicaIndex);
+        }
+        session.browseItemsByReplIds(null, replIds);
     }
 
     private void rateUser() {

@@ -95,7 +95,7 @@ public class InteractiveSession {
                         System.out.print("duration: ");
                         var duration = commandLine.nextInt();
                         commandLine.nextLine();
-                        UUID item = session.registerItem(null, name, "", Category.MISC, price, duration);
+                        var item = session.registerItem(null, name, "", Category.MISC, price, duration);
                         System.out.println("New item: " + item);
                         break;
                     }
@@ -109,7 +109,7 @@ public class InteractiveSession {
                             System.out.println("unknown category");
                             break;
                         }
-                        System.out.println(session.browseCategory(null, category, 10));
+                        //System.out.println(session.browseCategory(null, category, 10));
                         break;
                     }
                     case "bid": {

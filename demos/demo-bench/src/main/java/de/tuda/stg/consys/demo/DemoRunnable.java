@@ -85,8 +85,6 @@ public abstract class DemoRunnable extends JBenchRunnable {
     }
 
     public void printTestResult() {
-        if (processId() != 0) return;
-
         long nFailedChecks = checkResults.values().stream().flatMap(Collection::stream).filter(b -> !b).count();
 
         System.out.println("- TEST RESULTS ---------");

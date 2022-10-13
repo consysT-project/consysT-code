@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.rubis;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
+import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.demo.rubis.schema.datacentric.Item;
 import de.tuda.stg.consys.demo.rubis.schema.datacentric.NumberBox;
@@ -34,7 +35,6 @@ public class Session {
 
     private Store store;
     private Ref<? extends @Mutable IUser> user;
-    private Ref<? extends @Mutable AuctionStore> auctionStore;
 
     public Session(@Mutable Store store) {
         this.store = store;
@@ -76,10 +76,6 @@ public class Session {
                         userId, nickname, name, password, email);
             }
 
-            if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
-            }
-
             return Option.apply(user);
         }).get();
     }
@@ -91,10 +87,6 @@ public class Session {
 
             if (!(boolean)user.ref().authenticate(password)) {
                 throw new AppException("Wrong credentials.");
-            }
-
-            if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
             }
 
             return Option.apply(user);
@@ -119,9 +111,16 @@ public class Session {
         });
     }
 
-    public UUID registerItem(TransactionContext tr,
+    public Ref<? extends IItem> registerItem(TransactionContext tr,
                              String name, String description, Category category,
                              float reservePrice, int durationInSeconds) {
+        @Immutable @Local UUID itemId = UUID.randomUUID();
+        return registerItem(tr, itemId.toString(), itemId, name, description, category, reservePrice, durationInSeconds);
+    }
+
+    Ref<? extends IItem> registerItem(TransactionContext tr, String replId, UUID itemId,
+                                             String name, String description, Category category,
+                                             float reservePrice, int durationInSeconds) {
         checkLogin();
 
         Calendar cal = (@Mutable Calendar) Calendar.getInstance();
@@ -132,32 +131,26 @@ public class Session {
         float initialPrice = reservePrice * 0.3f;
         float buyNowPrice = reservePrice * 1.3f;
 
-        @Immutable @Local UUID itemId = UUID.randomUUID();
         Ref<? extends IItem> item = doTransaction(tr, ctx -> {
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> endDateRef =
-                        ctx.replicate("item:" + itemId + ":ed", STRONG, Date.class, endDate.getTime()); // TODO: replace STRONG with generic
+                        ctx.replicate("item:" + replId + ":ed", STRONG, Date.class, endDate.getTime()); // TODO: replace STRONG with generic
                 Ref<@Strong @Mutable RefList<Bid>> bids =
-                        ctx.replicate("item:" + itemId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class); // TODO: replace STRONG with generic
+                        ctx.replicate("item:" + replId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class); // TODO: replace STRONG with generic
 
-                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,
-                        category, user, auctionStore, bids));
+                        category, user, bids));
             } else {
-                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
-                        category, user, auctionStore));
+                        category, user));
             }
         }).get();
 
-        doTransaction(tr, cty -> {
+        return doTransaction(tr, cty -> {
             user.ref().addOwnAuction(item);
-            return Option.apply(0);
-        });
-
-        return doTransaction(tr, ctx -> {
-            auctionStore.ref().addItem(item, category);
-            return Option.apply(itemId);
+            return Option.apply(item);
         }).get();
     }
 
@@ -197,26 +190,21 @@ public class Session {
         });
     }
 
-    public String browseCategory(TransactionContext tr, Category category, int count) {
+    public String browseItemsByReplIds(TransactionContext tr, String[] replIds) {
         checkLogin();
 
         return doTransaction(tr, ctx -> {
             var sb = new StringBuilder();
-            @Immutable List<Ref<? extends IItem>> items = auctionStore.ref().browseItems(category);
-            sb.append("Items in category '").append(category).append("':\n");
-            for (int i = 0; i < Math.min(items.size(), count); i++) {
-                sb.append(items.get(i).ref().toString());
+            @Immutable List<Ref<? extends IItem>> items = new ArrayList<>(replIds.length);
+            for (String replId : replIds) {
+                items.add(getItem(tr, replId));
+            }
+
+            sb.append("Items:\n");
+            for (Ref<? extends IItem> item : items) {
+                sb.append(item.ref().toString()).append("\n");
             }
             return Option.apply(sb.toString());
-        }).get();
-    }
-
-    public List<Ref<? extends IItem>> browseCategoryItems(TransactionContext tr, Category category) {
-        checkLogin();
-
-        return doTransaction(tr, ctx -> {
-            @Immutable List<Ref<? extends IItem>> items = auctionStore.ref().browseItems(category);
-            return Option.apply(items);
         }).get();
     }
 
@@ -333,6 +321,13 @@ public class Session {
                                  UUID itemId) {
         return doTransaction(tr, ctx ->
                 Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl))
+        ).get();
+    }
+
+    Ref<? extends IItem> getItem(TransactionContext tr,
+                                 String replId) {
+        return doTransaction(tr, ctx ->
+                Option.apply(ctx.lookup("item:" + replId, itemConsistencyLevel, itemImpl))
         ).get();
     }
 

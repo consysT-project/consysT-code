@@ -28,12 +28,11 @@ public @Weak class Item implements Serializable, IItem {
     private final Ref<@Strong @Mutable RefList<Bid>> bids;
     // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
     private Status status = (@MutableBottom @Local Status) Status.OPEN;
-    private final Ref<@Mutable AuctionStore> auctionsStore;
 
     public Item(@Local UUID id, @Weak @Mutable String name, @Mutable @Weak String description,
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
                 @Local Date startDate, Ref<@Strong @Mutable Date> endDate, @Local @Mutable Category category,
-                Ref<@Mutable User> seller, Ref<@Mutable AuctionStore> auctionsStore,
+                Ref<@Mutable User> seller,
                 Ref<@Strong @Mutable RefList<Bid>> bids) {
         this.id = id;
         this.name = name;
@@ -47,7 +46,6 @@ public @Weak class Item implements Serializable, IItem {
         this.seller = seller;
         this.bids = bids;
         this.buyer = null;
-        this.auctionsStore = auctionsStore;
     }
 
     @Transactional
@@ -58,6 +56,9 @@ public @Weak class Item implements Serializable, IItem {
 
         if ((@Strong boolean) endDate.ref().before(new Date()))
             throw new AppException.DateException("Auction has already ended.");
+
+        if (status != Status.OPEN)
+            throw new AppException("Item is not available anymore.");
 
         if (!bid.getUser().ref().hasEnoughCredits(bid.getBid()))
             throw new AppException.NotEnoughCreditsException();
@@ -78,6 +79,9 @@ public @Weak class Item implements Serializable, IItem {
     public @Strong float buyNow(Ref<? extends @Mutable IUser> buyer, Ref<? extends @Mutable IItem> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
+
+        if (status != Status.OPEN)
+            throw new AppException("Buy-Now is disabled, since item is not available anymore.");
 
         if ((@Strong boolean)!bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice)
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
@@ -102,8 +106,6 @@ public @Weak class Item implements Serializable, IItem {
 
         buyer.ref().notifyWinner(item, buyNowPrice);
 
-        auctionsStore.ref().closeAuction(id, category);
-
         return (@Strong float) buyNowPrice;
     }
 
@@ -120,6 +122,9 @@ public @Weak class Item implements Serializable, IItem {
 
         if ((@Strong boolean) endDate.ref().after(new Date()))
             throw new AppException.DateException("Auction has not yet ended.");
+
+        if (status != Status.OPEN)
+            throw new AppException("Auction is already closed.");
 
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice;
@@ -142,7 +147,6 @@ public @Weak class Item implements Serializable, IItem {
 
         seller.ref().closeOwnAuction(id, hasWinner);
         closeWatchedItemsForBidders();
-        auctionsStore.ref().closeAuction(id, category);
 
         return hasWinner;
     }

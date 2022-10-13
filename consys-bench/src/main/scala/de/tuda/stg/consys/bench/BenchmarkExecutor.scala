@@ -69,10 +69,8 @@ class BenchmarkExecutor(
 
 					// Cleanup
 					barrier(store, "warmup-cleanup")
-					if (i < warmupIterations) {
-						Logger.info(procName, s"Warmup $i: cleanup")
-						runnable.cleanup()
-					}
+					Logger.info(procName, s"Warmup $i: cleanup")
+					runnable.cleanup()
 
 					// Done
 					barrier(store, "warmup-done")
@@ -167,7 +165,7 @@ class BenchmarkExecutor(
 		Logger.info(procName, "Start test")
 
 		try {
-			for (i <- 1 to warmupIterations) {
+			for (i <- 1 to testIterations) {
 				withStore { store =>
 					// Init
 					barrier(store, "test-initialize")
@@ -195,15 +193,14 @@ class BenchmarkExecutor(
 					BenchmarkUtils.printDone()
 
 					// Test
+					barrier(store, "test-test")
 					runnable.test()
 					BenchmarkUtils.printTest()
 
 					// Cleanup
 					barrier(store, "test-cleanup")
-					if (i < warmupIterations) {
-						Logger.info(procName, s"Test $i: cleanup")
-						runnable.cleanup()
-					}
+					Logger.info(procName, s"Test $i: cleanup")
+					runnable.cleanup()
 
 					// Done
 					barrier(store, "test-done")

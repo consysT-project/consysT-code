@@ -12,6 +12,7 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
@@ -45,7 +46,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
     @Override
     public void setup() {
-        System.out.println("Adding users");
+        Logger.debug("Creating objects");
         for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
             int finalUserIndex = userIndex;
 
@@ -74,6 +75,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
         barrier("objects_added");
 
+        Logger.debug("Collecting objects");
         for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             int finalReplIndex = replIndex;
 

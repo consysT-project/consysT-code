@@ -28,7 +28,6 @@ public @Mixed class Item implements Serializable, IItem {
     private final List<Bid> bids;
     // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
     private @Mutable @Weak Status status = (@MutableBottom @Local Status) Status.OPEN;
-    private final Ref<@Mutable AuctionStore> auctionsStore;
 
     public Item() {
         this.id = null;
@@ -40,13 +39,12 @@ public @Mixed class Item implements Serializable, IItem {
         this.category = null;
         this.seller = null;
         this.bids = null;
-        this.auctionsStore = null;
     }
 
     public Item(@Local UUID id, @Local @Mutable String name, @Mutable @Weak String description,
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
                 @Local Date startDate, @Strong @Mutable Date endDate, @Local @Mutable Category category,
-                Ref<@Mutable User> seller, Ref<@Mutable AuctionStore> auctionsStore) {
+                Ref<@Mutable User> seller) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -59,7 +57,6 @@ public @Mixed class Item implements Serializable, IItem {
         this.seller = seller;
         this.bids = new LinkedList<>();
         this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.<Ref<@Mutable User>>empty(); // TODO
-        this.auctionsStore = auctionsStore;
     }
 
     @Transactional
@@ -70,6 +67,9 @@ public @Mixed class Item implements Serializable, IItem {
 
         if (new Date().after(endDate))
             throw new AppException.DateException("Auction has already ended.");
+
+        if (status != Status.OPEN)
+            throw new AppException("Item is not available anymore.");
 
         if (!bid.getUser().ref().hasEnoughCredits(bid.getBid()))
             throw new AppException.NotEnoughCreditsException();
@@ -91,6 +91,9 @@ public @Mixed class Item implements Serializable, IItem {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
 
+        if (status != Status.OPEN)
+            throw new AppException("Buy-Now is disabled, since item is not available anymore.");
+
         if ((@Strong boolean)!bids.isEmpty() && getTopBidPrice() >= reservePrice)
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
 
@@ -111,7 +114,6 @@ public @Mixed class Item implements Serializable, IItem {
         buyer.ref().addBoughtItem(item);
         seller.ref().closeOwnAuction(id, true);
         closeWatchedItemsForBidders();
-        auctionsStore.ref().closeAuction(id, category);
 
         buyer.ref().notifyWinner(item, buyNowPrice);
 
@@ -131,6 +133,9 @@ public @Mixed class Item implements Serializable, IItem {
 
         if (new Date().before(endDate))
             throw new AppException.DateException("Auction has not yet ended.");
+
+        if (status != Status.OPEN)
+            throw new AppException("Auction is already closed.");
 
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.isEmpty() && getTopBidPrice() >= reservePrice;
@@ -154,7 +159,6 @@ public @Mixed class Item implements Serializable, IItem {
 
         seller.ref().closeOwnAuction(id, hasWinner);
         closeWatchedItemsForBidders();
-        auctionsStore.ref().closeAuction(id, category);
 
         return hasWinner;
     }
