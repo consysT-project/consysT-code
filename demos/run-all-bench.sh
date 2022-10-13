@@ -13,8 +13,8 @@ cd ../twitter-clone
 ./run-all-bench.sh
 
 printf "~ RUBIS\n\n"
-#cd ../rubis
-#./run-all-bench.sh
+cd ../rubis
+./run-all-bench.sh
 
 printf "~ QUODDY\n\n"
 cd ../quoddy
