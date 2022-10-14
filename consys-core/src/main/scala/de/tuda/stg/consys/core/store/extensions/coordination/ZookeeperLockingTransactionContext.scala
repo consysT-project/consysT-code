@@ -17,6 +17,7 @@ trait ZookeeperLockingTransactionContext[StoreType <: ZookeeperStore with Distri
 
 	override protected def createLockFor(addr : StoreType#Addr) : DistributedLock = {
 		val processLock = new InterProcessMutex(store.curator, s"/consys/locks/$addr")
+
 		new ZookeeperLock(processLock, store.timeout)
 	}
 
