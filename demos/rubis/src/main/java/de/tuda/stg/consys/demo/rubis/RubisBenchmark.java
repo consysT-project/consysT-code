@@ -36,9 +36,8 @@ public class RubisBenchmark extends DemoRunnable {
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-        Session.itemConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-        Session.storeConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
@@ -68,7 +67,7 @@ public class RubisBenchmark extends DemoRunnable {
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
         }
 
-        System.out.println("Adding local users and items");
+        Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             var session = new Session(store());
             localSessions.add(session);
@@ -90,7 +89,7 @@ public class RubisBenchmark extends DemoRunnable {
 
         barrier("users_added");
 
-        System.out.println("Getting users and items from other replicas");
+        Logger.debug(procName(), "Collecting objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
                 users.add(localSessions.get(0).findUser(null,
@@ -98,7 +97,6 @@ public class RubisBenchmark extends DemoRunnable {
                 items.add(localSessions.get(0).getItem(null,
                         DemoUtils.addr("item", userIndex, replicaIndex)));
             }
-            BenchmarkUtils.printProgress(userIndex);
         }
 
         BenchmarkUtils.printDone();
@@ -106,8 +104,8 @@ public class RubisBenchmark extends DemoRunnable {
 
     @Override
     public void cleanup() {
-        Logger.warn("nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
-        Logger.warn("nops w.r.t all operations: " + (float)itemNoOps/100);
+        Logger.info(procName(), "nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
+        Logger.info(procName(), "nops w.r.t all operations: " + (float)itemNoOps/100);
 
         localSessions.clear();
         users.clear();
@@ -134,7 +132,7 @@ public class RubisBenchmark extends DemoRunnable {
                     - bidding on own item (rare)
                     - auction has already ended (common)
                 */
-                System.err.println(e.getMessage());
+                //System.err.println(e.getMessage());
             }
         };
     }
@@ -325,12 +323,7 @@ public class RubisBenchmark extends DemoRunnable {
      */
     @Override
     public void test() {
-        if (processId() != 0) {
-            printTestResult();
-            return;
-        }
-
-        System.out.println("## TEST ##");
+        if (processId() != 0) return;
 
         check("users non empty", !users.isEmpty());
 

@@ -9,6 +9,7 @@ import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
@@ -33,8 +34,8 @@ public class QuoddyBenchmark extends DemoRunnable {
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.groups");
 
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-        Session.groupConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        Session.groupConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
         localSessions = new ArrayList<>();
@@ -62,7 +63,7 @@ public class QuoddyBenchmark extends DemoRunnable {
             localSessions.add(new Session(store()));
         }
 
-        System.out.println("Adding users and groups");
+        Logger.debug(procName(), "Creating objects");
         for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
             localSessions.get(usrIndex).registerUser(
                     null, DemoUtils.addr("user", usrIndex, processId()), DemoUtils.generateRandomName());
@@ -93,7 +94,7 @@ public class QuoddyBenchmark extends DemoRunnable {
 
         barrier("users_added");
 
-        System.out.println("Getting users and items from other replicas");
+        Logger.debug(procName(), "Collecting objects");
         for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             for (int usrIndex = 0; usrIndex < numOfUsersPerReplica; usrIndex++) {
                 users.add(localSessions.get(0).lookupUser(null, DemoUtils.addr("user", usrIndex, replIndex)).get());
@@ -104,7 +105,7 @@ public class QuoddyBenchmark extends DemoRunnable {
             }
         }
 
-        System.out.println("Setting up initial configuration");
+        Logger.debug(procName(), "Setting up initial configuration");
         for (Session session : localSessions) {
             // every user starts as a member of one group
             session.joinGroup(null, DemoUtils.getRandomElement(groups));
@@ -356,12 +357,7 @@ public class QuoddyBenchmark extends DemoRunnable {
      */
     @Override
     public void test() {
-        if (processId() != 0) {
-            printTestResult();
-            return;
-        }
-
-        System.out.println("## TEST ##");
+        if (processId() != 0) return;
 
         check("users non empty", !users.isEmpty());
 

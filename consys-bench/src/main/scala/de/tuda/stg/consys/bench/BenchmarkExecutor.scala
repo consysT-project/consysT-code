@@ -194,8 +194,8 @@ class BenchmarkExecutor(
 
 					// Test
 					barrier(store, "test-test")
+					Logger.info(procName, s"Test $i: test")
 					runnable.test()
-					BenchmarkUtils.printTest()
 
 					// Cleanup
 					barrier(store, "test-cleanup")

@@ -27,7 +27,6 @@ import java.util.*;
 public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
     public static Class<? extends IItem> itemImpl;
     public static Class<? extends IUser> userImpl;
 

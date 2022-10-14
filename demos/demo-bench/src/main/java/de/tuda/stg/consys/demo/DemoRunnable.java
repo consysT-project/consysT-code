@@ -37,6 +37,10 @@ public abstract class DemoRunnable extends JBenchRunnable {
         isTestMode = true;
     }
 
+    protected String procName() {
+        return "proc-" + processId();
+    }
+
     protected ConsistencyLevel getLevelWithMixedFallback(ConsistencyLevel mixedLevel) {
         switch (benchType) {
             case WEAK: return getWeakLevel();
@@ -47,58 +51,26 @@ public abstract class DemoRunnable extends JBenchRunnable {
         }
     }
 
-    private final Map<String, List<Boolean>> checkResults = new HashMap<>();
-    private final Map<String, List<String>> checkResultsMessage = new HashMap<>();
-
     public void check(String name, Supplier<Boolean> code) {
-        putCheck(name, code.get());
+        TestCollector.check(name, code);
     }
 
     public void check(String name, boolean result) {
-        putCheck(name, result);
+        TestCollector.check(name, result);
     }
 
     public <T> void checkEquals(String name, T expected, T actual) {
-        boolean result = expected.equals(actual);
-        putCheck(name, result);
-        if (!result) {
-            checkResultsMessage.putIfAbsent(name, new ArrayList<>());
-            checkResultsMessage.get(name).add("expected: " + expected + ", but actual: " + actual);
-        }
+        TestCollector.checkEquals(name, expected, actual);
     }
 
     public void checkFloatEquals(String name, float expected, float actual) {
-        checkFloatEquals(name, expected, actual, 0.000001f);
+        TestCollector.checkFloatEquals(name, expected, actual);
     }
     public void checkFloatEquals(String name, float expected, float actual, float eps) {
-        boolean result = Math.abs(expected - actual) < eps;
-        putCheck(name, result);
-        if (!result) {
-            checkResultsMessage.putIfAbsent(name, new ArrayList<>());
-            checkResultsMessage.get(name).add("expected: " + expected + ", but actual: " + actual);
-        }
-    }
-
-    private void putCheck(String name, boolean result) {
-        checkResults.putIfAbsent(name, new ArrayList<>());
-        checkResults.get(name).add(result);
+        TestCollector.checkFloatEquals(name, expected, actual, eps);
     }
 
     public void printTestResult() {
-        long nFailedChecks = checkResults.values().stream().flatMap(Collection::stream).filter(b -> !b).count();
-
-        System.out.println("- TEST RESULTS ---------");
-        System.out.println("Failed checks (" + nFailedChecks + "/" + checkResults.values().stream().mapToLong(Collection::size).sum() + "):");
-        for (var pair : checkResults.entrySet()) {
-            nFailedChecks = pair.getValue().stream().filter(b -> !b).count();
-            if (nFailedChecks > 0) {
-                System.out.println("  " + pair.getKey() + " (failed " + nFailedChecks + "/" + pair.getValue().size() + ")");
-                if (checkResultsMessage.containsKey(pair.getKey())) {
-                    for (String msg : checkResultsMessage.get(pair.getKey()))
-                        System.out.println("     " + msg);
-                }
-            }
-        }
-        System.out.println("------------------------");
+        TestCollector.printTestResult();
     }
 }

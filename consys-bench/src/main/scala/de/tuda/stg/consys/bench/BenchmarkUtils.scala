@@ -14,10 +14,6 @@ object BenchmarkUtils {
 		System.out.println(" DONE")
 	}
 
-	def printTest() : Unit = {
-		System.out.println(" TEST")
-	}
-
 	/** Converts Java's durations to Scala' durations. */
 	def convertDuration(duration : java.time.Duration) : FiniteDuration = {
 		FiniteDuration(duration.toNanos, TimeUnit.NANOSECONDS)
