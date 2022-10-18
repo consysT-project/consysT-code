@@ -26,10 +26,40 @@ seed_provider:
       parameters:
           - seeds: "172.31.16.217,172.31.27.141,172.31.17.201" (The IP addresses of all involved nodes!)
 
-
 listen_address: 172.31.16.217 (Set this to the private address of the node!)
+
 rpc_address: 172.31.16.217 (Set this to the private address of the node!)
 
-
 endpoint_snitch: Ec2Snitch
+
+
+# Installing Zookeeper
+cd ~
+wget https://dlcdn.apache.org/zookeeper/zookeeper-3.8.0/apache-zookeeper-3.8.0-bin.tar.gz
+tar -xf apache-zookeeper-3.8.0-bin.tar.gz
+cd ./apache-zookeeper-3.8.0-bin
+mkdir logs
+mkdir data
+touch data/myid.txt
+nano data/myid.txt (Add the node id to this file, normally 1, 2, 3, ...)
+cp conf/zoo_sample.cfg conf/zoo.cfg
+nano conf/zoo.cfg
+bin/zkServer.sh start
+
+
+
+# Configuring zoo.cfg
+clientPort=2181 (Replace last digit with myid, e.g., 2183 for node with id 3)
+
+dataDir=~/apache-zookeeper-3.8.0-bin/data
+
+# Servers
+server.1=172.31.16.217
+server.2=172.31.27.141
+server.3=172.31.17.201
+(For every server where the nmber in server.n is the myid)
+
+
+
+
 
