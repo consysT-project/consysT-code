@@ -1,0 +1,35 @@
+# Install requirements with apt
+sudo apt update
+sudo apt install maven openjdk-11-jdk-headless -y
+
+# Install consys
+cd ~
+git clone https://github.com/consysT-project/consysT-code.git
+cd consysT-code/
+git checkout new-bench
+mvn install -DskipTests
+
+# Install cassandra
+cd ~
+wget https://dlcdn.apache.org/cassandra/4.0.6/apache-cassandra-4.0.6-bin.tar.gz
+tar -xf apache-cassandra-4.0.6-bin.tar.gz
+cd apache-cassandra-4.0.6-bin
+nano conf/cassandra.yaml
+./bin/cassandra
+./bin/nodetool status        
+
+# Configuring cassandra.yaml
+cluster_name: 'consys-bench'
+
+seed_provider:
+    - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+      parameters:
+          - seeds: "172.31.16.217,172.31.27.141,172.31.17.201" (The IP addresses of all involved nodes!)
+
+
+listen_address: 172.31.16.217 (Set this to the private address of the node!)
+rpc_address: 172.31.16.217 (Set this to the private address of the node!)
+
+
+endpoint_snitch: Ec2Snitch
+
