@@ -196,7 +196,7 @@ public @Weak class User implements IUser {
 
     @SideEffectFree @Transactional
     public List<Ref<? extends IGroup>> getParticipatingGroups() {
-        return new ArrayList<>(participatingGroups.ref().getUnderlying());
+        return new ArrayList<>(participatingGroups.ref().get());
     }
 
     private Ref<User> toUserImpl(Ref<? extends IUser> user) {

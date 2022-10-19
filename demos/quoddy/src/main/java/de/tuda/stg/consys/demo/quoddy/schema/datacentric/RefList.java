@@ -41,7 +41,8 @@ public class RefList<E> implements Serializable {
         return underlying.size();
     }
 
-    public List<E> getUnderlying() {
-        return underlying;
+    @SideEffectFree
+    public List<E> get() {
+        return underlying.subList(0, underlying.size());
     }
 }
