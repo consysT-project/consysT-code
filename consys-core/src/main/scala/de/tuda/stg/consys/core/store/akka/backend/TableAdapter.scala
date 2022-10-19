@@ -74,7 +74,6 @@ object TableAdapter {
                 InternalUpdateResponse(response)
               }
             )
-
             Behaviors.same
 
           case GetAnyCommand(replyTo, key) =>
@@ -87,7 +86,6 @@ object TableAdapter {
                 InternalGetResponse(response, replyTo, key)
               }
             )
-
             Behaviors.same
 
           case InternalGetResponse(res@GetSuccess(retrievedKey), replyTo, key) =>
