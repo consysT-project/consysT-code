@@ -47,10 +47,23 @@ public class CounterBenchmark extends DemoRunnable {
 	@Override
 	public BenchmarkOperations operations() {
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
-				() -> store().transaction(ctx -> {
-					counter.ref().inc();
-					return Option.apply(0);
-				}),
+				() -> {
+					Option<Integer> prevCount = store().transaction(ctx -> {
+						int value = isTestMode ? counter.ref().get() : -1;
+
+						counter.ref().inc();
+
+						return Option.apply(value);
+					});
+
+					if (isTestMode) {
+						store().transaction(ctx -> {
+							check("counter was incremented", prevCount.get() < counter.ref().get());
+							return Option.apply(0);
+						});
+					}
+				},
+
 				() -> store().transaction(ctx -> {
 					counter.ref().get();
 					return Option.apply(0);
@@ -60,4 +73,9 @@ public class CounterBenchmark extends DemoRunnable {
 
 	@Override
 	public void cleanup() {}
+
+	@Override
+	public void test() {
+		if (processId() == 0) printTestResult();
+	}
 }

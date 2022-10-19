@@ -119,7 +119,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
     @Override
     public void test() {
-        printTestResult();
+        if (processId() == 0) printTestResult();
     }
 
     @Override
@@ -168,9 +168,8 @@ public class MessageGroupsBenchmark extends DemoRunnable {
                 int prevGroupSize = result.get();
                 int capacity = group.ref().getCapacity();
                 if (prevGroupSize < capacity)
-                    check("user was added", prevGroupSize + 1 == group.ref().getUsers().size());
-                else
-                    check("capacity was respected", capacity == group.ref().getUsers().size());
+                    check("user was added", prevGroupSize < group.ref().getUsers().size());
+                check("capacity was respected", capacity >= group.ref().getUsers().size());
                 return Option.apply(0);
             });
         }

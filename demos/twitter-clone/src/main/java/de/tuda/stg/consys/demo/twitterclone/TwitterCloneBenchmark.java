@@ -120,7 +120,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
     @Override
     public void test() {
-        printTestResult();
+        if (processId() == 0) printTestResult();
     }
 
     @Override
@@ -161,7 +161,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         Ref<? extends ITweet> tweet = DemoUtils.getRandomElement(tweets);
         Ref<? extends IUser> user = DemoUtils.getRandomElement(users);
 
-        Option<Integer> result = store().transaction(ctx -> {
+        Option<Integer> prevRetweetsResults = store().transaction(ctx -> {
             int prevRetweets = isTestMode ? tweet.ref().getRetweets() : -1;
 
             tweet.ref().retweet();
@@ -172,7 +172,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
         if (isTestMode) {
             store().transaction(ctx -> {
-                check("retweet was incremented", result.get().equals(tweet.ref().getRetweets() - 1));
+                check("retweet was incremented", prevRetweetsResults.get() < tweet.ref().getRetweets());
                 return Option.apply(0);
             });
         }
