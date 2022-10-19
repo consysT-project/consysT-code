@@ -27,7 +27,7 @@ public @Mixed class Item implements Serializable, IItem {
     private Option<Ref<@Mutable User>> buyer; // cannot be null since we are serializing fields individually
     private final List<Bid> bids;
     // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
-    private @Mutable @Weak Status status = (@MutableBottom @Local Status) Status.OPEN;
+    private @Mutable @Weak ItemStatus status = (@MutableBottom @Local ItemStatus) ItemStatus.OPEN;
 
     public Item() {
         this.id = null;
@@ -68,7 +68,7 @@ public @Mixed class Item implements Serializable, IItem {
         if (new Date().after(endDate))
             throw new AppException.DateException("Auction has already ended.");
 
-        if (status != Status.OPEN)
+        if (status != ItemStatus.OPEN)
             throw new AppException("Item is not available anymore.");
 
         if (!bid.getUser().ref().hasEnoughCredits(bid.getBid()))
@@ -91,7 +91,7 @@ public @Mixed class Item implements Serializable, IItem {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
 
-        if (status != Status.OPEN)
+        if (status != ItemStatus.OPEN)
             throw new AppException("Buy-Now is disabled, since item is not available anymore.");
 
         if ((@Strong boolean)!bids.isEmpty() && getTopBidPrice() >= reservePrice)
@@ -106,7 +106,7 @@ public @Mixed class Item implements Serializable, IItem {
 
         endAuctionNow();
         this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(toUserImpl(buyer));
-        status = (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+        status = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
 
         buyer.ref().removeBalance(buyNowPrice);
         seller.ref().addBalance(buyNowPrice);
@@ -134,13 +134,13 @@ public @Mixed class Item implements Serializable, IItem {
         if (new Date().before(endDate))
             throw new AppException.DateException("Auction has not yet ended.");
 
-        if (status != Status.OPEN)
+        if (status != ItemStatus.OPEN)
             throw new AppException("Auction is already closed.");
 
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.isEmpty() && getTopBidPrice() >= reservePrice;
         if (hasWinner) {
-            status = (@MutableBottom @Local Status) Status.SOLD_VIA_AUCTION;
+            status = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_AUCTION;
 
             @Immutable @Strong Bid winningBid = bids.get(0);
             Ref<@Mutable User> buyer = toUserImpl(winningBid.getUser());
@@ -154,7 +154,7 @@ public @Mixed class Item implements Serializable, IItem {
 
             buyer.ref().notifyWinner(item, price);
         } else {
-            status = (@MutableBottom @Local Status) Status.NOT_SOLD;
+            status = (@MutableBottom @Local ItemStatus) ItemStatus.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
@@ -229,11 +229,11 @@ public @Mixed class Item implements Serializable, IItem {
 
     @WeakOp @SideEffectFree
     public boolean getSoldViaBuyNow() {
-        return status == (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+        return status == (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
     }
 
     @WeakOp @SideEffectFree
-    public Status getStatus() {
+    public ItemStatus getStatus() {
         return status;
     }
 

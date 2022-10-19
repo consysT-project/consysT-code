@@ -3,12 +3,8 @@ package de.tuda.stg.consys.demo.rubis;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
-import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.Item;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.NumberBox;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefList;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefMap;
+import de.tuda.stg.consys.demo.rubis.schema.datacentric.*;
 import de.tuda.stg.consys.japi.Ref;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
@@ -19,8 +15,6 @@ import scala.Function1;
 import scala.Option;
 import scala.Tuple2;
 
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
@@ -136,10 +130,12 @@ public class Session {
                         ctx.replicate("item:" + replId + ":ed", STRONG, Date.class, endDate.getTime()); // TODO: replace STRONG with generic
                 Ref<@Strong @Mutable RefList<Bid>> bids =
                         ctx.replicate("item:" + replId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class); // TODO: replace STRONG with generic
+                Ref<@Strong @Mutable StatusBox> status =
+                        ctx.replicate("item:" + replId + ":status", STRONG, StatusBox.class, ItemStatus.OPEN); // TODO: replace STRONG with generic
 
                 return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,
-                        category, user, bids));
+                        category, user, bids, status));
             } else {
                 return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,

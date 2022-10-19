@@ -13,6 +13,7 @@ import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class RubisBenchmark extends DemoRunnable {
@@ -39,6 +40,15 @@ public class RubisBenchmark extends DemoRunnable {
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
+        Session.dataCentric = benchType == BenchmarkType.MIXED;
+        if (benchType == BenchmarkType.MIXED) {
+            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
+            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
+        } else {
+            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
+            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
+        }
+
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
         items = new ArrayList<>();
@@ -58,15 +68,6 @@ public class RubisBenchmark extends DemoRunnable {
 
     @Override
     public void setup() {
-        Session.dataCentric = benchType == BenchmarkType.MIXED;
-        if (benchType == BenchmarkType.MIXED) {
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
-        } else {
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
-        }
-
         Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             var session = new Session(store());
@@ -142,7 +143,7 @@ public class RubisBenchmark extends DemoRunnable {
 
         store().transaction(ctx -> {
             Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != IItem.Status.OPEN)
+            if (item.ref().getStatus() != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
@@ -158,7 +159,7 @@ public class RubisBenchmark extends DemoRunnable {
         Option<TransactionResult> result = store().transaction(ctx ->
         {
             var item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != IItem.Status.OPEN)
+            if (item.ref().getStatus() != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
@@ -184,10 +185,10 @@ public class RubisBenchmark extends DemoRunnable {
 
     private void buyNowTest(TransactionResult result) {
         if (result.appExceptions.length > 0) {
-            check("no app exception occurred", false);
+            check("no app exception occurred during buy-now", false);
             return;
         } else {
-            check("no app exception occurred", true);
+            check("no app exception occurred during buy-now", true);
         }
 
         store().transaction(ctx -> {
@@ -198,10 +199,12 @@ public class RubisBenchmark extends DemoRunnable {
             ItemState itemPrev = result.items[0];
             Ref<? extends IItem> item = itemPrev.ref;
 
-            checkEquals("seller balance after buy-now",
-                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance());
-            checkEquals("buyer balance after buy-now",
-                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
+            /* TODO: not testable due to possible parallel operations
+            checkFloatEquals("seller balance after buy-now",
+                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance(), 0.01f);
+            checkFloatEquals("buyer balance after buy-now",
+                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance(), 0.01f);
+             */
 
             check("buy-now closed for seller",
                     seller.ref().getSellerHistory(true).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -225,7 +228,7 @@ public class RubisBenchmark extends DemoRunnable {
         Option<TransactionResult> result = store().transaction(ctx ->
         {
             Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != IItem.Status.OPEN)
+            if (item.ref().getStatus() != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
@@ -249,10 +252,10 @@ public class RubisBenchmark extends DemoRunnable {
 
     private void closeAuctionTest(TransactionResult result) {
         if (result.appExceptions.length > 0) {
-            check("no app exception occurred", false);
+            check("no app exception occurred during close-auction", false);
             return;
         } else {
-            check("no app exception occurred", true);
+            check("no app exception occurred during close-auction", true);
         }
 
         store().transaction(ctx -> {
@@ -261,9 +264,11 @@ public class RubisBenchmark extends DemoRunnable {
             UserState sellerPrev = result.users[0];
             Ref<? extends IUser> seller = sellerPrev.ref;
 
-            boolean wasSold = item.ref().getStatus() == IItem.Status.SOLD_VIA_AUCTION;
+            boolean wasSold = item.ref().getStatus() == ItemStatus.SOLD_VIA_AUCTION;
+            /* TODO: not testable due to possible parallel operations
             float price = wasSold ? item.ref().getTopBidPrice() : 0;
-            checkEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance());
+            checkFloatEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance(), 0.01f);
+             */
 
             check("auction closed for seller",
                     seller.ref().getSellerHistory(wasSold).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -370,7 +375,7 @@ public class RubisBenchmark extends DemoRunnable {
                     }
                 }
 
-                checkFloatEquals("balance correct", balance, userBalance);
+                checkFloatEquals("balance correct", balance, userBalance, 0.01f);
             }
             return Option.apply(0);
         });
