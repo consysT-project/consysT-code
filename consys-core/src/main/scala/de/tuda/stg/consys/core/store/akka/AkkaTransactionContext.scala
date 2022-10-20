@@ -54,7 +54,6 @@ class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransa
 
     val timestamp = System.currentTimeMillis()
 
-    //TODO: Add synchronized write for Strong objects
     if (containsStrong)
       store.replica.writeSync(timestamp, ops.toSeq)
     else

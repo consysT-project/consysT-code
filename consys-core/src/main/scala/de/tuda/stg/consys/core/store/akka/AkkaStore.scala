@@ -51,7 +51,7 @@ trait AkkaStore extends DistributedStore
   override def id: Id = s"${actorSystem.name}[$getAddress]"
 
   /** The backend replica implementation. */
-  private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, curator, timeout)
+  private[akka] val replica : AkkaReplicaAdapter = new AkkaReplicaAdapter(actorSystem, timeout)
 
 
   /**
