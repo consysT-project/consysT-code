@@ -37,6 +37,9 @@ public class RubisBenchmark extends DemoRunnable {
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
+        Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
+        Session.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
+
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 

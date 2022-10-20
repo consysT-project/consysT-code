@@ -11,11 +11,15 @@ import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
+import scala.Function1;
 import scala.Option;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -30,6 +34,9 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         JBenchExecution.execute("twitter-clone", TwitterCloneBenchmark.class, args);
     }
 
+    private final int nMaxRetries;
+    private final int retryDelay;
+
     private final int numOfGroupsPerReplica;
     private final Class<? extends IUser> userImpl;
     private final Class<? extends ITweet> tweetImpl;
@@ -41,6 +48,9 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         super(adapter, config);
 
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.twitterclone.users");
+
+        nMaxRetries = config.toConfig().getInt("consys.bench.demo.twitterclone.retries");
+        retryDelay = config.toConfig().getInt("consys.bench.demo.twitterclone.retryDelay");
 
         if (benchType == BenchmarkType.MIXED) {
             userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
@@ -133,6 +143,24 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         });
     }
 
+    private <U> Option<U> withRetry(Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return store().transaction(code::apply);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
+    }
+
     private void follow() {
         Ref<? extends IUser> follower = DemoUtils.getRandomElement(users);
         Ref<? extends IUser> following = DemoUtils.getRandomElementExcept(users, follower);
@@ -161,7 +189,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         Ref<? extends ITweet> tweet = DemoUtils.getRandomElement(tweets);
         Ref<? extends IUser> user = DemoUtils.getRandomElement(users);
 
-        Option<Integer> prevRetweetsResults = store().transaction(ctx -> {
+        Option<Integer> prevRetweetsResults = withRetry(ctx -> {
             int prevRetweets = isTestMode ? tweet.ref().getRetweets() : -1;
 
             tweet.ref().retweet();

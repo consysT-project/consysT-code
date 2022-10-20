@@ -11,11 +11,13 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 import scala.Tuple2;
 
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class Session {
@@ -23,11 +25,14 @@ public class Session {
     public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
     public static Class<? extends IItem> itemImpl;
     public static Class<? extends IUser> userImpl;
+    public static int nMaxRetries;
+    public static int retryDelay;
 
     public static boolean dataCentric;
 
     private Store store;
     private Ref<? extends @Mutable IUser> user;
+    private Random random = new Random();
 
     public Session(@Mutable Store store) {
         this.store = store;
@@ -40,6 +45,25 @@ public class Session {
     private <U> Option<U> doTransaction(TransactionContext transaction,
                                         Function1<TransactionContext, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+    }
+
+    private <U> Option<U> doTransactionWithRetries(TransactionContext transaction,
+                                        Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
     }
 
     public void registerUser(TransactionContext tr,
@@ -161,7 +185,7 @@ public class Session {
         checkLogin();
 
         @Immutable @Local UUID bidId = UUID.randomUUID();
-        return doTransaction(tr, ctx -> {
+        return doTransactionWithRetries(tr, ctx -> {
             var bid = new Bid(bidId, bidAmount, user);
             boolean reserveMet = item.ref().placeBid(bid);
             user.ref().addWatchedAuction(item);
@@ -179,7 +203,7 @@ public class Session {
     public void buyNow(TransactionContext tr, Ref<? extends IItem> item) {
         checkLogin();
 
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
             item.ref().buyNow(user, item);
             return Option.apply(0);
         });

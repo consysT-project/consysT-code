@@ -34,6 +34,9 @@ public class QuoddyBenchmark extends DemoRunnable {
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.groups");
 
+        Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.quoddy.retries");
+        Session.retryDelay = config.toConfig().getInt("consys.bench.demo.quoddy.retryDelay");
+
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.groupConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());

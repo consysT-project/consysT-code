@@ -11,11 +11,13 @@ import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefMap;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -31,11 +33,15 @@ public class Session {
     public static Class<? extends IUser> userImpl;
     public static Class<? extends IStatusUpdate> statusUpdateImpl;
     public static Class<? extends IEvent> eventImpl;
+    public static int nMaxRetries;
+    public static int retryDelay;
 
     public static boolean dataCentric;
 
     private Store store;
     private Ref<? extends IUser> user;
+
+    private Random random = new Random();
 
     public Session(Store store) {
         this.store = store;
@@ -48,6 +54,25 @@ public class Session {
     private <U> Option<U> doTransaction(TransactionContext transaction,
                                   Function1<TransactionContext, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+    }
+
+    private <U> Option<U> doTransactionWithRetries(TransactionContext transaction,
+                                                   Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
     }
 
     public Ref<? extends IUser> getUser() {
@@ -125,27 +150,22 @@ public class Session {
         checkLogin();
         var id = UUID.randomUUID();
 
-        try {
-            doTransaction(tr, ctx -> {
-                Ref<? extends IStatusUpdate> status =
-                        ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
+        doTransactionWithRetries(tr, ctx -> {
+            Ref<? extends IStatusUpdate> status =
+                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
-                this.user.ref().addPost(status);
-                for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
-                    follower.ref().addPost(status); // TODO: could lead to batch too large
-                }
-                // cyclic dependency for all-strong case: if two friends post simultaneously, they end up waiting for each
-                // other's locks here
-                for (Ref<? extends IUser> friend : user.ref().getFriends()) {
-                    friend.ref().addPost(status); // TODO: could lead to batch too large
-                }
+            this.user.ref().addPost(status);
+            for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
+                follower.ref().addPost(status); // TODO: could lead to batch too large
+            }
+            // cyclic dependency for all-strong case: if two friends post simultaneously, they end up waiting for each
+            // other's locks here
+            for (Ref<? extends IUser> friend : user.ref().getFriends()) {
+                friend.ref().addPost(status); // TODO: could lead to batch too large
+            }
 
-                return Option.apply(0);
-            });
-        } catch (Exception e) {
-            if (!(e instanceof TimeoutException)) throw e;
-            else System.err.println(e.getMessage()); // allow timeouts to break out of cycles
-        }
+            return Option.apply(0);
+        });
     }
 
     public void postStatusToGroup(TransactionContext tr,

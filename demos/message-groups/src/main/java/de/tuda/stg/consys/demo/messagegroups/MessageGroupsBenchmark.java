@@ -12,10 +12,13 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
+import scala.Function1;
 import scala.Option;
 
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created on 10.10.19.
@@ -28,6 +31,9 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         JBenchExecution.execute("message-groups", MessageGroupsBenchmark.class, args);
     }
 
+    private final int nMaxRetries;
+    private final int retryDelay;
+
     private final int numberOfUsersPerReplica;
     private final int numberOfGroupsPerReplica;
 
@@ -39,6 +45,9 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
         numberOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.users");
         numberOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.groups");
+
+        nMaxRetries = config.toConfig().getInt("consys.bench.demo.messagegroups.retries");
+        retryDelay = config.toConfig().getInt("consys.bench.demo.messagegroups.retryDelay");
 
         users = new ArrayList<>(numberOfUsersPerReplica * config.numberOfReplicas());
         groups = new ArrayList<>(numberOfGroupsPerReplica * config.numberOfReplicas());
@@ -131,10 +140,28 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         });
     }
 
+    private <U> Option<U> withRetry(Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return store().transaction(code::apply);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
+    }
+
     private void postMessage() {
         Ref<Group> group = DemoUtils.getRandomElement(groups);
 
-        store().transaction(ctx -> {
+        withRetry(ctx -> {
             group.ref().postMessage("Hello");
             return Option.apply(0);
         });
