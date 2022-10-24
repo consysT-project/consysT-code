@@ -68,6 +68,7 @@ object AkkaReplicatedDataAdapter {
     val actorSystem2 = akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, config2)
 
 
+
     val table1 = new AkkaReplicatedDataAdapter(actorSystem1, Duration(10, "s"))
     val table2 = new AkkaReplicatedDataAdapter(actorSystem2, Duration(10, "s"))
 
