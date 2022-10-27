@@ -97,6 +97,7 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val timeout : F
 					}
 			}
 		}
+
 	}
 
 	def addOtherReplica(hostname : String, port : Int) : Unit = {

@@ -2,15 +2,20 @@ package de.tuda.stg.consys.core.store.akka.backend
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.cluster.ClusterEvent.{MemberEvent, MemberRemoved, MemberUp, ReachabilityEvent, ReachableMember, UnreachableMember}
 import akka.cluster.ddata.typed.scaladsl.Replicator.{Command, GetSuccess}
 import akka.cluster.ddata.typed.scaladsl.{DistributedData, Replicator}
 import akka.cluster.ddata._
+import akka.cluster.typed.{Cluster, Join}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.akka.AkkaStore.DEFAULT_ACTOR_SYSTEM_NAME
 
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{Duration, FiniteDuration}
+import akka.cluster.typed.Subscribe
+
+import scala.jdk.CollectionConverters._
 
 object AkkaReplicatedDataAdapter {
   type ObjectMap = ORMap[String, ReplicatedData]
@@ -53,29 +58,60 @@ object AkkaReplicatedDataAdapter {
 
 
   def main(args : Array[String]) : Unit = {
-    val config1 = ConfigFactory.load()
-      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef("127.0.0.1"))
-      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(4445))
-      .resolve()
-
-    val config2 = ConfigFactory.load()
-      .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef("127.0.0.2"))
-      .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(4446))
-      .resolve()
 
 
-    val actorSystem1 = akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, config1)
-    val actorSystem2 = akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, config2)
+    val index = Integer.parseInt(args(0))
 
 
+    val configs = Array(
+      ConfigFactory.load()
+        .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef("127.0.0.1"))
+        .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(4445))
+        .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(Iterable("akka://consys-actors@127.0.0.1:4445", "akka://consys-actors@127.0.0.2:4446").asJava))
+        .resolve(),
+      ConfigFactory.load()
+        .withValue("akka.remote.artery.canonical.hostname", ConfigValueFactory.fromAnyRef("127.0.0.2"))
+        .withValue("akka.remote.artery.canonical.port", ConfigValueFactory.fromAnyRef(4446))
+        .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(Iterable("akka://consys-actors@127.0.0.1:4445", "akka://consys-actors@127.0.0.2:4446").asJava))
+        .resolve()
+    )
+
+
+    val actorSystem1 = ActorSystem.wrap(akka.actor.ActorSystem(DEFAULT_ACTOR_SYSTEM_NAME, configs(index)))
+    val cluster = Cluster(actorSystem1)
+
+    val subscribeBehavior = Behaviors.receiveMessage[MemberEvent] {
+      case MemberUp(member) =>
+        println("Member is Up: {}", member.address)
+        Behaviors.same
+      case MemberRemoved(member, previousStatus) =>
+        println("Member is Removed: {} after {}",
+          member.address, previousStatus)
+        Behaviors.same
+      case _ : MemberEvent =>
+        // ignore
+        Behaviors.same
+    }
+
+    val reachableBehavior = Behaviors.receiveMessage[ReachabilityEvent] {
+      case UnreachableMember(member) =>
+        println("Member detected as unreachable: {}", member)
+        Behaviors.same
+      case ReachableMember(member) =>
+        println("Member back to reachable: {}", member)
+        Behaviors.same
+    }
+
+    cluster.subscriptions ! Subscribe(actorSystem1.systemActorOf(subscribeBehavior, "cluster-members"), classOf[MemberEvent])
+    cluster.subscriptions ! Subscribe(actorSystem1.systemActorOf(reachableBehavior, "cluster-reachable"), classOf[ReachabilityEvent])
+
+
+    Thread.sleep(10000)
 
     val table1 = new AkkaReplicatedDataAdapter(actorSystem1, Duration(10, "s"))
-    val table2 = new AkkaReplicatedDataAdapter(actorSystem2, Duration(10, "s"))
 
-
-    table1.writeSync(System.currentTimeMillis(), Seq(CreateOrUpdateObject("obj1", Set(1, 2, 42).asInstanceOf[Serializable])))
-    println("get1 = " + table1.read("obj1"))
-    println("get2 = " + table2.read("obj1"))
+    if (index == 0) table1.writeSync(System.currentTimeMillis(), Seq(CreateOrUpdateObject("obj1", Set(1, 2, 42).asInstanceOf[Serializable])))
+    println(index + " get = " + table1.read("obj1"))
   }
 
 

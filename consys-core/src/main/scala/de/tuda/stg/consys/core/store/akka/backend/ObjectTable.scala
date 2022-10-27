@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.store.akka.backend
 
 import akka.cluster.ddata.{DeltaReplicatedData, ORMap, ReplicatedData, SelfUniqueAddress}
 
+//TODO: Do we need to implement our own table?
 case class ObjectTable(table : ORMap[String, ReplicatedData] = ORMap.empty) extends DeltaReplicatedData {
 
 	override type T = ObjectTable
@@ -15,6 +16,7 @@ case class ObjectTable(table : ORMap[String, ReplicatedData] = ORMap.empty) exte
 
 	override def merge(that : T) : T =
 		ObjectTable(table.merge(that.table))
+
 
 
 	override def delta : Option[D] = ???
