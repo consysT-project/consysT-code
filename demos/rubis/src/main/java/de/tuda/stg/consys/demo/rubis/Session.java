@@ -7,8 +7,6 @@ import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.demo.rubis.schema.datacentric.*;
 import de.tuda.stg.consys.japi.Ref;
 
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
-
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
@@ -21,8 +19,9 @@ import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class Session {
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> itemConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> internalConsistencyLevel;
     public static Class<? extends IItem> itemImpl;
     public static Class<? extends IUser> userImpl;
     public static int nMaxRetries;
@@ -73,17 +72,17 @@ public class Session {
             Ref<? extends @Mutable IUser> user;
             if (dataCentric) {
                 Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance =
-                        ctx.replicate("user:" + nickname + ":bal", STRONG, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
+                        ctx.replicate("user:" + nickname + ":bal", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerAuctions =
-                        ctx.replicate("user:" + nickname + ":ba", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":ba", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerHistory =
-                        ctx.replicate("user:" + nickname + ":bh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":bh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerAuctions =
-                        ctx.replicate("user:" + nickname + ":sa", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sa", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerHistory =
-                        ctx.replicate("user:" + nickname + ":sh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerFailedHistory =
-                        ctx.replicate("user:" + nickname + ":sfh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sfh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
 
                 user = ctx.replicate("user:" + nickname, userConsistencyLevel, userImpl,
                         userId, nickname, name, password, email,
@@ -151,11 +150,11 @@ public class Session {
         Ref<? extends IItem> item = doTransaction(tr, ctx -> {
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> endDateRef =
-                        ctx.replicate("item:" + replId + ":ed", STRONG, Date.class, endDate.getTime()); // TODO: replace STRONG with generic
+                        ctx.replicate("item:" + replId + ":ed", internalConsistencyLevel, Date.class, endDate.getTime());
                 Ref<@Strong @Mutable RefList<Bid>> bids =
-                        ctx.replicate("item:" + replId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class); // TODO: replace STRONG with generic
+                        ctx.replicate("item:" + replId + ":bids", internalConsistencyLevel, (Class<RefList<Bid>>)(Class)RefList.class);
                 Ref<@Strong @Mutable StatusBox> status =
-                        ctx.replicate("item:" + replId + ":status", STRONG, StatusBox.class, ItemStatus.OPEN); // TODO: replace STRONG with generic
+                        ctx.replicate("item:" + replId + ":status", internalConsistencyLevel, StatusBox.class, ItemStatus.OPEN);
 
                 return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,
@@ -212,7 +211,8 @@ public class Session {
     public String browseItemsByReplIds(TransactionContext tr, String[] replIds) {
         checkLogin();
 
-        return doTransaction(tr, ctx -> {
+        // in MIXED and STRONG cases a deadlock can occur, since stringifying an item accesses strong state
+        return doTransactionWithRetries(tr, ctx -> {
             var sb = new StringBuilder();
             @Immutable List<Ref<? extends IItem>> items = new ArrayList<>(replIds.length);
             for (String replId : replIds) {

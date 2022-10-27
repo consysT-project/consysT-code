@@ -30,6 +30,10 @@ public class QuoddyBenchmark extends DemoRunnable {
 
     public QuoddyBenchmark(JBenchStore adapter, BenchmarkConfig config) {
         super(adapter, config);
+        localSessions = new ArrayList<>();
+        users = new ArrayList<>();
+        groups = new ArrayList<>();
+        events = new ArrayList<>();
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.users");
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.quoddy.groups");
@@ -37,31 +41,28 @@ public class QuoddyBenchmark extends DemoRunnable {
         Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.quoddy.retries");
         Session.retryDelay = config.toConfig().getInt("consys.bench.demo.quoddy.retryDelay");
 
+        Session.internalConsistencyLevel = getStrongLevel();
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.groupConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
-        localSessions = new ArrayList<>();
-        users = new ArrayList<>();
-        groups = new ArrayList<>();
-        events = new ArrayList<>();
-    }
-
-    @Override
-    public void setup() {
-        Session.dataCentric = benchType == BenchmarkType.MIXED;
         if (benchType == BenchmarkType.MIXED) {
+            Session.dataCentric = true;
             Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
             Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
             Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
             Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
         } else {
+            Session.dataCentric = false;
             Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.User.class;
             Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Group.class;
             Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.StatusUpdate.class;
             Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Event.class;
         }
+    }
 
+    @Override
+    public void setup() {
         for (int i = 0; i < numOfUsersPerReplica; i++) {
             localSessions.add(new Session(store()));
         }

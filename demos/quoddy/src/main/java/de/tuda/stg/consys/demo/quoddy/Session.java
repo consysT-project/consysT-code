@@ -3,7 +3,6 @@ package de.tuda.stg.consys.demo.quoddy;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.BoolBox;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefList;
@@ -21,13 +20,13 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
 
 @SuppressWarnings({"consistency"})
 public class Session {
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
-    public static ConsistencyLevel<CassandraStore> groupConsistencyLevel;
-    public static ConsistencyLevel<CassandraStore> activityConsistencyLevel;
+    public static ConsistencyLevel userConsistencyLevel;
+    public static ConsistencyLevel groupConsistencyLevel;
+    public static ConsistencyLevel activityConsistencyLevel;
+    public static ConsistencyLevel internalConsistencyLevel;
 
     public static Class<? extends IGroup> groupImpl;
     public static Class<? extends IUser> userImpl;
@@ -84,13 +83,13 @@ public class Session {
         if (dataCentric) {
             this.user = doTransaction(tr, ctx -> {
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> friends =
-                        ctx.replicate(id + ":friends", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":friends", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> followers =
-                        ctx.replicate(id + ":followers", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":followers", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> following =
-                        ctx.replicate(id + ":following", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":following", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefList<Ref<? extends IGroup>>> groups =
-                        ctx.replicate(id + ":groups", STRONG, (Class<RefList<Ref<? extends IGroup>>>)(Class)RefList.class);
+                        ctx.replicate(id + ":groups", internalConsistencyLevel, (Class<RefList<Ref<? extends IGroup>>>)(Class)RefList.class);
                 return Option.apply(ctx.replicate(id, userConsistencyLevel, userImpl, id, name, friends, followers, following, groups));
             }).get();
         } else {
@@ -112,13 +111,13 @@ public class Session {
             Ref<? extends IGroup> group;
             if (dataCentric) {
                 Ref<@Strong @Mutable BoolBox> requires =
-                        ctx.replicate(id + ":requires", STRONG, BoolBox.class, requiresJoinConfirmation);
+                        ctx.replicate(id + ":requires", internalConsistencyLevel, BoolBox.class, requiresJoinConfirmation);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> owners =
-                        ctx.replicate(id + ":owners", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":owners", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> members =
-                        ctx.replicate(id + ":members", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":members", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> pending =
-                        ctx.replicate(id + ":pending", STRONG, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
+                        ctx.replicate(id + ":pending", internalConsistencyLevel, (Class<RefMap<UUID, Ref<? extends IUser>>>)(Class)RefMap.class);
                 group = ctx.replicate(id, groupConsistencyLevel, groupImpl, id, name, description,
                         requires, this.user, owners, members, pending);
             } else {
@@ -195,7 +194,7 @@ public class Session {
             Ref<? extends IEvent> event;
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> eventDate =
-                        ctx.replicate(id.toString() + ":date", STRONG, Date.class, date.getTime());
+                        ctx.replicate(id.toString() + ":date", internalConsistencyLevel, Date.class, date.getTime());
                 event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, eventDate, text);
             } else {
                 event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, date, text);

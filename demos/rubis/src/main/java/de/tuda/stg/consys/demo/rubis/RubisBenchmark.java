@@ -34,27 +34,28 @@ public class RubisBenchmark extends DemoRunnable {
 
     public RubisBenchmark(JBenchStore adapter, BenchmarkConfig config) {
         super(adapter, config);
+        localSessions = new ArrayList<>();
+        users = new ArrayList<>();
+        items = new ArrayList<>();
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
         Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
         Session.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
+        Session.internalConsistencyLevel = getStrongLevel();
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
-        Session.dataCentric = benchType == BenchmarkType.MIXED;
         if (benchType == BenchmarkType.MIXED) {
+            Session.dataCentric = true;
             Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
         } else {
+            Session.dataCentric = false;
             Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
             Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
         }
-
-        localSessions = new ArrayList<>();
-        users = new ArrayList<>();
-        items = new ArrayList<>();
     }
 
     private Category getRandomCategory() {
