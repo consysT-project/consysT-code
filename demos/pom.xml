@@ -24,6 +24,7 @@
         <module>quoddy</module>
         <module>box</module>
         <module>crdt-benchmarks</module>
+        <module>web-shop</module>
     </modules>
 
 
