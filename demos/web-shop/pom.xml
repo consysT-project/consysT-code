@@ -36,10 +36,9 @@
                             <version>4.0.0</version>
                         </path>
                     </annotationProcessorPaths>
-                    <!--                    <annotationProcessors>-->
-                    <!--                         &lt;!&ndash; Add all the checkers you want to enable here &ndash;&gt;-->
-                    <!--                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>-->
-                    <!--                    </annotationProcessors>-->
+                        <annotationProcessors>
+                            <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
+                        </annotationProcessors>
                     <compilerArgs>
                         <arg>-AprintErrorStack</arg>
                         <!-- location of the annotated JDK, which comes from a Maven dependency -->
