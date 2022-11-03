@@ -6,7 +6,7 @@ sudo apt install maven openjdk-11-jdk-headless -y
 cd ~
 git clone https://github.com/consysT-project/consysT-code.git
 cd consysT-code/
-git checkout new-bench
+git checkout develop
 mvn install -DskipTests
 
 # Install cassandra
@@ -14,7 +14,8 @@ cd ~
 wget https://dlcdn.apache.org/cassandra/4.0.7/apache-cassandra-4.0.7-bin.tar.gz
 tar -xf apache-cassandra-4.0.7-bin.tar.gz
 cd apache-cassandra-4.0.7
-nano conf/cassandra.yaml
+# nano conf/cassandra.yaml  OR
+cp ~/consysT-code/aws/config/cassandra/cassandra01.yaml conf/cassandra.yaml
 ./bin/cassandra
 ./bin/nodetool status        
 
@@ -37,13 +38,16 @@ endpoint_snitch: Ec2Snitch
 cd ~
 wget https://dlcdn.apache.org/zookeeper/zookeeper-3.8.0/apache-zookeeper-3.8.0-bin.tar.gz
 tar -xf apache-zookeeper-3.8.0-bin.tar.gz
-cd ./apache-zookeeper-3.8.0-bin
+cd apache-zookeeper-3.8.0-bin
 mkdir logs
 mkdir data
-touch data/myid.txt
-nano data/myid.txt (Add the node id to this file, normally 1, 2, 3, ...)
-cp conf/zoo_sample.cfg conf/zoo.cfg
-nano conf/zoo.cfg
+touch data/myid
+# cp conf/zoo_sample.cfg conf/zoo.cfg
+# nano conf/zoo.cfg
+cp ~/consysT-code/aws/config/zoo/zoo01.cfg conf/zoo.cfg
+nano data/myid # (Add the node id to this file, normally 1, 2, 3, ...)
+
+
 bin/zkServer.sh start
 
 
