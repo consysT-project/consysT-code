@@ -41,11 +41,10 @@ tar -xf apache-zookeeper-3.8.0-bin.tar.gz
 cd apache-zookeeper-3.8.0-bin
 mkdir logs
 mkdir data
-touch data/myid
+echo "1" > data/myid
 # cp conf/zoo_sample.cfg conf/zoo.cfg
 # nano conf/zoo.cfg
 cp ~/consysT-code/aws/config/zoo/zoo01.cfg conf/zoo.cfg
-nano data/myid # (Add the node id to this file, normally 1, 2, 3, ...)
 
 
 bin/zkServer.sh start
