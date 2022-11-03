@@ -50,6 +50,12 @@ public class MessageGroupsBenchmark extends DemoRunnable {
 
         users = new ArrayList<>(numberOfUsersPerReplica * config.numberOfReplicas());
         groups = new ArrayList<>(numberOfGroupsPerReplica * config.numberOfReplicas());
+
+        switch (benchType) {
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                throw new IllegalArgumentException("STRONG_DATACENTRIC, WEAK_DATACENTRIC not supported by message-groups bench");
+        }
     }
 
     @Override

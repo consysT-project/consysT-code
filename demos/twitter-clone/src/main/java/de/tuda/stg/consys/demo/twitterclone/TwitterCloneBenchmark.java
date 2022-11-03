@@ -34,6 +34,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
     private final int nMaxRetries;
     private final int retryDelay;
+    private final boolean isDataCentric;
 
     private final int numOfGroupsPerReplica;
     private final Class<? extends IUser> userImpl;
@@ -50,12 +51,19 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         nMaxRetries = config.toConfig().getInt("consys.bench.demo.twitterclone.retries");
         retryDelay = config.toConfig().getInt("consys.bench.demo.twitterclone.retryDelay");
 
-        if (benchType == BenchmarkType.MIXED) {
-            userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
-            tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet.class;
-        } else {
-            userImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.User.class;
-            tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.Tweet.class;
+        switch (benchType) {
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                isDataCentric = true;
+                userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
+                tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet.class;
+                break;
+            default:
+                isDataCentric = false;
+                userImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.User.class;
+                tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.Tweet.class;
+                break;
         }
 
         tweets = new ArrayList<>(numOfGroupsPerReplica * nReplicas);
@@ -71,7 +79,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
             Ref<? extends IUser> user;
             Ref<? extends ITweet> tweet;
 
-            if (benchType == BenchmarkType.MIXED) {
+            if (isDataCentric) {
                 user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
                         DemoUtils.addr("user", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), userImpl,
                         DemoUtils.generateRandomName()))).get();

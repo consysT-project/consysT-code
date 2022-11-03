@@ -23,6 +23,12 @@ public class CounterBenchmark extends DemoRunnable {
 
 	public CounterBenchmark(JBenchStore adapter, BenchmarkConfig config) {
 		super(adapter, config);
+
+		switch (benchType) {
+			case STRONG_DATACENTRIC:
+			case WEAK_DATACENTRIC:
+				throw new IllegalArgumentException("STRONG_DATACENTRIC, WEAK_DATACENTRIC not supported by counter bench");
+		}
 	}
 
 	private Ref<Counter> counter;

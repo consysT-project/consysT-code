@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 public abstract class DemoRunnable extends JBenchRunnable {
     protected enum BenchmarkType {
-        WEAK, MIXED, STRONG, OP_MIXED
+        WEAK, MIXED, STRONG, OP_MIXED, WEAK_DATACENTRIC, STRONG_DATACENTRIC
     }
 
     protected final BenchmarkType benchType;
@@ -43,8 +43,10 @@ public abstract class DemoRunnable extends JBenchRunnable {
 
     protected ConsistencyLevel getLevelWithMixedFallback(ConsistencyLevel mixedLevel) {
         switch (benchType) {
-            case WEAK: return getWeakLevel();
-            case STRONG: return getStrongLevel();
+            case WEAK:
+            case WEAK_DATACENTRIC: return getWeakLevel();
+            case STRONG:
+            case STRONG_DATACENTRIC: return getStrongLevel();
             case OP_MIXED: return getMixedLevel();
             case MIXED: return mixedLevel;
             default: throw new UnsupportedOperationException("unknown bench type");

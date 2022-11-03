@@ -41,23 +41,28 @@ public class QuoddyBenchmark extends DemoRunnable {
         Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.quoddy.retries");
         Session.retryDelay = config.toConfig().getInt("consys.bench.demo.quoddy.retryDelay");
 
-        Session.internalConsistencyLevel = getStrongLevel();
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.groupConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
-        if (benchType == BenchmarkType.MIXED) {
-            Session.dataCentric = true;
-            Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
-            Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
-            Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
-            Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
-        } else {
-            Session.dataCentric = false;
-            Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.User.class;
-            Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Group.class;
-            Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.StatusUpdate.class;
-            Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Event.class;
+        switch (benchType) {
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+                Session.dataCentric = true;
+                Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
+                Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
+                Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.StatusUpdate.class;
+                Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Event.class;
+                break;
+            default:
+                Session.dataCentric = false;
+                Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.User.class;
+                Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Group.class;
+                Session.statusUpdateImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.StatusUpdate.class;
+                Session.eventImpl = de.tuda.stg.consys.demo.quoddy.schema.opcentric.Event.class;
+                break;
         }
     }
 

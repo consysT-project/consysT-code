@@ -43,18 +43,23 @@ public class RubisBenchmark extends DemoRunnable {
         Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
         Session.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-        Session.internalConsistencyLevel = getStrongLevel();
         Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
         Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
-        if (benchType == BenchmarkType.MIXED) {
-            Session.dataCentric = true;
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
-        } else {
-            Session.dataCentric = false;
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
+        switch (benchType) {
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+                Session.dataCentric = true;
+                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
+                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
+                break;
+            default:
+                Session.dataCentric = false;
+                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
+                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
+                break;
         }
     }
 
