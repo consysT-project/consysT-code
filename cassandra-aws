@@ -11,9 +11,9 @@ mvn install -DskipTests
 
 # Install cassandra
 cd ~
-wget https://dlcdn.apache.org/cassandra/4.0.6/apache-cassandra-4.0.6-bin.tar.gz
-tar -xf apache-cassandra-4.0.6-bin.tar.gz
-cd apache-cassandra-4.0.6-bin
+wget https://dlcdn.apache.org/cassandra/4.0.7/apache-cassandra-4.0.7-bin.tar.gz
+tar -xf apache-cassandra-4.0.7-bin.tar.gz
+cd apache-cassandra-4.0.7
 nano conf/cassandra.yaml
 ./bin/cassandra
 ./bin/nodetool status        
@@ -54,9 +54,14 @@ clientPort=2181 (Replace last digit with myid, e.g., 2183 for node with id 3)
 dataDir=~/apache-zookeeper-3.8.0-bin/data
 
 # Servers
-server.1=172.31.16.217
-server.2=172.31.27.141
-server.3=172.31.17.201
+server.1=172.31.17.46
+server.2=172.31.17.28
+server.3=172.31.30.111
+server.4=172.31.24.240
+server.5=172.31.24.203
+server.6=172.31.18.132
+server.7=172.31.17.156
+server.8=172.31.25.156
 (For every server where the nmber in server.n is the myid)
 
 
