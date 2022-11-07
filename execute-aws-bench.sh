@@ -13,12 +13,13 @@ CONF=$1
 #
 #echo "messagegroups weak"
 #java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/weak/${CONF}
-echo "messagegroups strong"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
-echo "messagegroups op_mixed"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/op_mixed/${CONF}
-echo "messagegroups mixed"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/mixed/${CONF}
+#TODO: Redo these!
+#echo "messagegroups strong"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
+#echo "messagegroups op_mixed"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/op_mixed/${CONF}
+#echo "messagegroups mixed"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/mixed/${CONF}
 
 echo "twitter weak"
 java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/weak/${CONF}
