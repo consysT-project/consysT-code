@@ -28,7 +28,7 @@ python3 ../../../process-results.py processed.csv \
 ./rubis/mixed/:100 \
 ./rubis/strong_datacentric/:100
 
-# TODO: include datacentric versions
+
 python3 ../../../generate-graphs.py latency_processed.csv latency_normalized.csv \
 ./counter/strong/:./counter/op_mixed/ \
 ./counter/weak/:./counter/op_mixed/ \
@@ -39,14 +39,20 @@ python3 ../../../generate-graphs.py latency_processed.csv latency_normalized.csv
 ./twitter-clone/strong/:./twitter-clone/op_mixed/ \
 ./twitter-clone/weak/:./twitter-clone/op_mixed/ \
 ./twitter-clone/mixed/:./twitter-clone/op_mixed/ \
+./twitter-clone/weak_datacentric/:./twitter-clone/op_mixed/ \
+./twitter-clone/strong_datacentric/:./twitter-clone/op_mixed/ \
 ./quoddy/strong/:./quoddy/op_mixed/ \
 ./quoddy/weak/:./quoddy/op_mixed/ \
 ./quoddy/mixed/:./quoddy/op_mixed/ \
+./quoddy/weak_datacentric/:./quoddy/op_mixed/ \
+./quoddy/strong_datacentric/:./quoddy/op_mixed/ \
 ./rubis/strong/:./rubis/op_mixed/ \
 ./rubis/weak/:./rubis/op_mixed/ \
-./rubis/mixed/:./rubis/op_mixed/
+./rubis/mixed/:./rubis/op_mixed/ \
+./rubis/weak_datacentric/:./rubis/op_mixed/ \
+./rubis/strong_datacentric/:./rubis/op_mixed/
 
-# TODO: include datacentric versions
+
 python3 ../../../generate-graphs.py throughput_processed.csv throughput_normalized.csv \
 ./counter/strong/:./counter/op_mixed/ \
 ./counter/weak/:./counter/op_mixed/ \
@@ -57,9 +63,15 @@ python3 ../../../generate-graphs.py throughput_processed.csv throughput_normaliz
 ./twitter-clone/strong/:./twitter-clone/op_mixed/ \
 ./twitter-clone/weak/:./twitter-clone/op_mixed/ \
 ./twitter-clone/mixed/:./twitter-clone/op_mixed/ \
+./twitter-clone/weak_datacentric/:./twitter-clone/op_mixed/ \
+./twitter-clone/strong_datacentric/:./twitter-clone/op_mixed/ \
 ./quoddy/strong/:./quoddy/op_mixed/ \
 ./quoddy/weak/:./quoddy/op_mixed/ \
 ./quoddy/mixed/:./quoddy/op_mixed/ \
+./quoddy/weak_datacentric/:./quoddy/op_mixed/ \
+./quoddy/strong_datacentric/:./quoddy/op_mixed/ \
 ./rubis/strong/:./rubis/op_mixed/ \
 ./rubis/weak/:./rubis/op_mixed/ \
-./rubis/mixed/:./rubis/op_mixed/
+./rubis/mixed/:./rubis/op_mixed/ \
+./rubis/weak_datacentric/:./rubis/op_mixed/ \
+./rubis/strong_datacentric/:./rubis/op_mixed/
