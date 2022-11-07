@@ -51,6 +51,6 @@ public @Mixed class Tweet implements ITweet {
 
     @Override
     public String toString() {
-        return getUser() + ": " + getBody() + " [" + getCreated() + "]";
+        return getUser() + ": " + getBody() + " [" + getCreated() + "]" + "(" + retweetCount + " retweets)";
     }
 }

@@ -9,11 +9,7 @@ import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public @Mixed class User implements IUser {
     private final @Immutable UUID id = UUID.randomUUID();
@@ -23,7 +19,7 @@ public @Mixed class User implements IUser {
 
     private final List<Ref<? extends IUser>> followers = new ArrayList<>();
     private final List<Ref<? extends IUser>> followings = new ArrayList<>();
-    private final List<Ref<? extends ITweet>> timeline = new ArrayList<>();
+    private final List<Ref<? extends ITweet>> timeline = new LinkedList<>();
     private final List<Ref<? extends ITweet>> retweets = new ArrayList<>();
 
     public User(@Mutable @Local String name) {
@@ -80,7 +76,7 @@ public @Mixed class User implements IUser {
 
     @Transactional
     public void addToTimeline(Ref<? extends ITweet> tweet) {
-        timeline.add(tweet);
+        timeline.add(0, tweet);
         for(Ref<? extends @Mutable IUser> user: followers) {
             user.ref().addToTimeline(tweet);
         }

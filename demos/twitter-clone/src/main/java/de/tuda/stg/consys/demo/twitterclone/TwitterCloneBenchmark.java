@@ -18,6 +18,7 @@ import scala.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 
 /**
@@ -217,6 +218,8 @@ public class TwitterCloneBenchmark extends DemoRunnable {
 
         store().transaction(ctx -> {
             List<Ref<? extends ITweet>> timeline = user.ref().getTimeline();
+            // render the newest 10 tweets
+            String tweets = timeline.stream().limit(10).map(tweet -> tweet.ref().toString()).collect(Collectors.joining("\n"));
 
             return Option.apply(0);
         });
