@@ -2,8 +2,8 @@
 
 CONF=$1
 
-java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/weak/${CONF}
-java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/strong/${CONF}
+#java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/weak/${CONF}
+#java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/strong/${CONF}
 java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/op_mixed/${CONF}
 java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/mixed/${CONF}
 
