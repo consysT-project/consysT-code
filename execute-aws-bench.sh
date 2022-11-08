@@ -11,11 +11,10 @@ CONF=$1
 #echo "counter mixed"
 #java -cp demos/counter/target/counter-4.0.0-allinone.jar de.tuda.stg.consys.demo.counter.CounterBenchmark -b cassandra -c aws/mixed/${CONF}
 #
-echo "messagegroups weak"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/weak/${CONF}
-TODO: Redo these!
-echo "messagegroups strong"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
+#echo "messagegroups weak"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/weak/${CONF}
+#echo "messagegroups strong"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
 echo "messagegroups op_mixed"
 java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/op_mixed/${CONF}
 echo "messagegroups mixed"
