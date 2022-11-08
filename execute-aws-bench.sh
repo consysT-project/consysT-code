@@ -21,18 +21,18 @@ CONF=$1
 #echo "messagegroups mixed"
 #java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/mixed/${CONF}
 
-echo "twitter weak"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/weak/${CONF}
-echo "twitter strong"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/strong/${CONF}
-echo "twitter op_mixed"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/op_mixed/${CONF}
-echo "twitter mixed"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/mixed/${CONF}
-echo "twitter weak_data"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/weak_datacentric/${CONF}
-echo "twitter strong_data"
-java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/strong_datacentric/${CONF}
+#echo "twitter weak"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/weak/${CONF}
+#echo "twitter strong"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/strong/${CONF}
+#echo "twitter op_mixed"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/op_mixed/${CONF}
+#echo "twitter mixed"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/mixed/${CONF}
+#echo "twitter weak_data"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/weak_datacentric/${CONF}
+#echo "twitter strong_data"
+#java -cp demos/twitter-clone/target/twitter-clone-4.0.0-allinone.jar de.tuda.stg.consys.demo.twitterclone.TwitterCloneBenchmark -b cassandra -c aws/strong_datacentric/${CONF}
 
 echo "quoddy weak"
 java -cp demos/quoddy/target/quoddy-4.0.0-allinone.jar de.tuda.stg.consys.demo.quoddy.QuoddyBenchmark -b cassandra -c aws/weak/${CONF}
