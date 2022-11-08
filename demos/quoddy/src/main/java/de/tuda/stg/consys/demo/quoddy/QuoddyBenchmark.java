@@ -335,7 +335,7 @@ public class QuoddyBenchmark extends DemoRunnable {
         Ref<? extends IUser> user = session.getUser();
         store().transaction(ctx -> {
             var friends = user.ref().getFriends();
-            if (groups.isEmpty()) {
+            if (friends.isEmpty()) {
                 // may happen in all-weak case
                 System.err.println("friends was empty");
                 return Option.empty();
