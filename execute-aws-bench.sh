@@ -54,8 +54,8 @@ java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rub
 
 #echo "messagegroups weak"
 #java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/weak/${CONF}
-echo "messagegroups strong"
-java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
+#echo "messagegroups strong"
+#java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/strong/${CONF}
 #echo "messagegroups op_mixed"
 #java -cp demos/message-groups/target/message-groups-4.0.0-allinone.jar de.tuda.stg.consys.demo.messagegroups.MessageGroupsBenchmark -b cassandra -c aws/op_mixed/${CONF}
 #echo "messagegroups mixed"
