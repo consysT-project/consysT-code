@@ -244,11 +244,11 @@ public @Mixed class Item implements Serializable, IItem {
 
     @WeakOp @SideEffectFree @Transactional
     public String toString() {
-        return "Item '" + name + "' (" + id + ")\n" +
-                "  - price (bid | Buy-Now): " + getTopBidPrice() + " | " + getBuyNowPrice() + "\n" +
-                "  - auction duration: " + startDate + " - " + endDate + "\n" +
-                "  - number of bids: " + getNumberOfBids() + "\n" +
-                description;
+        return "Item '" + name + "' (" + id + ")\n"; //+
+//                "  - price (bid | Buy-Now): " + getTopBidPrice() + " | " + getBuyNowPrice() + "\n" +
+//                "  - auction duration: " + startDate + " - " + endDate + "\n" +
+//                "  - number of bids: " + getNumberOfBids() + "\n" +
+//                description;
     }
 
     @Transactional
