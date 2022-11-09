@@ -40,16 +40,16 @@ CONF=$1
 #
 #echo "rubis weak"
 #java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/weak/${CONF}
-#echo "rubis strong"
-#java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/strong/${CONF}
-echo "rubis op_mixed"
-java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/op_mixed/${CONF}
-echo "rubis mixed"
-java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/mixed/${CONF}
+echo "rubis strong"
+java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/strong/${CONF}
+#echo "rubis op_mixed"
+#java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/op_mixed/${CONF}
+#echo "rubis mixed"
+#java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/mixed/${CONF}
 #echo "rubis weak_data"
 #java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/weak_datacentric/${CONF}
-#echo "rubis strong_data"
-#java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/strong_datacentric/${CONF}
+echo "rubis strong_data"
+java -cp demos/rubis/target/rubis-4.0.0-allinone.jar de.tuda.stg.consys.demo.rubis.RubisBenchmark -b cassandra -c aws/strong_datacentric/${CONF}
 
 
 #echo "messagegroups weak"
