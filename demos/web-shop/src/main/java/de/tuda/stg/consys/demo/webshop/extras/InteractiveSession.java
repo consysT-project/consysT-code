@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.webshop.extras;
 
 
+import de.tuda.stg.consys.demo.webshop.Session;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.concurrent.duration.Duration;
@@ -12,9 +13,7 @@ import java.util.concurrent.Executors;
 @SuppressWarnings({"consistency"})
 public class InteractiveSession {
     private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[3];
-/*
     private static Session session;
-*/
     private static ExecutorService threadPool;
 
     public static void main(String[] args) {
@@ -23,24 +22,36 @@ public class InteractiveSession {
 */
 
         Scanner commandLine = new Scanner(System.in);
-        System.out.println("auction client started\ntype 'connect' or 'init'");
+        System.out.println("Client started.");
+        System.out.println("'list': List all products");
+        System.out.println("'balance': To check your balance");
+        System.out.println("'buy': To buy a product");
 
         boolean running = true;
         String input;
         initConnections();
+        session.initProducts();
+        session.initUser();
+
         while(running){
             System.out.print("> ");
             input = commandLine.nextLine();
             try {
                 switch(input) {
+                    case "list": {
+                        session.showProducts();
+                        break;
+                    }
                     case "buy": {
-                        System.out.print("item id: ");
-                        var id = commandLine.nextLine();
-                        System.out.print("amount: ");
+                        System.out.print("Product name: ");
+                        var name = commandLine.nextLine();
+                        System.out.print("Amount: ");
                         var amount = commandLine.nextLine();
-/*
-                        session.buy(id, amount);
-*/
+                        session.buyProduct(name, Integer.parseInt(amount));
+                        break;
+                    }
+                    case "balance": {
+                        session.showBalance();
                         break;
                     }
                     case "exit":
@@ -56,7 +67,7 @@ public class InteractiveSession {
             }
         }
         commandLine.close();
-        System.out.println("User stopped");
+        System.out.println("Client stopped");
         closeConnections();
         System.out.println("Servers stopped");
     }
@@ -71,8 +82,9 @@ public class InteractiveSession {
             backgroundTasks[i].init();
             threadPool.submit(backgroundTasks[i]);
         }
+*/
 
-        session = new Session(replicas[0]);*/
+        session = new Session(replicas[0]);
     }
 
     private static void closeConnections() {
@@ -81,13 +93,13 @@ public class InteractiveSession {
 
         threadPool.shutdown();
         //threadPool.awaitTermination(5, TimeUnit.SECONDS);
-
+*/
         try {
             for (var replica : replicas)
                 replica.close();
         }
         catch (Exception e) {
             System.out.println(e.getMessage());
-        }*/
+        }
     }
 }
