@@ -219,6 +219,9 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         val methodElt = TreeUtils.elementFromDeclaration(node)
         val methodLevel = getQualifierForOp(getMixedOpForMethod(methodElt, state.defaultOp.get))
 
+        // update methodWriteTable here so that methods that access no field still have an empty access set
+        methodWriteTable.update(methodElt, Set.empty)
+
         super.visitMethod(node, state.copy(methodLevel = methodLevel, method = Some(methodElt)))
     }
 
