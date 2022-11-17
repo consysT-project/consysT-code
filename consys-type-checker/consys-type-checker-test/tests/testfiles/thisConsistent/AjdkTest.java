@@ -7,9 +7,11 @@ public class AjdkTest {
         @Strong float f1 = n.floatValue();
         // :: error: assignment
         @Local float f2 = n.floatValue();
+        @Weak float f3 = n.floatValue();
 
-        @Weak float f3 = x.floatValue();
+        @Weak float f4 = x.floatValue();
         // :: error: assignment
-        @Strong float f4 = x.floatValue();
+        @Strong float f5 = x.floatValue();
+        @Inconsistent float f6 = x.floatValue();
     }
 }
