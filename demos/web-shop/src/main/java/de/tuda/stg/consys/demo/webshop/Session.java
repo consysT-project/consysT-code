@@ -78,7 +78,7 @@ public class Session {
 
         doTransaction(ctx -> {
             user.ref().buyProduct(product, amount);
-            return Option.empty();
+            return Option.apply(user);
         });
     }
 
