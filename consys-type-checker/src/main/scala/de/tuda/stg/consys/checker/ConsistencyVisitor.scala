@@ -296,6 +296,20 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		r
 	}
 
+	override def checkOverride(overriderTree: MethodTree,
+							   overriderMethodType: AnnotatedExecutableType,
+							   overriderType: AnnotatedTypeMirror.AnnotatedDeclaredType,
+							   overriddenMethodType: AnnotatedExecutableType,
+							   overriddenType: AnnotatedTypeMirror.AnnotatedDeclaredType): Boolean = {
+		// Adapt @ThisConsistent based on currently visited class, since checkOverride is only called for methods
+		// implemented in the current class.
+		atypeFactory.withContext(atypeFactory.peekVisitClassContext._2) {
+			atypeFactory.replaceThisConsistent(overriderMethodType)
+			atypeFactory.replaceThisConsistent(overriddenMethodType)
+		}
+		super.checkOverride(overriderTree, overriderMethodType, overriderType, overriddenMethodType, overriddenType)
+	}
+
 	private def methodInvocationIsRefOrGetField(node: MethodInvocationTree): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField"))
 

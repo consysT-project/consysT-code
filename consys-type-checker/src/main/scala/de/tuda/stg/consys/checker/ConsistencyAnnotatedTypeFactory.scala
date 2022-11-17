@@ -162,6 +162,14 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         result
     }
 
+    def withContext[R](context: AnnotationMirror)(f: => R): R = {
+        val prevMethodReceiverContext = methodReceiverContext
+        methodReceiverContext = Some(context)
+        val result = f
+        methodReceiverContext = prevMethodReceiverContext
+        result
+    }
+
     def replaceThisConsistent(method: AnnotatedExecutableType): Unit = {
         // return & parameter type adaptation for @ThisConsistent inside method body context
         getMethodReceiverContext match {
