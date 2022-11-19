@@ -8,18 +8,15 @@ import scala.concurrent.duration.Duration;
 
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @SuppressWarnings({"consistency"})
 public class InteractiveSession {
     private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[3];
     private static Session session;
-    private static ExecutorService threadPool;
+
+    private static BackgroundTask secondSession;
 
     public static void main(String[] args) {
-/*
-        threadPool = Executors.newFixedThreadPool(backgroundTasks.length);
-*/
 
         Scanner commandLine = new Scanner(System.in);
         System.out.println("Client started.");
@@ -32,6 +29,7 @@ public class InteractiveSession {
         initConnections();
         session.initProducts();
         session.initUser();
+        //secondSession.run();
 
         while(running){
             System.out.print("> ");
@@ -77,23 +75,13 @@ public class InteractiveSession {
         for (int i = 0; i < replicas.length; i++)
             replicas[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, zookeeperPort + i, Duration.apply(15, "s"), i == 0);
 
-/*        for (int i = 0; i < backgroundTasks.length; i++) {
-            backgroundTasks[i] = new BackgroundTask(i, replicas.length, msServerSleep, replicas[i % replicas.length]);
-            backgroundTasks[i].init();
-            threadPool.submit(backgroundTasks[i]);
-        }
-*/
-
         session = new Session(replicas[0]);
+        secondSession = new BackgroundTask(replicas[0]);
     }
 
     private static void closeConnections() {
-/*        for (var task : backgroundTasks)
-            task.stopThread();
+        secondSession.stopThread();
 
-        threadPool.shutdown();
-        //threadPool.awaitTermination(5, TimeUnit.SECONDS);
-*/
         try {
             for (var replica : replicas)
                 replica.close();
