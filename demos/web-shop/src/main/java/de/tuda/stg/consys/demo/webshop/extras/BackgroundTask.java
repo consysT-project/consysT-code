@@ -8,6 +8,7 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Function1;
 import scala.Option;
+import java.util.Random;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.WEAK;
@@ -15,7 +16,6 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 public class BackgroundTask implements Runnable {
     private CassandraStoreBinding store;
     private boolean running = true;
-    private final long sleepMilliseconds = 5000;
     private Ref<User> user;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {
@@ -29,25 +29,40 @@ public class BackgroundTask implements Runnable {
     @Override
     public void run() {
         while (running) {
-            Ref<MyProduct> product = doTransaction(ctx ->
-                    Option.apply(ctx.lookup("milk", STRONG, MyProduct.class))).get();
+            String randomProduct = getRandomProduct();
+            int randomAmount = getRandomAmount();
 
-            this.user = doTransaction(
-                    ctx -> Option.apply(ctx.replicate("user", WEAK, User.class))).get();
+            boolean buy = doTransaction(ctx -> {
+                    Ref<MyProduct> product = ctx.lookup(randomProduct, STRONG, MyProduct.class);
+                    this.user = ctx.lookup("user", STRONG, User.class);
+                    boolean buySuccess = user.ref().buyProduct(product, randomAmount);
+                    return Option.apply(buySuccess);
+            }).get();
 
-            doTransaction(ctx -> {
-                user.ref().buyProduct(product, 1);
-                return Option.apply(user);
-            });
-
-            System.out.println("[THREAD " + Thread.currentThread().getId() + "]: Buy transaction");
+            System.out.print("\u001B[34m [THREAD " + Thread.currentThread().getId() + "]: ");
+            if (buy) {
+                System.out.println("Successfully bought " + randomAmount + " of " + randomProduct + ". \u001B[0m");
+            }
+            else {
+                System.out.println("Could not buy " + randomAmount + " of " + randomProduct + ". Either the balance is too low or product is not available in this quantity. \u001B[0m");
+            }
 
             try {
-                Thread.sleep(sleepMilliseconds);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
-                return;
+                throw new RuntimeException(e);
             }
         }
+    }
+
+    private String getRandomProduct() {
+        String[] availableProducts = {"milk", "cheese", "bread"};
+        int rnd = new Random().nextInt(availableProducts.length);
+        return availableProducts[rnd];
+    }
+
+    private int getRandomAmount() {
+        return new Random().nextInt(10) + 1;
     }
 
     public void stopThread() {

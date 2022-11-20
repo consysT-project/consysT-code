@@ -13,6 +13,8 @@ import scala.Option;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.WEAK;
 
@@ -22,6 +24,7 @@ public class Session {
     private Ref<User> user;
     public static ConsistencyLevel<CassandraStore> productConsistencyLevel = WEAK;
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel = WEAK;
+    private static ExecutorService threadPool;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {
         return store.transaction(code::apply);
@@ -30,17 +33,18 @@ public class Session {
     public Session(@Mutable CassandraStoreBinding store) {
         this.store = store;
         this.products = new ArrayList<>();
+        threadPool = Executors.newFixedThreadPool(1);
     }
 
     public void initProducts() {
         Ref<MyProduct> product = doTransaction(
-                ctx -> Option.apply(ctx.replicate("bread", productConsistencyLevel, MyProduct.class, "Bread", "Great taste", 10, 5))).get();
+                ctx -> Option.apply(ctx.replicate("bread", productConsistencyLevel, MyProduct.class, "Bread", "Great taste", 10, 20))).get();
 
         Ref<MyProduct> product2 = doTransaction(
-                ctx -> Option.apply(ctx.replicate("milk", productConsistencyLevel, MyProduct.class, "Milk", "Healthy", 5, 10))).get();
+                ctx -> Option.apply(ctx.replicate("milk", productConsistencyLevel, MyProduct.class, "Milk", "Healthy", 5, 20))).get();
 
         Ref<MyProduct> product3 = doTransaction(
-                ctx -> Option.apply(ctx.replicate("cheese", productConsistencyLevel, MyProduct.class, "Cheese", "Smells good", 30, 15))).get();
+                ctx -> Option.apply(ctx.replicate("cheese", productConsistencyLevel, MyProduct.class, "Cheese", "Smells good", 30, 20))).get();
 
         products.add(product);
         products.add(product2);
@@ -89,6 +93,33 @@ public class Session {
         }
         else {
             System.out.println("Could not buy " + amount + " of " + name + ". Either your balance is too low or product is not available in this quantity.");
+        }
+    }
+
+    public void runBalanceChecker() {
+        threadPool.submit(new BalanceChecker());
+    }
+
+    public void stopBalanceChecker() {
+        threadPool.shutdown();
+    }
+
+    class BalanceChecker implements Runnable {
+        @Override
+        public void run() {
+            while (true) {
+                int balanceLeft = doTransaction(ctx -> Option.apply(user.ref().getMoney())).get();
+                if (balanceLeft < 800) {
+                    System.out.println("\u001B[33m [USER WARNING]: Balance is less than 800. \u001B[0m");
+                    break;
+                }
+
+                try {
+                    Thread.sleep(8000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 }

@@ -14,8 +14,7 @@ import java.util.concurrent.Executors;
 public class InteractiveSession {
     private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[3];
     private static Session session;
-    private static BackgroundTask secondSession;
-
+    private static BackgroundTask backgroundTask;
     private static ExecutorService threadPool;
 
     public static void main(String[] args) {
@@ -32,9 +31,12 @@ public class InteractiveSession {
         boolean running = true;
         String input;
         initConnections();
+        
         session.initProducts();
         session.initUser();
-        threadPool.submit(secondSession);
+        session.runBalanceChecker();
+
+        threadPool.submit(backgroundTask);
 
         while(running){
             System.out.print("> ");
@@ -90,11 +92,12 @@ public class InteractiveSession {
             replicas[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, zookeeperPort + i, Duration.apply(15, "s"), i == 0);
 
         session = new Session(replicas[0]);
-        secondSession = new BackgroundTask(replicas[1]);
+        backgroundTask = new BackgroundTask(replicas[1]);
     }
 
     private static void closeConnections() {
-        secondSession.stopThread();
+        session.stopBalanceChecker();
+        backgroundTask.stopThread();
         threadPool.shutdown();
 
         try {

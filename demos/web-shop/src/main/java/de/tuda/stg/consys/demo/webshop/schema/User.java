@@ -28,6 +28,10 @@ public class User implements Serializable {
         this.money -= amount;
     }
 
+    public int getMoney() {
+        return this.money;
+    }
+
     public String toString() {
         return "Money: " + money + "\n";
     }
