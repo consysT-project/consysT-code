@@ -41,12 +41,6 @@ public class MyProduct implements Serializable {
         this.quantity -= amount;
     }
 
-    public String toString() {
-        return "Product: " + name + "\n" +
-                "Description: " + description + "\n" +
-                "Price: " + price + "\n" +
-                "Quantity: " + quantity + "\n";
-    }
 
 }
 

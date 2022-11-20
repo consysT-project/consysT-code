@@ -8,28 +8,33 @@ import scala.concurrent.duration.Duration;
 
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @SuppressWarnings({"consistency"})
 public class InteractiveSession {
     private static final CassandraStoreBinding[] replicas = new CassandraStoreBinding[3];
     private static Session session;
-
     private static BackgroundTask secondSession;
 
+    private static ExecutorService threadPool;
+
     public static void main(String[] args) {
+
+        threadPool = Executors.newFixedThreadPool(1);
 
         Scanner commandLine = new Scanner(System.in);
         System.out.println("Client started.");
         System.out.println("'list': List all products");
-        System.out.println("'balance': To check your balance");
-        System.out.println("'buy': To buy a product");
+        System.out.println("'balance': Check your balance");
+        System.out.println("'buy': Buy a product");
+        System.out.println("'exit': Quit");
 
         boolean running = true;
         String input;
         initConnections();
         session.initProducts();
         session.initUser();
-        //secondSession.run();
+        threadPool.submit(secondSession);
 
         while(running){
             System.out.print("> ");
@@ -41,8 +46,17 @@ public class InteractiveSession {
                         break;
                     }
                     case "buy": {
-                        System.out.print("Product name: ");
-                        var name = commandLine.nextLine();
+                        var name = "";
+
+                        while(true) {
+                            System.out.print("Product name: ");
+                            name = commandLine.nextLine();
+
+                            if (!name.isEmpty()) {
+                                break;
+                            }
+                        }
+
                         System.out.print("Amount: ");
                         var amount = commandLine.nextLine();
                         session.buyProduct(name, Integer.parseInt(amount));
@@ -76,11 +90,12 @@ public class InteractiveSession {
             replicas[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, zookeeperPort + i, Duration.apply(15, "s"), i == 0);
 
         session = new Session(replicas[0]);
-        secondSession = new BackgroundTask(replicas[0]);
+        secondSession = new BackgroundTask(replicas[1]);
     }
 
     private static void closeConnections() {
         secondSession.stopThread();
+        threadPool.shutdown();
 
         try {
             for (var replica : replicas)

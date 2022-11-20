@@ -55,31 +55,40 @@ public class Session {
     public void showProducts() {
         String productsString = doTransaction(ctx -> {
             var sb = new StringBuilder();
-            sb.append("Available products: \n");
+            System.out.printf("\u001B[32m%-22s%-22s%-22s%-22s\n", "NAME", "DESCRIPTION", "PRICE", "QUANTITY \u001B[0m");
+
             for (int i = 0; i < products.size(); i++) {
-                sb.append("=== \n");
-                sb.append(products.get(i).ref().toString());
+                String name = products.get(i).ref().getName();
+                String desc = products.get(i).ref().getDescription();
+                int price = products.get(i).ref().getPrice();
+                int quantity = products.get(i).ref().getQuantity();
+
+                System.out.printf("%-22s%-22s%-22s%-22s\n", name, desc, price, quantity);
             }
+
             return Option.apply(sb.toString());
         }).get();
 
-        System.out.println(productsString);
+        System.out.print(productsString);
     }
 
     public void showBalance() {
         String balanceString = doTransaction(ctx -> Option.apply(user.ref().toString())).get();
-
-        System.out.println(balanceString);
+        System.out.print(balanceString);
     }
 
     public void buyProduct(String name, int amount) {
-        Ref<MyProduct> product = doTransaction(ctx ->
-                Option.apply(ctx.lookup(name.toLowerCase(), productConsistencyLevel, MyProduct.class))).get();
+        boolean buy = doTransaction(ctx -> {
+            Ref<MyProduct> product = ctx.lookup(name.toLowerCase(), productConsistencyLevel, MyProduct.class);
+            boolean buySuccess = user.ref().buyProduct(product, amount);
+            return Option.apply(buySuccess);
+        }).get();
 
-        doTransaction(ctx -> {
-            user.ref().buyProduct(product, amount);
-            return Option.apply(user);
-        });
+        if (buy) {
+            System.out.println("Successfully bought " + amount + " of " + name + ".");
+        }
+        else {
+            System.out.println("Could not buy " + amount + " of " + name + ". Either your balance is too low or product is not available in this quantity.");
+        }
     }
-
 }

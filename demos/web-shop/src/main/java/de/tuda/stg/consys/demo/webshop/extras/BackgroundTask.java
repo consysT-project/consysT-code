@@ -8,7 +8,6 @@ import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Function1;
 import scala.Option;
-import scala.Tuple3;
 
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
 import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.WEAK;
@@ -16,7 +15,7 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 public class BackgroundTask implements Runnable {
     private CassandraStoreBinding store;
     private boolean running = true;
-    private final long sleepMilliseconds = 1000;
+    private final long sleepMilliseconds = 5000;
     private Ref<User> user;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {
@@ -30,7 +29,6 @@ public class BackgroundTask implements Runnable {
     @Override
     public void run() {
         while (running) {
-
             Ref<MyProduct> product = doTransaction(ctx ->
                     Option.apply(ctx.lookup("milk", STRONG, MyProduct.class))).get();
 
@@ -42,7 +40,7 @@ public class BackgroundTask implements Runnable {
                 return Option.apply(user);
             });
 
-            System.out.println("THREAD BUY");
+            System.out.println("[THREAD " + Thread.currentThread().getId() + "]: Buy transaction");
 
             try {
                 Thread.sleep(sleepMilliseconds);
