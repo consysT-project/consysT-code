@@ -48,8 +48,8 @@ public @Mixed class Tweet implements ITweet {
         retweetCount.ref().inc();
     }
 
-    @Override
+    @Override @Transactional
     public String toString() {
-        return getUser() + ": " + getBody() + " [" + getCreated() + "]";
+        return getUser() + ": " + getBody() + " [" + getCreated() + "]" + "(" + retweetCount.ref().get() + " retweets)";
     }
 }

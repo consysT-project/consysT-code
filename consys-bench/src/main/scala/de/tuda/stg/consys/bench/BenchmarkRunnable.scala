@@ -14,4 +14,13 @@ trait BenchmarkRunnable {
 	/** Cleans up all data structures after the measurement. This is not measured. */
 	def cleanup() : Unit
 
+	/**
+	 * Runs tests at the end of an iteration but before cleanup, if the execution is in test mode.
+	 */
+	def test() : Unit = { }
+
+	/**
+	 * Enables the testing mode.
+	 */
+	def enableTests() : Unit = { }
 }

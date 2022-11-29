@@ -1,17 +1,23 @@
 package de.tuda.stg.consys.demo.messagegroups;
 
-import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.DemoUtils;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
+import scala.Function1;
 import scala.Option;
 
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created on 10.10.19.
@@ -19,71 +25,62 @@ import java.util.*;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
+public class MessageGroupsBenchmark extends DemoRunnable {
     public static void main(String[] args) {
-        start(MessageGroupsBenchmark.class, args);
+        JBenchExecution.execute("message-groups", MessageGroupsBenchmark.class, args);
     }
 
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::checkInbox,
-            this::postMessage,
-            this::joinGroup
-    ));
+    private final int nMaxRetries;
+    private final int retryDelay;
 
-    private final List<Double> zipf;
-
-    private final int numOfUsersPerReplica;
-    private final int numOfGroupsPerReplica;
+    private final int numberOfUsersPerReplica;
+    private final int numberOfGroupsPerReplica;
 
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
 
-    public MessageGroupsBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
+    public MessageGroupsBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
 
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.messagegroups.users");
-        numOfGroupsPerReplica = config.getInt("consys.bench.demo.messagegroups.groups");
+        numberOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.users");
+        numberOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.groups");
 
-        zipf = zipfSummed(operations.size());
+        nMaxRetries = config.toConfig().getInt("consys.bench.demo.messagegroups.retries");
+        retryDelay = config.toConfig().getInt("consys.bench.demo.messagegroups.retryDelay");
 
-        users = new ArrayList<>(numOfUsersPerReplica * nReplicas());
-        groups = new ArrayList<>(numOfGroupsPerReplica * nReplicas());
-    }
+        users = new ArrayList<>(numberOfUsersPerReplica * config.numberOfReplicas());
+        groups = new ArrayList<>(numberOfGroupsPerReplica * config.numberOfReplicas());
 
-    private static String addr(String identifier, int grpIndex, int replIndex) {
-        return identifier + "$" + grpIndex + "$" + replIndex;
-    }
-
-    @Override
-    public String getName() {
-        return "MessageGroupsBenchmark";
+        switch (benchType) {
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                throw new IllegalArgumentException("STRONG_DATACENTRIC, WEAK_DATACENTRIC not supported by message-groups bench");
+        }
     }
 
     @Override
     public void setup() {
-        super.setup();
-
-        System.out.println("Adding users");
-        for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+        Logger.debug("Creating objects");
+        for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
             int finalUserIndex = userIndex;
 
-            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
-                    ctx.replicate(addr("inbox", finalUserIndex, processId()), getWeakLevel(), Inbox.class))
+            Ref<Inbox> inbox = (Ref<Inbox>) store().transaction(ctx -> Option.apply(
+                    ctx.replicate(DemoUtils.addr("inbox", finalUserIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), Inbox.class))
             ).get();
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("user", finalUserIndex, processId()), getWeakLevel(), User.class,
-                        addr("user", finalUserIndex, processId()), inbox);
+                ctx.replicate(DemoUtils.addr("user", finalUserIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), User.class,
+                        DemoUtils.addr("user", finalUserIndex, processId()), inbox);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(userIndex);
         }
 
-        for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+        for (int grpIndex = 0; grpIndex < numberOfGroupsPerReplica; grpIndex++) {
             int finalGrpIndex = grpIndex;
 
             store().transaction(ctx -> {
-                ctx.replicate(addr("group", finalGrpIndex, processId()), getStrongLevel(), Group.class);
+                ctx.replicate(DemoUtils.addr("group", finalGrpIndex, processId()), getLevelWithMixedFallback(getStrongLevel()), Group.class);
                 return Option.apply(0);
             });
             BenchmarkUtils.printProgress(grpIndex);
@@ -92,23 +89,24 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
         barrier("objects_added");
 
-        for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
+        Logger.debug("Collecting objects");
+        for (int replIndex = 0; replIndex < nReplicas; replIndex++) {
             int finalReplIndex = replIndex;
 
-            for (int grpIndex = 0; grpIndex < numOfGroupsPerReplica; grpIndex++) {
+            for (int grpIndex = 0; grpIndex < numberOfGroupsPerReplica; grpIndex++) {
                 int finalGrpIndex = grpIndex;
 
-                Ref<Group> group = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("group", finalGrpIndex, finalReplIndex), getStrongLevel(), Group.class))
+                Ref<Group> group = (Ref<Group>) store().transaction(ctx -> Option.apply(
+                        ctx.lookup(DemoUtils.addr("group", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getStrongLevel()), Group.class))
                 ).get();
                 groups.add(group);
             }
 
-            for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+            for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
                 int finalUserIndex = userIndex;
 
-                Ref<User> user = store().transaction(ctx -> Option.apply(
-                        ctx.lookup(addr("user", finalUserIndex, finalReplIndex), getWeakLevel(), User.class))
+                Ref<User> user = (Ref<User>) store().transaction(ctx -> Option.apply(
+                        ctx.lookup(DemoUtils.addr("user", finalUserIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), User.class))
                 ).get();
                 users.add(user);
 
@@ -116,7 +114,7 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
                 if (replIndex == processId()) {
                     store().transaction(ctx -> {
                         try {
-                            getRandomElement(groups).ref().addUser(user);
+                            DemoUtils.getRandomElement(groups).ref().addUser(user);
                         } catch (IllegalArgumentException ignored) {}
                         return Option.apply(0);
                     });
@@ -129,32 +127,53 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void cleanup() {
-        super.cleanup();
         groups.clear();
         users.clear();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
-    public void operation() {
-        randomTransaction(operations, zipf);
+    public void test() {
+        if (processId() == 0) printTestResult();
+    }
+
+    @Override
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                this::checkInbox,
+                this::postMessage,
+                this::joinGroup
+        });
+    }
+
+    private <U> Option<U> withRetry(Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return store().transaction(code::apply);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
     }
 
     private void postMessage() {
-        Ref<Group> group = getRandomElement(groups);
+        Ref<Group> group = DemoUtils.getRandomElement(groups);
 
-        store().transaction(ctx -> {
+        withRetry(ctx -> {
             group.ref().postMessage("Hello");
             return Option.apply(0);
         });
     }
 
     private void checkInbox() {
-        Ref<User> user = getRandomElement(users);
+        Ref<User> user = DemoUtils.getRandomElement(users);
 
         store().transaction(ctx -> {
             List<String> inbox = user.ref().getInbox();
@@ -163,8 +182,8 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
     }
 
     private void joinGroup() {
-        Ref<Group> group = getRandomElement(groups);
-        Ref<User> user = getRandomElement(users);
+        Ref<Group> group = DemoUtils.getRandomElement(groups);
+        Ref<User> user = DemoUtils.getRandomElement(users);
 
         Option<Integer> result = store().transaction(ctx -> {
             int groupSize = isTestMode ? group.ref().getUsers().size() : -1;
@@ -181,9 +200,8 @@ public class MessageGroupsBenchmark extends CassandraDemoBenchmark {
                 int prevGroupSize = result.get();
                 int capacity = group.ref().getCapacity();
                 if (prevGroupSize < capacity)
-                    check("user was added", prevGroupSize + 1 == group.ref().getUsers().size());
-                else
-                    check("capacity was respected", capacity == group.ref().getUsers().size());
+                    check("user was added", prevGroupSize < group.ref().getUsers().size());
+                check("capacity was respected", capacity >= group.ref().getUsers().size());
                 return Option.apply(0);
             });
         }

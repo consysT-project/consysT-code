@@ -36,5 +36,5 @@ public abstract class JBenchStore<StoreType extends Store> {
 
     public abstract ConsistencyLevel getStrongLevel();
 
-
+    public abstract ConsistencyLevel getMixedLevel();
 }

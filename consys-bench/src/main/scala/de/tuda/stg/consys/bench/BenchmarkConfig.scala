@@ -31,6 +31,10 @@ trait BenchmarkConfig {
 	def warmupIterations : Int
 	/** Define how ofthen the benchmark is reeated during measurements. */
 	def measureIterations : Int
+	/**
+	 * Defines how often the benchmark is run during testing.
+	 */
+	def testIterations : Int
 
 	/** Defines how many iterations are executed during one measurement/warmup. */
 	def operationsPerIteration : Int
@@ -45,12 +49,6 @@ trait BenchmarkConfig {
 
 	def toConfig : Config
 
-
 	/** Creates a store from this benchmark configuration */
 	def createStore[StoreType <: DistributedStore with BarrierStore](storeFactory : BenchmarkStoreFactory[StoreType]) : StoreType
-
-
-
 }
-
-

@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.quoddy.schema.datacentric;
 
+import de.tuda.stg.consys.checker.qual.Strong;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
@@ -10,7 +11,7 @@ import java.util.List;
  * Wrapper for java.util.List to be used for replicated lists,
  * since the jdk classes lack @SideEffectFree annotations.
  */
-public class RefList<E> implements Serializable {
+public @Strong class RefList<E> implements Serializable {
     private final List<E> underlying = new LinkedList<>();
 
     public void add(int index, E value) {
@@ -41,7 +42,8 @@ public class RefList<E> implements Serializable {
         return underlying.size();
     }
 
-    public List<E> getUnderlying() {
-        return underlying;
+    @SideEffectFree
+    public List<E> get() {
+        return (@Strong List<E>) underlying.subList(0, underlying.size());
     }
 }

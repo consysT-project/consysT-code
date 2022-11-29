@@ -16,7 +16,6 @@ REM limitations under the License.
 
 set ZOOCFGDIR=%~dp0%..\conf
 set ZOO_LOG_DIR=%~dp0%..\logs
-set ZOO_LOG4J_PROP=INFO,CONSOLE
 
 REM for sanity sake assume Java 1.6
 REM see: http://java.sun.com/javase/6/docs/technotes/tools/windows/java.html
@@ -42,7 +41,8 @@ if not defined JAVA_HOME (
 set JAVA_HOME=%JAVA_HOME:"=%
 
 if not exist "%JAVA_HOME%"\bin\java.exe (
-  echo Error: JAVA_HOME is incorrectly set.
+  echo Error: JAVA_HOME is incorrectly set: %JAVA_HOME%
+  echo Expected to find java.exe here: %JAVA_HOME%\bin\java.exe
   goto :eof
 )
 

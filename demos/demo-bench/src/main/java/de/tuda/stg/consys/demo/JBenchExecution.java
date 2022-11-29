@@ -41,6 +41,15 @@ public class JBenchExecution {
                 .build();
         options.addOption(configOption);
 
+        Option testOption = Option.builder()
+                .option("t")
+                .longOpt("test")
+                .hasArg(false)
+                .desc("Runs tests, if the number of test runs is set in the config and multiple config files are provided.")
+                .required(false)
+                .build();
+        options.addOption(testOption);
+
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd = null;
@@ -55,19 +64,21 @@ public class JBenchExecution {
 
 
         String[] configNames = cmd.getOptionValues("config");
+        boolean runTests = cmd.hasOption("t");
 
         if (configNames.length == 1) {
+            if (runTests) throw new IllegalArgumentException("not enough configs given for test mode: " + Arrays.toString(configNames));
             BenchmarkConfig config = BaseBenchmarkConfig.load(name, configNames[0], false);
             JBenchExecutor executor = createExecutor(cmd, name, clazz, config);
             executor.runBenchmark();
         } else if (configNames.length > 1) {
-            runMultiThread(cmd, name, clazz, configNames);
+            runMultiThread(cmd, name, clazz, configNames, runTests);
         } else {
             throw new IllegalArgumentException("not enough configs given: " + Arrays.toString(configNames));
         }
     }
 
-    private static void runMultiThread(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, String[] configNames) {
+    private static void runMultiThread(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, String[] configNames, boolean runTests) {
         int numberOfThreads = configNames.length;
 
         var exec = Executors.newFixedThreadPool(numberOfThreads);
@@ -79,7 +90,8 @@ public class JBenchExecution {
                 try {
                     BenchmarkConfig config = BaseBenchmarkConfig.load(name, configName, true);
                     JBenchExecutor executor = createExecutor(cmd, name, clazz, config);
-                    executor.runBenchmark();
+                    if (runTests) executor.runBenchmarkTests();
+                    else executor.runBenchmark();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -96,8 +108,6 @@ public class JBenchExecution {
             throw new RuntimeException(e);
         }
     }
-
-
 
     private static JBenchExecutor createExecutor(CommandLine cmd, String name, Class<? extends JBenchRunnable> clazz, BenchmarkConfig config) {
         String backend = cmd.getOptionValue("backend");
@@ -120,6 +130,4 @@ public class JBenchExecution {
             throw new IllegalArgumentException("unknown backend: " + backend);
         }
     }
-
-
 }

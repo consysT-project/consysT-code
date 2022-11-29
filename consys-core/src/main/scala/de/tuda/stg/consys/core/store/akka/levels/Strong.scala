@@ -20,8 +20,8 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 			obj : T
 		) : AkkaStore#RefType[T] = {
 			txContext.acquireLock(addr)
-			txContext.Cache.addEntry(addr, AkkaCachedObject[T](addr, obj, Weak))
-			AkkaRef[T](addr, Weak)
+			txContext.Cache.addEntry(addr, AkkaCachedObject[T](addr, obj, Strong))
+			AkkaRef[T](addr, Strong)
 		}
 
 		override def lookup[T <: AkkaStore#ObjType : ClassTag](
@@ -29,7 +29,7 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 			addr : AkkaStore#Addr
 		) : AkkaStore#RefType[T] = {
 			txContext.acquireLock(addr)
-			AkkaRef[T](addr, Weak)
+			AkkaRef[T](addr, Strong)
 		}
 
 		override def invoke[T <: AkkaStore#ObjType : ClassTag, R](
@@ -40,7 +40,7 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val entry  = txContext.Cache.readEntry[T](addr, weakRead[T](addr))
+			val entry  = txContext.Cache.readEntry[T](addr, strongRead[T](addr))
 			val result = entry.invoke[R](methodId, args)
 
 			//If method call is not side effect free, then set the changed flag
@@ -59,7 +59,7 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 		) : R = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
+			val entry = txContext.Cache.readEntry(addr, strongRead[T](addr))
 			val result = entry.getField[R](fieldName)
 			result
 		}
@@ -72,7 +72,7 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 		) : Unit = {
 			val addr = receiver.addr
 			txContext.acquireLock(addr)
-			val entry = txContext.Cache.readEntry(addr, weakRead[T](addr))
+			val entry = txContext.Cache.readEntry(addr, strongRead[T](addr))
 			entry.setField[R](fieldName, value)
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
@@ -86,9 +86,9 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 		}
 
 
-		private def weakRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaCachedObject[T] = {
+		private def strongRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaCachedObject[T] = {
 			val state = store.replica.read[T](addr)
-			AkkaCachedObject(addr, state, Weak)
+			AkkaCachedObject(addr, state, Strong)
 		}
 	}
 }

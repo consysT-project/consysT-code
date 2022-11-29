@@ -35,7 +35,7 @@ class BenchmarkExecutor(
 	private val procName : String = "proc-" + config.processId
 		
 	
-	private def warmup(skipCleanup: Boolean = false) : Unit = {
+	private def warmup() : Unit = {
 		import config._
 		
 		Logger.info(procName, "Start warmup")
@@ -48,12 +48,12 @@ class BenchmarkExecutor(
 					val runnable = runnableFactory.create(store, config)
 
 					// Setup
-					barrier(store, "setup")
+					barrier(store, "warmup-setup")
 					Logger.info(procName, s"Warmup $i: setup")
 					runnable.setup()
 
 					// Execute
-					barrier(store, "execute")
+					barrier(store, "warmup-execute")
 					Logger.info(procName, s"Warmup $i: iterations")
 					val operations = runnable.operations
 
@@ -68,11 +68,9 @@ class BenchmarkExecutor(
 					BenchmarkUtils.printDone()
 
 					// Cleanup
-					barrier(store, "cleanup")
-					if (i < warmupIterations || !skipCleanup) {
-						Logger.info(procName, s"Warmup $i: cleanup")
-						runnable.cleanup()
-					}
+					barrier(store, "warmup-cleanup")
+					Logger.info(procName, s"Warmup $i: cleanup")
+					runnable.cleanup()
 
 					// Done
 					barrier(store, "warmup-done")
@@ -84,8 +82,6 @@ class BenchmarkExecutor(
 				Logger.err(procName, "Warmup failed")
 		}
 	}
-
-
 
 	private def measure() : Unit = {
 		import config._
@@ -102,16 +98,16 @@ class BenchmarkExecutor(
 			for (i <- 1 to config.measureIterations) {
 				withStore { store =>
 					//Init
-					barrier(store, "warmup-initialize")
+					barrier(store, "measure-initialize")
 					val runnable = runnableFactory.create(store, config)
 
 					//Setup the measurement
-					barrier(store, "setup")
+					barrier(store, "measure-setup")
 					Logger.info(procName, s"Measure $i: setup")
 					runnable.setup()
 
 					//Run the measurement
-					barrier(store, "iterations")
+					barrier(store, "measure-execute")
 					Logger.info(procName, s"Measure $i: iterations")
 					val operations = runnable.operations
 
@@ -140,7 +136,7 @@ class BenchmarkExecutor(
 					latencyWriter.flush()
 
 					//Cleanup the iteration
-					barrier(store, "cleanup")
+					barrier(store, "measure-cleanup")
 					Logger.info(procName, s"Measure $i: cleanup")
 					runnable.cleanup()
 
@@ -163,14 +159,67 @@ class BenchmarkExecutor(
 		Logger.info(procName, "Measure done")
 	}
 
+	private def test() : Unit = {
+		import config._
+
+		Logger.info(procName, "Start test")
+
+		try {
+			for (i <- 1 to testIterations) {
+				withStore { store =>
+					// Init
+					barrier(store, "test-initialize")
+					val runnable = runnableFactory.create(store, config)
+					runnable.enableTests()
+
+					// Setup
+					barrier(store, "test-setup")
+					Logger.info(procName, s"Test $i: setup")
+					runnable.setup()
+
+					// Execute
+					barrier(store, "test-execute")
+					Logger.info(procName, s"Test $i: iterations")
+					val operations = runnable.operations
+
+					for (j <- 1 to operationsPerIteration) {
+						if (waitBetweenOperations.toMillis > 0) busyWait(waitBetweenOperations.toMillis)
+						val op = operations.getOperation
+						op.run()
+						BenchmarkUtils.printProgress(j)
+					}
+
+					runnable.closeOperations()
+					BenchmarkUtils.printDone()
+
+					// Test
+					barrier(store, "test-test")
+					Logger.info(procName, s"Test $i: test")
+					runnable.test()
+
+					// Cleanup
+					barrier(store, "test-cleanup")
+					Logger.info(procName, s"Test $i: cleanup")
+					runnable.cleanup()
+
+					// Done
+					barrier(store, "test-done")
+				}
+			}
+		} catch {
+			case e: Exception =>
+				e.printStackTrace()
+				Logger.err(procName, "Test failed")
+		}
+	}
 
 	def runBenchmark() : Unit = {
 		warmup()
 		measure()
 	}
 
-	def runWarmupOnlyWithoutCleanup() : Unit = {
-		warmup(true)
+	def runBenchmarkTests() : Unit = {
+		warmup()
+		test()
 	}
-
 }

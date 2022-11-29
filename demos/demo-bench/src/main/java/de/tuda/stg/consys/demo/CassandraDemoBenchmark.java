@@ -29,12 +29,11 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 
 	private final BenchmarkType benchType;
 	protected boolean isTestMode = false;
-	private static final int msTimeout = 60000;
 	// utility for benchmarks
 	protected final Random random = new Random();
 
 
-	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver) {
+	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver, int msTimeout) {
 		super(name, config, outputResolver, (address, processId, barrier) -> {
 			CassandraStoreBinding store = null;
 
@@ -65,8 +64,16 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
+	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver) {
+		this(name, config, outputResolver, 60000);
+	}
+
 	public CassandraDemoBenchmark(Config config, Option<OutputResolver> outputResolver) {
 		this("default", config, outputResolver);
+	}
+
+	public CassandraDemoBenchmark(Config config, Option<OutputResolver> outputResolver, int msTimeout) {
+		this("default", config, outputResolver, msTimeout);
 	}
 
 	protected ConsistencyLevel<CassandraStore> getStrongLevel() {

@@ -1,77 +1,66 @@
 package de.tuda.stg.consys.demo.rubis;
 
-import com.typesafe.config.Config;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.demo.DemoRunnable;
+import de.tuda.stg.consys.demo.DemoUtils;
+import de.tuda.stg.consys.demo.JBenchExecution;
+import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
-public class RubisBenchmark extends CassandraDemoBenchmark {
+public class RubisBenchmark extends DemoRunnable {
     public static void main(String[] args) {
-        start(RubisBenchmark.class, args);
+        JBenchExecution.execute("rubis", RubisBenchmark.class, args);
     }
-
-    private final List<Runnable> operations = new ArrayList<>(Arrays.asList(
-            this::browseCategory,
-            this::placeBid,
-            this::buyNow,
-            this::rateUser,
-            this::closeAuction
-    ));
-
-    private final List<Double> zipf;
-
-    private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
-            "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
-            "brunch", "authentic", "hella", "street art", "Tumblr", "Blue Bottle", "readymade",
-            "occupy", "irony", "slow-carb", "heirloom", "YOLO", "tofu", "ethical", "tattooed",
-            "vinyl", "artisan", "kale", "selfie"));
-    private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
-    private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
 
     private static final float maxPrice = 100;
 
     private final int numOfUsersPerReplica;
     private final List<Session> localSessions;
     private final List<Ref<? extends IUser>> users;
-    private Ref<AuctionStore> auctionStore;
+    private final List<Ref<? extends IItem>> items;
+
+    private int itemNoOps;
+    private int itemOps;
 
 
-    public RubisBenchmark(Config config, Option<OutputResolver> outputResolver) {
-        super(config, outputResolver);
-
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
-
-        zipf = zipfSummed(operations.size());
-
-        Session.userConsistencyLevel = getStrongLevel();
-        Session.itemConsistencyLevel = getStrongLevel();
-        Session.storeConsistencyLevel = getStrongLevel();
-
+    public RubisBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config);
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
-    }
+        items = new ArrayList<>();
 
-    private static String userAddr(int userIndex, int replicaIndex) {
-        return "user$" + userIndex + "$"+ replicaIndex;
-    }
+        numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
-    private String generateRandomName() {
-        return FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
-                + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
-    }
+        Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
+        Session.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-    private String generateRandomPassword() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 12; i++) {
-            sb.append((char)(random.nextInt('z' - 'a' + 1) + 'a'));
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+
+        switch (benchType) {
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+                Session.dataCentric = true;
+                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
+                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
+                break;
+            default:
+                Session.dataCentric = false;
+                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
+                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
+                break;
         }
-        return sb.toString();
     }
 
     private Category getRandomCategory() {
@@ -83,65 +72,41 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     protected float getInitialBalance() {
-        return numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f;
-    }
-
-    @Override
-    public String getName() {
-        return "RubisBenchmark";
+        return numOfUsersPerReplica * nReplicas * maxPrice * 1.3f;
     }
 
     @Override
     public void setup() {
-        super.setup();
-
-        Session.dataCentric = getBenchType() == BenchmarkType.MIXED;
-        if (getBenchType() == BenchmarkType.MIXED) {
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
-        } else {
-            Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
-            Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
-        }
-
-        if (processId() == 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.apply(0);
-            });
-        }
-        barrier("auction_store_setup");
-        if (processId() != 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.apply(0);
-            });
-        }
-
-        System.out.println("Adding local users and items");
+        Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             var session = new Session(store());
             localSessions.add(session);
 
-            session.registerUser(null, userAddr(userIndex, processId()), generateRandomName(),
-                    generateRandomPassword(), "mail@example.com");
+            session.registerUser(null,
+                    DemoUtils.addr("user", userIndex, processId()),
+                    DemoUtils.generateRandomName(), DemoUtils.generateRandomPassword(), "mail@example.com");
 
             session.addBalance(null, getInitialBalance());
 
-            session.registerItem(null, generateRandomText(1, WORDS), generateRandomText(10, WORDS),
-                    getRandomCategory(), getRandomPrice(), 300);
+            UUID itemId = UUID.randomUUID();
+            session.registerItem(null,
+                    DemoUtils.addr("item", userIndex, processId()), itemId,
+                    DemoUtils.generateRandomText(1), DemoUtils.generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(), 86400);
 
             BenchmarkUtils.printProgress(userIndex);
         }
 
         barrier("users_added");
 
-        System.out.println("Getting users and items from other replicas");
+        Logger.debug(procName(), "Collecting objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
-            for (int replicaIndex = 0; replicaIndex < nReplicas(); replicaIndex++) {
-                users.add(localSessions.get(0).findUser(null, userAddr(userIndex, replicaIndex)));
+            for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
+                users.add(localSessions.get(0).findUser(null,
+                        DemoUtils.addr("user", userIndex, replicaIndex)));
+                items.add(localSessions.get(0).getItem(null,
+                        DemoUtils.addr("item", userIndex, replicaIndex)));
             }
-            BenchmarkUtils.printProgress(userIndex);
         }
 
         BenchmarkUtils.printDone();
@@ -149,41 +114,48 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     @Override
     public void cleanup() {
-        super.cleanup();
+        Logger.info(procName(), "nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
+        Logger.info(procName(), "nops w.r.t all operations: " + (float)itemNoOps/100);
+
         localSessions.clear();
         users.clear();
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        items.clear();
     }
 
     @Override
-    public void operation() {
-        try {
-            randomTransaction(operations, zipf);
-        } catch (AppException e) {
-            /* possible/acceptable errors:
-                - bidding on own item (rare)
-                - auction has already ended (common)
-            */
-            System.out.println(e.getMessage());
-        }
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                withExceptionHandling(this::browseItems),
+                withExceptionHandling(this::placeBid),
+                withExceptionHandling(this::buyNow),
+                withExceptionHandling(this::rateUser),
+                withExceptionHandling(this::closeAuction)
+        });
+    }
+
+    private Runnable withExceptionHandling(Runnable op) {
+        return () -> {
+            try {
+                op.run();
+            } catch (AppException e) {
+                /* possible/acceptable errors:
+                    - bidding on own item (rare)
+                    - auction has already ended (common)
+                */
+                //System.err.println(e.getMessage());
+            }
+        };
     }
 
     private void placeBid() {
-        Session session = getRandomElement(localSessions);
+        Session session = DemoUtils.getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
-            if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for placeBid operation");
-                return Option.empty();
-            }
+            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
 
-            Ref<? extends IItem> item = getRandomElement(openAuctions);
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
             return Option.apply(0);
@@ -191,17 +163,14 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     }
 
     private void buyNow() {
-        Session session = getRandomElement(localSessions);
+        Session session = DemoUtils.getRandomElement(localSessions);
 
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions();
-            if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for buyNow operation");
-                return Option.empty();
-            }
-
-            var item = getRandomElement(openAuctions);
+            var item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
 
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] {
@@ -214,7 +183,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 return Option.apply(trxResult);
             } catch (IllegalArgumentException e) {
                 trxResult.appExceptions = new Exception[] { e };
-                System.out.println("Exception raised by app: " + e.getMessage());
+                System.err.println("Exception raised by app: " + e.getMessage());
                 return Option.apply(trxResult);
             }
         });
@@ -225,10 +194,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     private void buyNowTest(TransactionResult result) {
         if (result.appExceptions.length > 0) {
-            check("no app exception occurred", false);
+            check("no app exception occurred during buy-now", false);
             return;
         } else {
-            check("no app exception occurred", true);
+            check("no app exception occurred during buy-now", true);
         }
 
         store().transaction(ctx -> {
@@ -239,10 +208,12 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             ItemState itemPrev = result.items[0];
             Ref<? extends IItem> item = itemPrev.ref;
 
-            checkEquals("seller balance after buy-now",
-                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance());
-            checkEquals("buyer balance after buy-now",
-                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance());
+            /* TODO: not testable due to possible parallel operations
+            checkFloatEquals("seller balance after buy-now",
+                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance(), 0.01f);
+            checkFloatEquals("buyer balance after buy-now",
+                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance(), 0.01f);
+             */
 
             check("buy-now closed for seller",
                     seller.ref().getSellerHistory(true).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -265,13 +236,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     private void closeAuction() {
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            List<Ref<? extends IItem>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
-            if (openAuctions.isEmpty()) {
-                System.out.println("no open auctions for closeAuction operation");
-                return Option.empty();
-            }
-
-            Ref<? extends IItem> item = getRandomElement(openAuctions);
+            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
+            if (item.ref().getStatus() != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
 
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] { new UserState(item.ref().getSeller()) },
@@ -282,7 +250,7 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                 item.ref().closeAuction(item);
             } catch (IllegalArgumentException e) {
                 trxResult.appExceptions = new Exception[] { e };
-                System.out.println("Exception raised by app: " + e.getMessage());
+                System.err.println("Exception raised by app: " + e.getMessage());
             }
             return Option.apply(trxResult);
         });
@@ -293,10 +261,10 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
 
     private void closeAuctionTest(TransactionResult result) {
         if (result.appExceptions.length > 0) {
-            check("no app exception occurred", false);
+            check("no app exception occurred during close-auction", false);
             return;
         } else {
-            check("no app exception occurred", true);
+            check("no app exception occurred during close-auction", true);
         }
 
         store().transaction(ctx -> {
@@ -305,9 +273,11 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
             UserState sellerPrev = result.users[0];
             Ref<? extends IUser> seller = sellerPrev.ref;
 
-            boolean wasSold = item.ref().getStatus() == IItem.Status.SOLD_VIA_AUCTION;
+            boolean wasSold = item.ref().getStatus() == ItemStatus.SOLD_VIA_AUCTION;
+            /* TODO: not testable due to possible parallel operations
             float price = wasSold ? item.ref().getTopBidPrice() : 0;
-            checkEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance());
+            checkFloatEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance(), 0.01f);
+             */
 
             check("auction closed for seller",
                     seller.ref().getSellerHistory(wasSold).stream().anyMatch(auction -> auction.ref().refEquals(item)));
@@ -336,18 +306,23 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
         });
     }
 
-    private void browseCategory() {
-        Category category = getRandomCategory();
-        Session session = getRandomElement(localSessions);
-        session.browseCategory(null, category, 5);
+    private void browseItems() {
+        Session session = DemoUtils.getRandomElement(localSessions);
+        String[] replIds = new String[5];
+        for (int i = 0; i < 5; i++) {
+            int userIndex = random.nextInt(numOfUsersPerReplica);
+            int replicaIndex = random.nextInt(nReplicas);
+            replIds[i] = DemoUtils.addr("item", userIndex, replicaIndex);
+        }
+        session.browseItemsByReplIds(null, replIds);
     }
 
     private void rateUser() {
         int rating = 1 + random.nextInt(5);
-        Ref<? extends IUser> user1 = getRandomElement(users);
-        Ref<? extends IUser> user2 = getRandomElementExcept(users, user1);
+        Ref<? extends IUser> user1 = DemoUtils.getRandomElement(users);
+        Ref<? extends IUser> user2 = DemoUtils.getRandomElementExcept(users, user1);
         store().transaction(ctx -> {
-            user1.ref().rate(new Comment(rating, generateRandomText(10, WORDS), user2, user1));
+            user1.ref().rate(new Comment(rating, DemoUtils.generateRandomText(10), user2, user1));
             return Option.apply(0);
         });
     }
@@ -363,7 +338,6 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
     @Override
     public void test() {
         if (processId() != 0) return;
-        System.out.println("## TEST ##");
 
         check("users non empty", !users.isEmpty());
 
@@ -410,11 +384,12 @@ public class RubisBenchmark extends CassandraDemoBenchmark {
                     }
                 }
 
-                checkFloatEquals("balance correct", balance, userBalance);
+                checkFloatEquals("balance correct", balance, userBalance, 0.01f);
             }
             return Option.apply(0);
         });
-        System.out.println("## TEST SUCCESS ##");
+
+        printTestResult();
     }
 
     private static class TransactionResult {

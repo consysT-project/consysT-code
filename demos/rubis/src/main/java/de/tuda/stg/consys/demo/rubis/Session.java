@@ -4,67 +4,85 @@ import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.Item;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.NumberBox;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefList;
-import de.tuda.stg.consys.demo.rubis.schema.datacentric.RefMap;
+import de.tuda.stg.consys.demo.rubis.schema.datacentric.*;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 
-import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 import scala.Tuple2;
 
-import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
 public class Session {
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> itemConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> storeConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> itemConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> internalConsistencyLevel;
     public static Class<? extends IItem> itemImpl;
     public static Class<? extends IUser> userImpl;
+    public static int nMaxRetries;
+    public static int retryDelay;
 
     public static boolean dataCentric;
 
-    private CassandraStoreBinding store;
+    private Store store;
     private Ref<? extends @Mutable IUser> user;
-    private Ref<? extends @Mutable AuctionStore> auctionStore;
+    private Random random = new Random();
 
-    public Session(@Mutable CassandraStoreBinding store) {
+    public Session(@Mutable Store store) {
         this.store = store;
     }
 
-    public void setStore(@Mutable CassandraStoreBinding store) {
+    public void setStore(@Mutable Store store) {
         this.store = store;
     }
 
-    private <U> Option<U> doTransaction(CassandraTransactionContextBinding transaction,
-                                        Function1<CassandraTransactionContextBinding, Option<U>> code) {
+    private <U> Option<U> doTransaction(TransactionContext transaction,
+                                        Function1<TransactionContext, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
-    public void registerUser(CassandraTransactionContextBinding tr,
+    private <U> Option<U> doTransactionWithRetries(TransactionContext transaction,
+                                        Function1<TransactionContext, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
+        }
+    }
+
+    public void registerUser(TransactionContext tr,
                              String nickname, String name, String password, String email) {
         @Immutable @Local UUID userId = UUID.randomUUID();
         this.user = doTransaction(tr, ctx -> {
             Ref<? extends @Mutable IUser> user;
             if (dataCentric) {
                 Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance =
-                        ctx.replicate("user:" + nickname + ":bal", STRONG, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
+                        ctx.replicate("user:" + nickname + ":bal", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerAuctions =
-                        ctx.replicate("user:" + nickname + ":ba", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":ba", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> buyerHistory =
-                        ctx.replicate("user:" + nickname + ":bh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":bh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerAuctions =
-                        ctx.replicate("user:" + nickname + ":sa", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sa", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerHistory =
-                        ctx.replicate("user:" + nickname + ":sh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
                 Ref<@Strong @Mutable RefMap<UUID, Ref<Item>>> sellerFailedHistory =
-                        ctx.replicate("user:" + nickname + ":sfh", STRONG, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
+                        ctx.replicate("user:" + nickname + ":sfh", internalConsistencyLevel, (Class<RefMap<UUID, Ref<Item>>>)(Class)RefMap.class);
 
                 user = ctx.replicate("user:" + nickname, userConsistencyLevel, userImpl,
                         userId, nickname, name, password, email,
@@ -74,25 +92,17 @@ public class Session {
                         userId, nickname, name, password, email);
             }
 
-            if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
-            }
-
             return Option.apply(user);
         }).get();
     }
 
-    public void loginUser(CassandraTransactionContextBinding tr,
+    public void loginUser(TransactionContext tr,
                           String nickname, String password) {
         @Immutable Option<Ref<? extends @Mutable IUser>> result = doTransaction(tr, ctx -> {
             Ref<? extends @Mutable IUser> user = ctx.lookup("user:" + nickname, userConsistencyLevel, userImpl);
 
             if (!(boolean)user.ref().authenticate(password)) {
                 throw new AppException("Wrong credentials.");
-            }
-
-            if (auctionStore == null) {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, storeConsistencyLevel, AuctionStore.class);
             }
 
             return Option.apply(user);
@@ -103,12 +113,12 @@ public class Session {
         }
     }
 
-    public Ref<? extends @Mutable IUser> findUser(CassandraTransactionContextBinding tr,
+    public Ref<? extends @Mutable IUser> findUser(TransactionContext tr,
                          String nickname) {
         return doTransaction(tr, ctx -> Option.apply(ctx.lookup("user:" + nickname, userConsistencyLevel, userImpl))).get();
     }
 
-    public void addBalance(CassandraTransactionContextBinding tr,
+    public void addBalance(TransactionContext tr,
                            @Strong float amount) {
         checkLogin();
         doTransaction(tr, ctx -> {
@@ -117,9 +127,16 @@ public class Session {
         });
     }
 
-    public UUID registerItem(CassandraTransactionContextBinding tr,
+    public Ref<? extends IItem> registerItem(TransactionContext tr,
                              String name, String description, Category category,
                              float reservePrice, int durationInSeconds) {
+        @Immutable @Local UUID itemId = UUID.randomUUID();
+        return registerItem(tr, itemId.toString(), itemId, name, description, category, reservePrice, durationInSeconds);
+    }
+
+    Ref<? extends IItem> registerItem(TransactionContext tr, String replId, UUID itemId,
+                                             String name, String description, Category category,
+                                             float reservePrice, int durationInSeconds) {
         checkLogin();
 
         Calendar cal = (@Mutable Calendar) Calendar.getInstance();
@@ -130,48 +147,44 @@ public class Session {
         float initialPrice = reservePrice * 0.3f;
         float buyNowPrice = reservePrice * 1.3f;
 
-        @Immutable @Local UUID itemId = UUID.randomUUID();
         Ref<? extends IItem> item = doTransaction(tr, ctx -> {
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> endDateRef =
-                        ctx.replicate("item:" + itemId + ":ed", STRONG, Date.class, endDate.getTime());
+                        ctx.replicate("item:" + replId + ":ed", internalConsistencyLevel, Date.class, endDate.getTime());
                 Ref<@Strong @Mutable RefList<Bid>> bids =
-                        ctx.replicate("item:" + itemId + ":bids", STRONG, (Class<RefList<Bid>>)(Class)RefList.class);
+                        ctx.replicate("item:" + replId + ":bids", internalConsistencyLevel, (Class<RefList<Bid>>)(Class)RefList.class);
+                Ref<@Strong @Mutable StatusBox> status =
+                        ctx.replicate("item:" + replId + ":status", internalConsistencyLevel, StatusBox.class, ItemStatus.OPEN);
 
-                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDateRef,
-                        category, user, auctionStore, bids));
+                        category, user, bids, status));
             } else {
-                return Option.apply(ctx.replicate("item:" + itemId, itemConsistencyLevel, itemImpl,
+                return Option.apply(ctx.replicate("item:" + replId, itemConsistencyLevel, itemImpl,
                         itemId, name, description, reservePrice, initialPrice, buyNowPrice, startDate, endDate,
-                        category, user, auctionStore));
+                        category, user));
             }
         }).get();
 
-        doTransaction(tr, cty -> {
+        return doTransaction(tr, cty -> {
             user.ref().addOwnAuction(item);
-            return Option.apply(0);
-        });
-
-        return doTransaction(tr, ctx -> {
-            auctionStore.ref().addItem(item, category);
-            return Option.apply(itemId);
+            return Option.apply(item);
         }).get();
     }
 
-    public boolean placeBid(CassandraTransactionContextBinding tr,
+    public boolean placeBid(TransactionContext tr,
                             UUID itemId, float bidAmount) {
         Ref<? extends IItem> item = doTransaction(tr, ctx ->
             Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl))).get();
         return placeBid(tr, item, bidAmount);
     }
 
-    public boolean placeBid(CassandraTransactionContextBinding tr,
+    public boolean placeBid(TransactionContext tr,
                              Ref<? extends IItem> item, float bidAmount) {
         checkLogin();
 
         @Immutable @Local UUID bidId = UUID.randomUUID();
-        return doTransaction(tr, ctx -> {
+        return doTransactionWithRetries(tr, ctx -> {
             var bid = new Bid(bidId, bidAmount, user);
             boolean reserveMet = item.ref().placeBid(bid);
             user.ref().addWatchedAuction(item);
@@ -179,53 +192,49 @@ public class Session {
         }).get();
     }
 
-    public void buyNow(CassandraTransactionContextBinding tr,
+    public void buyNow(TransactionContext tr,
                        UUID itemId) {
         Ref<? extends IItem> item = doTransaction(tr, ctx ->
             Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl))).get();
         buyNow(tr, item);
     }
 
-    public void buyNow(CassandraTransactionContextBinding tr, Ref<? extends IItem> item) {
+    public void buyNow(TransactionContext tr, Ref<? extends IItem> item) {
         checkLogin();
 
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
             item.ref().buyNow(user, item);
             return Option.apply(0);
         });
     }
 
-    public String browseCategory(CassandraTransactionContextBinding tr, Category category, int count) {
+    public String browseItemsByReplIds(TransactionContext tr, String[] replIds) {
         checkLogin();
 
-        return doTransaction(tr, ctx -> {
+        // in MIXED and STRONG cases a deadlock can occur, since stringifying an item accesses strong state
+        return doTransactionWithRetries(tr, ctx -> {
             var sb = new StringBuilder();
-            @Immutable List<Ref<? extends IItem>> items = auctionStore.ref().browseItems(category);
-            sb.append("Items in category '").append(category).append("':\n");
-            for (int i = 0; i < Math.min(items.size(), count); i++) {
-                sb.append(items.get(i).ref().toString());
+            @Immutable List<Ref<? extends IItem>> items = new ArrayList<>(replIds.length);
+            for (String replId : replIds) {
+                items.add(getItem(tr, replId));
+            }
+
+            sb.append("Items:\n");
+            for (Ref<? extends IItem> item : items) {
+                sb.append(item.ref().toString()).append("\n");
             }
             return Option.apply(sb.toString());
         }).get();
     }
 
-    public List<Ref<? extends IItem>> browseCategoryItems(CassandraTransactionContextBinding tr, Category category) {
-        checkLogin();
-
-        return doTransaction(tr, ctx -> {
-            @Immutable List<Ref<? extends IItem>> items = auctionStore.ref().browseItems(category);
-            return Option.apply(items);
-        }).get();
-    }
-
-    public void endAuctionImmediately(CassandraTransactionContextBinding tr,
+    public void endAuctionImmediately(TransactionContext tr,
                                       UUID itemId) {
         Ref<? extends IItem> item = doTransaction(tr, ctx ->
                 Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl))).get();
         endAuctionImmediately(tr, item);
     }
 
-    public void endAuctionImmediately(CassandraTransactionContextBinding tr,
+    public void endAuctionImmediately(TransactionContext tr,
                                       Ref<? extends IItem> item) {
         checkLogin();
 
@@ -241,7 +250,7 @@ public class Session {
         });
     }
 
-    public String printUserInfo(CassandraTransactionContextBinding tr,
+    public String printUserInfo(TransactionContext tr,
                                 boolean full) {
         checkLogin();
 
@@ -293,10 +302,10 @@ public class Session {
         }).get();
     }
 
-    public Tuple2<Optional<String>, Float> getTopBidAndBidder(CassandraTransactionContextBinding tr,
+    public Tuple2<Optional<String>, Float> getTopBidAndBidder(TransactionContext tr,
                                                               UUID itemId) {
         return doTransaction(tr, ctx -> {
-            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl);
+            Ref<? extends IItem> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl);
             Optional<Bid> bid = item.ref().getTopBid();
             if (bid.isPresent())
                 return Option.apply(new Tuple2<>(
@@ -308,29 +317,36 @@ public class Session {
         }).get();
     }
 
-    public float getBidPrice(CassandraTransactionContextBinding tr,
+    public float getBidPrice(TransactionContext tr,
                              Ref<? extends IItem> item) {
         return doTransaction(tr, ctx -> Option.<Float>apply(item.ref().getTopBidPrice())).get();
     }
 
-    public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
+    public boolean hasAuctionEnded(TransactionContext tr,
                                    UUID itemId) {
         return doTransaction(tr, ctx -> {
-            var item = ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl);
+            Ref<? extends IItem> item = ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl);
             return Option.apply((item.ref().getEndDate()).before(new Date()));
         }).get();
     }
-    public boolean hasAuctionEnded(CassandraTransactionContextBinding tr,
+    public boolean hasAuctionEnded(TransactionContext tr,
                                    Ref<? extends IItem> item) {
         return doTransaction(tr, ctx ->
             Option.apply((item.ref().getEndDate()).before(new Date()))
         ).get();
     }
 
-    Ref<? extends IItem> getItem(CassandraTransactionContextBinding tr,
+    Ref<? extends IItem> getItem(TransactionContext tr,
                                  UUID itemId) {
         return doTransaction(tr, ctx ->
                 Option.apply(ctx.lookup("item:" + itemId, itemConsistencyLevel, itemImpl))
+        ).get();
+    }
+
+    Ref<? extends IItem> getItem(TransactionContext tr,
+                                 String replId) {
+        return doTransaction(tr, ctx ->
+                Option.apply(ctx.lookup("item:" + replId, itemConsistencyLevel, itemImpl))
         ).get();
     }
 

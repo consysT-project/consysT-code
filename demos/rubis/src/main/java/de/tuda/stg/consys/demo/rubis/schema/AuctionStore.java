@@ -10,6 +10,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
 import java.io.Serializable;
 import java.util.*;
 
+@Deprecated
 public @Mixed class AuctionStore implements Serializable {
     private final Map<UUID, Ref<? extends IItem>> openAuctions;
     private final Map<Category, @Mutable Map<UUID, Ref<? extends IItem>>> openAuctionsByCategory;
@@ -36,12 +37,12 @@ public @Mixed class AuctionStore implements Serializable {
         openAuctionsByCategory.get(category).remove(id);
     }
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     public List<Ref<? extends IItem>> browseItems(Category category) {
         return new ArrayList<>(openAuctionsByCategory.get(category).values());
     }
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     public List<Ref<? extends IItem>> getOpenAuctions() {
         return new ArrayList<>(openAuctions.values());
     }

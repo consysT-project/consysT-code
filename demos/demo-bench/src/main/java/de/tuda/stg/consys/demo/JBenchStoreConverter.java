@@ -32,10 +32,14 @@ public abstract class JBenchStoreConverter<JStore extends Store, SStore extends 
                 public ConsistencyLevel getStrongLevel() {
                     return AkkaConsistencyLevels.STRONG;
                 }
+
+                @Override
+                public ConsistencyLevel getMixedLevel() {
+                    throw new UnsupportedOperationException("akka does not support mixed levels yet.");
+                }
             };
         }
     }
-
 
     private static class FromCassandraStore extends JBenchStoreConverter<CassandraStoreBinding, CassandraStore> {
         @Override
@@ -52,18 +56,12 @@ public abstract class JBenchStoreConverter<JStore extends Store, SStore extends 
                 public ConsistencyLevel getStrongLevel() {
                     return CassandraConsistencyLevels.STRONG;
                 }
+
+                @Override
+                public ConsistencyLevel getMixedLevel() {
+                    return CassandraConsistencyLevels.MIXED;
+                }
             };
         }
     }
-
-
-
-
-
-
 }
-
-
-
-
-
