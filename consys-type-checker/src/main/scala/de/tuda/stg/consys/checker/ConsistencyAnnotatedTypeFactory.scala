@@ -1,21 +1,21 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree.{MemberSelectTree, MethodInvocationTree, MethodTree, Tree}
-import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.annotations.MethodWriteList
-import de.tuda.stg.consys.checker.jdk.Utils
+import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
+import de.tuda.stg.consys.checker.jdk.Utils
 import de.tuda.stg.consys.checker.qual.ThisConsistent
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, DefaultTypeHierarchy, QualifierHierarchy, TypeHierarchy}
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
 import org.checkerframework.framework.`type`.typeannotator.{ListTypeAnnotator, TypeAnnotator}
-import org.checkerframework.javacutil.AnnotationBuilder
+import org.checkerframework.framework.`type`._
 import org.checkerframework.javacutil.TreeUtils._
+import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
 import java.util
-import javax.lang.model.element.{AnnotationMirror, AnnotationValue, Element, ElementKind, ExecutableElement, TypeElement, VariableElement}
+import javax.lang.model.element._
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -63,17 +63,35 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
             result
 
         case _ =>
-            super.getAnnotatedType(tree)
+            val prevShouldCache = shouldCache
+            shouldCache = false
+            val result = super.getAnnotatedType(tree)
+            shouldCache = prevShouldCache
+            result
+    }
+
+    override def getAnnotatedTypeLhs(lhsTree: Tree): AnnotatedTypeMirror = {
+        val prevShouldCache = shouldCache
+        shouldCache = false
+        val result = super.getAnnotatedTypeLhs(lhsTree)
+        val element = TreeUtils.elementFromTree(lhsTree)
+        element.getKind match {
+            case ElementKind.LOCAL_VARIABLE if result.hasAnnotation(classOf[ThisConsistent]) =>
+                result.replaceAnnotation(inferThisTypeFromEnclosingMethod(element)(this))
+            case _ =>
+        }
+        shouldCache = prevShouldCache
+        result
     }
 
     def getAnnotatedTypeWithContext(elt: ExecutableElement, context: MethodInvocationTree): AnnotatedExecutableType = {
-        withContext(context){
+        withContext(context) {
             getAnnotatedType(elt)
         }
     }
 
     override def methodFromUse(tree: MethodInvocationTree): AnnotatedTypeFactory.ParameterizedExecutableType = {
-        withContext(tree){
+        withContext(tree) {
             val typ = super.methodFromUse(tree)
             replaceThisConsistent(typ.executableType)
             typ
@@ -180,7 +198,7 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
                 val returnTypeAnnotations = (method.getReturnType.getAnnotations.asScala ++
                     method.getUnderlyingType.getReturnType.getAnnotationMirrors.asScala).asJava
                 if (containsSameByClass(returnTypeAnnotations, classOf[ThisConsistent]))
-                    method.getReturnType.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method.getElement)(this))
+                    method.getReturnType.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method.getElement)(this))
 
                 // parameter types
                 val argTypesAnnotations = (method.getUnderlyingType.getParameterTypes.asScala.map(_.getAnnotationMirrors.asScala.toSet) zip
@@ -188,7 +206,7 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
                 (argTypesAnnotations zip method.getParameterTypes.asScala).foreach(e => {
                     val (annotations, typ) = e
                     if (containsSameByClass(annotations.asJava, classOf[ThisConsistent]))
-                        typ.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method.getElement)(this))
+                        typ.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method.getElement)(this))
                 })
 
             case _ =>
@@ -196,7 +214,7 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     }
 
     def isInMixedClassContext: Boolean =
-        visitClassContext.nonEmpty && TypeFactoryUtils.isMixedQualifier(visitClassContext.top._2)( this)
+        visitClassContext.nonEmpty && TypeFactoryUtils.isMixedQualifier(visitClassContext.top._2)(this)
 
     def pushVisitClassContext(clazz: TypeElement, typ: AnnotationMirror): Unit = visitClassContext.push((clazz, typ))
 

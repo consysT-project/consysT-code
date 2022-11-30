@@ -1,18 +1,17 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodInvocationTree, ModifiersTree}
+import com.sun.source.tree._
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, Strong, Weak}
+import de.tuda.stg.consys.checker.qual._
 import org.checkerframework.dataflow.qual.SideEffectFree
-
-import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, Modifier, TypeElement}
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
+import org.checkerframework.javacutil._
 import org.jmlspecs.annotation.Pure
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
+import javax.lang.model.element._
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
@@ -96,11 +95,34 @@ object TypeFactoryUtils {
 
 	//------------------------------------------------------------------------------------------------------------------
 
-	def inferTypeFromReceiver(recvQualifier: AnnotationMirror, method: ExecutableElement)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a given method. If the method belongs to a @Mixed
+	 * receiver, the inferred type is the type belonging to the method's operation level. Else, the receiver's
+	 * type is used.
+	 * @param recvQualifier qualifier of the method's receiver
+	 * @param method the method from which to infer the type
+	 * @return The qualifier for the substitution type
+	 */
+	def inferThisTypeFromReceiver(recvQualifier: AnnotationMirror, method: ExecutableElement)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
 		if (isMixedQualifier(recvQualifier))
 			getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
 		else
 			recvQualifier
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on the method that encloses an element, e.g. parameters or
+	 * local variables. If the method belongs to a @Mixed receiver, the inferred type is the type belonging to the
+	 * method's operation level. Else, the receiver's type is used.
+	 * @param element the element for which to infer the type
+	 * @return The qualifier for the substitution type
+	 */
+	def inferThisTypeFromEnclosingMethod(element: Element)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = {
+		val method = element.getEnclosingElement.asInstanceOf[ExecutableElement]
+		// for parameters and local variables the receiver w.r.t @ThisConsistent substitution
+		// is the currently visited class
+		val (_, recvQualifier) = tf.peekVisitClassContext
+		inferThisTypeFromReceiver(recvQualifier, method)
 	}
 
 	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =

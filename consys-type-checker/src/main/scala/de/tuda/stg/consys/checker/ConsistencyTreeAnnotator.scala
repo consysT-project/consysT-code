@@ -1,7 +1,6 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
-import com.sun.tools.javac.tree.JCTree.JCFieldAccess
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, ThisConsistent}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
@@ -9,8 +8,8 @@ import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
-import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
-import scala.collection.convert.ImplicitConversions.`collection asJava`
+import javax.lang.model.element._
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 06.03.19.
@@ -62,7 +61,7 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 
 			// adapt field for receiver
 			receiverType.getAnnotations.forEach(ann => {
-				if (qualHierarchy.findAnnotationInHierarchy(List(ann), inconsistentAnnotation) != null) {
+				if (qualHierarchy.findAnnotationInHierarchy(List(ann).asJava, inconsistentAnnotation) != null) {
 					val qualifier = receiverType.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 					visitField(node, typeMirror, receiver, qualifier)
 
@@ -89,7 +88,7 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 							case _ => ()
 						}
 					}
-				} else if (qualHierarchy.findAnnotationInHierarchy(List(ann), immutableAnnotation) != null) {
+				} else if (qualHierarchy.findAnnotationInHierarchy(List(ann).asJava, immutableAnnotation) != null) {
 					val fieldQualifier = typeMirror.getEffectiveAnnotationInHierarchy(immutableAnnotation)
 					val lup = qualHierarchy.leastUpperBound(fieldQualifier, ann)
 					typeMirror.replaceAnnotation(lup)
@@ -119,10 +118,9 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 				case ElementKind.FIELD =>
 					val (receiver, qualifier) = tf.peekVisitClassContext
 					visitField(node, typeMirror, receiver, qualifier)
-				case ElementKind.PARAMETER if typeMirror.hasAnnotation(classOf[ThisConsistent]) =>
-					val method = element.getEnclosingElement.asInstanceOf[ExecutableElement]
-					val recvQualifier = tf.peekVisitClassContext._2
-					typeMirror.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method))
+				case ElementKind.PARAMETER | ElementKind.LOCAL_VARIABLE if typeMirror.hasAnnotation(classOf[ThisConsistent]) =>
+					// replaces @ThisConsistent with appropriate type
+					typeMirror.replaceAnnotation(inferThisTypeFromEnclosingMethod(element))
 				case _ =>
 			}
 		}
@@ -195,7 +193,7 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		// replace @ThisConsistent return types with receiver type or op-level for mixed receivers
 		if (AnnotationUtils.containsSameByClass(method.getReturnType.getAnnotationMirrors, classOf[ThisConsistent])) {
 			// return type inference for mixed getters
-			typeMirror.replaceAnnotation(inferTypeFromReceiver(recvQualifier, method))
+			typeMirror.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method))
 		}
 
 		super.visitMethodInvocation(node, typeMirror)
