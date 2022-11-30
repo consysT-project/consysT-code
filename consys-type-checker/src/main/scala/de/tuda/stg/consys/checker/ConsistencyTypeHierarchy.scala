@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, japiPackageName}
-import de.tuda.stg.consys.checker.qual.{Inconsistent, Local, MutableBottom, ThisConsistent}
+import de.tuda.stg.consys.checker.qual.{Local, MutableBottom, ThisConsistent}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
 import org.checkerframework.javacutil.TypesUtils

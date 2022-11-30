@@ -2,13 +2,13 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
-
-import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
 import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
-import scala.collection.{JavaConverters, mutable}
+import javax.lang.model.element.AnnotationMirror
+import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 03.07.19.
@@ -128,7 +128,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 	class ImplicitContext {
 
-		private val implicitContexts : mutable.ArrayStack[AnnotationMirror] = new mutable.ArrayStack
+		private val implicitContexts : mutable.Stack[AnnotationMirror] = new mutable.Stack
 
 		implicitContexts.push(getEmptyContextAnnotation)
 
@@ -155,7 +155,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 				case declaredType : AnnotatedTypeMirror.AnnotatedDeclaredType =>
 					var temp : AnnotationMirror = lowerBound(getAnnotation(typ), annotation)
 
-					JavaConverters.iterableAsScalaIterable(declaredType.getTypeArguments).foreach { typeArg =>
+					declaredType.getTypeArguments.asScala.foreach { typeArg =>
 						temp = lowerBound(temp, getStrongestNonLocalAnnotationIn(typeArg, temp))
 					}
 

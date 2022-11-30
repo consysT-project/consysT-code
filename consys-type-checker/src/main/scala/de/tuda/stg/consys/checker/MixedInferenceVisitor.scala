@@ -2,13 +2,13 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.qual.{Immutable, Inconsistent, Local}
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import de.tuda.stg.consys.checker.MixedInferenceVisitor._
+import de.tuda.stg.consys.checker.qual.{Immutable, Inconsistent, Local}
+import org.checkerframework.javacutil._
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, TypeKind}
-import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
+import javax.lang.model.`type`.DeclaredType
+import javax.lang.model.element._
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 

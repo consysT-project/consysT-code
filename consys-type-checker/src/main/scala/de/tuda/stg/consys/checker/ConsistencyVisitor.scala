@@ -4,8 +4,6 @@ import com.sun.source.tree._
 import de.tuda.stg.consys.annotations.Transactional
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.Mixed
-
-import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
 import org.checkerframework.common.basetype.BaseTypeChecker
 import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
@@ -14,8 +12,9 @@ import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils,
 import org.jmlspecs.annotation.Pure
 
 import javax.lang.model.`type`.TypeKind
-import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 05.03.19.
@@ -226,7 +225,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 		// check arguments w.r.t. implicit context
 		val methodType = atypeFactory.getAnnotatedTypeWithContext(TreeUtils.elementFromUse(node), node)
-		(methodType.getParameterTypes zip node.getArguments).foreach(entry => {
+		(methodType.getParameterTypes.asScala zip node.getArguments.asScala).foreach(entry => {
 			val (paramType, argExpr) = entry
 			// arguments taken as immutable parameters cannot violate implicit context
 			if (!paramType.hasAnnotation(immutableAnnotation))
@@ -255,7 +254,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 		// check transaction inheritance rules
 		if (hasAnnotation(node.getModifiers, classOf[Transactional])) {
-			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
+			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types).asScala
 			overrides.foreach(overridden => {
 				if (!hasAnnotation(overridden, classOf[Transactional])) {
 					checker.reportError(node, "transaction.override", overridden.getEnclosingElement)
@@ -267,16 +266,16 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
 			hasAnnotation(node.getModifiers, classOf[Pure]))) {
 
-			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
-			overrides.foreach(m => {
-				if (hasAnnotation(m, classOf[WeakOp]) && !hasAnnotation(node.getModifiers, classOf[WeakOp]))
+			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types).asScala
+			overrides.foreach(overridden => {
+				if (hasAnnotation(overridden, classOf[WeakOp]) && !hasAnnotation(node.getModifiers, classOf[WeakOp]))
 					checker.reportError(node, "mixed.inheritance.operation.incompatible",
 						if (hasAnnotation(node.getModifiers, classOf[StrongOp])) "StrongOp" else "Default",
-						"WeakOp", m.getReceiverType)
-				else if (!hasAnnotation(m, classOf[StrongOp]) && !hasAnnotation(m, classOf[WeakOp]) &&
+						"WeakOp", overridden.getReceiverType)
+				else if (!hasAnnotation(overridden, classOf[StrongOp]) && !hasAnnotation(overridden, classOf[WeakOp]) &&
 					hasAnnotation(node.getModifiers, classOf[StrongOp]))
 					checker.reportError(node, "mixed.inheritance.operation.incompatible",
-						"StrongOp", "Default", m.getReceiverType)
+						"StrongOp", "Default", overridden.getReceiverType)
 			})
 		}
 

@@ -8,9 +8,9 @@ import de.tuda.stg.consys.checker.jdk.Utils
 import de.tuda.stg.consys.checker.qual.ThisConsistent
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.framework.`type`._
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
 import org.checkerframework.framework.`type`.typeannotator.{ListTypeAnnotator, TypeAnnotator}
-import org.checkerframework.framework.`type`._
 import org.checkerframework.javacutil.TreeUtils._
 import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
