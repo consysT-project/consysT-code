@@ -1,36 +1,16 @@
 package de.tuda.stg.consys.checker.testfiles.legacy;
 
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.checker.qual.*;
 
 class ObjectTest {
-
-
 	class A {
 		int x;
 		B b;
-
-		A() {
-			x = 42;
-			b = new B();
-		}
-
-		A(int x, B b) {
-			this.x = x;
-			this.b = b;
-		}
 	}
 
 	class B {
 		int y;
-
-		B() {
-			y = 9;
-		}
-
-		B(int y) {
-			this.y = y;
-		}
 	}
 
 	/*
@@ -49,32 +29,40 @@ class ObjectTest {
     }
 
 
-
     /*
     Tests
      */
+	@Transactional
     void testStrongObject() {
-    	A a = new @Strong A();
+		@Strong A a = new A();
 
     	consumeStrong(a);
     	consumeWeak(a);
     }
 
+	@Transactional
 	void testWeakObject() {
-		A a = new @Weak A();
+		@Weak A a = new A();
 
-		// :: error: (argument.type.incompatible)
+		// :: error: (argument)
 		consumeStrong(a);
 		consumeWeak(a);
 	}
 
+	@Transactional
 	void testStrongFields() {
-		A a = new @Strong A();
+		@Strong A a = new A();
 
-		//TODO: Define a semantics for these cases
-	//	consumeStrong(a.x);
-	//	consumeWeak(a.x);
+		consumeStrong(a.x);
+		consumeWeak(a.x);
 	}
 
+	@Transactional
+	void testWeakFields() {
+		@Weak A a = new A();
 
+		// :: error: (argument)
+		consumeStrong(a.x);
+		consumeWeak(a.x);
+	}
 }

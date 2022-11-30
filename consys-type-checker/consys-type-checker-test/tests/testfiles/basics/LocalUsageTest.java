@@ -1,16 +1,16 @@
 package de.tuda.stg.consys.checker.testfiles.legacy;
 
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.checker.qual.*;
 
 class LocalUsageTest {
 
 	/*
 	Helper functions
 	 */
-    void consumeStrong(@Strong int i) {   }
+    void consumeStrong(@Strong int i) { }
 
-    void consumeWeak(@Weak int i) {   }
+    void consumeWeak(@Weak int i) { }
 
     @Strong int produceStrong() {
         return 42;
@@ -20,7 +20,6 @@ class LocalUsageTest {
         return 1;
     }
 
-
     class A {
     	void set(int x) { };
 	}
@@ -29,48 +28,46 @@ class LocalUsageTest {
     /*
     Tests
      */
+	@Transactional
     void testUseWeakValue() {
-        int i = produceWeak();
-        // :: error: (argument.type.incompatible)
+        @Weak int i = produceWeak();
+        // :: error: (argument)
         consumeStrong(i);
         consumeWeak(i);
     }
 
+	@Transactional
 	void testUseStrongValue() {
-		int i = produceStrong();
+		@Strong int i = produceStrong();
 		consumeStrong(i);
 		consumeWeak(i);
 	}
 
+	@Transactional
 	void testSimpleFlow() {
-    	int i = produceWeak();
-    	int j = produceStrong();
-    	int a = i + j;
+    	@Weak int i = produceWeak();
+    	@Strong int j = produceStrong();
+
+		@Weak int a = i + j;
 
     	i = j;
 
+		// :: error: (argument)
     	consumeStrong(i);
     	consumeWeak(i);
 	}
 
+	@Transactional
 	void testOperatorFlow() {
-		int i = produceWeak();
-		int j = produceStrong();
-		int a = i + j;
+		@Weak int i = produceWeak();
+		@Strong int j = produceStrong();
+
+		@Weak int a = i + j;
 
 		i = a;
 
-		// :: error: (argument.type.incompatible)
+		// :: error: (argument)
 		consumeStrong(i);
 		consumeWeak(i);
 	}
-
-	void testWeakObject() {
-    	A a = new @Weak A();
-
-    	a.set(produceWeak());
-    	a.set(produceStrong());
-	}
-
-
 }

@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.checker.testfiles.legacy;
 
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.checker.qual.*;
 
 class ImplicitFlowTest {
 
@@ -18,6 +18,7 @@ class ImplicitFlowTest {
 
     class A {
     	void set(int x) { }
+		void set(@Mutable @Strong A a) {}
 	}
 
 	class B<T> {
@@ -27,28 +28,32 @@ class ImplicitFlowTest {
     /*
     Tests
      */
+	@Transactional
 	void testWeakConditionAssignment() {
-    	int i = 0;
-    	int j = 0;
+    	@Strong int s = 0;
+    	@Weak int w = 0;
 
     	if (produceWeak() == 2) {
 			// :: error: (assignment.type.implicitflow)
-    		i = produceStrong();
-    		j = produceWeak();
+    		s = produceStrong();
+    		w = produceWeak();
 		}
 	}
 
+	@Transactional
 	void testStrongConditionAssignment() {
-		int i = 0;
-		int j = 0;
+		@Strong int s = 0;
+		@Weak int w = 0;
 
 		if (produceStrong() == 2) {
-			i = produceStrong();
-			j = produceWeak();
+			s = produceStrong();
+			w = produceWeak();
 		}
 	}
 
+	@Transactional
 	void testWeakConditionLocalAssignment() {
+		// these are inconsistent
 		int a = 0;
 		int b = 0;
 
@@ -57,7 +62,9 @@ class ImplicitFlowTest {
 		}
 	}
 
+	@Transactional
 	void testStrongConditionLocalAssignment() {
+		// these are inconsistent
 		int a = 0;
 		int b = 0;
 
@@ -66,16 +73,41 @@ class ImplicitFlowTest {
 		}
 	}
 
-	void testWeakConditionArgument() {
+	@Transactional
+	void testWeakConditionMutableArgument() {
 		A a = new A();
+		@Mutable @Strong A arg = new A();
 
 		if (produceWeak() == 2) {
 			// :: error: (invocation.argument.implicitflow)
+			a.set(arg);
+			a.set(produceWeak());
+		}
+	}
+
+	@Transactional
+	void testWeakConditionMutableReceiver() {
+		@Mutable @Strong A m = new A();
+		A i = new A();
+
+		if (produceWeak() == 2) {
+			// :: error: (invocation.receiver.implicitflow)
+			m.set(produceWeak());
+			i.set(produceWeak());
+		}
+	}
+
+	@Transactional
+	void testWeakConditionImmutableArgument() {
+		A a = new A();
+
+		if (produceWeak() == 2) {
 			a.set(produceStrong());
 			a.set(produceWeak());
 		}
 	}
 
+	@Transactional
 	void testStrongConditionArgument() {
 		A a = new A();
 
@@ -85,27 +117,30 @@ class ImplicitFlowTest {
 		}
 	}
 
+	@Transactional
 	void testWeakConditionReceiver() {
-		A a1 = new @Weak A();
-		A a2 = new @Strong A();
+		@Weak A w = new A();
+		@Strong A s = new A();
 
 		if (produceWeak() == 2) {
-			a1.set(42);
+			w.set(42);
 			// :: error: (invocation.receiver.implicitflow)
-			a2.set(41);
+			s.set(41);
 		}
 	}
 
+	@Transactional
 	void testStrongConditionReceiver() {
-		A a1 = new @Weak A();
-		A a2 = new @Strong A();
+		@Weak A w = new A();
+		@Strong A s = new A();
 
 		if (produceStrong() == 2) {
-			a1.set(42);
-			a2.set(41);
+			w.set(42);
+			s.set(41);
 		}
 	}
 
+	@Transactional
 	void testWeakConditionReceiverTypeArgument() {
 		B<@Weak String> b1 = new B<>();
 		B<@Strong String> b2 = new B<>();
@@ -117,6 +152,7 @@ class ImplicitFlowTest {
 		}
 	}
 
+	@Transactional
 	void testStrongConditionReceiverTypeArgument() {
 		B<@Weak String> b1 = new B<>();
 		B<@Strong String> b2 = new B<>();
@@ -127,7 +163,8 @@ class ImplicitFlowTest {
 		}
 	}
 
-	void testAssignmentInStrongCondition1() {
+	@Transactional
+	void testAssignmentToStrongInStrongCondition() {
 		@Strong int i;
 
 		if (produceStrong() == 2) {
@@ -135,7 +172,8 @@ class ImplicitFlowTest {
 		}
 	}
 
-	void testAssignmentInStrongCondition2() {
+	@Transactional
+	void testAssignmentToWeakInStrongCondition() {
 		@Weak int i;
 
 		if (produceStrong() == 2) {
@@ -143,7 +181,8 @@ class ImplicitFlowTest {
 		}
 	}
 
-	void testAssignmentInWeakCondition1() {
+	@Transactional
+	void testAssignmentToStrongInWeakCondition() {
 		@Strong int i;
 
 		if (produceWeak() == 2) {
@@ -151,14 +190,4 @@ class ImplicitFlowTest {
 			i = 3;
 		}
 	}
-
-	void testAssignmentInWeakCondition2() {
-		@Weak int i;
-
-		if (produceWeak() == 2) {
-			// :: error: (assignment.type.implicitflow)
-			i = produceStrong();
-		}
-	}
-
 }

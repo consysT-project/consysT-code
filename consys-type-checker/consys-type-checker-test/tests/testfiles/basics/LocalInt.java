@@ -19,5 +19,4 @@ public class LocalInt {
 
 		z = j;
 	}
-
 }

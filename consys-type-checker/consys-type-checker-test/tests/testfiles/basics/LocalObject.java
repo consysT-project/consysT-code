@@ -12,12 +12,10 @@ public class LocalObject {
 		A(int f) { this.f = f; }
 	}
 
-
 	void n(A a) {
 		A b = new A(32);
 
 		b.f = a.f;
 		a.f = b.f;
 	}
-
 }
