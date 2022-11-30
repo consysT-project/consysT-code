@@ -253,6 +253,16 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			isInConstructor = true
 		}
 
+		// check transaction inheritance rules
+		if (hasAnnotation(node.getModifiers, classOf[Transactional])) {
+			val overrides = ElementUtils.getOverriddenMethods(TreeUtils.elementFromDeclaration(node), tf.types)
+			overrides.foreach(overridden => {
+				if (!hasAnnotation(overridden, classOf[Transactional])) {
+					checker.reportError(node, "transaction.override", overridden.getEnclosingElement)
+				}
+			})
+		}
+
 		// check operation level override rules
 		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
 			hasAnnotation(node.getModifiers, classOf[Pure]))) {
