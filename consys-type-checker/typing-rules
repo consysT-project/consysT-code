@@ -1,0 +1,88 @@
+Typing rules based on the current type checker implementation
+
+Transactions --------------------------------------------------------------
+- Transactional sections are transaction blocks and methods marked @Transactional
+- Ref accesses, replicate, and lookup are only allowed inside transactional sections
+- Some typing rules are only checked in transactional sections
+	- implicit flow rules
+	- immutability constraints
+	- ...
+- @Transactional methods must only be invoked from a transactional section
+- If a @Transactional method is an override, the overriden method must also be @Transactional
+
+Refs in general -----------------------------------------------------------
+- A class may be instantiated with multiple consistency types (respecting upper bounds set at the class declaration)
+- A class is type checked for each possible consistency type separately (respecting upper bounds set at the class declaration)
+- Subtyping rules for Ref<T> types ignore the consistency type of the obj and just check the consistency type on T
+- Private and protected fields must not be accessed through a ref call
+
+Non-Mixed Refs ------------------------------------------------------------
+- The fields of a Ref have the same type as the Ref instance
+	- this rule is applied when accessing a field directly (e.g. obj.ref.field has the consistency type of obj)
+	- this rule is applied when checking the class by typing 'this' (e.g. this.field has the consistency type of the currently checked consistency type for the class (see multiple passes per class))
+	- type arguments on fields are not affected by this, but are @Inconsistent by default
+		- An exception occurs for Ref<T> types, where the type argument consistency type is also adapted when accessed:
+			- A Ref<T> field still has @Inconsistent defaults, so the type argument must be manually annotated
+			- When a Ref<T> field gets accessed (obj.ref.field) the type argument annotation gets adapted to the lup between T and obj
+
+Operations ----------------------------------------------------------------
+- Operation levels may be put on any method, but they have no effect for non-@Mixed instances of the class
+- Unannotated methods have a default operation level which is encoded in the @Mixed type
+- Explicit operation levels are inherited
+- Default operation levels are not inherited, they are applied based only on the instance type
+- Each operation level has one corresponding consistency type
+- A method may override the operation level, if the overridden level is not weaker than the overriding level
+	- Side effect free methods can override any operation level with any other operation level
+
+Mixed Refs ----------------------------------------------------------------
+- Fields accessible from outside the class (public, package private) have the default operation level type of the instance (similar to how non-mixed Ref fields work)
+- Private and protected fields can be explicitly annotated or inferred from use
+	- An annotated field must not be mutated by a method with a weaker operation level
+		- The following counts as a mutation:
+			- field appears in lhs of assignment
+			- non side-effect-free method is invoked on field
+			- field is passed as mutable argument to non-side-effect-free method (does not apply to primitive fields due to pass-by-value semantics)
+		- type arguments are ignored
+	- An annotated field may be non-mutatingly accessed by any method
+		- In a rhs assignment expression the type of a field is computed as the lub between the field's type and the method level type
+			- type arguments are ignored
+	- Non-annotated fields of a mixed Ref get inferred consistency types based on how they are used
+		- The type of a field is the lub of all mutating accesses (according to the operation level of the method the access occurs in)
+			- constructors are ignored
+			- direct initialization in the field declaration is ignored
+		- A field that is not mutated in any method is @Local
+		- A static field is always @Inconsistent
+		- Type arguments on fields are not affected by this; they are @Inconsistent unless explicitly annotated
+	- The mutability type is by default @Mutable for all fields, but a field may be explicitly annotated as @Immutable
+	- Inherited fields are considered fixed to their inferred or annotated type in the superclass
+		- Inherited fields are not considered for inference; each class only infers the fields it declares
+		- Inherited fields (inferred or explicitly typed) are checked against uses in the subclass' methods
+		- Inherited @Local fields are considered to be the type of the strongest available operation level (i.e. @Strong)
+
+Implicit flows ------------------------------------------------------------
+- Implicit contexts are used for: if, for, enhanced for, while, do..while, switch
+- The type of the implicit context is the weakest type that occurs in the test expression of the construct (excluding deep types, e.g. type arguments, arrays)
+	- There are no @Mixed implicit contexts: in that case, the context is @Weak
+- For @L2 <: @L1 (L1 weaker than L2), where @L1 is the type of the implicit context:
+	- @L2 must not be the target of an assignment
+	- Invoking non-side-effect-free methods on @L2 is forbidden
+		- If @L2 is @Mixed, it depends on the operation level whether the invocation is allowed
+	- @L2 must not be passed to a method as a mutable parameter
+
+Mutability types ----------------------------------------------------------
+- Consistency subtyping may only occur between @Immutable objects
+- Mutability is ignored on primitive types
+- @Immutable reference types are constrained by the following:
+	- The field of an @Immutable object must not be assigned (i.e. obj.field = 0)
+	- An @Immutable field must not be assigned in the class that declares it
+	- A non-side-effect-free method must not be invoked on an @Immutable object
+
+Polymorphic types ---------------------------------------------------------
+- @PolyConsistent is a polymorphic qualifier for method signatures: 
+	- A method with a @PolyConsistent type has one implementation for each consistency type in the lattice
+	- All @PolyConsistent qualifiers on a method get replaced with the same type
+- @ThisConsistent is a polymorphic qualifier for whole classes:
+	- @ThisConsistent may be placed on local variables, method parameters, return types, type arguments
+		- it has no effect on fields
+	- @ThisConsistent gets replaced by the consistency type of a given class instance
+		- For @Mixed instances, the method's operation level is used instead
