@@ -23,6 +23,9 @@ import scala.jdk.CollectionConverters._
 class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker, false) {
     // force initialization of dependant classes (TreeAnnotator, TypeAnnotator, TypeHierarchy, etc.)
     this.postInit()
+    // disable caching for the annotated type factory, so that we can do multiple runs on the same
+    // compilation unit with different targets for @ThisConsistent
+    // TODO: see if we can instead manually clear all caches when reanalysing a compilation unit
     shouldCache = false
 
     var mixedInferenceVisitor: MixedInferenceVisitor = new MixedInferenceVisitor()(this)
@@ -51,28 +54,10 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     override protected def createQualifierHierarchy: QualifierHierarchy =
         new ConsistencyQualifierHierarchy(getSupportedTypeQualifiers, getElementUtils, this)
 
-    override def getAnnotatedType(tree: Tree): AnnotatedTypeMirror = tree match {
-        // TODO: disable cache completely, since we can have @ThisConsistent in method body?
-        case mt: MethodTree if containsSameByClass(elementFromDeclaration(mt).getReturnType.getAnnotationMirrors, classOf[ThisConsistent]) =>
-            // disable cache when querying methods, so that we don't skip the @ThisConsistent type adaptation
-            // fields are never cached, so we don't need additional rules there
-            val prevShouldCache = shouldCache
-            shouldCache = false
-            val result = super.getAnnotatedType(tree)
-            shouldCache = prevShouldCache
-            result
-
-        case _ =>
-            val prevShouldCache = shouldCache
-            shouldCache = false
-            val result = super.getAnnotatedType(tree)
-            shouldCache = prevShouldCache
-            result
-    }
-
+    /**
+     * Resolves @ThisConsistent for local variable declarations.
+     */
     override def getAnnotatedTypeLhs(lhsTree: Tree): AnnotatedTypeMirror = {
-        val prevShouldCache = shouldCache
-        shouldCache = false
         val result = super.getAnnotatedTypeLhs(lhsTree)
         val element = TreeUtils.elementFromTree(lhsTree)
         element.getKind match {
@@ -80,7 +65,6 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
                 result.replaceAnnotation(inferThisTypeFromEnclosingMethod(element)(this))
             case _ =>
         }
-        shouldCache = prevShouldCache
         result
     }
 
@@ -90,6 +74,9 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         }
     }
 
+    /**
+     * Resolves @ThisConsistent for method invocations (in return types, parameters)
+     */
     override def methodFromUse(tree: MethodInvocationTree): AnnotatedTypeFactory.ParameterizedExecutableType = {
         withContext(tree) {
             val typ = super.methodFromUse(tree)
@@ -128,6 +115,9 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         methodReceiverContext = prevMethodReceiverContext
     }
 
+    /**
+     * Adds runtime annotations (@MethodWriteList, @MixedField) to compilation output.
+     */
     override def getDeclAnnotations(elt: Element): util.Set[AnnotationMirror] = {
         val result = super.getDeclAnnotations(elt)
 
