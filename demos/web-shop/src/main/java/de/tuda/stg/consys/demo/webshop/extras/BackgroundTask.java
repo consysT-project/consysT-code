@@ -1,5 +1,7 @@
 package de.tuda.stg.consys.demo.webshop.extras;
 
+import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.demo.webshop.schema.MyProduct;
 import de.tuda.stg.consys.demo.webshop.schema.User;
@@ -10,9 +12,9 @@ import scala.Function1;
 import scala.Option;
 import java.util.Random;
 
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.STRONG;
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.WEAK;
+import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 
+@SuppressWarnings({"consistency"})
 public class BackgroundTask implements Runnable {
     private CassandraStoreBinding store;
     private boolean running = true;
@@ -29,23 +31,26 @@ public class BackgroundTask implements Runnable {
     @Override
     public void run() {
         while (running) {
-            String randomProduct = getRandomProduct();
+            @Immutable String randomProduct = getRandomProduct();
             int randomAmount = getRandomAmount();
 
             boolean buy = doTransaction(ctx -> {
-                    Ref<MyProduct> product = ctx.lookup(randomProduct, STRONG, MyProduct.class);
-                    this.user = ctx.lookup("user", STRONG, User.class);
+                    Ref<MyProduct> product = ctx.lookup(randomProduct, MIXED, MyProduct.class);
+                    this.user = ctx.lookup("user", MIXED, User.class);
                     boolean buySuccess = user.ref().buyProduct(product, randomAmount);
                     return Option.apply(buySuccess);
             }).get();
 
             System.out.print("\u001B[34m [THREAD " + Thread.currentThread().getId() + "]: ");
+
+
             if (buy) {
                 System.out.println("Successfully bought " + randomAmount + " of " + randomProduct + ". \u001B[0m");
             }
             else {
                 System.out.println("Could not buy " + randomAmount + " of " + randomProduct + ". Either the balance is too low or product is not available in this quantity. \u001B[0m");
             }
+
 
             try {
                 Thread.sleep(5000);

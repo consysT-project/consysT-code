@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.webshop;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
@@ -16,14 +17,15 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.WEAK;
+import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels.*;
 
+@SuppressWarnings({"consistency"})
 public class Session {
     private CassandraStoreBinding store;
     private List<Ref<MyProduct>> products;
     private Ref<User> user;
-    public static ConsistencyLevel<CassandraStore> productConsistencyLevel = WEAK;
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = WEAK;
+    public static ConsistencyLevel<CassandraStore> productConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     private static ExecutorService threadPool;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {
@@ -108,11 +110,13 @@ public class Session {
         @Override
         public void run() {
             while (true) {
+
                 int balanceLeft = doTransaction(ctx -> Option.apply(user.ref().getMoney())).get();
                 if (balanceLeft < 800) {
                     System.out.println("\u001B[33m [USER WARNING]: Balance is less than 800. \u001B[0m");
                     break;
                 }
+
 
                 try {
                     Thread.sleep(8000);
