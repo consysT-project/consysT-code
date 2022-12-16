@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
+import de.tuda.stg.consys.annotations.Transactional
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual._
 import org.checkerframework.dataflow.qual.SideEffectFree
@@ -297,6 +298,9 @@ object TypeFactoryUtils {
 	def isAnyRefAccess(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
 
+	def isCompiledRefAccess(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("getField", "setField", "invoke"))
+
 	def isReplicateOrLookup(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
 
@@ -337,10 +341,24 @@ object TypeFactoryUtils {
 		typeIsInstanceOf(typ, s"$japiPackageName.Ref")
 	}
 
-	def isSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+	def isDeclaredSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
 		tf.getDeclAnnotation(method, classOf[SideEffectFree]) != null ||
 			tf.getDeclAnnotation(method, classOf[Pure]) != null
 
+	def isDeclaredTransactional(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[Transactional]) != null
+
+	def isDeclaredStrongOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[StrongOp]) != null
+
+	def isDeclaredWeakOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[WeakOp]) != null
+
+	def isDeclaredDefaultOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		!isDeclaredWeakOp(method) && !isDeclaredStrongOp(method)
+
 	def isPrivateOrProtected(elt: Element): Boolean =
 		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
+
+	def isStatic(method: ExecutableElement): Boolean = method.getModifiers.contains(Modifier.STATIC)
 }

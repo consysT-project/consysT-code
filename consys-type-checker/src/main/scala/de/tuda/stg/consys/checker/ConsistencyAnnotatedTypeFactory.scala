@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{MemberSelectTree, MethodInvocationTree, MethodTree, Tree}
+import com.sun.source.tree.{MemberSelectTree, MethodInvocationTree, Tree}
 import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
@@ -12,7 +12,7 @@ import org.checkerframework.framework.`type`._
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
 import org.checkerframework.framework.`type`.typeannotator.{ListTypeAnnotator, TypeAnnotator}
 import org.checkerframework.javacutil.TreeUtils._
-import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 
 import java.util
 import javax.lang.model.element._
@@ -30,7 +30,11 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
 
     var mixedInferenceVisitor: MixedInferenceVisitor = new MixedInferenceVisitor()(this)
 
+    /**
+     * Class and qualifier pair that is currently being visited by the ConsistencyVisitor.
+     */
     private val visitClassContext: mutable.Stack[(TypeElement, AnnotationMirror)] = mutable.Stack.empty
+
     private var methodReceiverContext: Option[AnnotationMirror] = None
 
 
@@ -54,7 +58,22 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     override protected def createQualifierHierarchy: QualifierHierarchy =
         new ConsistencyQualifierHierarchy(getSupportedTypeQualifiers, getElementUtils, this)
 
+    def pushVisitClassContext(clazz: TypeElement, typ: AnnotationMirror): Unit = visitClassContext.push((clazz, typ))
+
+    def popVisitClassContext(): Unit = visitClassContext.pop
+
+    def peekVisitClassContext: (TypeElement, AnnotationMirror) = visitClassContext.top
+
+    def isVisitClassContextEmpty: Boolean = visitClassContext.isEmpty
+
+    def isInMixedClassContext: Boolean =
+        visitClassContext.nonEmpty && TypeFactoryUtils.isMixedQualifier(visitClassContext.top._2)(this)
+
+    def isInInconsistentClassContext: Boolean =
+        visitClassContext.nonEmpty && AnnotationUtils.areSame(visitClassContext.top._2, inconsistentAnnotation(this))
+
     /**
+     * @inheritdoc
      * Resolves @ThisConsistent for local variable declarations.
      */
     override def getAnnotatedTypeLhs(lhsTree: Tree): AnnotatedTypeMirror = {
@@ -68,13 +87,8 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         result
     }
 
-    def getAnnotatedTypeWithContext(elt: ExecutableElement, context: MethodInvocationTree): AnnotatedExecutableType = {
-        withContext(context) {
-            getAnnotatedType(elt)
-        }
-    }
-
     /**
+     * @inheritdoc
      * Resolves @ThisConsistent for method invocations (in return types, parameters)
      */
     override def methodFromUse(tree: MethodInvocationTree): AnnotatedTypeFactory.ParameterizedExecutableType = {
@@ -85,33 +99,24 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         }
     }
 
+    /**
+     * @inheritdoc
+     * Called from getAnnotatedType after the annotations from the code and stub files are computed.
+     */
     override protected def addComputedTypeAnnotations(tree: Tree, typ: AnnotatedTypeMirror, iUseFlow: Boolean): Unit = {
         val prevMethodReceiverContext = methodReceiverContext
 
-        // adapts the receiver context, so that the TypeAnnotator has the correct information when inferring
-        // return types on mixed getters
+        // adapts the receiver context, so that the TypeAnnotator has the correct information when
+        // inferring @ThisConsistent
         tree match {
-            case _: MethodTree if visitClassContext.nonEmpty =>
-                methodReceiverContext = Some(visitClassContext.top._2)
             case mit: MethodInvocationTree =>
-                mit.getMethodSelect match {
-                    case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
-                        methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
-                            getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
-                    case _ =>
-                        methodReceiverContext = Some(visitClassContext.top._2)
-                }
-            case _ => // nothing to do
+                setMethodReceiverContext(mit)
+            case _ if visitClassContext.nonEmpty =>
+                methodReceiverContext = Some(visitClassContext.top._2)
+            case _ => // TODO: what to do here? Can we rule this out?
         }
 
         super.addComputedTypeAnnotations(tree, typ, iUseFlow)
-        methodReceiverContext = prevMethodReceiverContext
-    }
-
-    override def addComputedTypeAnnotations(elt: Element, typ: AnnotatedTypeMirror): Unit = {
-        val prevMethodReceiverContext = methodReceiverContext
-
-        super.addComputedTypeAnnotations(elt, typ)
         methodReceiverContext = prevMethodReceiverContext
     }
 
@@ -156,15 +161,9 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         result
     }
 
-    private def withContext[R](context: MethodInvocationTree)(f: => R): R = {
+    def withContext[R](context: MethodInvocationTree)(f: => R): R = {
         val prevMethodReceiverContext = methodReceiverContext
-        context.getMethodSelect match {
-            case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
-                methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
-                    getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
-            case _ =>
-                methodReceiverContext = Some(visitClassContext.top._2)
-        }
+        setMethodReceiverContext(context)
         val result = f
         methodReceiverContext = prevMethodReceiverContext
         result
@@ -178,43 +177,38 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         result
     }
 
-    def replaceThisConsistent(method: AnnotatedExecutableType): Unit = {
-        // return & parameter type adaptation for @ThisConsistent inside method body context
-        getMethodReceiverContext match {
+    def replaceThisConsistent(methodType: AnnotatedExecutableType): Unit = {
+        // return & parameter type adaptation for @ThisConsistent
+        methodReceiverContext match {
             // check for @ThisAnnotation in type and underlying type, i.e. without checker-framework processing,
             // to allow repeated modification (for classes with multiple potential consistencies)
             case Some(recvQualifier) =>
                 // return type
-                val returnTypeAnnotations = (method.getReturnType.getAnnotations.asScala ++
-                    method.getUnderlyingType.getReturnType.getAnnotationMirrors.asScala).asJava
+                val returnTypeAnnotations = (methodType.getReturnType.getAnnotations.asScala ++
+                    methodType.getUnderlyingType.getReturnType.getAnnotationMirrors.asScala).asJava
                 if (containsSameByClass(returnTypeAnnotations, classOf[ThisConsistent]))
-                    method.getReturnType.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method.getElement)(this))
+                    methodType.getReturnType.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, methodType.getElement)(this))
 
                 // parameter types
-                val argTypesAnnotations = (method.getUnderlyingType.getParameterTypes.asScala.map(_.getAnnotationMirrors.asScala.toSet) zip
-                    method.getParameterTypes.asScala.map(_.getAnnotations.asScala)).map(t => t._1 ++ t._2)
-                (argTypesAnnotations zip method.getParameterTypes.asScala).foreach(e => {
+                val argTypesAnnotations = (methodType.getUnderlyingType.getParameterTypes.asScala.map(_.getAnnotationMirrors.asScala.toSet) zip
+                    methodType.getParameterTypes.asScala.map(_.getAnnotations.asScala)).map(t => t._1 ++ t._2)
+                (argTypesAnnotations zip methodType.getParameterTypes.asScala).foreach(e => {
                     val (annotations, typ) = e
                     if (containsSameByClass(annotations.asJava, classOf[ThisConsistent]))
-                        typ.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method.getElement)(this))
+                        typ.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, methodType.getElement)(this))
                 })
 
             case _ =>
         }
     }
 
-    def isInMixedClassContext: Boolean =
-        visitClassContext.nonEmpty && TypeFactoryUtils.isMixedQualifier(visitClassContext.top._2)(this)
-
-    def pushVisitClassContext(clazz: TypeElement, typ: AnnotationMirror): Unit = visitClassContext.push((clazz, typ))
-
-    def popVisitClassContext(): Unit = visitClassContext.pop
-
-    def peekVisitClassContext: (TypeElement, AnnotationMirror) = visitClassContext.top
-
-    def isVisitClassContextEmpty: Boolean = visitClassContext.isEmpty
-
-    def getMethodReceiverContext: Option[AnnotationMirror] = methodReceiverContext
-
     def getVisitor: ConsistencyVisitor = checker.getVisitor.asInstanceOf[ConsistencyVisitor]
+
+    private def setMethodReceiverContext(tree: MethodInvocationTree): Unit = tree.getMethodSelect match {
+        case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
+            methodReceiverContext = Some(getAnnotatedType(mst.getExpression).
+                getAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation(this)))
+        case _ =>
+            methodReceiverContext = Some(visitClassContext.top._2)
+    }
 }

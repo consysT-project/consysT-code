@@ -201,7 +201,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 		def allowsAsMixedInvocation(typ : AnnotatedTypeMirror, tree : MethodInvocationTree): Boolean = {
 			val method = TreeUtils.elementFromUse(tree)
-			if (isSideEffectFree(method))
+			if (isDeclaredSideEffectFree(method))
 				return true
 
 			val methodLevel = getQualifierForMethodOp(method, typ.getEffectiveAnnotation(classOf[Mixed]))
