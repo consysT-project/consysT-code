@@ -338,8 +338,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			})
 		}
 
-		// check that return type is not mutable
-		// TODO: limit to side-effect-free methods?
+		// check that return type is not mutable for side-effect-free method
 		// return types can't be mutable, since we could then return fields through immutable references
 		if (!tf.isInInconsistentClassContext) {
 			val annotatedReturnType = tf.getAnnotatedType(node.asInstanceOf[Tree]).asInstanceOf[AnnotatedExecutableType].getReturnType
@@ -349,6 +348,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 				TypesUtils.isPrimitiveOrBoxed(returnType) ||
 				isStatic(method) ||
 				isPrivateOrProtected(method)) &&
+				isDeclaredSideEffectFree(method) &&
 				annotatedReturnType.hasEffectiveAnnotation(mutableAnnotation))
 			{
 				checker.reportError(node.getReturnType, "immutability.return.type")

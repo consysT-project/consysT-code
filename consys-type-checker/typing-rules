@@ -77,6 +77,7 @@ Mutability types ----------------------------------------------------------
 	- The field of an @Immutable object must not be assigned (i.e. obj.field = 0)
 	- An @Immutable field must not be assigned in the class that declares it
 	- A non-side-effect-free and non-static method must not be invoked on an @Immutable object
+- A side-effect-free method must not have a mutable return type
 - @Immutable fields may be (re-)assigned inside constructors
 - @Immutable local variables may be (re-)assigned (@Immutable behaves differently than final)
 - Immutability constraints are not checked inside Inconsistent classes and outside transactions
