@@ -10,6 +10,7 @@ import de.tuda.stg.consys.invariants.lang.ast.Statement
 object AkkaInterpreter extends Interpreter {
 
   case class Obj(c : ClassId, fields : Map[FieldId, Val]) extends Serializable {
+    def getFields : Map[FieldId, Val] = fields
 
   }
 
@@ -34,10 +35,10 @@ object AkkaInterpreter extends Interpreter {
       val ths@VRef(c, ref) = interpExpr(env, recv)
       val thsRef = txContext.lookup[Obj](ref, Weak)
 
-//      val argVals = args.map(e => interpExpr(env, e))
-//
-//      val mDef = ct(obj.c).methods(m)
-//      val mEnv : VarEnv = mDef.pars.map(vDef => vDef.x).zip(argVals).toMap + (thsId -> ths)
+      val argVals = args.map(e => interpExpr(env, e))
+
+      val mDef = ct(c).methods.find(mDef => mDef.name == m).get
+//      val mEnv : VarEnv = mDef.parameters.map(vDef => vDef.x).zip(argVals).toMap + (thsId -> ths)
 //
 //      val mRes = interpStmt(ct, mEnv, txContext, mDef.stmt)
 //
