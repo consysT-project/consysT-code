@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, japiPackageName}
+import de.tuda.stg.consys.checker.TypeFactoryUtils.{immutableAnnotation, inconsistentAnnotation, typeIsRef}
 import de.tuda.stg.consys.checker.qual.{Local, MutableBottom, ThisConsistent}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, TypeHierarchy}
@@ -40,10 +40,7 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
     }
 
 	private def refType(typ : AnnotatedTypeMirror) : Option[AnnotatedDeclaredType] = typ match {
-		case declared : AnnotatedDeclaredType
-			if TypesUtils.getQualifiedName(declared.getUnderlyingType) contentEquals s"$japiPackageName.Ref" =>
-				Some(declared)
-
+		case declared : AnnotatedDeclaredType if typeIsRef(declared.getUnderlyingType) => Some(declared)
 		case _ => None
 	}
 

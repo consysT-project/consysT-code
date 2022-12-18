@@ -14,14 +14,14 @@ public @Weak class MutableReturnType {
         return s;
     }
 
-    // :: error: immutability.return.type
     @SideEffectFree
+    // :: error: immutability.return.type
     public @Mutable @Weak String getPublic() {
         return s;
     }
 
-    // :: error: immutability.return.type
     @SideEffectFree
+    // :: error: immutability.return.type
     @Mutable @Weak String getPackage() {
         return s;
     }

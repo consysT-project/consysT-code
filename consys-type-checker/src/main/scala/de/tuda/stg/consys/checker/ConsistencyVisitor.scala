@@ -1,18 +1,14 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
-import de.tuda.stg.consys.annotations.Transactional
-import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.common.basetype.BaseTypeChecker
-import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
-import org.jmlspecs.annotation.Pure
 
 import javax.lang.model.`type`.TypeKind
-import javax.lang.model.element.{AnnotationMirror, ElementKind, Modifier, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -27,15 +23,18 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
 	type ClassName = String
+	/**
+	 * Tuple from (qualifier name, default op name if qualifier=Mixed else empty)
+	 */
 	type QualifierName = (String, String)
+	type Errors = String
+	type Warnings = String
 
-	private val classVisitCache: mutable.Map[(ClassName, QualifierName), (String, String)] = mutable.Map.empty
+	private val classVisitCache: mutable.Map[(ClassName, QualifierName), (Errors, Warnings)] = mutable.Map.empty
 	private val classVisitQueue: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 	private val classVisitQueueReported: mutable.Set[(ClassName, QualifierName)] = mutable.Set.empty
 
 	private var isInConstructor: Boolean = false
-
-	override def createTypeFactory(): ConsistencyAnnotatedTypeFactory = new ConsistencyAnnotatedTypeFactory(baseChecker)
 
 	override def processClassTree(classTree: ClassTree): Unit = {
 		val className = getQualifiedName(TreeUtils.elementFromDeclaration(classTree))
@@ -108,6 +107,13 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			tf.mixedInferenceVisitor.processClass(classTree, annotation)
 		super.processClassTree(classTree)
 		tf.popVisitClassContext()
+	}
+
+	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
+		if (isMixedQualifier(qualifier))
+			(getQualifiedName(qualifier), getNameForMixedDefaultOp(repairMixed(qualifier)))
+		else
+			(getQualifiedName(qualifier), "")
 	}
 
 
@@ -203,13 +209,15 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		if (isTransaction(node))
 			transactionContext = true
 
+		val callee = TreeUtils.elementFromUse(node)
+
 		// check transaction violations
 		if (!transactionContext) {
 			if (isReplicateOrLookup(node))
 				checker.reportError(node, "invocation.replicate.transaction", node)
 			if (isAnyRefAccess(node))
 				checker.reportError(node, "invocation.ref.transaction", node)
-			if (methodInvocationIsTransactional(node))
+			if (isDeclaredTransactional(callee))
 				checker.reportError(node, "invocation.method.transaction", node)
 		}
 
@@ -242,7 +250,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 		// @ThisConsistent in method type must be adapted to the context of the invocation
 		val methodType = atypeFactory.withContext(node) {
-			atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
+			atypeFactory.getAnnotatedType(callee)
 		}
 		// check arguments w.r.t. implicit context
 		(methodType.getParameterTypes.asScala zip node.getArguments.asScala).foreach(entry => {
@@ -292,6 +300,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			checker.reportError(tree, "invocation.argument.implicitflow", argType, implicitContext.get, tree)
 	}
 
+
 	// #################################################################################################################
 	// ### Method declarations
 	// #################################################################################################################
@@ -304,7 +313,10 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 	override def visitMethod(node: MethodTree, p: Void): Void = {
 		var shouldClose = false
 		val prevIsTransactionContext = transactionContext
-		if (!transactionContext && methodDeclarationIsTransactional(node)) {
+
+		val method = TreeUtils.elementFromDeclaration(node)
+
+		if (!transactionContext && isDeclaredTransactional(method)) {
 			transactionContext = true
 			shouldClose = true
 		}
@@ -314,7 +326,6 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			isInConstructor = true
 		}
 
-		val method = TreeUtils.elementFromDeclaration(node)
 		val overrides = ElementUtils.getOverriddenMethods(method, tf.types).asScala
 
 		// check transaction override rules
@@ -364,11 +375,15 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		r
 	}
 
+	/**
+	 * @inheritdoc
+	 * Adapts [[de.tuda.stg.consys.checker.qual.ThisConsistent]] for method override checks.
+	 */
 	override def checkOverride(overriderTree: MethodTree,
 							   overriderMethodType: AnnotatedExecutableType,
-							   overriderType: AnnotatedTypeMirror.AnnotatedDeclaredType,
+							   overriderType: AnnotatedDeclaredType,
 							   overriddenMethodType: AnnotatedExecutableType,
-							   overriddenType: AnnotatedTypeMirror.AnnotatedDeclaredType): Boolean = {
+							   overriddenType: AnnotatedDeclaredType): Boolean = {
 		// Adapt @ThisConsistent based on currently visited class, since checkOverride is only called for methods
 		// implemented in the current class.
 		atypeFactory.withContext(atypeFactory.peekVisitClassContext._2) {
@@ -378,22 +393,6 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		super.checkOverride(overriderTree, overriderMethodType, overriderType, overriddenMethodType, overriddenType)
 	}
 
-	private def methodDeclarationIsTransactional(node: MethodTree) : Boolean = {
-		val execElem = TreeUtils.elementFromDeclaration(node)
-		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
-	}
-
-	private def methodInvocationIsTransactional(node: MethodInvocationTree) : Boolean = {
-		val execElem = TreeUtils.elementFromUse(node)
-		null != atypeFactory.getDeclAnnotation(execElem, classOf[Transactional])
-	}
-
-	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
-		if (isMixedQualifier(qualifier))
-			(getQualifiedName(qualifier), getNameForMixedDefaultOp(repairMixed(qualifier)))
-		else
-			(getQualifiedName(qualifier), "")
-	}
 
 	// #################################################################################################################
 	// ### InformationFlowTypeVisitor overrides
@@ -407,9 +406,12 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 	override protected def getTopAnnotation : AnnotationMirror = inconsistentAnnotation
 
+
 	// #################################################################################################################
 	// ### Misc
 	// #################################################################################################################
+
+	override def createTypeFactory(): ConsistencyAnnotatedTypeFactory = new ConsistencyAnnotatedTypeFactory(baseChecker)
 
 	// TODO: this is a hack to circumvent a possible bug in the checkerframework, where type arguments with multiple
 	//		 annotations get erased and can't be inferred. If we remove this, ref() calls crash the checker
