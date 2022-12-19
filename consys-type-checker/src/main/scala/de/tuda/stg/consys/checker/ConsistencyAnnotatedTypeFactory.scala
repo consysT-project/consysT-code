@@ -7,7 +7,7 @@ import de.tuda.stg.consys.checker.TypeFactoryUtils._
 import de.tuda.stg.consys.checker.jdk.Utils
 import de.tuda.stg.consys.checker.qual.ThisConsistent
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.framework.`type`._
 import org.checkerframework.framework.`type`.treeannotator.{ListTreeAnnotator, TreeAnnotator}
 import org.checkerframework.framework.`type`.typeannotator.{ListTypeAnnotator, TypeAnnotator}
@@ -35,6 +35,7 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
      */
     private val visitClassContext: mutable.Stack[(TypeElement, AnnotationMirror)] = mutable.Stack.empty
 
+    // TODO: this should be the thisConsistentContext instead, i.e. Mixed should already be resolved
     private var methodReceiverContext: Option[AnnotationMirror] = None
 
 
@@ -81,7 +82,7 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         val element = TreeUtils.elementFromTree(lhsTree)
         element.getKind match {
             case ElementKind.LOCAL_VARIABLE if result.hasAnnotation(classOf[ThisConsistent]) =>
-                result.replaceAnnotation(inferThisTypeFromEnclosingMethod(element)(this))
+                deepReplaceThisConsistent(result, inferThisTypeFromEnclosingMethod(element)(this))
             case _ =>
         }
         result
@@ -112,12 +113,18 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
             case mit: MethodInvocationTree =>
                 setMethodReceiverContext(mit)
             case _ if visitClassContext.nonEmpty =>
+                // TODO: resolve Mixed, based on enclosing element from tree
                 methodReceiverContext = Some(visitClassContext.top._2)
             case _ => // TODO: what to do here? Can we rule this out?
         }
 
         super.addComputedTypeAnnotations(tree, typ, iUseFlow)
         methodReceiverContext = prevMethodReceiverContext
+    }
+
+    override protected def addComputedTypeAnnotations(elt: Element, typ: AnnotatedTypeMirror): Unit = {
+        // TODO: same as above
+        super.addComputedTypeAnnotations(elt, typ)
     }
 
     /**
@@ -180,26 +187,38 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     def replaceThisConsistent(methodType: AnnotatedExecutableType): Unit = {
         // return & parameter type adaptation for @ThisConsistent
         methodReceiverContext match {
-            // check for @ThisAnnotation in type and underlying type, i.e. without checker-framework processing,
-            // to allow repeated modification (for classes with multiple potential consistencies)
             case Some(recvQualifier) =>
-                // return type
-                val returnTypeAnnotations = (methodType.getReturnType.getAnnotations.asScala ++
-                    methodType.getUnderlyingType.getReturnType.getAnnotationMirrors.asScala).asJava
-                if (containsSameByClass(returnTypeAnnotations, classOf[ThisConsistent]))
-                    methodType.getReturnType.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, methodType.getElement)(this))
-
-                // parameter types
-                val argTypesAnnotations = (methodType.getUnderlyingType.getParameterTypes.asScala.map(_.getAnnotationMirrors.asScala.toSet) zip
-                    methodType.getParameterTypes.asScala.map(_.getAnnotations.asScala)).map(t => t._1 ++ t._2)
-                (argTypesAnnotations zip methodType.getParameterTypes.asScala).foreach(e => {
-                    val (annotations, typ) = e
-                    if (containsSameByClass(annotations.asJava, classOf[ThisConsistent]))
-                        typ.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, methodType.getElement)(this))
-                })
+                deepReplaceThisConsistent(methodType, inferThisTypeFromReceiver(recvQualifier, methodType.getElement)(this))
 
             case _ =>
         }
+    }
+
+    def deepReplaceThisConsistent(typ: AnnotatedTypeMirror, newType: AnnotationMirror): Unit = typ match {
+        case adt: AnnotatedDeclaredType =>
+            adt.getTypeArguments.forEach(typeArg => {
+                if (typeArg.hasAnnotation(classOf[ThisConsistent])) {
+                    deepReplaceThisConsistent(typeArg, newType)
+                }
+            })
+            if (adt.hasAnnotation(classOf[ThisConsistent])) {
+                adt.replaceAnnotation(newType)
+            }
+
+        case aet: AnnotatedExecutableType =>
+            // return type
+            if (aet.getReturnType.hasAnnotation(classOf[ThisConsistent])) {
+                deepReplaceThisConsistent(aet.getReturnType, newType)
+            }
+            // parameter types
+            aet.getParameterTypes.asScala.foreach(paramType => {
+                if (paramType.hasAnnotation(classOf[ThisConsistent])) {
+                    deepReplaceThisConsistent(paramType, newType)
+                }
+            })
+
+        case _ =>
+            typ.replaceAnnotation(newType)
     }
 
     def getVisitor: ConsistencyVisitor = checker.getVisitor.asInstanceOf[ConsistencyVisitor]

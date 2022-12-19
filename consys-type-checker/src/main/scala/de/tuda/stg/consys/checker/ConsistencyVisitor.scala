@@ -3,10 +3,11 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree._
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.common.basetype.BaseTypeChecker
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror
+import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, AnnotatedTypeParameterBounds}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
+import java.util
 import javax.lang.model.`type`.TypeKind
 import javax.lang.model.element.{AnnotationMirror, ElementKind, TypeElement}
 import scala.collection.mutable
@@ -391,6 +392,20 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			atypeFactory.replaceThisConsistent(overriddenMethodType)
 		}
 		super.checkOverride(overriderTree, overriderMethodType, overriderType, overriddenMethodType, overriddenType)
+	}
+
+	override def checkTypeArguments(toptree: Tree,
+									paramBounds: util.List[_ <: AnnotatedTypeParameterBounds],
+									typeargs: util.List[_ <: AnnotatedTypeMirror],
+									typeargTrees: util.List[_ <: Tree],
+									typeOrMethodName: CharSequence,
+									paramNames: util.List[_]): Unit = {
+		atypeFactory.withContext(atypeFactory.peekVisitClassContext._2) {
+			typeargs.forEach(typeArg => {
+				//atypeFactory.deepReplaceThisConsistent(typeArg)
+			})
+		}
+		super.checkTypeArguments(toptree, paramBounds, typeargs, typeargTrees, typeOrMethodName, paramNames)
 	}
 
 
