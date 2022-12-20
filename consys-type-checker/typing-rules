@@ -8,7 +8,7 @@ Transactions --------------------------------------------------------------
 	- immutability constraints
 	- ...
 - @Transactional methods must only be invoked from a transactional section
-- If a @Transactional method is an override, the overriden method must also be @Transactional
+- If a @Transactional method is an override, the overridden method must also be @Transactional
 
 Refs in general -----------------------------------------------------------
 - A class may be instantiated with multiple consistency types (respecting upper bounds set at the class declaration)
