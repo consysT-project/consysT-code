@@ -327,6 +327,8 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			isInConstructor = true
 		}
 
+		val prevThisConsistentContext = tf.setThisConsistentContext(node)
+
 		val overrides = ElementUtils.getOverriddenMethods(method, tf.types).asScala
 
 		// check transaction override rules
@@ -369,6 +371,8 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 		val r = super.visitMethod(node, p)
 
+		tf.setThisConsistentContext(prevThisConsistentContext)
+
 		if (TreeUtils.isConstructor(node))
 			isInConstructor = prevIsConstructor
 		if (shouldClose)
@@ -385,12 +389,9 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 							   overriderType: AnnotatedDeclaredType,
 							   overriddenMethodType: AnnotatedExecutableType,
 							   overriddenType: AnnotatedDeclaredType): Boolean = {
-		// Adapt @ThisConsistent based on currently visited class, since checkOverride is only called for methods
-		// implemented in the current class.
-		atypeFactory.withContext(atypeFactory.peekVisitClassContext._2) {
-			atypeFactory.replaceThisConsistent(overriderMethodType)
-			atypeFactory.replaceThisConsistent(overriddenMethodType)
-		}
+		// Context for replacement is set in visitMethod
+		atypeFactory.replaceThisConsistent(overriderMethodType)
+		atypeFactory.replaceThisConsistent(overriddenMethodType)
 		super.checkOverride(overriderTree, overriderMethodType, overriderType, overriddenMethodType, overriddenType)
 	}
 
@@ -400,11 +401,10 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 									typeargTrees: util.List[_ <: Tree],
 									typeOrMethodName: CharSequence,
 									paramNames: util.List[_]): Unit = {
-		atypeFactory.withContext(atypeFactory.peekVisitClassContext._2) {
-			typeargs.forEach(typeArg => {
-				//atypeFactory.deepReplaceThisConsistent(typeArg)
-			})
-		}
+		// Context for replacement is set in visitMethod
+		typeargs.forEach(typeArg => {
+			atypeFactory.replaceThisConsistent(typeArg)
+		})
 		super.checkTypeArguments(toptree, paramBounds, typeargs, typeargTrees, typeOrMethodName, paramNames)
 	}
 

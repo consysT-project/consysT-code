@@ -2,7 +2,7 @@ package de.tuda.stg.consys.checker.testfiles.tmp;
 
 import de.tuda.stg.consys.checker.qual.*;
 
-public class AjdkTest {
+public class jdkTest {
     public void test(@Strong Number n, @Weak Number x) {
         @Strong float f1 = n.floatValue();
         // :: error: assignment

@@ -19,8 +19,6 @@ import scala.jdk.CollectionConverters._
 class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
 	import TypeFactoryUtils._
 
-	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
-
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
 
 
@@ -118,9 +116,10 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 				case ElementKind.FIELD =>
 					val (receiver, qualifier) = tf.peekVisitClassContext
 					visitField(node, typeMirror, receiver, qualifier)
-				case ElementKind.PARAMETER | ElementKind.LOCAL_VARIABLE if typeMirror.hasAnnotation(classOf[ThisConsistent]) =>
+				case ElementKind.PARAMETER | ElementKind.LOCAL_VARIABLE =>
 					// replaces @ThisConsistent with appropriate type
-					typeMirror.replaceAnnotation(inferThisTypeFromEnclosingMethod(element))
+					//typeMirror.replaceAnnotation(inferThisTypeFromEnclosingMethod(element))
+					tf.replaceThisConsistent(typeMirror)
 				case _ =>
 			}
 		}

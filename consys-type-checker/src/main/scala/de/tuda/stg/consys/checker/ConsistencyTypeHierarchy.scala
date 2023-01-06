@@ -24,6 +24,8 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
             case (Some(declaredSubtype), Some(declaredSupertype)) =>
                 val subtypeMirror = getArgOfRefType(declaredSubtype)
                 val superTypeMirror = getArgOfRefType(declaredSupertype)
+				checkThisConsistent(subtypeMirror)
+				checkThisConsistent(superTypeMirror)
 
                 // always check immutability for Ref<> types
                 isCombinedSubtype(subtypeMirror, superTypeMirror) && hierarchy.isSubtype(subtypeMirror.getErased, superTypeMirror.getErased)
@@ -97,5 +99,5 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
         // @ThisConsistent must be replaced before any type hierarchy operation, as it is not a real concrete type
         if (atm.hasAnnotation(classOf[ThisConsistent]))
             sys.error("ConSysT type checker bug: Trying to use @ThisConsistent in subtyping check")
-    }
+	}
 }
