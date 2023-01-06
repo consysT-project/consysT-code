@@ -14,70 +14,69 @@ import java.util.UUID;
 
 public interface IItem extends Serializable {
 
-    @Transactional
-    @StrongOp
+    @StrongOp @Transactional
     boolean placeBid(Bid bid);
 
-    @Transactional
-    @StrongOp
+    @StrongOp @Transactional
     @Strong float buyNow(Ref<? extends @Mutable IUser> buyer, Ref<? extends @Mutable IItem> item);
 
-    @StrongOp
+    @StrongOp @Transactional
     void endAuctionNow();
 
-    @Transactional
-    @StrongOp
+    @StrongOp @Transactional
     boolean closeAuction(Ref<? extends @Mutable IItem> item);
 
-    @WeakOp
+    @WeakOp @Transactional
     void setDescription(@Mutable @Weak String description);
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     int getNumberOfBids();
 
-    @StrongOp @SideEffectFree
+    @StrongOp @SideEffectFree @Transactional
     @Strong List<Bid> getAllBids();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     Category getCategory();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     UUID getId();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     String getName();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     Date getEndDate();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     float getBuyNowPrice();
 
-    @StrongOp @SideEffectFree
+    @StrongOp @SideEffectFree @Transactional
     @Strong float getTopBidPrice();
 
-    @StrongOp @SideEffectFree
+    @StrongOp @SideEffectFree @Transactional
     @Local Optional<Bid> getTopBid();
 
+    @Transactional
     boolean isReserveMet();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     Ref<? extends IUser> getSeller();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     @Local Optional<Ref<? extends @Mutable IUser>> getBuyer();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     boolean getSoldViaBuyNow();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     ItemStatus getStatus();
 
-    @Transactional @SideEffectFree
+    @SideEffectFree @Transactional
     boolean refEquals(Ref<? extends IItem> o);
 
     @WeakOp @SideEffectFree @Transactional
     String toString();
 
+    @Transactional
     void closeWatchedItemsForBidders();
 }

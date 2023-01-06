@@ -15,71 +15,74 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IUser extends Serializable {
-    @StrongOp
+    @StrongOp @Transactional
     void addOwnAuction(Ref<? extends @Mutable IItem> item);
 
-    @StrongOp
+    @StrongOp @Transactional
     void closeOwnAuction(UUID id, @Strong boolean sold);
 
-    @StrongOp
+    @StrongOp @Transactional
     void addWatchedAuction(Ref<? extends @Mutable IItem> item);
 
-    @StrongOp
+    @StrongOp @Transactional
     void closeWatchedAuction(UUID id);
     
-    @StrongOp
+    @StrongOp @Transactional
     void addBoughtItem(Ref<? extends @Mutable IItem> item);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions();
 
-    @StrongOp @SideEffectFree
+    @StrongOp @SideEffectFree @Transactional
     // StrongOp necessary for calculating potential budget
     @Strong List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions();
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     List<Ref<? extends @Mutable IItem>> getBuyerHistory();
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     // If this is WeakOp you could log in with an outdated password. Security concern?
     boolean authenticate(String password);
 
-    @StrongOp // StrongOp necessary? User should be able to use new password immediately
+    @StrongOp @Transactional // StrongOp necessary? User should be able to use new password immediately
     void changePassword(String oldPassword, @Mutable @Weak String newPassword);
 
-    @StrongOp // StrongOp necessary? User should be able to use new address immediately
+    @StrongOp @Transactional // StrongOp necessary? User should be able to use new address immediately
     void changeEmail(@Mutable @Weak String newEmail, String password);
 
+    @Transactional
     void changeRealName(@Mutable @Weak String name);
 
-    @StrongOp
+    @StrongOp @Transactional
     void addBalance(@Strong float value);
 
-    @StrongOp
+    @StrongOp @Transactional
     void removeBalance(@Strong float value);
 
-    @StrongOp @SideEffectFree
+    @StrongOp @SideEffectFree @Transactional
     @Strong float getBalance();
 
+    @Transactional
     void rate(@Weak Comment comment);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     @Local String getNickname();
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     float getRating();
 
+    @Transactional
     void notifyWinner(Ref<? extends IItem> item, float price);
 
-    @Transactional @SideEffectFree
+    @SideEffectFree @Transactional
     @Local boolean refEquals(Ref<? extends IUser> other);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     String toString();
 
-    @SideEffectFree @StrongOp
+    @StrongOp @SideEffectFree @Transactional
     @Strong boolean hasEnoughCredits(@Strong float price);
 }

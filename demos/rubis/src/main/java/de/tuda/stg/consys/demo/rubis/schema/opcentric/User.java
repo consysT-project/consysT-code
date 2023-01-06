@@ -90,7 +90,7 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp @SideEffectFree
     // StrongOp necessary for calculating potential budget
-    public List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
+    @Strong public List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.values());
     }
 
@@ -205,8 +205,8 @@ public @Mixed class User implements Serializable, IUser {
         @Strong float potentialBalance = balance;
 
         for (var item : getOpenBuyerAuctions()) {
-            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO
-            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
+            @Immutable @Strong Optional<Bid> bid = item.ref().getTopBid();
+            if (bid.isPresent() && refEquals(bid.get().getUser())) {
                 potentialBalance -= bid.get().getBid();
             }
         }

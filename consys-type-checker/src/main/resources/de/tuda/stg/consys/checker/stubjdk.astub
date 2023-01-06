@@ -1,6 +1,5 @@
 import org.checkerframework.dataflow.qual.*;
 import org.checkerframework.framework.qual.HasQualifierParameter;
-import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.annotations.*;
 import de.tuda.stg.consys.annotations.methods.*;
@@ -9,13 +8,13 @@ import scala.Option;
 package java.lang;
 
 class Object {
-    @SideEffectFree
+    @SideEffectFree @Transactional
     @PolyConsistent boolean equals(@PolyConsistent Object o);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     String toString();
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     int hashCode();
 }
 
@@ -50,10 +49,10 @@ package java.util;
     <T> @Immutable @Local Optional<T> empty();
 
     @SideEffectFree
-    boolean isPresent();
+    @ThisConsistent boolean isPresent();
 
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
     T get();
@@ -126,10 +125,10 @@ package scala;
 
 class Option<A> {
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
-    boolean isDefined();
+    @ThisConsistent boolean isDefined();
 
     @SideEffectFree
     T get();

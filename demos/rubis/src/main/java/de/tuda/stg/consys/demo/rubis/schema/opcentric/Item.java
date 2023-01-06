@@ -174,7 +174,7 @@ public @Mixed class Item implements Serializable, IItem {
     }
 
     @StrongOp @SideEffectFree
-    public List<Bid> getAllBids() {
+    public @Strong List<Bid> getAllBids() {
         return new ArrayList<>(bids);
     }
 

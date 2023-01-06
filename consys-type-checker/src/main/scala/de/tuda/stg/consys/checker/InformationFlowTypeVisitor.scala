@@ -81,7 +81,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		r
 	}
 
-	override def visitEnhancedForLoop(node : EnhancedForLoopTree, p : Void) : Void = { //TODO: add variable to implicit context?
+	override def visitEnhancedForLoop(node : EnhancedForLoopTree, p : Void) : Void = {
 		if (!transactionContext) return super.visitEnhancedForLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getExpression)
 		var r : Void = scan(node.getVariable, p)
@@ -105,22 +105,24 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 	private def weakestConsistencyInExpression(node : ExpressionTree) : AnnotationMirror = {
 		/*
-				 TODO: This requires an annotated JDK in order to work correctly.
+		 TODO: This requires an annotated JDK in order to work correctly.
 
-				 With an unannotated JDK we have the following behavior:
+		 With an unannotated JDK we have the following behavior:
 
-				 Definitions:
-					 @Strong String s1
-					 @Weak String s2
-					 public static @PolyConsistent boolean equals(@PolyConsistent Object o1, @PolyConsistent Object o2)
+		 Definitions:
+			 @Strong String s1
+			 @Weak String s2
+			 public static @PolyConsistent boolean equals(@PolyConsistent Object o1, @PolyConsistent Object o2)
 
-				 s1.equals("hello") --> inconsistent (the normal equals method is always @inconsistent because it is not annotated)
-				 equals(s1, "hello") --> strong
-				 equals(s1, s2) --> weak
-					*/
-		//Retrieve the (inferred) annotated type
+		 s1.equals("hello") --> inconsistent (the normal equals method is always @inconsistent because it is not annotated)
+		 equals(s1, "hello") --> strong
+		 equals(s1, s2) --> weak
+		*/
+
+		// Retrieve the (inferred) annotated type
 		val typ = atypeFactory.getAnnotatedType(node)
-		if (typ.hasAnnotation(classOf[Mixed])) AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
+		if (typ.hasEffectiveAnnotation(classOf[Mixed]))
+			AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
 		else getAnnotation(typ)
 	}
 
