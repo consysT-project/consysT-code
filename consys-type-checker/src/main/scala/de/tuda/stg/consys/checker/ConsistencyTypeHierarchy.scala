@@ -33,7 +33,8 @@ class ConsistencyTypeHierarchy(val hierarchy : TypeHierarchy, val atypeFactory :
             case _ if TypesUtils.isPrimitiveOrBoxed(subtype.getUnderlyingType) && TypesUtils.isPrimitiveOrBoxed(supertype.getUnderlyingType) =>
                 isConsistencySubtypeOnly(subtype, supertype)
 
-            case _ if !tf.isVisitClassContextEmpty || tf.getVisitor.getTransactionContext =>
+            case _ if tf.visitClassContext.nonEmpty || tf.getVisitor.getTransactionContext =>
+				// in transactions or replicated classes check for full subtyping
                 isCombinedSubtype(subtype, supertype) && hierarchy.isSubtype(subtype, supertype)
 
             case _ => // skip immutability checks for non-replicated type-checking

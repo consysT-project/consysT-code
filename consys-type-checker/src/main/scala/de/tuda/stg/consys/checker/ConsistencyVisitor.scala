@@ -3,8 +3,8 @@ package de.tuda.stg.consys.checker
 import com.sun.source.tree._
 import de.tuda.stg.consys.checker.qual.Mixed
 import org.checkerframework.common.basetype.BaseTypeChecker
-import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, AnnotatedTypeParameterBounds}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.{AnnotatedDeclaredType, AnnotatedExecutableType}
+import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, AnnotatedTypeParameterBounds}
 import org.checkerframework.javacutil.{AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 
 import java.util
@@ -103,11 +103,11 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		if (classVisitCache.contains(className, qualifierName)) return
 		else classVisitCache.put((className, qualifierName), ("", ""))
 
-		tf.pushVisitClassContext(classElement, annotation)
+		tf.visitClassContext.push((classElement, annotation))
 		if (isMixedQualifier(annotation))
 			tf.mixedInferenceVisitor.processClass(classTree, annotation)
 		super.processClassTree(classTree)
-		tf.popVisitClassContext()
+		tf.visitClassContext.pop()
 	}
 
 	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {
@@ -241,7 +241,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 				val objectMirror = TypesUtils.typeFromClass(classOf[Object], atypeFactory.types, atypeFactory.getElementUtils)
 				val recvType = AnnotatedTypeMirror.createType(objectMirror, atypeFactory, true)
 				// 'this' has the type of the current class
-				recvType.addAnnotation(tf.peekVisitClassContext._2)
+				recvType.addAnnotation(tf.visitClassContext.top._2)
 				// 'this' is always mutable
 				recvType.addAnnotation(mutableAnnotation)
 
@@ -250,7 +250,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		}
 
 		// @ThisConsistent in method type must be adapted to the context of the invocation
-		val methodType = atypeFactory.withContext(node) {
+		val methodType = atypeFactory.withThisConsistentContext(node) {
 			atypeFactory.getAnnotatedType(callee)
 		}
 		// check arguments w.r.t. implicit context
@@ -327,7 +327,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			isInConstructor = true
 		}
 
-		val prevThisConsistentContext = tf.setThisConsistentContext(node)
+		tf.thisConsistentContext.push(inferThisConsistentContext(node))
 
 		val overrides = ElementUtils.getOverriddenMethods(method, tf.types).asScala
 
@@ -371,7 +371,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 
 		val r = super.visitMethod(node, p)
 
-		tf.setThisConsistentContext(prevThisConsistentContext)
+		tf.thisConsistentContext.pop()
 
 		if (TreeUtils.isConstructor(node))
 			isInConstructor = prevIsConstructor

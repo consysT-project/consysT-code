@@ -7,6 +7,7 @@ import de.tuda.stg.consys.checker.qual._
 import org.checkerframework.dataflow.qual.SideEffectFree
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
+import org.checkerframework.javacutil.TreeUtils.isExplicitThisDereference
 import org.checkerframework.javacutil._
 import org.jmlspecs.annotation.Pure
 
@@ -135,8 +136,39 @@ object TypeFactoryUtils {
 		val method = element.getEnclosingElement.asInstanceOf[ExecutableElement]
 		// for parameters and local variables the receiver w.r.t @ThisConsistent substitution
 		// is the currently visited class
-		val (_, recvQualifier) = tf.peekVisitClassContext
-		inferThisTypeFromReceiver(recvQualifier, method)
+		val (_, receiverQualifier) = tf.visitClassContext.top
+		inferThisTypeFromReceiver(receiverQualifier, method)
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a method invocation (using the invocation's receiver).
+	 * The resulting type should only be used to substitute declared signature and return types in the given method,
+	 * since passed argument types depend on the callee context, not the caller context.
+	 * @param tree the invocation tree upon which to base the inference
+	 * @return the resulting qualifier for substitutions
+	 */
+	def inferThisConsistentContext(tree: MethodInvocationTree)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = tree.getMethodSelect match {
+		case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
+			val method = TreeUtils.elementFromUse(tree)
+			val receiverQualifier = tf.getAnnotatedType(mst.getExpression).
+				getEffectiveAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation)
+			inferThisTypeFromReceiver(receiverQualifier, method)
+
+		case _ => // self call
+			val method = TreeUtils.elementFromUse(tree)
+			val (_, receiverQualifier) = tf.visitClassContext.top
+			inferThisTypeFromReceiver(receiverQualifier, method)
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a method tree (using the declared receiver).
+	 * @param tree the method declaration tree upon which to base the inference
+	 * @return the resulting qualifier for substitutions
+	 */
+	def inferThisConsistentContext(tree: MethodTree)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = {
+		val method = TreeUtils.elementFromDeclaration(tree)
+		val (_, receiverQualifier) = tf.visitClassContext.top
+		inferThisTypeFromReceiver(receiverQualifier, method)
 	}
 
 
@@ -150,7 +182,7 @@ object TypeFactoryUtils {
 	/**
 	 * Returns the qualified name of the default op for a given mixed qualifier
 	 */
-	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
+	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror): String = {
 		if (mixedAnnotation.getElementValues.values().isEmpty)
 			classOf[WeakOp].getCanonicalName
 		else

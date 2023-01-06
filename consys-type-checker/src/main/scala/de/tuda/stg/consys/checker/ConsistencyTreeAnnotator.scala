@@ -2,10 +2,10 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, ThisConsistent}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
 import javax.lang.model.element._
@@ -103,18 +103,18 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 	override def visitIdentifier(node: IdentifierTree, typeMirror: AnnotatedTypeMirror): Void = {
 		if (TreeUtils.isExplicitThisDereference(node)) {
 			// adapt 'this' to currently visited context
-			val (_, qualifier) = tf.peekVisitClassContext
+			val (_, qualifier) = tf.visitClassContext.top
 			typeMirror.replaceAnnotation(qualifier)
 			// 'this' is always mutable
 			typeMirror.replaceAnnotation(mutableAnnotation)
 			return super.visitIdentifier(node, typeMirror)
 		}
 
-		if (!tf.isVisitClassContextEmpty) {
+		if (tf.visitClassContext.nonEmpty) {
 			val element = TreeUtils.elementFromUse(node)
 			element.getKind match {
 				case ElementKind.FIELD =>
-					val (receiver, qualifier) = tf.peekVisitClassContext
+					val (receiver, qualifier) = tf.visitClassContext.top
 					visitField(node, typeMirror, receiver, qualifier)
 				case ElementKind.PARAMETER | ElementKind.LOCAL_VARIABLE =>
 					// replaces @ThisConsistent with appropriate type
@@ -131,8 +131,8 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 		// TODO: can get called before Visitor.processClassTree -> class context is not ready
 		val element = TreeUtils.elementFromDeclaration(node)
 		// this might be called outside from a type checking context
-		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext
+		if (tf.visitClassContext.nonEmpty && element.getKind.isField) {
+			val (receiver, qualifier) = tf.visitClassContext.top
 			//visitField(element, typeMirror, receiver, qualifier)
 		}
 
@@ -186,7 +186,7 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 				val typ = tf.getAnnotatedType(mst.getExpression)
 				typ.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 			case _ =>
-				tf.peekVisitClassContext._2
+				tf.visitClassContext.top._2
 		}
 
 		// replace @ThisConsistent return types with receiver type or op-level for mixed receivers
