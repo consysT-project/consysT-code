@@ -24,4 +24,7 @@ grant {
 Remarks:
 
 - `System.setProperty("java.security.policy", "file:/usr/lib/jvm/$JAVA_HOME/lib/security/java.policy")` to set the policy manually in code
+
+ToDo:
+
 - InteractiveSession.java - background task turned off, only one replica running

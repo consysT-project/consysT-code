@@ -1,11 +1,8 @@
-package de.tuda.stg.consys.demo.webshop.extras
-
-import de.tuda.stg.consys.core.store.cassandra.backend.RMIServerInterface
+package de.tuda.stg.consys.core.store.cassandra.backend
 
 import java.rmi.registry.LocateRegistry
 
-object RMIClient extends App {
-
+object CassandraReplicaTrigger extends App {
   try {
     val clientURL = s"rmi://127.0.0.1:1234/test"
     val port = 1234
@@ -17,4 +14,5 @@ object RMIClient extends App {
       System.err.println("Client exception: " + e.toString)
       e.printStackTrace()
   }
+
 }
