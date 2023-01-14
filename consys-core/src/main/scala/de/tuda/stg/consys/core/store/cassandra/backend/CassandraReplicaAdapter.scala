@@ -15,16 +15,49 @@ import de.tuda.stg.consys.core.store.utils.Reflect
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
+import java.rmi.registry.LocateRegistry
+import java.rmi.server.UnicastRemoteObject
+import java.rmi.{Remote, RemoteException}
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 /**
- * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
+ * Remote trait which acts as an interface to the server
  */
+trait RMIServerInterface extends Remote {
+	@throws(classOf[RemoteException])
+	def print(): Unit
+}
+
+object RMIServer extends App with RMIServerInterface {
+	def print(): Unit = {
+		println("HELLO")
+	}
+}
+
+class RegistryThread extends Thread {
+	override def run(): Unit = {
+		val serverURL = s"rmi://127.0.0.1:1234/test"
+
+		//Unicast Remote Object Stub is created and the object is exported to Client through the port number mentioned
+		val port = 1234
+		val stub = UnicastRemoteObject.exportObject(RMIServer, port)
+
+		//RMI registry is instantiated
+		val registry = LocateRegistry.createRegistry(port)
+
+		//URL is being passed instead of string tag identifier while binding the stub containing the server object to the registry
+		registry.rebind(serverURL, stub)
+	}
+}
+
 private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration) {
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
+
+	val registryThread = new RegistryThread
+	registryThread.start()
 
 	/* Initialize tables, if not available... */
 	cassandraSession.execute(s"USE $keyspaceName")
