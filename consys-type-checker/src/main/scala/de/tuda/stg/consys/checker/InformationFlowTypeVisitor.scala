@@ -140,7 +140,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		}
 
 		private[checker] def reset() : Unit = {
-			implicitContexts.pop
+			implicitContexts.pop()
 		}
 
 

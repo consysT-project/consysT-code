@@ -53,6 +53,10 @@ class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 					null
 				}
 			}, null)
+		} else if (TreeUtils.elementFromUse(node).getKind == ElementKind.ENUM_CONSTANT) {
+			// enum constants have bottom type
+			typeMirror.replaceAnnotation(localAnnotation)
+			typeMirror.replaceAnnotation(mutableBottomAnnotation)
 		} else if (TreeUtils.elementFromUse(node).getKind == ElementKind.FIELD) {
 			val receiverType = tf.getAnnotatedType(node.getExpression)
 			val receiver = TypesUtils.getTypeElement(receiverType.getUnderlyingType)
