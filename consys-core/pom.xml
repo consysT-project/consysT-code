@@ -95,6 +95,11 @@
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-mapper-runtime</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>cassandra-all</artifactId>
+            <version>4.0.3</version>
+        </dependency>
 
         <!-- Dependencies for Zookeeper -->
         <dependency>

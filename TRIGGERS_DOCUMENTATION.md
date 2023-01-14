@@ -24,6 +24,7 @@ grant {
 Remarks:
 
 - `System.setProperty("java.security.policy", "file:/usr/lib/jvm/$JAVA_HOME/lib/security/java.policy")` to set the policy manually in code
+- `org.apache.cassandra:cassandra-all:4.0.3` - depedency for Trigger interface
 
 ToDo:
 
