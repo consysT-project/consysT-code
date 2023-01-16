@@ -12,15 +12,23 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, litera
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
 import de.tuda.stg.consys.core.store.utils.Reflect
+
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
+import java.rmi.{Remote, RemoteException}
 import java.rmi.registry.LocateRegistry
 import java.rmi.server.UnicastRemoteObject
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
-
+/**
+ * Remote trait which acts as an interface to the server
+ */
+trait RMIServerInterface extends Remote {
+	@throws(classOf[RemoteException])
+	def print(): Unit
+}
 object RMIServer extends App with RMIServerInterface {
 	def print(): Unit = {
 		println("HELLO 2")

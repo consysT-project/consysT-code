@@ -22,16 +22,8 @@ class CassandraReplicaTrigger extends ITrigger {
         System.err.println("Client exception: " + e.toString)
         e.printStackTrace()
     }
-    Collections.emptyList
+    Collections.emptyList[Mutation]()
   }
-}
-
-/**
- * Remote trait which acts as an interface to the server
- */
-trait RMIServerInterface extends Remote {
-  @throws(classOf[RemoteException])
-  def print(): Unit
 }
 
 
