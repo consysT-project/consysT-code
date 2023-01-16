@@ -22,16 +22,27 @@ import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
+@SerialVersionUID(100L)
+class DataObject(val clusteringKey: String, val columnName: String, val value: String) extends Serializable {
+	override def toString(): String = {
+		"\u001b[34m ***\n" +
+			"\u001b[34m [TRIGGER] Clustering Key: " + clusteringKey + "\n" +
+			"\u001b[34m [TRIGGER] Column Name: " + columnName + "\n" +
+			"\u001b[34m [TRIGGER] Value: " + value + "\n" +
+			"\u001b[34m *** \033[0m"
+	}
+}
+
 /**
  * Remote trait which acts as an interface to the server
  */
 trait RMIServerInterface extends Remote {
 	@throws(classOf[RemoteException])
-	def print(): Unit
+	def print(data: DataObject): Unit
 }
 object RMIServer extends App with RMIServerInterface {
-	def print(): Unit = {
-		println("HELLO 2")
+	def print(data: DataObject): Unit = {
+		println(data)
 	}
 }
 
