@@ -9,22 +9,20 @@ import org.apache.cassandra.db.rows.Unfiltered;
 import org.apache.cassandra.db.rows.UnfilteredRowIterator;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.triggers.ITrigger;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 
 public class CassandraReplicaTriggerJava implements ITrigger {
 
     @Override
     public Collection<Mutation> augment(Partition partition) {
-        // Extract data
-        String clusteringKey = "";
-        String columnName = "";
-        String value = "";
+
+        JSONObject jsonObject = new JSONObject();
 
         UnfilteredRowIterator it = partition.unfilteredIterator();
 
@@ -33,29 +31,48 @@ public class CassandraReplicaTriggerJava implements ITrigger {
 
             if (item.isRow()) {
                 Clustering clustering = (Clustering) item.clustering();
-                clusteringKey = clustering.toCQLString(partition.metadata());
+                String clusteringKey = clustering.toCQLString(partition.metadata());
+
+                try {
+                    jsonObject.put("clusteringKey", clusteringKey);
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+
                 Row row = partition.getRow(clustering);
 
                 Iterator<Cell<?>> cells = row.cells().iterator();
                 Iterator<ColumnMetadata> columns = row.columns().iterator();
 
+                List<JSONObject> cellObjects = new ArrayList<>();
+
                 while (cells.hasNext() && columns.hasNext()) {
+                    JSONObject jsonCell = new JSONObject();
+
                     ColumnMetadata columnDef = columns.next();
                     Cell cell = cells.next();
 
-                    columnName = columnDef.name.toString();
-                    value = columnDef.type.getString((ByteBuffer) cell.value());
+                    try {
+                        jsonCell.put("name", columnDef.name.toString());
+                        jsonCell.put("value", columnDef.type.getString((ByteBuffer) cell.value()));
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                    cellObjects.add(jsonCell);
+                }
+                try {
+                    jsonObject.put("cells", cellObjects);
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
-
-        DataObject dataObject = new DataObject(clusteringKey, columnName, value);
 
         // Send data
         try {
             Registry registry = LocateRegistry.getRegistry(1234);
             RMIServerInterface server = (RMIServerInterface) registry.lookup("rmi://127.0.0.1:1234/test");
-            server.print(dataObject);
+            server.print(jsonObject.toString());
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
@@ -63,4 +80,5 @@ public class CassandraReplicaTriggerJava implements ITrigger {
 
         return Collections.emptyList();
     }
+
 }
