@@ -13,10 +13,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
-
 public class CassandraReplicaTriggerJava implements ITrigger {
 
     @Override
@@ -31,9 +32,14 @@ public class CassandraReplicaTriggerJava implements ITrigger {
 
             if (item.isRow()) {
                 Clustering clustering = (Clustering) item.clustering();
+
+                ByteBuffer partitionKeyBB = partition.partitionKey().getKey();
+                String partitionKey = Charset.defaultCharset().decode(partitionKeyBB).toString();
+
                 String clusteringKey = clustering.toCQLString(partition.metadata());
 
                 try {
+                    jsonObject.put("partitionKey", partitionKey);
                     jsonObject.put("clusteringKey", clusteringKey);
                 } catch (JSONException e) {
                     throw new RuntimeException(e);

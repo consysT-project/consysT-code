@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.webshop.schema;
+package de.tuda.stg.consys.demo.webshop.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
