@@ -51,5 +51,9 @@ public @Mixed class MyProduct implements Serializable {
         this.quantity -= amount;
     }
 
+    public String toString() {
+        return "Name: " + name + " | Description: " + description + " | Price: " + price + " | Quantity: " + quantity + "\n";
+    }
+
 }
 

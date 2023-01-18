@@ -23,9 +23,12 @@ public class CassandraReplicaTriggerJava implements ITrigger {
     @Override
     public Collection<Mutation> augment(Partition partition) {
 
+
         JSONObject jsonObject = new JSONObject();
 
         UnfilteredRowIterator it = partition.unfilteredIterator();
+
+
 
         while (it.hasNext()) {
             Unfiltered item = it.next();
@@ -33,17 +36,20 @@ public class CassandraReplicaTriggerJava implements ITrigger {
             if (item.isRow()) {
                 Clustering clustering = (Clustering) item.clustering();
 
-                ByteBuffer partitionKeyBB = partition.partitionKey().getKey();
-                String partitionKey = Charset.defaultCharset().decode(partitionKeyBB).toString();
+                // TODO: Find out why reading the partition key leads to a duplication of the entry in the DB table
+
+                //ByteBuffer partitionKeyBB = partition.partitionKey().getKey();
+                //String partitionKey = Charset.defaultCharset().decode(partitionKeyBB).toString();
 
                 String clusteringKey = clustering.toCQLString(partition.metadata());
 
                 try {
-                    jsonObject.put("partitionKey", partitionKey);
+                    //jsonObject.put("partitionKey", partitionKey);
                     jsonObject.put("clusteringKey", clusteringKey);
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
+
 
                 Row row = partition.getRow(clustering);
 
@@ -51,6 +57,7 @@ public class CassandraReplicaTriggerJava implements ITrigger {
                 Iterator<ColumnMetadata> columns = row.columns().iterator();
 
                 List<JSONObject> cellObjects = new ArrayList<>();
+
 
                 while (cells.hasNext() && columns.hasNext()) {
                     JSONObject jsonCell = new JSONObject();
@@ -66,6 +73,7 @@ public class CassandraReplicaTriggerJava implements ITrigger {
                     }
                     cellObjects.add(jsonCell);
                 }
+
                 try {
                     jsonObject.put("cells", cellObjects);
                 } catch (JSONException e) {

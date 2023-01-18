@@ -11,7 +11,9 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
+import com.datastax.oss.driver.internal.core.`type`.codec.BlobCodec
 import de.tuda.stg.consys.core.store.utils.Reflect
+import org.json.{JSONArray, JSONObject}
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
@@ -21,6 +23,8 @@ import java.rmi.server.UnicastRemoteObject
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
+import org.json.JSONObject
+import java.nio.charset.StandardCharsets
 
 /**
  * Remote trait which acts as an interface to the server
@@ -31,7 +35,21 @@ trait RMIServerInterface extends Remote {
 }
 object RMIServer extends App with RMIServerInterface {
 	def print(data: String): Unit = {
-		println("\u001b[34m [TRIGGER] " + data + "\u001b[0m")
+		println("\u001b[34m " + data + "\u001b[0m")
+
+		val jsonObject: JSONObject = new JSONObject(data)
+		val cells: JSONArray = jsonObject.getJSONArray("cells")
+
+		var stateValue: String = "0x"
+
+		val cell = cells.getJSONObject(1)
+		if (cell.getString("name").equals("state")) {
+			stateValue += cell.getString("value")
+		}
+
+		val byteBuffer = TypeCodecs.BLOB.parse(stateValue);
+
+		CassandraReplicaAdapter.handleTrigger(byteBuffer);
 	}
 }
 
@@ -255,6 +273,12 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 }
 
 object CassandraReplicaAdapter {
+
+	private[cassandra] def handleTrigger(data: ByteBuffer): Unit = {
+		val obj = deserializeObject[Serializable](data)
+		println("\u001b[34m " + obj + "\u001b[0m")
+
+	}
 
 	/* Helper methods */
 
