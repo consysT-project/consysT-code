@@ -37,19 +37,18 @@ public class BackgroundTask implements Runnable {
                     Ref<MyProduct> product = ctx.lookup(randomProduct, STRONG, MyProduct.class);
                     this.user = ctx.lookup("user", STRONG, User.class);
                     boolean buySuccess = user.ref().buyProduct(product, randomAmount);
-                    return Option.apply(buySuccess);
+
+                    System.out.print("\u001B[35m [BACKGROUND TASK]: ");
+
+                    if (buySuccess) {
+                        System.out.println("Successfully bought " + randomAmount + " of " + randomProduct + ". \u001B[0m");
+                    }
+                    else {
+                        System.out.println("Could not buy " + randomAmount + " of " + randomProduct + ". Either the balance is too low or product is not available in this quantity. \u001B[0m");
+                    }
+
+                return Option.apply(buySuccess);
             }).get();
-
-            System.out.print("\u001B[34m [THREAD " + Thread.currentThread().getId() + "]: ");
-
-
-            if (buy) {
-                System.out.println("Successfully bought " + randomAmount + " of " + randomProduct + ". \u001B[0m");
-            }
-            else {
-                System.out.println("Could not buy " + randomAmount + " of " + randomProduct + ". Either the balance is too low or product is not available in this quantity. \u001B[0m");
-            }
-
 
             try {
                 Thread.sleep(5000);
