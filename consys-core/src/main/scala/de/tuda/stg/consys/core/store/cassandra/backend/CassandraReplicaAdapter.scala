@@ -57,13 +57,18 @@ class RegistryThread extends Thread {
 
 		//Unicast Remote Object Stub is created and the object is exported to Client through the port number mentioned
 		val port = 1234
-		val stub = UnicastRemoteObject.exportObject(RMIServer, port)
 
-		//RMI registry is instantiated
-		val registry = LocateRegistry.createRegistry(port)
+		try {
+			val stub = UnicastRemoteObject.exportObject(RMIServer, port)
+			//RMI registry is instantiated
+			val registry = LocateRegistry.createRegistry(port)
 
-		//URL is being passed instead of string tag identifier while binding the stub containing the server object to the registry
-		registry.rebind(serverURL, stub)
+			//URL is being passed instead of string tag identifier while binding the stub containing the server object to the registry
+			registry.rebind(serverURL, stub)
+		}
+		catch {
+			case e: Exception => ()
+		}
 	}
 }
 
