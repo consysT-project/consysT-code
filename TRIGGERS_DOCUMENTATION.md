@@ -28,4 +28,20 @@ Remarks:
 
 ToDo:
 
-- InteractiveSession.java - background task turned off, only one replica running
+- InteractiveSession.java - background task turned off, only one replica running, balance checker off
+- Session.java:
+
+```
+public static ConsistencyLevel<CassandraStore> productConsistencyLevel = STRONG; -> MIXED for op-based
+public static ConsistencyLevel<CassandraStore> userConsistencyLevel = STRONG; -> MIXED for op-based
+```
+
+- BackgroundTask.java:
+
+```
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.MyProduct; -> 'opcentric'
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.User; -> 'opcentric'
+
+Ref<MyProduct> product = ctx.lookup(randomProduct, STRONG, MyProduct.class); -> MIXED
+this.user = ctx.lookup("user", STRONG, User.class); -> MIXED
+```

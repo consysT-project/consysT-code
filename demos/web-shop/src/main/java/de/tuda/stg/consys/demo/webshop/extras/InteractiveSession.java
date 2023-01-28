@@ -32,7 +32,7 @@ public class InteractiveSession {
         
         session.initProducts();
         session.initUser();
-        session.runBalanceChecker();
+        //session.runBalanceChecker();
 
         //threadPool.submit(backgroundTask);
 

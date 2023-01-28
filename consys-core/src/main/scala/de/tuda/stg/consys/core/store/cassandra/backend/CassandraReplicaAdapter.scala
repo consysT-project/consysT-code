@@ -11,7 +11,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
-import com.datastax.oss.driver.internal.core.`type`.codec.BlobCodec
+import de.tuda.stg.consys.core.store.Triggerable
 import de.tuda.stg.consys.core.store.utils.Reflect
 import org.json.{JSONArray, JSONObject}
 
@@ -23,8 +23,6 @@ import java.rmi.server.UnicastRemoteObject
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
-import org.json.JSONObject
-import java.nio.charset.StandardCharsets
 
 /**
  * Remote trait which acts as an interface to the server
@@ -130,6 +128,23 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 			case e : DriverTimeoutException =>
 				e.printStackTrace()
 		}
+
+		// Drop an existing trigger and create a new one
+
+		cassandraSession.execute(
+			SimpleStatement.builder(
+				s"""DROP TRIGGER IF EXISTS trigger ON $keyspaceName.$objectTableName;""")
+				.setExecutionProfileName("consys_init")
+				.build()
+		)
+
+		cassandraSession.execute(
+			SimpleStatement.builder(
+				s"""CREATE TRIGGER trigger ON $keyspaceName.$objectTableName USING 'de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaTriggerJava';""")
+				.setExecutionProfileName("consys_init")
+				.build()
+		)
+
 	}
 
 	private final val FIELD_ALL = "$ALL"
@@ -276,8 +291,11 @@ object CassandraReplicaAdapter {
 
 	private[cassandra] def handleTrigger(data: ByteBuffer): Unit = {
 		val obj = deserializeObject[Serializable](data)
-		println("\u001b[34m " + obj + "\u001b[0m")
 
+		if (obj.isInstanceOf[Triggerable]) {
+			val triggerableObj = obj.asInstanceOf[Triggerable]
+			triggerableObj.onTrigger()
+		}
 	}
 
 	/* Helper methods */

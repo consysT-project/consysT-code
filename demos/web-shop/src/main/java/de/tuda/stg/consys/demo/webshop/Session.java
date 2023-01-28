@@ -1,11 +1,10 @@
 package de.tuda.stg.consys.demo.webshop;
 
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
-import de.tuda.stg.consys.demo.webshop.schema.MyProduct;
-import de.tuda.stg.consys.demo.webshop.schema.User;
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.MyProduct;
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.User;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
@@ -24,8 +23,8 @@ public class Session {
     private CassandraStoreBinding store;
     private List<Ref<MyProduct>> products;
     private Ref<User> user;
-    public static ConsistencyLevel<CassandraStore> productConsistencyLevel = MIXED;
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> productConsistencyLevel = STRONG;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = STRONG;
     private static ExecutorService threadPool;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {

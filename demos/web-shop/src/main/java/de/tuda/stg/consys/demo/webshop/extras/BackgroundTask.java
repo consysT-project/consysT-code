@@ -1,10 +1,9 @@
 package de.tuda.stg.consys.demo.webshop.extras;
 
-import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
-import de.tuda.stg.consys.demo.webshop.schema.MyProduct;
-import de.tuda.stg.consys.demo.webshop.schema.User;
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.MyProduct;
+import de.tuda.stg.consys.demo.webshop.schema.datacentric.User;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
@@ -35,8 +34,8 @@ public class BackgroundTask implements Runnable {
             int randomAmount = getRandomAmount();
 
             boolean buy = doTransaction(ctx -> {
-                    Ref<MyProduct> product = ctx.lookup(randomProduct, MIXED, MyProduct.class);
-                    this.user = ctx.lookup("user", MIXED, User.class);
+                    Ref<MyProduct> product = ctx.lookup(randomProduct, STRONG, MyProduct.class);
+                    this.user = ctx.lookup("user", STRONG, User.class);
                     boolean buySuccess = user.ref().buyProduct(product, randomAmount);
                     return Option.apply(buySuccess);
             }).get();
