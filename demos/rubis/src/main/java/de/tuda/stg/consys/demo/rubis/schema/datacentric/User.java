@@ -200,7 +200,7 @@ public @Weak class User implements Serializable, IUser {
         @Strong float potentialBalance = balance.ref().floatValue();
 
         for (var item : getOpenBuyerAuctions()) {
-            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid();
+            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO: timeout?
             if ((@Strong boolean)bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
                 potentialBalance -= bid.get().getBid();
             }

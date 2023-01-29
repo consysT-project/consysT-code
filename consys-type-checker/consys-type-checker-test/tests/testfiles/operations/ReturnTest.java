@@ -1,3 +1,4 @@
+import de.tuda.stg.consys.checker.qual.ThisConsistent;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
@@ -6,7 +7,7 @@ import de.tuda.stg.consys.japi.Ref;
 
 /**
  * Tests return type 'inference' for mixed operations.
- * Return types default to the operation level if the method name starts with 'get'.
+ * Return types default to the operation level if the return type is @Poly.
  */
 // :: error: consistency.type.use.incompatible
 public @Mixed class ReturnTest {
@@ -14,21 +15,21 @@ public @Mixed class ReturnTest {
     protected @Weak int j;
 
     @StrongOp
-    public int getStrong() {
+    public @ThisConsistent int getStrong() {
         return i;
     }
 
     @WeakOp
-    public int getWeak() {
+    public @ThisConsistent int getWeak() {
         return i;
     }
 
-    public int get() {
+    public @ThisConsistent int get() {
         return i;
     }
 
     @StrongOp
-    public int getError() {
+    public @ThisConsistent int getError() {
         // :: error: return
         return j;
     }
@@ -60,12 +61,12 @@ public @Mixed class ReturnTest {
 
 // :: error: consistency.type.use.incompatible
 @Mixed class Derived extends ReturnTest {
-    @StrongOp public int getStrong() {
+    @StrongOp public @ThisConsistent int getStrong() {
         // :: error: return
         return j;
     }
 
-    @WeakOp public int get() {
+    @WeakOp public @ThisConsistent int get() {
         return i;
     }
 

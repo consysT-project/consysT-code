@@ -29,12 +29,11 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 
 	private final BenchmarkType benchType;
 	protected boolean isTestMode = false;
-	private static final int msTimeout = 60000;
 	// utility for benchmarks
 	protected final Random random = new Random();
 
 
-	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver) {
+	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver, int msTimeout) {
 		super(name, config, outputResolver, (address, processId, barrier) -> {
 			CassandraStoreBinding store = null;
 
@@ -46,8 +45,8 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			try {
 				barrier.barrier("init-store");
 			} catch (Exception e) {
-				e.printStackTrace();
-				throw new RuntimeException("error executing barrier during store construction");
+				throw new RuntimeException("error executing barrier during store construction in process " + processId +
+						". Reason: " + e.getMessage());
 			}
 
 			if ((int)processId != 0) {
@@ -65,8 +64,16 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		benchType = BenchmarkType.valueOf(typeString.toUpperCase());
 	}
 
+	public CassandraDemoBenchmark(String name, Config config, Option<OutputResolver> outputResolver) {
+		this(name, config, outputResolver, 60000);
+	}
+
 	public CassandraDemoBenchmark(Config config, Option<OutputResolver> outputResolver) {
 		this("default", config, outputResolver);
+	}
+
+	public CassandraDemoBenchmark(Config config, Option<OutputResolver> outputResolver, int msTimeout) {
+		this("default", config, outputResolver, msTimeout);
 	}
 
 	protected ConsistencyLevel<CassandraStore> getStrongLevel() {
@@ -133,6 +140,39 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		*/
 	}
 
+	protected List<Double> zipfSummed(int n, double s) {
+		double e = 0;
+		for (int i = 1; i < n + 1; i++) {
+			e += 1 / Math.pow(i, s);
+		}
+
+		List<Double> result = new ArrayList<>(n);
+		for (int k = 1; k < n + 1; k++) {
+			double z = (1 / Math.pow(k, s)) / e;
+			double sum = result.isEmpty() ? z : result.get(result.size() - 1) + z;
+			result.add(sum);
+		}
+
+		return result;
+	}
+
+	protected List<Double> zipfSummed(int n) {
+		return zipfSummed(n, 1);
+	}
+
+	protected void randomTransaction(List<Runnable> operations, List<Double> zipf) {
+		float rand = random.nextFloat();
+
+		for (int i = 0; i < zipf.size(); i++) {
+			if (rand < zipf.get(i)) {
+				operations.get(i).run();
+				return;
+			}
+		}
+		// in case of rounding errors
+		operations.get(operations.size() - 1).run();
+	}
+
 	// Utility method for benchmarks
 	protected <E> E getRandomElement(List<E> list) {
 		return list.get(random.nextInt(list.size()));
@@ -154,9 +194,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 		return body.toString();
 	}
 
-	public void test() {
-		throw new UnsupportedOperationException();
-	}
+	public void test() {}
 
 	private final Map<String, List<Boolean>> checkResults = new HashMap<>();
 	private final Map<String, List<String>> checkResultsMessage = new HashMap<>();

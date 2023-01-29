@@ -2,9 +2,9 @@ package de.tuda.stg.consys.demo.twitterclone;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
-import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
-import de.tuda.stg.consys.demo.twitterclone.schema.User;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;

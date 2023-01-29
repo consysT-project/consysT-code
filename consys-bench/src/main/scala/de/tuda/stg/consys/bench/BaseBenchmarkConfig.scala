@@ -29,6 +29,7 @@ class BaseBenchmarkConfig(
 	override val numberOfReplicas : Int = config.getInt("consys.bench.numberOfReplicas")
 	override val warmupIterations : Int = config.getInt("consys.bench.warmupIterations")
 	override val measureIterations : Int = config.getInt("consys.bench.measureIterations")
+	override val testIterations : Int = config.getInt("consys.bench.testIterations")
 	override val operationsPerIteration : Int = config.getInt("consys.bench.operationsPerIteration")
 	override val waitBetweenOperations : FiniteDuration = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.waitPerOperation"))
 	override val barrierTimeout : FiniteDuration = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.barrierTimeout"))

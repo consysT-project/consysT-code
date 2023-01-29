@@ -38,7 +38,7 @@ public abstract class JBenchRunnable<StoreType extends Store> implements Benchma
         return store.getStrongLevel();
     }
 
-
-
-
+    protected ConsistencyLevel getMixedLevel() {
+        return store.getMixedLevel();
+    }
 }

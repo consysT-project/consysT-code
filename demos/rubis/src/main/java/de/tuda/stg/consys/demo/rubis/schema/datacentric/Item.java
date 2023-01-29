@@ -27,14 +27,14 @@ public @Weak class Item implements Serializable, IItem {
     private Ref<@Mutable User> buyer;
     private final Ref<@Strong @Mutable RefList<Bid>> bids;
     // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
-    private Status status = (@MutableBottom @Local Status) Status.OPEN;
-    private final Ref<@Mutable AuctionStore> auctionsStore;
+    private Ref<@Strong @Mutable StatusBox> status;
 
     public Item(@Local UUID id, @Weak @Mutable String name, @Mutable @Weak String description,
                 @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
                 @Local Date startDate, Ref<@Strong @Mutable Date> endDate, @Local @Mutable Category category,
-                Ref<@Mutable User> seller, Ref<@Mutable AuctionStore> auctionsStore,
-                Ref<@Strong @Mutable RefList<Bid>> bids) {
+                Ref<@Mutable User> seller,
+                Ref<@Strong @Mutable RefList<Bid>> bids,
+                Ref<@Strong @Mutable StatusBox> status) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -46,8 +46,8 @@ public @Weak class Item implements Serializable, IItem {
         this.category = category;
         this.seller = seller;
         this.bids = bids;
+        this.status = status;
         this.buyer = null;
-        this.auctionsStore = auctionsStore;
     }
 
     @Transactional
@@ -58,6 +58,9 @@ public @Weak class Item implements Serializable, IItem {
 
         if ((@Strong boolean) endDate.ref().before(new Date()))
             throw new AppException.DateException("Auction has already ended.");
+
+        if (status.ref().value != ItemStatus.OPEN)
+            throw new AppException("Item is not available anymore.");
 
         if (!bid.getUser().ref().hasEnoughCredits(bid.getBid()))
             throw new AppException.NotEnoughCreditsException();
@@ -79,6 +82,9 @@ public @Weak class Item implements Serializable, IItem {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
 
+        if (status.ref().value != ItemStatus.OPEN)
+            throw new AppException("Buy-Now is disabled, since item is not available anymore.");
+
         if ((@Strong boolean)!bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice)
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
 
@@ -90,8 +96,8 @@ public @Weak class Item implements Serializable, IItem {
 
 
         endAuctionNow();
-        this.buyer = (Ref<@Mutable User>) buyer;
-        status = (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+        this.buyer = (Ref<@Mutable User>) buyer; // TODO: might be problematic since the reference is weak?
+        status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
 
         buyer.ref().removeBalance((@Strong float) buyNowPrice);
         seller.ref().addBalance((@Strong float) buyNowPrice);
@@ -101,8 +107,6 @@ public @Weak class Item implements Serializable, IItem {
         closeWatchedItemsForBidders();
 
         buyer.ref().notifyWinner(item, buyNowPrice);
-
-        auctionsStore.ref().closeAuction(id, category);
 
         return (@Strong float) buyNowPrice;
     }
@@ -121,10 +125,13 @@ public @Weak class Item implements Serializable, IItem {
         if ((@Strong boolean) endDate.ref().after(new Date()))
             throw new AppException.DateException("Auction has not yet ended.");
 
+        if (status.ref().value != ItemStatus.OPEN)
+            throw new AppException("Auction is already closed.");
+
 
         @Strong boolean hasWinner = !(@Strong boolean)bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice;
         if (hasWinner) {
-            status = (@MutableBottom @Local Status) Status.SOLD_VIA_AUCTION;
+            status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_AUCTION;
 
             @Immutable @Strong Bid winningBid = bids.ref().get(0);
             buyer = (Ref<@Mutable User>) winningBid.getUser();
@@ -137,12 +144,11 @@ public @Weak class Item implements Serializable, IItem {
 
             buyer.ref().notifyWinner(item, price);
         } else {
-            status = (@MutableBottom @Local Status) Status.NOT_SOLD;
+            status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
         closeWatchedItemsForBidders();
-        auctionsStore.ref().closeAuction(id, category);
 
         return hasWinner;
     }
@@ -213,14 +219,14 @@ public @Weak class Item implements Serializable, IItem {
         return Optional.ofNullable(buyer);
     }
 
-    @WeakOp @SideEffectFree
+    @WeakOp @SideEffectFree @Transactional
     public boolean getSoldViaBuyNow() {
-        return status == (@MutableBottom @Local Status) Status.SOLD_VIA_BUY_NOW;
+        return status.ref().value == (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
     }
 
-    @SideEffectFree
-    public Status getStatus() {
-        return status;
+    @SideEffectFree @Transactional
+    public ItemStatus getStatus() {
+        return status.ref().value;
     }
 
     @Transactional @SideEffectFree

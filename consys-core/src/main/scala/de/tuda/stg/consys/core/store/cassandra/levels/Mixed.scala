@@ -79,7 +79,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 
 				result
 
-			} else /* if (method.getAnnotation(classOf[WeakOp]) != null) */ {
+			} else /* if (method.getAnnotation(classOf[WeakOp]) != null) */ { //TODO: Resolve default operation types
 				if (method.getAnnotation(classOf[WeakOp]) == null) {
 					//println(s"Warning: Method [${method.toString}] executed with Weak consistency because it was not annotated.")
 				}

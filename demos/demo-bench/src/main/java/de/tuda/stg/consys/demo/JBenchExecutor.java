@@ -22,4 +22,8 @@ public class JBenchExecutor {
     public void runBenchmark() {
         executor.runBenchmark();
     }
+
+    public void runBenchmarkTests() {
+        executor.runBenchmarkTests();
+    }
 }

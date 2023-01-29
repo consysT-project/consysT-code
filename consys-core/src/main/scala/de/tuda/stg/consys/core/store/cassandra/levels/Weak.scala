@@ -47,7 +47,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
 
 			if (objectChanged) txContext.Cache.setObjectChanged(addr)
-			if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
+			//if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
 
 			result
 		}

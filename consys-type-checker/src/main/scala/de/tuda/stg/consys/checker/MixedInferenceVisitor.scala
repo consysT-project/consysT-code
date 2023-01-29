@@ -9,8 +9,8 @@ import de.tuda.stg.consys.checker.MixedInferenceVisitor._
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, TypeKind}
 import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 object MixedInferenceVisitor {
     sealed trait AccessType
@@ -244,7 +244,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         else {
             var r = scan(node.getTypeArguments, state.copy(accessMode = Some(Write)))
             r = reduce(scan(node.getMethodSelect, state.copy(accessMode = Some(Write))), r)
-            node.getArguments.zipWithIndex.foldLeft(r)((r, elem) => {
+            node.getArguments.asScala.zipWithIndex.foldLeft(r)((r, elem) => {
                 val (arg, index) = elem
                 val method = TreeUtils.elementFromUse(node)
                 val param =
@@ -409,7 +409,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
 
     // returns the fields that the given class defines (i.e. excluding inherited fields)
     private def getOwnFields(elt: TypeElement): Iterable[VariableElement] = {
-        elt.getEnclosedElements.filter({
+        elt.getEnclosedElements.asScala.filter({
             case _: VariableElement => true
             case _ => false
         }).map(f => f.asInstanceOf[VariableElement])

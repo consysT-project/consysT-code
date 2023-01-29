@@ -56,9 +56,9 @@ public abstract class DemoExecutor<T extends CassandraDemoBenchmark> {
                 CassandraDemoBenchmark benchmark;
                 try {
                     benchmark = benchConstructor.newInstance(config, Option.empty());
-                    benchmark.enableTestMode();
 
                     if (withTest) {
+                        benchmark.enableTestMode();
                         benchmark.runWarmupOnlyWithoutCleanup();
                         benchmark.test();
                         benchmark.printTestResult();

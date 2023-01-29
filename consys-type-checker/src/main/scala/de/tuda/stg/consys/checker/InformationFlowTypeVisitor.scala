@@ -17,7 +17,7 @@ import scala.collection.{JavaConverters, mutable}
 	*/
 abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](baseChecker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](baseChecker) {
 	import TypeFactoryUtils._
-	private implicit val tf: AnnotatedTypeFactory = atypeFactory
+	protected implicit val tf: TypeFactory = atypeFactory
 
 	//Current context of the consistency check
 	protected val implicitContext : ImplicitContext = new ImplicitContext

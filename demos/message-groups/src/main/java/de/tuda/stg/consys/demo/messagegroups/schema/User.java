@@ -2,10 +2,15 @@ package de.tuda.stg.consys.demo.messagegroups.schema;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.checker.qual.Immutable;
+import de.tuda.stg.consys.checker.qual.Local;
+import de.tuda.stg.consys.checker.qual.Mixed;
+import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.japi.Ref;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
-import java.util.Set;
+import java.util.List;
 
 
 /**
@@ -13,39 +18,36 @@ import java.util.Set;
  *
  * @author Mirko Köhler
  */
-@SuppressWarnings({"consistency"})
-public class User implements Serializable {
+public @Mixed class User implements Serializable {
+    private final @Immutable String name;
+    private final Ref<@Mutable Inbox> inbox;
 
-    private final Ref<Inbox> inbox;
-    private final String name;
-
+    // empty constructor needed for mixed objects
     public User() {
         inbox = null;
         name = "";
     }
 
-    public User(Ref<Inbox> inbox, String name) {
-        this.inbox = inbox;
+    public User(@Local String name, Ref<@Mutable Inbox> inbox) {
         this.name = name;
+        this.inbox = inbox;
     }
 
-    @WeakOp
     @Transactional
     public void send(String msg) {
-//		System.out.println("[Message] " + name + ": " + msg);
         inbox.ref().add(msg);
     }
 
-    @WeakOp
     @Transactional
-    public Set<String> getInbox() {
+    @SideEffectFree
+    public List<String> getInbox() {
         return inbox.ref().getEntries();
     }
 
-    @WeakOp
     @Transactional
+    @SideEffectFree
     public void printInbox() {
-        String s = "[Inbox] " + name + ": " + inbox.ref().toString();
+        @Immutable String s = "[Inbox] " + name + ": " + inbox.ref().toString();
         System.out.println(s);
     }
 }
