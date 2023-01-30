@@ -70,6 +70,12 @@
             <version>5.8.0-M1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>invariants-lib</artifactId>
+            <version>4.0.0</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 

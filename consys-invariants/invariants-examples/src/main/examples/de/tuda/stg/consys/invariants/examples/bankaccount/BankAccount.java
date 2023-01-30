@@ -5,8 +5,9 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.lang.Math;
 import java.math.BigInteger;
 
-import static de.tuda.stg.consys.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+
 
 @ReplicatedModel public class BankAccount {
     /* Constants */

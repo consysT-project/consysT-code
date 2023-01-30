@@ -22,7 +22,8 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 
 		properties.add(initialSatisfiesMergability());
 		getClassModel().getMethods().forEach(m -> {
-			properties.add(methodSatisfiesMergability(m.getBinding()));
+			properties.add(methodSatisfiesWeakMergability(m.getBinding()));
+			properties.add(methodSatisfiesStrongMergability(m.getBinding()));
 		});
 		properties.add(mergeSatisfiesMergability());
 
@@ -101,7 +102,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// Applying a method does not violate the mergability.
 	// If this property is violated then the method can not be executed concurrently.
 	// inv(s0) & inv(s1) & pre_m(s0) & pre_merge(s0, s1) & post_m(s0, s0_new, _) => pre_merge(s0_new, s1)
-	public Property methodSatisfiesMergability(MethodBinding binding) {
+	public Property methodSatisfiesWeakMergability(MethodBinding binding) {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
@@ -117,7 +118,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			forallArgs = new Expr[] {s0, s1, s0_new, ret};
 		}
 
-		return new MethodProperty("mergability/method",
+		return new MethodProperty("mergability/weak/method",
 				binding,
 				model.ctx.mkForall(
 						forallArgs,
@@ -143,8 +144,66 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 				)
 
 		);
+	}
 
 
+	// Applying a method does not violate the mergability.
+	// If this property is violated then the method can not be executed concurrently.
+	// inv(s0) & inv(s1) & pre_merge(s0, s1) & post_merge(s0, s1, s2) & pre_m(s2) & post_m(s2, s2_new, _) => pre_merge(s2_new, s1)
+	// inv(s) & pre_m(s) & post_m(s, s_new, _) => pre_merge(s_new, s1)
+	public Property methodSatisfiesStrongMergability(MethodBinding binding) {
+		Expr s0 = constraints.getClassModel().toFreshConst("s0");
+		Expr s1 = constraints.getClassModel().toFreshConst("s1");
+		Expr s2 = constraints.getClassModel().toFreshConst("s2");
+		Expr s2_new = constraints.getClassModel().toFreshConst("s2_new");
+
+
+		var returnSort = constraints.getClassModel().getMethod(binding).get().getReturnType().toSort();
+		Expr[] forallArgs;
+		Expr ret = null;
+		if (model.types.voidType().toSort().equals(returnSort)) {
+			forallArgs = new Expr[] {s0, s1, s2, s2_new};
+		} else {
+			ret = model.ctx.mkFreshConst("ret", returnSort);
+			forallArgs = new Expr[] {s0, s1, s2, s2_new, ret};
+		}
+
+		return new MethodProperty("mergability/strong/method",
+				binding,
+				model.ctx.mkForall(
+						forallArgs,
+						model.ctx.mkImplies(
+								model.ctx.mkAnd(
+										constraints.getInvariant().apply(s0),
+										constraints.getFieldInvariant().apply(s0),
+
+										constraints.getInvariant().apply(s1),
+										constraints.getFieldInvariant().apply(s1),
+
+										constraints.getInvariant().apply(s2),
+										constraints.getFieldInvariant().apply(s2),
+
+										constraints.getInvariant().apply(s2_new),
+										constraints.getFieldInvariant().apply(s2_new),
+
+										constraints.getMergePrecondition().apply(s0, s1),
+
+										constraints.getMergePostcondition().apply(s0, s1, s2),
+
+
+										constraints.getPrecondition(binding).apply(s2),
+										constraints.getPostcondition(binding).apply(s2, s2_new, ret)
+								),
+								constraints.getMergePrecondition().apply(s2_new, s1)
+						),
+						1,
+						null,
+						null,
+						null,
+						null
+				)
+
+		);
 	}
 
 	// Applying merge does not violate the mergability.

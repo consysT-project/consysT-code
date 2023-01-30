@@ -3,6 +3,7 @@ package de.tuda.stg.consys.invariants.solver.subset.parser;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.solver.exceptions.UnsupportedJMLExpression;
+import de.tuda.stg.consys.invariants.utils.InvariantUtils;
 import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
@@ -471,13 +472,19 @@ public class BaseExpressionParser extends ExpressionParser {
       );
     }
     // System methods
-    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "replicaId")) {
+
+
+
+
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "replicaId")) {
       return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "replica")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "replica")) {
       return model.ctx.mkString(model.config.SYSTEM__REPLICA);
-    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.utils.InvariantUtils", "numOfReplicas")) {
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "numOfReplicas")) {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
     }
+
+
 
 
 
