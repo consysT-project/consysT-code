@@ -2,10 +2,9 @@ package de.tuda.stg.consys.invariants.lib.examples.creditaccount;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-import de.tuda.stg.consys.invariants.lib.crdts.immutable.PNCounter;
+import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
-import static de.tuda.stg.consys.invariants.utils.InvariantUtils.__merge;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -14,7 +13,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 @ReplicatedModel
 public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccount> {
 
-    private final PNCounter credits;
+    public final PNCounter credits;
 
     /* Invariants */
     //@ public invariant getValue() >= 0;
@@ -51,7 +50,7 @@ public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccoun
     }
 
     /* Merge method */
-    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incCounter.increments.get(i), other.credits.incCounter.increments.get(i)) - Math.max(credits.decCounter.increments.get(i), other.credits.decCounter.increments.get(i))) >= 0;
+    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incs[i]), other.credits.incs[i]) - Math.max(credits.decs[i], other.credits.decs[i])) >= 0;
     //@ ensures stateful( credits.merge(other.credits) );
     public Void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);

@@ -30,12 +30,15 @@ public class Examples {
 			Paths.get("consys-invariants/invariants-examples/src/main/examples/de/tuda/stg/consys/invariants/examples/bankaccount/BankAccount.java")
 	};
 
+	public static final Path[] BANK_ACCOUNT_LWW = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/bankaccountlww/BankAccountLWW.java")
+	};
+
 	public static final Path[] CREDIT_ACCOUNT = new Path[] {
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/SequentialCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/SequentialCreditAccount.java"),
-			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/ReplicatedCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/creditaccount/ReplicatedCreditAccount.java")
+//			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCounter.java"),
+//			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCreditAccount.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/ReplicatedCreditAccount.java")
 	};
 
 	public static final Path[] REPLICATED_CREDIT_ACCOUNT = new Path[] {
@@ -58,10 +61,22 @@ public class Examples {
 			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/multicounter/SimpleCounter.java")
 	};
 
-	public static final Path[] JOINTBANKACCOUNT = new Path[] {
-			//Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/pncounter/PNCounterCRDT.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/crdtlib/PNCounter.java"),
-			Paths.get("consys-invariants/src/main/examples/de/tuda/stg/consys/invariants/examples/jointbankaccount/JointBankAccount.java")
+	public static final Path[] JOINT_BANK_ACCOUNT = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/jointbankaccount/JointBankAccount.java")
+	};
+
+	public static final Path[] RESETTABLE_COUNTER = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/resettablecounter/ResettableCounter.java")
+	};
+
+
+	public static final Path[] CONSENSUS = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/consensus/Consensus.java"),
+	};
+
+	public static final Path[] DISTRIBUTED_LOCK = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/distributedlock/DistributedLock.java"),
 	};
 
 	public static final Path[] TOURNAMENT = new Path[] {
@@ -75,12 +90,14 @@ public class Examples {
 	};
 	
 	public static final Path[] CRDTLIB = new Path[] {
-			Paths.get("consys-annotations/src/main/java/de/tuda/stg/consys/Mergeable.java"),
-
-			Paths.get("consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/GCounter.java"),
-			Paths.get("consys-invariants/src/main/java/de/tuda/stg/consys/invariants/crdts/PNCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/GCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/GSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/TwoPhaseSet.java"),
 
 	};
+
+
 
 	public static final Path[] IMMUTABLE_CRDTLIB = new Path[] {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/immutable/GCounter.java"),

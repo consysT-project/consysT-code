@@ -40,7 +40,7 @@ public class TestCheckExamples {
 
 	@Test
 	public void testJointBankAccount() {
-		Main.runChecker(Examples.STATEFUL_CONFIG, ADDITIONAL_LIBS, Examples.JOINTBANKACCOUNT);
+		Main.runChecker(Examples.STATEFUL_CONFIG, ADDITIONAL_LIBS, Examples.JOINT_BANK_ACCOUNT);
 	}
 
 	@Test

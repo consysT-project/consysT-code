@@ -1,8 +1,11 @@
-package de.tuda.stg.consys.invariants.examples.jointbankaccount;
+package de.tuda.stg.consys.invariants.lib.examples.jointbankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 @ReplicatedModel public class JointBankAccount {
     //@ public invariant balance.getValue() >= 0;

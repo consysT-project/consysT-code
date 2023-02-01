@@ -1,20 +1,22 @@
+package de.tuda.stg.consys.invariants.lib.examples.bankaccountlww;
+
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+
 
 @ReplicatedModel public class BankAccountLWW {
 
     int value = 0;
     int timestamp = 0;
-    int id;
 
     //@ public invariant value >= 0;
 
     /*@
     @ ensures value == 0;
     @ ensures timestamp == 0;
-    @ ensures this.id == id;
     @*/
-    public BankAccountLWW(int id) {
-        this.id = id;
+    public BankAccountLWW() {
     }
 
     /*@
@@ -42,15 +44,13 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
         timestamp = timestamp + 1;
     }
 
+    //TODO: WHat if timestamp == other.timestamp?
     /*@
-    @ ensures (\old(timestamp) > other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
+    @ ensures (\old(timestamp) >= other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
-    @ ensures (\old(timestamp) == other.timestamp) && (id < other.id) ==> (value == \old(value)) && (timestamp == \old(timestamp));
-    @ ensures (\old(timestamp) == other.timestamp) && (id > other.id) ==> (value == other.value) && (timestamp == other.timestamp);
-    @ ensures (\old(timestamp) == other.timestamp) && (id == other.id) ==> (value == other.value) && (timestamp == other.timestamp) && (value == \old(value)) && (timestamp == \old(timestamp));
     @*/
     public void merge(BankAccountLWW other) {
-        if (timestamp > other.timestamp || (timestamp == other.timestamp && id < other.id)) {
+        if (timestamp > other.timestamp) {
             // do not change this state
         } else {
             value = other.value;
