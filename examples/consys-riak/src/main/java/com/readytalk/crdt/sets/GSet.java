@@ -113,6 +113,7 @@ import com.google.common.collect.Sets;
 
 		// this merge function had GSet<E> output type.
 		//return new GSet<E>(serializer, retval);
+		return null;
 	}
 
 	/*@

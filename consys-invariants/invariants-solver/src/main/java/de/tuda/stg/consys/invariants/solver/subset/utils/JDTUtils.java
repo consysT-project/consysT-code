@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.solver.subset.utils;
 
 import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.*;
+import org.eclipse.jdt.internal.compiler.problem.AbortCompilation;
 
 import java.util.Arrays;
 
@@ -87,6 +88,10 @@ public class JDTUtils {
 				//TODO: There is a null pointerexception sometimes in this code?
 				Logger.warn("there was a null pointer exception while getting the superinterface for: " + binding.debugName());
 				e.printStackTrace(Logger.warn);
+			} catch (AbortCompilation e) {
+				//TODO: There is a null pointerexception sometimes in this code?
+				Logger.warn("there was an abort compilation while getting the superinterface for: " + binding.debugName());
+				e.printStackTrace(Logger.warn);
 			}
 			if (superInterfaces == null) {
 				return false;
@@ -104,8 +109,10 @@ public class JDTUtils {
 	}
 
 	public static boolean methodMatchesSignature(TypeBinding receiverBinding, MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
-		if (binding == null)
-			throw new NullPointerException("binding was null. receiver: " + receiverBinding + ", method: " + methodName);
+		if (binding == null) {
+			Logger.err("binding was null. receiver: " + receiverBinding + ", method: " + methodName);
+			return false;
+		}
 
 		if (binding.isStatic() != isStatic) {
 			return false;

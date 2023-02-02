@@ -1,7 +1,8 @@
 package de.tuda.stg.consys.invariants.solver.subset.constraints;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.invariants.solver.subset.utils.*;
+import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Function3;
+import de.tuda.stg.consys.invariants.solver.subset.utils.Z3FunctionFactory;
 
 public class ConstraintsFactory {
 

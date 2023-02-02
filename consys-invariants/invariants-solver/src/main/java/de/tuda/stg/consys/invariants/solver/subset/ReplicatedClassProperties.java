@@ -42,7 +42,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
-		var result = new ClassProperty("invariant/merge",
+		var result = new ClassProperty("(i2) invariant/merge",
 				model.ctx.mkForall(
 						new Expr[] {s0, s1, s0_new},
 						model.ctx.mkImplies(
@@ -74,7 +74,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	public Property initialSatisfiesMergability() {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 
-		var result = new ClassProperty("mergability/initial",
+		var result = new ClassProperty("(m0) mergability/initial",
 				model.ctx.mkForall(
 						new Expr[] {s0},
 						model.ctx.mkImplies(
@@ -118,7 +118,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			forallArgs = new Expr[] {s0, s1, s0_new, ret};
 		}
 
-		return new MethodProperty("mergability/weak/method",
+		return new MethodProperty("(m2) mergability/weak/method",
 				binding,
 				model.ctx.mkForall(
 						forallArgs,
@@ -168,7 +168,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			forallArgs = new Expr[] {s0, s1, s2, s2_new, ret};
 		}
 
-		return new MethodProperty("mergability/strong/method",
+		return new MethodProperty("(m3) mergability/strong/method",
 				binding,
 				model.ctx.mkForall(
 						forallArgs,
@@ -213,7 +213,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
 		Expr s0_new = constraints.getClassModel().toFreshConst("s0_new");
 
-		return new ClassProperty("mergability/merge",
+		return new ClassProperty("(m1) mergability/merge",
 				model.ctx.mkForall(
 						new Expr[] {s0, s1, s0_new},
 						model.ctx.mkImplies(

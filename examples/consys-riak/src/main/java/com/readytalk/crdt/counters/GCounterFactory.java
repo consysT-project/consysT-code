@@ -26,7 +26,7 @@ public class GCounterFactory implements CRDTFactory<GCounter> {
 
 	@Override
 	public GCounter create(final byte[] payload) {
-		return new GCounter(serializer, clientId, payload);
+		return new GCounter(serializer, clientId);
 	}
 	
 	

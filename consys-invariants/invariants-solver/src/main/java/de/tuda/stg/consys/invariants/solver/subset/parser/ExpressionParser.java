@@ -2,7 +2,6 @@ package de.tuda.stg.consys.invariants.solver.subset.parser;
 
 import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.solver.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.jmlspecs.jml4.ast.*;
@@ -26,7 +25,7 @@ public abstract class ExpressionParser {
 	protected final Expr parseExpression(Expression expression, int depth) {
 
 		if (expression == null) {
-			Logger.warn("expression was null and was converted to `true`. Parser: " + this.toString());
+//			Logger.warn("expression was null and was converted to `true`. Parser: " + this.toString());
 			return model.ctx.mkTrue();
 		}
 

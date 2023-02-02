@@ -28,7 +28,7 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 	// init(s0) ==> I(s0)
 	private Property initialSatisfiesInvariant() {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
-		return new ClassProperty("invariant/initial",
+		return new ClassProperty("(i0) invariant/initial",
 				model.ctx.mkForall(
 						new Expr[] {s0},
 						model.ctx.mkImplies(
@@ -63,7 +63,7 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 			forallArgs = new Expr[] {s0, s0_new, ret};
 		}
 
-		var result = new MethodProperty("invariant/method",
+		var result = new MethodProperty("(i1) invariant/method",
 				binding,
 				model.ctx.mkForall(
 						forallArgs,

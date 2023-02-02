@@ -5,7 +5,10 @@ import com.google.common.collect.Maps;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Solver;
 import de.tuda.stg.consys.invariants.solver.EclipseCompilerBinding;
-import de.tuda.stg.consys.invariants.solver.subset.*;
+import de.tuda.stg.consys.invariants.solver.subset.BaseClassProperties;
+import de.tuda.stg.consys.invariants.solver.subset.ClassProperties;
+import de.tuda.stg.consys.invariants.solver.subset.ProgramConfig;
+import de.tuda.stg.consys.invariants.solver.subset.ReplicatedClassProperties;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.ReplicatedClassConstraints;
 import de.tuda.stg.consys.invariants.solver.subset.model.types.TypeModelFactory;
@@ -219,35 +222,34 @@ public class ProgramModel {
 		return Optional.ofNullable(constraints.getOrDefault(JDTUtils.erase(refBinding), null));
 	}
 
-	public void checkAll() {
-		Logger.info("checking data model " + modelSequence.stream().map(binding -> String.valueOf(binding.shortReadableName())).collect(Collectors.toUnmodifiableList()));
+	public Map<ReferenceBinding, ClassProperties.CheckResult> checkAll() {
+		Logger.info("Checking classes " + modelSequence.stream().map(binding -> String.valueOf(binding.shortReadableName())).collect(Collectors.toUnmodifiableList()));
+
+		Map<ReferenceBinding, ClassProperties.CheckResult> results = Maps.newHashMap();
 
 		for (var binding : modelSequence) {
-			Logger.info("class " + String.valueOf(binding.shortReadableName()));
+			Logger.info("Verifying " + String.valueOf(binding.shortReadableName()));
 			Logger.withIdentation(() -> {
 				// Parse the z3 model from AST.
 				BaseClassModel classModel = models.get(binding);
 				ClassProperties.CheckResult result;
 				if (classModel instanceof ReplicatedClassModel) {
-					Logger.info(classModelTypeName(classModel));
 					var constraint = constraints.get(classModel.getBinding());
 					var properties = new ReplicatedClassProperties(this, (ReplicatedClassConstraints) constraint);
 					result = properties.check(null);
 				} else {
-					Logger.info(classModelTypeName(classModel));
 					var constraint = constraints.get(classModel.getBinding());
 					var properties = new BaseClassProperties<>(this, constraint);
 					result = properties.check(null);
 				}
-				Logger.info("Result for " + classModelTypeName(classModel) + " " + String.valueOf(binding.shortReadableName()));
-				Logger.withIdentation(() -> {
-					Logger.info(result.toString());
-				});
+
+				results.put(binding, result);
 			});
 		}
 
-		Logger.info("done checking");
+		Logger.info("Done.");
 
+		return results;
 	}
 
 	private static String classModelTypeName(BaseClassModel classModel) {

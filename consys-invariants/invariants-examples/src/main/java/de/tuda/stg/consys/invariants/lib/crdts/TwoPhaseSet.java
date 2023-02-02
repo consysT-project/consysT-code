@@ -4,8 +4,9 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+
+import java.util.Set;
 
 @ReplicatedModel public class TwoPhaseSet<T> implements Mergeable<TwoPhaseSet<T>> {
 
@@ -56,8 +57,8 @@ import com.google.common.collect.Sets;
     @ ensures (\forall T val; adds.contains(val) && removals.contains(val) == false; \result.contains(val));
     @ ensures (\forall T val; \result.contains(val); adds.contains(val) && removals.contains(val) == false);
     @*/
-    public ImmutableSet<T> getValue() {
-        return ImmutableSet.copyOf(Sets.difference(this.adds.getValue(), this.removals.getValue()));
+    public Set<T> getValue() {
+        return Sets.difference(this.adds.getValue(), this.removals.getValue());
     }
 
     //@ ensures (\forall T val; \old(adds.contains(val)) || other.adds.contains(val); this.adds.contains(val));

@@ -3,10 +3,10 @@ package de.tuda.stg.consys.invariants.solver.subset.parser;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.solver.exceptions.UnsupportedJMLExpression;
-import de.tuda.stg.consys.invariants.utils.InvariantUtils;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
+import de.tuda.stg.consys.invariants.utils.InvariantUtils;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.ast.*;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.LocalVariableBinding;
@@ -558,8 +558,7 @@ public class BaseExpressionParser extends ExpressionParser {
 
       // this applies to \sum expressions
       if (quantifier.equals(JmlQuantifier.SUM)) {
-        // NOTE: Summation always (!) start at i = 0, and increase i in every step by 1.
-        Logger.warn("\\sum only supports sums in range from -2000 to 2000");
+//        Logger.warn("\\sum only supports sums in range from -2000 to 2000");
 
         if (jmlQuantifiedExpression.boundVariables.length != 1) {
           throw new UnsupportedJMLExpression(jmlQuantifiedExpression);

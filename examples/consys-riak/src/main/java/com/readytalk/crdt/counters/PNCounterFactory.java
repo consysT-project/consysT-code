@@ -26,7 +26,7 @@ public class PNCounterFactory implements CRDTFactory<PNCounter> {
 
 	@Override
 	public PNCounter create(final byte[] payload) {
-		return new PNCounter(serializer, clientId, payload);
+		return new PNCounter(serializer, clientId);
 	}
 	
 }

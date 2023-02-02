@@ -4,13 +4,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.MethodModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.types.ObjectModel;
 import de.tuda.stg.consys.invariants.solver.subset.parser.*;
-import de.tuda.stg.consys.invariants.solver.subset.utils.*;
+import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
+import de.tuda.stg.consys.invariants.solver.subset.utils.Z3SubstitutionFunctionFactory;
+import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
@@ -183,7 +185,6 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 		BoolExpr assignable;
 		var maybeClause = methodModel.getAssignableClause();
 		if (maybeClause.isEmpty()) {
-			Logger.warn("no assignable clause found, defaulting to assignable \\nothing. Method: " + methodModel);
 			assignable = parser.parseJmlAssignableClause(null);
 		} else {
 			assignable = parser.parseJmlAssignableClause(maybeClause.get());

@@ -24,7 +24,8 @@
         <module>consys-japi</module>
 
         <module>consys-invariants</module>
-        <module>consys-invariants/invariant-demos</module>
+
+        <module>examples/consys-riak</module>
 
         <module>consys-bench</module>
         <module>demos</module>

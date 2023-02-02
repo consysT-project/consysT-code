@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.invariants.solver.subset.model.types;
 
 import com.google.common.collect.Maps;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.solver.subset.utils.Lazy;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
 import org.eclipse.jdt.internal.compiler.lookup.*;
 

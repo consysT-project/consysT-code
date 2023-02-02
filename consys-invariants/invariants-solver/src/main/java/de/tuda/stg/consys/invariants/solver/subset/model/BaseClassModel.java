@@ -4,11 +4,11 @@ import com.microsoft.z3.Expr;
 import com.microsoft.z3.FuncDecl;
 import com.microsoft.z3.Sort;
 import com.microsoft.z3.TupleSort;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.parser.BaseExpressionParser;
 import de.tuda.stg.consys.invariants.solver.subset.parser.ExpressionParser;
 import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.FieldDeclaration;
 import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
@@ -133,7 +133,7 @@ public class BaseClassModel {
 			FieldDeclaration field = jmlType.fields[i];
 
 			if (field.binding == null) {
-				Logger.warn("field will not be available. no binding for field: " +  String.valueOf(field.name));
+//				Logger.warn("field will not be available. no binding for field: " +  String.valueOf(field.name));
 				continue;
 			}
 

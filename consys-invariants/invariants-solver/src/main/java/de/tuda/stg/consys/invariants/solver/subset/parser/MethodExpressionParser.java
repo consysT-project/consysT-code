@@ -1,10 +1,10 @@
 package de.tuda.stg.consys.invariants.solver.subset.parser;
 
 import com.microsoft.z3.Expr;
-import de.tuda.stg.consys.logging.Logger;
 import de.tuda.stg.consys.invariants.solver.subset.model.AbstractMethodModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
+import de.tuda.stg.consys.logging.Logger;
 
 /**
  * Parser for parsing expression inside of methods.

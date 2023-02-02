@@ -21,7 +21,6 @@ import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -80,8 +79,6 @@ public class EclipseCompilerBinding {
         String[] argvArray = new String[argv.size()];
         argv.toArray(argvArray);
 
-
-        Logger.info("exec javac with argv: " + Arrays.toString(argvArray));
         compilerStarter.compile(argvArray);
 
         return compilerStarter.getResult();

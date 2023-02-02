@@ -11,7 +11,6 @@ import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
-import java.util.Arrays;
 import java.util.List;
 
 public abstract class ClassProperties<CModel extends BaseClassModel, CConstraints extends BaseClassConstraints<CModel>> {
@@ -39,8 +38,6 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		var result = new CheckResult();
 		for (var prop : properties) {
 			var isValid = prop.check(z3Model);
-			if (prop.name.equals("mergability/merge"))
-				Logger.info("check");
 			result.addResult(prop, isValid);
 		}
 
@@ -57,13 +54,14 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		switch (status) {
 			case UNSATISFIABLE:
-				Logger.info(Arrays.toString(model.solver.getUnsatCore()));
+//				Logger.info(Arrays.toString(model.solver.getUnsatCore()));
 				return true;
 			case SATISFIABLE:
-				Logger.info(model.solver.getModel());
+//				Logger.info(model.solver.getModel());
 				return false;
 			case UNKNOWN:
-				throw new RuntimeException("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
+//				Logger.info("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
+				return false;
 			default:
 				//Does not exist
 				throw new RuntimeException();
@@ -122,9 +120,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		public CheckStatus check(Model z3Model) {
 			try {
-				Logger.info("Solving " + description() + "...");
 				var result = isValid(z3Model, expr);
-				Logger.info("Result = " + result /* + "\n" + model.solver.getStatistics() */);
 				return result ? CheckStatus.VALID : CheckStatus.INVALID;
 			} catch (RuntimeException e) {
 //				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
@@ -159,7 +155,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		@Override
 		public String description() {
-			return super.description() + "/" + String.valueOf(binding.selector);
+			return super.description() + " <" + String.valueOf(binding.selector) + ">";
 		}
 	}
 }

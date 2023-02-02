@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.solver.subset.model;
 
-import com.microsoft.z3.*;
+import com.microsoft.z3.Expr;
+import com.microsoft.z3.FuncDecl;
 import de.tuda.stg.consys.invariants.solver.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
 import org.eclipse.jdt.internal.compiler.ast.TrueLiteral;

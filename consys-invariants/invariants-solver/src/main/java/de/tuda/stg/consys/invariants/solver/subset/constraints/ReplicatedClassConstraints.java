@@ -6,7 +6,6 @@ import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.parser.MergeMethodPostconditionExpressionParser;
 import de.tuda.stg.consys.invariants.solver.subset.parser.MergeMethodPreconditionExpressionParser;
-import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends BaseClassConstraints<CModel> {
