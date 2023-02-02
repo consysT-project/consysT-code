@@ -1,0 +1,3 @@
+#!/bin/bash
+
+java -cp conloc-invariants/conloc-compiler/target/conloc-compiler-4.0.0.jar:conloc-invariants/conloc-compiler/lib/jml_compiler.jar:conloc-invariants/conloc-compiler/lib/com.microsoft.z3.jar org.conloc.invariants.solver.Main $1

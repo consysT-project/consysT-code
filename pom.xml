@@ -3,34 +3,15 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.tuda.stg.consys</groupId>
-    <artifactId>consys</artifactId>
+    <groupId>org.conloc</groupId>
+    <artifactId>conloc</artifactId>
     <version>4.0.0</version>
 
     <packaging>pom</packaging>
 
     <modules>
-        <module>consys-annotations</module>
-
-        <module>consys-core</module>
-
-        <module>consys-type-checker</module>
-        <module>consys-type-checker/consys-type-checker-test</module>
-        <module>consys-type-checker/consys-type-checker-jdk-utils</module>
-
-        <module>consys-compiler</module>
-        <module>consys-compiler/consys-compiler-test</module>
-
-        <module>consys-japi</module>
-
-        <module>consys-invariants</module>
-
-        <module>examples/consys-riak</module>
-
-        <module>consys-bench</module>
-        <module>demos</module>
-
-        <module>integration-tests</module>
+        <module>conloc-annotations</module>
+         <module>conloc-invariants</module>
     </modules>
 
 

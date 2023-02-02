@@ -1,7 +1,0 @@
-src/main/java/de/tuda/stg/consys/demo/rubis/Session.java
-src/main/java/de/tuda/stg/consys/demo/rubis/AppException.java
-src/main/java/de/tuda/stg/consys/demo/rubis/schema/Bid.java
-src/main/java/de/tuda/stg/consys/demo/rubis/schema/Category.java
-src/main/java/de/tuda/stg/consys/demo/rubis/schema/Comment.java
-src/main/java/de/tuda/stg/consys/demo/rubis/schema/ItemStatus.java
-src/main/java/de/tuda/stg/consys/demo/rubis/schema/datacentric/

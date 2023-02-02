@@ -1,79 +1,96 @@
-# consysT
+# ConLoc Artifact
 
-consysT is a language and middleware which allows programmers to replicate data under specified consistency levels. 
-The type system ensures safe mixing of consistency levels.
+This artifact contains:
+* The ConLoc compiler (in `conloc-invariants/conloc-compiler`): The compiler includes the translation of annotations
+to constraints, as well as the verification with the z3 solver. The benchmark code for the compiler is also included here.
+* The case studies (in `conloc-invariants/invariants-examples`): This folder contains the case studies from the paper.
 
-The language has a binding for Java. The implementation of the middleware is in Scala.
+## Installation
 
-Find more information on our website at https://consysT-project.github.io.
+The artifact requires a Java installation (tested with Java 11). 
 
-## How to install?
+### Z3
 
-The project is built with Maven. Detailed instructions are found at https://consyst-project.github.io/install.html.
+Additionally, you need two native libraries for the Z3 solver that is used by the compiler.
+These libraries are included in the artifact and ConLoc makes an effort to include the libraries automatically,
+but depending on your system you **maybe** need to manually add the libraries
+to the `lib` folder of your system, e.g., `/usr/lib/`.
 
-### IntelliJ
+At this point, you can try to run the artifact and only install the libraries in case of problems.
 
-In IntelliJ, you have to add the annotation processor manually.
+These two libraries are: 
 
-1. Go to `Preferences > Annotation Processors`. You can try to check `Obtain from project`.
-IntelliJ may be able to retrieve the correct checker by default. If it can, you are already finished.
+* libz3.so (Linux) / libz3.dylib (Mac)
+* libz3java.so (Linux) / libz3.dylib (Mac)
 
-2. Add the compiled jar of the consys-type-checker project
+The libraries (1) can be found in the folder `conloc-invariants/conloc-compiler/lib` (built for 64-bit Linux), or 
+(2) are manually generated when installing [z3](https://github.com/Z3Prover/z3) with the `--java` option.
 
-3. Add the checker.jar from the CheckerFramework
+### Maven
 
-4. Choose `de.tu_darmstadt.consistency_types.checker.ConsistencyChecker` as annotation processor.  
+The artifact contains pre-built executables already. If you do not want to compile the artifact yourself, you 
+can skip this section. The project is built with [Apache Maven](https://maven.apache.org/). To compile the code, 
+you need to install Maven and execute `mvn install` in the project folder.
 
 
+## Execution
 
-## External dependencies
+To execute the artifact, you need the following prerequisites:
 
-These applications have to be installed and running to correctly use the system:
+* Java 11 (newer may also work)
+* Installed the Z3 libraries
 
-(For the Cassandra binding):
-* Apache Cassandra 4.0.0-alpha3
-* Zookeeper 3.5.6
+The artifact is started by the `conloc` script in the project folder. 
+The functionalities of the artifact are explained in the following.
 
-### Cassandra
 
-You need Cassandra 4.0+ to run with Java 11.
+### Running the compiler on a case study
 
-When running Cassandra locally, best use the Cassandra Cluster Manager `ccm`.
+You can run the compiler/checker for one of the case studies from the paper (Section 5.1). 
+Case studies are identified by the name from the paper, and are started by supplying the name to the script.
 
-1. Create a new cluster. Ensure that the cluster uses at least Cassandra version 4.0. `ccm create consys_cluster -v 4.0.3`
-2. Create nodes for the cluster. `ccm populate -n 3`
-3. Start the cluster. `ccm start`
+```$ conloc [case-study-name]```
 
-## Project overview
+Possible names are: 
+`consensus, joint_bank_account, distributed_lock, resettable_counter, gcounter, twophaseset, pncounter, credit_account, gset, bank_account_lww, tournament, bank_account
 
-* **consys-core**: Implementation of the middleware. Integrates Cassandra, Zookeeper, and/or Akka.
-  
-* **consys-japi**: Implementation of the frontend API for Java projects. Requires the consys-compiler Javac plugin.
+The output lists for every class in the case study the verification result for each of the properties from Section 3.3
+in the paper. If the property is satisfied, then the tool shows VALID, otherwise it shows INVALID.
 
-* **consys-compiler**: Javac plugin for preprocessing Java API.
+For example, executing `conloc credit-account` gives the following output for the ReplicatedCreditAccount class:
 
-* **consys-type-checker**: Implementation of the type checker using the 
-Checker framework.
+```
+Result for ReplicatedCreditAccount
+ | (i0) invariant/initial : VALID
+ | (i1) invariant/method <getValue> : VALID
+ | (i1) invariant/method <deposit> : VALID
+ | (i1) invariant/method <withdraw> : VALID
+ | (i2) invariant/merge : VALID
+ | (m0) mergability/initial : VALID
+ | (m2) mergability/weak/method <getValue> : VALID
+ | (m3) mergability/strong/method <getValue> : VALID
+ | (m2) mergability/weak/method <deposit> : VALID
+ | (m3) mergability/strong/method <deposit> : VALID
+ | (m2) mergability/weak/method <withdraw> : INVALID
+ | (m3) mergability/strong/method <withdraw> : VALID
+ | (m1) mergability/merge : VALID
+```
 
-* **integration-tests**: Fully integrated ConSysT project for testing and playing around.
+Properties i0, i2, m0, and m1 appear once per class, and properties i1, m2, and m3 appear once per method.
+In the example, we can see that all properties are satisfied with exception of m2 for withdraw 
+(see line `(m2) mergability/weak/method <withdraw> : INVALID`).
 
-* **consys-bench**: Benchmark framework.
 
-* **demos**: Case studies and benchmarks.
+### Running the compiler benchmarks
 
-* **examples**: Implementation of several libraries/case studies using ConSysT.
+With the artifact you can also run the compiler benchmarks from the paper (Section 5.3). 
+The compiler benchmarks for ConLoc are executed with:
 
-## Students
+`$ conloc --bench-sys`
 
-The main developer is Mirko Köhler under supervision of Prof. Guido Salvaneschi.
+and the compiler benchmarks for the Java compiler are executed with:
 
-We thank the many developers that helped with the project:
-* PhD students
-    * Nafise Eskandani
-    * Pascal Weißenburger
-* Students
-    * Victor Schümmer and Jesper Schlegel
-    * Martin Edlund
-    * Matthias Heinrich and Julian Hindelang
-    * Pascal Osterwinter
-    * Tobias Chen and Niklas Reiche
+`$ conloc --bench-java`
+
+Both benchmarks measure the execution time of the compiler on all of the case studies. 
+The measurement results are shown after all case studies have been measured. 
