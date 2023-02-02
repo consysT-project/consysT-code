@@ -6,6 +6,7 @@ import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ReplicatedClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.parser.MergeMethodPostconditionExpressionParser;
 import de.tuda.stg.consys.invariants.solver.subset.parser.MergeMethodPreconditionExpressionParser;
+import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
 public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> extends BaseClassConstraints<CModel> {
@@ -26,6 +27,29 @@ public class ReplicatedClassConstraints<CModel extends ReplicatedClassModel> ext
 		mergePrecondition = handleMergePrecondition(mergeModel);
 		mergePostcondition = handleMergePostcondition(mergeModel);
 
+		var sOld = classModel.toFreshConst("s_old");
+		var sOther = classModel.toFreshConst("s_other");
+		var sNew = classModel.toFreshConst("s_new");
+
+		var appToState = mergeModel.makeApplyReturnState(sOld, new Expr[] {sOther}).orElseThrow();
+
+		Expr[] forallArguments = new Expr[] {sOld, sOther};
+
+		Expr expr = mergePostcondition.apply(sOld, sOther, appToState);
+
+
+		var assertion =
+				model.ctx.mkForall(
+						forallArguments,
+						expr,
+						1,
+						null,
+						null,
+						null,
+						null
+				);
+
+		model.solver.add(assertion);
 	}
 
 	private MergePreconditionModel handleMergePrecondition(MergeMethodModel methodModel) {
