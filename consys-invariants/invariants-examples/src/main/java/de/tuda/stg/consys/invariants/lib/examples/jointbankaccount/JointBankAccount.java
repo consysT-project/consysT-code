@@ -8,7 +8,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 @ReplicatedModel public class JointBankAccount {
-    //@ public invariant balance.getValue() >= 0;
     //@ public invariant approved ? requested : true;
     private PNCounter balance;
     private boolean requested = false;
@@ -77,7 +76,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     }
 
     /*@
-    @ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(balance.incs[i], other.balance.incs[i]) - Math.max(balance.decs[i], other.balance.decs[i])) >= 0;
     @ ensures stateful( balance.merge(other.balance) );
     @ ensures requested == (\old(requested) || other.requested);
     @ ensures approved == (\old(approved) || other.approved);

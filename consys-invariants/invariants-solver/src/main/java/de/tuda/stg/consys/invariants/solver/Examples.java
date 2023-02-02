@@ -27,7 +27,7 @@ public class Examples {
 
 
 	public static final Path[] BANK_ACCOUNT = new Path[] {
-			Paths.get("consys-invariants/invariants-examples/src/main/examples/de/tuda/stg/consys/invariants/examples/bankaccount/BankAccount.java")
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/bankaccount/BankAccount.java")
 	};
 
 	public static final Path[] BANK_ACCOUNT_LWW = new Path[] {
@@ -35,8 +35,8 @@ public class Examples {
 	};
 
 	public static final Path[] CREDIT_ACCOUNT = new Path[] {
-//			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCounter.java"),
-//			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCreditAccount.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/SequentialCreditAccount.java"),
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/creditaccount/ReplicatedCreditAccount.java")
 	};

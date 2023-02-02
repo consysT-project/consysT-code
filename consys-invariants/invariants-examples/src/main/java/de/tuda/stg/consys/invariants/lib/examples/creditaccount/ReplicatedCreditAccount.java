@@ -5,7 +5,6 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
-
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
@@ -50,7 +49,7 @@ public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccoun
     }
 
     /* Merge method */
-    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incs[i]), other.credits.incs[i]) - Math.max(credits.decs[i], other.credits.decs[i])) >= 0;
+    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(credits.incs[i], other.credits.incs[i]) - Math.max(credits.decs[i], other.credits.decs[i])) >= 0;
     //@ ensures stateful( credits.merge(other.credits) );
     public Void merge(ReplicatedCreditAccount other) {
         credits.merge(other.credits);

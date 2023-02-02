@@ -1,9 +1,8 @@
-package de.tuda.stg.consys.invariants.examples.bankaccount;
+package de.tuda.stg.consys.invariants.lib.examples.bankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import java.lang.Math;
-import java.math.BigInteger;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -41,20 +40,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     // Methods need an @assignable clause which specifies the fields that can change.
     // \old in postconditions defines the state before the method call.
     // \result in postconditions defines the return value of the method.
-
-    //@ assignable incs;
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); \old(incs[i]) == 0);
-    public void resetIncs() {
-        for (int i = 0; i < incs.length; i++) incs[i] = 0;
-    }
-
-    //@ assignable incs, decs;
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0);
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); decs[i] == 0);
-    public void reset() {
-        for (int i = 0; i < incs.length; i++) incs[i] = 0;
-        for (int i = 0; i < decs.length; i++) decs[i] = 0;
-    }
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(incs[i]));
@@ -101,13 +86,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
         decs[replicaId()] = decs[replicaId()] + val;
     }
-
-//    //@ requires  getValue() >= 1;
-//    //@ assignable decs[replicaId()];
-//    //@ ensures this == withdraw(1);
-//    public void withdrawOne() {
-//        withdraw(1);
-//    }
 
 
     /* Merge method */
