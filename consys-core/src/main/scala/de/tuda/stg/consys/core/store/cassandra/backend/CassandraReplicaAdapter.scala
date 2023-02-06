@@ -11,47 +11,18 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
-import de.tuda.stg.consys.core.store.Triggerable
+import de.tuda.stg.consys.core.store.cassandra.backend.trigger.RMIServer
 import de.tuda.stg.consys.core.store.utils.Reflect
-import org.json.{JSONArray, JSONObject}
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
-import java.rmi.{Remote, RemoteException}
 import java.rmi.registry.LocateRegistry
 import java.rmi.server.UnicastRemoteObject
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
-/**
- * Remote trait which acts as an interface to the server
- */
-trait RMIServerInterface extends Remote {
-	@throws(classOf[RemoteException])
-	def print(data: String): Unit
-}
-object RMIServer extends App with RMIServerInterface {
-	def print(data: String): Unit = {
-		println("\u001b[34m " + data + "\u001b[0m")
-
-		val jsonObject: JSONObject = new JSONObject(data)
-		val cells: JSONArray = jsonObject.getJSONArray("cells")
-
-		var stateValue: String = "0x"
-
-		val cell = cells.getJSONObject(1)
-		if (cell.getString("name").equals("state")) {
-			stateValue += cell.getString("value")
-		}
-
-		val byteBuffer = TypeCodecs.BLOB.parse(stateValue);
-
-		CassandraReplicaAdapter.handleTrigger(byteBuffer);
-	}
-}
-
-class RegistryThread extends Thread {
+class RegistryThread(cassandraReplicaAdapter: CassandraReplicaAdapter) extends Thread {
 	override def run(): Unit = {
 		val serverURL = s"rmi://127.0.0.1:1234/test"
 
@@ -59,7 +30,7 @@ class RegistryThread extends Thread {
 		val port = 1234
 
 		try {
-			val stub = UnicastRemoteObject.exportObject(RMIServer, port)
+			val stub = UnicastRemoteObject.exportObject(new RMIServer(cassandraReplicaAdapter), port)
 			//RMI registry is instantiated
 			val registry = LocateRegistry.createRegistry(port)
 
@@ -76,7 +47,9 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
 
-	val registryThread = new RegistryThread
+	var classMap: Map[String, Class[_]] = Map[String, Class[_]]()
+
+	val registryThread = new RegistryThread(this)
 	registryThread.start()
 
 	/* Initialize tables, if not available... */
@@ -171,6 +144,10 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	) : Unit = {
 		import com.datastax.oss.driver.api.core.CqlSession
 
+		if (!classMap.contains(id)) {
+			classMap += (id -> obj.getClass)
+		}
+
 		for (field <- fields) {
 			field.setAccessible(true)
 			val builder : Insert = insertInto(s"$objectTableName")
@@ -258,7 +235,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
 	}
 
-	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredFieldEntry = {
+	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel, clazz: Option[Class[_]] = None) : StoredFieldEntry = {
 		val query = QueryBuilder.selectFrom(s"$objectTableName")
 			.columns("id", "fieldid", "type", "state")
 			.function("WRITETIME", Selector.column("state")).as("writetime")
@@ -281,7 +258,8 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 					if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
 
 					val fieldName: String = row.get("fieldid", TypeCodecs.TEXT)
-					val field: Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
+					val fieldClass = clazz.getOrElse(implicitly[ClassTag[T]].runtimeClass)
+					val field: Field = Reflect.getField(fieldClass, fieldName)
 
 					val state: Any = CassandraReplicaAdapter.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
 					val timestamp: Long = row.get("writetime", TypeCodecs.BIGINT)
@@ -302,18 +280,9 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 
 object CassandraReplicaAdapter {
 
-	private[cassandra] def handleTrigger(data: ByteBuffer): Unit = {
-		val obj = deserializeObject[Serializable](data)
-
-		if (obj.isInstanceOf[Triggerable]) {
-			val triggerableObj = obj.asInstanceOf[Triggerable]
-			triggerableObj.onTrigger()
-		}
-	}
-
 	/* Helper methods */
 
-	private[CassandraReplicaAdapter] def serializeObject[T <: Serializable](obj : T) : ByteBuffer = {
+	private[cassandra] def serializeObject[T <: Serializable](obj : T) : ByteBuffer = {
 		require(obj != null)
 
 		val bytesOut = new ByteArrayOutputStream()
@@ -329,7 +298,7 @@ object CassandraReplicaAdapter {
 		throw new NotSerializableException(obj.getClass.getName)
 	}
 
-	private[CassandraReplicaAdapter] def deserializeObject[T <: Serializable](buffer : ByteBuffer) : T = {
+	private[cassandra] def deserializeObject[T <: Serializable](buffer : ByteBuffer) : T = {
 		require(buffer != null)
 
 		val bytesIn = new ByteArrayInputStream(buffer.array())

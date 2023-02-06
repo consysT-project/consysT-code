@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.cassandra.backend;
 
+import de.tuda.stg.consys.core.store.cassandra.backend.trigger.RMIServerInterface;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.Mutation;
 import org.apache.cassandra.db.partitions.Partition;
@@ -20,19 +21,18 @@ public class CassandraReplicaTriggerJava implements ITrigger {
 
     @Override
     public Collection<Mutation> augment(Partition partition) {
-
-
         JSONObject jsonObject = new JSONObject();
-
         UnfilteredRowIterator it = partition.unfilteredIterator();
 
-
+        List<JSONObject> rows = new ArrayList<>();
 
         while (it.hasNext()) {
             Unfiltered item = it.next();
 
             if (item.isRow()) {
                 Clustering clustering = (Clustering) item.clustering();
+
+                JSONObject jsonRow = new JSONObject();
 
                 String partitionKey = "";
 
@@ -46,8 +46,8 @@ public class CassandraReplicaTriggerJava implements ITrigger {
                 String clusteringKey = clustering.toCQLString(partition.metadata());
 
                 try {
-                    jsonObject.put("partitionKey", partitionKey);
-                    jsonObject.put("clusteringKey", clusteringKey);
+                    jsonRow.put("partitionKey", partitionKey);
+                    jsonRow.put("clusteringKey", clusteringKey);
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
@@ -75,20 +75,37 @@ public class CassandraReplicaTriggerJava implements ITrigger {
                     }
                     cellObjects.add(jsonCell);
                 }
-
                 try {
-                    jsonObject.put("cells", cellObjects);
+                    jsonRow.put("cells", cellObjects);
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
+
+                rows.add(jsonRow);
             }
+        }
+
+        try {
+            jsonObject.put("rows", rows);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
         }
 
         // Send data
         try {
-            Registry registry = LocateRegistry.getRegistry(1234);
-            RMIServerInterface server = (RMIServerInterface) registry.lookup("rmi://127.0.0.1:1234/test");
-            server.print(jsonObject.toString());
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        Registry registry = LocateRegistry.getRegistry(1234);
+                        RMIServerInterface server = (RMIServerInterface) registry.lookup("rmi://127.0.0.1:1234/test");
+                        server.trigger(jsonObject.toString());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            t.start();
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();

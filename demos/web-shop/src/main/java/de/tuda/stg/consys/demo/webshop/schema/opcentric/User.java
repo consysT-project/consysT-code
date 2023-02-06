@@ -6,12 +6,13 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
+import de.tuda.stg.consys.core.store.Triggerable;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 
-public @Mixed class User implements Serializable {
+public @Mixed class User implements Serializable, Triggerable {
 
     private int money = 1000;
 
@@ -44,5 +45,12 @@ public @Mixed class User implements Serializable {
     @WeakOp @SideEffectFree
     public String toString() {
         return "Money: " + money + "\n";
+    }
+
+    @Override
+    public void onTrigger() {
+        if (this.money < 800) {
+            System.out.println("\u001B[33m [USER WARNING]: Balance is less than 800. \u001B[0m");
+        }
     }
 }
