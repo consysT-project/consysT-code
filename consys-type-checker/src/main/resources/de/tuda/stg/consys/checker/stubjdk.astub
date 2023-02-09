@@ -9,7 +9,7 @@ package java.lang;
 
 class Object {
     @SideEffectFree @Transactional
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 
     @SideEffectFree @Transactional
     String toString();
@@ -20,7 +20,7 @@ class Object {
 
 class String {
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 }
 
 class StringBuilder {
@@ -62,7 +62,7 @@ class UUID {
     @Local UUID randomUUID();
 
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 
     @SideEffectFree
     String toString();
@@ -73,18 +73,18 @@ class UUID {
 
 class Date {
     @SideEffectFree
-    boolean after(Date d);
+    @ThisConsistent boolean after(@ThisConsistent Date d);
 }
 
 interface List<T> {
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
-    Object subList(int fromIndex, int toIndex);
+    @ThisConsistent Object subList(int fromIndex, int toIndex);
 
     @SideEffectFree
-    int size();
+    @ThisConsistent int size();
 
     @SideEffectFree
     T get(int index);
@@ -96,6 +96,9 @@ interface Map<K, V> {
 
     @SideEffectFree
     V get(Object Key);
+
+    @SideEffectFree
+    @ThisConsistent boolean isEmpty();
 }
 
 interface Collection<T> {

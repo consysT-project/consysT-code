@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.demo.rubis.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
-import de.tuda.stg.consys.annotations.methods.*;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.AppException;
 import de.tuda.stg.consys.demo.rubis.schema.*;
@@ -12,7 +12,7 @@ import scala.Option;
 import java.io.Serializable;
 import java.util.*;
 
-public @Mixed class Item implements Serializable, IItem {
+public @Mixed class Item implements Serializable {
     private final @Immutable UUID id;
     private final String name;
     private String description;
@@ -26,8 +26,7 @@ public @Mixed class Item implements Serializable, IItem {
     private final Ref<@Mutable User> seller;
     private Option<Ref<@Mutable User>> buyer; // cannot be null since we are serializing fields individually
     private final List<Bid> bids;
-    // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
-    private @Mutable @Weak ItemStatus status = (@MutableBottom @Local ItemStatus) ItemStatus.OPEN;
+    private @Mutable @Weak ItemStatus status = ItemStatus.OPEN;
 
     public Item() {
         this.id = null;
@@ -41,9 +40,15 @@ public @Mixed class Item implements Serializable, IItem {
         this.bids = null;
     }
 
-    public Item(@Local UUID id, @Local @Mutable String name, @Mutable @Weak String description,
-                @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
-                @Local Date startDate, @Strong @Mutable Date endDate, @Local @Mutable Category category,
+    public Item(@Local UUID id,
+                @Local @Mutable String name,
+                @Mutable @Weak String description,
+                @Local float reservePrice,
+                @Local float initialPrice,
+                @Local float buyNowPrice,
+                @Local Date startDate,
+                @Strong @Mutable Date endDate,
+                @Local @Mutable Category category,
                 Ref<@Mutable User> seller) {
         this.id = id;
         this.name = name;
@@ -59,13 +64,13 @@ public @Mixed class Item implements Serializable, IItem {
         this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.<Ref<@Mutable User>>empty(); // TODO
     }
 
-    @Transactional
     @StrongOp
+    @Transactional
     public boolean placeBid(Bid bid) {
         if (seller.ref().refEquals(bid.getUser()))
             throw new AppException("You cannot bid on your own items.");
 
-        if (new Date().after(endDate))
+        if (endDate.before(new Date()))
             throw new AppException.DateException("Auction has already ended.");
 
         if (status != ItemStatus.OPEN)
@@ -78,23 +83,22 @@ public @Mixed class Item implements Serializable, IItem {
             throw new AppException("Minimum necessary bid amount (" + getTopBidPrice() + ") not met with bid (" +
                     bid.getBid() + ")");
 
-
         bids.add(0, bid);
         nBids++;
 
         return bid.getBid() >= reservePrice;
     }
 
-    @Transactional
     @StrongOp
-    public @Strong float buyNow(Ref<? extends @Mutable IUser> buyer, Ref<? extends @Mutable IItem> item) {
+    @Transactional
+    public @Strong float buyNow(Ref<@Mutable User> buyer, Ref<@Mutable Item> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
 
         if (status != ItemStatus.OPEN)
             throw new AppException("Buy-Now is disabled, since item is not available anymore.");
 
-        if ((@Strong boolean)!bids.isEmpty() && getTopBidPrice() >= reservePrice)
+        if (!bids.isEmpty() && getTopBidPrice() >= reservePrice)
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
 
         if (seller.ref().refEquals(buyer))
@@ -103,10 +107,9 @@ public @Mixed class Item implements Serializable, IItem {
         if (!buyer.ref().hasEnoughCredits(buyNowPrice))
             throw new AppException.NotEnoughCreditsException();
 
-
-        endAuctionNow();
-        this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(toUserImpl(buyer));
-        status = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
+        setEndDateToNow();
+        this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(buyer);
+        status = ItemStatus.SOLD_VIA_BUY_NOW;
 
         buyer.ref().removeBalance(buyNowPrice);
         seller.ref().addBalance(buyNowPrice);
@@ -115,19 +118,17 @@ public @Mixed class Item implements Serializable, IItem {
         seller.ref().closeOwnAuction(id, true);
         closeWatchedItemsForBidders();
 
-        buyer.ref().notifyWinner(item, buyNowPrice);
-
         return buyNowPrice;
     }
 
     @StrongOp
-    public void endAuctionNow() {
+    public void setEndDateToNow() {
         endDate = new Date();
     }
 
-    @Transactional
     @StrongOp
-    public boolean closeAuction(Ref<? extends @Mutable IItem> item) {
+    @Transactional
+    public boolean closeAuction(Ref<@Mutable Item> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item different from this");
 
@@ -137,14 +138,10 @@ public @Mixed class Item implements Serializable, IItem {
         if (status != ItemStatus.OPEN)
             throw new AppException("Auction is already closed.");
 
-
         @Strong boolean hasWinner = !(@Strong boolean)bids.isEmpty() && getTopBidPrice() >= reservePrice;
         if (hasWinner) {
-            status = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_AUCTION;
-
             @Immutable @Strong Bid winningBid = bids.get(0);
-            Ref<@Mutable User> buyer = toUserImpl(winningBid.getUser());
-            this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(buyer);
+            Ref<@Mutable User> buyer = winningBid.getUser();
             @Strong float price = winningBid.getBid();
 
             buyer.ref().removeBalance(price);
@@ -152,9 +149,10 @@ public @Mixed class Item implements Serializable, IItem {
 
             buyer.ref().addBoughtItem(item);
 
-            buyer.ref().notifyWinner(item, price);
+            status = ItemStatus.SOLD_VIA_AUCTION;
+            this.buyer = (@Mutable @Weak Option<Ref<@Mutable User>>) Option.apply(buyer);
         } else {
-            status = (@MutableBottom @Local ItemStatus) ItemStatus.NOT_SOLD;
+            status = ItemStatus.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
@@ -163,50 +161,38 @@ public @Mixed class Item implements Serializable, IItem {
         return hasWinner;
     }
 
-    @WeakOp
-    public void setDescription(@Mutable @Weak String description) {
-        this.description = description;
+    @Transactional
+    public void closeWatchedItemsForBidders() {
+        for (Bid bid : bids) {
+            Ref<@Mutable User> bidder = bid.getUser();
+            bidder.ref().closeWatchedAuction(id);
+        }
     }
 
-    @WeakOp @SideEffectFree
+    @SideEffectFree
     public int getNumberOfBids() {
         return nBids;
     }
 
-    @StrongOp @SideEffectFree
+    @StrongOp
+    @SideEffectFree
     public @Strong List<Bid> getAllBids() {
         return new ArrayList<>(bids);
     }
 
-    @WeakOp @SideEffectFree
-    public Category getCategory() {
-        return category;
-    }
-
-    @WeakOp @SideEffectFree
-    public UUID getId() { return id; }
-
-    @WeakOp @SideEffectFree
-    public String getName() {
-        return name;
-    }
-
-    @WeakOp @SideEffectFree
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    @WeakOp @SideEffectFree
+    @SideEffectFree
     public float getBuyNowPrice() {
         return buyNowPrice;
     }
 
-    @StrongOp @SideEffectFree
+    @StrongOp
+    @SideEffectFree
     public @Strong float getTopBidPrice() {
         return bids.isEmpty() ? initialPrice : bids.get(0).getBid();
     }
 
-    @StrongOp @SideEffectFree
+    @StrongOp
+    @SideEffectFree
     public @Local Optional<Bid> getTopBid() {
         if (bids.isEmpty()) return Optional.empty();
         return Optional.of(bids.get(0));
@@ -217,49 +203,65 @@ public @Mixed class Item implements Serializable, IItem {
         return getTopBidPrice() >= reservePrice;
     }
 
-    @WeakOp @SideEffectFree
-    public Ref<? extends IUser> getSeller() {
+    @SideEffectFree
+    public boolean wasSoldViaBuyNow() {
+        return status == ItemStatus.SOLD_VIA_BUY_NOW;
+    }
+
+    @SideEffectFree
+    public @Weak UUID getId() { return id; }
+
+    @SideEffectFree
+    public String getName() {
+        return name;
+    }
+
+    @SideEffectFree
+    public Category getCategory() {
+        return category;
+    }
+
+    @SideEffectFree
+    public Date getEndDate() {
+        return endDate;
+    }
+
+    @SideEffectFree
+    public Ref<User> getSeller() {
         return seller;
     }
 
-    @WeakOp @SideEffectFree
-    public @Local Optional<Ref<? extends @Mutable IUser>> getBuyer() {
+    @SideEffectFree
+    public @Local Optional<Ref<@Mutable User>> getBuyer() {
         return Optional.ofNullable(buyer.getOrElse(null));
     }
 
-    @WeakOp @SideEffectFree
-    public boolean getSoldViaBuyNow() {
-        return status == (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
-    }
-
-    @WeakOp @SideEffectFree
+    @SideEffectFree
     public ItemStatus getStatus() {
         return status;
     }
 
-    @Transactional @SideEffectFree
-    public boolean refEquals(Ref<? extends IItem> o) {
-        return o.ref().getId().equals(this.id);
+    public Date getStartDate() {
+        return startDate;
     }
 
-    @WeakOp @SideEffectFree @Transactional
-    public String toString() {
-        return "Item '" + name + "' (" + id + ")\n"; //+
-//                "  - price (bid | Buy-Now): " + getTopBidPrice() + " | " + getBuyNowPrice() + "\n" +
-//                "  - auction duration: " + startDate + " - " + endDate + "\n" +
-//                "  - number of bids: " + getNumberOfBids() + "\n" +
-//                description;
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(@Mutable @Weak String description) {
+        this.description = description;
     }
 
     @Transactional
-    public void closeWatchedItemsForBidders() {
-        for (Bid bid : bids) {
-            Ref<? extends @Mutable IUser> bidder = bid.getUser();
-            bidder.ref().closeWatchedAuction(id);
-        }
+    @SideEffectFree
+    public boolean refEquals(Ref<Item> o) {
+        return o.ref().getId().equals(this.id);
     }
 
-    private Ref<@Mutable User> toUserImpl(Ref<? extends @Mutable IUser> user) {
-        return (Ref<@Mutable User>) user;  // TODO
+    @Override
+    @SideEffectFree
+    public String toString() {
+        return "Item '" + name + "' (" + id + ")";
     }
 }

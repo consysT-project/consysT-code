@@ -3,41 +3,40 @@ package de.tuda.stg.consys.demo.rubis.schema.datacentric;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.AppException;
-import de.tuda.stg.consys.demo.rubis.schema.Bid;
-import de.tuda.stg.consys.demo.rubis.schema.Comment;
-import de.tuda.stg.consys.demo.rubis.schema.IItem;
-import de.tuda.stg.consys.demo.rubis.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
 
-public @Weak class User implements Serializable, IUser {
+public @Weak class User implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable String nickname;
-    private String name = "";
-    private @Weak String password = ""; // TODO: ?
-    private @Weak String email = "";
+    private String name;
+    private String password;
+    private String email;
     private float rating;
     private int nRatings;
     private final List<Comment> comments = new LinkedList<>();
-    private Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance;
+    private final Ref<@Mutable @Strong NumberBox<@Mutable @Strong Float>> balance;
     private final Date creationDate = new Date();
-    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerAuctions;
-    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerHistory;
-    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerAuctions;
-    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerHistory;
-    private final Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
+    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerAuctions;
+    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerHistory;
+    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerAuctions;
+    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerHistory;
+    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
 
-    public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
+    public User(@Local UUID id,
+                @Local String nickname,
+                @Weak @Mutable String name,
+                @Weak @Mutable String password,
                 @Weak @Mutable String email,
                 Ref<@Mutable NumberBox<@Mutable @Strong Float>> balance,
-                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerAuctions,
-                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> buyerHistory,
-                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerAuctions,
-                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerHistory,
-                Ref<@Mutable RefMap<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
+                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerAuctions,
+                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerHistory,
+                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerAuctions,
+                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerHistory,
+                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
         this.id = id;
         this.nickname = nickname;
         this.name = name;
@@ -52,8 +51,8 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addOwnAuction(Ref<? extends @Mutable IItem> item) {
-        this.sellerAuctions.ref().put(item.ref().getId(), toItemImpl(item));
+    public void addOwnAuction(Ref<@Mutable Item> item) {
+        this.sellerAuctions.ref().put(item.ref().getId(), item);
     }
 
     @Transactional
@@ -70,8 +69,8 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addWatchedAuction(Ref<? extends @Mutable IItem> item) {
-        buyerAuctions.ref().putIfAbsent(item.ref().getId(), toItemImpl(item));
+    public void addWatchedAuction(Ref<@Mutable Item> item) {
+        buyerAuctions.ref().putIfAbsent(item.ref().getId(), item);
     }
 
     @Transactional
@@ -80,55 +79,48 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @Transactional
-    public void addBoughtItem(Ref<? extends @Mutable IItem> item) {
-        buyerHistory.ref().put(item.ref().getId(), toItemImpl(item));
+    public void addBoughtItem(Ref<@Mutable Item> item) {
+        buyerHistory.ref().put(item.ref().getId(), item);
     }
 
-    @Transactional @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions() {
+    @Transactional
+    @SideEffectFree
+    public @Strong boolean hasEnoughCredits(@Strong float price) {
+        @Strong float potentialBalance = balance.ref().floatValue();
+
+        for (var item : getOpenBuyerAuctions()) {
+            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO: timeout?
+            if (bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
+                potentialBalance -= bid.get().getBid();
+            }
+        }
+
+        return potentialBalance >= price;
+    }
+
+    @Transactional
+    @SideEffectFree
+    public List<Ref<@Mutable Item>> getOpenSellerAuctions() {
         return new ArrayList<>(sellerAuctions.ref().values());
     }
 
-    @Transactional @SideEffectFree
-    // StrongOp necessary for calculating potential budget
-    public @Strong List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
+    @Transactional
+    @SideEffectFree
+    public @Strong List<Ref<@Mutable Item>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.ref().values());
     }
 
-    @Transactional @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold) {
+    @Transactional
+    @SideEffectFree
+    public List<Ref<@Mutable Item>> getSellerHistory(boolean sold) {
         if ((@Strong boolean) sold) return new ArrayList<>(sellerHistory.ref().values());
         return new ArrayList<>(sellerFailedHistory.ref().values());
     }
 
-    @Transactional @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getBuyerHistory() {
-        return new ArrayList<>(buyerHistory.ref().values());
-    }
-
+    @Transactional
     @SideEffectFree
-    public boolean authenticate(String password) {
-        return this.password.equals(password);
-    }
-
-    public void changePassword(String oldPassword, @Mutable @Weak String newPassword) {
-        if (authenticate(oldPassword)) {
-            this.password = newPassword;
-        } else {
-            throw new AppException("Wrong credentials.");
-        }
-    }
-
-    public void changeEmail(@Mutable @Weak String newEmail, String password) {
-        if (authenticate(password)) {
-            this.email = newEmail;
-        } else {
-            throw new AppException("Wrong credentials.");
-        }
-    }
-
-    public void changeRealName(@Mutable @Weak String name) {
-        this.name = name;
+    public List<Ref<@Mutable Item>> getBuyerHistory() {
+        return new ArrayList<>(buyerHistory.ref().values());
     }
 
     @Transactional
@@ -151,12 +143,7 @@ public @Weak class User implements Serializable, IUser {
         }
     }
 
-    @Transactional @SideEffectFree
-    public @Strong float getBalance() {
-        return balance.ref().floatValue();
-    }
-
-    public void rate(@Weak Comment comment) {
+    public void addRating(@Weak Comment comment) {
         if (comment.rating < 1 || comment.rating > 5) {
             throw new AppException("rating out of bounds");
         } else {
@@ -166,8 +153,19 @@ public @Weak class User implements Serializable, IUser {
     }
 
     @SideEffectFree
-    public @Local String getNickname() { // TODO
-        return (@Local String) nickname;
+    public boolean authenticate(@Weak String password) {
+        return this.password.equals(password);
+    }
+
+    @Transactional
+    @SideEffectFree
+    public @Strong float getBalance() {
+        return balance.ref().floatValue();
+    }
+
+    @SideEffectFree
+    public @Weak String getNickname() { // TODO
+        return nickname;
     }
 
     @SideEffectFree
@@ -175,41 +173,47 @@ public @Weak class User implements Serializable, IUser {
         return rating;
     }
 
-    public void notifyWinner(Ref<? extends IItem> item, float price) {
-        // send email
-    }
-
-    @Transactional @SideEffectFree
-    public @Local boolean refEquals(Ref<? extends IUser> other) { // TODO
-        return (@Local boolean) other.ref().getNickname().equals(this.nickname);
+    @SideEffectFree
+    public Date getCreationDate() {
+        return creationDate;
     }
 
     @SideEffectFree
+    public String getName() {
+        return name;
+    }
+
+    @SideEffectFree
+    public String getEmail() {
+        return email;
+    }
+
+    @SideEffectFree
+    public List<Comment> getComments() {
+        return new ArrayList<>(comments);
+    }
+
+    public void setPassword(@Mutable @Weak String newPassword) {
+        this.password = newPassword;
+    }
+
+    public void setEmail(@Mutable @Weak String newEmail) {
+        this.email = newEmail;
+    }
+
+    public void setName(@Mutable @Weak String name) {
+        this.name = name;
+    }
+
+    @Transactional
+    @SideEffectFree
+    public @Weak boolean refEquals(Ref<User> other) {
+        return other.ref().getNickname().equals(this.nickname);
+    }
+
+    @Override
+    @SideEffectFree
     public String toString() {
-        return "User '" + nickname + "' | id: " + id +
-                " | name: " + name +
-                " | password: " + password +
-                " | email: " + email +
-                " | rating: " + rating +
-                " | balance: " + balance +
-                " | since: " + creationDate;
-    }
-
-    @Transactional @SideEffectFree
-    public @Strong boolean hasEnoughCredits(@Strong float price) {
-        @Strong float potentialBalance = balance.ref().floatValue();
-
-        for (var item : getOpenBuyerAuctions()) {
-            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO: timeout?
-            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
-                potentialBalance -= bid.get().getBid();
-            }
-        }
-
-        return potentialBalance >= price;
-    }
-
-    private Ref<@Mutable Item> toItemImpl(Ref<? extends @Mutable IItem> item) {
-        return (Ref<@Mutable Item>) item;  // TODO
+        return "User '" + nickname + "' (" + id + ")";
     }
 }

@@ -1,39 +1,43 @@
 package de.tuda.stg.consys.demo.rubis.schema.datacentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
-import de.tuda.stg.consys.annotations.methods.StrongOp;
-import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.demo.rubis.AppException;
-import de.tuda.stg.consys.demo.rubis.schema.*;
+import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
+import de.tuda.stg.consys.demo.rubis.schema.Category;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
 
-public @Weak class Item implements Serializable, IItem {
+public @Weak class Item implements Serializable {
     private final @Immutable UUID id;
     private final String name;
     private String description;
-    private final float reservePrice; // TODO can't model as strong/local in weak class
-    private final float initialPrice; // TODO
-    private final float buyNowPrice; // TODO
+    private final Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> reservePrice;
+    private final Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> initialPrice;
+    private final Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> buyNowPrice;
     private int nBids;
     private final @Immutable Date startDate;
-    private Ref<@Strong @Mutable Date> endDate;
+    private final Ref<@Strong @Mutable Date> endDate;
     private final @Immutable Category category;
     private final Ref<@Mutable User> seller;
     private Ref<@Mutable User> buyer;
-    private final Ref<@Strong @Mutable RefList<Bid>> bids;
-    // we have to cast here because of a checker-framework bug where enum constants cannot be annotated
-    private Ref<@Strong @Mutable StatusBox> status;
+    private final Ref<@Strong @Mutable List<Bid>> bids;
+    private final Ref<@Strong @Mutable StatusBox> status;
 
-    public Item(@Local UUID id, @Weak @Mutable String name, @Mutable @Weak String description,
-                @Local float reservePrice, @Local float initialPrice, @Local float buyNowPrice,
-                @Local Date startDate, Ref<@Strong @Mutable Date> endDate, @Local @Mutable Category category,
+    public Item(@Local UUID id,
+                @Weak @Mutable String name,
+                @Mutable @Weak String description,
+                Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> reservePrice,
+                Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> initialPrice,
+                Ref<@Immutable @Strong NumberBox<@Mutable @Strong Float>> buyNowPrice,
+                @Local Date startDate,
+                Ref<@Strong @Mutable Date> endDate,
+                @Local @Mutable Category category,
                 Ref<@Mutable User> seller,
-                Ref<@Strong @Mutable RefList<Bid>> bids,
+                Ref<@Strong @Mutable List<Bid>> bids,
                 Ref<@Strong @Mutable StatusBox> status) {
         this.id = id;
         this.name = name;
@@ -51,12 +55,11 @@ public @Weak class Item implements Serializable, IItem {
     }
 
     @Transactional
-    @StrongOp
     public boolean placeBid(Bid bid) {
-        if (seller.ref().refEquals(bid.getUser()))
+        if (seller.ref().refEquals(((@Weak Bid) bid).getUser()))
             throw new AppException("You cannot bid on your own items.");
 
-        if ((@Strong boolean) endDate.ref().before(new Date()))
+        if (endDate.ref().before(new Date()))
             throw new AppException.DateException("Auction has already ended.");
 
         if (status.ref().value != ItemStatus.OPEN)
@@ -69,72 +72,63 @@ public @Weak class Item implements Serializable, IItem {
             throw new AppException("Minimum necessary bid amount (" + getTopBidPrice() + ") not met with bid (" +
                     bid.getBid() + ")");
 
-
         bids.ref().add(0, bid);
         nBids++;
 
-        return bid.getBid() >= reservePrice;
+        return bid.getBid() >= reservePrice.ref().floatValue();
     }
 
     @Transactional
-    @StrongOp
-    public @Strong float buyNow(Ref<? extends @Mutable IUser> buyer, Ref<? extends @Mutable IItem> item) {
+    public @Strong float buyNow(Ref<@Mutable User> buyer, Ref<@Mutable Item> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item is different from this");
 
         if (status.ref().value != ItemStatus.OPEN)
             throw new AppException("Buy-Now is disabled, since item is not available anymore.");
 
-        if ((@Strong boolean)!bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice)
+        if (!bids.ref().isEmpty() && getTopBidPrice() >= reservePrice.ref().floatValue())
             throw new AppException("Buy-Now is disabled, since reserve price is already met.");
 
         if (seller.ref().refEquals(buyer))
             throw new AppException("You cannot buy your own items.");
 
-        if (!buyer.ref().hasEnoughCredits((@Strong float) buyNowPrice))
+        if (!buyer.ref().hasEnoughCredits(buyNowPrice.ref().floatValue()))
             throw new AppException.NotEnoughCreditsException();
 
-
-        endAuctionNow();
+        setEndDateToNow();
         this.buyer = (Ref<@Mutable User>) buyer; // TODO: might be problematic since the reference is weak?
-        status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
+        status.ref().value = ItemStatus.SOLD_VIA_BUY_NOW;
 
-        buyer.ref().removeBalance((@Strong float) buyNowPrice);
-        seller.ref().addBalance((@Strong float) buyNowPrice);
+        buyer.ref().removeBalance(buyNowPrice.ref().floatValue());
+        seller.ref().addBalance(buyNowPrice.ref().floatValue());
 
         buyer.ref().addBoughtItem(item);
         seller.ref().closeOwnAuction(id, true);
         closeWatchedItemsForBidders();
 
-        buyer.ref().notifyWinner(item, buyNowPrice);
-
-        return (@Strong float) buyNowPrice;
+        return buyNowPrice.ref().floatValue();
     }
 
-    @StrongOp @Transactional
-    public void endAuctionNow() {
+    @Transactional
+    public void setEndDateToNow() {
         endDate.ref().setTime(new Date().getTime());
     }
 
     @Transactional
-    @StrongOp
-    public boolean closeAuction(Ref<? extends @Mutable IItem> item) {
+    public boolean closeAuction(Ref<@Mutable Item> item) {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item different from this");
 
-        if ((@Strong boolean) endDate.ref().after(new Date()))
+        if (endDate.ref().after(new Date()))
             throw new AppException.DateException("Auction has not yet ended.");
 
         if (status.ref().value != ItemStatus.OPEN)
             throw new AppException("Auction is already closed.");
 
-
-        @Strong boolean hasWinner = !(@Strong boolean)bids.ref().isEmpty() && getTopBidPrice() >= (@Strong float) reservePrice;
+        @Strong boolean hasWinner = !(@Strong boolean)bids.ref().isEmpty() && getTopBidPrice() >= reservePrice.ref().floatValue();
         if (hasWinner) {
-            status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_AUCTION;
-
             @Immutable @Strong Bid winningBid = bids.ref().get(0);
-            buyer = (Ref<@Mutable User>) winningBid.getUser();
+            Ref<@Mutable User> buyer = winningBid.getUser();
             @Strong float price = winningBid.getBid();
 
             buyer.ref().removeBalance(price);
@@ -142,9 +136,10 @@ public @Weak class Item implements Serializable, IItem {
 
             buyer.ref().addBoughtItem(item);
 
-            buyer.ref().notifyWinner(item, price);
+            status.ref().value = ItemStatus.SOLD_VIA_AUCTION;
+            this.buyer = (Ref<@Mutable User>) winningBid.getUser();
         } else {
-            status.ref().value = (@MutableBottom @Local ItemStatus) ItemStatus.NOT_SOLD;
+            status.ref().value = ItemStatus.NOT_SOLD;
         }
 
         seller.ref().closeOwnAuction(id, hasWinner);
@@ -153,101 +148,122 @@ public @Weak class Item implements Serializable, IItem {
         return hasWinner;
     }
 
-    @WeakOp
-    public void setDescription(@Mutable @Weak String description) {
-        this.description = description;
+    @Transactional
+    public void closeWatchedItemsForBidders() {
+        for (Bid bid : getAllBids()) {
+            Ref<@Mutable User> bidder = bid.getUser();
+            bidder.ref().closeWatchedAuction(id);
+        }
     }
 
-    @WeakOp @SideEffectFree
+    @SideEffectFree
     public int getNumberOfBids() {
         return nBids;
     }
 
-    @StrongOp @SideEffectFree @Transactional
+    @Transactional
+    @SideEffectFree
     public @Strong List<Bid> getAllBids() {
-        if ((@Strong boolean) bids.ref().isEmpty())
+        if (bids.ref().isEmpty())
             return new LinkedList<>();
-        return (@Strong List<Bid>)bids.ref().subList(0, bids.ref().size() - 1); // TODO
+        return bids.ref().subList(0, bids.ref().size() - 1); // TODO
     }
 
-    @WeakOp @SideEffectFree
-    public Category getCategory() {
-        return category;
+    @Transactional
+    @SideEffectFree
+    public float getBuyNowPrice() {
+        return buyNowPrice.ref().floatValue();
     }
 
-    @WeakOp @SideEffectFree
-    public UUID getId() { return id; }
+    @Transactional
+    @SideEffectFree
+    public @Strong float getTopBidPrice() {
+        return bids.ref().isEmpty() ? initialPrice.ref().floatValue() : bids.ref().get(0).getBid();
+    }
 
-    @WeakOp @SideEffectFree
+    @Transactional
+    @SideEffectFree
+    public @Local Optional<Bid> getTopBid() {
+        if (bids.ref().isEmpty()) return Optional.empty();
+        return Optional.of(bids.ref().get(0));
+    }
+
+    @Transactional
+    @SideEffectFree
+    public boolean isReserveMet() {
+        return getTopBidPrice() >= reservePrice.ref().floatValue();
+    }
+
+    @Transactional
+    @SideEffectFree
+    public boolean wasSoldViaBuyNow() {
+        return status.ref().value == ItemStatus.SOLD_VIA_BUY_NOW;
+    }
+
+    @SideEffectFree
+    public @Weak UUID getId() { return id; }
+
+    @SideEffectFree
     public String getName() {
         return name;
     }
 
-    @WeakOp @SideEffectFree @Transactional
+    @SideEffectFree
+    public Category getCategory() {
+        return category;
+    }
+
+    @Transactional
+    @SideEffectFree
     public Date getEndDate() {
         return (@Strong Date) endDate.ref().clone();
     }
 
-    @WeakOp @SideEffectFree
-    public float getBuyNowPrice() {
-        return buyNowPrice;
-    }
-
-    @StrongOp @SideEffectFree @Transactional
-    public @Strong float getTopBidPrice() {
-        return bids.ref().isEmpty() ? (@Strong float) initialPrice : bids.ref().get(0).getBid();
-    }
-
-    @StrongOp @SideEffectFree @Transactional
-    public @Local Optional<Bid> getTopBid() {
-        if ((@Strong boolean )bids.ref().isEmpty()) return Optional.empty();
-        return Optional.of(bids.ref().get(0));
-    }
-
-    @Transactional @SideEffectFree
-    public boolean isReserveMet() {
-        return getTopBidPrice() >= reservePrice;
-    }
-
-    @WeakOp @SideEffectFree
-    public Ref<? extends IUser> getSeller() {
+    @SideEffectFree
+    public Ref<User> getSeller() {
         return seller;
     }
 
-    @WeakOp @SideEffectFree
-    public @Local Optional<Ref<? extends @Mutable IUser>> getBuyer() {
+    @SideEffectFree
+    public @Local Optional<Ref<@Mutable User>> getBuyer() {
         return Optional.ofNullable(buyer);
     }
 
-    @WeakOp @SideEffectFree @Transactional
-    public boolean getSoldViaBuyNow() {
-        return status.ref().value == (@MutableBottom @Local ItemStatus) ItemStatus.SOLD_VIA_BUY_NOW;
-    }
-
-    @SideEffectFree @Transactional
+    @Transactional
+    @SideEffectFree
     public ItemStatus getStatus() {
         return status.ref().value;
     }
 
-    @Transactional @SideEffectFree
-    public @Weak boolean refEquals(Ref<? extends IItem> o) {
+    @SideEffectFree
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    @SideEffectFree
+    public String getDescription() {
+        return description;
+    }
+
+    @SideEffectFree
+    public void setDescription(@Mutable @Weak String description) {
+        this.description = description;
+    }
+
+    @Transactional
+    @SideEffectFree
+    public @Weak boolean refEquals(Ref<Item> o) {
         return o.ref().getId().equals(this.id);
     }
 
-    @WeakOp @SideEffectFree @Transactional
+    @Override
+    @Transactional
+    @SideEffectFree
     public String toString() {
         return "Item '" + name + "' (" + id + ")\n" +
                 "  - price (bid | Buy-Now): " + getTopBidPrice() + " | " + getBuyNowPrice() + "\n" +
                 "  - auction duration: " + startDate + " - " + endDate + "\n" +
                 "  - number of bids: " + getNumberOfBids() + "\n" +
                 description;
-    }
-
-    @Transactional
-    public void closeWatchedItemsForBidders() {
-        for (Bid bid : getAllBids()) {
-            Ref<? extends @Mutable IUser> bidder = bid.getUser();
-            bidder.ref().closeWatchedAuction(id);
-        }
     }
 }

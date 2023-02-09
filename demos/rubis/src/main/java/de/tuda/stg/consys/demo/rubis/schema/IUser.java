@@ -3,10 +3,7 @@ package de.tuda.stg.consys.demo.rubis.schema;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.checker.qual.Local;
-import de.tuda.stg.consys.checker.qual.Mutable;
-import de.tuda.stg.consys.checker.qual.Strong;
-import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
@@ -45,13 +42,13 @@ public interface IUser extends Serializable {
 
     @SideEffectFree @Transactional
     // If this is WeakOp you could log in with an outdated password. Security concern?
-    boolean authenticate(String password);
+    boolean authenticate(@ThisConsistent String password);
 
-    @StrongOp @Transactional // StrongOp necessary? User should be able to use new password immediately
-    void changePassword(String oldPassword, @Mutable @Weak String newPassword);
+    @StrongOp @Transactional
+    void changePassword(@Mutable @Weak String newPassword);
 
-    @StrongOp @Transactional // StrongOp necessary? User should be able to use new address immediately
-    void changeEmail(@Mutable @Weak String newEmail, String password);
+    @StrongOp @Transactional
+    void changeEmail(@Mutable @Weak String newEmail);
 
     @Transactional
     void changeRealName(@Mutable @Weak String name);
@@ -69,7 +66,7 @@ public interface IUser extends Serializable {
     void rate(@Weak Comment comment);
 
     @SideEffectFree @Transactional
-    @Local String getNickname();
+    @ThisConsistent String getNickname();
 
     @WeakOp @SideEffectFree @Transactional
     float getRating();
@@ -78,7 +75,7 @@ public interface IUser extends Serializable {
     void notifyWinner(Ref<? extends IItem> item, float price);
 
     @SideEffectFree @Transactional
-    @Local boolean refEquals(Ref<? extends IUser> other);
+    @ThisConsistent boolean refEquals(Ref<? extends IUser> other);
 
     @SideEffectFree @Transactional
     String toString();

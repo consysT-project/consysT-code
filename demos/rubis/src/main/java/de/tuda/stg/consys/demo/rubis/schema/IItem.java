@@ -39,7 +39,7 @@ public interface IItem extends Serializable {
     Category getCategory();
 
     @WeakOp @SideEffectFree @Transactional
-    UUID getId();
+    @Weak UUID getId();
 
     @WeakOp @SideEffectFree @Transactional
     String getName();
