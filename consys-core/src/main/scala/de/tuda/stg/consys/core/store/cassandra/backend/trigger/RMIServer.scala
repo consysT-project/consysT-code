@@ -1,15 +1,13 @@
 package de.tuda.stg.consys.core.store.cassandra.backend.trigger
 
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
-import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaAdapter
 import de.tuda.stg.consys.core.store.utils.Reflect
 import org.json.{JSONArray, JSONObject}
-import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.core.store.Triggerable
 import java.lang.reflect.Field
 
-class RMIServer(cassandraReplicaAdapter: CassandraReplicaAdapter) extends RMIServerInterface {
+object RMIServer extends RMIServerInterface {
 
   private final val TYPE_FIELD = 1
   private final val TYPE_OBJECT = 2
@@ -24,8 +22,9 @@ class RMIServer(cassandraReplicaAdapter: CassandraReplicaAdapter) extends RMISer
     val rows: JSONArray = jsonObject.getJSONArray("rows")
 
     /* Map to store extracted data */
-    var dataMap: Map[Field, String] = Map.empty
+    var fields: Map[Field, Serializable] = Map.empty
     var address: String = ""
+    var clazz: String = ""
 
     /* Loop over all the rows */
     for (i <- 0 until rows.length) {
@@ -35,21 +34,25 @@ class RMIServer(cassandraReplicaAdapter: CassandraReplicaAdapter) extends RMISer
       val fieldType: String = extractCell(cells, "type")
 
       if (fieldType.toInt == TYPE_FIELD) {
-        val clazz = cassandraReplicaAdapter.classMap(address)
+        clazz = extractCell(cells, "class")
         val clusteringKey: String = row.get("clusteringKey").asInstanceOf[String]
         val state: String = extractCell(cells, "state")
 
-        val field: Field = Reflect.getField(clazz, clusteringKey)
+        val field: Field = Reflect.getField(Class.forName(clazz), clusteringKey)
 
-        /* Store extracted data in the map */
-        dataMap += (field -> state)
+        /* Store extracted data in a map */
+        fields += (field -> deserialize(state))
 
       } else if (fieldType.toInt == TYPE_OBJECT) {
         handleObjectEntryTrigger(cells)
+      } else {
+        throw new Exception(s"Entry with the address: ${address} has an unknown field type.")
       }
     }
 
-    handleFieldEntryTrigger(address, dataMap)
+    if (fields.nonEmpty) {
+      handleFieldEntryTrigger(fields, clazz)
+    }
   }
 
   /**
@@ -57,46 +60,27 @@ class RMIServer(cassandraReplicaAdapter: CassandraReplicaAdapter) extends RMISer
    * @param cells: JSONArray containing the cells of the triggered row in Cassandra
    */
   def handleObjectEntryTrigger(cells: JSONArray): Unit = {
-    /* Extract the state value from the cells, parse it into a ByteBuffer and deserialize */
-    val stateValue: String = extractCell(cells, "state")
-    val byteBuffer = TypeCodecs.BLOB.parse("0x" + stateValue);
-    val instance = CassandraReplicaAdapter.deserializeObject[Serializable](byteBuffer)
-
+    val state: String = extractCell(cells, "state")
+    val instance = deserialize(state)
     runTrigger(instance);
   }
 
   /**
    * Handles the trigger event for field entries in Cassandra.
    *
-   * @param address: the address (partition key) of the triggered field entry in Cassandra
-   * @param dataMap: a map containing the fields and their corresponding values
+   * @param instance
    */
-  def handleFieldEntryTrigger(address: String, dataMap: Map[Field, String]): Unit = {
-    /* Get the class of the object stored at the specified address */
-    val clazz = cassandraReplicaAdapter.classMap(address)
+  def handleFieldEntryTrigger(fields: Map[Field, Serializable], clazz: String): Unit = {
+    val constructor = Reflect.getConstructor(Class.forName(clazz))
+    val instance = constructor.newInstance()
 
-    /* Read the stored field entry from Cassandra */
-    val storedFieldEntry = cassandraReplicaAdapter.readFieldEntry[CassandraStore#ObjType](address, CassandraLevel.ALL, Some(clazz))
-    var mergedFields = storedFieldEntry.fields
-
-    /* Merge dataMap entries with read entries */
-    for ((field, value) <- dataMap) {
-      val byteBuffer = TypeCodecs.BLOB.parse("0x" + value);
-      val deserializedValue = CassandraReplicaAdapter.deserializeObject[Serializable](byteBuffer);
-      mergedFields = mergedFields + (field -> deserializedValue)
-    }
-
-    /* Create a new instance of the class and fill it with data */
-    val constr = Reflect.getConstructor(clazz)
-    val instance = constr.newInstance()
-
-    mergedFields.foreach(entry => {
-      val field = Reflect.getField(clazz, entry._1.getName)
+    fields.foreach(entry => {
+      val field = Reflect.getField(Class.forName(clazz), entry._1.getName)
       field.setAccessible(true)
       field.set(instance, entry._2)
     })
 
-    runTrigger(instance);
+    runTrigger(instance)
   }
 
   def runTrigger(instance: Any): Unit = {
@@ -104,6 +88,11 @@ class RMIServer(cassandraReplicaAdapter: CassandraReplicaAdapter) extends RMISer
       val triggerableObj = instance.asInstanceOf[Triggerable]
       triggerableObj.onTrigger()
     }
+  }
+
+  def deserialize(data: String): Serializable = {
+    val byteBuffer = TypeCodecs.BLOB.parse("0x" + data)
+    CassandraReplicaAdapter.deserializeObject[Serializable](byteBuffer)
   }
 
   /**

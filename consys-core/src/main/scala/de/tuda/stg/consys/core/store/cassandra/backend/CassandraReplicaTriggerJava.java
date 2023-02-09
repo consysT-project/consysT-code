@@ -93,19 +93,9 @@ public class CassandraReplicaTriggerJava implements ITrigger {
 
         // Send data
         try {
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        Registry registry = LocateRegistry.getRegistry(1234);
-                        RMIServerInterface server = (RMIServerInterface) registry.lookup("rmi://127.0.0.1:1234/test");
-                        server.trigger(jsonObject.toString());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-
-            t.start();
+            Registry registry = LocateRegistry.getRegistry(1234);
+            RMIServerInterface server = (RMIServerInterface) registry.lookup("rmi://127.0.0.1:1234/test");
+            server.trigger(jsonObject.toString());
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();

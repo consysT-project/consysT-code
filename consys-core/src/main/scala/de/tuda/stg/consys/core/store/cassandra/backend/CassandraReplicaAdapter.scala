@@ -11,6 +11,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
+import de.tuda.stg.consys.core.store.Triggerable
 import de.tuda.stg.consys.core.store.cassandra.backend.trigger.RMIServer
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -22,7 +23,7 @@ import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
-class RegistryThread(cassandraReplicaAdapter: CassandraReplicaAdapter) extends Thread {
+class RegistryThread() extends Thread {
 	override def run(): Unit = {
 		val serverURL = s"rmi://127.0.0.1:1234/test"
 
@@ -30,7 +31,7 @@ class RegistryThread(cassandraReplicaAdapter: CassandraReplicaAdapter) extends T
 		val port = 1234
 
 		try {
-			val stub = UnicastRemoteObject.exportObject(new RMIServer(cassandraReplicaAdapter), port)
+			val stub = UnicastRemoteObject.exportObject(RMIServer, port)
 			//RMI registry is instantiated
 			val registry = LocateRegistry.createRegistry(port)
 
@@ -47,9 +48,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
 
-	var classMap: Map[String, Class[_]] = Map[String, Class[_]]()
-
-	val registryThread = new RegistryThread(this)
+	val registryThread = new RegistryThread()
 	registryThread.start()
 
 	/* Initialize tables, if not available... */
@@ -99,6 +98,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 						 |fieldid text,
 						 |type int,
 						 |consistency text,
+						 |class text,
 						 |state blob,
 						 |PRIMARY KEY (id, fieldid)
 						 |) WITH COMMENT = 'contains the replicated data for a consys execution'"""
@@ -144,8 +144,28 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	) : Unit = {
 		import com.datastax.oss.driver.api.core.CqlSession
 
-		if (!classMap.contains(id)) {
-			classMap += (id -> obj.getClass)
+
+		if (obj.isInstanceOf[Triggerable]) {
+			val allFields = obj.getClass.getDeclaredFields
+
+			for (field <- allFields) {
+				if (!fields.exists(f => f.getName == field.getName)) {
+					field.setAccessible(true)
+					val value = field.get(obj).asInstanceOf[Serializable]
+
+					val builder: Insert = insertInto(s"$objectTableName")
+						.value("id", literal(id))
+						.value("fieldid", literal(field.getName))
+						.value("type", literal(TYPE_FIELD))
+						.value("consistency", literal(CONSISTENCY_ANY))
+						.value("class", literal(obj.getClass.getName))
+						.value("state", literal(CassandraReplicaAdapter.serializeObject(value))) // TODO: handle null fields
+
+					val statement = builder.build().setConsistencyLevel(clevel)
+					batchBuilder.addStatement(statement)
+					field.setAccessible(false)
+				}
+			}
 		}
 
 		for (field <- fields) {
@@ -155,6 +175,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 				.value("fieldid", literal(field.getName))
 				.value("type", literal(TYPE_FIELD))
 				.value("consistency", literal(CONSISTENCY_ANY))
+				.value("class", literal(obj.getClass.getName))
 				.value("state", literal(CassandraReplicaAdapter.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
 
 			val statement = builder.build().setConsistencyLevel(clevel)
@@ -235,7 +256,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
 	}
 
-	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel, clazz: Option[Class[_]] = None) : StoredFieldEntry = {
+	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredFieldEntry = {
 		val query = QueryBuilder.selectFrom(s"$objectTableName")
 			.columns("id", "fieldid", "type", "state")
 			.function("WRITETIME", Selector.column("state")).as("writetime")
@@ -258,8 +279,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 					if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
 
 					val fieldName: String = row.get("fieldid", TypeCodecs.TEXT)
-					val fieldClass = clazz.getOrElse(implicitly[ClassTag[T]].runtimeClass)
-					val field: Field = Reflect.getField(fieldClass, fieldName)
+					val field: Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
 
 					val state: Any = CassandraReplicaAdapter.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
 					val timestamp: Long = row.get("writetime", TypeCodecs.BIGINT)
