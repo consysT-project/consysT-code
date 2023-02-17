@@ -132,7 +132,7 @@ public @Mixed class Item implements Serializable {
         if (!this.refEquals(item))
             throw new IllegalArgumentException("given item different from this");
 
-        if (new Date().before(endDate))
+        if (endDate.after(new Date()))
             throw new AppException.DateException("Auction has not yet ended.");
 
         if (status != ItemStatus.OPEN)
@@ -161,6 +161,7 @@ public @Mixed class Item implements Serializable {
         return hasWinner;
     }
 
+    @StrongOp
     @Transactional
     public void closeWatchedItemsForBidders() {
         for (Bid bid : bids) {

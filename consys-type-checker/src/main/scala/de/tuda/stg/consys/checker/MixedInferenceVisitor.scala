@@ -153,7 +153,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
             getInferredFieldInSubclasses(field, clazz, defaultOp).foreach(entry => {
                 val (subclass, subclassQualifier) = entry
                 val superclassQualifier = getInferredFieldOrFromSuperclass(field, clazz, defaultOp).get._1
-
+                // TODO: isn't there a check missing here?
                 tf.getChecker.reportError(field, "mixed.inheritance.field.overwrite",
                     superclassQualifier, field, subclassQualifier, subclass)
             })

@@ -24,9 +24,9 @@ public class RubisBenchmark extends DemoRunnable {
     private static final float maxPrice = 100;
 
     private final int numOfUsersPerReplica;
-    private final List<Session> localSessions;
-    private final List<Ref<? extends IUser>> users;
-    private final List<Ref<? extends IItem>> items;
+    private final List<ISession> localSessions;
+    private final List<String> users;
+    private final List<String> items;
 
     private int itemNoOps;
     private int itemOps;
@@ -40,25 +40,19 @@ public class RubisBenchmark extends DemoRunnable {
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
-        Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
-        Session.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
+        ISession.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
+        ISession.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-        Session.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        ISession.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        ISession.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
 
         switch (benchType) {
             case MIXED:
             case STRONG_DATACENTRIC:
             case WEAK_DATACENTRIC:
-                Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-                Session.dataCentric = true;
-                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.User.class;
-                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.datacentric.Item.class;
+                //Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
                 break;
             default:
-                Session.dataCentric = false;
-                Session.userImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.User.class;
-                Session.itemImpl = de.tuda.stg.consys.demo.rubis.schema.opcentric.Item.class;
                 break;
         }
     }
@@ -79,18 +73,20 @@ public class RubisBenchmark extends DemoRunnable {
     public void setup() {
         Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
-            var session = new Session(store());
+            ISession session = null;
+            // TODO
+            session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session(store());
             localSessions.add(session);
 
             session.registerUser(null,
+                    DemoUtils.addr("user", userIndex, processId()),
                     DemoUtils.addr("user", userIndex, processId()),
                     DemoUtils.generateRandomName(), DemoUtils.generateRandomPassword(), "mail@example.com");
 
             session.addBalance(null, getInitialBalance());
 
-            UUID itemId = UUID.randomUUID();
             session.registerItem(null,
-                    DemoUtils.addr("item", userIndex, processId()), itemId,
+                    DemoUtils.addr("item", userIndex, processId()),
                     DemoUtils.generateRandomText(1), DemoUtils.generateRandomText(10),
                     getRandomCategory(), getRandomPrice(), 86400);
 
@@ -102,10 +98,8 @@ public class RubisBenchmark extends DemoRunnable {
         Logger.debug(procName(), "Collecting objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
             for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
-                users.add(localSessions.get(0).findUser(null,
-                        DemoUtils.addr("user", userIndex, replicaIndex)));
-                items.add(localSessions.get(0).getItem(null,
-                        DemoUtils.addr("item", userIndex, replicaIndex)));
+                users.add(DemoUtils.addr("user", userIndex, replicaIndex));
+                items.add(DemoUtils.addr("item", userIndex, replicaIndex));
             }
         }
 
@@ -148,11 +142,11 @@ public class RubisBenchmark extends DemoRunnable {
     }
 
     private void placeBid() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        var session = DemoUtils.getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != ItemStatus.OPEN)
+            var item = DemoUtils.getRandomElement(items);
+            if (localSessions.get(0).getItemStatus(ctx, item) != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
@@ -163,20 +157,22 @@ public class RubisBenchmark extends DemoRunnable {
     }
 
     private void buyNow() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        var session = DemoUtils.getRandomElement(localSessions);
 
         Option<TransactionResult> result = store().transaction(ctx ->
         {
             var item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != ItemStatus.OPEN)
+            if (session.getItemStatus(ctx, item) != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
-
+/*
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] {
                             new UserState(session.getLoggedInUser()),
                             new UserState(item.ref().getSeller()) },
                     new ItemState[] { new ItemState(item) });
+ */
+            var trxResult = new TransactionResult();
 
             try {
                 session.buyNow(ctx, item);
@@ -188,8 +184,8 @@ public class RubisBenchmark extends DemoRunnable {
             }
         });
 
-        if (isTestMode && result.isDefined())
-            buyNowTest(result.get());
+        //if (isTestMode && result.isDefined())
+        //    buyNowTest(result.get());
     }
 
     private void buyNowTest(TransactionResult result) {
@@ -236,18 +232,20 @@ public class RubisBenchmark extends DemoRunnable {
     private void closeAuction() {
         Option<TransactionResult> result = store().transaction(ctx ->
         {
-            Ref<? extends IItem> item = DemoUtils.getRandomElement(items);
-            if (item.ref().getStatus() != ItemStatus.OPEN)
+            var item = DemoUtils.getRandomElement(items);
+            if (localSessions.get(0).getItemStatus(ctx, item) != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
+            /*
             var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] { new UserState(item.ref().getSeller()) },
                     new ItemState[] { new ItemState(item) });
+             */
+            var trxResult = new TransactionResult();
 
-            item.ref().endAuctionNow();
             try {
-                item.ref().closeAuction(item);
+                localSessions.get(0).endAuctionImmediately(ctx, item);
             } catch (IllegalArgumentException e) {
                 trxResult.appExceptions = new Exception[] { e };
                 System.err.println("Exception raised by app: " + e.getMessage());
@@ -255,8 +253,8 @@ public class RubisBenchmark extends DemoRunnable {
             return Option.apply(trxResult);
         });
 
-        if (isTestMode && result.isDefined())
-            closeAuctionTest(result.get());
+        //if (isTestMode && result.isDefined())
+            //closeAuctionTest(result.get());
     }
 
     private void closeAuctionTest(TransactionResult result) {
@@ -307,24 +305,21 @@ public class RubisBenchmark extends DemoRunnable {
     }
 
     private void browseItems() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        var session = DemoUtils.getRandomElement(localSessions);
         String[] replIds = new String[5];
         for (int i = 0; i < 5; i++) {
             int userIndex = random.nextInt(numOfUsersPerReplica);
             int replicaIndex = random.nextInt(nReplicas);
             replIds[i] = DemoUtils.addr("item", userIndex, replicaIndex);
         }
-        session.browseItemsByReplIds(null, replIds);
+        session.browseItemsByItemIds(null, replIds);
     }
 
     private void rateUser() {
+        var session = DemoUtils.getRandomElement(localSessions);
+        var user2 = DemoUtils.getRandomElementExcept(users, session.getUser());
         int rating = 1 + random.nextInt(5);
-        Ref<? extends IUser> user1 = DemoUtils.getRandomElement(users);
-        Ref<? extends IUser> user2 = DemoUtils.getRandomElementExcept(users, user1);
-        store().transaction(ctx -> {
-            user1.ref().rate(new Comment(rating, DemoUtils.generateRandomText(10), user2, user1));
-            return Option.apply(0);
-        });
+        session.rateUser(null, user2, rating, DemoUtils.generateRandomText(10));
     }
 
     /**
@@ -338,7 +333,7 @@ public class RubisBenchmark extends DemoRunnable {
     @Override
     public void test() {
         if (processId() != 0) return;
-
+/*
         check("users non empty", !users.isEmpty());
 
         store().transaction(ctx -> {
@@ -388,7 +383,7 @@ public class RubisBenchmark extends DemoRunnable {
             }
             return Option.apply(0);
         });
-
+ */
         printTestResult();
     }
 

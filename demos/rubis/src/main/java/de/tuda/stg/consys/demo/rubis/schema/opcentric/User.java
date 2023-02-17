@@ -161,7 +161,7 @@ public @Mixed class User implements Serializable {
     }
 
     @SideEffectFree
-    public @Local String getNickname() {
+    public String getNickname() {
         return nickname;
     }
 
@@ -173,6 +173,11 @@ public @Mixed class User implements Serializable {
     @SideEffectFree
     public Date getCreationDate() {
         return creationDate;
+    }
+
+    @SideEffectFree
+    public @Strong UUID getId() {
+        return id;
     }
 
     @SideEffectFree
@@ -206,8 +211,8 @@ public @Mixed class User implements Serializable {
 
     @Transactional
     @SideEffectFree
-    public @Local boolean refEquals(Ref<User> other) {
-        return other.ref().getNickname().equals(this.nickname);
+    public @Strong boolean refEquals(Ref<User> other) {
+        return other.ref().getId().equals(this.id);
     }
 
     @Override

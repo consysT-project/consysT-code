@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.rubis.schema.sequential;
 import java.util.Date;
 import java.util.UUID;
 
+@SuppressWarnings({"consistency"})
 public class Bid {
     private final UUID id;
     private final Date date;

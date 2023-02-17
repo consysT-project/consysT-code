@@ -216,7 +216,7 @@ public @Weak class Item implements Serializable {
     @Transactional
     @SideEffectFree
     public Date getEndDate() {
-        return (@Strong Date) endDate.ref().clone();
+        return new Date(endDate.ref().getTime());
     }
 
     @SideEffectFree

@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public @Weak class User implements Serializable {
-    private final @Immutable UUID id;
+    private final Ref<@Strong UUID> id;
     private final @Immutable String nickname;
     private String name;
     private String password;
@@ -20,23 +20,23 @@ public @Weak class User implements Serializable {
     private final List<Comment> comments = new LinkedList<>();
     private final Ref<@Mutable @Strong NumberBox<@Mutable @Strong Float>> balance;
     private final Date creationDate = new Date();
-    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerAuctions;
-    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerHistory;
-    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerAuctions;
-    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerHistory;
-    private final Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
+    private final Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> buyerAuctions;
+    private final Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> buyerHistory;
+    private final Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerAuctions;
+    private final Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerHistory;
+    private final Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory;
 
-    public User(@Local UUID id,
+    public User(Ref<@Strong UUID> id,
                 @Local String nickname,
                 @Weak @Mutable String name,
                 @Weak @Mutable String password,
                 @Weak @Mutable String email,
-                Ref<@Mutable NumberBox<@Mutable @Strong Float>> balance,
-                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerAuctions,
-                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> buyerHistory,
-                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerAuctions,
-                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerHistory,
-                Ref<@Mutable Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
+                Ref<@Mutable @Strong NumberBox<@Mutable @Strong Float>> balance,
+                Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> buyerAuctions,
+                Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> buyerHistory,
+                Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerAuctions,
+                Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerHistory,
+                Ref<@Mutable @Strong Map<UUID, Ref<@Mutable Item>>> sellerFailedHistory) {
         this.id = id;
         this.nickname = nickname;
         this.name = name;
@@ -89,8 +89,8 @@ public @Weak class User implements Serializable {
         @Strong float potentialBalance = balance.ref().floatValue();
 
         for (var item : getOpenBuyerAuctions()) {
-            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO: timeout?
-            if (bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
+            @Immutable @Strong Optional<Bid> bid = item.ref().getTopBid(); // TODO: timeout?
+            if (bid.isPresent() && refEquals(bid.get().getUser())) {
                 potentialBalance -= bid.get().getBid();
             }
         }
@@ -112,8 +112,8 @@ public @Weak class User implements Serializable {
 
     @Transactional
     @SideEffectFree
-    public List<Ref<@Mutable Item>> getSellerHistory(boolean sold) {
-        if ((@Strong boolean) sold) return new ArrayList<>(sellerHistory.ref().values());
+    public List<Ref<@Mutable Item>> getSellerHistory(@Strong boolean sold) {
+        if (sold) return new ArrayList<>(sellerHistory.ref().values());
         return new ArrayList<>(sellerFailedHistory.ref().values());
     }
 
@@ -178,6 +178,12 @@ public @Weak class User implements Serializable {
         return creationDate;
     }
 
+    @Transactional
+    @SideEffectFree
+    public @Strong UUID getId() {
+        return new UUID(id.ref().getMostSignificantBits(), id.ref().getLeastSignificantBits());
+    }
+
     @SideEffectFree
     public String getName() {
         return name;
@@ -207,8 +213,8 @@ public @Weak class User implements Serializable {
 
     @Transactional
     @SideEffectFree
-    public @Weak boolean refEquals(Ref<User> other) {
-        return other.ref().getNickname().equals(this.nickname);
+    public @Strong boolean refEquals(Ref<User> other) {
+        return other.ref().getId().equals(this.getId());
     }
 
     @Override

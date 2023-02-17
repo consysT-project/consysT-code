@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.rubis.schema.sequential;
 import de.tuda.stg.consys.demo.rubis.AppException;
 import java.util.*;
 
+@SuppressWarnings({"consistency"})
 public class User {
     private final UUID id;
     private final String nickname;
@@ -137,6 +138,10 @@ public class User {
         return creationDate;
     }
 
+    public UUID getId() {
+        return id;
+    }
+
     public String getName() {
         return name;
     }
@@ -163,7 +168,7 @@ public class User {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof User && ((User)other).getNickname().equals(this.nickname);
+        return other instanceof User && ((User)other).getId().equals(this.id);
     }
 
     @Override

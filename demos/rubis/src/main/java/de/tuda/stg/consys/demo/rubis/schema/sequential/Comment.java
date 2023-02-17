@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.rubis.schema.sequential;
 
 import java.util.Date;
 
+@SuppressWarnings({"consistency"})
 public class Comment {
     public int rating;
     String message;

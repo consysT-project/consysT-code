@@ -16,6 +16,9 @@ class Object {
 
     @SideEffectFree @Transactional
     int hashCode();
+
+    @SideEffectFree @Transactional
+    @ThisConsistent Object clone();
 }
 
 class String {
@@ -62,6 +65,12 @@ class UUID {
     @Local UUID randomUUID();
 
     @SideEffectFree
+    @ThisConsistent long getMostSignificantBits();
+
+    @SideEffectFree
+    @ThisConsistent long getLeastSignificantBits();
+
+    @SideEffectFree
     @ThisConsistent boolean equals(@ThisConsistent Object o);
 
     @SideEffectFree
@@ -74,6 +83,12 @@ class UUID {
 class Date {
     @SideEffectFree
     @ThisConsistent boolean after(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent boolean before(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent long getTime();
 }
 
 interface List<T> {

@@ -6,6 +6,7 @@ import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
 
 import java.util.*;
 
+@SuppressWarnings({"consistency"})
 public class Item {
     private final UUID id;
     private final String name;

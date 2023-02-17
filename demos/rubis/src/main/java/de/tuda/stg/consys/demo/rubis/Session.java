@@ -16,7 +16,7 @@ import scala.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.TimeoutException;
-
+/*
 @SuppressWarnings({"consistency"})
 public class Session {
     public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
@@ -366,3 +366,4 @@ public class Session {
         return user;
     }
 }
+*/
