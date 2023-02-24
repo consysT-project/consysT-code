@@ -16,6 +16,14 @@ public class TestCollector {
         putCheck(name, code.get());
     }
 
+    public static synchronized void check(String name, Supplier<Boolean> code0, Supplier<Boolean> code1, boolean use0) {
+        if (use0) {
+            putCheck(name, code0.get());
+        } else {
+            putCheck(name, code1.get());
+        }
+    }
+
     public static synchronized void check(String name, boolean result) {
         putCheck(name, result);
     }

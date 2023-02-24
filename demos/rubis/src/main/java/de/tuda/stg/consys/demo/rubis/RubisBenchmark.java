@@ -3,20 +3,15 @@ package de.tuda.stg.consys.demo.rubis;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.demo.DemoRunnable;
-import de.tuda.stg.consys.demo.DemoUtils;
-import de.tuda.stg.consys.demo.JBenchExecution;
-import de.tuda.stg.consys.demo.JBenchStore;
+import de.tuda.stg.consys.demo.*;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
-public class RubisBenchmark extends DemoRunnable {
+public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Store> extends DemoRunnable {
     public static void main(String[] args) {
         JBenchExecution.execute("rubis", RubisBenchmark.class, args);
     }
@@ -24,7 +19,7 @@ public class RubisBenchmark extends DemoRunnable {
     private static final float maxPrice = 100;
 
     private final int numOfUsersPerReplica;
-    private final List<ISession> localSessions;
+    private final List<ISession<StoreType>> localSessions;
     private final List<String> users;
     private final List<String> items;
 
@@ -43,17 +38,10 @@ public class RubisBenchmark extends DemoRunnable {
         ISession.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
         ISession.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-        ISession.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-        ISession.itemConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-
-        switch (benchType) {
-            case MIXED:
-            case STRONG_DATACENTRIC:
-            case WEAK_DATACENTRIC:
-                //Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-                break;
-            default:
-                break;
+        if (isOpCentric()) {
+            TestUtils.benchType = TestUtils.BenchType.OP_CENTRIC;
+        } else {
+            TestUtils.benchType = TestUtils.BenchType.DATA_CENTRIC;
         }
     }
 
@@ -71,11 +59,20 @@ public class RubisBenchmark extends DemoRunnable {
 
     @Override
     public void setup() {
+        TestUtils.store = store();
+
         Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
-            ISession session = null;
-            // TODO
-            session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session(store());
+
+            ISession<StoreType> session;
+            if (isOpCentric()) {
+                session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<StoreType>(store(),
+                        getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getWeakLevel()));
+            } else {
+                session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<StoreType>(store(),
+                        getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getStrongLevel()));
+            }
+
             localSessions.add(session);
 
             session.registerUser(null,
@@ -87,7 +84,7 @@ public class RubisBenchmark extends DemoRunnable {
 
             session.registerItem(null,
                     DemoUtils.addr("item", userIndex, processId()),
-                    DemoUtils.generateRandomText(1), DemoUtils.generateRandomText(10),
+                    DemoUtils.addr("item", userIndex, processId()), DemoUtils.generateRandomText(10),
                     getRandomCategory(), getRandomPrice(), 86400);
 
             BenchmarkUtils.printProgress(userIndex);
@@ -159,20 +156,18 @@ public class RubisBenchmark extends DemoRunnable {
     private void buyNow() {
         var session = DemoUtils.getRandomElement(localSessions);
 
-        Option<TransactionResult> result = store().transaction(ctx ->
+        Option<TestUtils.TransactionResult> result = store().transaction(ctx ->
         {
             var item = DemoUtils.getRandomElement(items);
             if (session.getItemStatus(ctx, item) != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
-/*
-            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
-                    new UserState[] {
-                            new UserState(session.getLoggedInUser()),
-                            new UserState(item.ref().getSeller()) },
-                    new ItemState[] { new ItemState(item) });
- */
-            var trxResult = new TransactionResult();
+
+            var trxResult = !isTestMode ? new TestUtils.TransactionResult() : new TestUtils.TransactionResult(
+                    new TestUtils.UserTestInterface[] {
+                            new TestUtils.UserTestInterface(session.getUser(), session),
+                            new TestUtils.UserTestInterface(session.getItemSeller(ctx, item), session) },
+                    new TestUtils.ItemTestInterface[] { new TestUtils.ItemTestInterface(item, session) });
 
             try {
                 session.buyNow(ctx, item);
@@ -184,65 +179,21 @@ public class RubisBenchmark extends DemoRunnable {
             }
         });
 
-        //if (isTestMode && result.isDefined())
-        //    buyNowTest(result.get());
-    }
-
-    private void buyNowTest(TransactionResult result) {
-        if (result.appExceptions.length > 0) {
-            check("no app exception occurred during buy-now", false);
-            return;
-        } else {
-            check("no app exception occurred during buy-now", true);
-        }
-
-        store().transaction(ctx -> {
-            UserState buyerPrev = result.users[0];
-            Ref<? extends IUser> buyer = buyerPrev.ref;
-            UserState sellerPrev = result.users[1];
-            Ref<? extends IUser> seller = sellerPrev.ref;
-            ItemState itemPrev = result.items[0];
-            Ref<? extends IItem> item = itemPrev.ref;
-
-            /* TODO: not testable due to possible parallel operations
-            checkFloatEquals("seller balance after buy-now",
-                    sellerPrev.balance + item.ref().getBuyNowPrice(), seller.ref().getBalance(), 0.01f);
-            checkFloatEquals("buyer balance after buy-now",
-                    buyerPrev.balance - item.ref().getBuyNowPrice(), buyer.ref().getBalance(), 0.01f);
-             */
-
-            check("buy-now closed for seller",
-                    seller.ref().getSellerHistory(true).stream().anyMatch(auction -> auction.ref().refEquals(item)));
-            check("buy-now closed for seller (negated)",
-                    seller.ref().getSellerHistory(false).stream().noneMatch(auction -> auction.ref().refEquals(item)));
-
-            check("buyer gets item",
-                    buyer.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
-
-            var bids = item.ref().getAllBids();
-            for (var bid : bids) {
-                var bidder = bid.getUser();
-                check("buy-now closed for bidder",
-                        bidder.ref().getOpenBuyerAuctions().stream().noneMatch(auction -> auction.ref().refEquals(item)));
-            }
-            return Option.apply(0);
-        });
+        if (isTestMode && result.isDefined())
+            TestUtils.buyNowTest(result.get());
     }
 
     private void closeAuction() {
-        Option<TransactionResult> result = store().transaction(ctx ->
+        Option<TestUtils.TransactionResult> result = store().transaction(ctx ->
         {
             var item = DemoUtils.getRandomElement(items);
             if (localSessions.get(0).getItemStatus(ctx, item) != ItemStatus.OPEN)
                 itemNoOps++;
             itemOps++;
 
-            /*
-            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
-                    new UserState[] { new UserState(item.ref().getSeller()) },
-                    new ItemState[] { new ItemState(item) });
-             */
-            var trxResult = new TransactionResult();
+            var trxResult = !isTestMode ? new TestUtils.TransactionResult() : new TestUtils.TransactionResult(
+                    new TestUtils.UserTestInterface[] { new TestUtils.UserTestInterface(localSessions.get(0).getItemSeller(ctx, item), localSessions.get(0)) },
+                    new TestUtils.ItemTestInterface[] { new TestUtils.ItemTestInterface(item, localSessions.get(0)) });
 
             try {
                 localSessions.get(0).endAuctionImmediately(ctx, item);
@@ -253,55 +204,8 @@ public class RubisBenchmark extends DemoRunnable {
             return Option.apply(trxResult);
         });
 
-        //if (isTestMode && result.isDefined())
-            //closeAuctionTest(result.get());
-    }
-
-    private void closeAuctionTest(TransactionResult result) {
-        if (result.appExceptions.length > 0) {
-            check("no app exception occurred during close-auction", false);
-            return;
-        } else {
-            check("no app exception occurred during close-auction", true);
-        }
-
-        store().transaction(ctx -> {
-            ItemState itemPrev = result.items[0];
-            Ref<? extends IItem> item = itemPrev.ref;
-            UserState sellerPrev = result.users[0];
-            Ref<? extends IUser> seller = sellerPrev.ref;
-
-            boolean wasSold = item.ref().getStatus() == ItemStatus.SOLD_VIA_AUCTION;
-            /* TODO: not testable due to possible parallel operations
-            float price = wasSold ? item.ref().getTopBidPrice() : 0;
-            checkFloatEquals("seller balance after closing auction", sellerPrev.balance + price, seller.ref().getBalance(), 0.01f);
-             */
-
-            check("auction closed for seller",
-                    seller.ref().getSellerHistory(wasSold).stream().anyMatch(auction -> auction.ref().refEquals(item)));
-            check("auction closed for seller (negated)",
-                    seller.ref().getSellerHistory(!wasSold).stream().noneMatch(auction -> auction.ref().refEquals(item)));
-
-            var bids = item.ref().getAllBids();
-            for (var bid : bids) {
-                var bidder = bid.getUser();
-                check("auction closed for bidder",
-                        bidder.ref().getOpenBuyerAuctions().stream().noneMatch(auction -> auction.ref().refEquals(item)));
-            }
-
-            if (wasSold) {
-                var topBid = item.ref().getTopBid();
-                if (topBid.isEmpty()) {
-                    check("winning bid not found", false);
-                } else {
-                    var winner = topBid.get().getUser();
-                    check("winner gets item",
-                            winner.ref().getBuyerHistory().stream().anyMatch(auction -> auction.ref().refEquals(item)));
-                }
-            }
-
-            return Option.apply(0);
-        });
+        if (isTestMode && result.isDefined())
+            TestUtils.closeAuctionTest(result.get());
     }
 
     private void browseItems() {
@@ -322,99 +226,28 @@ public class RubisBenchmark extends DemoRunnable {
         session.rateUser(null, user2, rating, DemoUtils.generateRandomText(10));
     }
 
-    /**
-     * Checked invariants:
-     *  - ´user.balance´ is non-negative
-     *  - ´user.balance´ corresponds to bought and sold items
-     *  - auction winners corresponds to bought items
-     *  - auction sellers correspond to sold items
-     *  - winner is the highest bidder
-     */
     @Override
     public void test() {
         if (processId() != 0) return;
-/*
-        check("users non empty", !users.isEmpty());
 
-        store().transaction(ctx -> {
-            for (var user : users) {
+        TestCollector.check("users non empty", !users.isEmpty());
+        TestUtils.finalTest(users, getInitialBalance(), localSessions.get(0));
 
-                float userBalance = user.ref().getBalance();
-                check("balance >= 0", userBalance >= 0);
-
-                float balance = getInitialBalance();
-                for (var boughtItem : user.ref().getBuyerHistory()) {
-                    if (boughtItem.ref().getSoldViaBuyNow()) {
-                        balance -= boughtItem.ref().getBuyNowPrice();
-                    } else {
-                        var winningBidOption = boughtItem.ref().getTopBid();
-                        check("buyer bid non null", winningBidOption.isPresent());
-                        if (winningBidOption.isEmpty()) continue;
-
-                        var winningBid = winningBidOption.get();
-                        checkEquals("bid correct buyer", user.ref().getNickname(), winningBid.getUser().ref().getNickname());
-
-                        var allBids = new ArrayList<>(boughtItem.ref().getAllBids());
-                        allBids.remove(winningBid);
-                        for (var bid : allBids) {
-                            if (bid.getBid() >= winningBid.getBid())
-                                check("winner bid is highest bid", false);
-                        }
-
-                        balance -= winningBid.getBid();
-                    }
-                }
-
-                for (var soldItem : user.ref().getSellerHistory(true)) {
-                    checkEquals("bid correct seller", user.ref().getNickname(), soldItem.ref().getSeller().ref().getNickname());
-
-                    if (soldItem.ref().getSoldViaBuyNow()) {
-                        balance += soldItem.ref().getBuyNowPrice();
-                    } else {
-                        var winningBidOption = soldItem.ref().getTopBid();
-                        check("seller bid non null", winningBidOption.isPresent());
-                        if (winningBidOption.isEmpty()) continue;
-
-                        balance += winningBidOption.get().getBid();
-                    }
-                }
-
-                checkFloatEquals("balance correct", balance, userBalance, 0.01f);
-            }
-            return Option.apply(0);
-        });
- */
         printTestResult();
     }
 
-    private static class TransactionResult {
-        Exception[] appExceptions = new Exception[] {};
-        UserState[] users = new UserState[] {};
-        ItemState[] items = new ItemState[] {};
-
-        TransactionResult() {}
-
-        TransactionResult(UserState[] users, ItemState[] items) {
-            this.users = users;
-            this.items = items;
+    private boolean isOpCentric() {
+        switch (benchType) {
+            case OP_MIXED:
+            case WEAK:
+            case STRONG:
+                return true;
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                return false;
         }
-    }
 
-    private static class UserState {
-        final Ref<? extends IUser> ref;
-        final float balance;
-
-        UserState(Ref<? extends IUser> ref) {
-            this.ref = ref;
-            this.balance = ref.ref().getBalance();
-        }
-    }
-
-    private static class ItemState {
-        final Ref<? extends IItem> ref;
-
-        ItemState(Ref<? extends IItem> ref) {
-            this.ref = ref;
-        }
+        throw new RuntimeException("unknown bench type");
     }
 }

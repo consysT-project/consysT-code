@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.rubis.schema.opcentric;
+package de.tuda.stg.consys.demo.rubis.schema.datacentric;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
@@ -22,16 +22,19 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     private final Store<String, Serializable, ConsistencyLevel<StoreType>, TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>> store;
     private final ConsistencyLevel<StoreType> userConsistencyLevel;
     private final ConsistencyLevel<StoreType> itemConsistencyLevel;
+    private final ConsistencyLevel<StoreType> internalConsistencyLevel;
     private Ref<User> user;
     private String userId;
     private final Random random = new Random();
 
     public Session(Store<String, Serializable, ConsistencyLevel<StoreType>, TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>> store,
                    ConsistencyLevel<StoreType> userConsistencyLevel,
-                   ConsistencyLevel<StoreType> itemConsistencyLevel) {
+                   ConsistencyLevel<StoreType> itemConsistencyLevel,
+                   ConsistencyLevel<StoreType> internalConsistencyLevel) {
         this.store = store;
         this.userConsistencyLevel = userConsistencyLevel;
         this.itemConsistencyLevel = itemConsistencyLevel;
+        this.internalConsistencyLevel = internalConsistencyLevel;
     }
 
     private <U> Option<U> doTransaction(
@@ -61,11 +64,27 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     public String registerUser(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr,
-                             String userId, String nickname, String name, String password, String email) {
+                               String userId, String nickname, String name, String password, String email) {
         this.user = doTransaction(tr, ctx -> {
-            Ref<@Mutable User> user = ctx.replicate(
-                    makeUserAddress(userId), userConsistencyLevel, User.class,
-                    UUID.randomUUID(), nickname, name, password, email);
+            var tmp = UUID.randomUUID();
+            Ref<@Strong UUID> id =
+                    ctx.replicate(makeUserAddress(userId) + ":id", internalConsistencyLevel, UUID.class, tmp.getMostSignificantBits(), tmp.getLeastSignificantBits());
+            Ref<@Strong @Mutable NumberBox<@Mutable @Strong Float>> balance =
+                    ctx.replicate(makeUserAddress(userId) + ":balance", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, 0);
+            Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerAuctions =
+                    ctx.replicate(makeUserAddress(userId) + ":buyerAuctions", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+            Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> buyerHistory =
+                    ctx.replicate(makeUserAddress(userId) + ":buyerHistory", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+            Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerAuctions =
+                    ctx.replicate(makeUserAddress(userId) + ":sellerAuctions", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+            Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerHistory =
+                    ctx.replicate(makeUserAddress(userId) + ":sellerHistory", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+            Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerFailedHistory =
+                    ctx.replicate(makeUserAddress(userId) + ":sellerFailedHistory", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
+            // TODO: uuid must be ref
+            Ref<User> user = ctx.replicate(makeUserAddress(userId), userConsistencyLevel, User.class,
+                    id, nickname, name, password, email,
+                    balance, buyerAuctions, buyerHistory, sellerAuctions, sellerHistory, sellerFailedHistory);
             return Option.apply(user);
         }).get();
         this.userId = userId;
@@ -74,16 +93,29 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     public String registerItem(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr,
-                           String itemId, String name, String description, Category category,
-                           float reservePrice, int durationInSeconds) {
+                               String itemId, String name, String description, Category category,
+                               float reservePrice, int durationInSeconds) {
         checkLogin();
 
-        Ref<Item> item = doTransaction(tr, ctx ->
-                Option.apply(ctx.replicate(makeItemAddress(itemId), itemConsistencyLevel, Item.class,
-                        UUID.randomUUID(), name, description,
-                        reservePrice, getInitialPrice(reservePrice), getBuyNowPrice(reservePrice),
-                        new Date(), getEndDateFromDuration(durationInSeconds), category, user))
-        ).get();
+        Ref<Item> item = doTransaction(tr, ctx -> {
+            Ref<@Strong @Mutable Date> endDateRef =
+                    ctx.replicate(makeItemAddress(itemId) + ":ed", internalConsistencyLevel, Date.class, getEndDateFromDuration(durationInSeconds).getTime());
+            Ref<@Strong @Mutable LinkedList<Bid>> bids =
+                    ctx.replicate(makeItemAddress(itemId) + ":bids", internalConsistencyLevel, (Class<LinkedList<Bid>>)(Class)LinkedList.class);
+            Ref<@Strong @Mutable StatusBox> status =
+                    ctx.replicate(makeItemAddress(itemId) + ":status", internalConsistencyLevel, StatusBox.class, ItemStatus.OPEN);
+            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refReservePrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":reservePrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, reservePrice);
+            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refBuyNowPrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":buyNowPrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, getBuyNowPrice(reservePrice));
+            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refInitialPrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":initialPrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, getInitialPrice(reservePrice));
+
+            return Option.apply(ctx.replicate(makeItemAddress(itemId), itemConsistencyLevel, Item.class,
+                    UUID.randomUUID(), name, description,
+                    refReservePrice, refInitialPrice, refBuyNowPrice,
+                    new Date(), endDateRef, category, user, bids, status));
+        }).get();
 
         doTransaction(tr, cty -> {
             user.ref().addOwnAuction(item);
