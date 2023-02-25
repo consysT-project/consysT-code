@@ -111,18 +111,10 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 				e.printStackTrace()
 		}
 
-		// Drop an existing trigger and create a new one
-
+		// Add a trigger
 		cassandraSession.execute(
 			SimpleStatement.builder(
-				s"""DROP TRIGGER IF EXISTS trigger ON $keyspaceName.$objectTableName;""")
-				.setExecutionProfileName("consys_init")
-				.build()
-		)
-
-		cassandraSession.execute(
-			SimpleStatement.builder(
-				s"""CREATE TRIGGER trigger ON $keyspaceName.$objectTableName USING 'de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaTriggerJava';""")
+				s"""CREATE TRIGGER IF NOT EXISTS trigger ON $keyspaceName.$objectTableName USING 'de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaTriggerJava';""")
 				.setExecutionProfileName("consys_init")
 				.build()
 		)
@@ -168,20 +160,21 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 			}
 		}
 
-		for (field <- fields) {
-			field.setAccessible(true)
-			val builder : Insert = insertInto(s"$objectTableName")
-				.value("id", literal(id))
-				.value("fieldid", literal(field.getName))
-				.value("type", literal(TYPE_FIELD))
-				.value("consistency", literal(CONSISTENCY_ANY))
-				.value("class", literal(obj.getClass.getName))
-				.value("state", literal(CassandraReplicaAdapter.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
+			for (field <- fields) {
+				field.setAccessible(true)
+				val builder: Insert = insertInto(s"$objectTableName")
+					.value("id", literal(id))
+					.value("fieldid", literal(field.getName))
+					.value("type", literal(TYPE_FIELD))
+					.value("consistency", literal(CONSISTENCY_ANY))
+					.value("class", literal(obj.getClass.getName))
+					.value("state", literal(CassandraReplicaAdapter.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
 
-			val statement = builder.build().setConsistencyLevel(clevel)
-			batchBuilder.addStatement(statement)
-			field.setAccessible(false)
-		}
+				val statement = builder.build().setConsistencyLevel(clevel)
+				batchBuilder.addStatement(statement)
+				field.setAccessible(false)
+			}
+
 	}
 
 	private[cassandra] def writeObjectEntry[T <: Serializable](
@@ -197,6 +190,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 			.value("fieldid", literal(FIELD_ALL))
 			.value("type", literal(TYPE_OBJECT))
 			.value("consistency", literal(CONSISTENCY_ANY))
+			.value("class", literal(obj.getClass.getName))
 			.value("state", literal(CassandraReplicaAdapter.serializeObject(obj.asInstanceOf[Serializable])))
 
 		val statement = builder.build().setConsistencyLevel(clevel)
