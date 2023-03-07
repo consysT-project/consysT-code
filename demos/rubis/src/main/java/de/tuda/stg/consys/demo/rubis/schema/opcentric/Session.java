@@ -18,31 +18,31 @@ import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
-public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> extends ISession<StoreType> {
-    private final Store<String, Serializable, ConsistencyLevel<StoreType>, TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>> store;
-    private final ConsistencyLevel<StoreType> userConsistencyLevel;
-    private final ConsistencyLevel<StoreType> itemConsistencyLevel;
+public class Session<SStore extends de.tuda.stg.consys.core.store.Store> extends ISession<SStore> {
+    private final Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>> store;
+    private final ConsistencyLevel<SStore> userConsistencyLevel;
+    private final ConsistencyLevel<SStore> itemConsistencyLevel;
     private Ref<User> user;
     private String userId;
     private final Random random = new Random();
 
-    public Session(Store<String, Serializable, ConsistencyLevel<StoreType>, TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>> store,
-                   ConsistencyLevel<StoreType> userConsistencyLevel,
-                   ConsistencyLevel<StoreType> itemConsistencyLevel) {
+    public Session(Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>> store,
+                   ConsistencyLevel<SStore> userConsistencyLevel,
+                   ConsistencyLevel<SStore> itemConsistencyLevel) {
         this.store = store;
         this.userConsistencyLevel = userConsistencyLevel;
         this.itemConsistencyLevel = itemConsistencyLevel;
     }
 
     private <U> Option<U> doTransaction(
-            TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> transaction,
-            Function1<TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>, Option<U>> code) {
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> transaction,
+            Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
     private <U> Option<U> doTransactionWithRetries(
-            TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> transaction,
-            Function1<TransactionContext<String, Serializable, ConsistencyLevel<StoreType>>, Option<U>> code) {
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> transaction,
+            Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         int nTries = 0;
         while (true) {
             try {
@@ -60,7 +60,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
         }
     }
 
-    public String registerUser(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr,
+    public String registerUser(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
                              String userId, String nickname, String name, String password, String email) {
         this.user = doTransaction(tr, ctx -> {
             Ref<@Mutable User> user = ctx.replicate(
@@ -73,7 +73,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
         return userId;
     }
 
-    public String registerItem(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr,
+    public String registerItem(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
                            String itemId, String name, String description, Category category,
                            float reservePrice, int durationInSeconds) {
         checkLogin();
@@ -93,7 +93,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
         return itemId;
     }
 
-    public void addBalance(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, float amount) {
+    public void addBalance(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, float amount) {
         checkLogin();
 
         doTransaction(tr, ctx -> {
@@ -103,7 +103,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public boolean placeBid(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId, float bidAmount) {
+    public boolean placeBid(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId, float bidAmount) {
         checkLogin();
 
         Ref<Item> item = lookupItem(tr, itemId);
@@ -117,7 +117,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public void buyNow(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public void buyNow(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         checkLogin();
 
         Ref<Item> item = lookupItem(tr, itemId);
@@ -129,7 +129,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public void endAuctionImmediately(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public void endAuctionImmediately(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         Ref<Item> item = lookupItem(tr, itemId);
 
         doTransactionWithRetries(tr, ctx -> {
@@ -141,7 +141,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public String browseItemsByItemIds(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String[] itemIds) {
+    public String browseItemsByItemIds(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String[] itemIds) {
         checkLogin();
 
         // in MIXED and STRONG cases a deadlock can occur, since stringifying an item accesses strong state
@@ -160,7 +160,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public void rateUser(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String userId, int rating, String comment) {
+    public void rateUser(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String userId, int rating, String comment) {
         checkLogin();
 
         Ref<User> recipient = lookupUser(tr, userId);
@@ -172,19 +172,19 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     }
 
     @Override
-    public float getBidPrice(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public float getBidPrice(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         Ref<Item> item = lookupItem(tr, itemId);
         return doTransaction(tr, ctx -> Option.<Float>apply(item.ref().getTopBidPrice())).get();
     }
 
     @Override
-    public ItemStatus getItemStatus(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public ItemStatus getItemStatus(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         var item = lookupItem(tr, itemId);
         return doTransaction(tr, ctx -> Option.<ItemStatus>apply(item.ref().getStatus())).get();
     }
 
     @Override
-    public String getItemSeller(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public String getItemSeller(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         var item = lookupItem(tr, itemId);
         return doTransaction(tr, ctx -> Option.apply(item.ref().getSeller().ref().getNickname())).get();
     }
@@ -194,13 +194,13 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
         return userId;
     }
 
-    public Ref<User> lookupUser(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String userId) {
+    public Ref<User> lookupUser(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String userId) {
         return doTransaction(tr, ctx ->
                 Option.apply(ctx.lookup(makeUserAddress(userId), userConsistencyLevel, User.class))
         ).get();
     }
 
-    public Ref<Item> lookupItem(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
+    public Ref<Item> lookupItem(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr, String itemId) {
         return doTransaction(tr, ctx ->
                 Option.apply(ctx.lookup(makeItemAddress(itemId), itemConsistencyLevel, Item.class))
         ).get();

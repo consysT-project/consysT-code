@@ -3,22 +3,28 @@ package de.tuda.stg.consys.demo;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkRunnable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.core.store.extensions.ClearableStore;
 import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 
-public abstract class JBenchRunnable<StoreType extends Store> implements BenchmarkRunnable {
+public abstract class JBenchRunnable<
+        Addr,
+        Obj,
+        TxContext extends TransactionContext<Addr, Obj, ConsistencyLevel<SStore>>,
+        JStore extends Store<Addr, Obj, ConsistencyLevel<SStore>, TxContext>,
+        SStore extends de.tuda.stg.consys.core.store.Store
+        > implements BenchmarkRunnable {
 
-    private final JBenchStore<StoreType> store;
+    private final JBenchStore<Addr, Obj, TxContext, JStore, SStore> store;
     private final BenchmarkConfig config;
 
 
-    protected JBenchRunnable(JBenchStore<StoreType> store, BenchmarkConfig config) {
+    protected JBenchRunnable(JBenchStore<Addr, Obj, TxContext, JStore, SStore> store, BenchmarkConfig config) {
         super();
         this.store = store;
         this.config = config;
     }
 
-    protected StoreType store() {
+    protected JStore store() {
         return store.javaStore();
     }
 
@@ -30,15 +36,15 @@ public abstract class JBenchRunnable<StoreType extends Store> implements Benchma
         store.barrier(name, config.numberOfReplicas(), config.barrierTimeout());
     }
 
-    protected ConsistencyLevel getWeakLevel() {
+    protected ConsistencyLevel<SStore> getWeakLevel() {
         return store.getWeakLevel();
     }
 
-    protected ConsistencyLevel getStrongLevel() {
+    protected ConsistencyLevel<SStore> getStrongLevel() {
         return store.getStrongLevel();
     }
 
-    protected ConsistencyLevel getMixedLevel() {
+    protected ConsistencyLevel<SStore> getMixedLevel() {
         return store.getMixedLevel();
     }
 }

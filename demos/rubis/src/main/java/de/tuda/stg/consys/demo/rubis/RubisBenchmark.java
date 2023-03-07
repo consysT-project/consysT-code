@@ -3,15 +3,20 @@ package de.tuda.stg.consys.demo.rubis;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.*;
 import de.tuda.stg.consys.demo.rubis.schema.*;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
+import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
-public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Store> extends DemoRunnable {
+public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+        extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore> {
     public static void main(String[] args) {
         JBenchExecution.execute("rubis", RubisBenchmark.class, args);
     }
@@ -19,7 +24,7 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
     private static final float maxPrice = 100;
 
     private final int numOfUsersPerReplica;
-    private final List<ISession<StoreType>> localSessions;
+    private final List<ISession<SStore>> localSessions;
     private final List<String> users;
     private final List<String> items;
 
@@ -27,7 +32,12 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
     private int itemOps;
 
 
-    public RubisBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+    public RubisBenchmark(
+            JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+                    ConsistencyLevel<SStore>,
+                    TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+                    > adapter,
+            BenchmarkConfig config) {
         super(adapter, config);
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
@@ -64,13 +74,13 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
         Logger.debug(procName(), "Creating objects");
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
 
-            ISession<StoreType> session;
+            ISession<SStore> session;
             if (isOpCentric()) {
-                session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<StoreType>(store(),
+                session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<>(store(),
                         getLevelWithMixedFallback(getWeakLevel()),
                         getLevelWithMixedFallback(getWeakLevel()));
             } else {
-                session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<StoreType>(store(),
+                session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<>(store(),
                         getLevelWithMixedFallback(getWeakLevel()),
                         getLevelWithMixedFallback(getWeakLevel()),
                         getLevelWithMixedFallback(getStrongLevel()));
