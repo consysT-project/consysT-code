@@ -132,7 +132,7 @@ public class Session<StoreType extends de.tuda.stg.consys.core.store.Store> exte
     public void endAuctionImmediately(TransactionContext<String, Serializable, ConsistencyLevel<StoreType>> tr, String itemId) {
         Ref<Item> item = lookupItem(tr, itemId);
 
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
             item.ref().setEndDateToNow();
             item.ref().closeAuction(item);
 

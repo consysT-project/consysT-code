@@ -67,10 +67,13 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
             ISession<StoreType> session;
             if (isOpCentric()) {
                 session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<StoreType>(store(),
-                        getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getWeakLevel()));
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()));
             } else {
                 session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<StoreType>(store(),
-                        getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getWeakLevel()), getLevelWithMixedFallback(getStrongLevel()));
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()));
             }
 
             localSessions.add(session);
@@ -163,11 +166,11 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
                 itemNoOps++;
             itemOps++;
 
-            var trxResult = !isTestMode ? new TestUtils.TransactionResult() : new TestUtils.TransactionResult(
-                    new TestUtils.UserTestInterface[] {
-                            new TestUtils.UserTestInterface(session.getUser(), session),
-                            new TestUtils.UserTestInterface(session.getItemSeller(ctx, item), session) },
-                    new TestUtils.ItemTestInterface[] { new TestUtils.ItemTestInterface(item, session) });
+            var trxResult = !isTestMode
+                    ? TestUtils.TransactionResult.empty()
+                    : TestUtils.TransactionResult.empty()
+                            .addUsers(session, session.getUser(), session.getItemSeller(ctx, item))
+                            .addItems(session, item);
 
             try {
                 session.buyNow(ctx, item);
@@ -179,8 +182,9 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
             }
         });
 
-        if (isTestMode && result.isDefined())
+        if (isTestMode && result.isDefined()) {
             TestUtils.buyNowTest(result.get());
+        }
     }
 
     private void closeAuction() {
@@ -204,8 +208,9 @@ public class RubisBenchmark<StoreType extends de.tuda.stg.consys.core.store.Stor
             return Option.apply(trxResult);
         });
 
-        if (isTestMode && result.isDefined())
+        if (isTestMode && result.isDefined()) {
             TestUtils.closeAuctionTest(result.get());
+        }
     }
 
     private void browseItems() {

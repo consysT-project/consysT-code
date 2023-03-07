@@ -9,7 +9,9 @@ import de.tuda.stg.consys.japi.Store;
 import scala.Option;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @SuppressWarnings({"consistency"})
 public class TestUtils {
@@ -28,6 +30,20 @@ public class TestUtils {
         TransactionResult(TestUtils.UserTestInterface[] users, TestUtils.ItemTestInterface[] items) {
             this.users = users;
             this.items = items;
+        }
+
+        public static TransactionResult empty() {
+            return new TransactionResult();
+        }
+
+        public TransactionResult addUsers(ISession<?> session, String... userIds) {
+            this.users = Arrays.stream(userIds).map(id -> new TestUtils.UserTestInterface(id, session)).toArray(UserTestInterface[]::new);
+            return this;
+        }
+
+        public TransactionResult addItems(ISession<?> session, String... itemIds) {
+            this.items = Arrays.stream(itemIds).map(id -> new TestUtils.ItemTestInterface(id, session)).toArray(ItemTestInterface[]::new);
+            return this;
         }
     }
 
