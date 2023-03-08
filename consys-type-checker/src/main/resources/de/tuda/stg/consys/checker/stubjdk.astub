@@ -36,10 +36,12 @@ class StringBuilder {
 }
 
 class Number {
-     @ThisConsistent float floatValue();
+    @SideEffectFree
+    @ThisConsistent float floatValue();
 }
 
 class Float {
+    @SideEffectFree
     @ThisConsistent float floatValue();
 }
 
@@ -151,8 +153,8 @@ class Option<A> {
     @SideEffectFree
     T get();
 
-    <A> @Immutable @Local Option<A> empty();
-    <A> @Immutable @Local Option<A> apply(A a);
+    <A> @MutableBottom @Local Option<A> empty();
+    <A> @MutableBottom @Local Option<A> apply(A a);
 }
 
 
