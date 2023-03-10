@@ -28,6 +28,7 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 	private val consistencyChecker = baseChecker.asInstanceOf[ConsistencyChecker]
 
 	private var isInConstructor: Boolean = false
+	private var isInOnTrigger: Boolean = false
 
 	type ClassName = String
 	type QualifierName = (String, String)
@@ -135,17 +136,30 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		if (transactionContext && (!implicitContext.allowsUpdatesTo(lhsType, tree)))
 			checker.reportError(tree, "assignment.type.implicitflow", lhsType, implicitContext.get, tree)
 
-		// check immutability constraints
+		// check immutability & onTrigger constraints
 		tree match {
 			case _: VariableTree => // variable initialization at declaration is allowed
 			case assign: AssignmentTree => assign.getVariable match {
 				case id: IdentifierTree if TreeUtils.elementFromUse(id).getKind != ElementKind.FIELD => // reassigning variables is allowed
+				case id: IdentifierTree if isInOnTrigger && TreeUtils.elementFromUse(id).getKind == ElementKind.FIELD =>
+					checker.reportError(tree, "assignment.type.trigger", tree) // reassigning fields in onTrigger is forbidden
 				case id: IdentifierTree if isInConstructor && TreeUtils.elementFromUse(id).getKind == ElementKind.FIELD => // allow field initialization in constructor
-				case mst: MemberSelectTree => mst.getExpression match {
-					case id: IdentifierTree if isInConstructor && TreeUtils.isExplicitThisDereference(id) => // allow field initialization in constructor
-					case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
-						checker.reportError(tree, "immutability.assignment.type")
-				}
+				case mst: MemberSelectTree =>
+					if (isInOnTrigger) {
+						  // reassigning fields in onTrigger is forbidden
+							val elt = TreeUtils.elementFromUse(mst)
+							if (elt.getKind == ElementKind.FIELD) {
+								checker.reportError(tree, "assignment.type.trigger", tree)
+							}
+						} else {
+							mst.getExpression match {
+								case id: IdentifierTree if TreeUtils.isExplicitThisDereference(id) => // allow field initialization in constructor
+								case _ =>
+									if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType)) {
+										checker.reportError(tree, "immutability.assignment.type")
+									}
+							}
+						}
 				case _ => if (lhsType.hasEffectiveAnnotation(classOf[qual.Immutable]) && !TypesUtils.isPrimitiveOrBoxed(lhsType.getUnderlyingType))
 					checker.reportError(tree, "immutability.assignment.type")
 			}
@@ -179,6 +193,16 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 				checker.reportError(node, "invocation.ref.transaction", node)
 			if (methodInvocationIsTransactional(node))
 				checker.reportError(node, "invocation.method.transaction", node)
+		}
+
+		// check onTrigger violations
+		if (isInOnTrigger) {
+			val methodType = atypeFactory.getAnnotatedType(TreeUtils.elementFromUse(node))
+
+			if (isAnyRefAccess(node))
+				checker.reportError(node, "invocation.ref.trigger", node)
+			else if (!isSideEffectFree(methodType.getElement))
+				checker.reportError(node, "invocation.sideeffect.trigger", node)
 		}
 
 		if (methodInvocationIsCompiledRef(node))
@@ -253,6 +277,11 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 			isInConstructor = true
 		}
 
+		// check whether the visited method has the name "onTrigger"
+		if (node.getName.toString == "onTrigger") {
+			isInOnTrigger = true
+		}
+
 		// check operation level override rules
 		if (tf.isInMixedClassContext && !(hasAnnotation(node.getModifiers, classOf[SideEffectFree]) ||
 			hasAnnotation(node.getModifiers, classOf[Pure]))) {
@@ -288,6 +317,8 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		}
 
 		val r = super.visitMethod(node, p)
+
+		isInOnTrigger = false;
 
 		if (TreeUtils.isConstructor(node))
 			isInConstructor = prevIsConstructor
