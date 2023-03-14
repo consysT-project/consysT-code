@@ -136,44 +136,42 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	) : Unit = {
 		import com.datastax.oss.driver.api.core.CqlSession
 
+		def insertStatement(field: Field, value: Serializable): Insert = {
+			insertInto(s"$objectTableName")
+				.value("id", literal(id))
+				.value("fieldid", literal(field.getName))
+				.value("type", literal(TYPE_FIELD))
+				.value("consistency", literal(CONSISTENCY_ANY))
+				.value("class", literal(obj.getClass.getName))
+				.value("state", literal(CassandraReplicaAdapter.serializeObject(value))) // TODO: handle null fields
+		}
 
+		// If the object is Triggerable, insert all fields that are not already in the given parameter "fields".
+		// This is necessary to enable object reconstruction during trigger execution.
 		if (obj.isInstanceOf[Triggerable]) {
 			val allFields = obj.getClass.getDeclaredFields
 
 			for (field <- allFields) {
-				if (!fields.exists(f => f.getName == field.getName)) {
+				if (!fields.exists(_.getName == field.getName)) {
 					field.setAccessible(true)
 					val value = field.get(obj).asInstanceOf[Serializable]
 
-					val builder: Insert = insertInto(s"$objectTableName")
-						.value("id", literal(id))
-						.value("fieldid", literal(field.getName))
-						.value("type", literal(TYPE_FIELD))
-						.value("consistency", literal(CONSISTENCY_ANY))
-						.value("class", literal(obj.getClass.getName))
-						.value("state", literal(CassandraReplicaAdapter.serializeObject(value))) // TODO: handle null fields
-
-					val statement = builder.build().setConsistencyLevel(clevel)
+					val statement = insertStatement(field, value).build().setConsistencyLevel(clevel)
 					batchBuilder.addStatement(statement)
 					field.setAccessible(false)
 				}
 			}
 		}
 
-			for (field <- fields) {
-				field.setAccessible(true)
-				val builder: Insert = insertInto(s"$objectTableName")
-					.value("id", literal(id))
-					.value("fieldid", literal(field.getName))
-					.value("type", literal(TYPE_FIELD))
-					.value("consistency", literal(CONSISTENCY_ANY))
-					.value("class", literal(obj.getClass.getName))
-					.value("state", literal(CassandraReplicaAdapter.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
+		// Insert all fields that are given in the parameter "fields".
+		for (field <- fields) {
+			field.setAccessible(true)
+			val value = field.get(obj).asInstanceOf[Serializable]
 
-				val statement = builder.build().setConsistencyLevel(clevel)
-				batchBuilder.addStatement(statement)
-				field.setAccessible(false)
-			}
+			val statement = insertStatement(field, value).build().setConsistencyLevel(clevel)
+			batchBuilder.addStatement(statement)
+			field.setAccessible(false)
+		}
 
 	}
 
