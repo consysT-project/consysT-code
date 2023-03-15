@@ -1,0 +1,10 @@
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/opcentric/Bid.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/opcentric/Comment.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/opcentric/Item.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/opcentric/Session.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/opcentric/User.java
+
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/Category.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/ItemStatus.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/AppException.java
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/ISession.java
