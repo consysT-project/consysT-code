@@ -103,11 +103,15 @@ class ConsistencyVisitor(baseChecker : BaseTypeChecker) extends InformationFlowT
 		if (classVisitCache.contains(className, qualifierName)) return
 		else classVisitCache.put((className, qualifierName), ("", ""))
 
+		tf.pushNewCache()
+
 		tf.visitClassContext.push((classElement, annotation))
 		if (isMixedQualifier(annotation))
 			tf.mixedInferenceVisitor.processClass(classTree, annotation)
 		super.processClassTree(classTree)
 		tf.visitClassContext.pop()
+
+		tf.popCache()
 	}
 
 	private def toQualifierName(qualifier: AnnotationMirror): QualifierName = {

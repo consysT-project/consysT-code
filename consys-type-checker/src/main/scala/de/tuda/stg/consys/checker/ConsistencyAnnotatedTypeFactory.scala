@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{MethodInvocationTree, Tree}
+import com.sun.source.tree.{MethodInvocationTree, MethodTree, Tree}
 import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.checker.TypeFactoryUtils._
@@ -25,7 +25,11 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     // disable caching for the annotated type factory, so that we can do multiple runs on the same
     // compilation unit with different targets for @ThisConsistent
     // TODO: see if we can instead manually clear all caches when reanalysing a compilation unit
-    shouldCache = false
+    shouldCache = true
+
+    private val methodTreeCache: mutable.Stack[mutable.Set[MethodTree]] = mutable.Stack.empty
+    private val methodInvocationTreeCache: mutable.Stack[mutable.Set[MethodInvocationTree]] = mutable.Stack.empty
+    pushNewCache() // populate cache for pre-class-visit operations
 
     var mixedInferenceVisitor: MixedInferenceVisitor = new MixedInferenceVisitor()(this)
 
@@ -68,11 +72,29 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
      * Resolves @ThisConsistent for method invocations (in return types, parameters)
      */
     override def methodFromUse(tree: MethodInvocationTree): AnnotatedTypeFactory.ParameterizedExecutableType = {
-        withThisConsistentContext(tree) {
+        val useCache = methodInvocationTreeCache.top.contains(tree)
+        if (!useCache) {
+            methodInvocationTreeCache.top.add(tree)
+        }
+
+        withThisConsistentContext(tree, useCache) {
             val typ = super.methodFromUse(tree)
             replaceThisConsistent(typ.executableType)
             typ
         }
+    }
+
+    override def getAnnotatedType(tree: Tree): AnnotatedTypeMirror = tree match {
+        case methodTree: MethodTree =>
+            val useCache = methodTreeCache.top.contains(methodTree)
+            if (!useCache) {
+                methodTreeCache.top.add(methodTree)
+            }
+            withCache(useCache) {
+                super.getAnnotatedType(tree)
+            }
+        case _ =>
+            super.getAnnotatedType(tree)
     }
 
     /**
@@ -83,9 +105,13 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     override def addComputedTypeAnnotations(tree: Tree, typ: AnnotatedTypeMirror, iUseFlow: Boolean): Unit = {
         tree match {
             case invocation: MethodInvocationTree =>
+                val useCache = methodInvocationTreeCache.top.contains(invocation)
+                if (!useCache) {
+                    methodInvocationTreeCache.top.add(invocation)
+                }
                 // the type of an invocation is the return type, which depends on the receiver object
                 // for other types of trees, the context is set by the consistency visitor when entering a method tree
-                withThisConsistentContext(invocation) {
+                withThisConsistentContext(invocation, useCache) {
                     super.addComputedTypeAnnotations(tree, typ, iUseFlow)
                 }
             case _ =>
@@ -143,13 +169,21 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
     // ### @ThisConsistent helpers
     // #################################################################################################################
 
+    def withCache[R](useCache: Boolean)(f: => R): R = {
+        val oldShouldCache = shouldCache
+        shouldCache = useCache
+        val result = f
+        shouldCache = oldShouldCache
+        result
+    }
+
     /**
      * Executes a given function under a @ThisConsistent-context inferred from the given method invocation tree.
      * @param context the context under which to execute the function
      * @param f the function to execute
      * @return the result of the executed function
      */
-    def withThisConsistentContext[R](context: MethodInvocationTree)(f: => R): R = {
+    def withThisConsistentContext[R](context: MethodInvocationTree, useCache: Boolean = false)(f: => R): R = withCache(useCache) {
         thisConsistentContext.push(inferThisConsistentContext(context)(this))
         val result = f
         thisConsistentContext.pop()
@@ -195,6 +229,16 @@ class ConsistencyAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnno
         if (thisConsistentContext.nonEmpty) {
             deepReplaceThisConsistent(typ, thisConsistentContext.top)
         }
+    }
+
+    def pushNewCache(): Unit = {
+        methodTreeCache.push(mutable.Set.empty)
+        methodInvocationTreeCache.push(mutable.Set.empty)
+    }
+
+    def popCache(): Unit = {
+        methodTreeCache.pop()
+        methodInvocationTreeCache.pop()
     }
 
     // #################################################################################################################

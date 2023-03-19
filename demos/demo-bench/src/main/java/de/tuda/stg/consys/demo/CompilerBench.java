@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CompilerBench {
-    static int nWarmup = 0;
-    static int nMeasure = 1;
+    static int nWarmup = 5;
+    static int nMeasure = 10;
     static String demosPath = "./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/";
 
     public static void main(String[] args) {
-        //compileJava("sequential", nMeasure, nWarmup);
+        compileJava("sequential", nMeasure, nWarmup);
         System.out.println("----------");
         compileConSys("opcentric", nMeasure, nWarmup);
     }
