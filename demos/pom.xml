@@ -25,6 +25,7 @@
         <module>box</module>
         <module>crdt-benchmarks</module>
         <module>web-shop</module>
+        <module>trigger-document-share</module>
         <module>trigger-chat</module>
         <module>group-chat</module>
     </modules>
