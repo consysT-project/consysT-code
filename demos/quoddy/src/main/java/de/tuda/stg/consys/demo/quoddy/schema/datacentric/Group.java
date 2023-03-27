@@ -3,7 +3,7 @@ package de.tuda.stg.consys.demo.quoddy.schema.datacentric;
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.demo.quoddy.AppException;
+import de.tuda.stg.consys.demo.quoddy.schema.AppException;
 import de.tuda.stg.consys.demo.quoddy.schema.IGroup;
 import de.tuda.stg.consys.demo.quoddy.schema.IPost;
 import de.tuda.stg.consys.demo.quoddy.schema.IUser;

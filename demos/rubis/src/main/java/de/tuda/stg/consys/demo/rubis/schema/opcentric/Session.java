@@ -2,8 +2,8 @@ package de.tuda.stg.consys.demo.rubis.schema.opcentric;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.demo.rubis.AppException;
-import de.tuda.stg.consys.demo.rubis.ISession;
+import de.tuda.stg.consys.demo.rubis.schema.AppException;
+import de.tuda.stg.consys.demo.rubis.schema.ISession;
 import de.tuda.stg.consys.demo.rubis.schema.Category;
 import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
 import de.tuda.stg.consys.japi.Ref;

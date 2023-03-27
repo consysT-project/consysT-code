@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.quoddy;
+package de.tuda.stg.consys.demo.quoddy.schema;
 
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
@@ -14,6 +14,7 @@ import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -22,11 +23,11 @@ import java.util.concurrent.TimeoutException;
 
 
 @SuppressWarnings({"consistency"})
-public class Session {
-    public static ConsistencyLevel userConsistencyLevel;
-    public static ConsistencyLevel groupConsistencyLevel;
-    public static ConsistencyLevel activityConsistencyLevel;
-    public static ConsistencyLevel internalConsistencyLevel;
+public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
+    public ConsistencyLevel<SStore> userConsistencyLevel;
+    public ConsistencyLevel<SStore> groupConsistencyLevel;
+    public ConsistencyLevel<SStore> activityConsistencyLevel;
+    public ConsistencyLevel<SStore> internalConsistencyLevel;
 
     public static Class<? extends IGroup> groupImpl;
     public static Class<? extends IUser> userImpl;
@@ -37,26 +38,33 @@ public class Session {
 
     public static boolean dataCentric;
 
-    private Store store;
+    private final Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>> store;
     private Ref<? extends IUser> user;
 
-    private Random random = new Random();
+    private final Random random = new Random();
 
-    public Session(Store store) {
+    public Session(
+            Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>> store,
+            ConsistencyLevel<SStore> userConsistencyLevel,
+            ConsistencyLevel<SStore> groupConsistencyLevel,
+            ConsistencyLevel<SStore> activityConsistencyLevel,
+            ConsistencyLevel<SStore> internalConsistencyLevel) {
         this.store = store;
+        this.userConsistencyLevel = userConsistencyLevel;
+        this.groupConsistencyLevel = groupConsistencyLevel;
+        this.activityConsistencyLevel = activityConsistencyLevel;
+        this.internalConsistencyLevel = internalConsistencyLevel;
     }
 
-    public void setStore(Store store) {
-        this.store = store;
-    }
-
-    private <U> Option<U> doTransaction(TransactionContext transaction,
-                                  Function1<TransactionContext, Option<U>> code) {
+    private <U> Option<U> doTransaction(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> transaction,
+            Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         return transaction == null ? store.transaction(code::apply) : code.apply(transaction);
     }
 
-    private <U> Option<U> doTransactionWithRetries(TransactionContext transaction,
-                                                   Function1<TransactionContext, Option<U>> code) {
+    private <U> Option<U> doTransactionWithRetries(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> transaction,
+            Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         int nTries = 0;
         while (true) {
             try {
@@ -78,8 +86,10 @@ public class Session {
         return user;
     }
 
-    public Ref<? extends IUser> registerUser(TransactionContext tr,
-                                  String id, String name) {
+    @SuppressWarnings("unchecked")
+    public Ref<? extends IUser> registerUser(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String id, String name) {
         if (dataCentric) {
             this.user = doTransaction(tr, ctx -> {
                 Ref<@Strong @Mutable RefMap<UUID, Ref<? extends IUser>>> friends =
@@ -99,13 +109,16 @@ public class Session {
         return this.user;
     }
 
-    public Option<Ref<? extends IUser>> lookupUser(TransactionContext tr,
-                                String id) {
+    public Option<Ref<? extends IUser>> lookupUser(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String id) {
         return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, userConsistencyLevel, userImpl)));
     }
 
-    public Ref<? extends IGroup> createGroup(TransactionContext tr,
-                                  String id, String name, String description, boolean requiresJoinConfirmation) {
+    @SuppressWarnings("unchecked")
+    public Ref<? extends IGroup> createGroup(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String id, String name, String description, boolean requiresJoinConfirmation) {
         checkLogin();
         return doTransaction(tr, ctx -> {
             Ref<? extends IGroup> group;
@@ -129,13 +142,15 @@ public class Session {
         }).get();
     }
 
-    public Option<Ref<? extends IGroup>> lookupGroup(TransactionContext tr,
-                                        String id) {
+    public Option<Ref<? extends IGroup>> lookupGroup(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String id) {
         return doTransaction(tr, ctx -> Option.apply(ctx.lookup(id, groupConsistencyLevel, groupImpl)));
     }
 
-    public void joinGroup(TransactionContext tr,
-                          Ref<? extends IGroup> group) {
+    public void joinGroup(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            Ref<? extends IGroup> group) {
         checkLogin();
         doTransaction(tr, ctx -> {
             group.ref().join(user);
@@ -144,8 +159,9 @@ public class Session {
         });
     }
 
-    public void postStatusToProfile(TransactionContext tr,
-                                    String text) {
+    public void postStatusToProfile(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String text) {
         checkLogin();
         var id = UUID.randomUUID();
 
@@ -167,8 +183,9 @@ public class Session {
         });
     }
 
-    public void postStatusToGroup(TransactionContext tr,
-                                  String text, Ref<? extends IGroup> group) {
+    public void postStatusToGroup(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String text, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
 
@@ -185,8 +202,9 @@ public class Session {
         });
     }
 
-    public Ref<? extends IEvent> postEventToGroup(TransactionContext tr,
-                                       String text, Date date, Ref<? extends IGroup> group) {
+    public Ref<? extends IEvent> postEventToGroup(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            String text, Date date, Ref<? extends IGroup> group) {
         checkLogin();
         var id = UUID.randomUUID();
 
@@ -210,8 +228,9 @@ public class Session {
         }).get();
     }
 
-    public void sharePostWithFriend(TransactionContext tr,
-                                    Ref<? extends IUser> friend, Ref<? extends IPost> post) {
+    public void sharePostWithFriend(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            Ref<? extends IUser> friend, Ref<? extends IPost> post) {
         checkLogin();
         doTransaction(tr, ctx -> {
             if (((List<Ref<? extends IUser>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
@@ -221,8 +240,9 @@ public class Session {
         });
     }
 
-    public void sendFriendRequest(TransactionContext tr,
-                                  Ref<? extends IUser> receiver) {
+    public void sendFriendRequest(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            Ref<? extends IUser> receiver) {
         checkLogin();
         doTransaction(tr, ctx -> {
             receiver.ref().addReceivedFriendRequest(this.user);
@@ -231,7 +251,9 @@ public class Session {
         });
     }
 
-    public boolean acceptFriendRequest(TransactionContext tr, int requestIndex) {
+    public boolean acceptFriendRequest(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            int requestIndex) {
         checkLogin();
         return doTransaction(tr, ctx -> {
             List<Ref<? extends IUser>> requests = this.user.ref().getReceivedFriendRequests();
@@ -246,7 +268,9 @@ public class Session {
         }).get();
     }
 
-    public void follow(TransactionContext tr, Ref<? extends IUser> target) {
+    public void follow(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
+            Ref<? extends IUser> target) {
         checkLogin();
         doTransaction(tr, ctx -> {
             target.ref().addFollower(this.user);

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.rubis.schema.sequential;
 
-import de.tuda.stg.consys.demo.rubis.AppException;
+import de.tuda.stg.consys.demo.rubis.schema.AppException;
 import de.tuda.stg.consys.demo.rubis.schema.Category;
 import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
 

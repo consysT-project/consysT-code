@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
+import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
@@ -23,6 +24,7 @@ public @Mixed class Inbox implements Serializable {
 
     @Override
     @SideEffectFree
+    @Transactional
     public String toString() {
         return entries.toString();
     }

@@ -1,6 +1,6 @@
 package de.tuda.stg.consys.demo.rubis.schema.sequential;
 
-import de.tuda.stg.consys.demo.rubis.AppException;
+import de.tuda.stg.consys.demo.rubis.schema.AppException;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})

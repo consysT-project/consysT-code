@@ -2,8 +2,8 @@ package de.tuda.stg.consys.demo.rubis.schema.datacentric;
 
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.demo.rubis.AppException;
-import de.tuda.stg.consys.demo.rubis.ISession;
+import de.tuda.stg.consys.demo.rubis.schema.AppException;
+import de.tuda.stg.consys.demo.rubis.schema.ISession;
 import de.tuda.stg.consys.demo.rubis.schema.Category;
 import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
 import de.tuda.stg.consys.japi.Ref;
@@ -63,6 +63,7 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> extends
         }
     }
 
+    @SuppressWarnings("unchecked")
     public String registerUser(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
                                String userId, String nickname, String name, String password, String email) {
         this.user = doTransaction(tr, ctx -> {
@@ -92,6 +93,7 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> extends
         return userId;
     }
 
+    @SuppressWarnings("unchecked")
     public String registerItem(TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
                                String itemId, String name, String description, Category category,
                                float reservePrice, int durationInSeconds) {

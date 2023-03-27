@@ -44,6 +44,7 @@ public interface IGroup extends Serializable {
     void setDescription(@Weak @Mutable String description);
 
     @StrongOp
+    @Transactional
     void setRequiresJoinConfirmation(@Strong boolean requiresJoinConfirmation);
 
     @SideEffectFree
@@ -56,12 +57,15 @@ public interface IGroup extends Serializable {
     String getDescription();
 
     @SideEffectFree
+    @Transactional
     boolean isRequiresJoinConfirmation();
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IUser>> getOwners();
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IUser>> getMembers();
 
     @SideEffectFree

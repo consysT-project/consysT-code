@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.rubis;
+package de.tuda.stg.consys.demo.rubis.schema;
 
 public class AppException extends RuntimeException {
     public AppException(String message) {

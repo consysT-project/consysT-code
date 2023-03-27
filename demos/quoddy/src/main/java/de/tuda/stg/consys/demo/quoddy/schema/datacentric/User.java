@@ -199,6 +199,7 @@ public @Weak class User implements IUser {
         return new ArrayList<>(participatingGroups.ref().get());
     }
 
+    @SuppressWarnings("unchecked")
     private Ref<User> toUserImpl(Ref<? extends IUser> user) {
         return (Ref<User>) user;
     }

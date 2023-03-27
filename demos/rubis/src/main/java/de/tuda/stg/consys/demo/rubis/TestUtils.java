@@ -1,8 +1,7 @@
 package de.tuda.stg.consys.demo.rubis;
 
 import de.tuda.stg.consys.demo.TestCollector;
-import de.tuda.stg.consys.demo.rubis.schema.IItem;
-import de.tuda.stg.consys.demo.rubis.schema.IUser;
+import de.tuda.stg.consys.demo.rubis.schema.ISession;
 import de.tuda.stg.consys.demo.rubis.schema.ItemStatus;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.Store;
@@ -11,7 +10,6 @@ import scala.Option;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @SuppressWarnings({"consistency"})
 public class TestUtils {
