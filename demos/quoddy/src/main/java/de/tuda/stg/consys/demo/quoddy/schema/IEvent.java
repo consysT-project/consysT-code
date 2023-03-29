@@ -19,9 +19,5 @@ public interface IEvent extends Serializable, IPost {
 
     @Transactional
     @StrongOp
-    void postUpdate(@Weak @Mutable String text);
-
-    @Transactional
-    @StrongOp
     void postUpdate(@Weak @Mutable String text, @Strong @Mutable Date newDate);
 }

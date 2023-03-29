@@ -8,13 +8,13 @@ Transactions --------------------------------------------------------------
 	- immutability constraints
 	- ...
 - @Transactional methods must only be invoked from a transactional section
-- If a @Transactional method is an override, the overriden method must also be @Transactional
+- If a @Transactional method is an override, the overridden method must also be @Transactional
 
 Refs in general -----------------------------------------------------------
 - A class may be instantiated with multiple consistency types (respecting upper bounds set at the class declaration)
 - A class is type checked for each possible consistency type separately (respecting upper bounds set at the class declaration)
 - Subtyping rules for Ref<T> types ignore the consistency type of the obj and just check the consistency type on T
-- Private and protected fields must not be accessed through a ref call
+- Private and protected fields must not be accessed through a ref call (e.g. obj.ref().i, where i is private or protected)
 
 Non-Mixed Refs ------------------------------------------------------------
 - The fields of a Ref have the same type as the Ref instance
@@ -68,14 +68,19 @@ Implicit flows ------------------------------------------------------------
 	- Invoking non-side-effect-free methods on @L2 is forbidden
 		- If @L2 is @Mixed, it depends on the operation level whether the invocation is allowed
 	- @L2 must not be passed to a method as a mutable parameter
+- implicit flows are not checked outside transactions
 
 Mutability types ----------------------------------------------------------
 - Consistency subtyping may only occur between @Immutable objects
-- Mutability is ignored on primitive types
+- Mutability is ignored on primitive types and boxed types
 - @Immutable reference types are constrained by the following:
 	- The field of an @Immutable object must not be assigned (i.e. obj.field = 0)
 	- An @Immutable field must not be assigned in the class that declares it
-	- A non-side-effect-free method must not be invoked on an @Immutable object
+	- A non-side-effect-free and non-static method must not be invoked on an @Immutable object
+- A side-effect-free method must not have a mutable return type
+- @Immutable fields may be (re-)assigned inside constructors
+- @Immutable local variables may be (re-)assigned (@Immutable behaves differently than final)
+- Immutability constraints are not checked inside Inconsistent classes and outside transactions
 
 Polymorphic types ---------------------------------------------------------
 - @PolyConsistent is a polymorphic qualifier for method signatures: 

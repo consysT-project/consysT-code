@@ -3,19 +3,27 @@ package de.tuda.stg.consys.demo.quoddy;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
+import scala.Function1;
 import scala.Option;
+import scala.Tuple2;
 
+import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"consistency"})
-public class QuoddyBenchmark extends DemoRunnable {
+public class QuoddyBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+        extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore> {
     public static void main(String[] args) {
         JBenchExecution.execute("quoddy", QuoddyBenchmark.class, args);
     }
@@ -23,12 +31,17 @@ public class QuoddyBenchmark extends DemoRunnable {
     private final int numOfUsersPerReplica;
     private final int numOfGroupsPerReplica;
 
-    private final List<Session> localSessions;
+    private final List<Session<SStore>> localSessions;
     private final List<Ref<? extends IUser>> users;
     private final List<Ref<? extends IGroup>> groups;
     private final List<Ref<? extends IEvent>> events;
 
-    public QuoddyBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+    public QuoddyBenchmark(
+            JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+                    ConsistencyLevel<SStore>,
+                    TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+                    > adapter,
+            BenchmarkConfig config) {
         super(adapter, config);
         localSessions = new ArrayList<>();
         users = new ArrayList<>();
@@ -41,15 +54,10 @@ public class QuoddyBenchmark extends DemoRunnable {
         Session.nMaxRetries = config.toConfig().getInt("consys.bench.demo.quoddy.retries");
         Session.retryDelay = config.toConfig().getInt("consys.bench.demo.quoddy.retryDelay");
 
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-        Session.groupConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-        Session.activityConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-
         switch (benchType) {
             case MIXED:
             case STRONG_DATACENTRIC:
             case WEAK_DATACENTRIC:
-                Session.internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
                 Session.dataCentric = true;
                 Session.userImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.User.class;
                 Session.groupImpl = de.tuda.stg.consys.demo.quoddy.schema.datacentric.Group.class;
@@ -69,7 +77,21 @@ public class QuoddyBenchmark extends DemoRunnable {
     @Override
     public void setup() {
         for (int i = 0; i < numOfUsersPerReplica; i++) {
-            localSessions.add(new Session(store()));
+            if (benchType == BenchmarkType.DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL) {
+                localSessions.add(new Session<>(store(),
+                        getLevelWithMixedFallback(getStrongLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()),
+                        getLevelWithMixedFallback(getStrongLevel())));
+            } else {
+                localSessions.add(new Session<>(store(),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getStrongLevel())));
+            }
         }
 
         Logger.debug(procName(), "Creating objects");
@@ -115,7 +137,7 @@ public class QuoddyBenchmark extends DemoRunnable {
         }
 
         Logger.debug(procName(), "Setting up initial configuration");
-        for (Session session : localSessions) {
+        for (Session<SStore> session : localSessions) {
             // every user starts as a member of one group
             session.joinGroup(null, DemoUtils.getRandomElement(groups));
             // every user starts with one friend
@@ -195,52 +217,48 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void postStatusToGroup() {
-        Session session = DemoUtils.getRandomElement(localSessions);
-        store().transaction(ctx -> {
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
+
+        var group_candidates = store().transaction(ctx -> {
             List<Ref<? extends IGroup>> groups = session.getUser().ref().getParticipatingGroups();
             if (groups.isEmpty()) {
                 // may happen in all-weak case
                 System.err.println("participating groups was empty");
                 return Option.empty();
             }
-            session.postStatusToGroup(ctx, DemoUtils.generateRandomText(20), DemoUtils.getRandomElement(groups));
-            return Option.apply(0);
-        });
+            return Option.apply(groups);
+        }).get();
+
+        // pass null transaction, as it might retry
+        session.postStatusToGroup(null, DemoUtils.generateRandomText(20), DemoUtils.getRandomElement(group_candidates));
     }
 
     private void followUser() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> target = DemoUtils.getRandomElement(users);
-        store().transaction(ctx -> {
-            session.follow(ctx, target);
-            return Option.apply(0);
-        });
+        session.follow(null, target);
     }
 
     private void addFriend() {
-        // also immediately accepts friend request
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> target = DemoUtils.getRandomElement(users);
 
-        Option<TransactionResult> result = store().transaction(ctx -> {
-            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
-                    new UserState[] {
-                            new UserState(session.getUser()),
-                            new UserState(target) },
-                    new GroupState[0]);
+        TransactionResult result = !isTestMode ? new TransactionResult() : new TransactionResult(
+                new UserState[] {
+                        new UserState(session.getUser()),
+                        new UserState(target) },
+                new GroupState[0]);
 
-            session.sendFriendRequest(ctx, target);
-            Util.acceptFriendRequest(target, session.getUser());
+        // also immediately accepts friend request
+        // pass null transaction, as it might retry
+        session.sendFriendRequest(null, target);
 
-            return Option.apply(trxResult);
-        });
-
-        if (isTestMode && result.isDefined())
-            addFriendTest(result.get());
+        if (isTestMode)
+            addFriendTest(result);
     }
 
     private void addFriendTest(TransactionResult result) {
-        store().transaction(ctx -> {
+        doTransactionWithRetries(null, ctx -> {
             var sender = result.users[0].ref;
             var target = result.users[1].ref;
 
@@ -258,27 +276,23 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void joinGroup() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IGroup> group = DemoUtils.getRandomElement(groups);
 
-        Option<TransactionResult> result = store().transaction(ctx -> {
-            var trxResult = !isTestMode ? new TransactionResult() : new TransactionResult(
+        TransactionResult result = !isTestMode ? new TransactionResult() : new TransactionResult(
                     new UserState[] {
                             new UserState(session.getUser())},
                     new GroupState[] {
                             new GroupState(group)});
 
-            session.joinGroup(ctx, group);
+        session.joinGroup(null, group);
 
-            return Option.apply(trxResult);
-        });
-
-        if (isTestMode && result.isDefined())
-            joinGroupTest(result.get());
+        if (isTestMode)
+            joinGroupTest(result);
     }
 
     public void joinGroupTest(TransactionResult result) {
-        store().transaction(ctx -> {
+        doTransactionWithRetries(null, ctx -> {
             var user = result.users[0].ref;
             var group = result.groups[0].ref;
 
@@ -293,9 +307,9 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void share() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
-        store().transaction(ctx -> {
+        var postAndFriend = store().transaction(ctx -> {
             var groups = user.ref().getParticipatingGroups();
             var friends = user.ref().getFriends();
             if (groups.isEmpty() || friends.isEmpty()) {
@@ -307,15 +321,18 @@ public class QuoddyBenchmark extends DemoRunnable {
             Ref<? extends IGroup> group = DemoUtils.getRandomElement(groups);
             Ref<? extends IPost> post = DemoUtils.getRandomElement(group.ref().getNewestPosts(5));
             Ref<? extends IUser> friend = DemoUtils.getRandomElement(friends);
-            session.sharePostWithFriend(ctx, friend, post);
-            return Option.apply(0);
+            return Option.apply(new Tuple2<>(post, friend));
         });
+
+        session.sharePostWithFriend(null, postAndFriend.get()._2, postAndFriend.get()._1);
     }
 
     private void commentOnGroupPost() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
-        store().transaction(ctx -> {
+
+        // may deadlock with other operations that access a group before its users (e.g. post to group)
+        doTransactionWithRetries(null, ctx -> {
             var groups = user.ref().getParticipatingGroups();
             if (groups.isEmpty()) {
                 // may happen in all-weak case
@@ -331,9 +348,11 @@ public class QuoddyBenchmark extends DemoRunnable {
     }
 
     private void commentOnFriendPost() {
-        Session session = DemoUtils.getRandomElement(localSessions);
+        Session<SStore> session = DemoUtils.getRandomElement(localSessions);
         Ref<? extends IUser> user = session.getUser();
-        store().transaction(ctx -> {
+
+        // may deadlock in strong cases
+        doTransactionWithRetries(null, ctx -> {
             var friends = user.ref().getFriends();
             if (friends.isEmpty()) {
                 // may happen in all-weak case
@@ -348,11 +367,15 @@ public class QuoddyBenchmark extends DemoRunnable {
         });
     }
 
-    // TODO: model event updates with strong consistency?
     private void postEventUpdate() {
         Ref<? extends IEvent> event = DemoUtils.getRandomElement(events);
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.HOUR, 48);
+        Date newDate = cal.getTime();
+
         store().transaction(ctx -> {
-            event.ref().postUpdate(DemoUtils.generateRandomText(10));
+            event.ref().postUpdate(DemoUtils.generateRandomText(10), newDate);
             return Option.apply(0);
         });
     }
@@ -445,6 +468,26 @@ public class QuoddyBenchmark extends DemoRunnable {
 
         GroupState(Ref<? extends IGroup> ref) {
             this.ref = ref;
+        }
+    }
+
+    private <U> Option<U> doTransactionWithRetries(
+            TransactionContext<String, Serializable, ConsistencyLevel<SStore>> transaction,
+            Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
+        int nTries = 0;
+        while (true) {
+            try {
+                return transaction == null ? store().transaction(code::apply) : code.apply(transaction);
+            } catch (Exception e) {
+                if (!(e instanceof TimeoutException)) throw e;
+                Logger.warn("Timeout during operation. Retrying...");
+                nTries++;
+                try { Thread.sleep(random.nextInt(Session.retryDelay)); } catch (InterruptedException ignored) {}
+                if (nTries > Session.nMaxRetries) {
+                    Logger.err("Timeout during operation. Max retries reached.");
+                    throw e;
+                }
+            }
         }
     }
 }

@@ -33,7 +33,7 @@ public class ConsistencyChecker extends BaseTypeChecker {
 
     @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
-        // overwrite ref() access to be side-effect free
+        // overwrite ref() access to be side effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
                 TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source, getTypeFactory())) {
             return;

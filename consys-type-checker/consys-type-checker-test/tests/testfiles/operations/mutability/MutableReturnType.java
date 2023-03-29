@@ -2,6 +2,7 @@ package testfiles.operations.mutability;
 
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Weak;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 /**
  * Tests that mutable fields cannot be returned from refs.
@@ -13,11 +14,13 @@ public @Weak class MutableReturnType {
         return s;
     }
 
+    @SideEffectFree
     // :: error: immutability.return.type
     public @Mutable @Weak String getPublic() {
         return s;
     }
 
+    @SideEffectFree
     // :: error: immutability.return.type
     @Mutable @Weak String getPackage() {
         return s;

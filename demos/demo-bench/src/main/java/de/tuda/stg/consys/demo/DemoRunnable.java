@@ -2,13 +2,20 @@ package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 
 import java.util.*;
-import java.util.function.Supplier;
 
-public abstract class DemoRunnable extends JBenchRunnable {
+public abstract class DemoRunnable<
+        Addr,
+        Obj,
+        TxContext extends TransactionContext<Addr, Obj, ConsistencyLevel<SStore>>,
+        JStore extends Store<Addr, Obj, ConsistencyLevel<SStore>, TxContext>,
+        SStore extends de.tuda.stg.consys.core.store.Store
+        > extends JBenchRunnable<Addr, Obj, TxContext, JStore, SStore> {
     protected enum BenchmarkType {
-        WEAK, MIXED, STRONG, OP_MIXED, WEAK_DATACENTRIC, STRONG_DATACENTRIC
+        WEAK, MIXED, STRONG, OP_MIXED, WEAK_DATACENTRIC, STRONG_DATACENTRIC, DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL
     }
 
     protected final BenchmarkType benchType;
@@ -20,7 +27,7 @@ public abstract class DemoRunnable extends JBenchRunnable {
     // utility for benchmarks
     protected final Random random = new Random();
 
-    public DemoRunnable(JBenchStore adapter, BenchmarkConfig config) {
+    public DemoRunnable(JBenchStore<Addr, Obj, TxContext, JStore, SStore> adapter, BenchmarkConfig config) {
         super(adapter, config);
 
         String typeString = config.toConfig().getString("consys.bench.demo.type");
@@ -41,35 +48,21 @@ public abstract class DemoRunnable extends JBenchRunnable {
         return "proc-" + processId();
     }
 
-    protected ConsistencyLevel getLevelWithMixedFallback(ConsistencyLevel mixedLevel) {
+    protected ConsistencyLevel<SStore> getLevelWithMixedFallback(ConsistencyLevel<SStore> mixedLevel) {
         switch (benchType) {
             case WEAK:
             case WEAK_DATACENTRIC: return getWeakLevel();
             case STRONG:
             case STRONG_DATACENTRIC: return getStrongLevel();
             case OP_MIXED: return getMixedLevel();
+            case DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL:
             case MIXED: return mixedLevel;
             default: throw new UnsupportedOperationException("unknown bench type");
         }
     }
 
-    public void check(String name, Supplier<Boolean> code) {
-        TestCollector.check(name, code);
-    }
-
     public void check(String name, boolean result) {
         TestCollector.check(name, result);
-    }
-
-    public <T> void checkEquals(String name, T expected, T actual) {
-        TestCollector.checkEquals(name, expected, actual);
-    }
-
-    public void checkFloatEquals(String name, float expected, float actual) {
-        TestCollector.checkFloatEquals(name, expected, actual);
-    }
-    public void checkFloatEquals(String name, float expected, float actual, float eps) {
-        TestCollector.checkFloatEquals(name, expected, actual, eps);
     }
 
     public void printTestResult() {

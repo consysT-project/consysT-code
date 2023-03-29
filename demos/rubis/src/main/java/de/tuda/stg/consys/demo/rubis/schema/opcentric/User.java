@@ -2,24 +2,19 @@ package de.tuda.stg.consys.demo.rubis.schema.opcentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
-import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.*;
-import de.tuda.stg.consys.demo.rubis.AppException;
-import de.tuda.stg.consys.demo.rubis.schema.Bid;
-import de.tuda.stg.consys.demo.rubis.schema.Comment;
-import de.tuda.stg.consys.demo.rubis.schema.IItem;
-import de.tuda.stg.consys.demo.rubis.schema.IUser;
+import de.tuda.stg.consys.demo.rubis.schema.AppException;
 import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.*;
 
-public @Mixed class User implements Serializable, IUser {
+public @Mixed class User implements Serializable {
     private final @Immutable UUID id;
     private final @Immutable String nickname;
     private String name = "";
-    private @Weak String password = ""; // TODO: ?
+    private @Weak String password = "";
     private @Weak String email = "";
     private float rating;
     private int nRatings;
@@ -37,7 +32,10 @@ public @Mixed class User implements Serializable, IUser {
         this.nickname = "";
     }
 
-    public User(@Local UUID id, @Local String nickname, @Weak @Mutable String name, @Weak @Mutable String password,
+    public User(@Local UUID id,
+                @Local String nickname,
+                @Weak @Mutable String name,
+                @Weak @Mutable String password,
                 @Weak @Mutable String email) {
         this.id = id;
         this.nickname = nickname;
@@ -48,8 +46,8 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp
     @Transactional
-    public void addOwnAuction(Ref<? extends @Mutable IItem> item) {
-        this.sellerAuctions.put(item.ref().getId(), toItemImpl(item));
+    public void addOwnAuction(Ref<@Mutable Item> item) {
+        this.sellerAuctions.put(item.ref().getId(), item);
     }
 
     @StrongOp
@@ -68,8 +66,8 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp
     @Transactional
-    public void addWatchedAuction(Ref<? extends @Mutable IItem> item) {
-        buyerAuctions.putIfAbsent(item.ref().getId(), toItemImpl(item));
+    public void addWatchedAuction(Ref<@Mutable Item> item) {
+        buyerAuctions.putIfAbsent(item.ref().getId(), item);
     }
 
     @StrongOp
@@ -79,59 +77,46 @@ public @Mixed class User implements Serializable, IUser {
 
     @StrongOp
     @Transactional
-    public void addBoughtItem(Ref<? extends @Mutable IItem> item) {
-        buyerHistory.put(item.ref().getId(), toItemImpl(item));
+    public void addBoughtItem(Ref<@Mutable Item> item) {
+        buyerHistory.put(item.ref().getId(), item);
     }
 
-    @WeakOp @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getOpenSellerAuctions() {
+    @StrongOp
+    @Transactional
+    @SideEffectFree
+    public @Strong boolean hasEnoughCredits(@Strong float price) {
+        @Strong float potentialBalance = balance;
+
+        for (var item : getOpenBuyerAuctions()) {
+            @Immutable @Strong Optional<Bid> bid = item.ref().getTopBid();
+            if (bid.isPresent() && refEquals(bid.get().getUser())) {
+                potentialBalance -= bid.get().getBid();
+            }
+        }
+
+        return potentialBalance >= price;
+    }
+
+    @SideEffectFree
+    public List<Ref<@Mutable Item>> getOpenSellerAuctions() {
         return new ArrayList<>(sellerAuctions.values());
     }
 
-    @StrongOp @SideEffectFree
-    // StrongOp necessary for calculating potential budget
-    public List<Ref<? extends @Mutable IItem>> getOpenBuyerAuctions() {
+    @StrongOp
+    @SideEffectFree
+    public @Strong List<Ref<@Mutable Item>> getOpenBuyerAuctions() {
         return new ArrayList<>(buyerAuctions.values());
     }
 
-    @WeakOp @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getSellerHistory(boolean sold) {
+    @SideEffectFree
+    public List<Ref<@Mutable Item>> getSellerHistory(boolean sold) {
         if (sold) return new ArrayList<>(sellerHistory.values());
         return new ArrayList<>(sellerFailedHistory.values());
     }
 
-    @WeakOp @SideEffectFree
-    public List<Ref<? extends @Mutable IItem>> getBuyerHistory() {
+    @SideEffectFree
+    public List<Ref<@Mutable Item>> getBuyerHistory() {
         return new ArrayList<>(buyerHistory.values());
-    }
-
-    @WeakOp @SideEffectFree
-    // If this is WeakOp you could log in with an outdated password. Security concern?
-    public boolean authenticate(String password) {
-        return this.password.equals(password);
-    }
-
-    @StrongOp // StrongOp necessary? User should be able to use new password immediately
-    public void changePassword(String oldPassword, @Mutable @Weak String newPassword) {
-        if (authenticate(oldPassword)) {
-            this.password = newPassword;
-        } else {
-            throw new AppException("Wrong credentials.");
-        }
-    }
-
-    @StrongOp // StrongOp necessary? User should be able to use new address immediately
-    public void changeEmail(@Mutable @Weak String newEmail, String password) {
-        if (authenticate(password)) {
-            this.email = newEmail;
-        } else {
-            throw new AppException("Wrong credentials.");
-        }
-    }
-
-    @WeakOp
-    public void changeRealName(@Mutable @Weak String name) {
-        this.name = name;
     }
 
     @StrongOp
@@ -154,13 +139,7 @@ public @Mixed class User implements Serializable, IUser {
         }
     }
 
-    @StrongOp @SideEffectFree
-    public @Strong float getBalance() {
-        return balance;
-    }
-
-    @WeakOp
-    public void rate(@Weak Comment comment) {
+    public void addRating(@Weak Comment comment) {
         if (comment.rating < 1 || comment.rating > 5) {
             throw new AppException("rating out of bounds");
         } else {
@@ -169,52 +148,75 @@ public @Mixed class User implements Serializable, IUser {
         }
     }
 
-    @WeakOp @SideEffectFree
-    public @Local String getNickname() {
+    @SideEffectFree
+    public boolean authenticate(@Weak String password) {
+        return this.password.equals(password);
+    }
+
+    @StrongOp
+    @SideEffectFree
+    public @Strong float getBalance() {
+        return balance;
+    }
+
+    @SideEffectFree
+    public String getNickname() {
         return nickname;
     }
 
-    @WeakOp @SideEffectFree
+    @SideEffectFree
     public float getRating() {
         return rating;
     }
 
-    @WeakOp
-    public void notifyWinner(Ref<? extends IItem> item, float price) {
-        // send email
+    @SideEffectFree
+    public Date getCreationDate() {
+        return creationDate;
     }
 
-    @Transactional @SideEffectFree
-    public @Local boolean refEquals(Ref<? extends IUser> other) {
-        return other.ref().getNickname().equals(this.nickname);
+    @SideEffectFree
+    public @Strong UUID getId() {
+        return id;
     }
 
-    @WeakOp @SideEffectFree
+    @SideEffectFree
+    public String getName() {
+        return name;
+    }
+
+    @SideEffectFree
+    public String getEmail() {
+        return email;
+    }
+
+    @SideEffectFree
+    public List<Comment> getComments() {
+        return new ArrayList<>(comments);
+    }
+
+    @StrongOp
+    public void setPassword(@Mutable @Weak String newPassword) {
+        this.password = newPassword;
+    }
+
+    @StrongOp
+    public void setEmail(@Mutable @Weak String newEmail) {
+        this.email = newEmail;
+    }
+
+    public void setName(@Mutable @Weak String name) {
+        this.name = name;
+    }
+
+    @Transactional
+    @SideEffectFree
+    public @Strong boolean refEquals(Ref<User> other) {
+        return other.ref().getId().equals(this.id);
+    }
+
+    @Override
+    @SideEffectFree
     public String toString() {
-        return "User '" + nickname + "' | id: " + id +
-                " | name: " + name +
-                " | password: " + password +
-                " | email: " + email +
-                " | rating: " + rating +
-                " | balance: " + balance +
-                " | since: " + creationDate;
-    }
-
-    @StrongOp @Transactional @SideEffectFree
-    public @Strong boolean hasEnoughCredits(@Strong float price) {
-        @Strong float potentialBalance = balance;
-
-        for (var item : getOpenBuyerAuctions()) {
-            @Immutable @Strong Optional<Bid> bid = (@Immutable @Strong Optional<Bid>) item.ref().getTopBid(); // TODO
-            if ((@Strong boolean)bid.isPresent() && (@Strong boolean)refEquals(bid.get().getUser())) {
-                potentialBalance -= bid.get().getBid();
-            }
-        }
-
-        return potentialBalance >= price;
-    }
-
-    private Ref<@Mutable Item> toItemImpl(Ref<? extends @Mutable IItem> item) {
-        return (Ref<@Mutable Item>) item;  // TODO
+        return "User '" + nickname + "' (" + id + ")";
     }
 }

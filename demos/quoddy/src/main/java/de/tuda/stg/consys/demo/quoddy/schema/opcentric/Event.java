@@ -39,15 +39,6 @@ public @Mixed class Event extends Post implements IEvent {
 
     @Transactional
     @StrongOp
-    public void postUpdate(@Weak @Mutable String text) {
-        this.text += "Update (" + new Date() + "): " + text;
-        for (@Mixed Ref<? extends @Mutable IUser> user : subscribers) { // TODO
-            user.ref().notifyOfEventUpdate(self);
-        }
-    }
-
-    @Transactional
-    @StrongOp
     public void postUpdate(@Weak @Mutable String text, @Strong @Mutable Date newDate) {
         this.text += "Update (" + new Date() + "): " + text;
         this.date = newDate;

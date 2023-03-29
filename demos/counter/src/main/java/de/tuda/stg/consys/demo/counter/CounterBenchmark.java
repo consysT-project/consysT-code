@@ -3,12 +3,17 @@ package de.tuda.stg.consys.demo.counter;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.checker.qual.Mutable;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
 import scala.Option;
+
+import java.io.Serializable;
 
 /**
  * Created on 10.10.19.
@@ -16,12 +21,18 @@ import scala.Option;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class CounterBenchmark extends DemoRunnable {
+public class CounterBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+		extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore> {
 	public static void main(String[] args) {
 		JBenchExecution.execute("counter", CounterBenchmark.class, args);
 	}
 
-	public CounterBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+	public CounterBenchmark(
+			JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+					ConsistencyLevel<SStore>,
+					TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+					> adapter,
+			BenchmarkConfig config) {
 		super(adapter, config);
 
 		switch (benchType) {

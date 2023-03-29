@@ -2,13 +2,13 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import com.sun.source.util.TreeScanner
-import de.tuda.stg.consys.checker.qual.{Immutable, Inconsistent, Local}
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
 import de.tuda.stg.consys.checker.MixedInferenceVisitor._
+import de.tuda.stg.consys.checker.qual.{Immutable, Inconsistent, Local}
+import org.checkerframework.javacutil._
 
 import java.lang.annotation.Annotation
-import javax.lang.model.`type`.{DeclaredType, TypeKind}
-import javax.lang.model.element.{AnnotationMirror, ElementKind, ExecutableElement, Modifier, TypeElement, VariableElement}
+import javax.lang.model.`type`.DeclaredType
+import javax.lang.model.element._
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -153,7 +153,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
             getInferredFieldInSubclasses(field, clazz, defaultOp).foreach(entry => {
                 val (subclass, subclassQualifier) = entry
                 val superclassQualifier = getInferredFieldOrFromSuperclass(field, clazz, defaultOp).get._1
-
+                // TODO: isn't there a check missing here?
                 tf.getChecker.reportError(field, "mixed.inheritance.field.overwrite",
                     superclassQualifier, field, subclassQualifier, subclass)
             })
@@ -219,6 +219,9 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
         val methodElt = TreeUtils.elementFromDeclaration(node)
         val methodLevel = getQualifierForOp(getMixedOpForMethod(methodElt, state.defaultOp.get))
 
+        // update methodWriteTable here so that methods that access no field still have an empty access set
+        methodWriteTable.update(methodElt, Set.empty)
+
         super.visitMethod(node, state.copy(methodLevel = methodLevel, method = Some(methodElt)))
     }
 
@@ -239,7 +242,7 @@ class MixedInferenceVisitor(implicit tf: ConsistencyAnnotatedTypeFactory) extend
     override def visitMethodInvocation(node: MethodInvocationTree, state: State): Void = {
         // TODO: for ref calls, this should only regard the call after ref()
         val method = TreeUtils.elementFromUse(node)
-        if (isSideEffectFree(method))
+        if (isDeclaredSideEffectFree(method))
             super.visitMethodInvocation(node, state.copy(accessMode = Some(Read)))
         else {
             var r = scan(node.getTypeArguments, state.copy(accessMode = Some(Write)))

@@ -58,6 +58,7 @@ public interface IUser extends Serializable {
     void removeFollowing(Ref<? extends IUser> user);
 
     @StrongOp
+    @Transactional
     void addParticipatingGroup(Ref<? extends IGroup> group);
 
     void changeProfileText(@Weak @Mutable String text);
@@ -84,12 +85,15 @@ public interface IUser extends Serializable {
     String getProfileText();
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IUser>> getFriends();
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IUser>> getFollowers();
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IUser>> getFollowing();
 
     @SideEffectFree
@@ -102,5 +106,6 @@ public interface IUser extends Serializable {
     List<Ref<? extends IPost>> getNewestPosts(int n);
 
     @SideEffectFree
+    @Transactional
     List<Ref<? extends IGroup>> getParticipatingGroups();
 }

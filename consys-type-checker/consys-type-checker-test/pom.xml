@@ -47,18 +47,8 @@
     <dependencies>
         <dependency>
             <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-            <version>${checkerframework.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker</artifactId>
-            <version>${checkerframework.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.checkerframework</groupId>
             <artifactId>framework-test</artifactId>
-            <version>3.0.0</version>
+            <version>${checkerframework.version}</version>
         </dependency>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>

@@ -1,6 +1,5 @@
 import org.checkerframework.dataflow.qual.*;
 import org.checkerframework.framework.qual.HasQualifierParameter;
-import de.tuda.stg.consys.checker.qual.Inconsistent;
 import de.tuda.stg.consys.checker.qual.*;
 import de.tuda.stg.consys.annotations.*;
 import de.tuda.stg.consys.annotations.methods.*;
@@ -9,19 +8,22 @@ import scala.Option;
 package java.lang;
 
 class Object {
-    @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @SideEffectFree @Transactional
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     String toString();
 
-    @SideEffectFree
+    @SideEffectFree @Transactional
     int hashCode();
+
+    @SideEffectFree @Transactional
+    @ThisConsistent Object clone();
 }
 
 class String {
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 }
 
 class StringBuilder {
@@ -34,10 +36,12 @@ class StringBuilder {
 }
 
 class Number {
-     @ThisConsistent float floatValue();
+    @SideEffectFree
+    @ThisConsistent float floatValue();
 }
 
 class Float {
+    @SideEffectFree
     @ThisConsistent float floatValue();
 }
 
@@ -50,10 +54,10 @@ package java.util;
     <T> @Immutable @Local Optional<T> empty();
 
     @SideEffectFree
-    boolean isPresent();
+    @ThisConsistent boolean isPresent();
 
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
     T get();
@@ -63,7 +67,13 @@ class UUID {
     @Local UUID randomUUID();
 
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent long getMostSignificantBits();
+
+    @SideEffectFree
+    @ThisConsistent long getLeastSignificantBits();
+
+    @SideEffectFree
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 
     @SideEffectFree
     String toString();
@@ -74,18 +84,24 @@ class UUID {
 
 class Date {
     @SideEffectFree
-    boolean after(Date d);
+    @ThisConsistent boolean after(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent boolean before(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent long getTime();
 }
 
 interface List<T> {
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
-    Object subList(int fromIndex, int toIndex);
+    @ThisConsistent Object subList(int fromIndex, int toIndex);
 
     @SideEffectFree
-    int size();
+    @ThisConsistent int size();
 
     @SideEffectFree
     T get(int index);
@@ -97,6 +113,9 @@ interface Map<K, V> {
 
     @SideEffectFree
     V get(Object Key);
+
+    @SideEffectFree
+    @ThisConsistent boolean isEmpty();
 }
 
 interface Collection<T> {
@@ -126,16 +145,16 @@ package scala;
 
 class Option<A> {
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
-    boolean isDefined();
+    @ThisConsistent boolean isDefined();
 
     @SideEffectFree
     T get();
 
-    <A> @Immutable @Local Option<A> empty();
-    <A> @Immutable @Local Option<A> apply(A a);
+    <A> @MutableBottom @Local Option<A> empty();
+    <A> @MutableBottom @Local Option<A> apply(A a);
 }
 
 

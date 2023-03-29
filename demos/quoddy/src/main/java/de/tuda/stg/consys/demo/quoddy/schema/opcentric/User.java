@@ -193,6 +193,7 @@ public @Mixed class User implements IUser {
         return (List<Ref<? extends IGroup>>) participatingGroups;
     }
 
+    @SuppressWarnings("unchecked")
     private Ref<User> toUserImpl(Ref<? extends IUser> user) {
         return (Ref<User>) user;
     }

@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.messagegroups;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
@@ -11,11 +12,13 @@ import de.tuda.stg.consys.demo.messagegroups.schema.Group;
 import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
 import de.tuda.stg.consys.demo.messagegroups.schema.User;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +28,8 @@ import java.util.concurrent.TimeoutException;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class MessageGroupsBenchmark extends DemoRunnable {
+public class MessageGroupsBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+        extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore>{
     public static void main(String[] args) {
         JBenchExecution.execute("message-groups", MessageGroupsBenchmark.class, args);
     }
@@ -39,7 +43,12 @@ public class MessageGroupsBenchmark extends DemoRunnable {
     private final List<Ref<Group>> groups;
     private final List<Ref<User>> users;
 
-    public MessageGroupsBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+    public MessageGroupsBenchmark(
+            JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+                    ConsistencyLevel<SStore>,
+                    TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+                    > adapter,
+            BenchmarkConfig config) {
         super(adapter, config);
 
         numberOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.messagegroups.users");
@@ -64,7 +73,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
             int finalUserIndex = userIndex;
 
-            Ref<Inbox> inbox = (Ref<Inbox>) store().transaction(ctx -> Option.apply(
+            Ref<Inbox> inbox = store().transaction(ctx -> Option.apply(
                     ctx.replicate(DemoUtils.addr("inbox", finalUserIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), Inbox.class))
             ).get();
 
@@ -96,7 +105,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
             for (int grpIndex = 0; grpIndex < numberOfGroupsPerReplica; grpIndex++) {
                 int finalGrpIndex = grpIndex;
 
-                Ref<Group> group = (Ref<Group>) store().transaction(ctx -> Option.apply(
+                Ref<Group> group = store().transaction(ctx -> Option.apply(
                         ctx.lookup(DemoUtils.addr("group", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getStrongLevel()), Group.class))
                 ).get();
                 groups.add(group);
@@ -105,7 +114,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
             for (int userIndex = 0; userIndex < numberOfUsersPerReplica; userIndex++) {
                 int finalUserIndex = userIndex;
 
-                Ref<User> user = (Ref<User>) store().transaction(ctx -> Option.apply(
+                Ref<User> user = store().transaction(ctx -> Option.apply(
                         ctx.lookup(DemoUtils.addr("user", finalUserIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), User.class))
                 ).get();
                 users.add(user);
@@ -145,7 +154,7 @@ public class MessageGroupsBenchmark extends DemoRunnable {
         });
     }
 
-    private <U> Option<U> withRetry(Function1<TransactionContext, Option<U>> code) {
+    private <U> Option<U> withRetry(Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         int nTries = 0;
         while (true) {
             try {

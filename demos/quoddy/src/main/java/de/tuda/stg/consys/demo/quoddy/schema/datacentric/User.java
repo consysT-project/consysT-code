@@ -118,7 +118,8 @@ public @Weak class User implements IUser {
         following.ref().remove(user.ref().getId());
     }
 
-    @StrongOp @Transactional
+    @StrongOp
+    @Transactional
     public void addParticipatingGroup(Ref<? extends IGroup> group) {
         participatingGroups.ref().add(group);
     }
@@ -199,6 +200,7 @@ public @Weak class User implements IUser {
         return new ArrayList<>(participatingGroups.ref().get());
     }
 
+    @SuppressWarnings("unchecked")
     private Ref<User> toUserImpl(Ref<? extends IUser> user) {
         return (Ref<User>) user;
     }
