@@ -1,0 +1,57 @@
+Compilation with the lightweight Tainted checker of the checker-framework (shows checker-framework overhead)
+
+./demos/counter/src/main/java/de/tuda/stg/consys/demo/counter/schema/
+  > java:
+      mean:   0.12513333333333337
+      median: 0.12
+      s:      0.016317397809220924
+      range:  0.076
+  > consys:
+      mean:   0.31969999999999993
+      median: 0.316
+      s:      0.029865387647079772
+      range:  0.119
+./demos/twitter-clone/src/main/java/de/tuda/stg/consys/demo/twitterclone/schema/
+  > java:
+      mean:   0.14353333333333332
+      median: 0.143
+      s:      0.009261463849936364
+      range:  0.038000000000000006
+  > consys:
+      mean:   0.6914333333333335
+      median: 0.665
+      s:      0.10521986285977512
+      range:  0.374
+./demos/message-groups/src/main/java/de/tuda/stg/consys/demo/messagegroups/schema/
+  > java:
+      mean:   0.12856666666666666
+      median: 0.12
+      s:      0.01804913472629134
+      range:  0.06399999999999999
+  > consys:
+      mean:   0.5241999999999999
+      median: 0.516
+      s:      0.041424963321732663
+      range:  0.189
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/
+  > java:
+      mean:   0.2996
+      median: 0.285
+      s:      0.04466009558801944
+      range:  0.16999999999999998
+  > consys:
+      mean:   2.0005
+      median: 1.978
+      s:      0.05979087117497175
+      range:  0.2410000000000001
+./demos/quoddy/src/main/java/de/tuda/stg/consys/demo/quoddy/schema/
+  > java:
+      mean:   0.19419999999999998
+      median: 0.19
+      s:      0.01071705054638603
+      range:  0.049000000000000016
+  > consys:
+      mean:   1.721433333333333
+      median: 1.677
+      s:      0.1546269556134985
+      range:  0.6749999999999998

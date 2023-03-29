@@ -1,0 +1,57 @@
+Variation where each class is only checked once with the consys type checker (for its specified upper consistency bound)
+
+./demos/counter/src/main/java/de/tuda/stg/consys/demo/counter/schema/
+  > java:
+      mean:   0.1317
+      median: 0.13
+      s:      0.019536261598406674
+      range:  0.084
+  > consys:
+      mean:   0.39480000000000004
+      median: 0.388
+      s:      0.05680905707294604
+      range:  0.195
+./demos/twitter-clone/src/main/java/de/tuda/stg/consys/demo/twitterclone/schema/
+  > java:
+      mean:   0.15403333333333336
+      median: 0.148
+      s:      0.020869848459263995
+      range:  0.086
+  > consys:
+      mean:   0.7342
+      median: 0.709
+      s:      0.07020727931607604
+      range:  0.32399999999999995
+./demos/message-groups/src/main/java/de/tuda/stg/consys/demo/messagegroups/schema/
+  > java:
+      mean:   0.12133333333333332
+      median: 0.119
+      s:      0.006722752583492166
+      range:  0.023000000000000007
+  > consys:
+      mean:   0.5775666666666669
+      median: 0.572
+      s:      0.02349715071990692
+      range:  0.08999999999999997
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/
+  > java:
+      mean:   0.32053333333333345
+      median: 0.288
+      s:      0.08880033136523036
+      range:  0.30200000000000005
+  > consys:
+      mean:   2.934166666666667
+      median: 2.918
+      s:      0.049169014165661155
+      range:  0.20900000000000007
+./demos/quoddy/src/main/java/de/tuda/stg/consys/demo/quoddy/schema/
+  > java:
+      mean:   0.19933333333333328
+      median: 0.196
+      s:      0.011859328739895843
+      range:  0.048000000000000015
+  > consys:
+      mean:   3.168733333333334
+      median: 2.588
+      s:      1.4677270941794682
+      range:  7.099

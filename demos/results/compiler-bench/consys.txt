@@ -1,0 +1,57 @@
+Full compilation task with the standard consys type checker.
+
+./demos/counter/src/main/java/de/tuda/stg/consys/demo/counter/schema/
+  > java:
+      mean:   0.134
+      median: 0.13
+      s:      0.01705771137173388
+      range:  0.05900000000000001
+  > consys:
+      mean:   0.42319999999999997
+      median: 0.407
+      s:      0.06895745814980972
+      range:  0.25499999999999995
+./demos/twitter-clone/src/main/java/de/tuda/stg/consys/demo/twitterclone/schema/
+  > java:
+      mean:   0.1474333333333333
+      median: 0.144
+      s:      0.01572321659934395
+      range:  0.07
+  > consys:
+      mean:   0.9906
+      median: 0.991
+      s:      0.030884210897457326
+      range:  0.13500000000000012
+./demos/message-groups/src/main/java/de/tuda/stg/consys/demo/messagegroups/schema/
+  > java:
+      mean:   0.1220666666666667
+      median: 0.117
+      s:      0.010954241292707155
+      range:  0.03899999999999999
+  > consys:
+      mean:   0.6506333333333334
+      median: 0.651
+      s:      0.016723890269525407
+      range:  0.08099999999999996
+./demos/rubis/src/main/java/de/tuda/stg/consys/demo/rubis/schema/
+  > java:
+      mean:   0.2667666666666667
+      median: 0.263
+      s:      0.022674128251247563
+      range:  0.11599999999999999
+  > consys:
+      mean:   9.409400000000003
+      median: 9.389
+      s:      0.058976091005973105
+      range:  0.2619999999999987
+./demos/quoddy/src/main/java/de/tuda/stg/consys/demo/quoddy/schema/
+  > java:
+      mean:   0.19543333333333335
+      median: 0.194
+      s:      0.008593033799832131
+      range:  0.034
+  > consys:
+      mean:   7.9735000000000005
+      median: 7.935
+      s:      0.21294110404781758
+      range:  1.2140000000000004
