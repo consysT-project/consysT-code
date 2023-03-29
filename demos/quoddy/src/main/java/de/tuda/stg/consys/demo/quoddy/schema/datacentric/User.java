@@ -118,7 +118,8 @@ public @Weak class User implements IUser {
         following.ref().remove(user.ref().getId());
     }
 
-    @StrongOp @Transactional
+    @StrongOp
+    @Transactional
     public void addParticipatingGroup(Ref<? extends IGroup> group) {
         participatingGroups.ref().add(group);
     }

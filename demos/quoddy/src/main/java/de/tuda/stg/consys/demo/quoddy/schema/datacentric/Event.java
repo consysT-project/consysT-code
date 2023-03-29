@@ -36,15 +36,6 @@ public @Weak class Event extends Post implements IEvent {
 
     @Transactional
     @StrongOp
-    public void postUpdate(@Weak @Mutable String text) {
-        this.text += "Update (" + new Date() + "): " + text;
-        for (Ref<? extends @Mutable IUser> user : subscribers) { // TODO
-            user.ref().notifyOfEventUpdate(self);
-        }
-    }
-
-    @Transactional
-    @StrongOp
     public void postUpdate(@Weak @Mutable String text, @Strong @Mutable Date newDate) {
         this.text += "Update (" + new Date() + "): " + text;
         this.date.ref().setTime(newDate.getTime());

@@ -3,7 +3,6 @@ package de.tuda.stg.consys.demo.quoddy.schema;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
-import de.tuda.stg.consys.demo.quoddy.schema.*;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.BoolBox;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefList;
 import de.tuda.stg.consys.demo.quoddy.schema.datacentric.RefMap;
@@ -26,7 +25,8 @@ import java.util.concurrent.TimeoutException;
 public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
     public ConsistencyLevel<SStore> userConsistencyLevel;
     public ConsistencyLevel<SStore> groupConsistencyLevel;
-    public ConsistencyLevel<SStore> activityConsistencyLevel;
+    public ConsistencyLevel<SStore> statusUpdateConsistencyLevel;
+    public ConsistencyLevel<SStore> eventConsistencyLevel;
     public ConsistencyLevel<SStore> internalConsistencyLevel;
 
     public static Class<? extends IGroup> groupImpl;
@@ -47,12 +47,14 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
             Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>> store,
             ConsistencyLevel<SStore> userConsistencyLevel,
             ConsistencyLevel<SStore> groupConsistencyLevel,
-            ConsistencyLevel<SStore> activityConsistencyLevel,
+            ConsistencyLevel<SStore> statusUpdateConsistencyLevel,
+            ConsistencyLevel<SStore> eventConsistencyLevel,
             ConsistencyLevel<SStore> internalConsistencyLevel) {
         this.store = store;
         this.userConsistencyLevel = userConsistencyLevel;
         this.groupConsistencyLevel = groupConsistencyLevel;
-        this.activityConsistencyLevel = activityConsistencyLevel;
+        this.statusUpdateConsistencyLevel = statusUpdateConsistencyLevel;
+        this.eventConsistencyLevel = eventConsistencyLevel;
         this.internalConsistencyLevel = internalConsistencyLevel;
     }
 
@@ -152,7 +154,7 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
             TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
             Ref<? extends IGroup> group) {
         checkLogin();
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(null, ctx -> {
             group.ref().join(user);
             user.ref().addParticipatingGroup(group);
             return Option.apply(0);
@@ -167,7 +169,7 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
 
         doTransactionWithRetries(tr, ctx -> {
             Ref<? extends IStatusUpdate> status =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
+                    ctx.replicate(id.toString(), statusUpdateConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
             this.user.ref().addPost(status);
             for (Ref<? extends IUser> follower : user.ref().getFollowers()) {
@@ -189,10 +191,11 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
         checkLogin();
         var id = UUID.randomUUID();
 
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
             Ref<? extends IStatusUpdate> status =
-                    ctx.replicate(id.toString(), activityConsistencyLevel, statusUpdateImpl, id, this.user, text);
+                    ctx.replicate(id.toString(), statusUpdateConsistencyLevel, statusUpdateImpl, id, this.user, text);
 
+            // potential deadlock for strong cases
             if (!(boolean)group.ref().isUserInGroup(this.user))
                 throw new AppException("can only post in groups you are a member of");
 
@@ -208,17 +211,18 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
         checkLogin();
         var id = UUID.randomUUID();
 
-        return doTransaction(tr, ctx -> {
+        return doTransactionWithRetries(tr, ctx -> {
             Ref<? extends IEvent> event;
             if (dataCentric) {
                 Ref<@Strong @Mutable Date> eventDate =
-                        ctx.replicate(id.toString() + ":date", internalConsistencyLevel, Date.class, date.getTime());
-                event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, eventDate, text);
+                        ctx.replicate(id + ":date", internalConsistencyLevel, Date.class, date.getTime());
+                event = ctx.replicate(id.toString(), eventConsistencyLevel, eventImpl, id, this.user, eventDate, text);
             } else {
-                event = ctx.replicate(id.toString(), activityConsistencyLevel, eventImpl, id, this.user, date, text);
+                event = ctx.replicate(id.toString(), eventConsistencyLevel, eventImpl, id, this.user, date, text);
             }
             event.ref().initSelf(event);
 
+            // potential deadlock for strong cases
             if (!(boolean)group.ref().isUserInGroup(this.user))
                 throw new AppException("can only post in groups you are a member of");
 
@@ -232,7 +236,8 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
             TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
             Ref<? extends IUser> friend, Ref<? extends IPost> post) {
         checkLogin();
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
+            // potential deadlock for strong cases
             if (((List<Ref<? extends IUser>>)this.user.ref().getFriends()).stream().noneMatch(x -> Util.equalsUser(x, friend)))
                 throw new AppException("target is not friend of user");
             friend.ref().addPost(post);
@@ -244,9 +249,11 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
             TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
             Ref<? extends IUser> receiver) {
         checkLogin();
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
+            // potential deadlock for strong cases
             receiver.ref().addReceivedFriendRequest(this.user);
             this.user.ref().addSentFriendRequest(receiver);
+            Util.acceptFriendRequest(receiver, this.user);
             return Option.apply(0);
         });
     }
@@ -272,7 +279,8 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> {
             TransactionContext<String, Serializable, ConsistencyLevel<SStore>> tr,
             Ref<? extends IUser> target) {
         checkLogin();
-        doTransaction(tr, ctx -> {
+        doTransactionWithRetries(tr, ctx -> {
+            // potential deadlock for strong cases
             target.ref().addFollower(this.user);
             this.user.ref().addFollowing(target);
             return Option.apply(0);
