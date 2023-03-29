@@ -15,7 +15,7 @@ public abstract class DemoRunnable<
         SStore extends de.tuda.stg.consys.core.store.Store
         > extends JBenchRunnable<Addr, Obj, TxContext, JStore, SStore> {
     protected enum BenchmarkType {
-        WEAK, MIXED, STRONG, OP_MIXED, WEAK_DATACENTRIC, STRONG_DATACENTRIC
+        WEAK, MIXED, STRONG, OP_MIXED, WEAK_DATACENTRIC, STRONG_DATACENTRIC, DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL
     }
 
     protected final BenchmarkType benchType;
@@ -55,6 +55,7 @@ public abstract class DemoRunnable<
             case STRONG:
             case STRONG_DATACENTRIC: return getStrongLevel();
             case OP_MIXED: return getMixedLevel();
+            case DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL:
             case MIXED: return mixedLevel;
             default: throw new UnsupportedOperationException("unknown bench type");
         }

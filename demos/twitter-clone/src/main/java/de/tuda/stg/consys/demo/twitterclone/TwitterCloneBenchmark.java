@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.twitterclone;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
@@ -10,11 +11,13 @@ import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.twitterclone.schema.ITweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.IUser;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.logging.Logger;
 import scala.Function1;
 import scala.Option;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -27,7 +30,8 @@ import java.util.stream.Collectors;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public class TwitterCloneBenchmark extends DemoRunnable {
+public class TwitterCloneBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+        extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore> {
 
     public static void main(String[] args) {
         JBenchExecution.execute("twitter-clone", TwitterCloneBenchmark.class, args);
@@ -44,7 +48,16 @@ public class TwitterCloneBenchmark extends DemoRunnable {
     private final List<Ref<? extends IUser>> users;
     private final List<Ref<? extends ITweet>> tweets;
 
-    public TwitterCloneBenchmark(JBenchStore adapter, BenchmarkConfig config) {
+    private final ConsistencyLevel<SStore> userConsistencyLevel;
+    private final ConsistencyLevel<SStore> tweetConsistencyLevel;
+    private final ConsistencyLevel<SStore> internalConsistencyLevel;
+
+    public TwitterCloneBenchmark(
+            JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+                    ConsistencyLevel<SStore>,
+                    TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+                    > adapter,
+            BenchmarkConfig config) {
         super(adapter, config);
 
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.twitterclone.users");
@@ -59,11 +72,17 @@ public class TwitterCloneBenchmark extends DemoRunnable {
                 isDataCentric = true;
                 userImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User.class;
                 tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet.class;
+                userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+                tweetConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+                internalConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
                 break;
             default:
                 isDataCentric = false;
                 userImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.User.class;
                 tweetImpl = de.tuda.stg.consys.demo.twitterclone.schema.opcentric.Tweet.class;
+                userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+                tweetConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+                internalConsistencyLevel = null;
                 break;
         }
 
@@ -81,22 +100,22 @@ public class TwitterCloneBenchmark extends DemoRunnable {
             Ref<? extends ITweet> tweet;
 
             if (isDataCentric) {
-                user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        DemoUtils.addr("user", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), userImpl,
+                user = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        DemoUtils.addr("user", finalGrpIndex, processId()), userConsistencyLevel, userImpl,
                         DemoUtils.generateRandomName()))).get();
                 var retweetCount = store().transaction(ctx -> Option.apply(ctx.replicate(
-                        DemoUtils.addr("retweetCount", finalGrpIndex, processId()), getLevelWithMixedFallback(getStrongLevel()),
+                        DemoUtils.addr("retweetCount", finalGrpIndex, processId()), internalConsistencyLevel,
                         de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter.class,
                         0))).get();
-                tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        DemoUtils.addr("tweet", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), tweetImpl,
+                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        DemoUtils.addr("tweet", finalGrpIndex, processId()), tweetConsistencyLevel, tweetImpl,
                         user, DemoUtils.generateRandomText(3), retweetCount))).get();
             } else {
-                user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        DemoUtils.addr("user", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), userImpl,
+                user = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        DemoUtils.addr("user", finalGrpIndex, processId()), userConsistencyLevel, userImpl,
                         DemoUtils.generateRandomName()))).get();
-                tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.replicate(
-                        DemoUtils.addr("tweet", finalGrpIndex, processId()), getLevelWithMixedFallback(getWeakLevel()), tweetImpl,
+                tweet = store().transaction(ctx -> Option.apply(ctx.replicate(
+                        DemoUtils.addr("tweet", finalGrpIndex, processId()), tweetConsistencyLevel, tweetImpl,
                         user, DemoUtils.generateRandomText(3)))).get();
             }
 
@@ -116,11 +135,11 @@ public class TwitterCloneBenchmark extends DemoRunnable {
                 int finalGrpIndex = grpIndex;
                 int finalReplIndex = replIndex;
 
-                Ref<? extends IUser> user = (Ref<? extends IUser>) store().transaction(ctx -> Option.apply(ctx.lookup(
-                        DemoUtils.addr("user", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), userImpl))).get();
+                Ref<? extends IUser> user = store().transaction(ctx -> Option.apply(ctx.lookup(
+                        DemoUtils.addr("user", finalGrpIndex, finalReplIndex), userConsistencyLevel, userImpl))).get();
 
-                Ref<? extends ITweet> tweet = (Ref<? extends ITweet>) store().transaction(ctx -> Option.apply(ctx.lookup(
-                        DemoUtils.addr("tweet", finalGrpIndex, finalReplIndex), getLevelWithMixedFallback(getWeakLevel()), tweetImpl))).get();
+                Ref<? extends ITweet> tweet = store().transaction(ctx -> Option.apply(ctx.lookup(
+                        DemoUtils.addr("tweet", finalGrpIndex, finalReplIndex), tweetConsistencyLevel, tweetImpl))).get();
 
                 users.add(user);
                 tweets.add(tweet);
@@ -150,7 +169,7 @@ public class TwitterCloneBenchmark extends DemoRunnable {
         });
     }
 
-    private <U> Option<U> withRetry(Function1<TransactionContext, Option<U>> code) {
+    private <U> Option<U> withRetry(Function1<TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Option<U>> code) {
         int nTries = 0;
         while (true) {
             try {

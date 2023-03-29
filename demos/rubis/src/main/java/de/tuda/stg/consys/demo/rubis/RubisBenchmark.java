@@ -48,7 +48,7 @@ public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
         ISession.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
         ISession.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-        if (isOpCentric()) {
+        if (isOpCentricImpl()) {
             TestUtils.benchType = TestUtils.BenchType.OP_CENTRIC;
         } else {
             TestUtils.benchType = TestUtils.BenchType.DATA_CENTRIC;
@@ -75,10 +75,10 @@ public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
         for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
 
             ISession<SStore> session;
-            if (isOpCentric()) {
+            if (isOpCentricImpl()) {
                 session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<>(store(),
-                        getLevelWithMixedFallback(getWeakLevel()),
-                        getLevelWithMixedFallback(getWeakLevel()));
+                        getLevelWithMixedFallback(getStrongLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()));
             } else {
                 session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<>(store(),
                         getLevelWithMixedFallback(getWeakLevel()),
@@ -251,11 +251,12 @@ public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
         printTestResult();
     }
 
-    private boolean isOpCentric() {
+    private boolean isOpCentricImpl() {
         switch (benchType) {
             case OP_MIXED:
             case WEAK:
             case STRONG:
+            case DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL:
                 return true;
             case MIXED:
             case STRONG_DATACENTRIC:
