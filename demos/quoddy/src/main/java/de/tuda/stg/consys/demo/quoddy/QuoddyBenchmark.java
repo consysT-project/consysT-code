@@ -142,11 +142,7 @@ public class QuoddyBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
             session.joinGroup(null, DemoUtils.getRandomElement(groups));
             // every user starts with one friend
             Ref<? extends IUser> friend = DemoUtils.getRandomElementExcept(users, session.getUser());
-            session.sendFriendRequest(null, friend);
-            store().transaction(ctx -> {
-                Util.acceptFriendRequest(friend, session.getUser());
-                return Option.apply(0);
-            });
+            session.sendFriendRequest(null, friend); // also accepts request
             // every user starts with one post
             session.postStatusToProfile(null, DemoUtils.generateRandomText(20));
         }

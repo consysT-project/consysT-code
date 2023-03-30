@@ -82,7 +82,7 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> extends
                     ctx.replicate(makeUserAddress(userId) + ":sellerHistory", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
             Ref<@Strong @Mutable HashMap<UUID, Ref<Item>>> sellerFailedHistory =
                     ctx.replicate(makeUserAddress(userId) + ":sellerFailedHistory", internalConsistencyLevel, (Class<HashMap<UUID, Ref<Item>>>)(Class)HashMap.class);
-            // TODO: uuid must be ref
+
             Ref<User> user = ctx.replicate(makeUserAddress(userId), userConsistencyLevel, User.class,
                     id, nickname, name, password, email,
                     balance, buyerAuctions, buyerHistory, sellerAuctions, sellerHistory, sellerFailedHistory);
@@ -106,12 +106,12 @@ public class Session<SStore extends de.tuda.stg.consys.core.store.Store> extends
                     ctx.replicate(makeItemAddress(itemId) + ":bids", internalConsistencyLevel, (Class<LinkedList<Bid>>)(Class)LinkedList.class);
             Ref<@Strong @Mutable StatusBox> status =
                     ctx.replicate(makeItemAddress(itemId) + ":status", internalConsistencyLevel, StatusBox.class, ItemStatus.OPEN);
-            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refReservePrice =
-                    ctx.replicate(makeItemAddress(itemId) + ":reservePrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, reservePrice);
-            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refBuyNowPrice =
-                    ctx.replicate(makeItemAddress(itemId) + ":buyNowPrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, getBuyNowPrice(reservePrice));
-            Ref<@Strong @Immutable NumberBox<@Strong @Mutable Float>> refInitialPrice =
-                    ctx.replicate(makeItemAddress(itemId) + ":initialPrice", internalConsistencyLevel, (Class<NumberBox<Float>>)(Class)NumberBox.class, getInitialPrice(reservePrice));
+            Ref<@Strong @Mutable Float> refReservePrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":reservePrice", internalConsistencyLevel, Float.class, reservePrice);
+            Ref<@Strong @Mutable Float> refBuyNowPrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":buyNowPrice", internalConsistencyLevel, Float.class, getBuyNowPrice(reservePrice));
+            Ref<@Strong @Mutable Float> refInitialPrice =
+                    ctx.replicate(makeItemAddress(itemId) + ":initialPrice", internalConsistencyLevel, Float.class, getInitialPrice(reservePrice));
 
             return Option.apply(ctx.replicate(makeItemAddress(itemId), itemConsistencyLevel, Item.class,
                     UUID.randomUUID(), name, description,

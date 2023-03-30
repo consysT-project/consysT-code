@@ -118,8 +118,8 @@ public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
 
     @Override
     public void cleanup() {
-        Logger.info(procName(), "nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
-        Logger.info(procName(), "nops w.r.t all operations: " + (float)itemNoOps/100);
+        //Logger.info(procName(), "nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
+        //Logger.info(procName(), "nops w.r.t all operations: " + (float)itemNoOps/100);
 
         localSessions.clear();
         users.clear();
