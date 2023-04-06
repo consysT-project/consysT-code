@@ -38,6 +38,7 @@ public class Main {
 		CASE_STUDIES.put("consensus", Examples.CONSENSUS);
 		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
 		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
+		CASE_STUDIES.put("shopping_cart", Examples.SHOPPING_CART);
 	}
 
 	private static void printUsage() {
@@ -70,7 +71,7 @@ public class Main {
 
 		if (args.length == 0) {
 			//Default example
-			files = Examples.CREDIT_ACCOUNT;
+			files = Examples.SHOPPING_CART;
 		} else if (args.length == 1) {
 			if (args[0].equals("--bench-sys")) {
 				benchmarkType = BenchmarkType.SYS;
