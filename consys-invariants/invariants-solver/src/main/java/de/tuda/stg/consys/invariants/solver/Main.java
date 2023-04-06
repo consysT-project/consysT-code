@@ -41,7 +41,7 @@ public class Main {
 	}
 
 	private static void printUsage() {
-		Logger.info("Usage: conloc [--bench-sys | --bench-java | case-study-name]");
+		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name]");
 		Logger.info("Possible names: " + CASE_STUDIES.keySet());
 	}
 
@@ -69,6 +69,7 @@ public class Main {
 		BenchmarkType benchmarkType = BenchmarkType.NONE;
 
 		if (args.length == 0) {
+			//Default example
 			files = Examples.CREDIT_ACCOUNT;
 		} else if (args.length == 1) {
 			if (args[0].equals("--bench-sys")) {
