@@ -335,6 +335,18 @@ public class BaseExpressionParser extends ExpressionParser {
 
       return result;
     }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.SetUtils", "emptySet")) {
+      var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var set2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      throw new UnsupportedOperationException();
+    }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.SetUtils", "union", "java.util.Set", "java.util.Set")) {
+      var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var set2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      throw new UnsupportedOperationException();
+    }
 	// com.google.common.collect.Multimap
 	else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "isEmpty")) {
 		var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);

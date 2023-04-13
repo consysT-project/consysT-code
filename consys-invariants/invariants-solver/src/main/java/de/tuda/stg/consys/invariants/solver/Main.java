@@ -41,6 +41,8 @@ public class Main {
 		CASE_STUDIES.put("shopping_cart", Examples.SHOPPING_CART);
 	}
 
+	public static final Path[] DEFAULT_EXAMPLE = Examples.TEST;
+
 	private static void printUsage() {
 		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name]");
 		Logger.info("Possible names: " + CASE_STUDIES.keySet());
@@ -71,7 +73,7 @@ public class Main {
 
 		if (args.length == 0) {
 			//Default example
-			files = Examples.SHOPPING_CART;
+			files = DEFAULT_EXAMPLE;
 		} else if (args.length == 1) {
 			if (args[0].equals("--bench-sys")) {
 				benchmarkType = BenchmarkType.SYS;

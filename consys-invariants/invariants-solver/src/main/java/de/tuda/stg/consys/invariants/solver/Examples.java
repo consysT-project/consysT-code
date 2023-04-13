@@ -26,6 +26,11 @@ public class Examples {
 	);
 
 
+	public static final Path[] TEST = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/Test.java")
+	};
+
+
 	public static final Path[] BANK_ACCOUNT = new Path[] {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/bankaccount/BankAccount.java")
 	};

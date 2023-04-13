@@ -125,11 +125,15 @@ public class BaseClassModel {
 	}
 
 	void initializeFields() {
-		/* Parse fields and constants */
-		List<FieldModel> classFieldsTemp = new ArrayList(jmlType.fields.length);
-		List<ConstantModel> classConstantsTemp = new ArrayList(jmlType.fields.length);
 
-		for (int i = 0; i < jmlType.fields.length; i++) {
+		// Check if the class has any fields
+		int numOfFields = jmlType.fields == null ? 0 : jmlType.fields.length;
+
+		/* Parse fields and constants */
+		List<FieldModel> classFieldsTemp = new ArrayList(numOfFields);
+		List<ConstantModel> classConstantsTemp = new ArrayList(numOfFields);
+
+		for (int i = 0; i < numOfFields; i++) {
 			FieldDeclaration field = jmlType.fields[i];
 
 			if (field.binding == null) {
