@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants;
+package de.tuda.stg.consys.annotations.invariants;
 
 public class OnlyUsableInConstraintsException extends RuntimeException {
 

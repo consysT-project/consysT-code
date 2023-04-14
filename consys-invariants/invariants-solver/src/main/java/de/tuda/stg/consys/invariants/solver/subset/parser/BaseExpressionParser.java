@@ -335,17 +335,34 @@ public class BaseExpressionParser extends ExpressionParser {
 
       return result;
     }
-    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.SetUtils", "emptySet")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.SetUtils", "emptySet")) {
       var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       var set2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
+      //TODO: How to retrieve the type of set elements?
       throw new UnsupportedOperationException();
     }
-    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.invariants.lib.SetUtils", "union", "java.util.Set", "java.util.Set")) {
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.SetUtils", "union", "java.util.Set", "java.util.Set")) {
       var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       var set2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
 
-      throw new UnsupportedOperationException();
+      var result = model.ctx.mkSetUnion(set1Expr, set2Expr);
+
+      return result;
+    }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.SetUtils", "in", "java.util.Set", "java.lang.Object")) {
+      var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var elemExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      var result = model.ctx.mkSetMembership(elemExpr, set1Expr);
+      return result;
+    }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.SetUtils", "add", "java.util.Set", "java.lang.Object")) {
+      var set1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var elemExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      var result = model.ctx.mkSetAdd(set1Expr, elemExpr);
+      return result;
     }
 	// com.google.common.collect.Multimap
 	else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "isEmpty")) {

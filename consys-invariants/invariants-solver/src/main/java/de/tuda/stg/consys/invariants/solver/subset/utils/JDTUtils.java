@@ -58,10 +58,18 @@ public class JDTUtils {
 
 		if (typeIsTypeOfName(binding, typeName)) {
 			return true;
+		} else if (typeIsTypeOfName(binding, "java.lang.Integer")) {
+			//Special case for Integer, because that seems to crash more often than not
+			return false;
 		}
+
 
 		if (binding instanceof ReferenceBinding) {
 			ReferenceBinding refBinding = (ReferenceBinding) binding;
+
+
+
+
 			ReferenceBinding parent = null;
 			try {
 				parent = refBinding.superclass();
