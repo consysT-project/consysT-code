@@ -18,7 +18,7 @@ public class Examples {
 
 	public static final ProgramConfig STATEFUL_CONFIG = new ProgramConfig(
 			true,
-			false,
+			true,
 			true,
 			1,
 			"replica-01",

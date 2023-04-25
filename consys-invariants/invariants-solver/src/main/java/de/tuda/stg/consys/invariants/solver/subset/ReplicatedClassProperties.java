@@ -31,6 +31,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			properties.add(mergeAssociative());
 			properties.add(mergeCommutative());
 			properties.add(mergeIdempotent());
+			System.out.println("test");
 		}
 	}
 
@@ -248,6 +249,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		Expr s1_a_new = constraints.getClassModel().toFreshConst("s1_a_new");
 		Expr s1_b_new = constraints.getClassModel().toFreshConst("s1_b_new");
 
+
 		return new ClassProperty("property/merge/associativity",
 				model.ctx.mkForall(
 						new Expr[] {s0, s1, s2, s0_a_new, s0_b_new, s1_a_new, s1_b_new},
@@ -278,7 +280,7 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 
 		return new ClassProperty("property/merge/commutativity",
 				model.ctx.mkForall(
-						new Expr[] {s0, s1, s0_new},
+						new Expr[] {s0, s1, s0_new, s1_new},
 						model.ctx.mkImplies(
 								model.ctx.mkAnd(
 										constraints.getMergePrecondition().apply(s0, s1),

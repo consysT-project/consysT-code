@@ -31,6 +31,9 @@ public class JDTUtils {
 
 		if (binding instanceof ReferenceBinding) {
 			return typeName/* ~ "java.lang.Object" */.equals(nameOfClass((ReferenceBinding) binding));
+		} else if (binding instanceof ArrayBinding) {
+			ArrayBinding arr = (ArrayBinding) binding;
+			return typeName.equals(String.valueOf(arr.erasure().readableName()));
 		} else if (binding instanceof BaseTypeBinding) {
 			BaseTypeBinding baseBinding = (BaseTypeBinding) binding;
 			return String.valueOf(baseBinding.simpleName/* ~ "long" */).equals(typeName);

@@ -19,6 +19,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
+import de.tuda.stg.consys.annotations.invariants.SetUtils;
+
+
 /**
  * Grow-only Sets. Do not implement the remove operations.
  * 
@@ -177,6 +180,7 @@ import com.google.common.collect.Sets;
 	@ ensures (\forall E elem; \old(delegate.contains(elem)); delegate.contains(elem));
 	@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
 	@ ensures \result == !(\forall E elem; collection.contains(elem); \old(delegate.contains(elem)));
+	@ ensures delegate == SetUtils.union(delegate, collection);
 	@*/
 	// changed from original: @Override
 	public boolean addAll(final Collection<? extends E> collection) {

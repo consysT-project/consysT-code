@@ -364,6 +364,22 @@ public class BaseExpressionParser extends ExpressionParser {
       var result = model.ctx.mkSetAdd(set1Expr, elemExpr);
       return result;
     }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.ArrayUtils", "update", "int[]", "int", "int")) {
+      var arrExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var indexExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+      var newValExpr = parseExpression(jmlMessageSend.arguments[2], depth + 1);
+
+      var result = model.ctx.mkStore(arrExpr, indexExpr, newValExpr);
+      return result;
+    }
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, "de.tuda.stg.consys.annotations.invariants.ArrayUtils", "update", "java.lang.Object[]", "int", "java.lang.Object")) {
+      var arrExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var indexExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+      var newValExpr = parseExpression(jmlMessageSend.arguments[2], depth + 1);
+
+      var result = model.ctx.mkStore(arrExpr, indexExpr, newValExpr);
+      return result;
+    }
 	// com.google.common.collect.Multimap
 	else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "com.google.common.collect.Multimap", "isEmpty")) {
 		var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);

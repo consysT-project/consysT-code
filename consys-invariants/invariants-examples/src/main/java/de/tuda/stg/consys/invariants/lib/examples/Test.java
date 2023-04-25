@@ -6,6 +6,8 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.util.Set;
 
 import de.tuda.stg.consys.annotations.invariants.SetUtils;
+import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
+
 
 @ReplicatedModel
 public class Test {
@@ -32,7 +34,13 @@ public class Test {
 		return null;
 	}
 
+	//@ ensures ArrayUtils.update(values, 0, "hallo") == values;
+	public int myMethod(String[] values) {
+		return 0;
+	}
+
 	//@ assignable values;
+	//@ ensures values == SetUtils.union(\old(values), other.values);
 	public Void merge(Test other) {
 		return null;
 	}

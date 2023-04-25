@@ -60,7 +60,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 //				Logger.info(model.solver.getModel());
 				return false;
 			case UNKNOWN:
-//				Logger.info("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
+				Logger.info("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
 				return false;
 			default:
 				//Does not exist

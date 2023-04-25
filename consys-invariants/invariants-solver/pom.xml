@@ -49,6 +49,16 @@
             <systemPath>${pom.basedir}/lib/com.microsoft.z3.jar</systemPath>
         </dependency>
 
+
+        <dependency>
+            <groupId>de.uka.ilkd.key</groupId>
+            <artifactId>key</artifactId>
+            <version>2.10.0</version>
+            <scope>system</scope>
+            <systemPath>${pom.basedir}/lib/key.core-2.10.0.jar</systemPath>
+        </dependency>
+
+
         <dependency>
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-core</artifactId>

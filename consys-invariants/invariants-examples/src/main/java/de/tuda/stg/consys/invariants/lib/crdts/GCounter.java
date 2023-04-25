@@ -6,6 +6,9 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
+import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
+
+
 
 @ReplicatedModel public class GCounter implements Mergeable<GCounter> {
 
@@ -57,9 +60,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     }
 
 
-    /*@
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]) );
-    @*/
+
+    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]) );
+    // ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs == ArrayUtils.update(\old(incs), i, \old(incs[i]) >= other.incs[i] ? \old(incs[i]) : other.incs[i]));
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i] = Math.max(incs[i], other.incs[i]);
