@@ -11,6 +11,15 @@
 
     <artifactId>invariants-solver</artifactId>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
@@ -58,12 +67,6 @@
             <systemPath>${pom.basedir}/lib/key.core-2.10.0.jar</systemPath>
         </dependency>
 
-
-        <dependency>
-            <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-core</artifactId>
-            <version>3.20.2</version>
-        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
