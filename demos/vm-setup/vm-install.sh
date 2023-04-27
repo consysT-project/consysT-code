@@ -11,7 +11,7 @@ apt install git -y
 cd /home/$VM_USER/Desktop || exit
 sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
 cd /home/$VM_USER/Desktop/consysT-code || exit
-sudo -u $VM_USER git checkout vm #TODO
+sudo -u $VM_USER git checkout vm  #TODO
 
 
 echo "Installing Java"
@@ -88,3 +88,11 @@ echo "Compiling code"
 apt install maven -y
 
 sudo -u $VM_USER mvn package --projects demos/counter,demos/twitter-clone,demos/message-groups,demos/rubis,demos/quoddy --also-make
+
+
+echo "Installing python dependencies"
+
+sudo -u $VM_USER pip install pandas==1.4.4
+sudo -u $VM_USER pip install plotly==5.10.0
+sudo -u $VM_USER pip install numpy==1.23.2
+sudo -u $VM_USER pip install scipy=1.9.1

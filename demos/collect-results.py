@@ -6,10 +6,14 @@ working_dir = os.getcwd()
 source = working_dir + "/" + sys.argv[1]
 destination = working_dir + "/" + sys.argv[2]
 
+print("Collecting from " + source + " into " + destination)
+
 for configuration in os.listdir(source):
     local_path = working_dir + "/" + configuration
     if not os.path.isdir(local_path):
         continue
+
+    print("Found run configuration: " + local_path)
 
     src = local_path + "/" + sorted(os.listdir(local_path))[-1]
     dst = destination + "/" + configuration + "/"
@@ -28,4 +32,4 @@ for configuration in os.listdir(source):
                     shutil.rmtree(dst)
                 shutil.copytree(src, dst)
 
-print("done")
+print("Done collecting results")

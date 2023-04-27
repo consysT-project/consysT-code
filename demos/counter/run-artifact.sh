@@ -29,17 +29,17 @@ executeBench 'local/mixed/'
 executeBench 'local/strong/'
 
 # Collect results
-python3 ../collect-results.py benchmark/measurements/counter/bench-results benchmark/measurements/counter/temp
+python3 ../collect-results.py benchmark/measurements/counter/bench-results benchmark/counter
 
 # Process the results
 python3 ../process-results.py artifact-processed.csv \
- benchmark/measurements/counter/temp/weak/:100 \
- benchmark/measurements/counter/temp/op_mixed/:100 \
- benchmark/measurements/counter/temp/mixed/:100 \
- benchmark/measurements/counter/temp/strong/:100
+ benchmark/counter/weak/:100 \
+ benchmark/counter/op_mixed/:100 \
+ benchmark/counter/mixed/:100 \
+ benchmark/counter/strong/:100
 
 # Generate and show the graphs
 python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
- benchmark/measurements/counter/temp/weak/:benchmark/measurements/counter/temp/op_mixed/ \
- benchmark/measurements/counter/temp/mixed/:benchmark/measurements/counter/temp/op_mixed/ \
- benchmark/measurements/counter/temp/strong/:benchmark/measurements/counter/temp/op_mixed/
+ benchmark/counter/weak/:benchmark/counter/op_mixed/ \
+ benchmark/counter/mixed/:benchmark/counter/op_mixed/ \
+ benchmark/counter/strong/:benchmark/counter/op_mixed/
