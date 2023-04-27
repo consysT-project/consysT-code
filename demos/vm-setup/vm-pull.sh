@@ -58,4 +58,4 @@ rm -r demos/vm-setup
 
 echo "Compiling code"
 
-mvn package --projects demos/counter,demos/twitter-clone,demos/message-groups,demos/rubis,demos/quoddy --also-make
+sudo -u $VM_USER mvn package --projects demos/counter,demos/twitter-clone,demos/message-groups,demos/rubis,demos/quoddy --also-make
