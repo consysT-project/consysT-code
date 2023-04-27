@@ -14,7 +14,7 @@ echo "Getting repository"
 cd /home/$VM_USER/Desktop || exit
 sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
 cd /home/$VM_USER/Desktop/consysT-code || exit
-git checkout vm #TODO
+sudo -u $VM_USER git checkout vm #TODO
 
 
 echo "Installing Zookeeper"
