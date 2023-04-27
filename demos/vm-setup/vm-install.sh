@@ -23,7 +23,7 @@ echo "Installing Cassandra"
 
 apt install python3-pip -y
 pip install ccm
-source /home/$VM_USER/.profile
+source /home/$VM_USER/.profile  #TODO
 
 ccm create eval -v 4.0.3
 ccm populate -n 4

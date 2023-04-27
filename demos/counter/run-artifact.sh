@@ -1,16 +1,18 @@
 #!/bin/bash
 
 CLASS_NAME='de.tuda.stg.consys.demo.counter.CounterBenchmark'
-JAR_NAME='target/counter-2.0.0-allinone.jar'
+JAR_NAME='target/counter-4.0.0-allinone.jar'
 
-N_PROCS=`seq 0 8`
+N_PROCS=`seq 0 4`
+
+replica-start.sh
 
 # Executes a benchmark on N_PROCS hosts
 function executeBench() {
-  echo Run configuration $1 with $2
+  echo Run configuration $1
   # run processes and store pids in array
   for i in ${N_PROCS}; do
-      java -cp "${JAR_NAME}" "${CLASS_NAME}" "$1bench${i}.conf" "$2" &
+      java -cp "${JAR_NAME}" "${CLASS_NAME}" -b cassandra -c "$1bench${i}.conf" &
       pids[${i}]=$!
   done
   # wait for all benchmarks to stop
@@ -21,17 +23,18 @@ function executeBench() {
 }
 
 # Run all processes with mixed configuration
-executeBench 'local/weak/' './bench-results/artifact/weak'
-executeBench 'local/mixed/' './bench-results/artifact/mixed'
-executeBench 'local/strong/' './bench-results/artifact/strong'
+executeBench 'local/weak/'
+executeBench 'local/op_mixed/'
+executeBench 'local/mixed/'
+executeBench 'local/strong/'
 
 # Process the results
 python3 ../process-results.py artifact-processed.csv \
- bench-results/artifact/weak/:1 \
- bench-results/artifact/mixed/:1 \
- bench-results/artifact/strong/:1
+ bench-results/weak/:100 \
+ bench-results/mixed/:100 \
+ bench-results/strong/:100
 
 # Generate and show the graphs
 python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
- bench-results/artifact/weak/:bench-results/artifact/strong/ \
- bench-results/artifact/mixed/:bench-results/artifact/strong/
+ bench-results/weak/:bench-results/strong/ \
+ bench-results/mixed/:bench-results/strong/
