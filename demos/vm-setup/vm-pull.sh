@@ -13,7 +13,7 @@ echo "Getting repository"
 
 cd /home/$VM_USER/Desktop || exit
 git clone https://github.com/consysT-project/consysT-code.git
-cd /home/$VM_USER/Desktop/conysT-code || exit
+cd /home/$VM_USER/Desktop/consysT-code || exit
 git checkout vm #TODO
 
 
@@ -37,8 +37,8 @@ cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo
 echo "Anonymizing repository"
 
 cd /home/$VM_USER/Desktop || exit
-mv consysT-code canopy-code
-cd /home/$VM_USER/Desktop/canopy-code || exit
+mv consysT-code ${ANONYMOUS_NAME}-code
+cd /home/$VM_USER/Desktop/${ANONYMOUS_NAME}-code || exit
 
 git grep -lz '' | xargs -0 sed -i -e "s/consysT/${ANONYMOUS_NAME}/g"
 git grep -lz '' | xargs -0 sed -i -e "s/consys/${ANONYMOUS_NAME}/g"
