@@ -1,35 +1,31 @@
 import shutil
 import os
+import sys
 
-demos = ["counter", "twitter-clone", "message-groups", "rubis", "quoddy"]
-dest = "results/temp/"
+working_dir = os.getcwd()
+source = working_dir + "/" + sys.argv[1]
+destination = working_dir + "/" + sys.argv[2]
 
-for demo in demos:
-    path = demo + "/benchmark/measurements/" + demo + "/bench-results/"
-    for op in ["weak", "op_mixed", "mixed", "strong", "weak_datacentric", "strong_datacentric",
-               "datacentric_mixed_in_opcentric_impl"]:
-        if op in ["weak_datacentric", "strong_datacentric"] and demo in ["counter", "message-groups"]:
-            continue
+for configuration in os.listdir(source):
+    local_path = working_dir + "/" + configuration
+    if not os.path.isdir(local_path):
+        continue
 
-        local_path = os.getcwd() + "/" + path + op
-        if not os.path.isdir(local_path):
-            continue
+    src = local_path + "/" + sorted(os.listdir(local_path))[-1]
+    dst = destination + "/" + configuration + "/"
 
-        src = local_path + "/" + sorted(os.listdir(local_path))[-1]
-        dst = os.getcwd() + "/" + dest + demo + "/" + op + "/"
-
-        if not os.path.isdir(src):
-            print("source directory does not exist: " + src)
+    if not os.path.isdir(src):
+        print("source directory does not exist: " + src)
+    else:
+        files = os.listdir(src)
+        if not files:
+            print("source directory empty: " + src)
         else:
-            files = os.listdir(src)
-            if not files:
-                print("source directory empty: " + src)
+            if len(files) != 8:  # TODO: combine directories if necessary
+                print("files missing in: " + src)
             else:
-                if len(files) != 8:  # TODO: combine directories if necessary
-                    print("files missing in: " + src)
-                else:
-                    if os.path.isdir(dst):
-                        shutil.rmtree(dst)
-                    shutil.copytree(src, dst)
+                if os.path.isdir(dst):
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
 
 print("done")
