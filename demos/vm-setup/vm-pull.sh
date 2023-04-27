@@ -12,7 +12,7 @@ rm -rf /home/$VM_USER/Desktop/$ANONYMOUS_NAME-code
 echo "Getting repository"
 
 cd /home/$VM_USER/Desktop || exit
-git clone https://github.com/consysT-project/consysT-code.git
+sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
 cd /home/$VM_USER/Desktop/consysT-code || exit
 git checkout vm #TODO
 
@@ -21,16 +21,16 @@ echo "Installing Zookeeper"
 
 cd /home/$VM_USER || exit
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
 
 

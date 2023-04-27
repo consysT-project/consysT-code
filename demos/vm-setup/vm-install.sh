@@ -7,8 +7,9 @@ ANONYMOUS_NAME='canopy'
 echo "Getting repository"
 
 apt install git -y
+
 cd /home/$VM_USER/Desktop || exit
-git clone https://github.com/consysT-project/consysT-code.git
+sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
 cd /home/$VM_USER/Desktop/consysT-code || exit
 git checkout vm #TODO
 
@@ -22,16 +23,16 @@ apt install openjdk-11-jdk-headless -y
 echo "Installing Cassandra"
 
 apt install python3-pip -y
-pip install ccm
-source /home/$VM_USER/.profile  #TODO
+sudo -u $VM_USER pip install ccm
+sudo -u $VM_USER source /home/$VM_USER/.profile  #TODO
 
-ccm create eval -v 4.0.3
-ccm populate -n 4
+sudo -u $VM_USER ccm create eval -v 4.0.3
+sudo -u $VM_USER ccm populate -n 4
 
-sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" ~/.ccm/eval/node1/conf/cassandra.yaml
-sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" ~/.ccm/eval/node2/conf/cassandra.yaml
-sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" ~/.ccm/eval/node3/conf/cassandra.yaml
-sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" ~/.ccm/eval/node4/conf/cassandra.yaml
+sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node1/conf/cassandra.yaml
+sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node2/conf/cassandra.yaml
+sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node3/conf/cassandra.yaml
+sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node4/conf/cassandra.yaml
 
 
 echo "Installing Zookeeper"
@@ -42,16 +43,16 @@ tar -xf apache-zookeeper-3.6.4-bin.tar.gz -C /opt/
 rm apache-zookeeper-3.6.4-bin.tar.gz
 chown -R eval:eval /opt/apache-zookeeper-3.6.4-bin
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
 
-mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
+sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
 cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
 
 
