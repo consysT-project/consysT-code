@@ -6,7 +6,7 @@ ANONYMOUS_NAME='canopy'
 
 echo "Removing old repository"
 
-rm -rf ~/Desktop/$ANONYMOUS_NAME-code
+rm -rf /home/$VM_USER/Desktop/$ANONYMOUS_NAME-code
 
 
 echo "Getting repository"
