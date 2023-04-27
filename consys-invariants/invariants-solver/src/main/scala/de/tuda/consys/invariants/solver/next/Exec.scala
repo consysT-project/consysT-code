@@ -40,12 +40,23 @@ object Exec {
 		val cls = ObjectClassDecl(
 			"Box",
 			Equals(GetField("value"), Num(0)),
-			Map("value" -> FieldDecl("value",TClass("Int"))),
-			Map("return" -> MethodDecl("return", Seq(VarDecl("x", TClass("Int"))), TClass("Int"), Var("x")))
+			Map(
+				"value" -> FieldDecl("value", TClass("Int")),
+				"name" -> FieldDecl("name", TClass("String"))
+			),
+			Map(
+				"foo" -> MethodDecl("foo", Seq(VarDecl("x", TClass("Int"))), TClass("Int"),
+					Let("a0", SetField("value", Var("x")),
+						Var("x")
+					)
+				)
+			)
 		)
 
 		val prog = ProgramDecl(Map(
 			"Int" -> Natives.INT_CLASS,
+			"Bool" -> Natives.BOOL_CLASS,
+			"String" -> Natives.STRING_CLASS,
 			"Box" -> cls
 		))
 

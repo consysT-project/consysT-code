@@ -9,7 +9,14 @@ object IR {
 
 	case class FieldDecl(name : FieldId, typ : IRType)
 	case class VarDecl(name : VarId, typ : IRType)
-	case class MethodDecl(name : MethodId, parameters : Seq[VarDecl], returnTyp : IRType, body : IRExpr)
+
+	trait MethodDecl {
+		def name : MethodId
+		def parameters : Seq[VarDecl]
+		def body : IRExpr
+	}
+	case class QueryDecl(name : MethodId, parameters : Seq[VarDecl], returnTyp : IRType, body : IRExpr) extends MethodDecl
+	case class UpdateDecl(name : MethodId, parameters : Seq[VarDecl], body : IRExpr) extends MethodDecl
 
 	trait IRClass {
 		def name : ClassId
@@ -22,7 +29,12 @@ object IR {
 	case class TClass(name : ClassId) extends IRType
 
 	trait IRExpr
-	case class Num(n : Int) extends IRExpr
+	trait IRLiteral extends IRExpr
+	case class Num(n : Int) extends IRLiteral
+	case object True extends IRLiteral
+	case object False extends IRLiteral
+	case class Str(s : String) extends IRLiteral
+
 	case class Var(id : VarId) extends IRExpr
 	case class Equals(e1 : IRExpr, e2 : IRExpr) extends IRExpr
 	case class GetField(id : FieldId) extends IRExpr
