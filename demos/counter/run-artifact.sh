@@ -3,7 +3,7 @@
 CLASS_NAME='de.tuda.stg.consys.demo.counter.CounterBenchmark'
 JAR_NAME='target/counter-4.0.0-allinone.jar'
 
-N_PROCS=`seq 0 4`
+N_PROCS=`seq 0 3`
 
 replica-start.sh
 
@@ -28,6 +28,7 @@ executeBench 'local/op_mixed/'
 executeBench 'local/mixed/'
 executeBench 'local/strong/'
 
+# TODO
 # Process the results
 python3 ../process-results.py artifact-processed.csv \
  bench-results/weak/:100 \
