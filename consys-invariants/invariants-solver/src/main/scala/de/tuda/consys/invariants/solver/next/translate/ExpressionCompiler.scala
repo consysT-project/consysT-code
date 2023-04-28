@@ -2,7 +2,7 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, DatatypeSort, FuncDecl, Sort, TupleSort, Expr => Z3Expr}
 import de.tuda.consys.invariants.solver.next.ir.IR._
-import de.tuda.consys.invariants.solver.next.translate.TypeRep.ObjectTypeRep
+import de.tuda.consys.invariants.solver.next.translate.TypeRep.{NativeTypeRep, ObjectTypeRep}
 trait ExpressionCompiler {
 
 	/** Compiles an IRExpr to a Z3 expr, given the starting state s0 and ending in the 2nd element return state.  */
@@ -14,7 +14,7 @@ trait ExpressionCompiler {
 
 object ExpressionCompiler {
 
-	class BaseExpressionCompiler(ctx : Context) extends ExpressionCompiler {
+	class BaseExpressionCompiler(ctx : Context, typeMap : TypeMap) extends ExpressionCompiler {
 
 		override def compile[S <: Sort](expr : IRExpr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S]) : (Z3Expr[_], Z3Expr[S]) = expr match {
 			case Num(n) => (ctx.mkInt(n), s0)
@@ -42,7 +42,7 @@ object ExpressionCompiler {
 		}
 	}
 
-	class ObjectClassExpressionCompiler(ctx : Context) extends BaseExpressionCompiler(ctx) {
+	class ObjectClassExpressionCompiler(ctx : Context, typeMap : TypeMap) extends BaseExpressionCompiler(ctx, typeMap) {
 		override def compile[S <: Sort](expr : IRExpr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S]) : (Z3Expr[_], Z3Expr[S]) = expr match {
 			case GetField(id) =>
 				val s0Sort = Z3Utils.asObjectSort(s0.getSort).getOrElse(throw ParseException("expected object sort, but got: " + s0.getSort))
@@ -51,17 +51,41 @@ object ExpressionCompiler {
 
 			case This => (s0, s0)
 
+			case CallQuery(recv, mthd, arguments) =>
+				val (recvVal, recvState) = compile(recv, vars, s0)
+
+				var s1 = recvState
+				val declaredArgumentsBuilder = Seq.newBuilder[Z3Expr[_]]
+				for (arg <- arguments) {
+					val (argVal, argState) = compile(arg, vars, s1)
+					declaredArgumentsBuilder.addOne(argVal)
+					s1 = argState
+				}
+
+				val declaredArguments = declaredArgumentsBuilder.result()
+
+				val recvType = findRepInTypeMap(typeMap, recvVal.getSort).getOrElse(throw ParseException(s"receiver not found: ${recvVal.getSort}"))
+
+				recvType match {
+					case NativeTypeRep(sort) => throw ParseException("native class does not have methods: " + recvType)
+					case ObjectTypeRep(sort, accessors, methods) =>
+//						methods.getOrElse((mthd, null))
+				}
+
+				???
+
+
+
 			case _ => super.compile(expr, vars, s0)
 		}
 	}
 
-	class MethodBodyExpressionCompiler(ctx : Context) extends ObjectClassExpressionCompiler(ctx) {
+	class UpdateBodyExpressionCompiler(ctx : Context, typeMap : TypeMap) extends ObjectClassExpressionCompiler(ctx, typeMap) {
 		override def compile[S <: Sort](expr : IRExpr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S]) : (Z3Expr[_], Z3Expr[S]) = expr match {
 			case SetField(id, newVal) =>
 				val (valExpr, s1) = compile(newVal, vars, s0)
 
 				val s1Sort = Z3Utils.asObjectSort(s1.getSort).getOrElse(throw ParseException("expected object sort, but got: " + s1.getSort))
-
 				val fieldDecl = Z3Utils.getObjectField(s1Sort, id).getOrElse(throw ParseException("field not found: " + id))
 
 //				val constructorDecl = Z3Utils.getObjectConstructor(s1Sort)

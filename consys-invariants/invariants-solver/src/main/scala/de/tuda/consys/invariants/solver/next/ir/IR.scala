@@ -12,11 +12,13 @@ object IR {
 
 	trait MethodDecl {
 		def name : MethodId
-		def parameters : Seq[VarDecl]
+		def declaredParameters : Seq[VarDecl]
 		def body : IRExpr
+
+		def declaredParameterTypes : Seq[IRType] = declaredParameters.map(varDecl => varDecl.typ)
 	}
-	case class QueryDecl(name : MethodId, parameters : Seq[VarDecl], returnTyp : IRType, body : IRExpr) extends MethodDecl
-	case class UpdateDecl(name : MethodId, parameters : Seq[VarDecl], body : IRExpr) extends MethodDecl
+	case class QueryDecl(override val name : MethodId, override val declaredParameters : Seq[VarDecl], returnTyp : IRType, override val body : IRExpr) extends MethodDecl
+	case class UpdateDecl(override val name : MethodId, override val declaredParameters : Seq[VarDecl], override val body : IRExpr) extends MethodDecl
 
 	trait IRClass {
 		def name : ClassId
@@ -29,6 +31,7 @@ object IR {
 	case class TClass(name : ClassId) extends IRType
 
 	trait IRExpr
+
 	trait IRLiteral extends IRExpr
 	case class Num(n : Int) extends IRLiteral
 	case object True extends IRLiteral
@@ -36,11 +39,16 @@ object IR {
 	case class Str(s : String) extends IRLiteral
 
 	case class Var(id : VarId) extends IRExpr
+	case class Let(id : VarId, namedExpr : IRExpr, body : IRExpr) extends IRExpr
+
 	case class Equals(e1 : IRExpr, e2 : IRExpr) extends IRExpr
+
+	case object This extends IRExpr
 	case class GetField(id : FieldId) extends IRExpr
 	case class SetField(id : FieldId, value : IRExpr) extends IRExpr
-	case class Let(id : VarId, namedExpr : IRExpr, body : IRExpr) extends IRExpr
-	case object This extends IRExpr
+	case class CallQuery(recv : IRExpr, mthd : MethodId, arguments : Seq[IRExpr]) extends IRExpr
+
+
 
 	case class ProgramDecl(classTable : Map[ClassId, IRClass])
 }

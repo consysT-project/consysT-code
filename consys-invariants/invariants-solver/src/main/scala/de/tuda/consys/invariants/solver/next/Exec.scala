@@ -45,11 +45,12 @@ object Exec {
 				"name" -> FieldDecl("name", TClass("String"))
 			),
 			Map(
-				"foo" -> MethodDecl("foo", Seq(VarDecl("x", TClass("Int"))), TClass("Int"),
+				"foo" -> UpdateDecl("foo", Seq(VarDecl("x", TClass("Int"))),
 					Let("a0", SetField("value", Var("x")),
-						Var("x")
+						Num(0)
 					)
-				)
+				),
+				"getVal" -> QueryDecl("getVal", Seq(), TClass("Int"), GetField("value"))
 			)
 		)
 
