@@ -32,6 +32,11 @@ function showDocumentEditor(title) {
   documentList.style.display = "none";
   documentCreateButton.style.display = "none";
 
+  const descriptionInput = document.createElement("input");
+  descriptionInput.setAttribute("type", "text");
+  descriptionInput.setAttribute("placeholder", "Description");
+  descriptionInput.classList.add("form-control", "mb-3");
+
   const textarea = document.createElement("textarea");
   textarea.classList.add("form-control");
   textarea.style.height = "20vh";
@@ -55,7 +60,7 @@ function showDocumentEditor(title) {
     documentList.style.display = "block";
     documentCreateButton.style.display = "block";
     documentEditor.style.display = "none";
-    saveDocument(title, textarea.value);
+    editDocument(title, textarea.value, descriptionInput.value);
 
     const alert = document.createElement("div");
     alert.classList.add("alert", "alert-success", "mt-3");
@@ -70,6 +75,7 @@ function showDocumentEditor(title) {
   });
 
   const documentEditor = document.createElement("div");
+  documentEditor.appendChild(descriptionInput);
   documentEditor.appendChild(textarea);
 
   const buttonWrapper = document.createElement("div");
@@ -81,12 +87,9 @@ function showDocumentEditor(title) {
 
   document.body.appendChild(documentEditor);
 
-  socket.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type === "readDocument" && message.title === title) {
-      textarea.value = message.content;
-    }
-  });
+  socket.removeEventListener("message", socket._handleMessage);
+  socket._handleMessage = (event) => handleMessage(event, title, textarea, descriptionInput);
+  socket.addEventListener("message", socket._handleMessage);
 
   socket.send(
     JSON.stringify({
@@ -95,6 +98,26 @@ function showDocumentEditor(title) {
     })
   );
 }
+
+function handleMessage(event, title, textarea, descriptionInput) {
+  const message = JSON.parse(event.data);
+  if (message.type === "readDocument" && message.title === title) {
+    textarea.value = message.content;
+    descriptionInput.value = message.description;
+  } else if (message.type === "trigger") {
+    const infoBox = document.createElement("div");
+
+    infoBox.classList.add("alert", "alert-info", "absolute", "top-0", "end-0", "mt-3", "me-3");
+    infoBox.innerText = "The document has been modified";
+    document.body.appendChild(infoBox);
+
+    // Remove the info box after 3 seconds
+    setTimeout(() => {
+      infoBox.remove();
+    }, 3000);
+  }
+}
+
 
 function createDocument() {
   const title = prompt("Enter a name for the new document:");
@@ -149,12 +172,13 @@ function createDocument() {
   }, 3000);
 }
 
-function saveDocument(title, content) {
+function editDocument(title, content, description) {
   socket.send(
     JSON.stringify({
-      type: "saveDocument",
+      type: "editDocument",
       title,
       content,
+      description
     })
   );
 }

@@ -8,6 +8,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import org.json.JSONException;
 import org.json.JSONObject;
+import scala.Option;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -17,7 +18,6 @@ public class WebsocketServer extends WebSocketServer {
 
     private static int TCP_PORT = 9999;
     private Session[] sessions;
-
     private int sessionsNumber = 3;
     private Set<WebSocket> conns;
 
@@ -30,14 +30,14 @@ public class WebsocketServer extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         conns.add(conn);
+        ConnectionManager.addConnection(conn);
         System.out.println("New connection from " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
-
-
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         conns.remove(conn);
+        ConnectionManager.removeConnection(conn);
         System.out.println("Closed connection to " + conn);
     }
 
@@ -63,13 +63,10 @@ public class WebsocketServer extends WebSocketServer {
                     handleReadDocument(title, sessionId, conn);
                     break;
                 }
-                case "saveDocument": {
+                case "editDocument": {
                     String content = jsonObject.getString("content");
-                    handleSaveDocument(title, sessionId, content);
-                    break;
-                }
-                case "runSimulation": {
-                    handleSimulation(title, 1, conn);
+                    String description = jsonObject.getString("description");
+                    handleEditDocument(title, sessionId, content, description);
                     break;
                 }
                 default: {
@@ -91,14 +88,9 @@ public class WebsocketServer extends WebSocketServer {
         conn.send(jsonObject.toString());
     }
 
-    public void handleSaveDocument(String title, int sessionId, String content) {
-        sessions[sessionId].saveDocument(title, content);
+    public void handleEditDocument(String title, int sessionId, String content, String description) {
+        sessions[sessionId].editDocument(title, content, description);
     }
-
-    public void handleSimulation(String title, int sessionId, WebSocket conn) {
-        //sessions[sessionId].runSimulation(title, conn);
-    }
-
 
     @Override
     public void onError(WebSocket conn, Exception ex) {
@@ -113,4 +105,5 @@ public class WebsocketServer extends WebSocketServer {
     public void onStart() {
         System.out.println("On start");
     }
+
 }
