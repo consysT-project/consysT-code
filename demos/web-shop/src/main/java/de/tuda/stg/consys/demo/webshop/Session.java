@@ -1,11 +1,16 @@
 package de.tuda.stg.consys.demo.webshop;
 
+import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
+import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
+//import de.tuda.stg.consys.demo.webshop.schema.opcentric.MyProduct;
 import de.tuda.stg.consys.demo.webshop.schema.datacentric.MyProduct;
+//import de.tuda.stg.consys.demo.webshop.schema.opcentric.User;
 import de.tuda.stg.consys.demo.webshop.schema.datacentric.User;
 import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Function1;
@@ -52,9 +57,52 @@ public class Session {
         products.add(product3);
     }
 
+    public void initProduct(String id, String name, String description, int price, int quantity) {
+        Ref<MyProduct> product = doTransaction(
+                ctx -> Option.apply(ctx.replicate("product:" + id, productConsistencyLevel, MyProduct.class, name, description, price, quantity))).get();
+        products.add(product);
+    }
+
+    public Ref<? extends @Mutable MyProduct> findProduct(String id) {
+        return doTransaction(ctx -> Option.apply(ctx.lookup("product:" + id, productConsistencyLevel, MyProduct.class))).get();
+    }
+
     public void initUser() {
         this.user = doTransaction(
-                ctx -> Option.apply(ctx.replicate("user", userConsistencyLevel, User.class))).get();
+                ctx -> Option.apply(ctx.replicate("user", userConsistencyLevel, User.class, "Name", 1000))).get();
+    }
+
+    public void initUser(String id, String name, int money) {
+        this.user = doTransaction(
+                ctx -> Option.apply(ctx.replicate("user:" + id, userConsistencyLevel, User.class, name, money))).get();
+    }
+
+    public Ref<? extends @Mutable User> findUser(String id) {
+        return doTransaction(ctx -> Option.apply(ctx.lookup("user:" + id, userConsistencyLevel, User.class))).get();
+    }
+
+    public void setBalance(@Strong int amount) {
+        doTransaction(ctx -> {
+            user.ref().setBalance(amount);
+            return Option.apply(0);
+        });
+    }
+
+    public String browseProductsByReplIds(String[] replIds) {
+
+        return doTransaction(ctx -> {
+            var sb = new StringBuilder();
+            @Immutable List<Ref<? extends MyProduct>> products = new ArrayList<>(replIds.length);
+            for (String replId : replIds) {
+                products.add(findProduct(replId));
+            }
+
+            sb.append("Products:\n");
+            for (Ref<? extends MyProduct> product : products) {
+                sb.append(product.ref().toString()).append("\n");
+            }
+            return Option.apply(sb.toString());
+        }).get();
     }
 
     public void showProducts() {
@@ -95,6 +143,13 @@ public class Session {
         else {
             System.out.println("Could not buy " + amount + " of " + name + ". Either your balance is too low or product is not available in this quantity.");
         }
+    }
+
+    public void buyProduct(Ref<MyProduct> product, int amount) {
+        doTransaction(ctx -> {
+            user.ref().buyProduct(product, amount);
+            return Option.apply(0);
+        }).get();
     }
 
     public void runBalanceChecker() {
