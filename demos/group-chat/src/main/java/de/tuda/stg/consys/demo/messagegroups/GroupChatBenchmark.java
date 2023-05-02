@@ -38,6 +38,7 @@ public class GroupChatBenchmark extends DemoRunnable {
 
     @Override
     public void setup() {
+
     }
 
     @Override

@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
+import de.tuda.stg.consys.checker.qual.ThisConsistent;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
@@ -12,7 +13,7 @@ public class Counter implements Serializable {
     }
 
     @SideEffectFree
-    public int getValue() {
+    public @ThisConsistent int getValue() {
         return value;
     }
 }
