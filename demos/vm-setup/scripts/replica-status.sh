@@ -1,6 +1,6 @@
 echo "Cassandra Status:"
 ccm status
 
-echo ""
+echo
 echo "Zookeeper Status:"
 zk-status.sh

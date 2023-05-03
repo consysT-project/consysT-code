@@ -9,4 +9,5 @@ ccm start
 echo "Starting Zookeeper:"
 zk-start.sh
 
+echo
 replica-status.sh
