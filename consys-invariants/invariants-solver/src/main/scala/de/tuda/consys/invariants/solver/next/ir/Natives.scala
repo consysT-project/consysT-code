@@ -8,4 +8,8 @@ object Natives {
 	val BOOL_CLASS = NativeClassDecl("Bool")
 	val STRING_CLASS = NativeClassDecl("String")
 
+	val INT_TYPE = INT_CLASS.toType
+	val BOOL_TYPE = BOOL_CLASS.toType
+	val STRING_TYPE = STRING_CLASS.toType
+
 }

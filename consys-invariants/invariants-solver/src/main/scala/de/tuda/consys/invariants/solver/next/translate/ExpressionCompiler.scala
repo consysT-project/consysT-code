@@ -2,7 +2,7 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, DatatypeSort, FuncDecl, Sort, TupleSort, Expr => Z3Expr}
 import de.tuda.consys.invariants.solver.next.ir.IR._
-import de.tuda.consys.invariants.solver.next.translate.TypeRep.{NativeTypeRep, ObjectTypeRep}
+import de.tuda.consys.invariants.solver.next.translate.TypeRep.{NativeTypeRep, ObjectTypeRep, QueryMethodTypeRep, UpdateMethodTypeRep}
 trait ExpressionCompiler {
 
 	/** Compiles an IRExpr to a Z3 expr, given the starting state s0 and ending in the 2nd element return state.  */
@@ -15,7 +15,6 @@ trait ExpressionCompiler {
 object ExpressionCompiler {
 
 	class BaseExpressionCompiler(ctx : Context, typeMap : TypeMap) extends ExpressionCompiler {
-
 		override def compile[S <: Sort](expr : IRExpr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S]) : (Z3Expr[_], Z3Expr[S]) = expr match {
 			case Num(n) => (ctx.mkInt(n), s0)
 
@@ -51,7 +50,7 @@ object ExpressionCompiler {
 
 			case This => (s0, s0)
 
-			case CallQuery(recv, mthd, arguments) =>
+			case CallQuery(recv, id, arguments) =>
 				val (recvVal, recvState) = compile(recv, vars, s0)
 
 				var s1 = recvState
@@ -63,17 +62,21 @@ object ExpressionCompiler {
 				}
 
 				val declaredArguments = declaredArgumentsBuilder.result()
+				val actualArguments = Seq(s1) ++ declaredArguments
 
 				val recvType = findRepInTypeMap(typeMap, recvVal.getSort).getOrElse(throw ParseException(s"receiver not found: ${recvVal.getSort}"))
 
 				recvType match {
 					case NativeTypeRep(sort) => throw ParseException("native class does not have methods: " + recvType)
 					case ObjectTypeRep(sort, accessors, methods) =>
-//						methods.getOrElse((mthd, null))
+						def mthdRep = methods.getOrElse(id, throw ParseException("method not found: " + id + s"(in class ${recvType.sort})"))
+						mthdRep match {
+							case QueryMethodTypeRep(funcDecl) =>
+								val mthdApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
+								(mthdApp, s1)
+							case _ => throw ParseException("method is not a query: " + id)
+						}
 				}
-
-				???
-
 
 
 			case _ => super.compile(expr, vars, s0)
@@ -101,6 +104,36 @@ object ExpressionCompiler {
 
 				val newState = ctx.mkUpdateField[Sort, S](fieldDecl.asInstanceOf[FuncDecl[Sort]], s1, valExpr.asInstanceOf[Z3Expr[Sort]]) //ctx.mkApp(constructorDecl, arguments : _*)
 				(valExpr, newState)
+
+
+			case CallUpdate(recv, id, arguments) =>
+				val (recvVal, recvState) = compile(recv, vars, s0)
+
+				var s1 = recvState
+				val declaredArgumentsBuilder = Seq.newBuilder[Z3Expr[_]]
+				for (arg <- arguments) {
+					val (argVal, argState) = compile(arg, vars, s1)
+					declaredArgumentsBuilder.addOne(argVal)
+					s1 = argState
+				}
+
+				val declaredArguments = declaredArgumentsBuilder.result()
+				val actualArguments = Seq(s1) ++ declaredArguments
+
+				val recvType = findRepInTypeMap(typeMap, recvVal.getSort).getOrElse(throw ParseException(s"receiver not found: ${recvVal.getSort}"))
+
+				recvType match {
+					case NativeTypeRep(sort) => throw ParseException("native class does not have methods: " + recvType)
+					case ObjectTypeRep(sort, accessors, methods) =>
+						def mthdRep = methods.getOrElse(id, throw ParseException("method not found: " + id + s"(in class ${recvType.sort})"))
+
+						mthdRep match {
+							case UpdateMethodTypeRep(funcDecl) =>
+								val mthdApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
+								(ctx.mkInt(0), mthdApp.asInstanceOf[Z3Expr[S]])
+							case _ => throw ParseException("method is not a query: " + id)
+						}
+				}
 
 
 			case _ => super.compile(expr, vars, s0)

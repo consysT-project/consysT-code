@@ -7,28 +7,27 @@ object IR {
 	type MethodId = String
 	type VarId = String
 
-	case class FieldDecl(name : FieldId, typ : IRType)
-	case class VarDecl(name : VarId, typ : IRType)
+	case class FieldDecl(name : FieldId, typ : Type)
+	case class VarDecl(name : VarId, typ : Type)
 
 	trait MethodDecl {
 		def name : MethodId
 		def declaredParameters : Seq[VarDecl]
 		def body : IRExpr
 
-		def declaredParameterTypes : Seq[IRType] = declaredParameters.map(varDecl => varDecl.typ)
+		def declaredParameterTypes : Seq[Type] = declaredParameters.map(varDecl => varDecl.typ)
 	}
-	case class QueryDecl(override val name : MethodId, override val declaredParameters : Seq[VarDecl], returnTyp : IRType, override val body : IRExpr) extends MethodDecl
+	case class QueryDecl(override val name : MethodId, override val declaredParameters : Seq[VarDecl], returnTyp : Type, override val body : IRExpr) extends MethodDecl
 	case class UpdateDecl(override val name : MethodId, override val declaredParameters : Seq[VarDecl], override val body : IRExpr) extends MethodDecl
 
-	trait IRClass {
+	trait ClassDecl {
 		def name : ClassId
-		def toType : IRType = TClass(name)
+		def toType : Type = Type(name)
 	}
-	case class ObjectClassDecl(override val name : ClassId, invariant : IRExpr, fields : Map[FieldId, FieldDecl], methods : Map[MethodId, MethodDecl]) extends IRClass
-	case class NativeClassDecl(override val name : ClassId) extends IRClass
+	case class ObjectClassDecl(override val name : ClassId, invariant : IRExpr, fields : Map[FieldId, FieldDecl], methods : Map[MethodId, MethodDecl]) extends ClassDecl
+	case class NativeClassDecl(override val name : ClassId) extends ClassDecl
 
-	trait IRType
-	case class TClass(name : ClassId) extends IRType
+	case class Type(name : ClassId)
 
 	trait IRExpr
 
@@ -46,9 +45,11 @@ object IR {
 	case object This extends IRExpr
 	case class GetField(id : FieldId) extends IRExpr
 	case class SetField(id : FieldId, value : IRExpr) extends IRExpr
-	case class CallQuery(recv : IRExpr, mthd : MethodId, arguments : Seq[IRExpr]) extends IRExpr
+
+	trait IRMethodCall extends IRExpr
+	case class CallQuery(recv : IRExpr, id : MethodId, arguments : Seq[IRExpr]) extends IRMethodCall
+	case class CallUpdate(recv : IRExpr, id : MethodId, arguments : Seq[IRExpr]) extends IRMethodCall
 
 
-
-	case class ProgramDecl(classTable : Map[ClassId, IRClass])
+	case class ProgramDecl(classTable : Map[ClassId, ClassDecl])
 }

@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next.translate
 
-import de.tuda.consys.invariants.solver.next.ir.IR.IRType
+import de.tuda.consys.invariants.solver.next.ir.IR.Type
 
 class ModelException(msg : String) extends Exception(msg)
 
-class UnknownTypeModelException(typ : IRType) extends ModelException("unknown type: " + typ)
+class UnknownTypeModelException(typ : Type) extends ModelException("unknown type: " + typ)

@@ -2,9 +2,10 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{BoolSort, Context, Expr, FuncDecl, Sort, TupleSort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.{IR, Natives}
-import de.tuda.consys.invariants.solver.next.ir.IR.{FieldId, IRExpr, IRType, MethodDecl, MethodId, NativeClassDecl, Num, ObjectClassDecl, ProgramDecl, QueryDecl, TClass, UpdateDecl, VarId}
+import de.tuda.consys.invariants.solver.next.ir.IR.{FieldId, IRExpr, MethodDecl, MethodId, NativeClassDecl, Num, ObjectClassDecl, ProgramDecl, QueryDecl, Type, UpdateDecl, VarId}
+import de.tuda.consys.invariants.solver.next.translate.TypeChecker.{Immutable, Mutable, TypeException, checkCls}
 import de.tuda.consys.invariants.solver.next.translate.TypeRep.{MethodTypeRep, NativeTypeRep, ObjectTypeRep, QueryMethodTypeRep, UpdateMethodTypeRep}
-import de.tuda.consys.invariants.solver.next.translate.ExpressionCompiler.{UpdateBodyExpressionCompiler, ObjectClassExpressionCompiler}
+import de.tuda.consys.invariants.solver.next.translate.ExpressionCompiler.{ObjectClassExpressionCompiler, UpdateBodyExpressionCompiler}
 import de.tuda.stg.consys.invariants.solver.subset.model.FieldModel
 import de.tuda.stg.consys.invariants.solver.subset.model.types.TypeModel
 import de.tuda.stg.consys.invariants.solver.subset.utils.{JDTUtils, Z3Utils}
@@ -14,6 +15,11 @@ import scala.collection.mutable
 class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 	def create() : Unit = {
+		//0. Type check the expressions
+		for ((clsId, cls) <- program.classTable) {
+			checkCls(cls)(program.classTable)
+		}
+
 		//1. Declare all types and create the type map
 		val typeMap = createTypeMap()
 
@@ -36,8 +42,6 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 			}
 		}
 
-
-
 		println("Done.")
 	}
 
@@ -52,17 +56,17 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 		case class NativeClassRep(override val sort : Sort) extends ClassRep
 
 		// 1st iteration: Build the map with all datatypes for the classes
-		val classMap = mutable.Map.empty[IRType, ClassRep]
+		val classMap = mutable.Map.empty[Type, ClassRep]
 		for ((clsId, cls) <- program.classTable) {
 			cls match {
 				case Natives.INT_CLASS =>
-					classMap.put(TClass(cls.name), NativeClassRep(ctx.getIntSort))
+					classMap.put(Type(cls.name), NativeClassRep(ctx.getIntSort))
 
 				case Natives.BOOL_CLASS =>
-					classMap.put(TClass(cls.name), NativeClassRep(ctx.getBoolSort))
+					classMap.put(Type(cls.name), NativeClassRep(ctx.getBoolSort))
 
 				case Natives.STRING_CLASS =>
-					classMap.put(TClass(cls.name), NativeClassRep(ctx.getStringSort))
+					classMap.put(Type(cls.name), NativeClassRep(ctx.getStringSort))
 
 				case ObjectClassDecl(name, invariant, fields, methods) =>
 					/* 1. Initialize the sort of the class. */
@@ -81,6 +85,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 					val sortName = "Class$" + clsId
 					val classSort = ctx.mkTupleSort(ctx.mkSymbol(sortName), fieldNames, fieldSorts)
 
+
 					// Create the field accessors for the class
 					val accessorBuilder = Map.newBuilder[FieldId, FuncDecl[_]]
 					val accessorArr = classSort.getFieldDecls
@@ -89,18 +94,18 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 					}
 
 					val clsModel = ObjectClassRep(classSort, accessorBuilder.result())
-					classMap.put(TClass(name), clsModel)
+					classMap.put(Type(name), clsModel)
 			}
 		}
 
 		// 2nd iteration: Build the method declarations for each class
-		val methodMapBuilder = Map.newBuilder[IRType, Map[(MethodId, Seq[IRType]), MethodTypeRep]]
+		val methodMapBuilder = Map.newBuilder[Type, Map[MethodId, MethodTypeRep]]
 		for ((clsId, cls) <- program.classTable) {
 			cls match {
 				case NativeClassDecl(name) =>
 
 				case ObjectClassDecl(name, invariant, fields, methods) =>
-					val classMethodBuilder = Map.newBuilder[(MethodId, Seq[IRType]), MethodTypeRep]
+					val classMethodBuilder = Map.newBuilder[MethodId, MethodTypeRep]
 					for ((mthdId, mthd) <- methods) {
 
 						//Add the receiver object to the Z3 function parameters
@@ -112,14 +117,14 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 							case query@QueryDecl(name, parameters, returnTyp, body) =>
 								val returnSort = classMap.getOrElse(query.returnTyp, throw new UnknownTypeModelException(query.returnTyp)).sort
 								val mthdDecl = ctx.mkFuncDecl( cls.name + "$query$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
-								classMethodBuilder.addOne((mthdId, declaredParameterTypes), QueryMethodTypeRep(mthdDecl))
+								classMethodBuilder.addOne(mthdId, QueryMethodTypeRep(mthdDecl))
 							case UpdateDecl(name, parameters, body) =>
 								val returnSort = classMap.getOrElse(cls.toType, throw new UnknownTypeModelException(cls.toType)).sort
 								val mthdDecl = ctx.mkFuncDecl(cls.name + "$update$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
-								classMethodBuilder.addOne((mthdId, declaredParameterTypes), UpdateMethodTypeRep(mthdDecl))
+								classMethodBuilder.addOne(mthdId, UpdateMethodTypeRep(mthdDecl))
 						}
 					}
-					methodMapBuilder.addOne(TClass(name), classMethodBuilder.result())
+					methodMapBuilder.addOne(Type(name), classMethodBuilder.result())
 			}
 		}
 
@@ -127,7 +132,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 
 		// 3rd: Combine class and method map to create the type map
-		val typeMapBuilder = Map.newBuilder[IRType, TypeRep]
+		val typeMapBuilder = Map.newBuilder[Type, TypeRep]
 		for ((typ, classRep) <- classMap) {
 			classRep match {
 				case NativeClassRep(sort) =>
@@ -149,7 +154,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 			case _ => throw new ModelException("class not in type map or no object class: " + cls)
 		}
 
-		val methodRep = typeRep.methods.getOrElse((mthd.name, mthd.declaredParameterTypes),
+		val methodRep = typeRep.methods.getOrElse(mthd.name,
 			throw new ModelException("method not found: " + mthd))
 
 		val receiverExpr = ctx.mkFreshConst("s0", typeRep.sort)

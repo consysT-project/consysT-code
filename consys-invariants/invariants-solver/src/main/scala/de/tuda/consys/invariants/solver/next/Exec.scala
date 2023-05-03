@@ -41,16 +41,22 @@ object Exec {
 			"Box",
 			Equals(GetField("value"), Num(0)),
 			Map(
-				"value" -> FieldDecl("value", TClass("Int")),
-				"name" -> FieldDecl("name", TClass("String"))
+				"value" -> FieldDecl("value", Type("Int")),
+				"name" -> FieldDecl("name", Type("String"))
 			),
 			Map(
-				"foo" -> UpdateDecl("foo", Seq(VarDecl("x", TClass("Int"))),
+				"foo" -> UpdateDecl("foo", Seq(VarDecl("x", Type("Int"))),
 					Let("a0", SetField("value", Var("x")),
 						Num(0)
 					)
 				),
-				"getVal" -> QueryDecl("getVal", Seq(), TClass("Int"), GetField("value"))
+				"foo2" -> UpdateDecl("foo2", Seq(),
+					Let("a0", CallUpdate(This, "foo", Seq(Num(42))),
+						Num(0)
+					)
+				),
+				"getVal" -> QueryDecl("getVal", Seq(), Type("Int"), GetField("value")),
+				"getVal2" -> QueryDecl("getVal2", Seq(), Type("Int"), CallQuery(This, "getVal", Seq()))
 			)
 		)
 
