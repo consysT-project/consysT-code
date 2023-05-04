@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.webshop.extras;
 
 
+import de.tuda.stg.consys.core.store.Store;
 import de.tuda.stg.consys.demo.webshop.Session;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -32,9 +33,7 @@ public class InteractiveSession {
         
         session.initProducts();
         session.initUser();
-        //session.runBalanceChecker();
-
-        threadPool.submit(backgroundTask);
+        //threadPool.submit(backgroundTask);
 
         while(running){
             System.out.print("> ");
@@ -94,7 +93,6 @@ public class InteractiveSession {
     }
 
     private static void closeConnections() {
-        session.stopBalanceChecker();
         backgroundTask.stopThread();
         threadPool.shutdown();
 

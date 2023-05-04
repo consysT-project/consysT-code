@@ -54,6 +54,6 @@ public @Mixed class MyProduct implements Serializable {
     public String toString() {
         return "Name: " + name + " | Description: " + description + " | Price: " + price + " | Quantity: " + quantity + "\n";
     }
-
+    
 }
 

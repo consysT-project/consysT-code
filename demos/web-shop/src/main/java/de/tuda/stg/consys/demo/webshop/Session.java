@@ -10,7 +10,6 @@ import de.tuda.stg.consys.demo.webshop.schema.datacentric.MyProduct;
 //import de.tuda.stg.consys.demo.webshop.schema.opcentric.User;
 import de.tuda.stg.consys.demo.webshop.schema.datacentric.User;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.TransactionContext;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
 import scala.Function1;
@@ -150,34 +149,5 @@ public class Session {
             user.ref().buyProduct(product, amount);
             return Option.apply(0);
         }).get();
-    }
-
-    public void runBalanceChecker() {
-        threadPool.submit(new BalanceChecker());
-    }
-
-    public void stopBalanceChecker() {
-        threadPool.shutdown();
-    }
-
-    class BalanceChecker implements Runnable {
-        @Override
-        public void run() {
-            while (true) {
-
-                int balanceLeft = doTransaction(ctx -> Option.apply(user.ref().getMoney())).get();
-                if (balanceLeft < 800) {
-                    System.out.println("\u001B[33m [USER WARNING]: Balance is less than 800. \u001B[0m");
-                    break;
-                }
-
-
-                try {
-                    Thread.sleep(8000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
     }
 }

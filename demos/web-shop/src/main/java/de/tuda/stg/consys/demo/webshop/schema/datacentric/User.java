@@ -1,10 +1,6 @@
 package de.tuda.stg.consys.demo.webshop.schema.datacentric;
 
 import de.tuda.stg.consys.annotations.Transactional;
-import de.tuda.stg.consys.annotations.methods.StrongOp;
-import de.tuda.stg.consys.annotations.methods.WeakOp;
-import de.tuda.stg.consys.checker.qual.Mixed;
-import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.Triggerable;
 import de.tuda.stg.consys.japi.Ref;
@@ -14,13 +10,16 @@ import java.io.Serializable;
 
 public class User implements Serializable, Triggerable {
 
-    private int money = 1000;
+    private int money;
+    private String name = "";
 
     public User() {}
-    public User(int money) {
+    public User(String name, int money) {
+        this.name = name;
         this.money = money;
     }
 
+    @Transactional
     public boolean buyProduct(Ref<@Strong MyProduct> product, int amount) {
         if (amount <= product.ref().getQuantity() && getMoney() >= amount * product.ref().getPrice()) {
             product.ref().reduceQuantity(amount);
@@ -34,11 +33,15 @@ public class User implements Serializable, Triggerable {
     private void reduceMoney(int amount) {
         this.money -= amount;
     }
-
+    @SideEffectFree
     public int getMoney() {
         return this.money;
     }
 
+    public void setBalance(@Strong int money) {
+        this.money = money;
+    }
+    @SideEffectFree
     public String toString() {
         return "Money: " + money + "\n";
     }

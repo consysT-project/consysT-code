@@ -42,8 +42,8 @@ public class WebshopBenchmark extends DemoRunnable {
 
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.webshop.users");
 
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
-        Session.productConsistencyLevel = getLevelWithMixedFallback(getWeakLevel());
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getMixedLevel());
+        Session.productConsistencyLevel = getLevelWithMixedFallback(getMixedLevel());
     }
 
     private int getRandomPrice() {
