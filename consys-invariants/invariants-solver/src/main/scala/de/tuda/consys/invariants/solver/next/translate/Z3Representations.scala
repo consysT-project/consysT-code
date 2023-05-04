@@ -8,6 +8,7 @@ object Z3Representations {
 
 	trait ClassRep {
 		def sort : Sort
+		def methods : Map[MethodId, MethodRep]
 
 		def getField(fieldId : FieldId) : Option[FieldRep]
 		def getMethod(methodId : MethodId) : Option[MethodRep]
@@ -16,7 +17,7 @@ object Z3Representations {
 	case class ObjectClassRep(
 		 override val sort : TupleSort,
 		 fields : Map[FieldId, FieldRep],
-		 methods : Map[MethodId, MethodRep]
+		 override val methods : Map[MethodId, MethodRep]
 	) extends ClassRep {
 		override def getField(fieldId : FieldId) : Option[FieldRep] =
 			fields.get(fieldId)
@@ -25,9 +26,15 @@ object Z3Representations {
 			methods.get(methodId)
 	}
 
-	case class NativeClassRep(override val sort : Sort) extends ClassRep {
-		override def getField(fieldId : FieldId) : Option[FieldRep] = None
-		override def getMethod(methodId : MethodId) : Option[MethodRep] = None
+	case class NativeClassRep(
+	 override val sort : Sort,
+	 override val methods : Map[MethodId, MethodRep]
+ 	) extends ClassRep {
+		override def getField(fieldId : FieldId) : Option[FieldRep] =
+			None
+
+		override def getMethod(methodId : MethodId) : Option[MethodRep] =
+			methods.get(methodId)
 	}
 
 	case class FieldRep(funcDecl: FuncDecl[_])

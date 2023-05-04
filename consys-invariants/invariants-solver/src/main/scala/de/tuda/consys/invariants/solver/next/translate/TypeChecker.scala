@@ -13,32 +13,32 @@ object TypeChecker {
 
   type T = (Type, M)
 
-  def checkCls(cls : ClassDecl)(implicit classTable : Map[ClassId, ClassDecl]) : Unit = cls match {
+  def checkClass(classDecl : ClassDecl[_])(implicit classTable : ClassTable) : Unit = classDecl match {
     case ObjectClassDecl(name, invariant, fields, methods) =>
-      val invariantType = TypeChecker.checkExpr(invariant, Map())((cls.toType, Immutable), classTable)
+      val invariantType = TypeChecker.checkExpr(invariant, Map())((classDecl.toType, Immutable), classTable)
       if (invariantType._1 != Natives.BOOL_TYPE)
         throw TypeException(s"invariant is not Bool, but: " + invariantType._1)
 
-      for ((methodId, mthd) <- methods) {
-        val varEnv = mthd.declaredParameters.map(varDecl => (varDecl.name, (varDecl.typ, Immutable))).toMap
-        mthd match {
-          case q : QueryDecl =>
-            val returnTyp = TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Immutable), classTable)
+      for ((methodId, methodDecl) <- methods) {
+        val varEnv = methodDecl.declaredParameters.map(varDecl => (varDecl.name, (varDecl.typ, Immutable))).toMap
+        methodDecl match {
+          case q : QueryMethodDecl =>
+            val returnTyp = TypeChecker.checkExpr(methodDecl.body, varEnv)((classDecl.toType, Immutable), classTable)
             if (returnTyp._1 != q.returnTyp)
               throw TypeException("return type is wrong: " + methodId)
-          case _ : UpdateDecl =>
-            val returnTyp = TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Mutable), classTable)
+          case _ : UpdateMethodDecl =>
+            val returnTyp = TypeChecker.checkExpr(methodDecl.body, varEnv)((classDecl.toType, Mutable), classTable)
             if (returnTyp._1 != Natives.UNIT_TYPE)
               throw TypeException("return type is wrong: " + methodId)
         }
       }
 
-    case NativeClassDecl(name) =>
+    case NativeClassDecl(name, sort, methods) =>
       // Native classes are expected to be fine
   }
 
 
-  def checkExpr(expr : IRExpr, vars : Map[VarId, T])(implicit thisType : (Type, M), classTable : Map[ClassId, ClassDecl]) : T = expr match {
+  def checkExpr(expr : IRExpr, vars : Map[VarId, T])(implicit thisType : (Type, M), classTable : ClassTable) : T = expr match {
     case Num(n : Int) => (Natives.INT_TYPE, Mutable)
     case True => (Natives.BOOL_TYPE, Mutable)
     case False => (Natives.BOOL_TYPE, Mutable)
@@ -50,11 +50,27 @@ object TypeChecker {
       val namedType = checkExpr(namedExpr, vars)
       checkExpr(body, vars + (id -> namedType))
 
+    case If(conditionExpr, thenExpr, elseExpr) =>
+      val condType = checkExpr(conditionExpr, vars)
+
+      if (condType._1 != Natives.BOOL_TYPE)
+        throw TypeException("condition must be Bool, but was: " + condType._1)
+
+      val t1 = checkExpr(thenExpr, vars)(thisType.copy(_2 = Immutable), classTable)
+      val t2 = checkExpr(elseExpr, vars)(thisType.copy(_2 = Immutable), classTable)
+
+      if (t1._1 != t2._1)
+        throw TypeException("branches have diverging types")
+
+      (t1._1, if (t1._2 == t2._2) t1._2 else Immutable)
+
+
     case Equals(e1 : IRExpr, e2 : IRExpr) =>
       val (t1, m1) = checkExpr(e1, vars)
       val (t2, m2) = checkExpr(e2, vars)
 
-      if (t1 != t2) throw TypeException(s"non-matching types in 'equals': $t1 and $t2")
+      if (t1 != t2)
+        throw TypeException(s"non-matching types in 'equals': $t1 and $t2")
 
       (Natives.BOOL_TYPE, Mutable)
 
@@ -89,7 +105,7 @@ object TypeChecker {
       val mthdDecl = checkMethodCall(recvType, methodId, vars, arguments)
 
       val queryDecl = mthdDecl match {
-        case q : QueryDecl => q
+        case q : QueryMethodDecl => q
         case _ => throw TypeException(s"expected query method: $methodId")
       }
 
@@ -103,7 +119,7 @@ object TypeChecker {
       val mthdDecl = checkMethodCall(thisType, methodId, vars, arguments)
 
       val updateDecl = mthdDecl match {
-        case u : UpdateDecl => u
+        case u : UpdateMethodDecl => u
         case _ => throw TypeException(s"expected update method: $methodId")
       }
 
@@ -121,22 +137,23 @@ object TypeChecker {
       val mthdDecl = checkMethodCall((fieldDecl.typ, thisType._2), methodId, vars, arguments)
 
       val updateDecl = mthdDecl match {
-        case u : UpdateDecl => u
+        case u : UpdateMethodDecl => u
         case _ => throw TypeException(s"expected update method: $methodId")
       }
 
       (Natives.UNIT_TYPE, Immutable)
   }
 
-  private def checkMethodCall(recvType : T, methodId : MethodId, vars : Map[VarId, T], arguments : Seq[IRExpr])(implicit thisType : (Type, M), classTable : Map[ClassId, ClassDecl]) : MethodDecl = {
+  private def checkMethodCall(recvType : T, methodId : MethodId, vars : Map[VarId, T], arguments : Seq[IRExpr])
+                             (implicit thisType : (Type, M), classTable : ClassTable) : MethodDecl = {
+    val classDecl = classTable.getOrElse(recvType._1.name, throw TypeException("class not available: " + thisType))
+    val methodDecl : MethodDecl = classDecl
+      .getMethod(methodId).getOrElse(throw TypeException("method not available: " + methodId + s" (in class $thisType)"))
+
+    if (arguments.size != methodDecl.declaredParameters.size)
+      throw TypeException(s"wrong number of arguments for method $methodId: ${arguments.size} (expected: ${methodDecl.declaredParameters.size}")
+
     val argTypes = arguments.map(argExpr => checkExpr(argExpr, vars))
-
-    val cls = classTable.getOrElse(recvType._1.name, throw TypeException("class not available: " + thisType))
-
-    val methodDecl : MethodDecl = cls.getMethod(methodId).getOrElse(throw TypeException("method not available: " + methodId + s" (in class $thisType)"))
-
-    if (argTypes.size != methodDecl.declaredParameters.size)
-      throw TypeException(s"wrong number of arguments for method $methodId: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
 
     argTypes.zip(methodDecl.declaredParameterTypes).foreach(t => {
       val argType = t._1._1

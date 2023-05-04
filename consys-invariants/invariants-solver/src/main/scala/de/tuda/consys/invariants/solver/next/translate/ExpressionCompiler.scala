@@ -1,10 +1,9 @@
 package de.tuda.consys.invariants.solver.next.translate
 
-import com.microsoft.z3.{Context, FuncDecl, Sort, Expr => Z3Expr}
+import com.microsoft.z3.{BoolSort, Context, FuncDecl, Sort, Expr => Z3Expr}
 import de.tuda.consys.invariants.solver.next.ir.IR._
-import de.tuda.consys.invariants.solver.next.ir.Natives
 import de.tuda.consys.invariants.solver.next.translate.CompileErrors.CompileException
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{NativeClassRep, ObjectClassRep, QueryMethodRep, UpdateMethodRep}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{QueryMethodRep, UpdateMethodRep}
 trait ExpressionCompiler {
 
 	/** Compiles an IRExpr to a Z3 expr, given the starting state s0 and ending in the 2nd element return state.  */
@@ -38,6 +37,16 @@ object ExpressionCompiler {
 				val (namedVal, s1) = compile(namedExpr, vars, s0)
 				val (bodyVal, s2) = compile(body, vars + (id -> namedVal), s1)
 				(bodyVal, s2)
+
+			case If(conditionExpr, thenExpr, elseExpr) =>
+				val (condVal, s1) = compile(conditionExpr, vars, s0)
+				val (thenVal, s2a) = compile(thenExpr, vars, s1)
+				val (elseVal, s2b) = compile(elseExpr, vars, s1)
+
+				if (s2a != s1) throw new CompileException("state can not change in then-branch")
+				if (s2b != s1) throw new CompileException("state can not change in else-branch")
+
+				(ctx.mkITE(condVal.asInstanceOf[Z3Expr[BoolSort]], thenVal, elseVal), s2b)
 
 			case _ => super.compile(expr, vars, s0)
 		}
@@ -85,7 +94,6 @@ object ExpressionCompiler {
 	}
 
 	class MutableClassExpressionCompiler(classId : ClassId) extends ClassExpressionCompiler(classId) {
-
 		override def compile[S <: Sort](expr : IRExpr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repTable : RepTable, classTable : ClassTable) : (Z3Expr[_], Z3Expr[S]) = expr match {
 			case SetField(fieldId, newVal) =>
 				val (valExpr, s1) = compile(newVal, vars, s0)
@@ -137,7 +145,6 @@ object ExpressionCompiler {
 				val fieldRep = repTable
 					.getOrElse(classId, CompileErrors.classNotFound(classId))
 					.getField(fieldId).getOrElse(CompileErrors.fieldNotFound(classId, fieldId))
-
 
 				val fieldDecl = classTable
 					.getOrElse(classId, CompileErrors.classNotFound(classId))
