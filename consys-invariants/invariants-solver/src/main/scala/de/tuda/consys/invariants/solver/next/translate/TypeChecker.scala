@@ -19,13 +19,17 @@ object TypeChecker {
       if (invariantType._1 != Natives.BOOL_TYPE)
         throw TypeException(s"invariant is not Bool, but: " + invariantType._1)
 
-      for ((mthdId, mthd) <- methods) {
+      for ((methodId, mthd) <- methods) {
         val varEnv = mthd.declaredParameters.map(varDecl => (varDecl.name, (varDecl.typ, Immutable))).toMap
         mthd match {
-          case _ : QueryDecl =>
-            TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Immutable), classTable)
+          case q : QueryDecl =>
+            val returnTyp = TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Immutable), classTable)
+            if (returnTyp._1 != q.returnTyp)
+              throw TypeException("return type is wrong: " + methodId)
           case _ : UpdateDecl =>
-            TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Mutable), classTable)
+            val returnTyp = TypeChecker.checkExpr(mthd.body, varEnv)((cls.toType, Mutable), classTable)
+            if (returnTyp._1 != Natives.UNIT_TYPE)
+              throw TypeException("return type is wrong: " + methodId)
         }
       }
 
@@ -39,6 +43,7 @@ object TypeChecker {
     case True => (Natives.BOOL_TYPE, Mutable)
     case False => (Natives.BOOL_TYPE, Mutable)
     case Str(s : String) => (Natives.STRING_TYPE, Mutable)
+    case UnitLiteral => (Natives.UNIT_TYPE, Mutable)
 
     case Var(id : VarId) => vars.getOrElse(id, throw TypeException("variable not declared: " + id))
     case Let(id : VarId, namedExpr : IRExpr, body : IRExpr) =>
@@ -56,97 +61,91 @@ object TypeChecker {
     case This =>
       thisType
 
-    case GetField(id : FieldId) =>
-      val cls = classTable.getOrElse(thisType._1.name, throw TypeException("class of 'this' not available: " + thisType))
+    case GetField(fieldId : FieldId) =>
+      val cls = classTable
+        .getOrElse(thisType._1.name, throw TypeException("class of 'this' not available: " + thisType))
+      val fieldDecl = cls
+        .getField(fieldId).getOrElse(throw TypeException("field not available: " + fieldId + s" (in class $thisType)"))
+      (fieldDecl.typ, thisType._2)
 
-      cls match {
-        case NativeClassDecl(name) => throw TypeException("native class has no fields: " + thisType)
-        case ObjectClassDecl(name, invariant, fields, methods) =>
-          val fieldDecl = fields.getOrElse(id, throw TypeException("field not available: " + id + s" (in class $thisType)"))
-          (fieldDecl.typ, thisType._2)
-      }
 
-    case SetField (id : FieldId, value : IRExpr) =>
+    case SetField (fieldId : FieldId, value : IRExpr) =>
       if (thisType._2 == Immutable)
         throw TypeException("assignment to immutable object: " + thisType)
 
       val valueType = checkExpr(value, vars)
-
       val cls = classTable.getOrElse(thisType._1.name, throw TypeException("class of 'this' not available: " + thisType))
+      val fieldDecl = cls.getField(fieldId).getOrElse(throw TypeException("field not available: " + fieldId + s" (in class $thisType)"))
+      if (valueType._1 != fieldDecl.typ)
+        throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: ${valueType._1})")
 
-      cls match {
-        case NativeClassDecl(name) => throw TypeException("native class has no fields: " + thisType)
-        case ObjectClassDecl(name, invariant, fields, methods) =>
-          val fieldDecl = fields.getOrElse(id, throw TypeException("field not available: " + id + s" (in class $thisType)"))
+      valueType
 
-          if (valueType._1 != fieldDecl.typ)
-            throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: ${valueType._1})")
 
-          valueType
-      }
 
-    case CallQuery(recv : IRExpr, mthd : MethodId, arguments : Seq[IRExpr] ) =>
-      val recvType = checkExpr(recv, vars)
-      val argTypes = arguments.map(argExpr => checkExpr(argExpr, vars))
-
-      val cls = classTable.getOrElse(recvType._1.name, throw TypeException("class not available: " + thisType))
-
-      cls match {
-        case NativeClassDecl(name) => throw TypeException("native class has no methods: " + thisType)
-        case ObjectClassDecl(name, invariant, fields, methods) =>
-          val methodDecl: MethodDecl = methods.getOrElse(mthd, throw TypeException("methods not available: " + mthd + s" (in class $thisType)"))
-
-          val queryDecl = methodDecl match {
-            case q : QueryDecl => q
-            case _ => throw TypeException(s"expected query method: $mthd")
-          }
-
-          if (argTypes.size != methodDecl.declaredParameters.size)
-            throw TypeException(s"wrong number of arguments for method $mthd: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
-
-          argTypes.zip(methodDecl.declaredParameterTypes).foreach(t => {
-            val argType = t._1._1
-            val expectedType = t._2
-            if (argType != expectedType)
-              throw TypeException(s"wrong argument type for method $mthd: $argType (expected: $expectedType)")
-          })
-
-          (queryDecl.returnTyp, Immutable)
-      }
-
-    case CallUpdate(recv : IRExpr, mthd : MethodId, arguments : Seq[IRExpr]) =>
+    case CallQuery(recv, methodId, arguments) =>
       val recvType = checkExpr(recv, vars)
 
-      if (recvType._2 == Immutable)
-        throw TypeException(s"cannot call update on immutable type: $mthd")
+      val mthdDecl = checkMethodCall(recvType, methodId, vars, arguments)
 
-      val argTypes = arguments.map(argExpr => checkExpr(argExpr, vars))
-
-      val cls = classTable.getOrElse(recvType._1.name, throw TypeException("class not available: " + thisType))
-
-      cls match {
-        case NativeClassDecl(name) => throw TypeException("native class has no methods: " + thisType)
-        case ObjectClassDecl(name, invariant, fields, methods) =>
-          val methodDecl : MethodDecl = methods.getOrElse(mthd, throw TypeException("methods not available: " + mthd + s" (in class $thisType)"))
-
-          val updateDecl = methodDecl match {
-            case u : UpdateDecl => u
-            case _ => throw TypeException(s"expected update method: $mthd")
-          }
-
-          if (argTypes.size != methodDecl.declaredParameters.size)
-            throw TypeException(s"wrong number of arguments for method $mthd: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
-
-          argTypes.zip(methodDecl.declaredParameterTypes).foreach(t => {
-            val argType = t._1._1
-            val expectedType = t._2
-            if (argType != expectedType)
-              throw TypeException(s"wrong argument type for method $mthd: $argType (expected: $expectedType)")
-          })
-
-          (Natives.INT_TYPE, Immutable)
+      val queryDecl = mthdDecl match {
+        case q : QueryDecl => q
+        case _ => throw TypeException(s"expected query method: $methodId")
       }
 
+      (queryDecl.returnTyp, Immutable)
+
+
+    case CallUpdateThis(methodId, arguments) =>
+      if (thisType._2 == Immutable)
+        throw TypeException(s"cannot call update on immutable type: $methodId")
+
+      val mthdDecl = checkMethodCall(thisType, methodId, vars, arguments)
+
+      val updateDecl = mthdDecl match {
+        case u : UpdateDecl => u
+        case _ => throw TypeException(s"expected update method: $methodId")
+      }
+
+      (Natives.UNIT_TYPE, Immutable)
+
+
+    case CallUpdateField(fieldId, methodId, arguments) =>
+      if (thisType._2 == Immutable)
+        throw TypeException(s"cannot call update on immutable type: $methodId")
+
+      val thisClass = classTable.getOrElse(thisType._1.name, throw TypeException("class not available: " + thisType))
+
+      val fieldDecl = thisClass.getField(fieldId).getOrElse(throw TypeException(s"field not available: $fieldId (in class ${thisClass.classId}) )"))
+
+      val mthdDecl = checkMethodCall((fieldDecl.typ, thisType._2), methodId, vars, arguments)
+
+      val updateDecl = mthdDecl match {
+        case u : UpdateDecl => u
+        case _ => throw TypeException(s"expected update method: $methodId")
+      }
+
+      (Natives.UNIT_TYPE, Immutable)
+  }
+
+  private def checkMethodCall(recvType : T, methodId : MethodId, vars : Map[VarId, T], arguments : Seq[IRExpr])(implicit thisType : (Type, M), classTable : Map[ClassId, ClassDecl]) : MethodDecl = {
+    val argTypes = arguments.map(argExpr => checkExpr(argExpr, vars))
+
+    val cls = classTable.getOrElse(recvType._1.name, throw TypeException("class not available: " + thisType))
+
+    val methodDecl : MethodDecl = cls.getMethod(methodId).getOrElse(throw TypeException("method not available: " + methodId + s" (in class $thisType)"))
+
+    if (argTypes.size != methodDecl.declaredParameters.size)
+      throw TypeException(s"wrong number of arguments for method $methodId: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
+
+    argTypes.zip(methodDecl.declaredParameterTypes).foreach(t => {
+      val argType = t._1._1
+      val expectedType = t._2
+      if (argType != expectedType)
+        throw TypeException(s"wrong argument type for method $methodId: $argType (expected: $expectedType)")
+    })
+
+    methodDecl
 
   }
 

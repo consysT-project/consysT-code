@@ -2,10 +2,10 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{BoolSort, Context, Expr, FuncDecl, Sort, TupleSort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.{IR, Natives}
-import de.tuda.consys.invariants.solver.next.ir.IR.{FieldId, IRExpr, MethodDecl, MethodId, NativeClassDecl, Num, ObjectClassDecl, ProgramDecl, QueryDecl, Type, UpdateDecl, VarId}
+import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, ClassTable, FieldId, IRExpr, MethodDecl, MethodId, NativeClassDecl, Num, ObjectClassDecl, ProgramDecl, QueryDecl, Type, UpdateDecl, VarId}
 import de.tuda.consys.invariants.solver.next.translate.TypeChecker.{Immutable, Mutable, TypeException, checkCls}
-import de.tuda.consys.invariants.solver.next.translate.TypeRep.{MethodTypeRep, NativeTypeRep, ObjectTypeRep, QueryMethodTypeRep, UpdateMethodTypeRep}
-import de.tuda.consys.invariants.solver.next.translate.ExpressionCompiler.{ObjectClassExpressionCompiler, UpdateBodyExpressionCompiler}
+import de.tuda.consys.invariants.solver.next.translate.ExpressionCompiler.{ClassExpressionCompiler, MutableClassExpressionCompiler}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{ClassRep, FieldRep, InvariantRep, MethodRep, NativeClassRep, ObjectClassRep, QueryMethodRep, UpdateMethodRep}
 import de.tuda.stg.consys.invariants.solver.subset.model.FieldModel
 import de.tuda.stg.consys.invariants.solver.subset.model.types.TypeModel
 import de.tuda.stg.consys.invariants.solver.subset.utils.{JDTUtils, Z3Utils}
@@ -15,30 +15,69 @@ import scala.collection.mutable
 class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 	def create() : Unit = {
+		implicit val ctx : Context = env.ctx
+		implicit val classTable : ClassTable = program.classTable
+
 		//0. Type check the expressions
-		for ((clsId, cls) <- program.classTable) {
-			checkCls(cls)(program.classTable)
+		for (classDecl <- program.classes) {
+			checkCls(classDecl)(program.classTable)
 		}
 
 		//1. Declare all types and create the type map
-		val typeMap = createTypeMap()
+		implicit val repTable : RepTable = createRepTable()
 
 		//2. Create invariant definition
-		for ((clsId, cls) <- program.classTable) {
-			cls match {
-				case ocls : ObjectClassDecl => parseInvariant(ocls, typeMap)
+		val invariantMapBuilder = Map.newBuilder[ClassId, InvariantRep]
+		for (classDecl <- program.classes) {
+			classDecl match {
+				case ocls : ObjectClassDecl =>
+					val invariantRep = parseInvariant(ocls)
+					invariantMapBuilder.addOne(classDecl.classId -> invariantRep)
+				case _ =>
+			}
+		}
+		val invariantMap = invariantMapBuilder.result()
+
+		//3. Create method definitions
+		for (classDecl <- program.classes) {
+			classDecl match {
+				case ocls : ObjectClassDecl =>
+					for ((methodId, methodDecl) <- ocls.methods) {
+						parseMethod(ocls, methodDecl)
+					}
 				case _ =>
 			}
 		}
 
-		//3. Create method definitions
-		for ((clsId, cls) <- program.classTable) {
-			cls match {
-				case ocls : ObjectClassDecl =>
-					for ((mthdId, mthd) <- ocls.methods) {
-						parseMethod(ocls, mthd, typeMap)
+
+		//4. Check properties
+		import env.ctx
+		for ((classId, typeRep) <- repTable) {
+			typeRep match {
+				case objTypeRep@ObjectClassRep(sort, accessors, methods) =>
+					for ((methodId, mthdRep) <- methods) {
+						mthdRep match {
+							case UpdateMethodRep(funcDecl) =>
+								val inv = invariantMap(classId).funcDecl
+								val arguments : Array[Expr[_]] = funcDecl.getDomain.map(sort => ctx.mkFreshConst("arg", sort))
+								val s0 = arguments(0)
+
+								val property = ctx.mkForall(
+									arguments,
+									ctx.mkImplies(
+										ctx.mkApp(inv, s0),
+										ctx.mkApp(inv, ctx.mkApp(funcDecl, arguments : _*))
+									),
+									1, null, null, null, null
+								)
+
+								val checkResult = env.solver.check(ctx.mkNot(property))
+								println(s"$classId.$methodId = $checkResult")
+
+							case QueryMethodRep(funcDecl) =>
+						}
 					}
-				case _ =>
+				case NativeClassRep(sort) =>
 			}
 		}
 
@@ -46,27 +85,31 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 	}
 
 
-	private def createTypeMap() : TypeMap = {
+	private def createRepTable() : RepTable = {
 		import env.ctx
 
-		trait ClassRep {
+		trait TempClassRep {
 			def sort : Sort
 		}
-		case class ObjectClassRep(override val sort : TupleSort,	accessors : Map[FieldId, FuncDecl[_]]) extends ClassRep
-		case class NativeClassRep(override val sort : Sort) extends ClassRep
+		case class TempObjectClassRep(override val sort : TupleSort,	accessors : Map[FieldId, FieldRep]) extends TempClassRep
+		case class TempNativeClassRep(override val sort : Sort) extends TempClassRep
 
 		// 1st iteration: Build the map with all datatypes for the classes
-		val classMap = mutable.Map.empty[Type, ClassRep]
-		for ((clsId, cls) <- program.classTable) {
-			cls match {
+		val tempRepMap = mutable.Map.empty[ClassId, TempClassRep]
+		for (classDecl <- program.classes) {
+			classDecl match {
 				case Natives.INT_CLASS =>
-					classMap.put(Type(cls.name), NativeClassRep(ctx.getIntSort))
+					tempRepMap.put(classDecl.classId, TempNativeClassRep(ctx.getIntSort))
 
 				case Natives.BOOL_CLASS =>
-					classMap.put(Type(cls.name), NativeClassRep(ctx.getBoolSort))
+					tempRepMap.put(classDecl.classId, TempNativeClassRep(ctx.getBoolSort))
 
 				case Natives.STRING_CLASS =>
-					classMap.put(Type(cls.name), NativeClassRep(ctx.getStringSort))
+					tempRepMap.put(classDecl.classId, TempNativeClassRep(ctx.getStringSort))
+
+				case Natives.UNIT_CLASS =>
+					val unitSort = ctx.mkTupleSort(ctx.mkSymbol("Unit"), Array(), Array())
+					tempRepMap.put(classDecl.classId, TempNativeClassRep(unitSort))
 
 				case ObjectClassDecl(name, invariant, fields, methods) =>
 					/* 1. Initialize the sort of the class. */
@@ -79,52 +122,52 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 					for (((fieldId, fieldDecl), i) <- fieldSeq.zipWithIndex) {
 						fieldNames(i) = ctx.mkSymbol(fieldId)
-						fieldSorts(i) = classMap.getOrElse(fieldDecl.typ, throw new ModelException("field type not available: " + fieldDecl)).sort
+						fieldSorts(i) = tempRepMap.getOrElse(fieldDecl.typ.name, throw new ModelException("field type not available: " + fieldDecl)).sort
 					}
 
-					val sortName = "Class$" + clsId
+					val sortName = "Class$" + classDecl.classId
 					val classSort = ctx.mkTupleSort(ctx.mkSymbol(sortName), fieldNames, fieldSorts)
 
 
 					// Create the field accessors for the class
-					val accessorBuilder = Map.newBuilder[FieldId, FuncDecl[_]]
+					val accessorBuilder = Map.newBuilder[FieldId, FieldRep]
 					val accessorArr = classSort.getFieldDecls
 					for (((fieldId, _), i) <- fieldSeq.zipWithIndex) {
-						accessorBuilder.addOne((fieldId, accessorArr(i)))
+						accessorBuilder.addOne(fieldId, FieldRep(accessorArr(i)))
 					}
 
-					val clsModel = ObjectClassRep(classSort, accessorBuilder.result())
-					classMap.put(Type(name), clsModel)
+					val clsModel = TempObjectClassRep(classSort, accessorBuilder.result())
+					tempRepMap.put(name, clsModel)
 			}
 		}
 
 		// 2nd iteration: Build the method declarations for each class
-		val methodMapBuilder = Map.newBuilder[Type, Map[MethodId, MethodTypeRep]]
-		for ((clsId, cls) <- program.classTable) {
-			cls match {
+		val methodMapBuilder = Map.newBuilder[ClassId, Map[MethodId, MethodRep]]
+		for (classDecl <- program.classes) {
+			classDecl match {
 				case NativeClassDecl(name) =>
 
 				case ObjectClassDecl(name, invariant, fields, methods) =>
-					val classMethodBuilder = Map.newBuilder[MethodId, MethodTypeRep]
-					for ((mthdId, mthd) <- methods) {
+					val classMethodBuilder = Map.newBuilder[MethodId, MethodRep]
+					for ((methodId, mthd) <- methods) {
 
 						//Add the receiver object to the Z3 function parameters
 						val declaredParameterTypes = mthd.declaredParameters.map(decl => decl.typ)
-						val actualParameterTypes = Seq(cls.toType) ++ declaredParameterTypes
-						val actualParameterSorts = actualParameterTypes.map(typ => classMap.getOrElse(typ, throw new UnknownTypeModelException(typ)).sort)
+						val actualParameterTypes = Seq(classDecl.toType) ++ declaredParameterTypes
+						val actualParameterSorts = actualParameterTypes.map(typ => tempRepMap.getOrElse(typ.name, throw new UnknownTypeModelException(typ)).sort)
 
 						mthd match {
 							case query@QueryDecl(name, parameters, returnTyp, body) =>
-								val returnSort = classMap.getOrElse(query.returnTyp, throw new UnknownTypeModelException(query.returnTyp)).sort
-								val mthdDecl = ctx.mkFuncDecl( cls.name + "$query$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
-								classMethodBuilder.addOne(mthdId, QueryMethodTypeRep(mthdDecl))
+								val returnSort = tempRepMap.getOrElse(query.returnTyp.name, throw new UnknownTypeModelException(query.returnTyp)).sort
+								val mthdDecl = ctx.mkFuncDecl( classDecl.classId + "$query$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
+								classMethodBuilder.addOne(methodId, QueryMethodRep(mthdDecl))
 							case UpdateDecl(name, parameters, body) =>
-								val returnSort = classMap.getOrElse(cls.toType, throw new UnknownTypeModelException(cls.toType)).sort
-								val mthdDecl = ctx.mkFuncDecl(cls.name + "$update$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
-								classMethodBuilder.addOne(mthdId, UpdateMethodTypeRep(mthdDecl))
+								val returnSort = tempRepMap.getOrElse(classDecl.toType.name, throw new UnknownTypeModelException(classDecl.toType)).sort
+								val mthdDecl = ctx.mkFuncDecl(classDecl.classId + "$update$" + mthd.name, actualParameterSorts.toArray[Sort], returnSort)
+								classMethodBuilder.addOne(methodId, UpdateMethodRep(mthdDecl))
 						}
 					}
-					methodMapBuilder.addOne(Type(name), classMethodBuilder.result())
+					methodMapBuilder.addOne(name, classMethodBuilder.result())
 			}
 		}
 
@@ -132,13 +175,13 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 
 		// 3rd: Combine class and method map to create the type map
-		val typeMapBuilder = Map.newBuilder[Type, TypeRep]
-		for ((typ, classRep) <- classMap) {
+		val typeMapBuilder = Map.newBuilder[ClassId, ClassRep]
+		for ((classId, classRep) <- tempRepMap) {
 			classRep match {
-				case NativeClassRep(sort) =>
-					typeMapBuilder.addOne(typ, NativeTypeRep(sort))
-				case ObjectClassRep(sort, accessors) =>
-					typeMapBuilder.addOne(typ, ObjectTypeRep(sort, accessors, methodMap.getOrElse(typ, Map())))
+				case TempNativeClassRep(sort) =>
+					typeMapBuilder.addOne(classId, NativeClassRep(sort))
+				case TempObjectClassRep(sort, accessors) =>
+					typeMapBuilder.addOne(classId, ObjectClassRep(sort, accessors, methodMap.getOrElse(classId, Map())))
 			}
 		}
 
@@ -146,29 +189,31 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 	}
 
-	private def parseMethod(cls : ObjectClassDecl, mthd : MethodDecl, typeMap : TypeMap) : Unit = {
-		import env.ctx
+	private def parseMethod(classDecl : ObjectClassDecl, methodDecl : MethodDecl)(implicit repTable : RepTable, classTable : ClassTable) : Unit = {
+		implicit val ctx : Context = env.ctx
 
-		val typeRep = typeMap.get(cls.toType) match {
-			case Some(x : ObjectTypeRep) => x
-			case _ => throw new ModelException("class not in type map or no object class: " + cls)
+		val typeRep = repTable.get(classDecl.classId) match {
+			case Some(x : ObjectClassRep) => x
+			case _ => throw new ModelException("class not in type map or no object class: " + classDecl)
 		}
 
-		val methodRep = typeRep.methods.getOrElse(mthd.name,
-			throw new ModelException("method not found: " + mthd))
+		val methodRep = typeRep.methods.getOrElse(methodDecl.name,
+			throw new ModelException("method not found: " + methodDecl))
 
 		val receiverExpr = ctx.mkFreshConst("s0", typeRep.sort)
 
-		val declaredArguments : Seq[Expr[_]] = mthd.declaredParameters.map(varDecl => {
-			val typeRep = typeMap.getOrElse(varDecl.typ, throw new ModelException("Unknown type: " + varDecl.typ))
+		val declaredArguments : Seq[Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
+			val typeRep = repTable.getOrElse(varDecl.typ.name, throw new ModelException("Unknown type: " + varDecl.typ))
 			ctx.mkFreshConst(varDecl.name, typeRep.sort)
 		})
 
-		val declaredArgumentsMap = mthd.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
+		val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
 
-		mthd match {
+		methodDecl match {
 			case QueryDecl(name, parameters, returnTyp, body) =>
-				val (bodyVal, bodyState) = new ObjectClassExpressionCompiler(ctx, typeMap).compile[TupleSort](mthd.body, declaredArgumentsMap, receiverExpr)
+				val (bodyVal, bodyState) =
+					new ClassExpressionCompiler(classDecl.classId)
+						.compile[TupleSort](methodDecl.body, declaredArgumentsMap, receiverExpr)
 
 				val methodDef = ctx.mkForall(
 					(Seq(receiverExpr) ++ declaredArguments).toArray,
@@ -183,7 +228,9 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 				env.solver.add(methodDef)
 
 			case UpdateDecl(name, parameters, body) =>
-				val (bodyVal, bodyState) = new UpdateBodyExpressionCompiler(ctx, typeMap).compile[TupleSort](mthd.body, declaredArgumentsMap, receiverExpr)
+				val (bodyVal, bodyState) =
+					new MutableClassExpressionCompiler(classDecl.classId)
+						.compile[TupleSort](methodDecl.body, declaredArgumentsMap, receiverExpr)
 
 				val methodDef = ctx.mkForall(
 					(Seq(receiverExpr) ++ declaredArguments).toArray,
@@ -199,17 +246,18 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 		}
 	}
 
-	private def parseInvariant(cls : ObjectClassDecl, typeMap : TypeMap) : FuncDecl[BoolSort] = {
-		import env.ctx
-		val typeRep = typeMap.get(cls.toType) match {
-			case Some(x : ObjectTypeRep) => x
-			case _ => throw new ModelException("class not in type map or no object class: " + cls)
+	private def parseInvariant(classDecl : ObjectClassDecl)(implicit repTable : RepTable, classTable : ClassTable) : InvariantRep = {
+		implicit val ctx : Context = env.ctx
+
+		val typeRep = repTable.get(classDecl.classId) match {
+			case Some(x : ObjectClassRep) => x
+			case _ => throw new ModelException("class not in type map or no object class: " + classDecl)
 		}
 
-		val invDecl = ctx.mkFuncDecl(cls.name + "$inv" , typeRep.sort, ctx.getBoolSort)
+		val invDecl = ctx.mkFuncDecl(classDecl.classId + "$inv" , typeRep.sort, ctx.getBoolSort)
 
 		val invArg = ctx.mkFreshConst("s0", typeRep.sort)
-		val (invExpr, invState) = new ObjectClassExpressionCompiler(ctx, typeMap).compile(cls.invariant, Map(), invArg)
+		val (invExpr, invState) = new ClassExpressionCompiler(classDecl.classId).compile(classDecl.invariant, Map(), invArg)
 
 		env.solver.add(
 			ctx.mkForall(Array(invArg),
@@ -222,7 +270,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 			)
 		)
 
-		invDecl
+		InvariantRep(invDecl)
 	}
 
 

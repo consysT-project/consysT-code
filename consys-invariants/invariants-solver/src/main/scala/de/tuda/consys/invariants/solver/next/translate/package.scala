@@ -1,14 +1,15 @@
 package de.tuda.consys.invariants.solver.next
 
 import com.microsoft.z3.Sort
-import de.tuda.consys.invariants.solver.next.ir.IR.Type
+import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, Type}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.ClassRep
 
 package object translate {
 
-	type TypeMap = Map[Type, TypeRep]
+	type RepTable = Map[ClassId, ClassRep]
 
-	def findRepInTypeMap(typeMap : TypeMap, sort : Sort) : Option[TypeRep] = {
-		typeMap.find(t => t._2.sort == sort).map(t => t._2)
+	def sortToClassRep(repTable : RepTable, sort : Sort) : Option[(ClassId, ClassRep)] = {
+		repTable.find(t => t._2.sort == sort)
 	}
 
 

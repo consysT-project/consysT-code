@@ -5,6 +5,7 @@ import de.tuda.consys.invariants.solver.next.translate.{ProgramModel, Z3Env}
 import de.tuda.stg.consys.logging.Logger
 
 import java.nio.file.{Path, Paths}
+import scala.collection.immutable.Seq
 
 object Exec {
 
@@ -37,7 +38,7 @@ object Exec {
 	def main(args : Array[String]) : Unit = {
 		import ir.IR._
 
-		val cls = ObjectClassDecl(
+		val boxCls = ObjectClassDecl(
 			"Box",
 			Equals(GetField("value"), Num(0)),
 			Map(
@@ -45,14 +46,19 @@ object Exec {
 				"name" -> FieldDecl("name", Type("String"))
 			),
 			Map(
-				"foo" -> UpdateDecl("foo", Seq(VarDecl("x", Type("Int"))),
+				"setVal" -> UpdateDecl("setVal", Seq(VarDecl("x", Type("Int"))),
 					Let("a0", SetField("value", Var("x")),
-						Num(0)
+						UnitLiteral
 					)
 				),
 				"foo2" -> UpdateDecl("foo2", Seq(),
-					Let("a0", CallUpdate(This, "foo", Seq(Num(42))),
-						Num(0)
+					Let("a0", CallUpdateThis("setVal", Seq(Num(42))),
+						UnitLiteral
+					)
+				),
+				"foo3" -> UpdateDecl("foo3", Seq(),
+					Let("a0", CallUpdateThis("setVal", Seq(Num(0))),
+						UnitLiteral
 					)
 				),
 				"getVal" -> QueryDecl("getVal", Seq(), Type("Int"), GetField("value")),
@@ -60,11 +66,26 @@ object Exec {
 			)
 		)
 
+		val box2Cls = ObjectClassDecl(
+			"Box2",
+			Equals(CallQuery(GetField("box"), "getVal", Seq()), Num(0)),
+			Map(
+				"box" -> FieldDecl("box", Type("Box"))
+			),
+			Map(
+				"setVal" -> UpdateDecl("setVal", Seq(VarDecl("x", Type("Int"))),
+					CallUpdateField("box", "setVal", Seq(Num(3)))
+				)
+			)
+		)
+
 		val prog = ProgramDecl(Map(
 			"Int" -> Natives.INT_CLASS,
 			"Bool" -> Natives.BOOL_CLASS,
 			"String" -> Natives.STRING_CLASS,
-			"Box" -> cls
+			"Unit" -> Natives.UNIT_CLASS,
+			"Box" -> boxCls,
+			"Box2" -> box2Cls
 		))
 
 		val env = new Z3Env()
