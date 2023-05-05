@@ -39,7 +39,7 @@ python3 ../process-results.py artifact-processed.csv \
  benchmark/message-groups/strong/:100
 
 # Generate and show the graphs
-python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
+python3 ../generate-graphs.py latency_artifact-processed.csv artifact-normalized.csv \
  benchmark/message-groups/weak/:benchmark/message-groups/op_mixed/ \
  benchmark/message-groups/mixed/:benchmark/message-groups/op_mixed/ \
  benchmark/message-groups/strong/:benchmark/message-groups/op_mixed/

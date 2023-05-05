@@ -39,7 +39,7 @@ python3 ../process-results.py artifact-processed.csv \
  benchmark/counter/strong/:100
 
 # Generate and show the graphs
-python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
+python3 ../generate-graphs.py latency_artifact-processed.csv artifact-normalized.csv \
  benchmark/counter/weak/:benchmark/counter/op_mixed/ \
  benchmark/counter/mixed/:benchmark/counter/op_mixed/ \
  benchmark/counter/strong/:benchmark/counter/op_mixed/

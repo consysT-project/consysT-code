@@ -12,15 +12,15 @@ rm -rf /home/$VM_USER/Desktop/$ANONYMOUS_NAME-code
 
 echo "Getting repository"
 
-cd /home/$VM_USER/Desktop || exit
+cd /home/$VM_USER/Desktop
 sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
-cd /home/$VM_USER/Desktop/consysT-code || exit
+cd /home/$VM_USER/Desktop/consysT-code
 sudo -u $VM_USER git checkout vm  #TODO
 
 
 echo "Installing Zookeeper"
 
-cd /home/$VM_USER || exit
+cd /home/$VM_USER
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
 cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
@@ -37,9 +37,9 @@ cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server4/
 
 echo "Anonymizing repository"
 
-cd /home/$VM_USER/Desktop || exit
+cd /home/$VM_USER/Desktop
 mv consysT-code ${ANONYMOUS_NAME}-code
-cd /home/$VM_USER/Desktop/${ANONYMOUS_NAME}-code || exit
+cd /home/$VM_USER/Desktop/${ANONYMOUS_NAME}-code
 
 git grep -lz '' | xargs -0 sed -i -e "s/consysT/${ANONYMOUS_NAME}/g"
 git grep -lz '' | xargs -0 sed -i -e "s/consys/${ANONYMOUS_NAME}/g"

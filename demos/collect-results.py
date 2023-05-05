@@ -9,7 +9,7 @@ destination = sys.argv[2] if sys.argv[2].startswith("/") else working_dir + "/" 
 print("Collecting from " + source + " into " + destination)
 
 for configuration in os.listdir(source):
-    config_source = working_dir + "/" + configuration
+    config_source = source + "/" + configuration
     if not os.path.isdir(config_source):
         continue
 
@@ -17,13 +17,13 @@ for configuration in os.listdir(source):
 
     config_destination = destination + "/" + configuration + "/"
 
-    timestamps = sorted(map(lambda x: os.path.isdir(x), os.listdir(config_source)))
+    timestamps = sorted(filter(lambda x: os.path.isdir(config_source + "/" + x), os.listdir(config_source)))
     if not timestamps:
         print("no timestamps found in: " + config_source)
         continue
 
     files_dir = config_source + "/" + timestamps[-1]
-    files = map(lambda x: not os.path.isdir(x), os.listdir(files_dir))
+    files = list(filter(lambda x: not os.path.isdir(files_dir + "/" + x), os.listdir(files_dir)))
     if not files:
         print("source directory empty: " + files_dir)
         continue

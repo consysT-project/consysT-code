@@ -43,7 +43,7 @@ python3 ../process-results.py artifact-processed.csv \
  benchmark/quoddy/datacentric_mixed_in_opcentric_impl/:100
 
 # Generate and show the graphs
-python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
+python3 ../generate-graphs.py latency_artifact-processed.csv artifact-normalized.csv \
  benchmark/quoddy/weak/:benchmark/quoddy/op_mixed/ \
  benchmark/quoddy/strong/:benchmark/quoddy/op_mixed/ \
  benchmark/quoddy/weak_datacentric/:benchmark/quoddy/op_mixed/ \

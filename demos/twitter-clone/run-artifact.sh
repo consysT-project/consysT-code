@@ -43,7 +43,7 @@ python3 ../process-results.py artifact-processed.csv \
  benchmark/twitter-clone/datacentric_mixed_in_opcentric_impl/:100
 
 # Generate and show the graphs
-python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
+python3 ../generate-graphs.py latency_artifact-processed.csv artifact-normalized.csv \
  benchmark/twitter-clone/weak/:benchmark/twitter-clone/op_mixed/ \
  benchmark/twitter-clone/strong/:benchmark/twitter-clone/op_mixed/ \
  benchmark/twitter-clone/weak_datacentric/:benchmark/twitter-clone/op_mixed/ \

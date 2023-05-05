@@ -41,7 +41,7 @@ python3 ../process-results.py artifact-processed.csv \
  benchmark/rubis/strong_datacentric/:100
 
 # Generate and show the graphs
-python3 ../generate-graphs.py artifact-processed.csv artifact-normalized.csv \
+python3 ../generate-graphs.py latency_artifact-processed.csv artifact-normalized.csv \
  benchmark/rubis/weak/:benchmark/rubis/op_mixed/ \
  benchmark/rubis/strong/:benchmark/rubis/op_mixed/ \
  benchmark/rubis/weak_datacentric/:benchmark/rubis/op_mixed/ \
