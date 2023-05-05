@@ -23,7 +23,7 @@ object ExpressionCompiler {
 			case Str(s) => (ctx.mkString(s), s0)
 			case UnitLiteral =>
 				val unitRep = repTable.getOrElse("Unit", CompileErrors.classNotFound("Unit"))
-				(ctx.mkConst("unit", unitRep.sort), s0)
+				(ctx.mkConst("unit", unitRep.sortFactory.apply(Seq())), s0)
 
 			case Var(x) => (vars.getOrElse(x, CompileErrors.varNotFound(x)), s0)
 
@@ -122,14 +122,15 @@ object ExpressionCompiler {
 				val methodRep = classRep.getMethod(methodId)
 					.getOrElse(CompileErrors.methodNotFound(classId, methodId))
 
-				methodRep match {
-					case UpdateMethodRep(funcDecl) =>
-						val actualArguments = Seq(s1) ++ declaredArguments
-						val mthdApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
-						val unitRep = repTable.getOrElse("Unit", CompileErrors.classNotFound("Unit"))
-						(ctx.mkConst("unit", unitRep.sort), mthdApp.asInstanceOf[Z3Expr[S]])
-					case _ => throw new CompileException("method is not an update: " + methodId)
-				}
+//				methodRep match {
+//					case UpdateMethodRep(funcDecl) =>
+//						val actualArguments = Seq(s1) ++ declaredArguments
+//						val mthdApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
+//						val unitRep = repTable.getOrElse("Unit", CompileErrors.classNotFound("Unit"))
+//						(ctx.mkConst("unit", unitRep.sortFactory), mthdApp.asInstanceOf[Z3Expr[S]])
+//					case _ => throw new CompileException("method is not an update: " + methodId)
+//				}
+			???
 
 
 			case CallUpdateField(fieldId, methodId, arguments) =>
@@ -150,22 +151,23 @@ object ExpressionCompiler {
 					.getOrElse(classId, CompileErrors.classNotFound(classId))
 					.getField(fieldId).getOrElse(CompileErrors.fieldNotFound(classId, fieldId))
 
-				val fieldClassRep = repTable
-					.getOrElse(fieldDecl.typ.name, CompileErrors.classNotFound(fieldDecl.typ.name))
+//				val fieldClassRep = repTable
+//					.getOrElse(fieldDecl.typ.name, CompileErrors.classNotFound(fieldDecl.typ.name))
+//
+//				val methodRep = fieldClassRep
+//					.getMethod(methodId).getOrElse(CompileErrors.methodNotFound(fieldDecl.typ.name, methodId))
+//
+//				methodRep match {
+//					case UpdateMethodRep(funcDecl) =>
+//						val actualArguments = Seq(ctx.mkApp(fieldRep.funcDecl, s1)) ++ declaredArguments
+//						val methodApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
+//						val updateField = ctx.mkUpdateField(fieldRep.funcDecl.asInstanceOf[FuncDecl[Sort]], s1, methodApp.asInstanceOf[Z3Expr[Sort]])
+//						val unitRep = repTable.getOrElse("Unit", CompileErrors.classNotFound("Unit"))
+//						(ctx.mkConst("unit", unitRep.sortFactory), updateField)
+//					case _ => throw new CompileException("method is not an update: " + methodId)
+//				}
 
-				val methodRep = fieldClassRep
-					.getMethod(methodId).getOrElse(CompileErrors.methodNotFound(fieldDecl.typ.name, methodId))
-
-				methodRep match {
-					case UpdateMethodRep(funcDecl) =>
-						val actualArguments = Seq(ctx.mkApp(fieldRep.funcDecl, s1)) ++ declaredArguments
-						val methodApp = ctx.mkApp(funcDecl, actualArguments.toArray : _*)
-						val updateField = ctx.mkUpdateField(fieldRep.funcDecl.asInstanceOf[FuncDecl[Sort]], s1, methodApp.asInstanceOf[Z3Expr[Sort]])
-						val unitRep = repTable.getOrElse("Unit", CompileErrors.classNotFound("Unit"))
-						(ctx.mkConst("unit", unitRep.sort), updateField)
-					case _ => throw new CompileException("method is not an update: " + methodId)
-				}
-
+			???
 
 			case _ => super.compile(expr, vars, s0)
 		}

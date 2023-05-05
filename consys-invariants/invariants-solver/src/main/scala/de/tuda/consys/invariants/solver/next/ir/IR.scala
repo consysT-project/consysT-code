@@ -14,6 +14,7 @@ object IR {
 	type ClassId = String
 	type MethodId = String
 	type VarId = String
+	type TypeVarId = String
 
 	case class FieldDecl(name : FieldId, typ : Type)
 	case class VarDecl(name : VarId, typ : Type)
@@ -29,7 +30,7 @@ object IR {
 	}
 
 	trait NativeMethodDecl extends MethodDecl {
-		def impl : (Context, Expr[_], Seq[Expr[_]]) => Expr[_]
+		def impl : (Context, Expr[_ <: Sort], Seq[Expr[_ <: Sort]]) => Expr[_ <: Sort]
 	}
 
 	trait QueryMethodDecl extends MethodDecl {
@@ -41,10 +42,10 @@ object IR {
 	}
 
 	case class ObjectQueryMethodDecl(
-		override val name : MethodId,
-		override val declaredParameters : Seq[VarDecl],
-		override val returnTyp : Type ,
-		override val body : IRExpr
+																		override val name : MethodId,
+																		override val declaredParameters : Seq[VarDecl],
+																		override val returnTyp : Type,
+																		override val body : IRExpr
 	) extends ObjectMethodDecl with QueryMethodDecl
 
 	case class ObjectUpdateMethodDecl(
@@ -54,23 +55,33 @@ object IR {
 	) extends ObjectMethodDecl with UpdateMethodDecl
 
 	case class NativeQueryMethodDecl(
-		override val name : MethodId,
-		override val declaredParameters : Seq[VarDecl],
-		override val returnTyp : Type,
-		override val impl : (Context, Expr[_], Seq[Expr[_]]) => Expr[_]
+																		override val name : MethodId,
+																		override val declaredParameters : Seq[VarDecl],
+																		override val returnTyp : Type,
+																		override val impl : (Context, Expr[_ <: Sort], Seq[Expr[_ <: Sort]]) => Expr[_ <: Sort]
 	) extends NativeMethodDecl with QueryMethodDecl
 
 	trait ClassDecl[MDecl <: MethodDecl] {
 		def classId : ClassId
+		def typeParameters : Seq[TypeVar]
 		def methods : Map[MethodId, MDecl]
-		lazy val toType : Type = Type(classId)
 
 		def getField(fieldId : FieldId) : Option[FieldDecl]
 		def getMethod(methodId : MethodId) : Option[MDecl]
+
+		lazy val asType : ClassType =
+			ClassType(classId, typeParameters)
+
+		def toType(typeArgs : Seq[Type]) : ClassType = {
+			require(typeArgs.length == typeParameters.length)
+			ClassType(classId, typeArgs)
+		}
+
 	}
 
 	case class ObjectClassDecl(
 		override val classId : ClassId,
+		override val typeParameters : Seq[TypeVar],
 		invariant : IRExpr,
 		fields : Map[FieldId, FieldDecl],
 		override val methods : Map[MethodId, ObjectMethodDecl]
@@ -84,7 +95,8 @@ object IR {
 
 	case class NativeClassDecl(
 		override val classId : ClassId,
-		val sortImpl : Context => Sort,
+		override val typeParameters : Seq[TypeVar],
+		sortImpl : (Context, Seq[Sort]) => Sort,
 		override val methods : Map[MethodId, NativeMethodDecl]
 	) extends ClassDecl[NativeMethodDecl] {
 
@@ -93,10 +105,12 @@ object IR {
 			methods.get(methodId)
 	}
 
-	case class Type(name : ClassId)
+	trait Type
+	case class TypeVar(typeVarId: TypeVarId) extends Type
+	case class ClassType(classId : ClassId, typeArguments : Seq[Type]) extends Type
+
 
 	trait IRExpr
-
 	trait IRLiteral extends IRExpr
 	case class Num(n : Int) extends IRLiteral
 	case object True extends IRLiteral
@@ -134,15 +148,23 @@ object IR {
 		lazy val classes : Iterable[ClassDecl[_ <: MethodDecl]] = makeClassTableIterable
 
 		private def makeClassTableIterable : Iterable[ClassDecl[_ <: MethodDecl]] = {
+
+			def classesInType(typ : Type) : Set[ClassId] = typ match {
+				case TypeVar(typeVarId) => Set()
+				case ClassType(classId, typeArguments) =>
+					Set(classId) ++ typeArguments.foldLeft(Set.empty[ClassId])((set, typArg) => set ++ classesInType(typArg))
+			}
+
+
 			val classDecls = classTable.values
 			val classDependenciesBuilder = Map.newBuilder[ClassId, Set[ClassId]]
 
 			for (classDecl <- classDecls) {
 				classDecl match {
-					case NativeClassDecl(name, sort, methods) =>
+					case NativeClassDecl(name, typeParameters, sort, methods) =>
 						classDependenciesBuilder.addOne(name, Set())
-					case ObjectClassDecl(name, invariant, fields, methods) =>
-						val dependencies = fields.values.map(decl => decl.typ.name).toSet
+					case ObjectClassDecl(name, typeParameters, invariant, fields, methods) =>
+						val dependencies : Set[ClassId] = fields.values.flatMap(decl => classesInType(decl.typ)).toSet
 						classDependenciesBuilder.addOne(name, dependencies)
 				}
 			}

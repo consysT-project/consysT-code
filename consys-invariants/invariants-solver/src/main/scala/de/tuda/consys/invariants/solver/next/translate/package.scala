@@ -9,7 +9,7 @@ package object translate {
 	type RepTable = Map[ClassId, ClassRep]
 
 	def sortToClassRep(repTable : RepTable, sort : Sort) : Option[(ClassId, ClassRep)] = {
-		repTable.find(t => t._2.sort == sort)
+		repTable.find(t => t._2.sortFactory == sort)
 	}
 
 
