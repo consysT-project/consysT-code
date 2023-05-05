@@ -3,6 +3,7 @@
 VM_USER='eval'
 ANONYMOUS_NAME='canopy'
 
+set -e
 
 echo "Removing old repository"
 
@@ -22,16 +23,16 @@ echo "Installing Zookeeper"
 cd /home/$VM_USER || exit
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server2/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server2/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server3/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server3/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server4/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server4/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
 
 
 echo "Anonymizing repository"

@@ -3,14 +3,15 @@
 VM_USER='eval'
 ANONYMOUS_NAME='canopy'
 
+set -e
 
 echo "Getting repository"
 
 apt install git -y
 
-cd /home/$VM_USER/Desktop || exit
+cd /home/$VM_USER/Desktop
 sudo -u $VM_USER git clone https://github.com/consysT-project/consysT-code.git
-cd /home/$VM_USER/Desktop/consysT-code || exit
+cd /home/$VM_USER/Desktop/consysT-code
 sudo -u $VM_USER git checkout vm  #TODO
 
 
@@ -20,14 +21,21 @@ echo "Installing Java"
 apt install openjdk-11-jdk-headless -y
 
 
+echo "Installing python dependencies"
+
+sudo -u $VM_USER pip install pandas==1.4.4
+sudo -u $VM_USER pip install plotly==5.10.0
+sudo -u $VM_USER pip install numpy==1.23.2
+sudo -u $VM_USER pip install scipy=1.9.1
+
+
 echo "Installing Cassandra"
 
 apt install python3-pip -y
 sudo -u $VM_USER pip install ccm
-sudo -u $VM_USER source /home/$VM_USER/.profile  #TODO
 
-sudo -u $VM_USER ccm create eval -v 4.0.3
-sudo -u $VM_USER ccm populate -n 4
+sudo -u $VM_USER /home/$VM_USER/.local/bin/ccm create eval -v 4.0.3
+sudo -u $VM_USER /home/$VM_USER/.local/bin/ccm populate -n 4
 
 sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node1/conf/cassandra.yaml
 sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 100/g" /home/$VM_USER/.ccm/eval/node2/conf/cassandra.yaml
@@ -37,35 +45,37 @@ sed -i "s/batch_size_fail_threshold_in_kb: 50/batch_size_fail_threshold_in_kb: 1
 
 echo "Installing Zookeeper"
 
-cd /home/$VM_USER || exit
+cd /home/$VM_USER
 wget https://dlcdn.apache.org/zookeeper/zookeeper-3.6.4/apache-zookeeper-3.6.4-bin.tar.gz
 tar -xf apache-zookeeper-3.6.4-bin.tar.gz -C /opt/
 rm apache-zookeeper-3.6.4-bin.tar.gz
 chown -R eval:eval /opt/apache-zookeeper-3.6.4-bin
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server2
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server2/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server2/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server2/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server3
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server3/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server3/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server3/zoo.cfg
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server4
-cp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server4/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
+cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server4/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server4/zoo.cfg
 
 
 echo "Installing scripts"
 
-cp -r /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/scripts/. /home/$VM_USER/.local/bin/.
+cp -rp /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/scripts/. /home/$VM_USER/.local/bin/.
 
 
 echo "Anonymizing repository"
 
-cd /home/$VM_USER/Desktop || exit
+apt install rename -y
+
+cd /home/$VM_USER/Desktop
 mv consysT-code ${ANONYMOUS_NAME}-code
-cd /home/$VM_USER/Desktop/${ANONYMOUS_NAME}-code || exit
+cd /home/$VM_USER/Desktop/${ANONYMOUS_NAME}-code
 
 git grep -lz '' | xargs -0 sed -i -e "s/consysT/${ANONYMOUS_NAME}/g"
 git grep -lz '' | xargs -0 sed -i -e "s/consys/${ANONYMOUS_NAME}/g"
@@ -88,14 +98,6 @@ echo "Compiling code"
 apt install maven -y
 
 sudo -u $VM_USER mvn package --projects demos/counter,demos/twitter-clone,demos/message-groups,demos/rubis,demos/quoddy --also-make
-
-
-echo "Installing python dependencies"
-
-sudo -u $VM_USER pip install pandas==1.4.4
-sudo -u $VM_USER pip install plotly==5.10.0
-sudo -u $VM_USER pip install numpy==1.23.2
-sudo -u $VM_USER pip install scipy=1.9.1
 
 
 echo "Cleaning up"
