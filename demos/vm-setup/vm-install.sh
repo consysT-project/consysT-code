@@ -98,8 +98,3 @@ echo "Compiling code"
 apt install maven -y
 
 sudo -u $VM_USER mvn package --projects demos/counter,demos/twitter-clone,demos/message-groups,demos/rubis,demos/quoddy --also-make
-
-
-echo "Cleaning up"
-
-history -c
