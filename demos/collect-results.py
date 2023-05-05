@@ -3,33 +3,36 @@ import os
 import sys
 
 working_dir = os.getcwd()
-source = working_dir + "/" + sys.argv[1]
-destination = working_dir + "/" + sys.argv[2]
+source = sys.argv[1] if sys.argv[1].startswith("/") else working_dir + "/" + sys.argv[1]
+destination = sys.argv[2] if sys.argv[2].startswith("/") else working_dir + "/" + sys.argv[2]
 
 print("Collecting from " + source + " into " + destination)
 
 for configuration in os.listdir(source):
-    local_path = working_dir + "/" + configuration
-    if not os.path.isdir(local_path):
+    config_source = working_dir + "/" + configuration
+    if not os.path.isdir(config_source):
         continue
 
-    print("Found run configuration: " + local_path)
+    print("Found benchmark configuration: " + config_source)
 
-    src = local_path + "/" + sorted(os.listdir(local_path))[-1]
-    dst = destination + "/" + configuration + "/"
+    config_destination = destination + "/" + configuration + "/"
 
-    if not os.path.isdir(src):
-        print("source directory does not exist: " + src)
+    timestamps = sorted(map(lambda x: os.path.isdir(x), os.listdir(config_source)))
+    if not timestamps:
+        print("no timestamps found in: " + config_source)
+        continue
+
+    files_dir = config_source + "/" + timestamps[-1]
+    files = map(lambda x: not os.path.isdir(x), os.listdir(files_dir))
+    if not files:
+        print("source directory empty: " + files_dir)
+        continue
+
+    if len(files) != 8:  # TODO: combine directories if necessary
+        print("files missing in: " + files_dir)
     else:
-        files = os.listdir(src)
-        if not files:
-            print("source directory empty: " + src)
-        else:
-            if len(files) != 8:  # TODO: combine directories if necessary
-                print("files missing in: " + src)
-            else:
-                if os.path.isdir(dst):
-                    shutil.rmtree(dst)
-                shutil.copytree(src, dst)
+        if os.path.isdir(config_destination):
+            shutil.rmtree(config_destination)
+        shutil.copytree(files_dir, config_destination)
 
 print("Done collecting results")

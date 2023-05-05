@@ -96,3 +96,8 @@ sudo -u $VM_USER pip install pandas==1.4.4
 sudo -u $VM_USER pip install plotly==5.10.0
 sudo -u $VM_USER pip install numpy==1.23.2
 sudo -u $VM_USER pip install scipy=1.9.1
+
+
+echo "Cleaning up"
+
+history -c
