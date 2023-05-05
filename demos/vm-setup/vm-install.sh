@@ -17,11 +17,12 @@ sudo -u $VM_USER git checkout vm  #TODO
 
 echo "Installing Java"
 
-#apt install default-jre -y
 apt install openjdk-11-jdk-headless -y
 
 
 echo "Installing python dependencies"
+
+apt install python3-pip -y
 
 sudo -u $VM_USER pip install pandas==1.4.4
 sudo -u $VM_USER pip install plotly==5.10.0
@@ -31,7 +32,6 @@ sudo -u $VM_USER pip install scipy=1.9.1
 
 echo "Installing Cassandra"
 
-apt install python3-pip -y
 sudo -u $VM_USER pip install ccm
 
 sudo -u $VM_USER /home/$VM_USER/.local/bin/ccm create eval -v 4.0.3
