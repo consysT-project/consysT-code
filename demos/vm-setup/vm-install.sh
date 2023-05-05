@@ -49,7 +49,7 @@ cd /home/$VM_USER
 wget https://dlcdn.apache.org/zookeeper/zookeeper-3.6.4/apache-zookeeper-3.6.4-bin.tar.gz
 tar -xf apache-zookeeper-3.6.4-bin.tar.gz -C /opt/
 rm apache-zookeeper-3.6.4-bin.tar.gz
-chown -R eval:eval /opt/apache-zookeeper-3.6.4-bin
+chown -R $VM_USER:$VM_USER /opt/apache-zookeeper-3.6.4-bin
 
 sudo -u $VM_USER mkdir -p /opt/apache-zookeeper-3.6.4-bin/conf/server1
 cp -p /home/$VM_USER/Desktop/consysT-code/demos/vm-setup/zookeeper/conf/server1/zoo.cfg /opt/apache-zookeeper-3.6.4-bin/conf/server1/zoo.cfg
