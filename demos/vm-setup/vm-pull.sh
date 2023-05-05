@@ -1,6 +1,6 @@
 #! /bin/bash
 
-VM_USER='eval'
+VM_USER='demo'
 ANONYMOUS_NAME='canopy'
 
 set -e
