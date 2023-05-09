@@ -2,7 +2,7 @@ package de.tuda.consys.invariants.solver.next
 
 import de.tuda.consys.invariants.solver.next.ir.IR.{ProgramDecl, SetField}
 import de.tuda.consys.invariants.solver.next.ir.Natives
-import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, STRING_TYPE}
+import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, SET_CLASS, STRING_TYPE}
 import de.tuda.consys.invariants.solver.next.translate.{ProgramModel, Z3Env}
 import de.tuda.stg.consys.logging.Logger
 
@@ -145,6 +145,20 @@ object Exec {
 			)
 		)
 
+		val nameCls = ObjectClassDecl(
+			"Name",
+			Seq(),
+			True,
+			Map(
+				"value" -> FieldDecl("value", STRING_TYPE)
+			),
+			Map(
+				"getValue" -> ObjectQueryMethodDecl("getValue", Seq(), STRING_TYPE,
+					GetField("value")
+				)
+			)
+		)
+
 
 		ProgramDecl(Map(
 			"Int" -> Natives.INT_CLASS,
@@ -153,7 +167,8 @@ object Exec {
 			"Unit" -> Natives.UNIT_CLASS,
 			"Set" -> Natives.SET_CLASS,
 			"Box" -> boxCls,
-			"User" -> userCls
+			"User" -> userCls,
+			"Name" -> nameCls
 		))
 	}
 

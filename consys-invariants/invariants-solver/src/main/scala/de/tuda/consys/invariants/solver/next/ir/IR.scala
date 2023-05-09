@@ -22,7 +22,9 @@ object IR {
 	trait MethodDecl {
 		def name : MethodId
 		def declaredParameters : Seq[VarDecl]
-		def declaredParameterTypes : Seq[Type] = declaredParameters.map(varDecl => varDecl.typ)
+
+		def declaredParameterTypes : Seq[Type] =
+			declaredParameters.map(varDecl => varDecl.typ)
 	}
 
 	trait ObjectMethodDecl extends MethodDecl {
@@ -76,6 +78,9 @@ object IR {
 			require(typeArgs.length == typeParameters.length)
 			ClassType(classId, typeArgs)
 		}
+
+		def typeParametersMapTo[A](others : Seq[A]) : Map[TypeVarId, A] =
+			typeParameters.map(typeVar => typeVar.typeVarId).zip(others).toMap
 
 	}
 

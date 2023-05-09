@@ -1,7 +1,8 @@
-package de.tuda.consys.invariants.solver.next.translate
+package de.tuda.consys.invariants.solver.next.translate.types
 
 import de.tuda.consys.invariants.solver.next.ir.IR._
 import de.tuda.consys.invariants.solver.next.ir.Natives
+import de.tuda.consys.invariants.solver.next.translate.types.Types.resolveType
 
 object TypeChecker {
 
@@ -10,9 +11,11 @@ object TypeChecker {
   trait M {
     def union(other : M) : M
   }
+
   case object Immutable extends M {
     override def union(other : M) : M = other
   }
+
   case object Mutable extends M {
     override def union(other : M) : M = Mutable
   }
@@ -21,11 +24,7 @@ object TypeChecker {
   type TypeEnv = Map[TypeVarId, Type]
 
 
-  def resolveType(typ : Type, typeVars : TypeEnv) : Type = typ match {
-    case TypeVar(x) => typeVars.getOrElse(x, throw TypeException(s"type variable not declared: " + x))
-    case ClassType(classId, typeArgs) =>
-      ClassType(classId, typeArgs.map(arg => resolveType(arg, typeVars)))
-  }
+
 
   def checkClass(classDecl : ClassDecl[_])(implicit classTable : ClassTable) : Unit = classDecl match {
     case ObjectClassDecl(name, typeParameters, invariant, fields, methods) =>
@@ -49,7 +48,7 @@ object TypeChecker {
       }
 
     case NativeClassDecl(name, typeVars, sort, methods) =>
-      // Native classes are expected to be fine
+    // Native classes are expected to be fine
   }
 
 
@@ -103,7 +102,7 @@ object TypeChecker {
       fieldDecl.typ
 
 
-    case SetField (fieldId : FieldId, value : IRExpr) =>
+    case SetField(fieldId : FieldId, value : IRExpr) =>
       if (mutableContext != Mutable) throw TypeException("assignment in immutable context: " + thisType)
 
       val valueType = typeOfExpr(value, vars)
@@ -113,7 +112,6 @@ object TypeChecker {
         throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: ${valueType})")
 
       valueType
-
 
 
     case CallQuery(recv, methodId, arguments) =>
@@ -133,8 +131,6 @@ object TypeChecker {
 
         case _ => throw TypeException(s"receiver not a class type: " + recv)
       }
-
-
 
 
     case CallUpdateThis(methodId, arguments) =>
