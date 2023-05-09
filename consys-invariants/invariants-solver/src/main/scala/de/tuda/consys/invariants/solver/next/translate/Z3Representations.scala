@@ -10,8 +10,9 @@ object Z3Representations {
 
 	type RepTable = Map[ClassId, ParametrizedClassRep[_]]
 
-	class CachedMap[A, B](f : A => B) extends (A => B) {
+	class CachedMap[A, B](f : A => B, entries : Map[A, B] = Map.empty) extends (A => B) {
 		private val cache : mutable.Map[A, B] = mutable.Map.empty
+		cache.addAll(entries)
 
 		override def apply(v1 : A) : B =
 			cache.getOrElseUpdate(v1, f(v1))
@@ -21,7 +22,6 @@ object Z3Representations {
 
 	trait ParametrizedClassRep[Inst <: InstantiatedClassRep] {
 		def instances : CachedMap[Seq[Sort], Inst]
-		def typeParameters : Seq[TypeVarId]
 	}
 
 	trait InstantiatedClassRep {
@@ -33,7 +33,6 @@ object Z3Representations {
 
 	class ParametrizedObjectClassRep(
 		override val instances : CachedMap[Seq[Sort], InstantiatedObjectClassRep],
-		override val typeParameters : Seq[TypeVarId]
 	) extends ParametrizedClassRep[InstantiatedObjectClassRep] {
 
 	}
@@ -49,25 +48,6 @@ object Z3Representations {
 		override def getMethod(methodId : MethodId) : Option[MethodRep] =
 			methods.get(methodId)
 	}
-
-//	case class ObjectClassRep(
-//		 sort : CachedFun[Seq[Sort], TupleSort],
-//		 fields : Map[FieldId, FieldRep],
-//		 override val methods : Map[MethodId, MethodRep]
-//	) extends ClassRep {
-//		override val typeParameters : Map[TypeVarId, Sort] = Map()
-//
-//		override def getField(fieldId : FieldId) : Option[FieldRep] =
-//			fields.get(fieldId)
-//
-//		override def getMethod(methodId : MethodId) : Option[MethodRep] =
-//			methods.get(methodId)
-//
-//		override def sortFactory : Seq[Sort] => Sort = args => {
-//			require(args.isEmpty)
-//			sort
-//		}
-//	}
 
 	class InstantiatedNativeClassRep(
 		override val sort : Sort,

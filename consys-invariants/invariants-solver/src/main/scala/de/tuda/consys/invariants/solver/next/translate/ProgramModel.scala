@@ -2,7 +2,7 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.IR.{TypeVarId, _}
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{FieldRep, InvariantRep, MethodRep, QueryMethodRep, RepTable, UpdateMethodRep}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{FieldRep, InstantiatedClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
 import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.checkClass
 
 import scala.collection.immutable.Map
@@ -134,6 +134,18 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 				fieldSort
 		}
 
+		def build() : RepTable = {
+
+			val repTable = Map.newBuilder[ClassId, ParametrizedClassRep[_]]
+
+			val instanceBuilder : Seq[Sort] => InstantiatedClassRep
+
+			new ParametrizedObjectClassRep(
+				instanceBuilder
+			)
+
+		}
+
 	}
 
 
@@ -211,6 +223,39 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 						case update : UpdateMethodDecl =>
 							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
 							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+
+
+						case updateDecl@ObjectUpdateMethodDecl(name, parameters, body) =>
+							val methodName = updateMethodName(classDecl.classId, sorts, name)
+							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+
+							val receiverExpr = ctx.mkFreshConst("s0", classSort)
+
+//							val declaredArguments : Seq[Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
+//								val varClassRep = repTable.getOrElse(varDecl.typ.name, throw new ModelException("Unknown type: " + varDecl.typ))
+//								ctx.mkFreshConst(varDecl.name, varClassRep.sortFactory)
+//							})
+//
+//							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
+//
+//
+//							val (bodyVal, bodyState) : (Expr[_], Expr[_]) = ??? ///new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
+//
+//							val methodDef = ctx.mkForall(
+//								(Seq(receiverExpr) ++ declaredArguments).toArray,
+//								ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
+//								1,
+//								null,
+//								null,
+//								null,
+//								null
+//							)
+//
+//							env.solver.add(methodDef)
+
+
+
+
 							UpdateMethodRep(mthdDecl)
 					}
 
@@ -246,8 +291,8 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 	}
 
 	private def addMethodDef(classDecl : ClassDecl[_], methodDecl : MethodDecl)(implicit repTable : RepTable, classTable : ClassTable) : Unit = {
-//		implicit val ctx : Context = env.ctx
-//
+		implicit val ctx : Context = env.ctx
+
 //		val classRep = repTable
 //			.getOrElse(classDecl.classId, throw new ModelException("class not in rep map: " + classDecl))
 //
@@ -279,20 +324,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 //
 //				env.solver.add(methodDef)
 //
-//			case ObjectUpdateMethodDecl(name, parameters, body) =>
-//				val (bodyVal, bodyState) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
 //
-//				val methodDef = ctx.mkForall(
-//					(Seq(receiverExpr) ++ declaredArguments).toArray,
-//					ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
-//					1,
-//					null,
-//					null,
-//					null,
-//					null
-//				)
-//
-//				env.solver.add(methodDef)
 //
 //			case NativeQueryMethodDecl(name, declaredParameters, returnTyp, impl) =>
 //				val implVal = impl.apply(ctx, receiverExpr, declaredArguments)
