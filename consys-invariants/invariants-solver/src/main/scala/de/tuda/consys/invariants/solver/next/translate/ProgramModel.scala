@@ -2,7 +2,7 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.IR.{TypeVarId, _}
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{FieldRep, InstantiatedClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap, FieldRep, InstantiatedClassRep, InstantiatedObjectClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
 import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.checkClass
 
 import scala.collection.immutable.Map
@@ -138,11 +138,13 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 			val repTable = Map.newBuilder[ClassId, ParametrizedClassRep[_]]
 
-			val instanceBuilder : Seq[Sort] => InstantiatedClassRep
+			val instanceBuilder : CachedMap[Seq[Sort], InstantiatedObjectClassRep] = null
 
 			new ParametrizedObjectClassRep(
 				instanceBuilder
 			)
+
+			???
 
 		}
 
