@@ -99,58 +99,6 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 	private def updateMethodName(classId : ClassId, typeArguments : Seq[Sort], methodId : MethodId) : String =
 		s"Update$$${sortId(classId, typeArguments)}$$$methodId"
 
-
-	class RepMapBuilder {
-		private trait TempClassRep {
-			def sort : Sort
-		}
-
-		private case class TempInstantiatedObjectClassRep(override val sort : Sort, accessors : Map[FieldId, FieldRep]) extends TempClassRep
-		private case class TempInstantiatedNativeClassRep(override val sort : Sort) extends TempClassRep
-
-		private val tempClassMap = mutable.Map.empty[ClassId, Seq[Sort] => TempClassRep]
-		private val tempMethodMap = mutable.Map.empty[(ClassId, MethodId), Seq[Sort] => MethodRep]
-
-		def addNativeClass(classId : ClassId, repBuilder : Seq[Sort] => Sort) : Unit =
-			tempClassMap.put(classId, sorts => TempInstantiatedNativeClassRep(repBuilder(sorts)))
-
-		def addObjectClass(classId : ClassId, repBuilder : Seq[Sort] => (Sort, Map[FieldId, FieldRep])) : Unit =
-			tempClassMap.put(classId, sorts => {
-				val (sort, acc) = repBuilder(sorts)
-				TempInstantiatedObjectClassRep(sort, acc)
-			})
-
-		def addMethod(classId : ClassId, methodId : MethodId, repBuilder : Seq[Sort] => MethodRep) : Unit =
-			tempMethodMap.put((classId, methodId), repBuilder)
-
-		def getClassSort(classId: ClassId, typeArguments : Seq[Sort]) : Option[Sort] =
-			tempClassMap.get(classId).map(f => f.apply(typeArguments).sort)
-
-		def resolveType(typ : Type, typeVarSorts : Map[TypeVarId, Sort]) : Sort = typ match {
-			case TypeVar(typeVarId) => typeVarSorts.getOrElse(typeVarId, throw new ModelException("type var not available: " + typeVarId))
-			case ClassType(classId, typeArguments) =>
-				val typArgSorts = typeArguments.map(t => resolveType(t, typeVarSorts))
-				val fieldSort = getClassSort(classId, typArgSorts).getOrElse(throw new ModelException("class not available: " + classId))
-				fieldSort
-		}
-
-		def build() : RepTable = {
-
-			val repTable = Map.newBuilder[ClassId, ParametrizedClassRep[_]]
-
-			val instanceBuilder : CachedMap[Seq[Sort], InstantiatedObjectClassRep] = null
-
-			new ParametrizedObjectClassRep(
-				instanceBuilder
-			)
-
-			???
-
-		}
-
-	}
-
-
 	private def createRepTable() : RepTable = {
 		import env.ctx
 
@@ -159,7 +107,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 		for (classDecl <- program.classes) {
 			classDecl match {
 				case NativeClassDecl(classId, typeParameters, sortImpl, methods) =>
-					repMapBuilder.addNativeClass(classId, sorts => {
+					repMapBuilder.addNativeClassBuilder(classId, sorts => {
 						require(typeParameters.length == sorts.length)
 						sortImpl(ctx, sorts)
 					})
@@ -197,7 +145,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 						(classSort, accessorBuilder.result())
 					}
 
-					repMapBuilder.addObjectClass(classId, f)
+					repMapBuilder.addObjectClassBuilder(classId, f)
 			}
 		}
 
@@ -233,15 +181,15 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 							val receiverExpr = ctx.mkFreshConst("s0", classSort)
 
-//							val declaredArguments : Seq[Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
-//								val varClassRep = repTable.getOrElse(varDecl.typ.name, throw new ModelException("Unknown type: " + varDecl.typ))
-//								ctx.mkFreshConst(varDecl.name, varClassRep.sortFactory)
-//							})
-//
-//							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
-//
-//
-//							val (bodyVal, bodyState) : (Expr[_], Expr[_]) = ??? ///new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
+							val declaredArguments : Seq[Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
+								val varSort = repMapBuilder.resolveType(varDecl.typ, typeVarSorts)
+								ctx.mkFreshConst(varDecl.name, varSort)
+							})
+
+							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
+
+
+							val (bodyVal, bodyState) : (Expr[_], Expr[_]) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
 //
 //							val methodDef = ctx.mkForall(
 //								(Seq(receiverExpr) ++ declaredArguments).toArray,
@@ -264,7 +212,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 					//TODO: Add method definition
 				}
 
-				repMapBuilder.addMethod(classDecl.classId, methodId, f)
+				repMapBuilder.addMethodBuilder(classDecl.classId, methodId, f)
 			}
 
 		}

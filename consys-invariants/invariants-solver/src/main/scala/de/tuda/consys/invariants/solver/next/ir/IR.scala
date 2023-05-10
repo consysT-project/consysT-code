@@ -115,6 +115,10 @@ object IR {
 	case class ClassType(classId : ClassId, typeArguments : Seq[Type]) extends Type
 
 
+	trait TypedExpr {
+		def typ : Type
+	}
+
 	trait IRExpr
 	trait IRLiteral extends IRExpr
 	case class Num(n : Int) extends IRLiteral
@@ -122,6 +126,7 @@ object IR {
 	case object False extends IRLiteral
 	case class Str(s : String) extends IRLiteral
 	case object UnitLiteral extends IRLiteral
+
 
 	case class Var(id : VarId) extends IRExpr
 	case class Let(id : VarId, namedExpr : IRExpr, body : IRExpr) extends IRExpr

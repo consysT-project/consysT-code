@@ -59,7 +59,7 @@ object Z3Representations {
 			methods.get(methodId)
 	}
 
-	case class FieldRep(funcDecl: FuncDecl[_])
+	case class FieldRep(sort : Sort, funcDecl: FuncDecl[_])
 
 	trait MethodRep {
 		def funcDecl : FuncDecl[_]
