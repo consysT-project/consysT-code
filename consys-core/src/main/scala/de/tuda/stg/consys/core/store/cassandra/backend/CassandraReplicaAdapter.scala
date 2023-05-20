@@ -114,7 +114,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		// Add a trigger
 		cassandraSession.execute(
 			SimpleStatement.builder(
-				s"""CREATE TRIGGER IF NOT EXISTS trigger ON $keyspaceName.$objectTableName USING 'de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaTriggerJava';""")
+				s"""CREATE TRIGGER IF NOT EXISTS trigger ON $keyspaceName.$objectTableName USING 'de.tuda.stg.consys.core.store.cassandra.backend.CassandraReplicaTrigger';""")
 				.setExecutionProfileName("consys_init")
 				.build()
 		)

@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.core.store.cassandra.backend;
+package cassandra.backend;
 
 import de.tuda.stg.consys.core.store.cassandra.backend.trigger.RMIServerInterface;
 import org.apache.cassandra.db.Clustering;
@@ -17,7 +17,8 @@ import java.nio.ByteBuffer;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
-public class CassandraReplicaTriggerJava implements ITrigger {
+
+public class CassandraReplicaTrigger implements ITrigger {
 
     @Override
     public Collection<Mutation> augment(Partition partition) {
