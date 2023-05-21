@@ -25,7 +25,7 @@ import scala.reflect.ClassTag
 
 class RegistryThread() extends Thread {
 	override def run(): Unit = {
-		val serverURL = s"rmi://127.0.0.1:1234/test"
+		val serverURL = s"rmi://127.0.0.1:1234/consyst"
 
 		//Unicast Remote Object Stub is created and the object is exported to Client through the port number mentioned
 		val port = 1234
@@ -44,6 +44,9 @@ class RegistryThread() extends Thread {
 	}
 }
 
+/**
+ * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
+ */
 private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration) {
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"

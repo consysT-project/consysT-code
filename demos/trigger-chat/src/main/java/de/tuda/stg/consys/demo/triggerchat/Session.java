@@ -6,9 +6,9 @@ import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraTransactionContextBinding;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.Group;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.Inbox;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.User;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.Group;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.Inbox;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.User;
 import scala.Function1;
 import scala.Option;
 
@@ -26,9 +26,9 @@ public class Session {
     private List<Ref<Group>> groups;
     private Ref<Inbox> inbox;
     private Ref<User> user;
-    public static ConsistencyLevel<CassandraStore> groupConsistencyLevel;
-    public static ConsistencyLevel<CassandraStore> inboxConsistencyLevel;
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> groupConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> inboxConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     private static ExecutorService threadPool;
 
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {

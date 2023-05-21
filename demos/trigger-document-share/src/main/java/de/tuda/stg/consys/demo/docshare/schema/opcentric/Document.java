@@ -54,6 +54,6 @@ public @Mixed class Document implements Serializable, Triggerable {
 
     @Override
     public void onTrigger() {
-        ConnectionManager.trigger();
+        ConnectionManager.showNotification();
     }
 }

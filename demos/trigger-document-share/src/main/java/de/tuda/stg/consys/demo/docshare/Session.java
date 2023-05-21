@@ -20,8 +20,8 @@ import static de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLeve
 public class Session {
     private CassandraStoreBinding store;
     private Ref<User> user;
-    public static ConsistencyLevel<CassandraStore> documentConsistencyLevel;
-    public static ConsistencyLevel<CassandraStore> userConsistencyLevel;
+    public static ConsistencyLevel<CassandraStore> documentConsistencyLevel = MIXED;
+    public static ConsistencyLevel<CassandraStore> userConsistencyLevel = MIXED;
     private <U> Option<U> doTransaction(Function1<CassandraTransactionContextBinding, Option<U>> code) {
         return store.transaction(code::apply);
     }

@@ -10,9 +10,9 @@ import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.logging.Logger;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.Group;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.Inbox;
-import de.tuda.stg.consys.demo.triggerchat.schema.datecentric.User;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.Group;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.Inbox;
+import de.tuda.stg.consys.demo.triggerchat.schema.opcentric.User;
 import scala.Option;
 
 import java.util.ArrayList;
@@ -44,9 +44,9 @@ public class TriggerChatBenchmark extends DemoRunnable {
         numOfGroupsPerReplica = config.toConfig().getInt("consys.bench.demo.trigger-chat.groups");
         numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.trigger-chat.users");
 
-        Session.groupConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-        Session.inboxConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
-        Session.userConsistencyLevel = getLevelWithMixedFallback(getStrongLevel());
+        Session.groupConsistencyLevel = getLevelWithMixedFallback(getMixedLevel());
+        Session.inboxConsistencyLevel = getLevelWithMixedFallback(getMixedLevel());
+        Session.userConsistencyLevel = getLevelWithMixedFallback(getMixedLevel());
     }
 
     @Override

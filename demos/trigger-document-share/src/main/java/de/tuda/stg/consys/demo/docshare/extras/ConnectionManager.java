@@ -20,7 +20,7 @@ public class ConnectionManager {
         }
 
         @SideEffectFree
-        public static void trigger() {
+        public static void showNotification() {
             JSONObject jsonObject = new JSONObject();
 
             try {
