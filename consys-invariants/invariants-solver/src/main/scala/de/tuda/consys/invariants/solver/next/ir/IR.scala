@@ -28,7 +28,7 @@ object IR {
 	}
 
 	trait ObjectMethodDecl extends MethodDecl {
-		def body : IRExpr
+		def body : Expressions.BaseAll.BaseExpr
 	}
 
 	trait NativeMethodDecl extends MethodDecl {
@@ -44,10 +44,10 @@ object IR {
 	}
 
 	case class ObjectQueryMethodDecl(
-																		override val name : MethodId,
-																		override val declaredParameters : Seq[VarDecl],
-																		override val returnTyp : Type,
-																		override val body : IRExpr
+		override val name : MethodId,
+		override val declaredParameters : Seq[VarDecl],
+		override val returnTyp : Type,
+		override val body : Expressions.BaseAll.Expr
 	) extends ObjectMethodDecl with QueryMethodDecl
 
 	case class ObjectUpdateMethodDecl(
@@ -113,12 +113,6 @@ object IR {
 	trait Type
 	case class TypeVar(typeVarId: TypeVarId) extends Type
 	case class ClassType(classId : ClassId, typeArguments : Seq[Type]) extends Type
-
-
-	trait TypedExpr {
-		def typ : Type
-	}
-
 
 
 
