@@ -119,33 +119,6 @@ object IR {
 		def typ : Type
 	}
 
-	trait IRExpr
-	trait IRLiteral extends IRExpr
-	case class Num(n : Int) extends IRLiteral
-	case object True extends IRLiteral
-	case object False extends IRLiteral
-	case class Str(s : String) extends IRLiteral
-	case object UnitLiteral extends IRLiteral
-
-
-	case class Var(id : VarId) extends IRExpr
-	case class Let(id : VarId, namedExpr : IRExpr, body : IRExpr) extends IRExpr
-
-	case class If(conditionExpr : IRExpr, thenExpr : IRExpr, elseExpr : IRExpr) extends IRExpr
-
-	case class Equals(e1 : IRExpr, e2 : IRExpr) extends IRExpr
-
-	case object This extends IRExpr
-	case class GetField(fieldId : FieldId) extends IRExpr
-	case class SetField(fieldId : FieldId, value : IRExpr) extends IRExpr
-
-	trait IRMethodCall extends IRExpr {
-		def arguments : Seq[IRExpr]
-		def methodId : MethodId
-	}
-	case class CallQuery(recv : IRExpr, methodId : MethodId, arguments : Seq[IRExpr]) extends IRMethodCall
-	case class CallUpdateThis(methodId : MethodId, arguments : Seq[IRExpr]) extends IRMethodCall
-	case class CallUpdateField(fieldId : FieldId, methodId : MethodId, arguments : Seq[IRExpr]) extends IRMethodCall
 
 
 
