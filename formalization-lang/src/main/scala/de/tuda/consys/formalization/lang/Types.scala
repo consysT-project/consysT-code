@@ -1,9 +1,27 @@
-package lang
+package de.tuda.consys.formalization.lang
 
-trait Type {
+trait TypeLike[A] {
+    def <=(t: A): Boolean
+
+    def !<=(t: A): Boolean = !this.<=(t)
+
+    def >=(t: A): Boolean
+
+    def !>=(t: A): Boolean = !this.>=(t)
+
+    def lub(t: A): A
+
+    def glb(t: A): A
+}
+
+sealed trait Type {
     def <=(t: Type): Boolean
 
+    def !<=(t: Type): Boolean = !this.<=(t)
+
     def >=(t: Type): Boolean
+
+    def !>=(t: Type): Boolean = !this.>=(t)
 
     def lub(t: Type): Type
 
@@ -12,7 +30,7 @@ trait Type {
     def effectiveType(): CompoundType
 }
 
-trait ConsistencyType {
+sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
     def <=(t: ConsistencyType): Boolean = ConsistencyTypeLattice(this).hasUpperBound(t)
 
     def >=(t: ConsistencyType): Boolean = ConsistencyTypeLattice(this).hasLowerBound(t)
@@ -44,25 +62,31 @@ case object Weak extends ConsistencyType {
     override def operationLevel(): OperationLevel = WeakOp
 }
 
+case object Inconsistent extends ConsistencyType {
+    override def operationLevel(): OperationLevel = ???
+}
 
 case object PolyConsistent extends ConsistencyType {
     override def operationLevel(): OperationLevel = ???
 }
 
 object ConsistencyTypeLattice {
-    private lazy val strong: LatticeNode[ConsistencyType] = new LatticeNode(Strong, List(mixed), List())
+    private lazy val local: LatticeNode[ConsistencyType] = new LatticeNode(Local, List(strong), List())
+    private lazy val strong: LatticeNode[ConsistencyType] = new LatticeNode(Strong, List(mixed), List(local))
     private lazy val mixed: LatticeNode[ConsistencyType] = new LatticeNode(Mixed, List(weak), List(strong))
-    private lazy val weak: LatticeNode[ConsistencyType] = new LatticeNode(Weak, List(), List(mixed))
+    private lazy val weak: LatticeNode[ConsistencyType] = new LatticeNode(Weak, List(inconsistent), List(mixed))
+    private lazy val inconsistent: LatticeNode[ConsistencyType] = new LatticeNode(Weak, List(), List(weak))
 
     def apply(t: ConsistencyType): LatticeNode[ConsistencyType] = t match {
+        case Local => local
         case Strong => strong
         case Mixed => mixed
         case Weak => weak
-        case _ => sys.error("lattice node for consistency type not found")
+        case Inconsistent => inconsistent
     }
 }
 
-trait MutabilityType{
+sealed trait MutabilityType extends TypeLike[MutabilityType] {
     def <=(t: MutabilityType): Boolean = MutabilityTypeLattice(this).hasUpperBound(t)
 
     def >=(t: MutabilityType): Boolean = MutabilityTypeLattice(this).hasLowerBound(t)
@@ -87,25 +111,22 @@ object MutabilityTypeLattice {
         case Bottom => bottom
         case Mutable => mutable
         case Immutable => immutable
-        case _ => sys.error("lattice node for mutability type not found")
     }
 }
 
-trait BaseType
-
-case class ClassType(classId: ClassId, typeArguments: Seq[Type]) extends BaseType {
+case class ClassType(classId: ClassId, typeArguments: Seq[Type]) {
     override def toString: ClassId = if (typeArguments.isEmpty) s"$classId" else s"$classId<${typeArguments.mkString(",")}>"
 }
 
-case class CompoundType(baseType: BaseType, consistencyType: ConsistencyType, mutabilityType: MutabilityType) extends Type {
-    //if (mutabilityType == Bottom && consistencyType != Local)
-    //    sys.error("invalid bottom type")
+case class CompoundType(classType: ClassType, consistencyType: ConsistencyType, mutabilityType: MutabilityType) extends Type {
+    if (mutabilityType == Bottom && consistencyType != Local)
+        sys.error("invalid bottom type")
 
     def <=(t: Type): Boolean = t match {
         case CompoundType(baseType1, consistencyType1, mutabilityType1) =>
-            if (baseType != baseType1)
+            if (classType != baseType1)
                 false // TODO: inheritance
-            else if (/*consistencyType == Local && */mutabilityType == Bottom) // TODO
+            else if (consistencyType == Local && mutabilityType == Bottom) // TODO
                 true
             else if (mutabilityType1 == Immutable)
                 mutabilityType <= mutabilityType1 && consistencyType <= consistencyType1
@@ -131,7 +152,7 @@ case class CompoundType(baseType: BaseType, consistencyType: ConsistencyType, mu
 
     def effectiveType(): CompoundType = this
 
-    override def toString: ClassId = s"$mutabilityType $consistencyType $baseType"
+    override def toString: ClassId = s"$mutabilityType $consistencyType $classType"
 }
 
 case class TypeVar(typeVarId: TypeVarId, upperBound: Type) extends Type {

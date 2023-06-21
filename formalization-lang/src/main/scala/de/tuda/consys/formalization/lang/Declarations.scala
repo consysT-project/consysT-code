@@ -1,4 +1,4 @@
-package lang
+package de.tuda.consys.formalization.lang
 
 case class FieldDecl(name: FieldId, typ: Type)
 
@@ -9,6 +9,8 @@ sealed trait MethodDecl {
 
     def declaredParameters: Seq[VarDecl]
 
+    def declaredParameterTypes: Seq[Type] = declaredParameters.map(param => param.typ)
+
     def operationLevel: OperationLevel
 
     def body: IRExpr
@@ -17,8 +19,8 @@ sealed trait MethodDecl {
 case class QueryMethodDecl(override val name: MethodId,
                            override val operationLevel: OperationLevel,
                            override val declaredParameters: Seq[VarDecl],
-                           override val body: IRExpr,
-                           returnType: Type) extends MethodDecl
+                           returnType: Type,
+                           override val body: IRExpr) extends MethodDecl
 
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: OperationLevel,

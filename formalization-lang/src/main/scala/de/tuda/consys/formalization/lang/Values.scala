@@ -1,6 +1,6 @@
-package lang
+package de.tuda.consys.formalization.lang
 
-trait Value
+sealed trait Value
 
 case class NumV(n: Int) extends Value
 

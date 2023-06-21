@@ -1,3 +1,5 @@
+package de.tuda.consys.formalization
+
 package object lang {
     type ClassId = String
 

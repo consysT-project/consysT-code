@@ -1,4 +1,4 @@
-package lang
+package de.tuda.consys.formalization.lang
 
 sealed trait IRExpr
 
