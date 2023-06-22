@@ -51,7 +51,6 @@ private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : C
 			}
 		})(system.dispatchers.defaultGlobalDispatcher)
 
-
 		//Search for the other replica until it is found or the timeout is reached
 
 	}

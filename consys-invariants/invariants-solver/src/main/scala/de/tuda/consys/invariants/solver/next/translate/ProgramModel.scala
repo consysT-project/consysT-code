@@ -171,8 +171,9 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 							QueryMethodRep(mthdDecl)
 
 						case update : UpdateMethodDecl =>
-							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
-							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+//							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
+//							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+						???
 
 
 						case updateDecl@ObjectUpdateMethodDecl(name, parameters, body) =>
