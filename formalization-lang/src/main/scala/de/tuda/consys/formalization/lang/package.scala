@@ -12,4 +12,6 @@ package object lang {
     type TypeVarId = String
 
     type ClassTable = Map[(ClassId, ConsistencyType), ClassDecl]
+
+    val thisId = "this"
 }

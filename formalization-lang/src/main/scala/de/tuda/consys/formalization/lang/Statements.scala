@@ -24,13 +24,13 @@ case object UnitLiteral extends IRLiteral
 
 case class Var(id: VarId) extends IRExpr
 
-case class Let(id: VarId, namedExpr: IRExpr, body: IRExpr) extends IRExpr
+case class Let(id: VarId, namedExpr: IRExpr, bodyExpr: IRExpr) extends IRExpr
 
 case class If(conditionExpr: IRExpr, thenExpr: IRExpr, elseExpr: IRExpr) extends IRExpr
 
-case class Equals(e1: IRExpr, e2: IRExpr) extends IRExpr
+case class Equals(expr1: IRExpr, expr2: IRExpr) extends IRExpr
 
-case class New(objectId: String, classId: ClassId, typeArguments: Seq[Type], consistency: ConsistencyType, args: Map[FieldId, IRExpr]) extends IRExpr
+case class New(objectId: String, classId: ClassId, typeArguments: Seq[Type], consistency: ConsistencyType, constructorExprs: Map[FieldId, IRExpr]) extends IRExpr
 
 case class Sequence(exprs: Seq[IRExpr]) extends IRExpr
 
@@ -42,14 +42,20 @@ case object This extends IRExpr
 
 case class GetField(fieldId: FieldId) extends IRExpr
 
-case class SetField(fieldId: FieldId, value: IRExpr) extends IRExpr
+case class SetField(fieldId: FieldId, valueExpr: IRExpr) extends IRExpr
 
 sealed trait IRMethodCall extends IRExpr {
-    def arguments: Seq[IRExpr]
+    def argumentExprs: Seq[IRExpr]
 
     def methodId: MethodId
 }
 
-case class CallQuery(recv: IRExpr, methodId: MethodId, arguments: Seq[IRExpr]) extends IRMethodCall
+case class CallQuery(recvExpr: IRExpr, methodId: MethodId, argumentExprs: Seq[IRExpr]) extends IRMethodCall
 
-case class CallUpdate(recv: IRExpr, methodId: MethodId, arguments: Seq[IRExpr]) extends IRMethodCall
+case class CallUpdate(recvExpr: IRExpr, methodId: MethodId, argumentExprs: Seq[IRExpr]) extends IRMethodCall
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Replication-related expressions
+// ---------------------------------------------------------------------------------------------------------------------
+
+case class Transaction(bodyExpr: IRExpr) extends IRExpr

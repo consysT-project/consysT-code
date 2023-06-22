@@ -8,7 +8,8 @@ object Exec {
         var program = exampleProgram1()
         program = Preprocessor.process(program)
         TypeChecker.checkProgram(program)
-        new Interpreter("127.0.0.1").run(program)
+        val result = new Interpreter("127.0.0.1").run(program)
+        println(s"Done with result: $result")
     }
 
     private def exampleProgram1(): ProgramDecl = {
@@ -46,11 +47,14 @@ object Exec {
                 //("Box", Weak) -> boxCls,
                 ("Box", Strong) -> boxCls,
             ),
-            Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(1))),
-                Let("n", CallQuery(Var("x"), "getVal", Seq()),
-                    Sequence(Seq(
-                        CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
-                    ))
+            Transaction(
+                Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(1))),
+                    Let("n", Num(42),
+                        Sequence(Seq(
+                            CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
+                            CallQuery(Var("x"), "getVal", Seq())
+                        ))
+                    )
                 )
             )
         )

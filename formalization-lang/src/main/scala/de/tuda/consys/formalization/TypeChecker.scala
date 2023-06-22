@@ -3,9 +3,10 @@ package de.tuda.consys.formalization
 import de.tuda.consys.formalization.lang._
 
 // TODO: resolve class type arguments correctly
+// TODO: check transactions
+// TODO: check invalid identifier 'this' (since we don't have a parser yet)
 object TypeChecker {
-
-    case class TypeException(s: String) extends Exception(s)
+    case class TypeError(message: String) extends Exception(message)
 
     private sealed trait MethodMutabilityContext
 
@@ -38,12 +39,12 @@ object TypeChecker {
                 case QueryMethodDecl(_, operationLevel, _, declaredReturnType, body) =>
                     val returnType = typeOfExpr(body, varEnv)(MethodContext((classDecl.toType, thisConsistency), ImmutableContext, operationLevel), Local, classTable).effectiveType()
                     if (!(returnType <= declaredReturnType))
-                        throw TypeException(s"return type is wrong. Expected: $declaredReturnType, but was $returnType (in method $methodId)")
+                        throw TypeError(s"return type is wrong. Expected: $declaredReturnType, but was $returnType (in method $methodId)")
 
                 case UpdateMethodDecl(_, operationLevel, _, body) =>
                     val returnType = typeOfExpr(body, varEnv)(MethodContext((classDecl.toType, thisConsistency), MutableContext, operationLevel), Local, classTable).effectiveType()
                     if (returnType.classType != Natives.unitType)
-                        throw TypeException(s"return type is wrong. Expected: $Natives.UnitType, but was $returnType (in method $methodId)")
+                        throw TypeError(s"return type is wrong. Expected: $Natives.UnitType, but was $returnType (in method $methodId)")
             }
         })
     }
@@ -58,7 +59,7 @@ object TypeChecker {
         case Num(_) => CompoundType(Natives.numberType, Local, Bottom)
 
         case Var(id: VarId) =>
-            vars.getOrElse(id, throw TypeException(s"variable not declared: $id"))
+            vars.getOrElse(id, throw TypeError(s"variable not declared: $id"))
 
         case Let(id: VarId, namedExpr: IRExpr, body: IRExpr) =>
             val namedType = typeOfExpr(namedExpr, vars)
@@ -68,7 +69,7 @@ object TypeChecker {
             val condType = typeOfExpr(conditionExpr, vars).effectiveType()
 
             if (condType.classType != Natives.booleanType)
-                throw TypeException(s"condition must be Bool, but was: $condType")
+                throw TypeError(s"condition must be Bool, but was: $condType")
 
             val newImplicitContext = implicitContext glb condType.consistencyType
 
@@ -76,7 +77,7 @@ object TypeChecker {
             val t2 = typeOfExpr(elseExpr, vars)(declarationContext, newImplicitContext, classTable)
 
             if (t1 != t2) // TODO: use lub for expression type inference instead?
-                throw TypeException(s"branches have diverging types: $t1 and $t2")
+                throw TypeError(s"branches have diverging types: $t1 and $t2")
 
             t1
 
@@ -85,14 +86,14 @@ object TypeChecker {
             val t2 = typeOfExpr(e2, vars).effectiveType()
 
             if (t1.classType != t2.classType)
-                throw TypeException(s"non-matching types in 'equals': $t1 and $t2")
+                throw TypeError(s"non-matching types in 'equals': $t1 and $t2")
 
             CompoundType(Natives.booleanType, t1.consistencyType lub t2.consistencyType, Bottom)
 
         case This =>
             declarationContext match {
                 case TopLevelContext =>
-                    throw TypeException("cannot resolve 'this' outside of class declaration")
+                    throw TypeError("cannot resolve 'this' outside of class declaration")
 
                 case MethodContext((classType, consistencyType), _, _) =>
                     CompoundType(classType, consistencyType, Mutable)
@@ -101,14 +102,14 @@ object TypeChecker {
         case GetField(fieldId: FieldId) =>
             declarationContext match {
                 case TopLevelContext =>
-                    throw TypeException("cannot resolve 'this' outside of class declaration")
+                    throw TypeError("cannot resolve 'this' outside of class declaration")
 
                 case MethodContext(thisType, _, operationLevel) =>
                     val classDecl = classTable
-                        .getOrElse((thisType._1.classId, thisType._2), throw TypeException(s"class of 'this' not available: $thisType"))
+                        .getOrElse((thisType._1.classId, thisType._2), throw TypeError(s"class of 'this' not available: $thisType"))
 
                     val fieldDecl = classDecl.getField(fieldId).
-                        getOrElse(throw TypeException(s"field not available: $fieldId (in class ${thisType._1.classId})"))
+                        getOrElse(throw TypeError(s"field not available: $fieldId (in class ${thisType._1.classId})"))
 
                     val fieldType = fieldDecl.typ.effectiveType()
 
@@ -118,27 +119,27 @@ object TypeChecker {
         case SetField(fieldId: FieldId, value: IRExpr) =>
             declarationContext match {
                 case TopLevelContext =>
-                    throw TypeException("cannot resolve 'this' outside class")
+                    throw TypeError("cannot resolve 'this' outside class")
 
                 case MethodContext(thisType, mutabilityContext, operationLevel) =>
                     if (mutabilityContext != MutableContext)
-                        throw TypeException("assignment in immutable context: " + thisType)
+                        throw TypeError("assignment in immutable context: " + thisType)
 
                     val valueType = typeOfExpr(value, vars)
 
-                    val cls = classTable.getOrElse((thisType._1.classId, thisType._2), throw TypeException(s"class of 'this' not available: $thisType"))
-                    val fieldDecl = cls.getField(fieldId).getOrElse(throw TypeException(s"field not available: $fieldId (in class $thisType)"))
+                    val cls = classTable.getOrElse((thisType._1.classId, thisType._2), throw TypeError(s"class of 'this' not available: $thisType"))
+                    val fieldDecl = cls.getField(fieldId).getOrElse(throw TypeError(s"field not available: $fieldId (in class $thisType)"))
                     if (valueType !<= fieldDecl.typ)
-                        throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: $valueType)")
+                        throw TypeError(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: $valueType)")
 
                     if (fieldDecl.typ.effectiveType().mutabilityType == Immutable)
-                        throw TypeException(s"wrong assignment of immutable field")
+                        throw TypeError(s"wrong assignment of immutable field")
 
                     if (implicitContext !<= fieldDecl.typ.effectiveType().consistencyType)
-                        throw TypeException(s"wrong assignment in implicit context: ${fieldDecl.typ} in $implicitContext context")
+                        throw TypeError(s"wrong assignment in implicit context: ${fieldDecl.typ} in $implicitContext context")
 
                     if (operationLevel.consistencyType() !<= fieldDecl.typ.effectiveType().consistencyType)
-                        throw TypeException(s"wrong assignment in operation context: ${fieldDecl.typ} in ${operationLevel.consistencyType()} context")
+                        throw TypeError(s"wrong assignment in operation context: ${fieldDecl.typ} in ${operationLevel.consistencyType()} context")
 
                     valueType
             }
@@ -150,7 +151,7 @@ object TypeChecker {
 
             val queryDecl = mthdDecl match {
                 case q: QueryMethodDecl => q
-                case _ => throw TypeException(s"expected query method: $methodId")
+                case _ => throw TypeError(s"expected query method: $methodId")
             }
 
             resolveType(queryDecl.returnType, typeEnv)
@@ -159,17 +160,17 @@ object TypeChecker {
             val recvType = typeOfExpr(recv, vars).effectiveType()
 
             if (recvType.mutabilityType == Immutable)
-                throw TypeException(s"invalid update call on immutable receiver: $methodId (in class ${recvType.classType.classId})")
+                throw TypeError(s"invalid update call on immutable receiver: $methodId (in class ${recvType.classType.classId})")
 
             val argTypes = arguments.map(argExpr => typeOfExpr(argExpr, vars))
             val (mthdDecl, _) = checkMethodCall(recvType, methodId, vars, argTypes)
 
             if (!(implicitContext <= mthdDecl.operationLevel.consistencyType()))
-                throw TypeException(s"wrong operation level in context: ${mthdDecl.operationLevel.consistencyType()} in $implicitContext")
+                throw TypeError(s"wrong operation level in context: ${mthdDecl.operationLevel.consistencyType()} in $implicitContext")
 
             mthdDecl match {
                 case _: UpdateMethodDecl =>
-                case _ => throw TypeException(s"expected update method: $methodId")
+                case _ => throw TypeError(s"expected update method: $methodId")
             }
 
             CompoundType(Natives.unitType, Local, Bottom)
@@ -177,28 +178,31 @@ object TypeChecker {
         case Sequence(exprs) =>
             exprs.foldLeft(null: Type)((r, e) => typeOfExpr(e, vars))
 
+        case Transaction(body) =>
+            typeOfExpr(body, vars)
+
         case New(_, classId, typeArgs, consistencyType, args) =>
-            val classDecl = classTable.getOrElse((classId, consistencyType), throw TypeException(s"class not available: $consistencyType $classId"))
+            val classDecl = classTable.getOrElse((classId, consistencyType), throw TypeError(s"class not available: $consistencyType $classId"))
 
             if (typeArgs.length != classDecl.typeParameters.length)
-                throw TypeException(s"wrong number of type arguments: $classId")
+                throw TypeError(s"wrong number of type arguments: $classId")
 
             (typeArgs zip classDecl.typeParameters).foreach(e => {
                 val (arg, param) = e
                 if (!(arg.effectiveType() <= param.effectiveType()))
-                    throw TypeException(s"wrong type argument for type variable: $arg (expected: $param)")
+                    throw TypeError(s"wrong type argument for type variable: $arg (expected: $param)")
             })
 
             if (args.size != classDecl.fields.size)
-                throw TypeException(s"wrong number of constructor arguments: $classId")
+                throw TypeError(s"wrong number of constructor arguments: $classId")
 
             args.foreachEntry((fieldId, expr) => {
                 val argType = typeOfExpr(expr, vars)
                 val fieldType = classDecl.fields.getOrElse(fieldId,
-                    throw TypeException(s"field not found in constructor: $fieldId (in class $classId)")).typ
+                    throw TypeError(s"field not found in constructor: $fieldId (in class $classId)")).typ
 
                 if (argType !<= fieldType)
-                    throw TypeException(s"wrong constructor argument type: expected $fieldType, but was $argType (in class $classId)")
+                    throw TypeError(s"wrong constructor argument type: expected $fieldType, but was $argType (in class $classId)")
             })
 
             CompoundType(ClassType(classId, typeArgs), consistencyType, Mutable) // TODO: which mutability type here?
@@ -210,25 +214,25 @@ object TypeChecker {
                                (implicit declarationContext: DeclarationContext,
                                 implicitContext: ConsistencyType,
                                 classTable: ClassTable): (MethodDecl, TypeVarEnv) = {
-        val recvClassDecl = classTable.getOrElse((recvType.classType.classId, recvType.consistencyType), throw TypeException(s"class not available: $recvType"))
+        val recvClassDecl = classTable.getOrElse((recvType.classType.classId, recvType.consistencyType), throw TypeError(s"class not available: $recvType"))
 
         if (recvClassDecl.typeParameters.length != recvType.classType.typeArguments.length)
-            throw TypeException(s"wrong number of type arguments: $recvType")
+            throw TypeError(s"wrong number of type arguments: $recvType")
 
         val typeEnv: TypeVarEnv =
             (recvClassDecl.typeParameters zip recvType.classType.typeArguments).map(p => (p._1.typeVarId, p._2)).toMap
 
         val methodDecl: MethodDecl = recvClassDecl.getMethod(methodId)
-            .getOrElse(throw TypeException(s"method not available: $methodId (in class ${recvType.classType.classId})"))
+            .getOrElse(throw TypeError(s"method not available: $methodId (in class ${recvType.classType.classId})"))
 
         if (argTypes.size != methodDecl.declaredParameters.size)
-            throw TypeException(s"wrong number of arguments for method $methodId: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
+            throw TypeError(s"wrong number of arguments for method $methodId: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
 
-        (argTypes zip methodDecl.declaredParameters.map(v => v.typ)).foreach(t => {
+        (argTypes zip methodDecl.declaredParameterTypes).foreach(t => {
             val argType = t._1
             val parameterType = resolveType(t._2, typeEnv)
             if (!(argType <= parameterType))
-                throw TypeException(s"wrong argument type for method $methodId: $argType (expected: $parameterType)")
+                throw TypeError(s"wrong argument type for method $methodId: $argType (expected: $parameterType)")
         })
 
         (methodDecl, typeEnv)

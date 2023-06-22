@@ -55,11 +55,11 @@ object Preprocessor {
         classDecl.methods.filter(m => m._2 match {
             case _: UpdateMethodDecl => true
             case _ => false
-        }).foldLeft(classDecl)((c, m) => inferMethod(c, m._2.body, m._2.operationLevel))
+        }).foldLeft(classDecl)((c, m) => process(c, m._2.body)(m._2.operationLevel))
     }
 
-    private def inferMethod(classDecl: ClassDecl, body: IRExpr, methodOp: OperationLevel): ClassDecl = {
-        body match {
+    private def process(classDecl: ClassDecl, expr: IRExpr)(implicit methodOp: OperationLevel): ClassDecl = {
+        expr match {
             case SetField(fieldId, _) =>
                 val newFields = classDecl.fields.map {
                     case (id, decl) if id == fieldId =>
@@ -90,13 +90,23 @@ object Preprocessor {
                 }
 
             case Let(_, namedExpr, body) =>
-                val r = inferMethod(classDecl, namedExpr, methodOp)
-                inferMethod(r, body, methodOp)
+                val r = process(classDecl, namedExpr)
+                process(r, body)
 
             case If(conditionExpr, thenExpr, elseExpr) =>
-                var r = inferMethod(classDecl, conditionExpr, methodOp)
-                r = inferMethod(r, thenExpr, methodOp)
-                inferMethod(r, elseExpr, methodOp)
+                var r = process(classDecl, conditionExpr)
+                r = process(r, thenExpr)
+                process(r, elseExpr)
+
+            case Equals(e1, e2) =>
+                val r = process(classDecl, e1)
+                process(r, e2)
+
+            case Transaction(body) =>
+                process(classDecl, body)
+
+            case Sequence(exprs) =>
+                exprs.foldLeft(classDecl)((r, expr) => process(r, expr))
 
             case _ => classDecl // TODO
         }

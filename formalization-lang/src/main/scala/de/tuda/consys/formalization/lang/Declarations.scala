@@ -11,6 +11,8 @@ sealed trait MethodDecl {
 
     def declaredParameterTypes: Seq[Type] = declaredParameters.map(param => param.typ)
 
+    def declaredParameterNames: Seq[VarId] = declaredParameters.map(param => param.name)
+
     def operationLevel: OperationLevel
 
     def body: IRExpr
