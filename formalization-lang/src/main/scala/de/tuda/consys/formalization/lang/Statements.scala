@@ -14,8 +14,6 @@ case object True extends IRLiteral
 
 case object False extends IRLiteral
 
-case class Str(s: String) extends IRLiteral
-
 case object UnitLiteral extends IRLiteral
 
 // ---------------------------------------------------------------------------------------------------------------------
