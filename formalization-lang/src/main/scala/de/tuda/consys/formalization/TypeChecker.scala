@@ -81,14 +81,23 @@ object TypeChecker {
 
             t1
 
-        case Equals(e1: IRExpr, e2: IRExpr) =>
-            val t1 = typeOfExpr(e1, vars).effectiveType()
-            val t2 = typeOfExpr(e2, vars).effectiveType()
+        case Equals(expr1, expr2) =>
+            val t1 = typeOfExpr(expr1, vars).effectiveType()
+            val t2 = typeOfExpr(expr2, vars).effectiveType()
 
             if (t1.classType != t2.classType)
-                throw TypeError(s"non-matching types in 'equals': $t1 and $t2")
+                throw TypeError(s"non-matching types in <Equals>: $t1 and $t2")
 
-            CompoundType(Natives.booleanType, t1.consistencyType lub t2.consistencyType, Bottom)
+            CompoundType(Natives.booleanType, t1.consistencyType lub t2.consistencyType, Mutable) // TODO: mutability type
+
+        case Add(expr1, expr2) =>
+            val t1 = typeOfExpr(expr1, vars).effectiveType()
+            val t2 = typeOfExpr(expr2, vars).effectiveType()
+
+            if (t1.classType != Natives.numberType || t2.classType != Natives.numberType)
+                throw TypeError(s"invalid types for <Add>: $t1 and $t2")
+
+            CompoundType(Natives.numberType, t1.consistencyType lub t2.consistencyType, Mutable) // TODO: mutability type
 
         case This =>
             declarationContext match {

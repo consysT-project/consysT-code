@@ -48,8 +48,8 @@ object Exec {
                 ("Box", Strong) -> boxCls,
             ),
             Transaction(
-                Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(1))),
-                    Let("n", Num(42),
+                Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(42))),
+                    Let("n", Add(CallQuery(Var("x"), "getVal", Seq()), Num(1)),
                         Sequence(Seq(
                             CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
                             CallQuery(Var("x"), "getVal", Seq())

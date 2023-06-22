@@ -30,6 +30,8 @@ case class If(conditionExpr: IRExpr, thenExpr: IRExpr, elseExpr: IRExpr) extends
 
 case class Equals(expr1: IRExpr, expr2: IRExpr) extends IRExpr
 
+case class Add(expr1: IRExpr, expr2: IRExpr) extends IRExpr
+
 case class New(objectId: String, classId: ClassId, typeArguments: Seq[Type], consistency: ConsistencyType, constructorExprs: Map[FieldId, IRExpr]) extends IRExpr
 
 case class Sequence(exprs: Seq[IRExpr]) extends IRExpr

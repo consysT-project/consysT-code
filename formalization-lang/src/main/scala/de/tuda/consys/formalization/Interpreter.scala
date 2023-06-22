@@ -39,14 +39,18 @@ class Interpreter(storeAddress: String) {
             }
 
         case Equals(expr1, expr2) =>
-            val value1 = interpret(expr1, varEnv)
-            val value2 = interpret(expr2, varEnv)
-            (value1, value2) match {
+            (interpret(expr1, varEnv), interpret(expr2, varEnv)) match {
                 case (NumV(n1), NumV(n2)) => BoolV(n1 == n2)
                 case (BoolV(b1), BoolV(b2)) => BoolV(b1 == b2)
                 case (RefV(id1, _, _), RefV(id2, _, _)) => BoolV(id1 == id2)
                 case (UnitV, UnitV) => BoolV(true)
                 case _ => BoolV(false)
+            }
+
+        case Add(expr1, expr2) =>
+            (interpret(expr1, varEnv), interpret(expr2, varEnv)) match {
+                case (NumV(n1), NumV(n2)) => NumV(n1 + n2)
+                case (a, b) => throw RuntimeError(s"invalid operands for <Add>: $a, $b")
             }
 
         case Sequence(exprs) =>
