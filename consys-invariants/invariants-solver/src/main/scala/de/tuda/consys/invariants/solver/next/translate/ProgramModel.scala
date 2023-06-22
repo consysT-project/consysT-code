@@ -196,8 +196,9 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 							QueryMethodRep(mthdDecl)
 
 						case update : UpdateMethodDecl =>
-							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
-							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+//							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
+//							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+						???
 
 
 							val receiverExpr = ctx.mkFreshConst("s0", classSort)
