@@ -1,5 +1,7 @@
 package de.tuda.consys.formalization.lang
 
+import de.tuda.consys.formalization.lang.types.{ClassType, OperationLevel, Type, TypeVar}
+
 case class FieldDecl(name: FieldId, typ: Type)
 
 case class VarDecl(name: VarId, typ: Type)
@@ -41,11 +43,11 @@ case class ClassDecl(classId: ClassId,
         methods.get(methodId)
 
     def toType: ClassType =
-        ClassType(classId, typeParameters)
+        types.ClassType(classId, typeParameters)
 
     def toConcreteType(typeArgs: Seq[Type]): ClassType = {
         require(typeArgs.length == typeParameters.length)
-        ClassType(classId, typeArgs)
+        types.ClassType(classId, typeArgs)
     }
 
     def typeParametersMapTo[A](others: Seq[A]): Map[TypeVarId, A] =

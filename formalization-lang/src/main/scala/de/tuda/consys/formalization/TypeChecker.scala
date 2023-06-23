@@ -1,6 +1,7 @@
 package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.lang._
+import de.tuda.consys.formalization.lang.types._
 
 // TODO: resolve class type arguments correctly
 // TODO: check transactions
@@ -214,7 +215,7 @@ object TypeChecker {
                     throw TypeError(s"wrong constructor argument type: expected $fieldType, but was $argType (in class $classId)")
             })
 
-            CompoundType(ClassType(classId, typeArgs), consistencyType, Mutable) // TODO: which mutability type here?
+            CompoundType(types.ClassType(classId, typeArgs), consistencyType, Mutable) // TODO: which mutability type here?
 
         case _ => ???
     }
@@ -250,6 +251,6 @@ object TypeChecker {
     private def resolveType(typ: Type, typeVars: TypeVarEnv): Type = typ match {
         case TypeVar(x, upperBound) => typeVars.getOrElse(x, resolveType(upperBound, typeVars))
         case CompoundType(ClassType(classId, typeArgs), c, m) =>
-            CompoundType(ClassType(classId, typeArgs.map(typeArg => resolveType(typeArg, typeVars))), c, m)
+            CompoundType(types.ClassType(classId, typeArgs.map(typeArg => resolveType(typeArg, typeVars))), c, m)
     }
 }

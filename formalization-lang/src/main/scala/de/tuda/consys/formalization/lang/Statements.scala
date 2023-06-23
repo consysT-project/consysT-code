@@ -1,5 +1,7 @@
 package de.tuda.consys.formalization.lang
 
+import de.tuda.consys.formalization.lang.types.{ConsistencyType, Type}
+
 sealed trait IRExpr
 
 // ---------------------------------------------------------------------------------------------------------------------

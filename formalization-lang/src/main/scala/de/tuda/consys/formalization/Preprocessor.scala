@@ -1,6 +1,7 @@
 package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.lang._
+import de.tuda.consys.formalization.lang.types.{CompoundType, TypeVar}
 
 // TODO: add PolyConsistent substitution
 object Preprocessor {
