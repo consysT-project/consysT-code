@@ -6,7 +6,7 @@ import de.tuda.consys.formalization.lang.types._
 
 object Exec {
     def main(args : Array[String]): Unit = {
-        var program = exampleProgram1()
+        var program = exampleProgram2()
         program = Preprocessor.process(program)
         TypeChecker.checkProgram(program)
         val result = new Interpreter("127.0.0.1").run(program)
@@ -17,6 +17,7 @@ object Exec {
         val boxClass = ClassDecl(
             "Box",
             Seq(),
+            "Object",
             Map(
                 "value" -> FieldDecl("value", CompoundType(Natives.numberType, Strong, Mutable)),
             ),
@@ -64,9 +65,10 @@ object Exec {
     private def exampleProgram2(): ProgramDecl = {
         val polyBoxClass = ClassDecl(
             "Box",
-            Seq(TypeVar("T", CompoundType(Natives.objectType, Inconsistent, Immutable))),
+            Seq(TypeVarDecl("T", CompoundType(Natives.objectType, Inconsistent, Immutable))),
+            "Object",
             Map(
-                "value" -> FieldDecl("value", CompoundType(Natives.numberType, Strong, Mutable)),
+                "value" -> FieldDecl("value", TypeVar("T")),
             ),
             Map(
                 "setVal" -> UpdateMethodDecl("setVal", StrongOp,
@@ -78,7 +80,7 @@ object Exec {
                             UnitLiteral
                         ))
                 ),
-                "getVal" -> QueryMethodDecl("getVal", StrongOp, Seq(), CompoundType(Natives.numberType, Strong, Mutable),
+                "getVal" -> QueryMethodDecl("getVal", StrongOp, Seq(), TypeVar("T"),
                     GetField("value")
                 ),
             )
@@ -97,7 +99,7 @@ object Exec {
                 ("Box", Strong) -> polyBoxClass,
             ),
             Transaction(
-                Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(42))),
+                Let("x", New("b", "Box", Seq(CompoundType(Natives.numberType, Strong, Mutable)), Strong, Map("value" -> Num(42))),
                     Let("n", Add(CallQuery(Var("x"), "getVal", Seq()), Num(1)),
                         Sequence(Seq(
                             CallUpdate(Var("x"), "setVal", Seq(Var("n"))),

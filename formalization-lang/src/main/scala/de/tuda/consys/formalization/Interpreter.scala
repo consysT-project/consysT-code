@@ -2,6 +2,7 @@ package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.Interpreter._
 import de.tuda.consys.formalization.lang._
+import de.tuda.consys.formalization.lang.types._
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.{CassandraStore, CassandraTransactionContext}
 

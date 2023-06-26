@@ -6,6 +6,8 @@ case class FieldDecl(name: FieldId, typ: Type)
 
 case class VarDecl(name: VarId, typ: Type)
 
+case class TypeVarDecl(name: TypeVarId, upperBound: Type)
+
 sealed trait MethodDecl {
     def name: MethodId
 
@@ -32,7 +34,8 @@ case class UpdateMethodDecl(override val name: MethodId,
                             override val body: IRExpr) extends MethodDecl
 
 case class ClassDecl(classId: ClassId,
-                     typeParameters: Seq[TypeVar],
+                     typeParameters: Seq[TypeVarDecl],
+                     superClass: ClassId, // TODO: add type arguments
                      fields: Map[FieldId, FieldDecl],
                      methods: Map[MethodId, MethodDecl]) {
 
@@ -43,15 +46,19 @@ case class ClassDecl(classId: ClassId,
         methods.get(methodId)
 
     def toType: ClassType =
-        types.ClassType(classId, typeParameters)
+        types.ClassType(classId, typeParameters.map(p => p.upperBound))
 
     def toConcreteType(typeArgs: Seq[Type]): ClassType = {
         require(typeArgs.length == typeParameters.length)
+        require((typeArgs zip typeParameters).forall(e => e._1 <= e._2.upperBound))
         types.ClassType(classId, typeArgs)
     }
 
+    def typeParametersToEnv: Map[TypeVarId, Type] =
+        typeParameters.map(typeVarDecl => typeVarDecl.name -> typeVarDecl.upperBound).toMap
+
     def typeParametersMapTo[A](others: Seq[A]): Map[TypeVarId, A] =
-        typeParameters.map(typeVar => typeVar.typeVarId).zip(others).toMap
+        typeParameters.map(typeVar => typeVar.name).zip(others).toMap
 }
 
 case class ProgramDecl(classTable: ClassTable, body: IRExpr)

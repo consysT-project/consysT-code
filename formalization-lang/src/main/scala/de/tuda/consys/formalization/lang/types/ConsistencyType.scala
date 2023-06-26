@@ -45,7 +45,7 @@ object ConsistencyTypeLattice {
     private lazy val strong: LatticeNode[ConsistencyType] = new LatticeNode(Strong, List(mixed), List(local))
     private lazy val mixed: LatticeNode[ConsistencyType] = new LatticeNode(Mixed, List(weak), List(strong))
     private lazy val weak: LatticeNode[ConsistencyType] = new LatticeNode(Weak, List(inconsistent), List(mixed))
-    private lazy val inconsistent: LatticeNode[ConsistencyType] = new LatticeNode(Weak, List(), List(weak))
+    private lazy val inconsistent: LatticeNode[ConsistencyType] = new LatticeNode(Inconsistent, List(), List(weak))
 
     def apply(t: ConsistencyType): LatticeNode[ConsistencyType] = t match {
         case Local => local

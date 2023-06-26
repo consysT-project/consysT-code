@@ -1,7 +1,7 @@
 package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.lang._
-import de.tuda.consys.formalization.lang.types.{CompoundType, TypeVar}
+import de.tuda.consys.formalization.lang.types._
 
 // TODO: add PolyConsistent substitution
 object Preprocessor {
@@ -43,7 +43,7 @@ object Preprocessor {
                 case CompoundType(baseType, _, mutabilityType) =>
                     CompoundType(baseType, thisType, mutabilityType)
 
-                case TypeVar(typeVarId, upperBound) => ???
+                case TypeVar(typeVarId) => TypeVar(typeVarId)
             }
 
             (id,  lang.FieldDecl(fid, newType))
@@ -66,7 +66,7 @@ object Preprocessor {
                     case (id, decl) if id == fieldId =>
                         val newTyp = decl.typ match {
                             case CompoundType(b, c, m) => CompoundType(b, c lub methodOp.consistencyType(), m)
-                            case _ => ???
+                            case t: TypeVar => t
                         }
                         id -> lang.FieldDecl(id, newTyp)
                     case x => x
@@ -80,7 +80,7 @@ object Preprocessor {
                             case (id, decl) if id == fieldId =>
                                 val newTyp = decl.typ match {
                                     case CompoundType(b, c, m) => CompoundType(b, c lub methodOp.consistencyType(), m)
-                                    case _ => ???
+                                    case t: TypeVar => t
                                 }
                                 id -> lang.FieldDecl(id, newTyp)
                             case x => x

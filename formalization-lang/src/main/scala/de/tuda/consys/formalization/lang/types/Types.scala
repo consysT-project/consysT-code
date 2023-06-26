@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization.lang.types
 
-import de.tuda.consys.formalization.lang.{ClassId, TypeVarId}
+import de.tuda.consys.formalization.lang.{ClassId, Natives, TypeVarId}
 
 sealed trait Type {
     def <=(t: Type): Boolean
@@ -14,11 +14,29 @@ sealed trait Type {
     def lub(t: Type): Type
 
     def glb(t: Type): Type
+}
 
-    def effectiveType(): CompoundType
+case class TypeVar(typeVarId: TypeVarId) extends Type {
+    def <=(t: Type): Boolean = ???
+
+    def >=(t: Type): Boolean = ???
+
+    def lub(t: Type): Type = ???
+
+    def glb(t: Type): Type = ???
+
+    override def toString: ClassId = s"$typeVarId"
 }
 
 case class ClassType(classId: ClassId, typeArguments: Seq[Type]) {
+    def <=(t: Type): Boolean = ???
+
+    def >=(t: Type): Boolean = ???
+
+    def lub(t: Type): Type = ???
+
+    def glb(t: Type): Type = ???
+
     override def toString: ClassId = if (typeArguments.isEmpty) s"$classId" else s"$classId<${typeArguments.mkString(",")}>"
 }
 
@@ -28,7 +46,7 @@ case class CompoundType(classType: ClassType, consistencyType: ConsistencyType, 
 
     def <=(t: Type): Boolean = t match {
         case CompoundType(baseType1, consistencyType1, mutabilityType1) =>
-            if (classType != baseType1)
+            if (classType != baseType1 && baseType1 != Natives.objectType)
                 false // TODO: inheritance
             else if (consistencyType == Local && mutabilityType == Bottom) // TODO
                 true
@@ -54,25 +72,5 @@ case class CompoundType(classType: ClassType, consistencyType: ConsistencyType, 
         case _ => ???
     }
 
-    def effectiveType(): CompoundType = this
-
     override def toString: ClassId = s"$mutabilityType $consistencyType $classType"
-}
-
-case class TypeVar(typeVarId: TypeVarId, upperBound: Type) extends Type {
-    def <=(t: Type): Boolean = ???
-
-    def >=(t: Type): Boolean = ???
-
-    def lub(t: Type): Type = ???
-
-    def glb(t: Type): Type = ???
-
-    def effectiveType(): CompoundType = upperBound match {
-        case t@CompoundType(_, _, _) => t
-        case t@TypeVar(_, _) => t.effectiveType()
-        case _ => ???
-    }
-
-    override def toString: ClassId = s"$typeVarId <: $upperBound"
 }

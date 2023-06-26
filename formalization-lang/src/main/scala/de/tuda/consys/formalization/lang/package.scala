@@ -1,5 +1,7 @@
 package de.tuda.consys.formalization
 
+import de.tuda.consys.formalization.lang.types.ConsistencyType
+
 package object lang {
     type ClassId = String
 
