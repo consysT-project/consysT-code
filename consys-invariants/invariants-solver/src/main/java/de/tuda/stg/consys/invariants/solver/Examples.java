@@ -111,5 +111,9 @@ public class Examples {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/TwoPhaseSet.java"),
 	};
 
+	public static final Path[] RIAK_GCOUNTER = new Path[] {
+		Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/GCounter.java")
+	};
+
 
 }
