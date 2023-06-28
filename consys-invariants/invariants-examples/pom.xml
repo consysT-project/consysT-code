@@ -45,7 +45,13 @@
             <version>4.0.0</version>
         </dependency>
 
-         </dependencies>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>14.0.1</version>
+        </dependency>
+
+     </dependencies>
 
 
 

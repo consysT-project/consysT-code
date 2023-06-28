@@ -31,7 +31,6 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 			properties.add(mergeAssociative());
 			properties.add(mergeCommutative());
 			properties.add(mergeIdempotent());
-			System.out.println("test");
 		}
 	}
 

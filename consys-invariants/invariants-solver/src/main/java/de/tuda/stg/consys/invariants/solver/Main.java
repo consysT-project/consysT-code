@@ -41,7 +41,7 @@ public class Main {
 		CASE_STUDIES.put("shopping_cart", Examples.SHOPPING_CART);
 	}
 
-	public static final Path[] DEFAULT_EXAMPLE = Examples.GCOUNTER;
+	public static final Path[] DEFAULT_EXAMPLE = Examples.RIAK_GCOUNTER;
 
 	private static void printUsage() {
 		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name]");
