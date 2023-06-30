@@ -18,7 +18,7 @@ public class Examples {
 
 	public static final ProgramConfig STATEFUL_CONFIG = new ProgramConfig(
 			true,
-			true,
+			false,
 			true,
 			1,
 			"replica-01",
@@ -113,6 +113,24 @@ public class Examples {
 
 	public static final Path[] RIAK_GCOUNTER = new Path[] {
 		Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/GCounter.java")
+	};
+
+	public static final Path[] RIAK_GSET = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/GSet.java")
+	};
+
+	public static final Path[] RIAK_PNCOUNTER = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/GCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/PNCounter.java")
+	};
+
+	public static final Path[] RIAK_TWOPHASESET = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/GSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/TwoPhaseSet.java")
+	};
+
+	public static final Path[] RIAK_ORSET = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/riak/ORSet.java")
 	};
 
 
