@@ -28,14 +28,14 @@ case class TypeVar(typeVarId: TypeVarId) extends Type {
     override def toString: ClassId = s"$typeVarId"
 }
 
-case class ClassType(classId: ClassId, typeArguments: Seq[Type]) {
-    def <=(t: Type): Boolean = ???
+case class ClassType(classId: ClassId, typeArguments: Seq[Type]) extends TypeLike[ClassType] {
+    def <=(t: ClassType): Boolean = ???
 
-    def >=(t: Type): Boolean = ???
+    def >=(t: ClassType): Boolean = ???
 
-    def lub(t: Type): Type = ???
+    def lub(t: ClassType): ClassType = ???
 
-    def glb(t: Type): Type = ???
+    def glb(t: ClassType): ClassType = ???
 
     override def toString: ClassId = if (typeArguments.isEmpty) s"$classId" else s"$classId<${typeArguments.mkString(",")}>"
 }

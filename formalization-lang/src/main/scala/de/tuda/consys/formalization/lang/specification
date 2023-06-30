@@ -1,0 +1,44 @@
+### Language ##############
+- everything is an expression or a declaration (there are no statements)
+
+### Classes ##############
+- classes have one supertype
+- fields are private
+- methods can be overridden
+- methods cannot be overloaded
+
+### Operational Semantics ##############
+- uses type erasure semantics
+- programs compute a value
+
+### Replication ##############
+- objects instantiated through literal expressions correspond to local values (effectively base types with built-in operators)
+- objects instantiated through <New> expressions correspond to replicated values (Refs)
+- transactions are explicit
+- all methods are implicitly transactional (since we only have replicated objects)#
+- transactions are only allowed at the top program level (i.e. not inside method bodies)
+
+### TODO ##############
+- try to go without the preprocessor, and instead formalize the class consistency similar to type parameters
+
+- should we have a bottom type?
+
+- differentiation between field consistency and object consistency type:
+    - Should we handle field consistency (consistency of the reference) separate from consistency of the referenced object?
+      E.g. allow a strong class to hold a strong reference to a weak object. How would we model this in the language,
+      since we don't have explicit Ref types (-> we could implicitly adapt this during preprocessing).
+    - Do we need a differentiation of Ref-values and Literal-values? All classes without a literal expression can
+      only be used as Refs. Is this an important distinction for the type system or only relevant for the operational semantics?
+    - Else we could restrict the possible field consistency types (e.g. in a strong object the whole object graph must be strong)
+    - How do we check type variable fields w.r.t to the class consistency?
+      In the monotonic object graph model, the consistency restriction would extend to type parameters (although this
+      might be too restrictive, since not all type parameters correspond to field types, so we would have to differentiate
+      these in some form (declaration/inference).
+
+- differentiation between field mutability and object mutability type:
+    - Should fields ever be immutable/final? Do we need constants in classes (let defines final variables already)?
+    - Should the mutability type of an object restrict assignments (only relevant for fields, since we can't reassign local variables)?
+
+- modelling erroneous transaction termination (error types apparently break important properties)
+
+- should nested transactions be a possibility? (transactions in method bodies)

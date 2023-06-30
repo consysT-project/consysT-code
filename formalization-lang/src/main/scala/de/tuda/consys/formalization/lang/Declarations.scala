@@ -35,7 +35,7 @@ case class UpdateMethodDecl(override val name: MethodId,
 
 case class ClassDecl(classId: ClassId,
                      typeParameters: Seq[TypeVarDecl],
-                     superClass: ClassId, // TODO: add type arguments
+                     superClass: (ClassId, Seq[Type]),
                      fields: Map[FieldId, FieldDecl],
                      methods: Map[MethodId, MethodDecl]) {
 
@@ -57,8 +57,8 @@ case class ClassDecl(classId: ClassId,
     def typeParametersToEnv: Map[TypeVarId, Type] =
         typeParameters.map(typeVarDecl => typeVarDecl.name -> typeVarDecl.upperBound).toMap
 
-    def typeParametersMapTo[A](others: Seq[A]): Map[TypeVarId, A] =
-        typeParameters.map(typeVar => typeVar.name).zip(others).toMap
+    def superClassType: ClassType =
+        types.ClassType(superClass._1, superClass._2)
 }
 
 case class ProgramDecl(classTable: ClassTable, body: IRExpr)

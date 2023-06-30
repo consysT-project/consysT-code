@@ -17,7 +17,7 @@ object Exec {
         val boxClass = ClassDecl(
             "Box",
             Seq(),
-            "Object",
+            ("Object", Seq.empty),
             Map(
                 "value" -> FieldDecl("value", CompoundType(Natives.numberType, Strong, Mutable)),
             ),
@@ -66,7 +66,7 @@ object Exec {
         val polyBoxClass = ClassDecl(
             "Box",
             Seq(TypeVarDecl("T", CompoundType(Natives.objectType, Inconsistent, Immutable))),
-            "Object",
+            ("Object", Seq.empty),
             Map(
                 "value" -> FieldDecl("value", TypeVar("T")),
             ),
