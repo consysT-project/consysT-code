@@ -37,19 +37,45 @@ object TypeChecker {
             implicit val typeVarEnv: TypeVarEnv = classDecl.typeParametersToEnv
 
             methodDecl match {
-                case QueryMethodDecl(_, operationLevel, _, declaredReturnType, body) =>
+                case QueryMethodDecl(_, operationLevel, declaredParameters, declaredReturnType, body) =>
                     val returnType = resolveType(
                         typeOfExpr(body, varEnv)(MethodContext((classDecl.toType, thisConsistency), ImmutableContext, operationLevel), Local, classTable, typeVarEnv),
                         typeVarEnv)
                     val resolvedDeclaredReturnType = resolveType(declaredReturnType, typeVarEnv)
+                    val resolvedDeclaredArgumentTypes = declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))
+
+                    classDecl.getMethodOverride(methodId) match {
+                        case Some(value: QueryMethodDecl) =>
+                            if (resolvedDeclaredReturnType !<= resolveType(value.returnType, typeVarEnv))
+                                throw TypeError(s"wrong return type in method override (in method  ${classDecl.classId}.$methodId")
+                            for (a <- resolvedDeclaredArgumentTypes;
+                                 b <- value.declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))) {
+                                if (a !>= b)
+                                    throw TypeError(s"wrong argument type in method override (in method  ${classDecl.classId}.$methodId")
+                            }
+                        case Some(_: UpdateMethodDecl) => throw TypeError(s"cannot override update method with query method: ${classDecl.classId}.$methodId")
+                        case None => // nothing to do
+                    }
 
                     if (returnType !<= resolvedDeclaredReturnType)
                         throw TypeError(s"return type is wrong. Expected: $resolvedDeclaredReturnType, but was $returnType (in method ${classDecl.classId}.$methodId})")
 
-                case UpdateMethodDecl(_, operationLevel, _, body) =>
+                case UpdateMethodDecl(_, operationLevel, declaredParameters, body) =>
                     val returnType = resolveType(
                         typeOfExpr(body, varEnv)(MethodContext((classDecl.toType, thisConsistency), MutableContext, operationLevel), Local, classTable, typeVarEnv),
                         typeVarEnv)
+
+                    classDecl.getMethodOverride(methodId) match {
+                        case Some(value: UpdateMethodDecl) =>
+                            val resolvedDeclaredArgumentTypes = declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))
+                            for (a <- resolvedDeclaredArgumentTypes;
+                                 b <- value.declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))) {
+                                if (a !>= b)
+                                    throw TypeError(s"wrong argument type in method override (in method  ${classDecl.classId}.$methodId")
+                            }
+                        case Some(_: QueryMethodDecl) => throw TypeError(s"cannot override query method with update method: ${classDecl.classId}.$methodId")
+                        case None => // nothing to do
+                    }
 
                     if (returnType.classType != Natives.unitType)
                         throw TypeError(s"return type is wrong. Expected: $Natives.UnitType, but was $returnType (in method $methodId)")

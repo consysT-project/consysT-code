@@ -46,6 +46,9 @@ case class ClassDecl(classId: ClassId,
     def getMethod(methodId: MethodId): Option[MethodDecl] =
         methods.get(methodId)
 
+    def getMethodOverride(methodId: MethodId)(implicit classTable: ClassTable): Option[MethodDecl] =
+        ClassTable.getSuperclass(classId).getMethodWithSuperclass(methodId)
+
     def getMethodWithSuperclass(methodId: MethodId)
                                (implicit classTable: ClassTable): Option[MethodDecl] = {
         getMethod(methodId) match {
