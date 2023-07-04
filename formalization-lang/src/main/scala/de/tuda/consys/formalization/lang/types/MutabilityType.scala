@@ -1,13 +1,16 @@
 package de.tuda.consys.formalization.lang.types
 
+import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.TypeVarEnv
+
 sealed trait MutabilityType extends TypeLike[MutabilityType] {
-    def <=(t: MutabilityType): Boolean = MutabilityTypeLattice(this).hasUpperBound(t)
+    def <=(t: MutabilityType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = MutabilityTypeLattice(this).hasUpperBound(t)
 
-    def >=(t: MutabilityType): Boolean = MutabilityTypeLattice(this).hasLowerBound(t)
+    def >=(t: MutabilityType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = MutabilityTypeLattice(this).hasLowerBound(t)
 
-    def lub(t: MutabilityType): MutabilityType = ???
+    def lub(t: MutabilityType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): MutabilityType = ???
 
-    def glb(t: MutabilityType): MutabilityType = ???
+    def glb(t: MutabilityType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): MutabilityType = ???
 }
 
 case object Mutable extends MutabilityType

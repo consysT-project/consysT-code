@@ -88,6 +88,8 @@ object Exec {
 
         ProgramDecl(
             Map(
+                ("Object", Weak) -> Natives.objectClass,
+                ("Object", Strong) -> Natives.objectClass,
                 ("Number", Weak) -> Natives.numberClass,
                 ("Number", Strong) -> Natives.numberClass,
                 ("Bool", Weak) -> Natives.booleanClass,

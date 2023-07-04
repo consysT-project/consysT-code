@@ -1,15 +1,18 @@
 package de.tuda.consys.formalization.lang.types
 
+import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.TypeVarEnv
+
 sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
-    def <=(t: ConsistencyType): Boolean = ConsistencyTypeLattice(this).hasUpperBound(t)
+    def <=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ConsistencyTypeLattice(this).hasUpperBound(t)
 
-    def >=(t: ConsistencyType): Boolean = ConsistencyTypeLattice(this).hasLowerBound(t)
+    def >=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ConsistencyTypeLattice(this).hasLowerBound(t)
 
-    def lub(t: ConsistencyType): ConsistencyType = {
+    def lub(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = {
         if (this <= t) t else this // TODO: generalize
     }
 
-    def glb(t: ConsistencyType): ConsistencyType = {
+    def glb(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = {
         if (this >= t) t else this // TODO: generalize
     }
 

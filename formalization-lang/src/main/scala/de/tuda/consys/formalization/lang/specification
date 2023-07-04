@@ -19,7 +19,21 @@
 - transactions are only allowed at the top program level (i.e. not inside method bodies)
 
 ### TODO ##############
-- try to go without the preprocessor, and instead formalize the class consistency similar to type parameters
+- Options for modeling consistency types:
+    - try to go without the preprocessor, and instead formalize the class consistency similar to type parameters
+        - may not be possible to model mixed classes in the same manner as non-mixed ones
+    - formalize each instance separately by adding <This> as a lhs context
+    - separate mixed instantiation from rest, since mixed can't be expressed through consistency variables
+        - 2 separate formalization attempts
+    - only consider mixed class types and use normal types for expression values only
+        - still need to assign something to fields for computation of <GetField>
+    - express all types through operation levels (mixed refinement types)
+
+- What should it mean for an object to be strong/weak:
+    - should all operations be strong/weak?
+    - should all data be strong/weak?
+        - do we differentiate between references and objects?
+        - what does it mean to have a weak reference to a strong object?
 
 - should we have a bottom type?
 

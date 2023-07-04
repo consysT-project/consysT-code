@@ -65,7 +65,7 @@ object Preprocessor {
                 val newFields = classDecl.fields.map {
                     case (id, decl) if id == fieldId =>
                         val newTyp = decl.typ match {
-                            case CompoundType(b, c, m) => CompoundType(b, c lub methodOp.consistencyType(), m)
+                            case CompoundType(b, c, m) => CompoundType(b, (c lub methodOp.consistencyType())(Map.empty, Map.empty), m)
                             case t: TypeVar => t
                         }
                         id -> lang.FieldDecl(id, newTyp)
@@ -79,7 +79,7 @@ object Preprocessor {
                         val newFields = classDecl.fields.map {
                             case (id, decl) if id == fieldId =>
                                 val newTyp = decl.typ match {
-                                    case CompoundType(b, c, m) => CompoundType(b, c lub methodOp.consistencyType(), m)
+                                    case CompoundType(b, c, m) => CompoundType(b, (c lub methodOp.consistencyType())(Map.empty, Map.empty), m)
                                     case t: TypeVar => t
                                 }
                                 id -> lang.FieldDecl(id, newTyp)

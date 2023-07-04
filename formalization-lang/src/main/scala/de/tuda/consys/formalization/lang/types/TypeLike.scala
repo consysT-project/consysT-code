@@ -1,15 +1,18 @@
 package de.tuda.consys.formalization.lang.types
 
-trait TypeLike[A] {
-    def <=(t: A): Boolean
+import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.TypeVarEnv
 
-    def !<=(t: A): Boolean = !this.<=(t)
+trait TypeLike[T] {
+    def <=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean
 
-    def >=(t: A): Boolean
+    def !<=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = !this.<=(t)
 
-    def !>=(t: A): Boolean = !this.>=(t)
+    def >=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean
 
-    def lub(t: A): A
+    def !>=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = !this.>=(t)
 
-    def glb(t: A): A
+    def lub(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): T
+
+    def glb(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): T
 }

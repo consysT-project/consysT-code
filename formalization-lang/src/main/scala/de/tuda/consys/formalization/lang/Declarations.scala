@@ -1,6 +1,7 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.{ClassType, OperationLevel, Type, TypeVar}
+import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.types.{ClassType, OperationLevel, Type}
 
 case class FieldDecl(name: FieldId, typ: Type)
 
@@ -48,7 +49,7 @@ case class ClassDecl(classId: ClassId,
     def toType: ClassType =
         types.ClassType(classId, typeParameters.map(p => p.upperBound))
 
-    def toConcreteType(typeArgs: Seq[Type]): ClassType = {
+    def toConcreteType(typeArgs: Seq[Type])(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ClassType = {
         require(typeArgs.length == typeParameters.length)
         require((typeArgs zip typeParameters).forall(e => e._1 <= e._2.upperBound))
         types.ClassType(classId, typeArgs)
