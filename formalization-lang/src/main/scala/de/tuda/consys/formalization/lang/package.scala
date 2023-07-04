@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization
 
-import de.tuda.consys.formalization.lang.types.{CompoundType, Type}
+import de.tuda.consys.formalization.lang.types.Type
 
 package object lang {
     type ClassId = String
@@ -16,4 +16,6 @@ package object lang {
     type TypeVarEnv = Map[TypeVarId, Type]
 
     val thisId = "this"
+
+    val topClassId = "Object"
 }

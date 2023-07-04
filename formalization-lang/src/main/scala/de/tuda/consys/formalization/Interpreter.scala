@@ -117,7 +117,7 @@ class Interpreter(storeAddress: String) {
                     case ref@RefV(objectId, classId, consistency) =>
                         val classDecl = classTable.getOrElse((classId, consistency),
                             throw RuntimeError(s"unknown class: $consistency $classId"))
-                        val methodDecl = classDecl.methods.getOrElse(methodId,
+                        val methodDecl = classDecl.getMethodWithSuperclass(methodId).getOrElse(
                             throw RuntimeError(s"unknown method: $methodId (in class $classId)"))
 
                         // Force read of object with appropriate consistency to mimic invoke
@@ -140,7 +140,7 @@ class Interpreter(storeAddress: String) {
                     case ref@RefV(objectId, classId, consistency) =>
                         val classDecl = classTable.getOrElse((classId, consistency),
                             throw RuntimeError(s"unknown class: $consistency $classId"))
-                        val methodDecl = classDecl.methods.getOrElse(methodId,
+                        val methodDecl = classDecl.getMethodWithSuperclass(methodId).getOrElse(
                             throw RuntimeError(s"unknown method: $methodId (in class $classId)"))
 
                         // Force read of object with appropriate consistency to mimic invoke

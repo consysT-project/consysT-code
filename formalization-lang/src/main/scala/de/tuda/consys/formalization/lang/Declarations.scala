@@ -46,6 +46,15 @@ case class ClassDecl(classId: ClassId,
     def getMethod(methodId: MethodId): Option[MethodDecl] =
         methods.get(methodId)
 
+    def getMethodWithSuperclass(methodId: MethodId)
+                               (implicit classTable: ClassTable): Option[MethodDecl] = {
+        getMethod(methodId) match {
+            case v@Some(_) => v
+            case None if superClass._1 == topClassId => None
+            case None => ClassTable.getSuperclass(classId).getMethodWithSuperclass(methodId)
+        }
+    }
+
     def toType: ClassType =
         types.ClassType(classId, typeParameters.map(p => p.upperBound))
 

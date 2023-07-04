@@ -9,7 +9,7 @@ object ClassTable {
 
     @tailrec
     def isSuperclass(subclassId: ClassId, superclassId: ClassId)(implicit classTable: ClassTable): Boolean = {
-        if (superclassId == "Object")
+        if (superclassId == topClassId)
             return true
 
         (findDeclaration(subclassId), findDeclaration(superclassId)) match {
@@ -22,4 +22,13 @@ object ClassTable {
 
     def findDeclaration(id: ClassId)(implicit classTable: ClassTable): Option[ClassDecl] =
         classTable.find(x => x._1._1 == id).map(x => x._2)
+
+    def getSuperclass(id: ClassId)(implicit classTable: ClassTable): ClassDecl =
+        findDeclaration(id) match {
+            case Some(value) => findDeclaration(value.classId) match {
+                case Some(value) => value
+                case None => sys.error(s"class not found: $value")
+            }
+            case None => sys.error(s"class not found: $id")
+        }
 }
