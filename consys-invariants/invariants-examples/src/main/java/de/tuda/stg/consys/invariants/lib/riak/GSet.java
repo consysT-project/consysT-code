@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import de.tuda.stg.consys.annotations.invariants.SetUtils;
+import static de.tuda.stg.consys.annotations.invariants.SetUtils.union;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -111,7 +111,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ assignable \nothing;
 	//@ ensures \result == (\forall E elem; collection.contains(elem); delegate.contains(elem));
-	public boolean containsAll(final Collection<?> collection) {
+	public boolean containsAll(Set<?> collection) {
 //		checkCollectionDoesNotContainNull(collection);
 
 		return delegate.containsAll(collection);
@@ -122,8 +122,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	//@ ensures (\forall E elem; \old(delegate.contains(elem)); delegate.contains(elem));
 	//@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
 	//@ ensures \result == !(\forall E elem; collection.contains(elem); \old(delegate.contains(elem)));
-	//@ ensures delegate == SetUtils.union(delegate, collection);
-	public boolean addAll(final Collection<? extends E> collection) {
+	//@ ensures delegate == SetUtils.<E>union(\old(delegate), collection);
+	public boolean addAll(Set<E> collection) {
 //		checkCollectionDoesNotContainNull(collection);
 		return delegate.addAll(collection);
 	}

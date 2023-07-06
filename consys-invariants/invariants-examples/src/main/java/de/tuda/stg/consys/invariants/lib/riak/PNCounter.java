@@ -7,6 +7,10 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import java.math.BigInteger;
 
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+
 /**
  * Counter that supports both positive and negative operations.
  *
@@ -31,26 +35,6 @@ import java.math.BigInteger;
 		positive = new GCounter(client);
 		negative = new GCounter(client);
 	}
-
-	/* Change from the origin: We had this constructor:
-	public PNCounter(final ObjectMapper mapper, @ClientId final String client, final byte[] value) {
-		super(mapper);
-
-		this.clientId = client;
-
-		try {
-			
-			Map<String, JsonNode> retval = mapper.readValue(value, REF);
-
-			positive = new GCounter(mapper, client, mapper.writeValueAsBytes(retval.get(POSITIVE_TOKEN)));
-			negative = new GCounter(mapper, client, mapper.writeValueAsBytes(retval.get(NEGATIVE_TOKEN)));
-
-		} catch (IOException ioe) {
-			throw new IllegalArgumentException("Invalid JSON", ioe);
-		}
-
-	}
-	End change from the origin */
 
 
 	/*@

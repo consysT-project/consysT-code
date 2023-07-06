@@ -14,6 +14,8 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+
+
 /**
  * Supports both add and remove operations, but only allows for a single remove.
  * 
@@ -85,7 +87,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
     @ ensures (\forall E elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
     @ ensures \result == !(\old(adds.contains(obj)));
 	@*/
-	public boolean add(final E obj) {
+	public boolean add(E obj) {
 		if (removals.contains(obj)) {
 			throw new IllegalArgumentException(
 					"Cannot add to a group that has had the value removed.");
@@ -101,7 +103,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; adds.contains(elem) && col.contains(elem) == false; \old(adds.contains(elem)));
 	@ ensures \result == !(\forall E elem; col.contains(elem); \old(adds.contains(elem)));
 	@*/
-	public boolean addAll(final Collection<? extends E> col) {
+	public boolean addAll(Set<? extends E> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 
 		if (s.size() > 0) {
@@ -136,7 +138,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == (\forall E elem; col.contains(elem); removals.contains(elem) == false) && (\forall E elem; col.contains(elem); adds.contains(elem));
 	@*/
 	// changed from original: @Override
-	public boolean containsAll(final Collection<?> col) {
+	public boolean containsAll(Set<?> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 		return s.isEmpty() && adds.containsAll(col);
 	}

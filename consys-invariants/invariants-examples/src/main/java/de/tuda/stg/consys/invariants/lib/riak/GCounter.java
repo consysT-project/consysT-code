@@ -20,6 +20,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 // private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {};
 
+	public static final String[] KEYS = new String[] {"dummy-00", "dummy-01", "dummy-02", "dummy-03", "dummy-04", "dummy-05", "dummy-06", "dummy-07"};
+
 	private final String clientId;
 	private final Map<String, BigInteger> payload = Maps.newHashMap();
 
@@ -51,15 +53,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 //		this.payload.putAll(value);
 //	}
 
-	/*
-	 New suggestion to check for this annotations:
-	 (\forall int i; i >= 0 && i < numOfReplicas();
-				other.payload.get(keys[i]).intValue() > \old(payload.get(keys[i])).intValue() ? this.payload.get(keys[i]).equals(other.payload.get(keys[i])) : this.payload.get(keys[i]).equals(\old(payload.get([keys[i]))) );
-	 */
 
 	//@ ensures (\forall String s; true ; other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? this.payload.get(s).equals(other.payload.get(s)) : this.payload.get(s).equals(\old(payload.get(s))) );
 	//@ ensures clientId.equals(\old(clientId));
-	public Void merge(final GCounter other) {
+	public Void merge(GCounter other) {
 		// Merge method changed to return Void instead of GCounter
 		Map<String, BigInteger> retmap = Maps
 				.newHashMapWithExpectedSize(Math.max(payload.size(), other.payload.size()));
@@ -76,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 	//TODO: How to iterate over the values of payload?
 	//@ assignable \nothing;
-	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < numOfReplicas(); payload.get("..."));
+	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < InvariantUtils.numOfReplicas(); payload.get(KEYS[i));
 	public BigInteger value() {
 		BigInteger retval = BigInteger.ZERO;
 		for (BigInteger o : payload.values()) {

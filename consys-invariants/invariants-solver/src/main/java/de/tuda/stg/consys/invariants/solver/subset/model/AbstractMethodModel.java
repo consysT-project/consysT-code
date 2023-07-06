@@ -5,6 +5,7 @@ import com.microsoft.z3.Sort;
 import de.tuda.stg.consys.invariants.solver.subset.model.types.TypeModel;
 import de.tuda.stg.consys.invariants.solver.subset.utils.JDTUtils;
 import de.tuda.stg.consys.invariants.solver.subset.utils.Z3Utils;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.ast.AbstractMethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.ast.Reference;
@@ -66,6 +67,7 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 
 	public Optional<Expression> getJmlPostcondition() {
 		if (method.getSpecification() == null) return Optional.empty();
+		Logger.info(method);
 		return Optional.of(method.getSpecification().getPostcondition());
 	}
 
