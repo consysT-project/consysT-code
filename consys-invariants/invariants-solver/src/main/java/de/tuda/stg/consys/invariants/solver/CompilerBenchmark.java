@@ -28,7 +28,7 @@ public class CompilerBenchmark {
 			public void run() {
 				try {
 					Main.runChecker(Examples.STATEFUL_CONFIG, new Path[]{
-									Paths.get("consys-invariants", "src", "main", "resources", "guava-14.0.1.jar"),
+									/* libs */ Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar"),
 							},
 							paths
 					);

@@ -47,7 +47,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E val; \old(removals.contains(val)) || other.removals.contains(val); this.removals.contains(val));
 	@ ensures (\forall E val; this.removals.contains(val); \old(removals.contains(val)) || other.removals.contains(val));
 	@*/
-	public Void merge(final TwoPhaseSet<E> other) {
+	public Void merge(TwoPhaseSet<E> other) {
 		adds.addAll(other.adds.delegate());
 		removals.addAll(other.removals.delegate());
 
@@ -103,7 +103,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; adds.contains(elem) && col.contains(elem) == false; \old(adds.contains(elem)));
 	@ ensures \result == !(\forall E elem; col.contains(elem); \old(adds.contains(elem)));
 	@*/
-	public boolean addAll(Set<? extends E> col) {
+	public boolean addAll(Set<E> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 
 		if (s.size() > 0) {
@@ -129,7 +129,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == !removals.contains(obj) && adds.contains(obj);
 	@*/
 	// changed from original: @Override
-	public boolean contains(final Object obj) {
+	public boolean contains(Object obj) {
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
@@ -137,8 +137,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; col.contains(elem); removals.contains(elem) == false) && (\forall E elem; col.contains(elem); adds.contains(elem));
 	@*/
-	// changed from original: @Override
-	public boolean containsAll(Set<?> col) {
+	public boolean containsAll(Set<E> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 		return s.isEmpty() && adds.containsAll(col);
 	}
@@ -171,12 +170,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@*/
 	// changed from original: @Override
 	// changed from original: @SuppressWarnings("unchecked")
-	public boolean remove(final Object obj) {
+	public boolean remove(E obj) {
 		if (removals.contains(obj) || !adds.contains(obj)) {
 			return false;
 		}
 
-		removals.add((E) obj);
+		removals.add(obj);
 
 		return true;
 	}
@@ -192,17 +191,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@*/
 	// changed from original: @Override
 	// changed from original: @SuppressWarnings("unchecked")
-	public boolean removeAll(final Collection<?> col) {
+	public boolean removeAll(final Set<E> col) {
 		checkNotNull(col);
 //		checkCollectionDoesNotContainNull(col);
 		
-		Set<E> input = Sets.newHashSet((Collection<E>) col);
+		Set<E> input = Sets.newHashSet(col);
 		Set<E> intersection = Sets.intersection(this.adds.delegate(), input);
 		
 		return this.removals.addAll(intersection);
 	}
 
-	// Omitted: requires col.contains(null) == false;
 	/*@
 	@ requires col.isEmpty() == false;
 	@ assignable removals;
@@ -211,13 +209,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; removals.contains(elem) && \old(removals.contains(elem)) == false; adds.contains(elem) && col.contains(elem) == false);
 	@ ensures \result == (\exists E elem; !col.contains(elem) && this.value().contains(elem); true);
 	@*/
-	// changed from original: @Override
-	// changed from original: @SuppressWarnings("unchecked")
-	public boolean retainAll(final Collection<?> col) {
+	public boolean retainAll(final Collection<E> col) {
 		checkNotNull(col);
 //		checkCollectionDoesNotContainNull(col);
 
-		Set<E> input = Sets.newHashSet((Collection<E>) col);
+		Set<E> input = Sets.newHashSet(col);
 		Set<E> diff = Sets.difference(this.value(), input);
 
 		return this.removeAll(diff);
