@@ -1,12 +1,12 @@
 package de.tuda.stg.consys.invariants.lib.riak;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Objects;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -35,23 +35,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 		payload.put(clientId, BigInteger.ZERO);
 	}
 
-//	//@SuppressWarnings("unchecked")
-//	public GCounter(final ObjectMapper mapper, @ClientId final String client, final byte[] value) {
-//		this(mapper, client);
-//
-//
-//
-//		try {
-//			this.payload.putAll((Map<String, BigInteger>) serializer().readValue(value, REF));
-//		} catch (IOException ioe) {
-//			throw new IllegalArgumentException("Unable to deserialize payload.", ioe);
-//		}
-//	}
-//
-//	private GCounter(final String client, final Map<String, BigInteger> value) {
-//		this(client);
-//		this.payload.putAll(value);
-//	}
 
 
 	//@ ensures (\forall String s; true ; other.payload.get(s).compareTo(\old(payload.get(s))) == 1 ? this.payload.get(s).equals(other.payload.get(s)) : this.payload.get(s).equals(\old(payload.get(s))) );
@@ -63,7 +46,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 		retmap.putAll(payload);
 
 		for (Map.Entry<String, BigInteger> o : other.payload.entrySet()) {
-			BigInteger value = Objects.firstNonNull(retmap.get(o.getKey()), BigInteger.ZERO);
+			BigInteger ret = retmap.get(o.getKey());
+			BigInteger value = ret != null ? ret : BigInteger.ZERO;
 			retmap.put(o.getKey(), o.getValue().max(value));
 		}
 
@@ -73,7 +57,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 	//TODO: How to iterate over the values of payload?
 	//@ assignable \nothing;
-	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < InvariantUtils.numOfReplicas(); payload.get(KEYS[i));
+	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < numOfReplicas(); payload.get(KEYS[i]).intValue());
 	public BigInteger value() {
 		BigInteger retval = BigInteger.ZERO;
 		for (BigInteger o : payload.values()) {
@@ -82,7 +66,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 		return retval;
 	}
 
-	//@ assignable this.payload.get(clientId);
+	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
 	//@ ensures \result.equals(this.value());
 	public BigInteger increment() {
@@ -90,7 +74,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	}
 
 	//@ requires n >= 0;
-	//@ assignable this.payload.get(clientId);
+	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
 	//@ ensures \result.equals(this.value());
 	public BigInteger increment(final int n) {

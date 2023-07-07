@@ -24,12 +24,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
 	private final String clientId;
 
-	// Any need to check GCounters are zero?
-	/*@
-	@ ensures clientId.equals(client);
-	@ ensures positive.value().equals(BigInteger.ZERO);
-	@ ensures negative.value().equals(BigInteger.ZERO);
-	@*/
+
+	//@ ensures clientId.equals(client);
+	//@ ensures positive.value().equals(BigInteger.ZERO);
+	//@ ensures negative.value().equals(BigInteger.ZERO);
 	public PNCounter(final String client) {
 		this.clientId = client;
 		positive = new GCounter(client);
@@ -37,20 +35,19 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	}
 
 
-	/*@
-	@ ensures stateful(positive.merge(other.positive));
-	@ ensures stateful(negative.merge(other.negative));
-	@ ensures clientId.equals(\old(clientId));
-	@*/
+
+	//@ ensures stateful(positive.merge(other.positive));
+	//@ ensures stateful(negative.merge(other.negative));
+	//@ ensures clientId.equals(\old(clientId));
 	public Void merge(final PNCounter other) { // Change from the origin: void <- PNCounter
 		positive.merge(other.positive);
 		negative.merge(other.negative);
 		return null;
 	}
-	/*@
-	@ assignable \nothing;
-	@ ensures \result.equals(positive.value().subtract(negative.value()));
-	@*/
+
+
+	//@ assignable \nothing;
+	//@ ensures \result.equals(positive.value().subtract(negative.value()));
 	public BigInteger value() {
 		return this.positive.value().subtract(this.negative.value());
 	}
@@ -69,45 +66,40 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 		return null;
 	}
 
-	/*@
-	@ assignable positive;
-	@ ensures stateful(positive.increment());
-	@ ensures \result.equals(this.value());
-	@*/
+
+	//@ assignable positive;
+	//@ ensures stateful(positive.increment());
+	//@ ensures \result.equals(this.value());
 	public BigInteger increment() {
 		this.positive.increment();
 
 		return this.value();
 	}
 
-	/*@
-	@ requires n >= 0;
-	@ assignable positive;
-	@ ensures stateful(positive.increment(n));
-	@ ensures \result.equals(this.value());
-	@*/
+
+	//@ requires n >= 0;
+	//@ assignable positive;
+	//@ ensures stateful(positive.increment(n));
+	//@ ensures \result.equals(this.value());
 	public BigInteger increment(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		this.positive.increment(n);
 		return this.value();
 	}
 
-	/*@
-	@ assignable negative;
-	@ ensures stateful(negative.increment());
-	@ ensures \result.equals(this.value());
-	@*/
+	//@ assignable negative;
+	//@ ensures stateful(negative.increment());
+	//@ ensures \result.equals(this.value());
 	public BigInteger decrement() {
 		this.negative.increment();
 		return this.value();
 	}
 
-	/*@
-	@ requires n >= 0;
-	@ assignable negative;
-	@ ensures stateful(negative.increment(n));
-	@ ensures \result.equals(this.value());
-	@*/
+
+	//@ requires n >= 0;
+	//@ assignable negative;
+	//@ ensures stateful(negative.increment(n));
+	//@ ensures \result.equals(this.value());
 	public BigInteger decrement(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		

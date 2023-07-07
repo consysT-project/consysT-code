@@ -67,7 +67,6 @@ public abstract class AbstractMethodModel<Decl extends AbstractMethodDeclaration
 
 	public Optional<Expression> getJmlPostcondition() {
 		if (method.getSpecification() == null) return Optional.empty();
-		Logger.info(method);
 		return Optional.of(method.getSpecification().getPostcondition());
 	}
 
