@@ -1,9 +1,9 @@
 package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
-import de.tuda.consys.invariants.solver.next.ir.IR.{TypeVarId, _}
+import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap, FieldRep, InstantiatedClassRep, InstantiatedObjectClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
-import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.checkClass
+import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.typedClassOf
 
 import scala.collection.immutable.Map
 import scala.collection.mutable
@@ -16,7 +16,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
 
 		//0. Type check the expressions
 		for (classDecl <- program.classes) {
-			checkClass(classDecl)(program.classTable)
+			typedClassOf(classDecl)(program.classTable)
 		}
 
 		//1. Declare all types and create the type map

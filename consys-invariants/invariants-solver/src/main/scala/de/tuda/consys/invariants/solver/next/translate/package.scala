@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next
 
 import com.microsoft.z3.Sort
-import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, Type}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, Type}
 
 package object translate {
 

@@ -1,10 +1,12 @@
 package de.tuda.consys.invariants.solver.next.translate.types
 
-import de.tuda.consys.invariants.solver.next.ir.Expressions.BaseExpressions.NumExpr
-import de.tuda.consys.invariants.solver.next.ir.Expressions.{IRExpr, IRFalse, IRLet, IRNum, IRString, IRTrue, IRUnit, IRVar}
-import de.tuda.consys.invariants.solver.next.ir.IR._
-import de.tuda.consys.invariants.solver.next.ir.Natives
+
+import de.tuda.consys.invariants.solver.next.ir.Classes._
+import de.tuda.consys.invariants.solver.next.ir.{Expressions, Natives}
 import de.tuda.consys.invariants.solver.next.translate.types.Types.resolveType
+
+import Expressions._
+
 
 object TypeChecker {
 
@@ -28,151 +30,155 @@ object TypeChecker {
 
 
 
-  def checkClass(classDecl : ClassDecl[_])(implicit classTable : ClassTable) : Unit = classDecl match {
-    case ObjectClassDecl(name, typeParameters, invariant, fields, methods) =>
+  def typedClassOf(classDecl : ObjectClassDecl[_ <: BaseExpressions#Expr])(implicit classTable : ClassTable) : ObjectClassDecl[TypedLang.Expr] = {
+      val invariantTExpr = TypeChecker.typedExprOf(classDecl.invariant, Map())(classDecl.asType, Immutable, classTable)
 
-      val invariantType = TypeChecker.typedExprOf(invariant, Map())(classDecl.asType, Immutable, classTable)
-      if (invariantType != Natives.BOOL_TYPE)
-        throw TypeException(s"invariant is not Bool, but: " + invariantType)
+      if (invariantTExpr.typ != Natives.BOOL_TYPE)
+        throw TypeException(s"invariant is not Bool, but: " + invariantTExpr)
 
-      for ((methodId, methodDecl) <- methods) {
+      val builder = Map.newBuilder[MethodId, ObjectMethodDecl[TypedLang.Expr]]
+
+      for ((methodId, methodDecl) <- classDecl.methods) {
         val varEnv : VarEnv = methodDecl.declaredParameters.map(varDecl => (varDecl.name, varDecl.typ)).toMap
         methodDecl match {
-          case q : QueryMethodDecl =>
-            val returnTyp = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Immutable, classTable)
-            if (returnTyp != q.returnTyp)
-              throw TypeException(s"return type is wrong. Expected: ${q.returnTyp}, but was $returnTyp (in method $methodId)")
-          case _ : UpdateMethodDecl =>
-            val returnTyp = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Mutable, classTable)
-            if (returnTyp != Natives.UNIT_TYPE)
-              throw TypeException(s"return type is wrong. Expected: ${Natives.UNIT_TYPE}, but was $returnTyp (in method $methodId)")
+
+          case queryMethodDecl : QueryMethodDecl =>
+            val bodyTExpr = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Immutable, classTable)
+
+            if (bodyTExpr.typ != queryMethodDecl.returnTyp)
+              throw TypeException(s"return type is wrong. Expected: ${queryMethodDecl.returnTyp}, but was ${bodyTExpr.typ} (in method $methodId)")
+
+            builder.addOne((queryMethodDecl.name, ObjectQueryMethodDecl(queryMethodDecl.name, queryMethodDecl.declaredParameters, queryMethodDecl.returnTyp, bodyTExpr)))
+
+          case updateMethodDecl : UpdateMethodDecl =>
+            val bodyTExpr = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Mutable, classTable)
+            if (bodyTExpr.typ != Natives.UNIT_TYPE)
+              throw TypeException(s"return type is wrong. Expected: ${Natives.UNIT_TYPE}, but was ${bodyTExpr.typ} (in method $methodId)")
+
+            builder.addOne((updateMethodDecl.name, ObjectUpdateMethodDecl(updateMethodDecl.name, updateMethodDecl.declaredParameters, bodyTExpr)))
         }
       }
 
-    case NativeClassDecl(name, typeVars, sort, methods) =>
-    // Native classes are expected to be fine
+    ObjectClassDecl(
+      classDecl.classId,
+      classDecl.typeParameters,
+      invariantTExpr,
+      classDecl.fields,
+      builder.result()
+    )
   }
 
+  def typedExprOf(expr : BaseExpressions#Expr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : TypedLang.Expr = expr match {
+    case numExpr : BaseLang.BaseNum => TypedLang.IRNum(numExpr.value, Natives.INT_TYPE)
+    case trueExpr : BaseLang.BaseTrue => TypedLang.IRTrue(Natives.BOOL_TYPE)
+    case falseExpr : BaseLang.BaseFalse => TypedLang.IRFalse(Natives.BOOL_TYPE)
+    case stringExpr : BaseLang.BaseString => TypedLang.IRString(stringExpr.value, Natives.STRING_TYPE)
+    case unitExpr : BaseLang.BaseUnit => TypedLang.IRUnit(Natives.UNIT_TYPE)
 
-  def typedExprOf(expr : IRExpr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : TypedExpr = expr match {
-    case numExpr : IRNum => new IRNum with TypedExpr {
-      override def value : Int = numExpr.value
-      override def typ : Type = Natives.INT_TYPE
-    }
-    case trueExpr : IRTrue => new IRTrue with TypedExpr {
-      override def typ : Type = Natives.BOOL_TYPE
-    }
-    case falseExpr : IRFalse => new IRFalse with TypedExpr {
-      override def typ : Type = Natives.BOOL_TYPE
-    }
-    case stringExpr : IRString => new IRString with TypedExpr {
-      override def value : String = stringExpr.value
-      override def typ : Type = Natives.STRING_TYPE
-    }
-    case unitExpr : IRUnit => new IRUnit with TypedExpr {
-      override def typ : Type = Natives.UNIT_TYPE
-    }
-
-    case varExpr : IRVar =>
+    case varExpr : BaseLang.BaseVar =>
       val varTyp = vars.getOrElse(varExpr.id, throw TypeException("variable not declared: " + varExpr.id))
-      new IRVar with TypedExpr {
-        override def id : VarId = varExpr.id
-        override def typ : Type = varTyp
-      }
+      TypedLang.IRVar(varExpr.id, varTyp)
 
-    case letExpr : IRLet =>
+    case letExpr : BaseLang.BaseLet =>
       val namedTExpr = typedExprOf(letExpr.namedExpr, vars)
-      val bodyTExpr = typedExprOf(letExpr.body, vars + (letExpr.id -> namedTExpr.typ))
-      new IRLet with TypedExpr {
-        override def id : VarId = ???
-        override def namedExpr : IRExpr = ???
-        override def body : IRExpr = ???
-        override def typ : Type = ???
-      }
+      val bodyTExpr = typedExprOf(letExpr.bodyExpr, vars + (letExpr.id -> namedTExpr.typ))
+      TypedLang.IRLet(letExpr.id, namedTExpr, bodyTExpr, bodyTExpr.typ)
 
-    case If(conditionExpr, thenExpr, elseExpr) =>
-      val condType = typedExprOf(conditionExpr, vars)
+    case ifExpr : BaseLang.BaseIf =>
+      val condTExpr = typedExprOf(ifExpr.conditionExpr, vars)
 
-      if (condType != Natives.BOOL_TYPE)
-        throw TypeException("condition must be Bool, but was: " + condType)
+      if (condTExpr.typ != Natives.BOOL_TYPE)
+        throw TypeException("condition must be Bool, but was: " + condTExpr.typ)
 
       // In the branches of the if, state changes are not allowed as we do not know which changes to apply
-      val t1 = typedExprOf(thenExpr, vars)(thisType, Immutable, classTable)
-      val t2 = typedExprOf(elseExpr, vars)(thisType, Immutable, classTable)
+      val thenTExpr = typedExprOf(ifExpr.thenExpr, vars)(thisType, Immutable, classTable)
+      val elseTExpr = typedExprOf(ifExpr.elseExpr, vars)(thisType, Immutable, classTable)
 
-      if (t1 != t2)
-        throw TypeException("branches have diverging types: " + t1 + " and " + t2)
+      if (thenTExpr.typ != elseTExpr.typ)
+        throw TypeException("branches have diverging types: " + thenTExpr + " and " + elseTExpr)
 
-      t1
+      TypedLang.IRIf(condTExpr, thenTExpr, elseTExpr, thenTExpr.typ)
 
 
-    case Equals(e1 : IRExpr, e2 : IRExpr) =>
-      val t1 = typedExprOf(e1, vars)
-      val t2 = typedExprOf(e2, vars)
+    case equalsExpr : BaseLang.BaseEquals =>
+      val tExpr1 = typedExprOf(equalsExpr.expr1, vars)
+      val tExpr2 = typedExprOf(equalsExpr.expr2, vars)
 
-      if (t1 != t2) throw TypeException(s"non-matching types in 'equals': $t1 and $t2")
+      if (tExpr1.typ != tExpr2.typ) throw TypeException(s"non-matching types in 'equals': ${tExpr1.typ} and ${tExpr2.typ}")
 
-      Natives.BOOL_TYPE
+      TypedLang.IREquals(tExpr1, tExpr2, Natives.BOOL_TYPE)
 
-    case This =>
-      thisType
+    case thisExpr : BaseLang.BaseThis =>
+      TypedLang.IRThis(thisType)
 
-    case GetField(fieldId : FieldId) =>
+    case getFieldExpr : BaseLang.BaseGetField =>
+      val fieldId = getFieldExpr.fieldId
+
       val classDecl = classTable
         .getOrElse(thisType.classId, throw TypeException("class of 'this' not available: " + thisType))
 
       val fieldDecl = classDecl
-        .getField(fieldId).getOrElse(throw TypeException("field not available: " + fieldId + s" (in class $thisType)"))
+        .getField(fieldId).getOrElse(throw TypeException(s"field not available: $fieldId (in class $thisType)"))
 
-      fieldDecl.typ
+      TypedLang.IRGetField(fieldId, fieldDecl.typ)
 
 
-    case SetField(fieldId : FieldId, value : IRExpr) =>
+    case setFieldExpr : BaseLang.BaseSetField =>
       if (mutableContext != Mutable) throw TypeException("assignment in immutable context: " + thisType)
 
-      val valueType = typedExprOf(value, vars)
+      val fieldId = setFieldExpr.fieldId
+
+      val valueTExpr = typedExprOf(setFieldExpr.newValue, vars)
       val cls = classTable.getOrElse(thisType.classId, throw TypeException("class of 'this' not available: " + thisType))
       val fieldDecl = cls.getField(fieldId).getOrElse(throw TypeException("field not available: " + fieldId + s" (in class $thisType)"))
-      if (valueType != fieldDecl.typ)
-        throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: ${valueType})")
+      if (valueTExpr.typ != fieldDecl.typ)
+        throw TypeException(s"assignment has wrong type. expected: ${fieldDecl.typ} (but was: ${valueTExpr.typ})")
 
-      valueType
+      TypedLang.IRSetField(fieldId, valueTExpr, valueTExpr.typ)
 
 
-    case CallQuery(recv, methodId, arguments) =>
-      val recvType = typedExprOf(recv, vars)
+    case callQueryExpr : BaseLang.BaseCallQuery =>
+      val recvTExpr = typedExprOf(callQueryExpr.recv, vars)
 
-      recvType match {
+      val methodId = callQueryExpr.methodId
+
+      recvTExpr.typ match {
         case recvClassType@ClassType(classId, typeArguments) =>
 
-          val (mthdDecl, typeEnv) = checkMethodCall(recvClassType, methodId, vars, arguments)
+          val (mthdDecl, typeEnv, argTExprs) = typeCheckMethodCall(recvClassType, methodId, vars, callQueryExpr.arguments)
 
           val queryDecl = mthdDecl match {
             case q : QueryMethodDecl => q
             case _ => throw TypeException(s"expected query method: $methodId")
           }
 
-          resolveType(queryDecl.returnTyp, typeEnv)
+          TypedLang.IRCallQuery(recvTExpr, methodId, argTExprs, resolveType(queryDecl.returnTyp, typeEnv))
 
-        case _ => throw TypeException(s"receiver not a class type: " + recv)
+        case _ => throw TypeException(s"receiver not a class type: " + callQueryExpr.recv)
       }
 
 
-    case CallUpdateThis(methodId, arguments) =>
+    case callUpdateThisExpr : BaseLang.BaseCallUpdateThis =>
+      val methodId = callUpdateThisExpr.methodId
+
       if (mutableContext != Mutable)
         throw TypeException(s"cannot call update on immutable type: $methodId")
 
-      val (mthdDecl, _) = checkMethodCall(thisType, methodId, vars, arguments)
+      val (mthdDecl, _, argTExprs) = typeCheckMethodCall(thisType, methodId, vars, callUpdateThisExpr.arguments)
 
       val updateDecl = mthdDecl match {
         case u : UpdateMethodDecl => u
         case _ => throw TypeException(s"expected update method: $methodId")
       }
 
-      Natives.UNIT_TYPE
+      TypedLang.IRCallUpdateThis(methodId, argTExprs, Natives.UNIT_TYPE)
 
 
-    case CallUpdateField(fieldId, methodId, arguments) =>
+
+    case callUpdateFieldExpr : BaseLang.BaseCallUpdateField =>
+      val methodId = callUpdateFieldExpr.methodId
+      val fieldId = callUpdateFieldExpr.fieldId
+
       if (mutableContext != Mutable)
         throw TypeException(s"cannot call update on immutable type: $methodId")
 
@@ -181,14 +187,14 @@ object TypeChecker {
 
       fieldDecl.typ match {
         case fieldClassType@ClassType(classId, typeArguments) =>
-          val (mthdDecl, _) = checkMethodCall(fieldClassType, methodId, vars, arguments)
+          val (mthdDecl, _, argTExprs) = typeCheckMethodCall(fieldClassType, methodId, vars, callUpdateFieldExpr.arguments)
 
           val updateDecl = mthdDecl match {
             case u : UpdateMethodDecl => u
             case _ => throw TypeException(s"expected update method: $methodId")
           }
 
-          Natives.UNIT_TYPE
+          TypedLang.IRCallUpdateField(fieldId, methodId, argTExprs, Natives.UNIT_TYPE)
 
         case _ => throw TypeException(s"expected class type, but got: " + fieldDecl.typ)
       }
@@ -196,8 +202,8 @@ object TypeChecker {
 
   }
 
-  private def checkMethodCall(recvType : ClassType, methodId : MethodId, vars : VarEnv, arguments : Seq[IRExpr])
-                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : (MethodDecl, TypeEnv) = {
+  private def typeCheckMethodCall(recvType : ClassType, methodId : MethodId, vars : VarEnv, arguments : Seq[BaseLang.Expr])
+                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : (MethodDecl, TypeEnv, Seq[TypedLang.Expr]) = {
 
     val recvClassDecl = classTable.getOrElse(recvType.classId, throw TypeException("class not available: " + thisType))
 
@@ -213,16 +219,16 @@ object TypeChecker {
     if (arguments.size != methodDecl.declaredParameters.size)
       throw TypeException(s"wrong number of arguments for method $methodId: ${arguments.size} (expected: ${methodDecl.declaredParameters.size}")
 
-    val argTypes = arguments.map(argExpr => typedExprOf(argExpr, vars))
+    val argTExprs = arguments.map(argExpr => typedExprOf(argExpr, vars))
 
-    argTypes.zip(methodDecl.declaredParameterTypes).foreach(t => {
-      val argType = t._1
+    argTExprs.zip(methodDecl.declaredParameterTypes).foreach(t => {
+      val argType = t._1.typ
       val parameterType = resolveType(t._2, typeEnv)
       if (argType != parameterType)
         throw TypeException(s"wrong argument type for method $methodId: $argType (expected: $parameterType)")
     })
 
-    (methodDecl, typeEnv)
+    (methodDecl, typeEnv, argTExprs)
 
   }
 

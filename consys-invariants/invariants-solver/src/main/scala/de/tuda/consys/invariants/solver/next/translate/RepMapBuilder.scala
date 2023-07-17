@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.Sort
-import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, ClassTable, ClassType, FieldId, MethodId, Type, TypeVar, TypeVarId}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, ClassTable, ClassType, FieldId, MethodId, Type, TypeVar, TypeVarId}
 import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap, FieldRep, InstantiatedClassRep, InstantiatedObjectClassRep, MethodRep}
 
 import scala.collection.mutable

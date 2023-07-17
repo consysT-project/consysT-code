@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{BoolSort, Context, FuncDecl, Sort, Expr => Z3Expr}
-import de.tuda.consys.invariants.solver.next.ir.IR.{TypeVarId, _}
+import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.translate.CompileErrors.CompileException
 import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{QueryMethodRep, RepTable, UpdateMethodRep}
 

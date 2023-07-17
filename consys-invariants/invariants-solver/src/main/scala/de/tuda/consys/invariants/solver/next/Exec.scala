@@ -1,6 +1,6 @@
 package de.tuda.consys.invariants.solver.next
 
-import de.tuda.consys.invariants.solver.next.ir.IR.{ProgramDecl, SetField}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ProgramDecl, SetField}
 import de.tuda.consys.invariants.solver.next.ir.Natives
 import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, SET_CLASS, STRING_TYPE}
 import de.tuda.consys.invariants.solver.next.translate.{ProgramModel, Z3Env}
@@ -36,7 +36,7 @@ object Exec {
 	}
 
 	def exampleProgram1() : ProgramDecl = {
-		import ir.IR._
+		import ir.Classes._
 
 		val boxCls = ObjectClassDecl(
 			"Box",
@@ -103,7 +103,7 @@ object Exec {
 	}
 
 	def exampleProgram2() : ProgramDecl = {
-		import ir.IR._
+		import ir.Classes._
 
 		val boxCls = ObjectClassDecl(
 			"Box",

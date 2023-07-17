@@ -1,6 +1,6 @@
 package de.tuda.consys.invariants.solver.next.translate
 
-import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, FieldId, MethodId, VarId}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, FieldId, MethodId, VarId}
 
 
 object CompileErrors {

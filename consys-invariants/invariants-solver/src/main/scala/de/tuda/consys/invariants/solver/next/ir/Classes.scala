@@ -1,12 +1,13 @@
 package de.tuda.consys.invariants.solver.next.ir
 
 
-import com.microsoft.z3.{Context, Expr, Sort}
+import com.microsoft.z3.{Context, Expr => Z3Expr, Sort}
+import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseExpressions, BaseLang}
 
 import scala.collection.mutable
 
 
-object IR {
+object Classes {
 
 	type ClassTable = Map[ClassId, ClassDecl[_ <: MethodDecl]]
 
@@ -27,12 +28,12 @@ object IR {
 			declaredParameters.map(varDecl => varDecl.typ)
 	}
 
-	trait ObjectMethodDecl extends MethodDecl {
-		def body : Expressions.BaseAll.BaseExpr
+	trait ObjectMethodDecl[Expr <: BaseExpressions#Expr] extends MethodDecl {
+		def body : Expr
 	}
 
 	trait NativeMethodDecl extends MethodDecl {
-		def impl : (Context, Expr[_ <: Sort], Seq[Expr[_ <: Sort]]) => Expr[_ <: Sort]
+		def impl : (Context, Z3Expr[_ <: Sort], Seq[Z3Expr[_ <: Sort]]) => Z3Expr[_ <: Sort]
 	}
 
 	trait QueryMethodDecl extends MethodDecl {
@@ -43,24 +44,24 @@ object IR {
 
 	}
 
-	case class ObjectQueryMethodDecl(
+	case class ObjectQueryMethodDecl[Expr <: BaseExpressions#Expr](
 		override val name : MethodId,
 		override val declaredParameters : Seq[VarDecl],
 		override val returnTyp : Type,
-		override val body : Expressions.BaseAll.Expr
-	) extends ObjectMethodDecl with QueryMethodDecl
+		override val body : Expr
+	) extends ObjectMethodDecl[Expr] with QueryMethodDecl
 
-	case class ObjectUpdateMethodDecl(
+	case class ObjectUpdateMethodDecl[Expr <: BaseExpressions#Expr](
 		override val name : MethodId,
 		override val declaredParameters : Seq[VarDecl],
-		override val body : IRExpr
-	) extends ObjectMethodDecl with UpdateMethodDecl
+		override val body : Expr
+	) extends ObjectMethodDecl[Expr] with UpdateMethodDecl
 
 	case class NativeQueryMethodDecl(
-																		override val name : MethodId,
-																		override val declaredParameters : Seq[VarDecl],
-																		override val returnTyp : Type,
-																		override val impl : (Context, Expr[_ <: Sort], Seq[Expr[_ <: Sort]]) => Expr[_ <: Sort]
+		override val name : MethodId,
+		override val declaredParameters : Seq[VarDecl],
+		override val returnTyp : Type,
+		override val impl : (Context, Z3Expr[_ <: Sort], Seq[Z3Expr[_ <: Sort]]) => Z3Expr[_ <: Sort]
 	) extends NativeMethodDecl with QueryMethodDecl
 
 	trait ClassDecl[MDecl <: MethodDecl] {
@@ -84,17 +85,17 @@ object IR {
 
 	}
 
-	case class ObjectClassDecl(
+	case class ObjectClassDecl[Expr <: BaseExpressions#Expr](
 		override val classId : ClassId,
 		override val typeParameters : Seq[TypeVar],
-		invariant : IRExpr,
+		invariant : Expr,
 		fields : Map[FieldId, FieldDecl],
-		override val methods : Map[MethodId, ObjectMethodDecl]
-	) extends ClassDecl[ObjectMethodDecl] {
+		override val methods : Map[MethodId, ObjectMethodDecl[Expr]]
+	) extends ClassDecl[ObjectMethodDecl[Expr]] {
 
 		override def getField(fieldId : FieldId) : Option[FieldDecl] =
 			fields.get(fieldId)
-		override def getMethod(methodId : MethodId) : Option[ObjectMethodDecl] =
+		override def getMethod(methodId : MethodId) : Option[ObjectMethodDecl[Expr]] =
 			methods.get(methodId)
 	}
 

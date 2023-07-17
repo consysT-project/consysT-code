@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next.ir
 
 import de.tuda.consys.invariants.solver.next.ir.Expressions.BaseExpressions
-import de.tuda.consys.invariants.solver.next.ir.IR.{ClassId, ClassType, FieldId, MethodId, Type, VarId}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, ClassType, FieldId, MethodId, Type, VarId}
 
 object Expressions {
 
@@ -100,6 +100,8 @@ object Expressions {
 
 
 
+
+
   trait TypedExpressions extends BaseExpressions {
     type Expr <: TypedExpr
 
@@ -114,13 +116,42 @@ object Expressions {
     case class IREquals(override val expr1 : Expr, override val expr2 : Expr, override val typ : Type) extends Expr with BaseEquals
   }
 
+  trait TypedNumExpressions extends TypedExpressions with BaseNumExpressions {
+    case class IRNum(override val value : Int, override val typ : Type) extends Expr with BaseNum
+  }
 
-  object BaseAll extends BaseExpressions
+  trait TypedBoolExpressions extends TypedExpressions with BaseBoolExpressions {
+    case class IRTrue(override val typ : Type) extends Expr with BaseTrue
+    case class IRFalse(override val typ : Type) extends Expr with BaseFalse
+  }
+
+  trait TypedStringExpressions extends TypedExpressions with BaseStringExpressions {
+    case class IRString(override val value : String, override val typ : Type) extends Expr with BaseString
+  }
+
+  trait TypedObjectExpressions extends TypedExpressions with BaseObjectExpressions {
+    case class IRThis(override val typ : Type) extends Expr with BaseThis
+    case class IRGetField(override val fieldId : FieldId, override val typ : Type) extends Expr with BaseGetField
+    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr, override val typ : Type) extends Expr with BaseSetField
+    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallQuery
+    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallUpdateThis
+    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallUpdateField
+  }
+
+
+  object BaseLang extends BaseExpressions
+    with BaseNumExpressions
+    with BaseBoolExpressions
+    with BaseStringExpressions
+    with BaseObjectExpressions
 
   object UntypedAll extends UntypedExpressions with UntypedNumExpressions with UntypedBoolExpressions
 
-  object TypeAll extends TypedExpressions
-
+  object TypedLang extends TypedExpressions
+    with TypedNumExpressions
+    with TypedBoolExpressions
+    with TypedStringExpressions
+    with TypedObjectExpressions
 
 
   {
