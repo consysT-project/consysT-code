@@ -30,7 +30,7 @@ object TypeChecker {
 
 
 
-  def typedClassOf(classDecl : ObjectClassDecl[_ <: BaseExpressions#Expr])(implicit classTable : ClassTable) : ObjectClassDecl[TypedLang.Expr] = {
+  def typedClassOf[Expr <: BaseExpressions#Expr](classDecl : ObjectClassDecl[Expr])(implicit classTable : ClassTable[Expr]) : ObjectClassDecl[TypedLang.Expr] = {
       val invariantTExpr = TypeChecker.typedExprOf(classDecl.invariant, Map())(classDecl.asType, Immutable, classTable)
 
       if (invariantTExpr.typ != Natives.BOOL_TYPE)
@@ -68,7 +68,7 @@ object TypeChecker {
     )
   }
 
-  def typedExprOf(expr : BaseExpressions#Expr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : TypedLang.Expr = expr match {
+  def typedExprOf[Expr <: BaseExpressions#Expr](expr : Expr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[Expr]) : TypedLang.Expr = expr match {
     case numExpr : BaseLang.BaseNum => TypedLang.IRNum(numExpr.value, Natives.INT_TYPE)
     case trueExpr : BaseLang.BaseTrue => TypedLang.IRTrue(Natives.BOOL_TYPE)
     case falseExpr : BaseLang.BaseFalse => TypedLang.IRFalse(Natives.BOOL_TYPE)
@@ -203,7 +203,7 @@ object TypeChecker {
   }
 
   private def typeCheckMethodCall(recvType : ClassType, methodId : MethodId, vars : VarEnv, arguments : Seq[BaseLang.Expr])
-                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable) : (MethodDecl, TypeEnv, Seq[TypedLang.Expr]) = {
+                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[_]) : (MethodDecl, TypeEnv, Seq[TypedLang.Expr]) = {
 
     val recvClassDecl = classTable.getOrElse(recvType.classId, throw TypeException("class not available: " + thisType))
 

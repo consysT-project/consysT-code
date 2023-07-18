@@ -9,7 +9,20 @@ import scala.collection.mutable
 
 object Classes {
 
-	type ClassTable = Map[ClassId, ClassDecl[_ <: MethodDecl]]
+
+
+
+	class ClassTable[Expr <: BaseExpressions#Expr](private val classes : Map[ClassId, Either[NativeClassDecl, ObjectClassDecl[Expr]]]) {
+		def values : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = classes.values
+
+		def getOrElse(classId : ClassId, any : => ClassDecl[_ <: MethodDecl]) : ClassDecl[_ <: MethodDecl] =
+			classes.get(classId) match {
+				case Some(Left(nativeClassDecl)) => nativeClassDecl
+				case Some(Right(objectClassDecl)) => objectClassDecl
+				case None => any
+			}
+	}
+
 
 	type FieldId = String
 	type ClassId = String
@@ -118,14 +131,11 @@ object Classes {
 
 
 
+	case class ProgramDecl[Expr <: BaseExpressions#Expr](classTable : ClassTable[Expr]) {
 
+		lazy val classes : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = makeClassTableIterable
 
-
-
-	case class ProgramDecl(classTable : ClassTable) {
-		lazy val classes : Iterable[ClassDecl[_ <: MethodDecl]] = makeClassTableIterable
-
-		private def makeClassTableIterable : Iterable[ClassDecl[_ <: MethodDecl]] = {
+		private def makeClassTableIterable : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = {
 
 			def classesInType(typ : Type) : Set[ClassId] = typ match {
 				case TypeVar(typeVarId) => Set()
@@ -133,32 +143,39 @@ object Classes {
 					Set(classId) ++ typeArguments.foldLeft(Set.empty[ClassId])((set, typArg) => set ++ classesInType(typArg))
 			}
 
-
-			val classDecls = classTable.values
+			val classDeclEithers = classTable.values
 			val classDependenciesBuilder = Map.newBuilder[ClassId, Set[ClassId]]
 
-			for (classDecl <- classDecls) {
-				classDecl match {
-					case NativeClassDecl(name, typeParameters, sort, methods) =>
-						classDependenciesBuilder.addOne(name, Set())
-					case ObjectClassDecl(name, typeParameters, invariant, fields, methods) =>
-						val dependencies : Set[ClassId] = fields.values.flatMap(decl => classesInType(decl.typ)).toSet
-						classDependenciesBuilder.addOne(name, dependencies)
+			for (classDeclEither <- classDeclEithers) {
+				classDeclEither match {
+					case Left(nativeClassDecl) =>
+						classDependenciesBuilder.addOne(nativeClassDecl.classId, Set())
+					case Right(objectClassDecl) =>
+						val dependencies : Set[ClassId] = objectClassDecl.fields.values.flatMap(decl => classesInType(decl.typ)).toSet
+						classDependenciesBuilder.addOne(objectClassDecl.classId, dependencies)
 				}
 			}
 			val classDependencies = classDependenciesBuilder.result()
 
-
-			val iterable = Iterable.newBuilder[ClassDecl[_ <: MethodDecl]]
+			val iterable = Iterable.newBuilder[Either[NativeClassDecl, ObjectClassDecl[Expr]]]
 			val resolvedDependencies = mutable.Set.empty[ClassId]
-			while (resolvedDependencies.size < classDecls.size) {
+
+			while (resolvedDependencies.size < classDeclEithers.size) {
 				val before = resolvedDependencies.size
-				for (classDecl <- classDecls) {
-					if (classDependencies(classDecl.classId).subsetOf(resolvedDependencies)) {
-						iterable.addOne(classDecl)
-						resolvedDependencies.addOne(classDecl.classId)
+
+				for (classDeclEither <- classDeclEithers) {
+					val classId = classDeclEither match {
+						case Left(nativeClassDecl) => nativeClassDecl.classId
+						case Right(objectClassDecl) => objectClassDecl.classId
 					}
+
+					if (classDependencies(classId).subsetOf(resolvedDependencies)) {
+						iterable.addOne(classDeclEither)
+						resolvedDependencies.addOne(classId)
+					}
+
 				}
+
 				if (resolvedDependencies.size == before)
 					throw new Exception("cyclic dependency when resolving classes")
 			}

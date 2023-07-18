@@ -2,21 +2,30 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.Classes._
+import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseExpressions, TypedLang}
 import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap, FieldRep, InstantiatedClassRep, InstantiatedObjectClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
 import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.typedClassOf
 
 import scala.collection.immutable.Map
 import scala.collection.mutable
 
-class ProgramModel(val env : Z3Env, val program : ProgramDecl) {
+class ProgramModel(val env : Z3Env, val program : ProgramDecl[_ <: BaseExpressions#Expr]) {
 
 	def create() : Unit = {
-		implicit val ctx : Context = env.ctx
-		implicit val classTable : ClassTable = program.classTable
+		val ctx : Context = env.ctx
+		val untypedClassTable : ClassTable[_ <: BaseExpressions#Expr] = program.classTable
 
 		//0. Type check the expressions
-		for (classDecl <- program.classes) {
-			typedClassOf(classDecl)(program.classTable)
+		val typedClassTableBuilder = Map.newBuilder[ClassId, Either[NativeClassDecl, ObjectClassDecl[TypedLang.Expr]]]
+		program.classes.foreach {
+			case Left(nativeClassDecl) =>
+
+			case Right(objectClassDecl) =>
+		}
+
+		for (classDeclEither <- program.classes) {
+
+			typedClassOf(classDeclEither)(program.classTable)
 		}
 
 		//1. Declare all types and create the type map

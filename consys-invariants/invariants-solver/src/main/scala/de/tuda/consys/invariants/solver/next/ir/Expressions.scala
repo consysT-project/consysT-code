@@ -99,6 +99,22 @@ object Expressions {
   }
 
 
+  trait UntypedStringExpressions extends UntypedExpressions with BaseStringExpressions {
+    case class IRString(override val value : String) extends Expr with BaseString
+  }
+
+  trait UntypedObjectExpressions extends UntypedExpressions with BaseObjectExpressions {
+    type Expr <: UntypedExpr
+
+    case object IRThis extends Expr with BaseThis
+
+    case class IRGetField(override val fieldId : FieldId) extends Expr with BaseGetField
+    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr) extends Expr with BaseSetField
+    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallQuery
+    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallUpdateThis
+    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallUpdateField
+  }
+
 
 
 
@@ -110,7 +126,7 @@ object Expressions {
     }
 
     case class IRUnit(override val typ : Type) extends Expr with BaseUnit
-    case class IRVar(override val id : VarId, override val typ : Type) extends BaseVar with Expr
+    case class IRVar(override val id : VarId, override val typ : Type) extends Expr with BaseVar
     case class IRLet(override val id : VarId, override val namedExpr : Expr, override val bodyExpr : Expr, override val typ : Type) extends BaseLet with Expr
     case class IRIf(override val conditionExpr : Expr, override val thenExpr : Expr, override val elseExpr : Expr, override val typ : Type) extends Expr with BaseIf
     case class IREquals(override val expr1 : Expr, override val expr2 : Expr, override val typ : Type) extends Expr with BaseEquals
@@ -145,30 +161,17 @@ object Expressions {
     with BaseStringExpressions
     with BaseObjectExpressions
 
-  object UntypedAll extends UntypedExpressions with UntypedNumExpressions with UntypedBoolExpressions
+  object UntypedLang extends UntypedExpressions
+    with UntypedNumExpressions
+    with UntypedBoolExpressions
+    with UntypedStringExpressions
+    with UntypedObjectExpressions
 
   object TypedLang extends TypedExpressions
     with TypedNumExpressions
     with TypedBoolExpressions
     with TypedStringExpressions
     with TypedObjectExpressions
-
-
-  {
-    import UntypedAll._
-    IRLet("x", IRNum(6), IRVar("x")) //, ClassType("Int", Seq()))
-  }
-
-
-
-
-
-
-
-
-
-
-
 
 //  sealed trait IRExpr
 //  sealed trait IRLiteral extends IRExpr

@@ -1,12 +1,13 @@
 package de.tuda.consys.invariants.solver.next
 
-import de.tuda.consys.invariants.solver.next.ir.Classes.{ProgramDecl, SetField}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassType, FieldDecl, ObjectClassDecl, ObjectQueryMethodDecl, ObjectUpdateMethodDecl, ProgramDecl, TypeVar, VarDecl}
 import de.tuda.consys.invariants.solver.next.ir.Natives
 import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, SET_CLASS, STRING_TYPE}
 import de.tuda.consys.invariants.solver.next.translate.{ProgramModel, Z3Env}
 import de.tuda.stg.consys.logging.Logger
 
 import java.nio.file.{Path, Paths}
+import ir.Expressions.UntypedLang
 
 object Exec {
 
@@ -35,112 +36,112 @@ object Exec {
 		else throw new RuntimeException("unsupported OS: " + osname)
 	}
 
-	def exampleProgram1() : ProgramDecl = {
-		import ir.Classes._
+	def exampleProgram1() : ProgramDecl[UntypedLang.Expr] = {
+		import UntypedLang._
 
 		val boxCls = ObjectClassDecl(
 			"Box",
 			Seq(),
-			Equals(GetField("value"), Num(0)),
+			IREquals(IRGetField("value"), IRNum(0)),
 			Map(
 				"value" -> FieldDecl("value", INT_TYPE),
 				"name" -> FieldDecl("name", STRING_TYPE)
 			),
 			Map(
 				"setVal" -> ObjectUpdateMethodDecl("setVal", Seq(VarDecl("x", INT_TYPE)),
-					Let("a0", SetField("value", Var("x")),
-						UnitLiteral
+					IRLet("a0", IRSetField("value", IRVar("x")),
+						IRUnit
 					)
 				),
 				"nameLength" -> ObjectUpdateMethodDecl("nameLength", Seq(),
-					Let("a0",
-						SetField("value",
-							If(Equals(CallQuery(GetField("name"), "length", Seq()), Num(0)),
-								CallQuery(GetField("name"), "length", Seq()),
-								Num(0)
+					IRLet("a0",
+						IRSetField("value",
+							IRIf(IREquals(IRCallQuery(IRGetField("name"), "length", Seq()), IRNum(0)),
+								IRCallQuery(IRGetField("name"), "length", Seq()),
+								IRNum(0)
 							)
 						),
-						UnitLiteral
+						IRUnit
 					)
 				),
 				"foo2" -> ObjectUpdateMethodDecl("foo2", Seq(),
-					Let("a0", CallUpdateThis("setVal", Seq(Num(42))),
-						UnitLiteral
+					IRLet("a0", IRCallUpdateThis("setVal", Seq(IRNum(42))),
+						IRUnit
 					)
 				),
 				"foo3" -> ObjectUpdateMethodDecl("foo3", Seq(),
-					Let("a0", CallUpdateThis("setVal", Seq(Num(0))),
-						UnitLiteral
+					IRLet("a0", IRCallUpdateThis("setVal", Seq(IRNum(0))),
+						IRUnit
 					)
 				),
-				"getVal" -> ObjectQueryMethodDecl("getVal", Seq(), INT_TYPE, GetField("value")),
-				"getVal2" -> ObjectQueryMethodDecl("getVal2", Seq(), INT_TYPE, CallQuery(This, "getVal", Seq()))
+				"getVal" -> ObjectQueryMethodDecl("getVal", Seq(), INT_TYPE, IRGetField("value")),
+				"getVal2" -> ObjectQueryMethodDecl("getVal2", Seq(), INT_TYPE, IRCallQuery(IRThis, "getVal", Seq()))
 			)
 		)
 
 		val box2Cls = ObjectClassDecl(
 			"Box2",
 			Seq(),
-			Equals(CallQuery(GetField("box"), "getVal", Seq()), Num(0)),
+			IREquals(IRCallQuery(IRGetField("box"), "getVal", Seq()), IRNum(0)),
 			Map(
 				"box" -> FieldDecl("box", boxCls.toType(Seq()))
 			),
 			Map(
 				"setVal" -> ObjectUpdateMethodDecl("setVal", Seq(VarDecl("x", INT_TYPE)),
-					CallUpdateField("box", "setVal", Seq(Num(3)))
+					IRCallUpdateField("box", "setVal", Seq(IRNum(3)))
 				)
 			)
 		)
 
 		ProgramDecl(Map(
-			"Int" -> Natives.INT_CLASS,
-			"Bool" -> Natives.BOOL_CLASS,
-			"String" -> Natives.STRING_CLASS,
-			"Unit" -> Natives.UNIT_CLASS,
-			"Box" -> boxCls,
-			"Box2" -> box2Cls
+			"Int" -> Left(Natives.INT_CLASS),
+			"Bool" -> Left(Natives.BOOL_CLASS),
+			"String" -> Left(Natives.STRING_CLASS),
+			"Unit" -> Left(Natives.UNIT_CLASS),
+			"Box" -> Right(boxCls),
+			"Box2" -> Right(box2Cls)
 		))
 	}
 
-	def exampleProgram2() : ProgramDecl = {
-		import ir.Classes._
+	def exampleProgram2() : ProgramDecl[UntypedLang.Expr] = {
+		import ir.Expressions.UntypedLang._
 
 		val boxCls = ObjectClassDecl(
 			"Box",
 			Seq(TypeVar("A")),
-			True,
+			IRTrue,
 			Map(
 				"value" -> FieldDecl("value", TypeVar("A"))
 			),
 			Map(
 				"setVal" -> ObjectUpdateMethodDecl("setVal", Seq(VarDecl("x", TypeVar("A"))),
-					Let("a0", SetField("value", Var("x")),
-						UnitLiteral
+					IRLet("a0", IRSetField("value", IRVar("x")),
+						IRUnit
 					)
 				),
-				"getVal" -> ObjectQueryMethodDecl("getVal", Seq(), TypeVar("A"), GetField("value")),
+				"getVal" -> ObjectQueryMethodDecl("getVal", Seq(), TypeVar("A"), IRGetField("value")),
 			)
 		)
 
 		val userCls = ObjectClassDecl(
 			"User",
 			Seq(TypeVar("B"), TypeVar("A")),
-			True,
+			IRTrue,
 			Map(
 				"name" -> FieldDecl("name", ClassType("Box", Seq(TypeVar("B")))),
 				"friends" -> FieldDecl("friends", ClassType("Set", Seq(TypeVar("A"))))
 			),
 			Map(
 				"setName" -> ObjectUpdateMethodDecl("setName", Seq(VarDecl("x", TypeVar("B"))),
-					Let("a0", CallUpdateField("name", "setVal", Seq(Var("x"))),
-						UnitLiteral
+					IRLet("a0", IRCallUpdateField("name", "setVal", Seq(IRVar("x"))),
+						IRUnit
 					)
 				),
 				"getName" -> ObjectQueryMethodDecl("getName", Seq(), TypeVar("B"),
-					CallQuery(GetField("name"), "getVal", Seq())
+					IRCallQuery(IRGetField("name"), "getVal", Seq())
 				),
 				"hasFriend" -> ObjectQueryMethodDecl("hasFriend", Seq(VarDecl("x", TypeVar("A"))), BOOL_TYPE,
-					CallQuery(GetField("friends"), "contains", Seq(Var("x")))
+					IRCallQuery(IRGetField("friends"), "contains", Seq(IRVar("x")))
 				)
 			)
 		)
@@ -148,27 +149,27 @@ object Exec {
 		val nameCls = ObjectClassDecl(
 			"Name",
 			Seq(),
-			True,
+			IRTrue,
 			Map(
 				"value" -> FieldDecl("value", STRING_TYPE)
 			),
 			Map(
 				"getValue" -> ObjectQueryMethodDecl("getValue", Seq(), STRING_TYPE,
-					GetField("value")
+					IRGetField("value")
 				)
 			)
 		)
 
 
 		ProgramDecl(Map(
-			"Int" -> Natives.INT_CLASS,
-			"Bool" -> Natives.BOOL_CLASS,
-			"String" -> Natives.STRING_CLASS,
-			"Unit" -> Natives.UNIT_CLASS,
-			"Set" -> Natives.SET_CLASS,
-			"Box" -> boxCls,
-			"User" -> userCls,
-			"Name" -> nameCls
+			"Int" -> Left(Natives.INT_CLASS),
+			"Bool" -> Left(Natives.BOOL_CLASS),
+			"String" -> Left(Natives.STRING_CLASS),
+			"Unit" -> Left(Natives.UNIT_CLASS),
+			"Set" -> Left(Natives.SET_CLASS),
+			"Box" -> Right(boxCls),
+			"User" -> Right(userCls),
+			"Name" -> Right(nameCls)
 		))
 	}
 
