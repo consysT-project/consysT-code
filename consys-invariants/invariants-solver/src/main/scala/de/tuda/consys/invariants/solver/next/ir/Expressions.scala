@@ -8,7 +8,6 @@ object Expressions {
   trait BaseExpressions {
     type Expr <: BaseExpr
 
-
     trait BaseExpr
     trait BaseUnit extends BaseExpr
     trait BaseVar extends BaseExpr {
@@ -82,37 +81,36 @@ object Expressions {
 
     trait UntypedExpr extends BaseExpr
 
-    case object IRUnit extends Expr with BaseUnit
-    case class IRVar(override val id : VarId) extends Expr with BaseVar
-    case class IRLet(override val id : VarId, override val namedExpr : Expr, override val bodyExpr : Expr) extends Expr with  BaseLet
-    case class IRIf(override val conditionExpr : Expr, override val thenExpr : Expr, override val elseExpr : Expr) extends Expr with  BaseIf
-    case class IREquals(override val expr1 : Expr, override val expr2 : Expr) extends Expr with  BaseEquals
+    case object IRUnit extends UntypedExpr with BaseUnit
+    case class IRVar(override val id : VarId) extends UntypedExpr with BaseVar
+    case class IRLet(override val id : VarId, override val namedExpr : Expr, override val bodyExpr : Expr) extends UntypedExpr with  BaseLet
+    case class IRIf(override val conditionExpr : Expr, override val thenExpr : Expr, override val elseExpr : Expr) extends UntypedExpr with  BaseIf
+    case class IREquals(override val expr1 : Expr, override val expr2 : Expr) extends UntypedExpr with  BaseEquals
   }
 
   trait UntypedNumExpressions extends UntypedExpressions with BaseNumExpressions {
-    case class IRNum(override val value : Int) extends Expr with BaseNum
+    case class IRNum(override val value : Int) extends UntypedExpr with BaseNum
   }
 
   trait UntypedBoolExpressions extends UntypedExpressions with BaseBoolExpressions {
-    case object IRTrue extends Expr with BaseTrue
-    case object IRFalse extends Expr with BaseFalse
+    case object IRTrue extends UntypedExpr with BaseTrue
+    case object IRFalse extends UntypedExpr with BaseFalse
   }
 
 
   trait UntypedStringExpressions extends UntypedExpressions with BaseStringExpressions {
-    case class IRString(override val value : String) extends Expr with BaseString
+    case class IRString(override val value : String) extends UntypedExpr with BaseString
   }
 
   trait UntypedObjectExpressions extends UntypedExpressions with BaseObjectExpressions {
-    type Expr <: UntypedExpr
 
-    case object IRThis extends Expr with BaseThis
+    case object IRThis extends UntypedExpr with BaseThis
 
-    case class IRGetField(override val fieldId : FieldId) extends Expr with BaseGetField
-    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr) extends Expr with BaseSetField
-    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallQuery
-    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallUpdateThis
-    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr]) extends Expr with BaseCallUpdateField
+    case class IRGetField(override val fieldId : FieldId) extends UntypedExpr with BaseGetField
+    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr) extends UntypedExpr with BaseSetField
+    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr]) extends UntypedExpr with BaseCallQuery
+    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr]) extends UntypedExpr with BaseCallUpdateThis
+    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr]) extends UntypedExpr with BaseCallUpdateField
   }
 
 
@@ -125,53 +123,63 @@ object Expressions {
       def typ : Type
     }
 
-    case class IRUnit(override val typ : Type) extends Expr with BaseUnit
-    case class IRVar(override val id : VarId, override val typ : Type) extends Expr with BaseVar
-    case class IRLet(override val id : VarId, override val namedExpr : Expr, override val bodyExpr : Expr, override val typ : Type) extends BaseLet with Expr
-    case class IRIf(override val conditionExpr : Expr, override val thenExpr : Expr, override val elseExpr : Expr, override val typ : Type) extends Expr with BaseIf
-    case class IREquals(override val expr1 : Expr, override val expr2 : Expr, override val typ : Type) extends Expr with BaseEquals
+    case class IRUnit(override val typ : Type) extends TypedExpr with BaseUnit
+    case class IRVar(override val id : VarId, override val typ : Type) extends TypedExpr with BaseVar
+    case class IRLet(override val id : VarId, override val namedExpr : Expr, override val bodyExpr : Expr, override val typ : Type) extends TypedExpr with BaseLet
+    case class IRIf(override val conditionExpr : Expr, override val thenExpr : Expr, override val elseExpr : Expr, override val typ : Type) extends TypedExpr with BaseIf
+    case class IREquals(override val expr1 : Expr, override val expr2 : Expr, override val typ : Type) extends TypedExpr with BaseEquals
   }
 
   trait TypedNumExpressions extends TypedExpressions with BaseNumExpressions {
-    case class IRNum(override val value : Int, override val typ : Type) extends Expr with BaseNum
+    case class IRNum(override val value : Int, override val typ : Type) extends TypedExpr with BaseNum
   }
 
   trait TypedBoolExpressions extends TypedExpressions with BaseBoolExpressions {
-    case class IRTrue(override val typ : Type) extends Expr with BaseTrue
-    case class IRFalse(override val typ : Type) extends Expr with BaseFalse
+    case class IRTrue(override val typ : Type) extends TypedExpr with BaseTrue
+    case class IRFalse(override val typ : Type) extends TypedExpr with BaseFalse
   }
 
   trait TypedStringExpressions extends TypedExpressions with BaseStringExpressions {
-    case class IRString(override val value : String, override val typ : Type) extends Expr with BaseString
+    case class IRString(override val value : String, override val typ : Type) extends TypedExpr with BaseString
   }
 
   trait TypedObjectExpressions extends TypedExpressions with BaseObjectExpressions {
-    case class IRThis(override val typ : Type) extends Expr with BaseThis
-    case class IRGetField(override val fieldId : FieldId, override val typ : Type) extends Expr with BaseGetField
-    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr, override val typ : Type) extends Expr with BaseSetField
-    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallQuery
-    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallUpdateThis
-    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends Expr with BaseCallUpdateField
+    case class IRThis(override val typ : Type) extends TypedExpr with BaseThis
+    case class IRGetField(override val fieldId : FieldId, override val typ : Type) extends TypedExpr with BaseGetField
+    case class IRSetField(override val fieldId : FieldId, override val newValue : Expr, override val typ : Type) extends TypedExpr with BaseSetField
+    case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends TypedExpr with BaseCallQuery
+    case class IRCallUpdateThis(override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends TypedExpr with BaseCallUpdateThis
+    case class IRCallUpdateField(override val fieldId : FieldId, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends TypedExpr with BaseCallUpdateField
   }
 
 
-  object BaseLang extends BaseExpressions
-    with BaseNumExpressions
-    with BaseBoolExpressions
-    with BaseStringExpressions
-    with BaseObjectExpressions
+  trait BaseLang {
+    self : BaseExpressions
+      with BaseNumExpressions
+      with BaseBoolExpressions
+      with BaseStringExpressions
+      with BaseObjectExpressions =>
+  }
 
-  object UntypedLang extends UntypedExpressions
+  object UntypedLang extends BaseLang
+    with UntypedExpressions
     with UntypedNumExpressions
     with UntypedBoolExpressions
     with UntypedStringExpressions
-    with UntypedObjectExpressions
+    with UntypedObjectExpressions {
 
-  object TypedLang extends TypedExpressions
+    override type Expr = UntypedExpr
+  }
+
+  object TypedLang extends BaseLang
+    with TypedExpressions
     with TypedNumExpressions
     with TypedBoolExpressions
     with TypedStringExpressions
-    with TypedObjectExpressions
+    with TypedObjectExpressions {
+
+    override type Expr = TypedExpr
+  }
 
 //  sealed trait IRExpr
 //  sealed trait IRLiteral extends IRExpr

@@ -2,36 +2,21 @@ package de.tuda.consys.invariants.solver.next.translate.types
 
 
 import de.tuda.consys.invariants.solver.next.ir.Classes._
-import de.tuda.consys.invariants.solver.next.ir.{Expressions, Natives}
+import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Expressions, Natives}
 import de.tuda.consys.invariants.solver.next.translate.types.Types.resolveType
-
 import Expressions._
+import de.tuda.consys.invariants.solver.next.translate.types.Mutability.{Immutable, M, Mutable}
 
 
 object TypeChecker {
-
-  case class TypeException(s : String) extends Exception(s)
-
-  trait M {
-    def union(other : M) : M
-  }
-
-  case object Immutable extends M {
-    override def union(other : M) : M = other
-  }
-
-  case object Mutable extends M {
-    override def union(other : M) : M = Mutable
-  }
 
   type VarEnv = Map[VarId, Type]
   type TypeEnv = Map[TypeVarId, Type]
 
 
-
-
-  def typedClassOf[Expr <: BaseExpressions#Expr](classDecl : ObjectClassDecl[Expr])(implicit classTable : ClassTable[Expr]) : ObjectClassDecl[TypedLang.Expr] = {
-      val invariantTExpr = TypeChecker.typedExprOf(classDecl.invariant, Map())(classDecl.asType, Immutable, classTable)
+  def typedClassOf[Lang <: BaseExpressions with BaseNumExpressions with BaseBoolExpressions with BaseStringExpressions with BaseObjectExpressions]
+  (classDecl : ObjectClassDecl[Lang#Expr])(implicit classTable : ClassTable[Lang#Expr]) : ObjectClassDecl[TypedLang.Expr] = {
+      val invariantTExpr = typedExprOf(classDecl.invariant, Map())(classDecl.asType, Immutable, classTable)
 
       if (invariantTExpr.typ != Natives.BOOL_TYPE)
         throw TypeException(s"invariant is not Bool, but: " + invariantTExpr)
@@ -43,7 +28,7 @@ object TypeChecker {
         methodDecl match {
 
           case queryMethodDecl : QueryMethodDecl =>
-            val bodyTExpr = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Immutable, classTable)
+            val bodyTExpr = typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Immutable, classTable)
 
             if (bodyTExpr.typ != queryMethodDecl.returnTyp)
               throw TypeException(s"return type is wrong. Expected: ${queryMethodDecl.returnTyp}, but was ${bodyTExpr.typ} (in method $methodId)")
@@ -51,7 +36,7 @@ object TypeChecker {
             builder.addOne((queryMethodDecl.name, ObjectQueryMethodDecl(queryMethodDecl.name, queryMethodDecl.declaredParameters, queryMethodDecl.returnTyp, bodyTExpr)))
 
           case updateMethodDecl : UpdateMethodDecl =>
-            val bodyTExpr = TypeChecker.typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Mutable, classTable)
+            val bodyTExpr = typedExprOf(methodDecl.body, varEnv)(classDecl.asType, Mutable, classTable)
             if (bodyTExpr.typ != Natives.UNIT_TYPE)
               throw TypeException(s"return type is wrong. Expected: ${Natives.UNIT_TYPE}, but was ${bodyTExpr.typ} (in method $methodId)")
 
@@ -68,23 +53,24 @@ object TypeChecker {
     )
   }
 
-  def typedExprOf[Expr <: BaseExpressions#Expr](expr : Expr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[Expr]) : TypedLang.Expr = expr match {
-    case numExpr : BaseLang.BaseNum => TypedLang.IRNum(numExpr.value, Natives.INT_TYPE)
-    case trueExpr : BaseLang.BaseTrue => TypedLang.IRTrue(Natives.BOOL_TYPE)
-    case falseExpr : BaseLang.BaseFalse => TypedLang.IRFalse(Natives.BOOL_TYPE)
-    case stringExpr : BaseLang.BaseString => TypedLang.IRString(stringExpr.value, Natives.STRING_TYPE)
-    case unitExpr : BaseLang.BaseUnit => TypedLang.IRUnit(Natives.UNIT_TYPE)
+  def typedExprOf[Lang <: BaseExpressions with BaseNumExpressions with BaseBoolExpressions with BaseStringExpressions with BaseObjectExpressions]
+  (expr : Lang#Expr, vars : VarEnv)(implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[Lang#Expr]) : TypedLang.Expr = expr match {
+    case numExpr : Lang#BaseNum => TypedLang.IRNum(numExpr.value, Natives.INT_TYPE)
+    case trueExpr : Lang#BaseTrue => TypedLang.IRTrue(Natives.BOOL_TYPE)
+    case falseExpr : Lang#BaseFalse => TypedLang.IRFalse(Natives.BOOL_TYPE)
+    case stringExpr : Lang#BaseString => TypedLang.IRString(stringExpr.value, Natives.STRING_TYPE)
+    case unitExpr : Lang#BaseUnit => TypedLang.IRUnit(Natives.UNIT_TYPE)
 
-    case varExpr : BaseLang.BaseVar =>
+    case varExpr : Lang#BaseVar =>
       val varTyp = vars.getOrElse(varExpr.id, throw TypeException("variable not declared: " + varExpr.id))
       TypedLang.IRVar(varExpr.id, varTyp)
 
-    case letExpr : BaseLang.BaseLet =>
+    case letExpr : Lang#BaseLet =>
       val namedTExpr = typedExprOf(letExpr.namedExpr, vars)
       val bodyTExpr = typedExprOf(letExpr.bodyExpr, vars + (letExpr.id -> namedTExpr.typ))
       TypedLang.IRLet(letExpr.id, namedTExpr, bodyTExpr, bodyTExpr.typ)
 
-    case ifExpr : BaseLang.BaseIf =>
+    case ifExpr : Lang#BaseIf =>
       val condTExpr = typedExprOf(ifExpr.conditionExpr, vars)
 
       if (condTExpr.typ != Natives.BOOL_TYPE)
@@ -100,7 +86,7 @@ object TypeChecker {
       TypedLang.IRIf(condTExpr, thenTExpr, elseTExpr, thenTExpr.typ)
 
 
-    case equalsExpr : BaseLang.BaseEquals =>
+    case equalsExpr : Lang#BaseEquals =>
       val tExpr1 = typedExprOf(equalsExpr.expr1, vars)
       val tExpr2 = typedExprOf(equalsExpr.expr2, vars)
 
@@ -108,10 +94,10 @@ object TypeChecker {
 
       TypedLang.IREquals(tExpr1, tExpr2, Natives.BOOL_TYPE)
 
-    case thisExpr : BaseLang.BaseThis =>
+    case thisExpr : Lang#BaseThis =>
       TypedLang.IRThis(thisType)
 
-    case getFieldExpr : BaseLang.BaseGetField =>
+    case getFieldExpr : Lang#BaseGetField =>
       val fieldId = getFieldExpr.fieldId
 
       val classDecl = classTable
@@ -123,7 +109,7 @@ object TypeChecker {
       TypedLang.IRGetField(fieldId, fieldDecl.typ)
 
 
-    case setFieldExpr : BaseLang.BaseSetField =>
+    case setFieldExpr : Lang#BaseSetField =>
       if (mutableContext != Mutable) throw TypeException("assignment in immutable context: " + thisType)
 
       val fieldId = setFieldExpr.fieldId
@@ -137,7 +123,7 @@ object TypeChecker {
       TypedLang.IRSetField(fieldId, valueTExpr, valueTExpr.typ)
 
 
-    case callQueryExpr : BaseLang.BaseCallQuery =>
+    case callQueryExpr : Lang#BaseCallQuery =>
       val recvTExpr = typedExprOf(callQueryExpr.recv, vars)
 
       val methodId = callQueryExpr.methodId
@@ -158,7 +144,7 @@ object TypeChecker {
       }
 
 
-    case callUpdateThisExpr : BaseLang.BaseCallUpdateThis =>
+    case callUpdateThisExpr : Lang#BaseCallUpdateThis =>
       val methodId = callUpdateThisExpr.methodId
 
       if (mutableContext != Mutable)
@@ -175,7 +161,7 @@ object TypeChecker {
 
 
 
-    case callUpdateFieldExpr : BaseLang.BaseCallUpdateField =>
+    case callUpdateFieldExpr : Lang#BaseCallUpdateField =>
       val methodId = callUpdateFieldExpr.methodId
       val fieldId = callUpdateFieldExpr.fieldId
 
@@ -198,12 +184,11 @@ object TypeChecker {
 
         case _ => throw TypeException(s"expected class type, but got: " + fieldDecl.typ)
       }
-
-
   }
 
-  private def typeCheckMethodCall(recvType : ClassType, methodId : MethodId, vars : VarEnv, arguments : Seq[BaseLang.Expr])
-                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[_]) : (MethodDecl, TypeEnv, Seq[TypedLang.Expr]) = {
+  private def typeCheckMethodCall[Lang <: BaseExpressions with BaseNumExpressions with BaseBoolExpressions with BaseStringExpressions with BaseObjectExpressions]
+    (recvType : ClassType, methodId : MethodId, vars : VarEnv, arguments : Seq[Lang#Expr])
+                             (implicit thisType : ClassType, mutableContext : M, classTable : ClassTable[Lang#Expr]) : (MethodDecl, TypeEnv, Seq[TypedLang.Expr]) = {
 
     val recvClassDecl = classTable.getOrElse(recvType.classId, throw TypeException("class not available: " + thisType))
 

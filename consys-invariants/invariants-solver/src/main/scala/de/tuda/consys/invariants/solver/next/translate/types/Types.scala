@@ -1,7 +1,7 @@
 package de.tuda.consys.invariants.solver.next.translate.types
 
 import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassType, Type, TypeVar}
-import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.{TypeEnv, TypeException}
+import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.TypeEnv
 
 object Types {
 

@@ -10,7 +10,7 @@ object Z3Representations {
 
 	type RepTable = Map[ClassId, ParametrizedClassRep[_]]
 
-	class CachedMap[A, B](f : A => B, entries : Map[A, B] = Map.empty) extends (A => B) {
+	class CachedMap[A, B](f : A => B, entries : Map[A, B] = Map.empty[A, B]) extends (A => B) {
 		private val cache : mutable.Map[A, B] = mutable.Map.empty
 		cache.addAll(entries)
 

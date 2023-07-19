@@ -1,32 +1,32 @@
 package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
+import de.tuda.consys.invariants.solver.next.ir.ClassTable
 import de.tuda.consys.invariants.solver.next.ir.Classes._
-import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseExpressions, TypedLang}
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap, FieldRep, InstantiatedClassRep, InstantiatedObjectClassRep, InvariantRep, MethodRep, ParametrizedClassRep, ParametrizedObjectClassRep, QueryMethodRep, RepTable, UpdateMethodRep}
+import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseBoolExpressions, BaseExpressions, BaseNumExpressions, BaseObjectExpressions, BaseStringExpressions, TypedLang}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations._
 import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.typedClassOf
 
-import scala.collection.immutable.Map
-import scala.collection.mutable
-
-class ProgramModel(val env : Z3Env, val program : ProgramDecl[_ <: BaseExpressions#Expr]) {
+class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBoolExpressions with BaseStringExpressions with BaseObjectExpressions]
+(val env : Z3Env, val program : ProgramDecl[Lang#Expr]) {
 
 	def create() : Unit = {
 		val ctx : Context = env.ctx
-		val untypedClassTable : ClassTable[_ <: BaseExpressions#Expr] = program.classTable
+		val untypedClassTable : ClassTable[Lang#Expr] = program.classTable
 
 		//0. Type check the expressions
 		val typedClassTableBuilder = Map.newBuilder[ClassId, Either[NativeClassDecl, ObjectClassDecl[TypedLang.Expr]]]
 		program.classes.foreach {
 			case Left(nativeClassDecl) =>
-
+				typedClassTableBuilder.addOne(nativeClassDecl.classId, Left(nativeClassDecl))
 			case Right(objectClassDecl) =>
+				val typedClass = typedClassOf(objectClassDecl)(program.classTable)
+				typedClassTableBuilder.addOne(objectClassDecl.classId, Right(typedClass))
 		}
 
-		for (classDeclEither <- program.classes) {
+		val typedClassTable : ClassTable[TypedLang.Expr] = new ClassTable(typedClassTableBuilder.result())
+		val typedProgram = ProgramDecl(typedClassTable)
 
-			typedClassOf(classDeclEither)(program.classTable)
-		}
 
 		//1. Declare all types and create the type map
 		implicit val repTable : RepTable = createRepTable()
@@ -113,6 +113,7 @@ class ProgramModel(val env : Z3Env, val program : ProgramDecl[_ <: BaseExpressio
 
 		// 1st iteration: Build the map with all datatypes for the classes
 		val repMapBuilder = new RepMapBuilder
+
 		for (classDecl <- program.classes) {
 			classDecl match {
 				case NativeClassDecl(classId, typeParameters, sortImpl, methods) =>

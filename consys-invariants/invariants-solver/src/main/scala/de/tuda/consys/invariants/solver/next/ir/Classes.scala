@@ -9,21 +9,6 @@ import scala.collection.mutable
 
 object Classes {
 
-
-
-
-	class ClassTable[Expr <: BaseExpressions#Expr](private val classes : Map[ClassId, Either[NativeClassDecl, ObjectClassDecl[Expr]]]) {
-		def values : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = classes.values
-
-		def getOrElse(classId : ClassId, any : => ClassDecl[_ <: MethodDecl]) : ClassDecl[_ <: MethodDecl] =
-			classes.get(classId) match {
-				case Some(Left(nativeClassDecl)) => nativeClassDecl
-				case Some(Right(objectClassDecl)) => objectClassDecl
-				case None => any
-			}
-	}
-
-
 	type FieldId = String
 	type ClassId = String
 	type MethodId = String
