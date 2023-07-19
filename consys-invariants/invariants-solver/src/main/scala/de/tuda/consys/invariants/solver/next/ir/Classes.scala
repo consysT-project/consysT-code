@@ -120,6 +120,13 @@ object Classes {
 
 		lazy val classes : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = makeClassTableIterable
 
+		def classDeclarations : Iterable[ClassDecl[_ <: MethodDecl]] = classes.map({
+			case Left(nativeClassDecl) => nativeClassDecl
+			case Right(objectClassDecl) => objectClassDecl
+		})
+
+		// Creates an iterable the iterates classes in the order of dependencies, i.e., a class will only appear in the
+		// iterable if all dependencies for that class have been resolved first.
 		private def makeClassTableIterable : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = {
 
 			def classesInType(typ : Type) : Set[ClassId] = typ match {
