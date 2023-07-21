@@ -49,6 +49,12 @@ object Expressions {
   trait BaseObjectExpressions extends BaseExpressions {
     trait BaseThis extends BaseExpr
 
+    trait BaseNew extends BaseExpr {
+      def classId : ClassId
+      def typeArguments : Seq[Type]
+      def arguments : Map[FieldId, Expr]
+    }
+
     trait BaseGetField extends BaseExpr {
       def fieldId : FieldId
     }
@@ -106,6 +112,8 @@ object Expressions {
 
     case object IRThis extends UntypedExpr with BaseThis
 
+    case class IRNew(override val classId: ClassId, override val typeArguments : Seq[Type], override val arguments : Map[FieldId, Expr]) extends UntypedExpr with BaseNew
+
     case class IRGetField(override val fieldId : FieldId) extends UntypedExpr with BaseGetField
     case class IRSetField(override val fieldId : FieldId, override val newValue : Expr) extends UntypedExpr with BaseSetField
     case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr]) extends UntypedExpr with BaseCallQuery
@@ -145,6 +153,9 @@ object Expressions {
 
   trait TypedObjectExpressions extends TypedExpressions with BaseObjectExpressions {
     case class IRThis(override val typ : Type) extends TypedExpr with BaseThis
+
+    case class IRNew(override val classId: ClassId, override val typeArguments : Seq[Type], override val arguments : Map[FieldId, Expr], override val typ : Type) extends TypedExpr with BaseNew
+
     case class IRGetField(override val fieldId : FieldId, override val typ : Type) extends TypedExpr with BaseGetField
     case class IRSetField(override val fieldId : FieldId, override val newValue : Expr, override val typ : Type) extends TypedExpr with BaseSetField
     case class IRCallQuery(override val recv : Expr, override val methodId : MethodId, override val arguments : Seq[Expr], override val typ : Type) extends TypedExpr with BaseCallQuery

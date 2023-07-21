@@ -97,6 +97,32 @@ object TypeChecker {
     case thisExpr : Lang#BaseThis =>
       TypedLang.IRThis(thisType)
 
+    case newExpr : Lang#BaseNew =>
+      val classId = newExpr.classId
+
+      val classDecl = classTable
+        .getOrElse(classId, throw TypeException("class not available: " + classId))
+
+      classDecl match {
+        case objClassDecl @ ObjectClassDecl(classId, typeParameters, invariant, fields, methods) =>
+          if (newExpr.typeArguments.length != typeParameters.length)
+            throw TypeException(s"wrong number of type parameters for $classId: ${newExpr.typeArguments.length} (but required: ${typeParameters.length})" )
+
+          if (newExpr.arguments.keySet != fields.keySet)
+            throw TypeException(s"fields do not match for $classId")
+
+
+
+
+          objClassDecl.fields
+          ???
+
+        case NativeClassDecl(classId, typeParameters, sortImpl, methods) =>
+          //TODO: Constructor for native class decl
+        throw TypeException("constructor not available for native class: " + classId)
+      }
+
+
     case getFieldExpr : Lang#BaseGetField =>
       val fieldId = getFieldExpr.fieldId
 

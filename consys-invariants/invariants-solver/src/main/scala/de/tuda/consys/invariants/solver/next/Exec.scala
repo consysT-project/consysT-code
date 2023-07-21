@@ -61,7 +61,9 @@ object Exec {
 			"String" -> Left(Natives.STRING_CLASS),
 			"Unit" -> Left(Natives.UNIT_CLASS),
 			"Box" -> Right(boxCls)
-		))
+		),
+			IRUnit
+		)
 	}
 
 
@@ -129,7 +131,9 @@ object Exec {
 			"Unit" -> Left(Natives.UNIT_CLASS),
 			"Box" -> Right(boxCls),
 			"Box2" -> Right(box2Cls)
-		))
+		),
+			IRNew("Box", Seq(ClassType("Int", Seq())), Seq(IRNum(42)))
+		)
 	}
 
 	def exampleProgram2() : ProgramDecl[UntypedLang.Expr] = {
@@ -199,7 +203,9 @@ object Exec {
 			"Box" -> Right(boxCls),
 			"User" -> Right(userCls),
 			"Name" -> Right(nameCls)
-		))
+		),
+			IRNew("Box", Seq(ClassType("Int", Seq())), Seq(IRNum(42)))
+		)
 	}
 
 

@@ -28,6 +28,12 @@ object Natives {
 	)
 	val UNIT_TYPE = UNIT_CLASS.toType(Seq())
 
+	val OBJECT_CLASS = NativeClassDecl("Object",
+		Seq(),
+		(ctx, sorts) => ctx.mkTupleSort(ctx.mkSymbol("Object"), Array(), Array()),
+		Map()
+	)
+
 
 	val STRING_CLASS = NativeClassDecl("String",
 		Seq(),

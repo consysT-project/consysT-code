@@ -116,7 +116,7 @@ object Classes {
 
 
 
-	case class ProgramDecl[Expr <: BaseExpressions#Expr](classTable : ClassTable[Expr]) {
+	case class ProgramDecl[Expr <: BaseExpressions#Expr](classTable : ClassTable[Expr], mainExpression : Expr) {
 
 		lazy val classes : Iterable[Either[NativeClassDecl, ObjectClassDecl[Expr]]] = makeClassTableIterable
 
@@ -161,7 +161,7 @@ object Classes {
 						case Right(objectClassDecl) => objectClassDecl.classId
 					}
 
-					if (classDependencies(classId).subsetOf(resolvedDependencies)) {
+					if (!resolvedDependencies.contains(classId) && classDependencies(classId).subsetOf(resolvedDependencies)) {
 						iterable.addOne(classDeclEither)
 						resolvedDependencies.addOne(classId)
 					}
