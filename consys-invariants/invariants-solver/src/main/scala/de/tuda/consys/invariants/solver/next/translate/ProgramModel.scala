@@ -1,12 +1,12 @@
 package de.tuda.consys.invariants.solver.next.translate
 
-import com.microsoft.z3.{Context, Expr, Sort, Symbol => Z3Symbol}
-import de.tuda.consys.invariants.solver.next.ir.ClassTable
+import com.microsoft.z3.{Context, Sort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.Classes._
-import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseBoolExpressions, BaseExpressions, BaseNumExpressions, BaseObjectExpressions, BaseStringExpressions, TypedLang}
+import de.tuda.consys.invariants.solver.next.ir.Expressions._
+import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Natives}
 import de.tuda.consys.invariants.solver.next.translate.RepTable.{FieldRep, MethodRep, QueryMethodRep, UpdateMethodRep}
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations._
-import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.typedClassOf
+import de.tuda.consys.invariants.solver.next.translate.types.Mutability.Mutable
+import de.tuda.consys.invariants.solver.next.translate.types.TypeChecker.{typedClassOf, typedExprOf}
 
 class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBoolExpressions with BaseStringExpressions with BaseObjectExpressions]
 (val env : Z3Env, val program : ProgramDecl[Lang#Expr]) {
@@ -26,7 +26,10 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 		}
 
 		val typedClassTable : ClassTable[TypedLang.Expr] = new ClassTable(typedClassTableBuilder.result())
-		val typedProgram = ProgramDecl(typedClassTable)
+
+		val typedMainExpr = typedExprOf(program.mainExpression, Map())(Natives.OBJECT_CLASS.toType(Seq()), Mutable, untypedClassTable)
+
+		val typedProgram = ProgramDecl(typedClassTable, typedMainExpr)
 
 
 		//1. Declare all types and create the type map

@@ -1,7 +1,8 @@
 package de.tuda.consys.invariants.solver.next.ir
 
 import com.microsoft.z3.{ArraySort, BoolSort, Expr, SeqSort, SetSort, Sort}
-import de.tuda.consys.invariants.solver.next.ir.Classes.{NativeClassDecl, NativeQueryMethodDecl, TypeVar, VarDecl}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{NativeClassDecl, NativeQueryMethodDecl, VarDecl}
+import de.tuda.consys.invariants.solver.next.ir.Types.TypeVar
 
 object Natives {
 

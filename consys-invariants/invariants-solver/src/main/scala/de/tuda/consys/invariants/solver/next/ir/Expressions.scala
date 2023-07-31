@@ -1,7 +1,8 @@
 package de.tuda.consys.invariants.solver.next.ir
 
 import de.tuda.consys.invariants.solver.next.ir.Expressions.BaseExpressions
-import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, ClassType, FieldId, MethodId, Type, VarId}
+import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassId, FieldId, MethodId, VarId}
+import de.tuda.consys.invariants.solver.next.ir.Types.Type
 
 object Expressions {
 

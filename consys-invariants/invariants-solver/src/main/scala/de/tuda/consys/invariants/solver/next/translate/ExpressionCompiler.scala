@@ -6,6 +6,7 @@ import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.ir.Expressions.TypedLang
 import de.tuda.consys.invariants.solver.next.translate.CompileErrors.CompileException
 import TypedLang._
+import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, TypeVar}
 import de.tuda.consys.invariants.solver.next.translate.RepTable.QueryMethodRep
 
 import scala.collection.immutable.Map

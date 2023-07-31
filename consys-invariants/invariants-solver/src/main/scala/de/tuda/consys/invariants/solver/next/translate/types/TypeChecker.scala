@@ -3,7 +3,7 @@ package de.tuda.consys.invariants.solver.next.translate.types
 
 import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Expressions, Natives}
-import de.tuda.consys.invariants.solver.next.translate.types.Types.resolveType
+import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, Type, resolveType}
 import Expressions._
 import de.tuda.consys.invariants.solver.next.translate.types.Mutability.{Immutable, M, Mutable}
 
@@ -104,18 +104,29 @@ object TypeChecker {
         .getOrElse(classId, throw TypeException("class not available: " + classId))
 
       classDecl match {
-        case objClassDecl @ ObjectClassDecl(classId, typeParameters, invariant, fields, methods) =>
+        case objClassDecl @ ObjectClassDecl(_, typeParameters, invariant, fields, methods) =>
           if (newExpr.typeArguments.length != typeParameters.length)
             throw TypeException(s"wrong number of type parameters for $classId: ${newExpr.typeArguments.length} (but required: ${typeParameters.length})" )
 
           if (newExpr.arguments.keySet != fields.keySet)
             throw TypeException(s"fields do not match for $classId")
 
+          val argTExprs = newExpr.arguments.map(entry => (entry._1, typedExprOf(entry._2, vars)))
 
+          val typeEnv : TypeEnv = typeParameters.map(typeVar => typeVar.typeVarId).zip(newExpr.typeArguments).toMap
 
+          for (field <- fields) {
+            val arg = argTExprs.getOrElse(field._1, throw new TypeException("TODO: THIS SHOULD NOT HAPPEN!"))
+            val resolvedFieldType = resolveType(field._2.typ, typeEnv)
 
-          objClassDecl.fields
-          ???
+            if (resolvedFieldType != arg.typ)
+              throw TypeException(s"argument type does not match field ${field._1}: ${arg.typ} (but required: ${resolvedFieldType})")
+
+          }
+
+          val typ = objClassDecl.toType(newExpr.typeArguments)
+          TypedLang.IRNew(classId, newExpr.typeArguments, argTExprs, typ)
+
 
         case NativeClassDecl(classId, typeParameters, sortImpl, methods) =>
           //TODO: Constructor for native class decl

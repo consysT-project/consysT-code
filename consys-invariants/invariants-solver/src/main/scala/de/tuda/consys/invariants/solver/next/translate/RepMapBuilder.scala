@@ -2,8 +2,10 @@ package de.tuda.consys.invariants.solver.next.translate
 
 import com.microsoft.z3.Sort
 import de.tuda.consys.invariants.solver.next.ir.Classes._
+import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, Type, TypeVar}
 import de.tuda.consys.invariants.solver.next.translate.RepTable.{FieldRep, InstantiatedNativeClassRep, InstantiatedObjectClassRep, MethodRep, ParametrizedClassRep, ParametrizedNativeClassRep, ParametrizedObjectClassRep}
-import de.tuda.consys.invariants.solver.next.translate.Z3Representations.{CachedMap}
+import de.tuda.consys.invariants.solver.next.translate.Z3Representations.CachedMap
+
 import scala.collection.mutable
 
 class RepMapBuilder {

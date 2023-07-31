@@ -1,16 +1,14 @@
 package de.tuda.consys.invariants.solver.next
 
-import de.tuda.consys.invariants.solver.next.ir.Classes.{ClassType, FieldDecl, ObjectClassDecl, ObjectQueryMethodDecl, ObjectUpdateMethodDecl, ProgramDecl, TypeVar, VarDecl}
+import de.tuda.consys.invariants.solver.next.ir.Classes._
+import de.tuda.consys.invariants.solver.next.ir.Expressions.UntypedLang
+import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, STRING_TYPE}
+import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, TypeVar}
 import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Natives}
-import de.tuda.consys.invariants.solver.next.ir.Natives.{BOOL_TYPE, INT_TYPE, SET_CLASS, STRING_TYPE}
 import de.tuda.consys.invariants.solver.next.translate.{ProgramModel, Z3Env}
 import de.tuda.stg.consys.logging.Logger
 
 import java.nio.file.{Path, Paths}
-import ir.Expressions.UntypedLang
-
-import scala.collection.immutable.Seq
-import scala.util.Right
 
 object Exec {
 
@@ -132,7 +130,7 @@ object Exec {
 			"Box" -> Right(boxCls),
 			"Box2" -> Right(box2Cls)
 		),
-			IRNew("Box", Seq(ClassType("Int", Seq())), Seq(IRNum(42)))
+			IRNew("Box", Seq(ClassType("Int", Seq())), Map("value" -> IRNum(42)))
 		)
 	}
 
@@ -204,7 +202,7 @@ object Exec {
 			"User" -> Right(userCls),
 			"Name" -> Right(nameCls)
 		),
-			IRNew("Box", Seq(ClassType("Int", Seq())), Seq(IRNum(42)))
+			IRNew("Box", Seq(ClassType("Int", Seq())), Map("value" -> IRNum(42)))
 		)
 	}
 

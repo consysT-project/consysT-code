@@ -1,8 +1,9 @@
 package de.tuda.consys.invariants.solver.next.ir
 
 
-import com.microsoft.z3.{Context, Expr => Z3Expr, Sort}
+import com.microsoft.z3.{Context, Sort, Expr => Z3Expr}
 import de.tuda.consys.invariants.solver.next.ir.Expressions.{BaseExpressions, BaseLang}
+import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, Type, TypeVar}
 
 import scala.collection.mutable
 
@@ -109,9 +110,7 @@ object Classes {
 			methods.get(methodId)
 	}
 
-	trait Type
-	case class TypeVar(typeVarId: TypeVarId) extends Type
-	case class ClassType(classId : ClassId, typeArguments : Seq[Type]) extends Type
+
 
 
 
