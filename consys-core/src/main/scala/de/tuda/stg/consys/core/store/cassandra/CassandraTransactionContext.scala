@@ -31,13 +31,8 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	private var commitStatementBuilder : BatchStatementBuilder = null
 
 	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
-		def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
-			val constructor = Reflect.getConstructor(clazz.runtimeClass, args : _*)
-			constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]
-		}
-
 		// Creates a new object by calling the matching constructor
-		val obj = callConstructor[T](implicitly[ClassTag[T]], constructorArgs : _*)
+		val obj = Reflect.callConstructor[T](implicitly[ClassTag[T]], constructorArgs : _*)
 
 		// Get the matching protocol and execute replicate
 		val protocol = level.toProtocol(store)
@@ -66,15 +61,15 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 			(timestamp, cassObj) => if (timestamp > cassObj.data.newestTimestamp) timestamp else cassObj.data.newestTimestamp + 1
 		)
 
-		//Create a batch statement to batch all the writes
+		// Create a batch statement to batch all the writes
 		commitStatementBuilder = BatchStatement.builder(BatchType.LOGGED)
-		//Commit every object and gather the writes
+		// Commit every object and gather the writes
 		Cache.buffer.valuesIterator.foreach(obj => {
 			val protocol = obj.data.consistencyLevel.toProtocol(store)
 			protocol.commit(this, obj.data.toRef)
 		})
 
-		//Execute the batch statement
+		// Execute the batch statement
 		store.cassandra.executeStatement(
 			commitStatementBuilder
 				.build()
@@ -87,13 +82,9 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 		commitStatementBuilder = null
 	}
 
-
 	override def toString : String = s"CassandraTxContext(${store.id}//$startTimestamp)"
-
 
 	/** Implicitly resolves handlers in this transaction context. */
 	implicit def resolveHandler[T <: CassandraStore#ObjType : ClassTag](ref : CassandraStore#RefType[T]) : CassandraStore#HandlerType[T] =
 		ref.resolve(this)
-
-
 }

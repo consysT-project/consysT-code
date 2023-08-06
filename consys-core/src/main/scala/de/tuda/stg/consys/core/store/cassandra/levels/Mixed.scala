@@ -7,6 +7,8 @@ import de.tuda.stg.consys.core.store.cassandra.objects.MixedCassandraObject.{Fet
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+
+import java.lang.reflect.Field
 import scala.reflect.ClassTag
 
 /**
@@ -53,24 +55,26 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 
 			/* Execute a strong method */
 			if (method.getAnnotation(classOf[StrongOp]) != null) {
-
-				val fields = Reflect.getFields(clazz.runtimeClass)/* TODO: Get fields from method */
+				val fields = Reflect.getMixedFieldLevels[T]
+				val allFields = fields.map(entry => entry._1.getName)
 
 				// Lock the object
 				txContext.acquireLock(receiver.addr)
-				//Lookup the object in the cache
+				// Lookup the object in the cache
 				val addr = receiver.addr
 
-				var cachedObj = txContext.Cache.readEntry(addr, readStrong[T](addr))
+				// Read all fields, since a strong method may access strong and weak fields
+				var cachedObj = txContext.Cache.readEntry(addr, readStrong[T](addr, allFields))
 
 				if (cachedObj.asInstanceOf[MixedCassandraObject[T]].readLevel == FetchedWeak) {
-					val obj = readStrong[T](addr)
-					//TODO: Only update strong fields, and leave weak fields untouched
-					txContext.Cache.updateEntry(addr, obj, false, Iterable.empty)
+					// We have already read all weak fields, so only update strong fields here
+					val strongFields = fields.filter(entry => entry._2 == Strong).map(entry => entry._1.getName)
+					val obj = readStrong[T](addr, strongFields, Some(cachedObj.asInstanceOf[MixedCassandraObject[T]]))
+					txContext.Cache.updateEntry(addr, obj, changedObject = false, Iterable.empty)
 					cachedObj = obj
 				}
 
-				//If method call is not side effect free, then set the changed flag
+				// If method call is not side effect free, then set the changed flag
 				val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
 				if (objectChanged) txContext.Cache.setObjectChanged(addr)
 				if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
@@ -83,14 +87,18 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				if (method.getAnnotation(classOf[WeakOp]) == null) {
 					//println(s"Warning: Method [${method.toString}] executed with Weak consistency because it was not annotated.")
 				}
-				//If the annotation is weak, or if there was no annotation at all...
-				//Lookup the object in the cache
+				// If the annotation is weak, or if there was no annotation at all...
+
+				// only read the weak parts of the object
+				val fields = Reflect.getMixedFieldLevels[T]
+				val weakFields = fields.filter(entry => entry._2 == Weak).map(entry => entry._1.getName)
+
+				// Lookup the object in the cache
 				val addr = receiver.addr
-				val fields = Reflect.getFields(clazz.runtimeClass)/* TODO: Get fields from method */
 
-				val cachedObj = txContext.Cache.readEntry(addr, readWeak[T](addr))
+				val cachedObj = txContext.Cache.readEntry(addr, readWeak[T](addr, weakFields))
 
-				//If method call is not side effect free, then set the changed flag
+				// If method call is not side effect free, then set the changed flag
 				val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
 				if (objectChanged) txContext.Cache.setObjectChanged(addr)
 				if (changedFields.nonEmpty) txContext.Cache.setFieldsChanged(addr, changedFields)
@@ -121,7 +129,6 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = {
-
 			//TODO: Set consistency level per field
 			txContext.Cache.readLocalEntry(ref.addr) zip txContext.Cache.getChangedFields(ref.addr) match {
 				case None =>
@@ -139,31 +146,23 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			}
 		}
 
-		//TODO: Make strong read all parts of the object, but weak only the weak parts
-		private def readStrong[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : MixedCassandraObject[T] = {
-
-			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
-
-
-			val storedObj = store.cassandra.readFieldEntry[T](addr, CassandraLevel.ALL)
-			storedObjToMixedObj[T](storedObj, FetchedStrong)
+		private def readStrong[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, fields: Iterable[String], cachedObject: Option[MixedCassandraObject[T]] = None) : MixedCassandraObject[T] = {
+			val storedObj = store.cassandra.readFieldEntry[T](addr, fields, CassandraLevel.ALL)
+			storedObjToMixedObj[T](storedObj, FetchedStrong, cachedObject)
 		}
 
-		private def readWeak[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr) : MixedCassandraObject[T] = {
-
-			val fields = Reflect.getFields(implicitly[ClassTag[T]].runtimeClass)
-
-			val storedObj = store.cassandra.readFieldEntry[T](addr, CassandraLevel.ONE)
+		private def readWeak[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, fields: Iterable[String]) : MixedCassandraObject[T] = {
+			val storedObj = store.cassandra.readFieldEntry[T](addr, fields, CassandraLevel.ONE)
 			storedObjToMixedObj[T](storedObj, FetchedWeak)
 		}
 
-
-
-		private def storedObjToMixedObj[T <: CassandraStore#ObjType : ClassTag](storedObj : store.cassandra.StoredFieldEntry, fetchedLevel : FetchedLevel) : MixedCassandraObject[T] = {
+		private def storedObjToMixedObj[T <: CassandraStore#ObjType : ClassTag](storedObj : store.cassandra.StoredFieldEntry, fetchedLevel : FetchedLevel, cachedObject: Option[MixedCassandraObject[T]] = None) : MixedCassandraObject[T] = {
 			val clazz = implicitly[ClassTag[T]].runtimeClass
 
-			val constr = Reflect.getConstructor(clazz)
-			val instance : T = constr.newInstance().asInstanceOf[T]
+			val instance = cachedObject match {
+				case Some(value) => value.state
+				case None => Reflect.getConstructor(clazz).newInstance().asInstanceOf[T]
+			}
 
 			storedObj.fields.foreach(entry => {
 				val field = Reflect.getField(clazz, entry._1.getName)
@@ -171,10 +170,13 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				field.set(instance, entry._2)
 			})
 
-			val cassObj = new MixedCassandraObject[T](storedObj.addr, instance, Reflect.getMixedFieldLevels[T], storedObj.timestamps, fetchedLevel)
+			val cachedTimestamps = cachedObject match {
+				case Some(value) => value.timestamps
+				case None => Map.empty[Field, Long]
+			}
+
+			val cassObj = new MixedCassandraObject[T](storedObj.addr, instance, Reflect.getMixedFieldLevels[T], cachedTimestamps ++ storedObj.timestamps, fetchedLevel)
 			cassObj
 		}
-
-
 	}
 }
