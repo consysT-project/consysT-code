@@ -20,19 +20,19 @@ sealed trait MethodDecl {
 
     def operationLevel: OperationLevel
 
-    def body: IRExpr
+    def body: Expression
 }
 
 case class QueryMethodDecl(override val name: MethodId,
                            override val operationLevel: OperationLevel,
                            override val declaredParameters: Seq[VarDecl],
                            returnType: Type,
-                           override val body: IRExpr) extends MethodDecl
+                           override val body: Expression) extends MethodDecl
 
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: OperationLevel,
                             override val declaredParameters: Seq[VarDecl],
-                            override val body: IRExpr) extends MethodDecl
+                            override val body: Expression) extends MethodDecl
 
 case class ClassDecl(classId: ClassId,
                      typeParameters: Seq[TypeVarDecl],
@@ -74,4 +74,4 @@ case class ClassDecl(classId: ClassId,
         types.ClassType(superClass._1, superClass._2)
 }
 
-case class ProgramDecl(classTable: ClassTable, body: IRExpr)
+case class ProgramDecl(classTable: ClassTable, body: Statement, returnExpr: Expression)

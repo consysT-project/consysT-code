@@ -5,7 +5,7 @@ import de.tuda.consys.formalization.lang.types.ConsistencyType
 import scala.annotation.tailrec
 
 object ClassTable {
-    type ClassTable = Map[(ClassId, ConsistencyType), ClassDecl]
+    type ClassTable = Map[ClassId, ClassDecl]
 
     @tailrec
     def isSuperclass(subclassId: ClassId, superclassId: ClassId)(implicit classTable: ClassTable): Boolean = {
@@ -21,7 +21,7 @@ object ClassTable {
     }
 
     def findDeclaration(id: ClassId)(implicit classTable: ClassTable): Option[ClassDecl] =
-        classTable.find(x => x._1._1 == id).map(x => x._2)
+        classTable.get(id)
 
     def getSuperclass(id: ClassId)(implicit classTable: ClassTable): ClassDecl =
         findDeclaration(id) match {

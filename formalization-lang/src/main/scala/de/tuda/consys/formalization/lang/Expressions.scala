@@ -1,63 +1,21 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.{ConsistencyType, Type}
+sealed trait Expression
 
-sealed trait IRExpr
+sealed trait Literal extends Expression
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Literal expressions
-// ---------------------------------------------------------------------------------------------------------------------
+case class Num(n: Int) extends Literal
 
-sealed trait IRLiteral extends IRExpr
+case object True extends Literal
 
-case class Num(n: Int) extends IRLiteral
+case object False extends Literal
 
-case object True extends IRLiteral
+case object UnitLiteral extends Literal
 
-case object False extends IRLiteral
+case object This extends Expression
 
-case object UnitLiteral extends IRLiteral
+case class Var(id: VarId) extends Expression
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Base expressions
-// ---------------------------------------------------------------------------------------------------------------------
+case class Equals(expr1: Expression, expr2: Expression) extends Expression
 
-case class Var(id: VarId) extends IRExpr
-
-case class Let(id: VarId, namedExpr: IRExpr, bodyExpr: IRExpr) extends IRExpr
-
-case class If(conditionExpr: IRExpr, thenExpr: IRExpr, elseExpr: IRExpr) extends IRExpr
-
-case class Equals(expr1: IRExpr, expr2: IRExpr) extends IRExpr
-
-case class Add(expr1: IRExpr, expr2: IRExpr) extends IRExpr
-
-case class New(objectId: String, classId: ClassId, typeArguments: Seq[Type], consistency: ConsistencyType, constructorExprs: Map[FieldId, IRExpr]) extends IRExpr
-
-case class Sequence(exprs: Seq[IRExpr]) extends IRExpr
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Class-related expressions
-// ---------------------------------------------------------------------------------------------------------------------
-
-case object This extends IRExpr
-
-case class GetField(fieldId: FieldId) extends IRExpr
-
-case class SetField(fieldId: FieldId, valueExpr: IRExpr) extends IRExpr
-
-sealed trait IRMethodCall extends IRExpr {
-    def argumentExprs: Seq[IRExpr]
-
-    def methodId: MethodId
-}
-
-case class CallQuery(recvExpr: IRExpr, methodId: MethodId, argumentExprs: Seq[IRExpr]) extends IRMethodCall
-
-case class CallUpdate(recvExpr: IRExpr, methodId: MethodId, argumentExprs: Seq[IRExpr]) extends IRMethodCall
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Replication-related expressions
-// ---------------------------------------------------------------------------------------------------------------------
-
-case class Transaction(bodyExpr: IRExpr) extends IRExpr
+case class Add(expr1: Expression, expr2: Expression) extends Expression

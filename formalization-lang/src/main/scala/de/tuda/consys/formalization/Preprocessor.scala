@@ -59,7 +59,7 @@ object Preprocessor {
         }).foldLeft(classDecl)((c, m) => process(c, m._2.body)(m._2.operationLevel))
     }
 
-    private def process(classDecl: ClassDecl, expr: IRExpr)(implicit methodOp: OperationLevel): ClassDecl = {
+    private def process(classDecl: ClassDecl, expr: Expression)(implicit methodOp: OperationLevel): ClassDecl = {
         expr match {
             case SetField(fieldId, _) =>
                 val newFields = classDecl.fields.map {

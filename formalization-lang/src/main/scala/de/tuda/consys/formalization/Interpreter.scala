@@ -18,7 +18,7 @@ class Interpreter(storeAddress: String) {
         result
     }
 
-    private def interpret(expr: IRExpr, varEnv: VarEnv)
+    private def interpret(expr: Expression, varEnv: VarEnv)
                          (implicit classTable: ClassTable, transaction: Option[CassandraTransactionContext]): Value = expr match {
         case Num(n) => NumV(n)
         case True => BoolV(true)
