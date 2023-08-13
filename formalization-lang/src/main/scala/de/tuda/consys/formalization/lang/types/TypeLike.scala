@@ -16,3 +16,17 @@ trait TypeLike[T] {
 
     def glb(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): T
 }
+
+trait TypeLike2[T, T2] {
+    def <=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): Boolean
+
+    def !<=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): Boolean = !this.<=(t)
+
+    def >=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): Boolean
+
+    def !>=(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): Boolean = !this.>=(t)
+
+    def lub(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): T
+
+    def glb(t: T)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: T2): T
+}

@@ -4,17 +4,17 @@ import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.TypeVarEnv
 
 sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
-    def <=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ConsistencyTypeLattice(this).hasUpperBound(t)
+    def <=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean =
+        ConsistencyTypeLattice(this).hasUpperBound(t)
 
-    def >=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ConsistencyTypeLattice(this).hasLowerBound(t)
+    def >=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean =
+        ConsistencyTypeLattice(this).hasLowerBound(t)
 
-    def lub(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = {
+    def lub(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType =
         if (this <= t) t else this // TODO: generalize
-    }
 
-    def glb(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = {
+    def glb(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType =
         if (this >= t) t else this // TODO: generalize
-    }
 
     def operationLevel(): OperationLevel
 }
@@ -36,10 +36,6 @@ case object Weak extends ConsistencyType {
 }
 
 case object Inconsistent extends ConsistencyType {
-    override def operationLevel(): OperationLevel = ???
-}
-
-case object PolyConsistent extends ConsistencyType {
     override def operationLevel(): OperationLevel = ???
 }
 

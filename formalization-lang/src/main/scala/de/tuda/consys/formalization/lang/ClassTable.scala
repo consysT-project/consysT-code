@@ -1,34 +1,29 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.ConsistencyType
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, Types}
 
 import scala.annotation.tailrec
 
 object ClassTable {
     type ClassTable = Map[ClassId, ClassDecl]
 
-    @tailrec
-    def isSuperclass(subclassId: ClassId, superclassId: ClassId)(implicit classTable: ClassTable): Boolean = {
-        if (superclassId == topClassId)
-            return true
+    // TODO: do we need to consider the type-var environment here?
+    private def getSuperType(classType: ClassType)(implicit classTable: ClassTable): ClassType = {
+        val subClass = classTable.getOrElse(classType.classId, sys.error(s"class not found: ${classType.classId}"))
 
-        (findDeclaration(subclassId), findDeclaration(superclassId)) match {
-            case (Some(subclass), Some(_)) =>
-                subclass.superClass._1 == superclassId || isSuperclass(subclass.superClass._1, superclassId)
-            case (Some(_), _) => sys.error(s"class not found: $superclassId")
-            case _ => sys.error(s"class not found: $subclassId")
-        }
+        val typeVars = subClass.typeParameters.map(d => d.name -> d.upperBound).toMap
+        val t2 = subClass.superClass._2.map(p => Types.substitute(p, typeVars))
+
+        ClassType(subClass.superClass._1, classType.consistencyArguments, t2)
     }
 
-    def findDeclaration(id: ClassId)(implicit classTable: ClassTable): Option[ClassDecl] =
-        classTable.get(id)
+    private def isDirectSuperclass(subclass: ClassType, superclass: ClassType)(implicit classTable: ClassTable): Boolean = {
+        superclass.classId == topClassId || // S-Top
+            subclass == superclass || // S-Refl
+            getSuperType(subclass) == superclass // S-Cls
+    }
 
-    def getSuperclass(id: ClassId)(implicit classTable: ClassTable): ClassDecl =
-        findDeclaration(id) match {
-            case Some(value) => findDeclaration(value.classId) match {
-                case Some(value) => value
-                case None => sys.error(s"class not found: $value")
-            }
-            case None => sys.error(s"class not found: $id")
-        }
+    @tailrec
+    def isSuperClassType(subclass: ClassType, superclass: ClassType)(implicit classTable: ClassTable): Boolean =
+        isDirectSuperclass(subclass, superclass) || isSuperClassType(getSuperType(subclass), superclass)
 }
