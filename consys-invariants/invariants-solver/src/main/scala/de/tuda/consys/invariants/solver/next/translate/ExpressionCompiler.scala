@@ -5,7 +5,6 @@ import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Expressions}
 import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.ir.Expressions.TypedLang
 import de.tuda.consys.invariants.solver.next.translate.CompileErrors.CompileException
-import TypedLang._
 import de.tuda.consys.invariants.solver.next.ir.Types.{ClassType, TypeVar}
 import de.tuda.consys.invariants.solver.next.translate.RepTable.QueryMethodRep
 
@@ -13,7 +12,7 @@ import scala.collection.immutable.Map
 trait ExpressionCompiler {
 
 	/** Compiles an IRExpr to a Z3 expr, given the starting state s0 and ending in the 2nd element return state.  */
-	def compile[S <: Sort](expr : Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[Expr]) : (Z3Expr[_], Z3Expr[S]) = {
+	def compile[S <: Sort](expr : TypedLang.Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[TypedLang.Expr]) : (Z3Expr[_], Z3Expr[S]) = {
 		throw new CompileException("unknown expression: " + expr)
 	}
 
@@ -22,29 +21,29 @@ trait ExpressionCompiler {
 object ExpressionCompiler {
 
 	class BaseExpressionCompiler extends ExpressionCompiler {
-		override def compile[S <: Sort](expr : Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
-			case IRNum(value, typ) => (ctx.mkInt(value), s0)
-			case IRTrue(typ) => (ctx.mkTrue(), s0)
-			case IRFalse(typ) => (ctx.mkFalse(), s0)
-			case IRString(s, typ) => (ctx.mkString(s), s0)
-			case IRUnit(typ) =>
+		override def compile[S <: Sort](expr : TypedLang.Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[TypedLang.Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
+			case TypedLang.IRNum(value, typ) => (ctx.mkInt(value), s0)
+			case TypedLang.IRTrue(typ) => (ctx.mkTrue(), s0)
+			case TypedLang.IRFalse(typ) => (ctx.mkFalse(), s0)
+			case TypedLang.IRString(s, typ) => (ctx.mkString(s), s0)
+			case TypedLang.IRUnit(typ) =>
 				val unitSort = repMapBuilder.getClassSort("Unit", Seq()).getOrElse(CompileErrors.classNotFound("Unit"))
 				(ctx.mkConst("unit", unitSort), s0)
 
-			case IRVar(x, typ) => (vars.getOrElse(x, CompileErrors.varNotFound(x)), s0)
+			case TypedLang.IRVar(x, typ) => (vars.getOrElse(x, CompileErrors.varNotFound(x)), s0)
 
-			case IREquals(e1, e2, typ) =>
+			case TypedLang.IREquals(e1, e2, typ) =>
 				val (expr1 : Z3Expr[Sort], s1) = compile(e1, vars, s0).asInstanceOf[(Z3Expr[Sort], Z3Expr[S])]
 				val (expr2 : Z3Expr[Sort], s2) = compile(e2, vars, s1).asInstanceOf[(Z3Expr[Sort], Z3Expr[S])]
 
 				(ctx.mkEq(expr1, expr2), s2)
 
-			case IRLet(id, namedExpr, body, typ) =>
+			case TypedLang.IRLet(id, namedExpr, body, typ) =>
 				val (namedVal, s1) = compile(namedExpr, vars, s0)
 				val (bodyVal, s2) = compile(body, vars + (id -> namedVal), s1)
 				(bodyVal, s2)
 
-			case IRIf(conditionExpr, thenExpr, elseExpr, typ) =>
+			case TypedLang.IRIf(conditionExpr, thenExpr, elseExpr, typ) =>
 				val (condVal, s1) = compile(conditionExpr, vars, s0)
 				val (thenVal, s2a) = compile(thenExpr, vars, s1)
 				val (elseVal, s2b) = compile(elseExpr, vars, s1)
@@ -59,16 +58,16 @@ object ExpressionCompiler {
 	}
 
 	class ClassExpressionCompiler(classId : ClassId,  typeArguments : Seq[Sort]) extends BaseExpressionCompiler {
-		override def compile[S <: Sort](expr : Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
-			case IRGetField(fieldId, typ) =>
+		override def compile[S <: Sort](expr : TypedLang.Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repMapBuilder: RepMapBuilder, classTable : ClassTable[TypedLang.Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
+			case TypedLang.IRGetField(fieldId, typ) =>
 				val fieldRep = repMapBuilder.getField(classId, typeArguments, fieldId)
 					.getOrElse(CompileErrors.fieldNotFound(classId, fieldId))
 
 				(ctx.mkApp(fieldRep.funcDecl, s0), s0)
 
-			case IRThis(typ) => (s0, s0)
+			case TypedLang.IRThis(typ) => (s0, s0)
 
-			case IRCallQuery(recvExpr, methodId, arguments, typ) =>
+			case TypedLang.IRCallQuery(recvExpr, methodId, arguments, typ) =>
 				val (recvVal, recvState) = compile(recvExpr, vars, s0)
 
 
@@ -109,8 +108,8 @@ object ExpressionCompiler {
 	}
 
 	class MutableClassExpressionCompiler(classId : ClassId, typeArguments : Seq[Sort]) extends ClassExpressionCompiler(classId, typeArguments) {
-		override def compile[S <: Sort](expr : Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repTable : RepMapBuilder, classTable : ClassTable[Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
-			case IRSetField(fieldId, newVal, typ) =>
+		override def compile[S <: Sort](expr : TypedLang.Expr, vars : Map[VarId, Z3Expr[_]], s0 : Z3Expr[S])(implicit ctx : Context, repTable : RepMapBuilder, classTable : ClassTable[TypedLang.Expr]) : (Z3Expr[_], Z3Expr[S]) = expr match {
+			case TypedLang.IRSetField(fieldId, newVal, typ) =>
 				val (valExpr, s1) = compile(newVal, vars, s0)
 
 				val fieldRep = repTable
@@ -121,7 +120,7 @@ object ExpressionCompiler {
 				(valExpr, newState)
 
 
-			case IRCallUpdateThis(methodId, arguments, typ) =>
+			case TypedLang.IRCallUpdateThis(methodId, arguments, typ) =>
 				var s1 = s0
 				val declaredArgumentsBuilder = Seq.newBuilder[Z3Expr[_]]
 				for (arg <- arguments) {
@@ -147,7 +146,7 @@ object ExpressionCompiler {
 			???
 
 
-			case IRCallUpdateField(fieldId, methodId, arguments, typ) =>
+			case TypedLang.IRCallUpdateField(fieldId, methodId, arguments, typ) =>
 				var s1 = s0
 				val declaredArgumentsBuilder = Seq.newBuilder[Z3Expr[_]]
 				for (arg <- arguments) {

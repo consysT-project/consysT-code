@@ -1,6 +1,6 @@
 package de.tuda.consys.invariants.solver.next.translate
 
-import com.microsoft.z3.{Context, Sort, Symbol => Z3Symbol}
+import com.microsoft.z3.{Context, Expr => Z3Expr, Sort, Symbol => Z3Symbol}
 import de.tuda.consys.invariants.solver.next.ir.Classes._
 import de.tuda.consys.invariants.solver.next.ir.Expressions._
 import de.tuda.consys.invariants.solver.next.ir.{ClassTable, Natives}
@@ -34,6 +34,16 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 
 		//1. Declare all types and create the type map
 		implicit val repTable : RepTable = createRepTable(typedProgram)
+
+
+
+		//1b. Add definitions of methods
+
+
+
+
+
+
 
 
 //		//2. Create invariant definition
@@ -188,8 +198,38 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 						case update : UpdateMethodDecl =>
 							val methodName = updateMethodName(classDecl.classId, sorts, update.name)
 							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
+
+
+							val receiverExpr = ctx.mkFreshConst("s0", classSort)
+
+							val declaredArguments : Seq[Z3Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
+								val varSort = repMapBuilder.resolveType(varDecl.typ, typeVarSorts)
+								ctx.mkFreshConst(varDecl.name, varSort)
+							})
+
+							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
+
+
+							val (bodyVal, bodyState) : (Z3Expr[_], Z3Expr[_]) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
+
+							val methodDef = ctx.mkForall(
+								(Seq(receiverExpr) ++ declaredArguments).toArray,
+								ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
+								1,
+								null,
+								null,
+								null,
+								null
+							)
+
+							env.solver.add(methodDef)
+
+
+
 							UpdateMethodRep(mthdDecl)
 					}
+
+
 					methodRep
 				}
 
@@ -203,36 +243,9 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 
 
 
-					//TODO: Add method definition
-//					methodDecl match {
-//
-//						case updateDecl@ObjectUpdateMethodDecl(name, parameters, body) =>
-//							val methodName = updateMethodName(classDecl.classId, sorts, name)
-//							val mthdDecl = ctx.mkFuncDecl(methodName, actualParameterSorts.toArray[Sort], classSort)
-//
-//							val receiverExpr = ctx.mkFreshConst("s0", classSort)
-//
-//							val declaredArguments : Seq[Expr[_]] = methodDecl.declaredParameters.map(varDecl => {
-//								val varSort = repMapBuilder.resolveType(varDecl.typ, typeVarSorts)
-//								ctx.mkFreshConst(varDecl.name, varSort)
-//							})
-//
-//							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
 
 
-						//							val (bodyVal, bodyState) : (Expr[_], Expr[_]) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
-						//
-						//							val methodDef = ctx.mkForall(
-						//								(Seq(receiverExpr) ++ declaredArguments).toArray,
-						//								ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
-						//								1,
-						//								null,
-						//								null,
-						//								null,
-						//								null
-						//							)
-						//
-						//							env.solver.add(methodDef)
+
 
 
 
