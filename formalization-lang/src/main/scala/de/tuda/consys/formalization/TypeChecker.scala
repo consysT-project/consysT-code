@@ -88,32 +88,33 @@ object TypeChecker {
                                                            implicitContext: ConsistencyType,
                                                            classTable: ClassTable,
                                                            typeVars: TypeVarEnv): Type = expr match {
-        case True => CompoundType(Natives.booleanType, Local, Bottom)
-        case False => CompoundType(Natives.booleanType, Local, Bottom)
-        case UnitLiteral => CompoundType(Natives.unitType, Local, Bottom)
-        case Num(_) => CompoundType(Natives.numberType, Local, Bottom)
+        case True => CompoundClassType(Natives.booleanType, Local, Immutable)
+        case False => CompoundClassType(Natives.booleanType, Local, Immutable)
+        case UnitLiteral => CompoundClassType(Natives.unitType, Local, Immutable)
+        case Num(_) => CompoundClassType(Natives.numberType, Local, Immutable)
 
         case Var(id: VarId) =>
             vars.getOrElse(id, throw TypeError(s"variable not declared: $id"))
 
         case Equals(expr1, expr2) =>
-            val t1 = resolveType(typeOfExpr(expr1, vars), typeVars)
-            val t2 = resolveType(typeOfExpr(expr2, vars), typeVars)
+            val t1 = bound(typeOfExpr(expr1, vars))
+            val t2 = bound(typeOfExpr(expr2, vars))
 
-            if (t1.classType != t2.classType)
+            if (t1 != t2) // TODO
                 throw TypeError(s"non-matching types in <Equals>: $t1 and $t2")
 
-            CompoundType(Natives.booleanType, t1.consistencyType lub t2.consistencyType, Mutable) // TODO: mutability type
+            CompoundClassType(Natives.booleanType, t1.consistencyType lub t2.consistencyType, Immutable)
 
         case Add(expr1, expr2) =>
-            val t1 = resolveType(typeOfExpr(expr1, vars), typeVars)
-            val t2 = resolveType(typeOfExpr(expr2, vars), typeVars)
+            val t1 = typeOfExpr(expr1, vars)
+            val t2 = typeOfExpr(expr2, vars)
 
-            // TODO: how should we handle subtyping here?
-            if (t1.classType != Natives.numberType || t2.classType != Natives.numberType)
-                throw TypeError(s"invalid types for <Add>: $t1 and $t2")
-
-            CompoundType(Natives.numberType, t1.consistencyType lub t2.consistencyType, Mutable) // TODO: mutability type
+            (t1, t2) match {
+                case (CompoundClassType(Natives.numberType, c1, _), CompoundClassType(Natives.numberType, c2, _)) =>
+                    CompoundClassType(Natives.numberType, c1 lub c2, Immutable)
+                case _ =>
+                    throw TypeError(s"invalid types for <Add>: $t1 and $t2")
+            }
 
         case This =>
             declarationContext match {
@@ -121,11 +122,11 @@ object TypeChecker {
                     throw TypeError("cannot resolve 'this' outside of class declaration")
 
                 case MethodContext(classType, _, _) =>
-                    CompoundType(classType, consistencyType, Mutable)
+                    ???
             }
     }
 
-    private def checkMethodCall(recvType: CompoundType, methodId: MethodId, argTypes: Seq[Type])
+    private def checkMethodCall(recvType: CompoundClassType, methodId: MethodId, argTypes: Seq[Type])
                                (implicit declarationContext: DeclarationContext,
                                 implicitContext: ConsistencyType,
                                 classTable: ClassTable): (MethodDecl, TypeVarEnv) = {
@@ -153,6 +154,47 @@ object TypeChecker {
         (methodDecl, typeEnv)
     }
 
+    private def checkRhsAssign(assign: AssignRhs, vars: VarEnv)(implicit declarationContext: DeclarationContext,
+                                                  implicitContext: ConsistencyType,
+                                                  classTable: ClassTable,
+                                                  typeVars: TypeVarEnv): Type = assign match {
+        case rhsExpression(e) =>
+            typeOfExpr(e, vars)
+
+        case rhsGetField(fieldId) => declarationContext match {
+            case TopLevelContext =>
+                throw TypeError("cannot resolve 'this' outside of class declaration")
+
+            case MethodContext(thisType, _, operationLevel) =>
+                val classDecl = classTable
+                    .getOrElse(thisType.classId, throw TypeError(s"class of 'this' not available: $thisType"))
+
+                val fieldDecl = classDecl.getField(fieldId).
+                    getOrElse(throw TypeError(s"field not available: $fieldId (in class ${thisType.classId})"))
+
+                val fieldType = bound(fieldDecl.typ)
+                val readConsistency = fieldType.consistencyType lub operationLevel.consistencyType()
+                fieldType.withConsistency(readConsistency)
+        }
+
+        case rhsCallQuery(recvExpr, methodId, argumentExprs) =>
+            val recvType = bound(typeOfExpr(recvExpr, vars))
+            val argTypes = argumentExprs.map(argExpr => typeOfExpr(argExpr, vars))
+
+            val methodType = methodType(methodId, recvType)
+            val (methodDecl, recvTypeEnv) = checkMethodCall(recvType, methodId, argTypes)
+
+            val queryDecl = methodDecl match {
+                case q: QueryMethodDecl => q
+                case _ => throw TypeError(s"expected query method: $methodId")
+            }
+
+            // TODO: adapt to receiver consistency
+            val resultType = resolveType(queryDecl.returnType, recvTypeEnv)
+        case rhsReplicate(location, classId, typeArguments, constructorExprs, consistency, mutability) => ???
+        case rhsLookup(location) => ???
+    }
+
     private def checkStatement(statement: Statement, vars: VarEnv)(implicit declarationContext: DeclarationContext,
                                                                    implicitContext: ConsistencyType,
                                                                    classTable: ClassTable,
@@ -162,37 +204,27 @@ object TypeChecker {
             checkStatement(s2, r1)
 
         case If(conditionExpr, thenStmt, elseStmt) =>
-            // TODO: only allow exact bool type?
-            val conditionType = resolveType(typeOfExpr(conditionExpr, vars), typeVars)
-            if (conditionType.classType != Natives.booleanType)
-                throw TypeError(s"condition must be Bool, but was: $conditionType")
+            val conditionType = typeOfExpr(conditionExpr, vars)
+            conditionType match {
+                case CompoundClassType(Natives.booleanType, consistencyType, _) =>
+                    implicit val implicitContext: ConsistencyType = implicitContext glb consistencyType
+                    checkStatement(thenStmt, vars)
+                    checkStatement(elseStmt, vars)
+                    vars
 
-            val newImplicitContext = implicitContext glb conditionType.consistencyType
-            checkStatement(thenStmt, vars)
-            checkStatement(elseStmt, vars)
-            vars
+                case _ =>
+                    throw TypeError(s"incorrect type for condition: $conditionType")
+            }
 
-        case Let(varId, namedExpr) =>
-            val namedType = typeOfExpr(namedExpr, vars)
+        case Let(varId, rhs) =>
+            val namedType = checkRhsAssign(rhs, vars)
             vars + (varId -> namedType)
 
-        case GetField(varId, fieldId) =>
-            declarationContext match {
-                case TopLevelContext =>
-                    throw TypeError("cannot resolve 'this' outside of class declaration")
-
-                case MethodContext(thisType, _, operationLevel) =>
-                    val classDecl = classTable
-                        .getOrElse((thisType._1.classId, thisType._2), throw TypeError(s"class of 'this' not available: $thisType"))
-
-                    val fieldDecl = classDecl.getField(fieldId).
-                        getOrElse(throw TypeError(s"field not available: $fieldId (in class ${thisType._1.classId})"))
-
-                    val fieldType = resolveType(fieldDecl.typ, classDecl.typeParametersToEnv)
-                    val resultType = CompoundType(fieldType.classType, fieldType.consistencyType lub operationLevel.consistencyType(), fieldType.mutabilityType)
-
-                    vars + (varId -> resultType)
-            }
+        case Assign(varId, rhs) =>
+            val varType = vars.getOrElse(varId, throw TypeError(s"undeclared variable $varId"))
+            val namedType = checkRhsAssign(rhs, vars)
+            if (namedType !<= varType)
+                throw TypeError(s"incompatible type for assignment: $varId ($namedType)")
 
         case SetField(fieldId, valueExpr) =>
             declarationContext match {
@@ -203,41 +235,31 @@ object TypeChecker {
                     if (mutabilityContext != MutableContext)
                         throw TypeError("assignment in immutable context: " + thisType)
 
-                    val valueType = resolveType(typeOfExpr(valueExpr, vars), typeVars)
+                    val valueType = typeOfExpr(valueExpr, vars)
 
-                    val classDecl = classTable.getOrElse((thisType._1.classId, thisType._2), throw TypeError(s"class of 'this' not available: $thisType"))
-                    val fieldDecl = classDecl.getField(fieldId).getOrElse(throw TypeError(s"field not available: $fieldId (in class $thisType)"))
-                    val fieldType = resolveType(fieldDecl.typ, classDecl.typeParametersToEnv)
+                    val classDecl = classTable.getOrElse(thisType.classId,
+                        throw TypeError(s"class of 'this' not available: $thisType"))
+                    val fieldDecl = classDecl.getField(fieldId).getOrElse(
+                        throw TypeError(s"field not available: $fieldId (in class $thisType)"))
+
+                    val fieldType = fieldDecl.typ
+                    val boundedFieldType = bound(fieldType)
 
                     if (valueType !<= fieldType)
-                        throw TypeError(s"assignment has wrong type. expected: $fieldType (but was: $valueType)")
+                        throw TypeError(s"assignment has wrong type. expected: $boundedFieldType (but was: $valueType)")
 
-                    // TODO: should we separate immutable types from field mutability through assignment?
-                    //if (fieldType.mutabilityType == Immutable)
-                    //    throw TypeError(s"wrong assignment of immutable field")
+                    if (boundedFieldType.mutabilityType == Immutable)
+                        throw TypeError(s"wrong assignment of immutable field")
 
-                    if (implicitContext !<= fieldType.consistencyType)
+                    if (implicitContext !<= boundedFieldType.consistencyType)
                         throw TypeError(s"wrong assignment in implicit context: ${fieldDecl.typ} in $implicitContext context")
 
-                    if (operationLevel.consistencyType() !<= fieldType.consistencyType)
+                    if (operationLevel.consistencyType() !<= boundedFieldType.consistencyType)
                         throw TypeError(s"wrong assignment in operation context: ${fieldDecl.typ} in ${operationLevel.consistencyType()} context")
 
                     vars
             }
 
-        case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
-            val recvType = resolveType(typeOfExpr(recvExpr, vars), typeVars)
-            val argTypes = argumentExprs.map(argExpr => resolveType(typeOfExpr(argExpr, vars), typeVars))
-
-            val (methodDecl, recvTypeEnv) = checkMethodCall(recvType, methodId, argTypes)
-
-            val queryDecl = methodDecl match {
-                case q: QueryMethodDecl => q
-                case _ => throw TypeError(s"expected query method: $methodId")
-            }
-
-            // TODO: adapt to receiver consistency
-            val resultType = resolveType(queryDecl.returnType, recvTypeEnv)
             vars + (varId -> resultType)
 
         case CallUpdate(recvExpr, methodId, argumentExprs) =>

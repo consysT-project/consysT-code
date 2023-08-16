@@ -1,11 +1,26 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, Types}
+import de.tuda.consys.formalization.lang.types.{ClassType, CompoundClassType, ConsistencyType, OperationLevel, RefType, TerminalType, Types}
 
 import scala.annotation.tailrec
 
+case class UpdateType(operationLevel: OperationLevel, parameters: Seq[TerminalType])
+
+case class QueryType(operationLevel: OperationLevel, parameters: Seq[TerminalType], returnType: TerminalType)
+
 object ClassTable {
     type ClassTable = Map[ClassId, ClassDecl]
+
+    def updateType(methodId: MethodId, receiver: TerminalType)(implicit classTable: ClassTable): UpdateType = {
+        receiver match {
+            case CompoundClassType(classType, consistencyType, mutabilityType) =>
+                val classDecl = classTable.getOrElse(classType.classId,
+                    sys.error(s"class not found: ${classType.classId}"))
+                val mDecl = classDecl.methods.getOrElse(methodId, sys.error(s"method not found"))
+                if (mDecl)
+            case RefType(classType, consistencyType, mutabilityType) => ???
+        }
+    }
 
     // TODO: do we need to consider the type-var environment here?
     private def getSuperType(classType: ClassType)(implicit classTable: ClassTable): ClassType = {

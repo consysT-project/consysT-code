@@ -47,7 +47,17 @@ case class ClassType(classId: ClassId,
         else s"$classId<${consistencyArguments.mkString(",")},${typeArguments.mkString(",")}>"
 }
 
-case class RefType(classType: ClassType, consistencyType: ConsistencyType, mutabilityType: MutabilityType) extends Type {
+sealed trait TerminalType extends Type {
+    def consistencyType: ConsistencyType
+    def mutabilityType: MutabilityType
+    def withConsistency(consistencyType: ConsistencyType): TerminalType
+    def withMutability(mutabilityType: MutabilityType): TerminalType
+}
+
+case class RefType(classType: ClassType,
+                   override val consistencyType: ConsistencyType,
+                   override val mutabilityType: MutabilityType
+                  ) extends Type with TerminalType {
     def <=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = t match {
         case RefType(classType, consistencyType, mutabilityType) =>
             CompoundClassType(this.classType, this.consistencyType, this.mutabilityType) <=
@@ -66,13 +76,20 @@ case class RefType(classType: ClassType, consistencyType: ConsistencyType, mutab
 
     def glb(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
 
+    override def withConsistency(consistencyType: ConsistencyType): TerminalType = copy(consistencyType = consistencyType)
+
+    override def withMutability(mutabilityType: MutabilityType): TerminalType = copy(mutabilityType = mutabilityType)
+
     override def toString: String = s"[$mutabilityType $consistencyType] Ref[$classType]"
 }
 
-case class CompoundClassType(classType: ClassType, consistencyType: ConsistencyType, mutabilityType: MutabilityType) extends Type {
+case class CompoundClassType(classType: ClassType,
+                             override val consistencyType: ConsistencyType,
+                             override val mutabilityType: MutabilityType
+                            ) extends Type with TerminalType {
     def <=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = t match {
         case CompoundClassType(classType, consistencyType, mutabilityType) =>
-            implicit val t2 = mutabilityType
+            implicit val t2: MutabilityType = mutabilityType
             this.consistencyType <= consistencyType &&
                 this.mutabilityType <= mutabilityType &&
                 this.classType <= classType
@@ -86,17 +103,22 @@ case class CompoundClassType(classType: ClassType, consistencyType: ConsistencyT
 
     def glb(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
 
+    override def withConsistency(consistencyType: ConsistencyType): TerminalType = copy(consistencyType = consistencyType)
+
+    override def withMutability(mutabilityType: MutabilityType): TerminalType = copy(mutabilityType = mutabilityType)
+
     override def toString: ClassId = s"$mutabilityType $consistencyType $classType"
 }
 
 object Types {
-    def resolveType(typ: Type, typeVars: TypeVarEnv): CompoundType = typ match {
+    def bound(typ: Type)(implicit typeVars: TypeVarEnv): TerminalType = typ match {
         case TypeVar(name) =>
-            val r = typeVars.getOrElse(name, throw TypeError(s"cannot resolve type variable <$name>"))
-            resolveType(r, typeVars)
+            typeVars.getOrElse(name, throw TypeError(s"cannot resolve type variable <$name>")) match {
+                case t: TypeVar => bound(t) // allows recursive type variable bounds
+                case t: TerminalType => t
+            }
 
-        case CompoundType(ClassType(classId, typeArgs), c, m) =>
-            CompoundType(ClassType(classId, typeArgs.map(typeArg => resolveType(typeArg, typeVars))), c, m)
+        case t: TerminalType => t
     }
 
     def substitute(typ: ClassType, typeVars: TypeVarEnv): ClassType = {
