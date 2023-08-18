@@ -28,9 +28,15 @@ case class rhsCallQuery(recvExpr: Expression, methodId: MethodId, argumentExprs:
 
 case class rhsReplicate(location: String,
                         classId: ClassId,
+                        consistencyArguments: Seq[ConsistencyType],
                         typeArguments: Seq[Type],
-                        constructorExprs: Map[FieldId, Expression],
+                        constructor: Seq[Expression],
                         consistency: ConsistencyType,
                         mutability: MutabilityType) extends AssignRhs
 
-case class rhsLookup(location: String) extends AssignRhs
+case class rhsLookup(location: String,
+                     classId: ClassId,
+                     consistencyArguments: Seq[ConsistencyType],
+                     typeArguments: Seq[Type],
+                     consistency: ConsistencyType,
+                     mutability: MutabilityType) extends AssignRhs

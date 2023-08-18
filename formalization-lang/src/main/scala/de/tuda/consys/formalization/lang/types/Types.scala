@@ -1,9 +1,8 @@
 package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.{ClassId, ClassTable, Natives, TypeVarEnv, TypeVarId}
-import de.tuda.consys.formalization.lang.types.Types._
 import de.tuda.consys.formalization.lang.errors.TypeError
+import de.tuda.consys.formalization.lang.{ClassId, ClassTable, ConsistencyVarEnv, TypeVarEnv, TypeVarId}
 
 sealed trait Type extends TypeLike[Type]
 
@@ -48,13 +47,14 @@ case class ClassType(classId: ClassId,
 }
 
 sealed trait TerminalType extends Type {
+    def classType: ClassType
     def consistencyType: ConsistencyType
     def mutabilityType: MutabilityType
     def withConsistency(consistencyType: ConsistencyType): TerminalType
     def withMutability(mutabilityType: MutabilityType): TerminalType
 }
 
-case class RefType(classType: ClassType,
+case class RefType(override val classType: ClassType,
                    override val consistencyType: ConsistencyType,
                    override val mutabilityType: MutabilityType
                   ) extends Type with TerminalType {
@@ -83,7 +83,7 @@ case class RefType(classType: ClassType,
     override def toString: String = s"[$mutabilityType $consistencyType] Ref[$classType]"
 }
 
-case class CompoundClassType(classType: ClassType,
+case class CompoundClassType(override val classType: ClassType,
                              override val consistencyType: ConsistencyType,
                              override val mutabilityType: MutabilityType
                             ) extends Type with TerminalType {
@@ -137,6 +137,16 @@ object Types {
 
             case CompoundClassType(classType, consistencyType, mutabilityType) =>
                 CompoundClassType(substitute(classType, typeVars), consistencyType, mutabilityType)
+        }
+    }
+
+    def substitute(typ: ConsistencyType, typeVars: ConsistencyVarEnv): ConsistencyType = {
+        typ match {
+            case consistencyType: ConcreteConsistencyType => consistencyType
+            case ConsistencyVar(name) => typeVars.get(name) match {
+                case Some(value) => value
+                case None => ConsistencyVar(name)
+            }
         }
     }
 }

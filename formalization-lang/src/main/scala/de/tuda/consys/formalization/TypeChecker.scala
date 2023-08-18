@@ -1,10 +1,10 @@
 package de.tuda.consys.formalization
 
-import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.ClassTable.{ClassTable, mType}
 import de.tuda.consys.formalization.lang._
+import de.tuda.consys.formalization.lang.errors.TypeError
 import de.tuda.consys.formalization.lang.types.Types._
 import de.tuda.consys.formalization.lang.types._
-import de.tuda.consys.formalization.lang.errors.TypeError
 
 // TODO: check transactions
 // TODO: check invalid identifier 'this' (since we don't have a parser yet)
@@ -33,55 +33,43 @@ object TypeChecker {
     }
 
     private def checkClass(classDecl: ClassDecl)(implicit classTable: ClassTable): Unit = {
-        classDecl.methods.foreachEntry((methodId, methodDecl) => {
-            val varEnv: VarEnv = methodDecl.declaredParameters.map(varDecl => varDecl.name -> varDecl.typ).toMap
-            implicit val typeVarEnv: TypeVarEnv = classDecl.typeParametersToEnv
-
+        classDecl.methods.foreachEntry((_, methodDecl) => {
+            val typeVarEnv: TypeVarEnv = classDecl.typeParametersToEnv
             methodDecl match {
-                case QueryMethodDecl(_, operationLevel, declaredParameters, declaredReturnType, body) =>
-                    val returnType = resolveType(
-                        typeOfExpr(body, varEnv)(MethodContext(classDecl.toType, ImmutableContext, operationLevel), Local, classTable, typeVarEnv),
-                        typeVarEnv)
-                    val resolvedDeclaredReturnType = resolveType(declaredReturnType, typeVarEnv)
-                    val resolvedDeclaredArgumentTypes = declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))
-
-                    classDecl.getMethodOverride(methodId) match {
-                        case Some(value: QueryMethodDecl) =>
-                            if (resolvedDeclaredReturnType !<= resolveType(value.returnType, typeVarEnv))
-                                throw TypeError(s"wrong return type in method override (in method  ${classDecl.classId}.$methodId")
-                            for (a <- resolvedDeclaredArgumentTypes;
-                                 b <- value.declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))) {
-                                if (a !>= b)
-                                    throw TypeError(s"wrong argument type in method override (in method  ${classDecl.classId}.$methodId")
-                            }
-                        case Some(_: UpdateMethodDecl) => throw TypeError(s"cannot override update method with query method: ${classDecl.classId}.$methodId")
-                        case None => // nothing to do
-                    }
-
-                    if (returnType !<= resolvedDeclaredReturnType)
-                        throw TypeError(s"return type is wrong. Expected: $resolvedDeclaredReturnType, but was $returnType (in method ${classDecl.classId}.$methodId})")
-
-                case UpdateMethodDecl(_, operationLevel, declaredParameters, body) =>
-                    val returnType = resolveType(
-                        typeOfExpr(body, varEnv)(MethodContext(classDecl.toType, MutableContext, operationLevel), Local, classTable, typeVarEnv),
-                        typeVarEnv)
-
-                    classDecl.getMethodOverride(methodId) match {
-                        case Some(value: UpdateMethodDecl) =>
-                            val resolvedDeclaredArgumentTypes = declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))
-                            for (a <- resolvedDeclaredArgumentTypes;
-                                 b <- value.declaredParameters.map(p => p.typ).map(t => resolveType(t, typeVarEnv))) {
-                                if (a !>= b)
-                                    throw TypeError(s"wrong argument type in method override (in method  ${classDecl.classId}.$methodId")
-                            }
-                        case Some(_: QueryMethodDecl) => throw TypeError(s"cannot override query method with update method: ${classDecl.classId}.$methodId")
-                        case None => // nothing to do
-                    }
-
-                    if (returnType.classType != Natives.unitType)
-                        throw TypeError(s"return type is wrong. Expected: $Natives.UnitType, but was $returnType (in method $methodId)")
+                case m: QueryMethodDecl =>
+                    checkQuery(m, typeVarEnv, classDecl.toType)
+                case u: UpdateMethodDecl =>
+                    checkUpdate(u, typeVarEnv, classDecl.toType)
             }
         })
+    }
+
+    private def checkUpdate(method: UpdateMethodDecl,
+                            typeVars: TypeVarEnv,
+                            thisType: ClassType)(implicit classTable: ClassTable): Unit = {
+        val methodType = UpdateType(method.operationLevel, method.declaredParameters.map(x => x.typ))
+        if (!checkOverride(method.name, thisType, methodType))
+            throw TypeError(s"invalid update override: ${method.name}")
+
+        val varEnv = method.declaredParametersToEnvironment
+        checkStatement(method.body, varEnv)(
+            MethodContext(thisType, MutableContext, method.operationLevel), Local, classTable, typeVars)
+    }
+
+    private def checkQuery(method: QueryMethodDecl,
+                           typeVars: TypeVarEnv,
+                           thisType: ClassType)(implicit classTable: ClassTable): Unit = {
+        val methodType = QueryType(method.operationLevel, method.declaredParameters.map(x => x.typ), method.returnType)
+        if (!checkOverride(method.name, thisType, methodType))
+            throw TypeError(s"invalid update override: ${method.name}")
+
+        val varEnv = method.declaredParametersToEnvironment
+        checkStatement(method.body, varEnv)(
+            MethodContext(thisType, ImmutableContext, method.operationLevel), Local, classTable, typeVars)
+    }
+
+    private def checkOverride(id: MethodId, receiver: ClassType, typ: MethodType): Boolean = {
+        true // TODO
     }
 
     private def typeOfExpr(expr: Expression, vars: VarEnv)(implicit declarationContext: DeclarationContext,
@@ -126,34 +114,6 @@ object TypeChecker {
             }
     }
 
-    private def checkMethodCall(recvType: CompoundClassType, methodId: MethodId, argTypes: Seq[Type])
-                               (implicit declarationContext: DeclarationContext,
-                                implicitContext: ConsistencyType,
-                                classTable: ClassTable): (MethodDecl, TypeVarEnv) = {
-        val recvClassDecl = classTable.getOrElse((recvType.classType.classId, recvType.consistencyType), throw TypeError(s"class not available: $recvType"))
-
-        if (recvClassDecl.typeParameters.length != recvType.classType.typeArguments.length)
-            throw TypeError(s"wrong number of type arguments: $recvType")
-
-        val methodDecl: MethodDecl = recvClassDecl.getMethod(methodId)
-            .getOrElse(throw TypeError(s"method not available: $methodId (in class ${recvType.classType.classId})"))
-
-        if (argTypes.size != methodDecl.declaredParameters.size)
-            throw TypeError(s"wrong number of arguments for method $methodId: ${argTypes.size} (expected: ${methodDecl.declaredParameters.size}")
-
-        implicit val typeEnv: TypeVarEnv =
-            (recvClassDecl.typeParameters zip recvType.classType.typeArguments).map(p => (p._1.name, p._2)).toMap
-
-        (argTypes zip methodDecl.declaredParameterTypes).foreach(t => {
-            val argType = t._1
-            val parameterType = resolveType(t._2, typeEnv)
-            if (!(argType <= parameterType))
-                throw TypeError(s"wrong argument type for method $methodId: $argType (expected: $parameterType)")
-        })
-
-        (methodDecl, typeEnv)
-    }
-
     private def checkRhsAssign(assign: AssignRhs, vars: VarEnv)(implicit declarationContext: DeclarationContext,
                                                   implicitContext: ConsistencyType,
                                                   classTable: ClassTable,
@@ -179,20 +139,34 @@ object TypeChecker {
 
         case rhsCallQuery(recvExpr, methodId, argumentExprs) =>
             val recvType = bound(typeOfExpr(recvExpr, vars))
-            val argTypes = argumentExprs.map(argExpr => typeOfExpr(argExpr, vars))
-
-            val methodType = methodType(methodId, recvType)
-            val (methodDecl, recvTypeEnv) = checkMethodCall(recvType, methodId, argTypes)
-
-            val queryDecl = methodDecl match {
-                case q: QueryMethodDecl => q
+            val methodType = mType(methodId, recvType) match {
+                case q: QueryType => q
                 case _ => throw TypeError(s"expected query method: $methodId")
             }
 
-            // TODO: adapt to receiver consistency
-            val resultType = resolveType(queryDecl.returnType, recvTypeEnv)
-        case rhsReplicate(location, classId, typeArguments, constructorExprs, consistency, mutability) => ???
-        case rhsLookup(location) => ???
+            if (argumentExprs.size != methodType.parameters.size)
+                throw TypeError(s"wrong number of arguments for method $methodId: ${argumentExprs.size}")
+
+            val argTypes = argumentExprs.map(argExpr => typeOfExpr(argExpr, vars))
+            if ((argTypes zip methodType.parameters).forall(x => x._1 <= x._2))
+                throw TypeError(s"wrong argument type")
+            // TODO: adapt type prefix
+            methodType.returnType
+
+        case rhsReplicate(location, classId, consistencyArguments, typeArguments, constructor, consistency, mutability) =>
+            val decl = classTable.getOrElse(classId, throw TypeError(s"class not found: $classId"))
+            if (decl.typeParameters.size != typeArguments.size)
+                throw TypeError(s"wrong number of type arguments")
+            if (decl.fields.size != constructor.size)
+                throw TypeError(s"wrong number of constructor arguments")
+
+            val constructorTypes = constructor.map(e => typeOfExpr(e, vars))
+            (constructorTypes zip decl.fields.values.map(_.typ)).forall(p => p._1 <= p._2)
+            // TODO: concrete type parameters?
+            RefType(ClassType(classId, consistencyArguments, typeArguments), consistency, mutability)
+
+        case rhsLookup(location, classId, consistencyArguments, typeArguments, consistency, mutability) =>
+            RefType(ClassType(classId, consistencyArguments, typeArguments), consistency, mutability)
     }
 
     private def checkStatement(statement: Statement, vars: VarEnv)(implicit declarationContext: DeclarationContext,
@@ -225,6 +199,7 @@ object TypeChecker {
             val namedType = checkRhsAssign(rhs, vars)
             if (namedType !<= varType)
                 throw TypeError(s"incompatible type for assignment: $varId ($namedType)")
+            vars + (varId -> namedType)
 
         case SetField(fieldId, valueExpr) =>
             declarationContext match {
@@ -255,29 +230,45 @@ object TypeChecker {
                         throw TypeError(s"wrong assignment in implicit context: ${fieldDecl.typ} in $implicitContext context")
 
                     if (operationLevel.consistencyType() !<= boundedFieldType.consistencyType)
-                        throw TypeError(s"wrong assignment in operation context: ${fieldDecl.typ} in ${operationLevel.consistencyType()} context")
+                        throw TypeError(s"wrong assignment in operation context: " +
+                            s"${fieldDecl.typ} in ${operationLevel.consistencyType()} context")
 
                     vars
             }
 
-            vars + (varId -> resultType)
-
-        case CallUpdate(recvExpr, methodId, argumentExprs) =>
-            val recvType = resolveType(typeOfExpr(recvExpr, vars), typeVars)
-
+        case CallUpdate(recvExpr, methodId, arguments) =>
+            val recvType = bound(typeOfExpr(recvExpr, vars))
             if (recvType.mutabilityType == Immutable)
-                throw TypeError(s"invalid update call on immutable receiver: $methodId (in class ${recvType.classType.classId})")
+                throw TypeError(s"invalid update call on immutable receiver: " +
+                    s"$methodId (in class ${recvType.classType.classId})")
 
-            val argTypes = argumentExprs.map(argExpr => typeOfExpr(argExpr, vars))
-            val (methodDecl, _) = checkMethodCall(recvType, methodId, argTypes)
-
-            if (!(implicitContext <= methodDecl.operationLevel.consistencyType()))
-                throw TypeError(s"wrong operation level in context: ${methodDecl.operationLevel.consistencyType()} in $implicitContext")
-
-            methodDecl match {
-                case _: UpdateMethodDecl =>
-                case _ => throw TypeError(s"expected update method: $methodId")
+            val methodType = mType(methodId, recvType) match {
+                case q: QueryType => q
+                case _ => throw TypeError(s"expected query method: $methodId")
             }
+
+            if (arguments.size != methodType.parameters.size)
+                throw TypeError(s"wrong number of arguments for method $methodId: ${arguments.size}")
+
+            val argTypes = arguments.map(argExpr => typeOfExpr(argExpr, vars))
+            if ((argTypes zip methodType.parameters).forall(x => x._1 <= x._2))
+                throw TypeError(s"wrong argument type")
+
+            declarationContext match {
+                case TopLevelContext =>
+                case MethodContext(thisType, mutabilityContext, operationLevel) =>
+                    if (operationLevel.consistencyType() !<= methodType.operationLevel.consistencyType())
+                        throw TypeError(s"wrong operation level in method context: " +
+                            s"${methodType.operationLevel.consistencyType()} in $operationLevel")
+                    mutabilityContext match {
+                        case ImmutableContext => throw TypeError(s"update call in query: ${methodId}")
+                        case MutableContext =>
+                    }
+            }
+
+            if (!(implicitContext <= methodType.operationLevel.consistencyType()))
+                throw TypeError(s"wrong operation level in context: " +
+                    s"${methodType.operationLevel.consistencyType()} in $implicitContext")
 
             vars
 
@@ -285,40 +276,5 @@ object TypeChecker {
             checkStatement(body, vars)
             checkStatement(except, vars)
             vars
-
-        case Replicate(varId, location, classId, typeArguments, constructorExprs, consistency, mutability) =>
-            val classDecl = classTable.getOrElse(classId, throw TypeError(s"class not available: $classId"))
-
-            if (typeArguments.length != classDecl.typeParameters.length)
-                throw TypeError(s"wrong number of type arguments: $classId")
-
-            val classVarEnv = classDecl.typeParameters.map(p => p.name -> p.upperBound).toMap
-
-            (typeArguments zip classDecl.typeParameters).foreach(e => {
-                val (arg, paramDecl) = e
-                val paramBound = resolveType(TypeVar(paramDecl.name), classVarEnv)
-                if (arg !<= paramBound)
-                    throw TypeError(s"wrong type argument for type variable: $arg (expected: $paramDecl)")
-            })
-
-            if (constructorExprs.size != classDecl.fields.size)
-                throw TypeError(s"wrong number of constructor arguments: $classId")
-
-            constructorExprs.foreachEntry((fieldId, expr) => {
-                val argType = resolveType(typeOfExpr(expr, vars), typeVars)
-                val field = classDecl.fields.getOrElse(fieldId,
-                    throw TypeError(s"field not found in constructor: $fieldId (in class $classId)"))
-                val fieldType = resolveType(field.typ, classVarEnv)
-
-                if (argType !<= fieldType)
-                    throw TypeError(s"wrong constructor argument type: expected $fieldType, but was $argType (in class $classId)")
-            })
-
-            // TODO: check location typing
-
-            val resultType = CompoundType(types.ClassType(classId, typeArguments), consistency, mutability)
-            vars + (varId -> resultType)
-
-        case Lookup(varId, location) => ???
     }
 }

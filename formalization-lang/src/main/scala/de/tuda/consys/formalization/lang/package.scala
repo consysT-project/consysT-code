@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization
 
-import de.tuda.consys.formalization.lang.types.Type
+import de.tuda.consys.formalization.lang.types.{ConsistencyType, Type}
 
 package object lang {
     type ClassId = String
@@ -13,7 +13,11 @@ package object lang {
 
     type TypeVarId = String
 
+    type ConsistencyVarId = String
+
     type TypeVarEnv = Map[TypeVarId, Type]
+
+    type ConsistencyVarEnv = Map[ConsistencyVarId, ConsistencyType]
 
     val thisId = "this"
 

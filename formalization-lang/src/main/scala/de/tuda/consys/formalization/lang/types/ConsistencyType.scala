@@ -1,9 +1,13 @@
 package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.TypeVarEnv
+import de.tuda.consys.formalization.lang.{ConsistencyVarId, TypeVarEnv}
 
 sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
+    def operationLevel(): OperationLevel
+}
+
+sealed trait ConcreteConsistencyType extends ConsistencyType {
     def <=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean =
         ConsistencyTypeLattice(this).hasUpperBound(t)
 
@@ -15,27 +19,37 @@ sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
 
     def glb(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType =
         if (this >= t) t else this // TODO: generalize
-
-    def operationLevel(): OperationLevel
 }
 
-case object Local extends ConsistencyType {
+case object Local extends ConcreteConsistencyType {
     override def operationLevel(): OperationLevel = ???
 }
 
-case object Strong extends ConsistencyType {
+case object Strong extends ConcreteConsistencyType {
     override def operationLevel(): OperationLevel = StrongOp
 }
 
-case object Mixed extends ConsistencyType {
+case object Mixed extends ConcreteConsistencyType {
     override def operationLevel(): OperationLevel = WeakOp
 }
 
-case object Weak extends ConsistencyType {
+case object Weak extends ConcreteConsistencyType {
     override def operationLevel(): OperationLevel = WeakOp
 }
 
-case object Inconsistent extends ConsistencyType {
+case object Inconsistent extends ConcreteConsistencyType {
+    override def operationLevel(): OperationLevel = ???
+}
+
+case class ConsistencyVar(name: ConsistencyVarId) extends ConsistencyType {
+    def <=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ???
+
+    def >=(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ???
+
+    override def lub(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = ???
+
+    override def glb(t: ConsistencyType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): ConsistencyType = ???
+
     override def operationLevel(): OperationLevel = ???
 }
 
@@ -52,5 +66,6 @@ object ConsistencyTypeLattice {
         case Mixed => mixed
         case Weak => weak
         case Inconsistent => inconsistent
+        case ConsistencyVar(_) => sys.error("")
     }
 }
