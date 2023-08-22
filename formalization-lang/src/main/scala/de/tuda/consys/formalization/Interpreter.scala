@@ -4,6 +4,7 @@ import de.tuda.consys.formalization.Interpreter._
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.types._
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.errors.ExecutionError
 import de.tuda.stg.consys.core.store.ConsistencyLevel
 import de.tuda.stg.consys.core.store.cassandra.{CassandraStore, CassandraTransactionContext}
 
@@ -13,32 +14,87 @@ class Interpreter(storeAddress: String) {
     private val store = CassandraStore.fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
 
     def run(programDecl: ProgramDecl): Value = {
-        val result = interpret(programDecl.body, Map.empty)(programDecl.classTable, None)
+        val r1 = interpret(programDecl.body, Map.empty)(programDecl.classTable, None)
+        val r2 = interpret(programDecl.returnExpr, r1)(programDecl.classTable, None)
         store.close()
-        result
+        r2
+    }
+
+    private def interpret(stmt: Statement, varEnv: VarEnv)
+                         (implicit classTable: ClassTable, transaction: Option[CassandraTransactionContext]): VarEnv = stmt match {
+        case Sequence(s1, s2) =>
+            val r1 = interpret(s1, varEnv)
+            interpret(s2, r1)
+
+        case If(conditionExpr, thenStmt, elseStmt) =>
+            interpret(conditionExpr, varEnv) match {
+                case BoolV(b) =>
+                    if (b) interpret(thenStmt, varEnv)
+                    else interpret(elseStmt, varEnv)
+                    varEnv
+
+                case _ => throw ExecutionError("wrong condition value")
+            }
+
+        case Let(varId, rhs) =>
+            val r = interpret(rhs, varEnv)
+            varEnv + (varId -> r)
+
+        case Assign(varId, rhs) =>
+            val r = interpret(rhs, varEnv)
+            varEnv + (varId -> r)
+
+        case SetField(fieldId, valueExpr) => transaction match {
+            case Some(ctx) =>
+                varEnv(thisId) match {
+                    case RefV(objectId, _, _) =>
+                        // TODO
+                        val (ref, fields) = getReplicatedFields(objectId, consistency, ctx)
+
+                        val value = interpret(valueExpr, varEnv)
+                        ref.resolve(ctx).setField("fields", fields.updated(fieldId, value))
+
+                    case _ => throw RuntimeError("invalid value for <this>")
+                }
+            case None => throw RuntimeError("missing transaction for <GetField>")
+        }
+
+        case CallUpdate(recvExpr, methodId, argumentExprs) => ???
+
+        case Transaction(body, except) =>
+            val result = store.transaction(ctx =>
+                Some(interpret(body, varEnv)(classTable, Some(ctx)))
+            )
+            result match {
+                case Some(_) => varEnv
+                case None => interpret(except, varEnv)
+            }
+    }
+
+    private def interpret(rhs: AssignRhs, varEnv: VarEnv)
+                         (implicit classTable: ClassTable, transaction: Option[CassandraTransactionContext]): Value = rhs match {
+        case rhsExpression(e) =>
+            interpret(e, varEnv)
+
+        case rhsGetField(fieldId) => ???
+        case rhsCallQuery(recvExpr, methodId, argumentExprs) => ???
+        case rhsReplicate(location, classId, consistencyArguments, typeArguments, constructor, consistency, mutability) => ???
+        case rhsLookup(location, classId, consistencyArguments, typeArguments, consistency, mutability) => ???
     }
 
     private def interpret(expr: Expression, varEnv: VarEnv)
                          (implicit classTable: ClassTable, transaction: Option[CassandraTransactionContext]): Value = expr match {
         case Num(n) => NumV(n)
+
         case True => BoolV(true)
+
         case False => BoolV(false)
+
         case UnitLiteral => UnitV
 
         case This => varEnv(thisId)
 
         case Var(id) => varEnv(id)
-
-        case Let(id, namedExpr, bodyExpr) =>
-            val namedValue = interpret(namedExpr, varEnv)
-            interpret(bodyExpr, varEnv + (id -> namedValue))
-
-        case If(conditionExpr, thenExpr, elseExpr) =>
-            val conditionValue = interpret(conditionExpr, varEnv)
-            conditionValue match {
-                case BoolV(true) => interpret(thenExpr, varEnv)
-                case BoolV(false) => interpret(elseExpr, varEnv)
-            }
 
         case Equals(expr1, expr2) =>
             (interpret(expr1, varEnv), interpret(expr2, varEnv)) match {
@@ -53,18 +109,6 @@ class Interpreter(storeAddress: String) {
             (interpret(expr1, varEnv), interpret(expr2, varEnv)) match {
                 case (NumV(n1), NumV(n2)) => NumV(n1 + n2)
                 case (a, b) => throw RuntimeError(s"invalid operands for <Add>: $a, $b")
-            }
-
-        case Sequence(exprs) =>
-            exprs.foldLeft[Value](UnitV)((r, e) => interpret(e, varEnv))
-
-        case Transaction(bodyExpr) =>
-            val result = store.transaction(ctx =>
-                Some(interpret(bodyExpr, varEnv)(classTable, Some(ctx)))
-            )
-            result match {
-                case Some(value) => value
-                case None => throw RuntimeError("transaction error") // TODO: model error behaviour
             }
 
         case New(objectId, classId, typeArguments, consistency, constructorExprs) =>
@@ -94,21 +138,7 @@ class Interpreter(storeAddress: String) {
             case None => throw RuntimeError("<GetField> outside of transaction")
         }
 
-        case SetField(fieldId, valueExpr) => transaction match {
-            case Some(ctx) =>
-                varEnv(thisId) match {
-                    case RefV(objectId, _, consistency) =>
-                        // TODO: use method consistency instead of ref consistency to properly model mixed refs
-                        val (ref, fields) = getReplicatedFields(objectId, consistency, ctx)
-
-                        val value = interpret(valueExpr, varEnv)
-                        ref.resolve(ctx).setField("fields", fields.updated(fieldId, value))
-                        UnitV
-
-                    case _ => throw RuntimeError("invalid value for <this>")
-                }
-            case None => throw RuntimeError("<GetField> outside of transaction")
-        }
+        case SetField(fieldId, valueExpr) =>
 
         case CallQuery(recvExpr, methodId, argumentExprs) => transaction match {
             case Some(ctx) =>
