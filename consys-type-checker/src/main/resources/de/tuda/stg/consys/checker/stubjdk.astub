@@ -109,6 +109,8 @@ interface List<T> {
 
 interface Map<K, V> {
     @SideEffectFree
+    @Immutable
+    @ThisConsistent
     java.util.Collection<V> values();
 
     @SideEffectFree

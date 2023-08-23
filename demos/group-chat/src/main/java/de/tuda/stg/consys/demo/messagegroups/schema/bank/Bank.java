@@ -6,6 +6,7 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Mutable;
+import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 public @Mixed class Bank implements Serializable {
 
-	public final Map<Integer, Ref<@Mutable BankAccount>> accounts;
+	private Map<Integer, Ref<@Mutable BankAccount>> accounts;
 
 	public Bank() {
 		accounts = new HashMap<>();
@@ -40,7 +41,7 @@ public @Mixed class Bank implements Serializable {
 		}
 	}
 
-	private boolean checkHistory(List<BankEvent> history) {
+	private boolean checkHistory(List<BalanceChange> history) {
 		return false;
 	}
 }

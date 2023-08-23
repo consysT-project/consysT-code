@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.messagegroups.schema;
 
+import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
@@ -17,10 +18,12 @@ import java.util.Optional;
 public class Main {
 
     public static void main(String[] args) {
+        System.out.println("0");
+
         CassandraStoreBinding store =
                 CassandraReplica.create("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true);
 
-        User user = new User("user");
+        System.out.println("1");
 
         store.transaction(tx -> {
             Ref<@Mutable @Weak User> user1 = tx.replicate("user1", CassandraConsistencyLevels.WEAK, User.class, "Alice");
@@ -31,15 +34,19 @@ public class Main {
             return Option.apply(0);
         });
 
-        store.transaction(tx -> {
+        System.out.println("2");
+        @Immutable Option<Integer> res = store.transaction(tx -> {
            Ref<@Mutable BankAccount> acc1 = tx.replicate("acc1", CassandraConsistencyLevels.MIXED, BankAccount.class) ;
            acc1.ref().deposit(1000);
            acc1.ref().deposit(500);
            acc1.ref().withdraw(700);
-           System.out.println(acc1.ref().balance());
-           return Option.apply(0);
+           var bal = acc1.ref().balance();
+           return Option.apply(bal);
         });
 
+        System.out.println("3");
+
+        System.out.println(res);
 
     }
 }

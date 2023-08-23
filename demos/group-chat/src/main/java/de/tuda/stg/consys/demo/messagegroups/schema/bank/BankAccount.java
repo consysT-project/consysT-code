@@ -4,16 +4,20 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mixed;
+import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.japi.Ref;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public @Mixed class BankAccount implements Serializable {
 
-	private final List<@Immutable BankEvent> events;
+	private Ref<@Strong User> owner;
+	private List<BalanceChange> events;
 
 	public BankAccount() {
 		this.events = new LinkedList<>();
@@ -21,28 +25,24 @@ public @Mixed class BankAccount implements Serializable {
 
 	@StrongOp
 	public void deposit(int amount) {
-		events.add(new BankEvent.Deposit(amount));
+		events.add(new BalanceChange(amount));
 	}
 
 	@StrongOp
 	public void withdraw(int amount) {
-		events.add(new BankEvent.Withdraw(amount));
+		events.add(new BalanceChange(-amount));
 	}
 
-	@SideEffectFree
+
 	@WeakOp
+	@SideEffectFree
 	public int balance() {
-		return events.stream().reduce(0, (integer, bankEvent) -> {
-			if (bankEvent.isDeposit())
-				return integer + bankEvent.getAmount();
-			else
-				return integer - bankEvent.getAmount();
-		}, Integer::sum);
+		return events.stream().mapToInt(BalanceChange::getAmount).sum();
 	}
 
 	@SideEffectFree
 	@WeakOp
-	public @Immutable List<@Immutable BankEvent> getHistory() {
+	public List<BalanceChange> getHistory() {
 		return events;
 	}
 }
