@@ -89,14 +89,14 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 				}
 				// If the annotation is weak, or if there was no annotation at all...
 
-				// only read the weak parts of the object
+				// Read all fields, since a weak method may still read strong fields
 				val fields = Reflect.getMixedFieldLevels[T]
-				val weakFields = fields.filter(entry => entry._2 == Weak).map(entry => entry._1.getName)
+				val allFields = fields.map(entry => entry._1.getName)
 
 				// Lookup the object in the cache
 				val addr = receiver.addr
 
-				val cachedObj = txContext.Cache.readEntry(addr, readWeak[T](addr, weakFields))
+				val cachedObj = txContext.Cache.readEntry(addr, readWeak[T](addr, allFields))
 
 				// If method call is not side effect free, then set the changed flag
 				val (objectChanged, changedFields) = Reflect.getMethodSideEffects[T](methodId, args)
