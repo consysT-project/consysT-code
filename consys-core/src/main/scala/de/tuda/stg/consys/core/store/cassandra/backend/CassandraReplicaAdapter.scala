@@ -11,6 +11,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
+import com.datastax.oss.driver.api.querybuilder.term.Term
 import de.tuda.stg.consys.core.store.utils.Reflect
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
@@ -18,6 +19,7 @@ import java.nio.ByteBuffer
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters._
 
 /**
  * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
@@ -54,7 +56,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 
 		/*
 		Table layout:
-		Every entry stores data belonging to an object. There are two possiblities: Either an
+		Every entry stores data belonging to an object. There are two possibilities: Either an
 		entry stores the value of one field of an object, or it stores the whole object.
 
 		id : the address of the object, aka the objects name
@@ -133,7 +135,6 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		batchBuilder.addStatement(statement)
 	}
 
-
 	private[cassandra] def executeStatement(statement : Statement[_]) : ResultSet = {
 		if (!sessionInitialized) {
 			cassandraSession.execute(s"USE $keyspaceName")
@@ -156,13 +157,15 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		val timestamp : Long
 	)
 
+	/**
+	 * Reads an object that was stored with the row-per-whole-object schema.
+	 */
 	private[cassandra] def readObjectEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredObjectEntry = {
 		val query = QueryBuilder.selectFrom(s"$objectTableName")
 			.columns("id", "type", "state")
 			.function("WRITETIME", Selector.column("state")).as("writetime")
 			.whereColumn("id").isEqualTo(QueryBuilder.literal(addr))
 			.build()
-			//TODO: Read every field with its correct consistency level
 			.setConsistencyLevel(clevel)
 
 		//TODO: Add failure handling
@@ -171,7 +174,7 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 			val response = cassandraSession.execute(query)
 
 			response.one() match {
-				case null =>  //the address has not been found. retry.
+				case null =>  // The address has not been found. Retry.
 				case row =>
 					val typ = row.get("type", TypeCodecs.INT)
 					if (typ != TYPE_OBJECT) throw new IllegalStateException(s"expected object stored as whole, but got: $response")
@@ -186,13 +189,17 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
 	}
 
-	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredFieldEntry = {
+	/**
+	 * Reads an object that was stored with the row-per-field schema.
+	 */
+	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, fields: Iterable[String], clevel : CassandraLevel) : StoredFieldEntry = {
 		val query = QueryBuilder.selectFrom(s"$objectTableName")
 			.columns("id", "fieldid", "type", "state")
 			.function("WRITETIME", Selector.column("state")).as("writetime")
 			.whereColumn("id").isEqualTo(QueryBuilder.literal(addr))
+			.whereColumn("fieldid").in(fields.map(f => QueryBuilder.literal(f)).asInstanceOf[Iterable[Term]].asJava)
 			.build()
-			//TODO: Read every field with its correct consistency level
+			//TODO: Read every field with its correct consistency level (necessary?)
 			.setConsistencyLevel(clevel)
 
 		//TODO: Add failure handling

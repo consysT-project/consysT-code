@@ -75,18 +75,20 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
 
-
 		override def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = txContext.Cache.readLocalEntry(ref.addr) match {
-			case None => throw new IllegalStateException(s"cannot commit $ref. Object not available.")
+			case None =>
+				throw new IllegalStateException(s"cannot commit $ref. Object not available.")
+
 			case Some(cassObj : CassandraObject[_, Weak.type]) if cassObj.consistencyLevel == Weak =>
 				// Add a new statement to the batch of write statements
 				if (!txContext.Cache.hasChanges(ref.addr)) return
 
 				val builder = txContext.getCommitStatementBuilder
 				store.cassandra.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ONE)
+
 			case cached =>
 				throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		}
