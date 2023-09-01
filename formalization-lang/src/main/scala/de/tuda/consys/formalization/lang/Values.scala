@@ -11,3 +11,5 @@ case class BoolV(b: Boolean) extends Value
 case object UnitV extends Value
 
 case class RefV(objectId: String, classId: ClassId, consistencyArgs: Seq[ConsistencyType]) extends Value
+
+case class ObjV(classId: ClassId, fields: Map[FieldId, Value]) extends Value

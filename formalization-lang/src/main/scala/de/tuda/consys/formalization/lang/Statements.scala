@@ -4,6 +4,16 @@ import de.tuda.consys.formalization.lang.types.{ConsistencyType, MutabilityType,
 
 sealed trait Statement
 
+case object Skip extends Statement
+
+case object Error extends Statement
+
+case object Return extends Statement
+
+case class ReturnExpr(e: Expression) extends Statement
+
+case class Block(s: Statement) extends Statement
+
 case class Sequence(s1: Statement, s2: Statement) extends Statement
 
 case class If(conditionExpr: Expression, thenStmt: Statement, elseStmt: Statement) extends Statement
@@ -40,3 +50,5 @@ case class rhsLookup(location: String,
                      typeArguments: Seq[Type],
                      consistency: ConsistencyType,
                      mutability: MutabilityType) extends AssignRhs
+
+case class rhsValue(v: Value) extends AssignRhs

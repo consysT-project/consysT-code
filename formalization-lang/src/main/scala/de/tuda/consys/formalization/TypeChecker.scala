@@ -76,13 +76,29 @@ object TypeChecker {
                                                            implicitContext: ConsistencyType,
                                                            classTable: ClassTable,
                                                            typeVars: TypeVarEnv): Type = expr match {
-        case True => CompoundClassType(Natives.booleanType, Local, Immutable)
-        case False => CompoundClassType(Natives.booleanType, Local, Immutable)
-        case UnitLiteral => CompoundClassType(Natives.unitType, Local, Immutable)
-        case Num(_) => CompoundClassType(Natives.numberType, Local, Immutable)
+        case True =>
+            CompoundClassType(Natives.booleanType, Local, Immutable)
+
+        case False =>
+            CompoundClassType(Natives.booleanType, Local, Immutable)
+
+        case UnitLiteral =>
+            CompoundClassType(Natives.unitType, Local, Immutable)
+
+        case Num(_) =>
+            CompoundClassType(Natives.numberType, Local, Immutable)
 
         case Var(id: VarId) =>
             vars.getOrElse(id, throw TypeError(s"variable not declared: $id"))
+
+        case This =>
+            declarationContext match {
+                case TopLevelContext =>
+                    throw TypeError("cannot resolve 'this' outside of class declaration")
+
+                case MethodContext(classType, _, _) =>
+                    ???
+            }
 
         case Equals(expr1, expr2) =>
             val t1 = bound(typeOfExpr(expr1, vars))
@@ -104,14 +120,7 @@ object TypeChecker {
                     throw TypeError(s"invalid types for <Add>: $t1 and $t2")
             }
 
-        case This =>
-            declarationContext match {
-                case TopLevelContext =>
-                    throw TypeError("cannot resolve 'this' outside of class declaration")
-
-                case MethodContext(classType, _, _) =>
-                    ???
-            }
+        case ValueExpr(_) => throw TypeError("<ValueExpr> is invalid")
     }
 
     private def checkRhsAssign(assign: AssignRhs, vars: VarEnv)(implicit declarationContext: DeclarationContext,
@@ -167,12 +176,24 @@ object TypeChecker {
 
         case rhsLookup(location, classId, consistencyArguments, typeArguments, consistency, mutability) =>
             RefType(ClassType(classId, consistencyArguments, typeArguments), consistency, mutability)
+
+        case rhsValue(_) => throw TypeError("<rhsValue> is invalid")
     }
 
     private def checkStatement(statement: Statement, vars: VarEnv)(implicit declarationContext: DeclarationContext,
                                                                    implicitContext: ConsistencyType,
                                                                    classTable: ClassTable,
                                                                    typeVars: TypeVarEnv): VarEnv = statement match {
+        case Skip =>
+            vars
+
+        case Error =>
+            vars
+
+        case Block(s) =>
+            checkStatement(s, vars)
+            vars
+
         case Sequence(s1, s2) =>
             val r1 = checkStatement(s1, vars)
             checkStatement(s2, r1)

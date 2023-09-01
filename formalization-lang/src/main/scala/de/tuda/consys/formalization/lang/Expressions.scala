@@ -19,3 +19,5 @@ case class Var(id: VarId) extends Expression
 case class Equals(expr1: Expression, expr2: Expression) extends Expression
 
 case class Add(expr1: Expression, expr2: Expression) extends Expression
+
+case class ValueExpr(v: Value) extends Expression
