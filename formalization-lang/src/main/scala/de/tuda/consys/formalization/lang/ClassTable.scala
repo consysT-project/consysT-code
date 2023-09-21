@@ -1,7 +1,7 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types2.Types.substitute
-import de.tuda.consys.formalization.lang.types2._
+import de.tuda.consys.formalization.lang.types.Types.substitute
+import de.tuda.consys.formalization.lang.types._
 
 import scala.annotation.tailrec
 
@@ -31,7 +31,7 @@ object ClassTable {
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
                 UpdateType(substitute(operationLevel, consEnv), concreteParams)
 
-            case QueryMethodDecl(_, operationLevel, declaredParameters, _, _, returnType) =>
+            case QueryMethodDecl(_, operationLevel, declaredParameters, _, returnType) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
                 val concreteReturnType = substitute(returnType, varEnv, consEnv)
                 QueryType(substitute(operationLevel, consEnv), concreteParams, concreteReturnType)

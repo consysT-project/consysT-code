@@ -2,151 +2,104 @@ package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.errors.TypeError
-import de.tuda.consys.formalization.lang.{ClassId, ClassTable, ConsistencyVarEnv, TypeVarEnv, TypeVarId}
+import de.tuda.consys.formalization.lang.{ClassId, ConsistencyVarEnv, TypeVarEnv, TypeVarId, TypeVarMutabilityEnv}
 
-sealed trait Type extends TypeLike[Type]
+import scala.annotation.tailrec
 
-case class TypeVar(typeVarId: TypeVarId) extends Type {
-    def <=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean =
-        typeVarEnv.getOrElse(typeVarId, sys.error(s"cannot resolve type variable: $typeVarId")) <= t
+case class Type(l: ConsistencyType, m: MutabilityType, suffix: TypeSuffix) extends TypeLike[Type] {
+    override def <=(t: Type)(implicit classTable: ClassTable,
+                             typeVarEnv: TypeVarEnv,
+                             consistencyVarEnv: ConsistencyVarEnv): Boolean = Subtyping.subtype(this, t)
 
-    def >=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean =
-        this == t
+    override def >=(t: Type)(implicit classTable: ClassTable,
+                             typeVarEnv: TypeVarEnv,
+                             consistencyVarEnv: ConsistencyVarEnv): Boolean = Subtyping.subtype(t, this)
 
-    def lub(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
+    override def lub(t: Type)(implicit classTable: ClassTable,
+                              typeVarEnv: TypeVarEnv,
+                              consistencyVarEnv: ConsistencyVarEnv): Type = ???
 
-    def glb(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
+    override def glb(t: Type)(implicit classTable: ClassTable,
+                              typeVarEnv: TypeVarEnv,
+                              consistencyVarEnv: ConsistencyVarEnv): Type = ???
 
-    override def toString: ClassId = s"$typeVarId"
+    override def toString: ClassId = s"[$l $m]$suffix"
+}
+
+sealed trait TypeSuffix
+
+case class TypeSuffixVar(id: TypeVarId) extends TypeSuffix {
+    override def toString: ClassId = s"$id"
+}
+
+sealed trait NonVarTypeSuffix extends TypeSuffix
+
+case class LocalTypeSuffix(classType: ClassType) extends NonVarTypeSuffix {
+    override def toString: String = s"$classType"
+}
+
+case class RefTypeSuffix(classType: ClassType) extends NonVarTypeSuffix {
+    override def toString: String = s"Ref[$classType]"
 }
 
 case class ClassType(classId: ClassId,
                      consistencyArguments: Seq[ConsistencyType],
-                     typeArguments: Seq[Type]) extends TypeLike2[ClassType, MutabilityType] {
-    def <=(t: ClassType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: MutabilityType): Boolean = t2 match {
-        case Immutable if this.classId == t.classId && this.typeArguments == t.typeArguments =>
-            (this.consistencyArguments zip t.consistencyArguments).map(c => c._1 <= c._2).reduce(_&&_)
-        case _ =>
-            ClassTable.isSuperClassType(this, t)
-    }
-
-    def >=(t: ClassType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: MutabilityType): Boolean = t2 match {
-        case Immutable if t.classId == this.classId && t.typeArguments == this.typeArguments =>
-            (t.consistencyArguments zip this.consistencyArguments).map(c => c._1 <= c._2).reduce(_ && _)
-        case _ =>
-            ClassTable.isSuperClassType(t, this)
-    }
-
-    def lub(t: ClassType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: MutabilityType): ClassType = ???
-
-    def glb(t: ClassType)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv, t2: MutabilityType): ClassType = ???
-
+                     typeArguments: Seq[TypeSuffix]) {
     override def toString: String =
         if (typeArguments.isEmpty) s"$classId"
         else s"$classId<${consistencyArguments.mkString(",")},${typeArguments.mkString(",")}>"
 }
 
-sealed trait TerminalType extends Type {
-    def classType: ClassType
-    def consistencyType: ConsistencyType
-    def mutabilityType: MutabilityType
-    def withConsistency(consistencyType: ConsistencyType): TerminalType
-    def withMutability(mutabilityType: MutabilityType): TerminalType
-}
-
-case class RefType(override val classType: ClassType,
-                   override val consistencyType: ConsistencyType,
-                   override val mutabilityType: MutabilityType
-                  ) extends Type with TerminalType {
-    def <=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = t match {
-        case RefType(classType, consistencyType, mutabilityType) =>
-            CompoundClassType(this.classType, this.consistencyType, this.mutabilityType) <=
-                CompoundClassType(classType, consistencyType, mutabilityType)
-        case _ => false
-    }
-
-    def >=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = t match {
-        case RefType(classType, consistencyType, mutabilityType) =>
-            CompoundClassType(this.classType, this.consistencyType, this.mutabilityType) >=
-                CompoundClassType(classType, consistencyType, mutabilityType)
-        case _ => false
-    }
-
-    def lub(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
-
-    def glb(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
-
-    override def withConsistency(consistencyType: ConsistencyType): TerminalType = copy(consistencyType = consistencyType)
-
-    override def withMutability(mutabilityType: MutabilityType): TerminalType = copy(mutabilityType = mutabilityType)
-
-    override def toString: String = s"[$mutabilityType $consistencyType] Ref[$classType]"
-}
-
-case class CompoundClassType(override val classType: ClassType,
-                             override val consistencyType: ConsistencyType,
-                             override val mutabilityType: MutabilityType
-                            ) extends Type with TerminalType {
-    def <=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = t match {
-        case CompoundClassType(classType, consistencyType, mutabilityType) =>
-            implicit val t2: MutabilityType = mutabilityType
-            this.consistencyType <= consistencyType &&
-                this.mutabilityType <= mutabilityType &&
-                this.classType <= classType
-
-        case _ => false
-    }
-
-    def >=(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Boolean = ???
-
-    def lub(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
-
-    def glb(t: Type)(implicit classTable: ClassTable, typeVarEnv: TypeVarEnv): Type = ???
-
-    override def withConsistency(consistencyType: ConsistencyType): TerminalType = copy(consistencyType = consistencyType)
-
-    override def withMutability(mutabilityType: MutabilityType): TerminalType = copy(mutabilityType = mutabilityType)
-
-    override def toString: ClassId = s"$mutabilityType $consistencyType $classType"
-}
-
 object Types {
-    def bound(typ: Type)(implicit typeVars: TypeVarEnv): TerminalType = typ match {
-        case TypeVar(name) =>
-            typeVars.getOrElse(name, throw TypeError(s"cannot resolve type variable <$name>")) match {
-                case t: TypeVar => bound(t) // allows recursive type variable bounds
-                case t: TerminalType => t
+    def bound(typ: Type)(implicit typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): Type =
+        Type(bound(typ.l), typ.m, bound(typ.suffix))
+
+    @tailrec
+    def bound(typ: TypeSuffix)(implicit typeVars: TypeVarEnv): NonVarTypeSuffix = typ match {
+        case TypeSuffixVar(id) =>
+            typeVars.getOrElse(id, throw TypeError(s"cannot resolve type variable <$id>")) match {
+                case t: TypeSuffixVar => bound(t) // allows recursive type variable bounds
+                case t: NonVarTypeSuffix => t
             }
 
-        case t: TerminalType => t
+        case t: NonVarTypeSuffix => t
     }
 
-    def substitute(typ: ClassType, typeVars: TypeVarEnv): ClassType = {
-        ClassType(typ.classId, typ.consistencyArguments, typ.typeArguments.map(t => substitute(t, typeVars)))
-    }
-
-    def substitute(typ: Type, typeVars: TypeVarEnv): Type = {
-        typ match {
-            case TypeVar(typeVarId) => typeVars.get(typeVarId) match {
-                case Some(value) => value
-                case None => TypeVar(typeVarId)
+    @tailrec
+    def bound(typ: ConsistencyType)(implicit consistencyVars: ConsistencyVarEnv): ConcreteConsistencyType = typ match {
+        case ConsistencyVar(name) =>
+            consistencyVars.getOrElse(name, throw TypeError(s"cannot resolve consistency variable <$name>")) match {
+                case t: ConsistencyVar => bound(t) // allows recursive type variable bounds
+                case t: ConcreteConsistencyType => t
             }
+        case t: ConcreteConsistencyType => t
+    }
 
-            case RefType(classType, consistencyType, mutabilityType) =>
-                RefType(substitute(classType, typeVars), consistencyType, mutabilityType)
+    def mBound(t: TypeSuffixVar)(implicit typeVarMutabilityEnv: TypeVarMutabilityEnv): MutabilityType =
+        typeVarMutabilityEnv.getOrElse(t.id, throw TypeError(s"cannot resolve type variable <$t.id>"))
 
-            case CompoundClassType(classType, consistencyType, mutabilityType) =>
-                CompoundClassType(substitute(classType, typeVars), consistencyType, mutabilityType)
+    def substitute(typ: Type, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): Type =
+        Type(substitute(typ.l, consistencyVars), typ.m, substitute(typ.suffix, typeVars, consistencyVars))
+
+    def substitute(typ: TypeSuffix, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): TypeSuffix = typ match {
+        case TypeSuffixVar(id) => typeVars.get(id) match {
+            case Some(value) => value
+            case None => TypeSuffixVar(id)
         }
+        case RefTypeSuffix(classType) => RefTypeSuffix(substitute(classType, typeVars, consistencyVars))
+        case LocalTypeSuffix(classType) => LocalTypeSuffix(substitute(classType, typeVars, consistencyVars))
     }
 
-    def substitute(typ: ConsistencyType, typeVars: ConsistencyVarEnv): ConsistencyType = {
-        typ match {
-            case consistencyType: ConcreteConsistencyType => consistencyType
-            case ConsistencyVar(name) => typeVars.get(name) match {
-                case Some(value) => value
-                case None => ConsistencyVar(name)
-            }
+    def substitute(typ: ClassType, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): ClassType =
+        ClassType(typ.classId,
+            typ.consistencyArguments.map(t => substitute(t, consistencyVars)),
+            typ.typeArguments.map(t => substitute(t, typeVars, consistencyVars)))
+
+    def substitute(typ: ConsistencyType, consistencyVars: ConsistencyVarEnv): ConsistencyType = typ match {
+        case consistencyType: ConcreteConsistencyType => consistencyType
+        case ConsistencyVar(name) => consistencyVars.get(name) match {
+            case Some(value) => value
+            case None => ConsistencyVar(name)
         }
     }
 }

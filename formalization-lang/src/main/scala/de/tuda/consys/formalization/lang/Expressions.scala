@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types2.{ClassType, ConsistencyType}
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType}
 
 sealed trait Expression
 

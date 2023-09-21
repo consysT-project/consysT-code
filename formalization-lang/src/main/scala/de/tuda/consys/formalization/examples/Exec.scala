@@ -1,114 +1,58 @@
 package de.tuda.consys.formalization.examples
 
-import de.tuda.consys.formalization.{Interpreter, Preprocessor, TypeChecker}
+import de.tuda.consys.formalization.{Interpreter, TypeChecker}
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.types._
 
 object Exec {
     def main(args : Array[String]): Unit = {
-        var program = exampleProgram2()
-        program = Preprocessor.process(program)
+        val program = exampleProgram1()
         TypeChecker.checkProgram(program)
-        val result = new Interpreter("127.0.0.1").run(program)
-        println(s"Done with result: $result")
+        new Interpreter("127.0.0.1").run(program)
     }
 
     private def exampleProgram1(): ProgramDecl = {
         val boxClass = ClassDecl(
             "Box",
-            Seq(),
-            ("Object", Seq.empty),
+            Seq.empty,
+            Seq.empty,
+            SuperClassDecl("Object", Seq.empty, Seq.empty),
             Map(
-                "value" -> FieldDecl("value", CompoundType(Natives.numberType, Strong, Mutable)),
+                "value" -> FieldDecl("value", Type(Strong, Mutable, LocalTypeSuffix(Natives.numberType))),
             ),
             Map(
-                "setVal" -> UpdateMethodDecl("setVal", StrongOp,
+                "setVal" -> UpdateMethodDecl("setVal", Strong,
                     Seq(
-                        VarDecl("x", CompoundType(Natives.numberType, Strong, Mutable))
+                        VarDecl("x", Type(Strong, Mutable, LocalTypeSuffix(Natives.numberType)))
                     ),
-                    Sequence(
-                        Seq(SetField("value", Var("x")),
-                            UnitLiteral
-                        ))
+                    Sequence(SetField("value", Var("x")), Return)
                 ),
-                "getVal" -> QueryMethodDecl("getVal", StrongOp, Seq(), CompoundType(Natives.numberType, Strong, Mutable),
-                    GetField("value")
+                "getVal" -> QueryMethodDecl("getVal", Strong, Seq.empty, Type(Strong, Mutable, LocalTypeSuffix(Natives.numberType)),
+                    Sequence(GetField("x", "value"), ReturnExpr(Var("x")))
                 ),
             )
         )
 
         ProgramDecl(
             Map(
-                ("Number", Weak) -> Natives.numberClass,
-                ("Number", Strong) -> Natives.numberClass,
-                ("Bool", Weak) -> Natives.booleanClass,
-                ("Bool", Strong) -> Natives.booleanClass,
-                ("Unit", Weak) -> Natives.unitClass,
-                ("Unit", Strong) -> Natives.unitClass,
-                //("Box", Mixed) -> boxClass,
-                //("Box", Weak) -> boxClass,
-                ("Box", Strong) -> boxClass,
+                "Number" -> Natives.numberClass,
+                "Bool" -> Natives.booleanClass,
+                "Unit" -> Natives.unitClass,
+                "Box" -> boxClass,
             ),
             Transaction(
-                Let("x", New("b", "Box", Seq(), Strong, Map("value" -> Num(42))),
-                    Let("n", Add(CallQuery(Var("x"), "getVal", Seq()), Num(1)),
-                        Sequence(Seq(
-                            CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
-                            CallQuery(Var("x"), "getVal", Seq())
-                        ))
+                Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Seq(Num(42)), Strong, Mutable),
+                    Sequence(CallQuery("r", Var("x"), "getVal", Seq.empty),
+                        Sequence(Let("n", Add(Var("r"), Num(1))),
+                            Sequence(CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
+                                Sequence(CallQuery("r", Var("x"), "getVal", Seq.empty),
+                                    Print(Var("r"))
+                                )
+                            )
+                        )
                     )
-                )
-            )
-        )
-    }
-
-    private def exampleProgram2(): ProgramDecl = {
-        val polyBoxClass = ClassDecl(
-            "Box",
-            Seq(TypeVarDecl("T", CompoundType(Natives.objectType, Inconsistent, Immutable))),
-            ("Object", Seq.empty),
-            Map(
-                "value" -> FieldDecl("value", TypeVar("T")),
-            ),
-            Map(
-                "setVal" -> UpdateMethodDecl("setVal", StrongOp,
-                    Seq(
-                        VarDecl("x", TypeVar("T"))
-                    ),
-                    Sequence(
-                        Seq(SetField("value", Var("x")),
-                            UnitLiteral
-                        ))
                 ),
-                "getVal" -> QueryMethodDecl("getVal", StrongOp, Seq(), TypeVar("T"),
-                    GetField("value")
-                ),
-            )
-        )
-
-        ProgramDecl(
-            Map(
-                ("Object", Weak) -> Natives.objectClass,
-                ("Object", Strong) -> Natives.objectClass,
-                ("Number", Weak) -> Natives.numberClass,
-                ("Number", Strong) -> Natives.numberClass,
-                ("Bool", Weak) -> Natives.booleanClass,
-                ("Bool", Strong) -> Natives.booleanClass,
-                ("Unit", Weak) -> Natives.unitClass,
-                ("Unit", Strong) -> Natives.unitClass,
-                //("Box", Mixed) -> boxCls,
-                //("Box", Weak) -> boxCls,
-                ("Box", Strong) -> polyBoxClass,
-            ),
-            Transaction(
-                Let("x", New("b", "Box", Seq(CompoundType(Natives.numberType, Strong, Mutable)), Strong, Map("value" -> Num(42))),
-                    Let("n", Add(CallQuery(Var("x"), "getVal", Seq()), Num(1)),
-                        Sequence(Seq(
-                            CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
-                            CallQuery(Var("x"), "getVal", Seq())
-                        ))
-                    )
-                )
+                Skip
             )
         )
     }

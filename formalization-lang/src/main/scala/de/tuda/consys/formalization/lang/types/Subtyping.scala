@@ -1,4 +1,4 @@
-package de.tuda.consys.formalization.lang.types2
+package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.{ClassTable, ConsistencyVarEnv, TypeVarEnv, topClassId, types}
@@ -56,4 +56,6 @@ object Subtyping {
                     subtype(bound, t2) // L-Trans
         }
     }
+
+    def subtype(t1: MutabilityType, t2: MutabilityType): Boolean = MutabilityTypeLattice(t1).hasUpperBound(t2)
 }

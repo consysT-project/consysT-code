@@ -1,7 +1,7 @@
 package de.tuda.consys.formalization.lang
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.types2.{ClassType, ConsistencyType, ConsistencyVar, Type, TypeSuffix, TypeSuffixVar}
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, ConsistencyVar, Type, TypeSuffix, TypeSuffixVar}
 
 case class FieldDecl(name: FieldId, typ: Type)
 
@@ -32,8 +32,8 @@ sealed trait MethodDecl {
 case class QueryMethodDecl(override val name: MethodId,
                            override val operationLevel: ConsistencyType,
                            override val declaredParameters: Seq[VarDecl],
-                           override val body: Statement,
-                           returnType: Type) extends MethodDecl
+                           returnType: Type,
+                           override val body: Statement) extends MethodDecl
 
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: ConsistencyType,
@@ -71,4 +71,4 @@ case class ClassDecl(classId: ClassId,
         typeParameters.map(typeVarDecl => typeVarDecl.name -> typeVarDecl.upperBound).toMap
 }
 
-case class ProgramDecl(classTable: ClassTable, body: Statement, returnExpr: Expression)
+case class ProgramDecl(classTable: ClassTable, body: Statement)
