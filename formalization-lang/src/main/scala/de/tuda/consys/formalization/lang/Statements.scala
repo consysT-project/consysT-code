@@ -18,9 +18,7 @@ case class Sequence(s1: Statement, s2: Statement) extends Statement
 
 case class If(conditionExpr: Expression, thenStmt: Statement, elseStmt: Statement) extends Statement
 
-case class Let(varId: VarId, rhs: AssignRhs) extends Statement
-
-case class Assign(varId: VarId, rhs: AssignRhs) extends Statement
+case class Let(varId: VarId, e: Expression) extends Statement
 
 case class SetField(fieldId: FieldId, valueExpr: Expression) extends Statement
 
@@ -28,27 +26,14 @@ case class CallUpdate(recvExpr: Expression, methodId: MethodId, argumentExprs: S
 
 case class Transaction(body: Statement, except: Statement) extends Statement
 
-sealed trait AssignRhs
+case class GetField(varId: VarId, fieldId: FieldId) extends Statement
 
-case class rhsExpression(e: Expression) extends AssignRhs
+case class CallQuery(varId: VarId, recvExpr: Expression, methodId: MethodId, argumentExprs: Seq[Expression]) extends Statement
 
-case class rhsGetField(fieldId: FieldId) extends AssignRhs
-
-case class rhsCallQuery(recvExpr: Expression, methodId: MethodId, argumentExprs: Seq[Expression]) extends AssignRhs
-
-case class rhsReplicate(location: String,
+case class Replicate(varId: VarId, location: String,
                         classId: ClassId,
                         consistencyArguments: Seq[ConsistencyType],
                         typeArguments: Seq[Type],
                         constructor: Seq[Expression],
                         consistency: ConsistencyType,
-                        mutability: MutabilityType) extends AssignRhs
-
-case class rhsLookup(location: String,
-                     classId: ClassId,
-                     consistencyArguments: Seq[ConsistencyType],
-                     typeArguments: Seq[Type],
-                     consistency: ConsistencyType,
-                     mutability: MutabilityType) extends AssignRhs
-
-case class rhsValue(v: Value) extends AssignRhs
+                        mutability: MutabilityType) extends Statement

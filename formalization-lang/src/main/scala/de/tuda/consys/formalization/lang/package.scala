@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization
 
-import de.tuda.consys.formalization.lang.types.{ConsistencyType, Type}
+import de.tuda.consys.formalization.lang.types2.{ConsistencyType, MutabilityType, TypeSuffix}
 
 package object lang {
     type ClassId = String
@@ -15,7 +15,9 @@ package object lang {
 
     type ConsistencyVarId = String
 
-    type TypeVarEnv = Map[TypeVarId, Type]
+    type TypeVarEnv = Map[TypeVarId, TypeSuffix]
+
+    type TypeVarMutabilityEnv = Map[TypeVarId, MutabilityType]
 
     type ConsistencyVarEnv = Map[ConsistencyVarId, ConsistencyType]
 
