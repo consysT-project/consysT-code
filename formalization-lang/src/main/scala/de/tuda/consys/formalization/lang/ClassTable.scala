@@ -14,6 +14,22 @@ case class QueryType(operationLevel: ConsistencyType, parameters: Seq[Type], ret
 object ClassTable {
     type ClassTable = Map[ClassId, ClassDecl]
 
+    def fields(receiver: ClassType)(implicit classTable: ClassTable): Map[FieldId, FieldDecl] = {
+        if (receiver.classId == topClassId)
+            return Map.empty
+
+        val classDecl = classTable.getOrElse(receiver.classId,
+            sys.error(s"class not found: ${receiver.classId}"))
+        val varEnv = (classDecl.typeParameters.map(_.name) zip receiver.typeArguments).toMap
+        val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
+
+        val supertype = substitute(getSuperclass(classDecl).toType, varEnv, consEnv)
+        val inheritedFields = fields(supertype)
+
+        inheritedFields ++ classDecl.fields.values.
+            map(f => f.name -> FieldDecl(f.name, substitute(f.typ, varEnv, consEnv))).toMap
+    }
+
     def mType(methodId: MethodId, receiver: ClassType)(implicit classTable: ClassTable): MethodType = {
         val classType = receiver
 
@@ -31,7 +47,7 @@ object ClassTable {
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
                 UpdateType(substitute(operationLevel, consEnv), concreteParams)
 
-            case QueryMethodDecl(_, operationLevel, declaredParameters, _, returnType) =>
+            case QueryMethodDecl(_, operationLevel, declaredParameters, returnType, _) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
                 val concreteReturnType = substitute(returnType, varEnv, consEnv)
                 QueryType(substitute(operationLevel, consEnv), concreteParams, concreteReturnType)

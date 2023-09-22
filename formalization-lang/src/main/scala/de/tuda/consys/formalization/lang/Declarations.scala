@@ -67,8 +67,11 @@ case class ClassDecl(classId: ClassId,
             consistencyParameters.map(p => ConsistencyVar(p.name)),
             typeParameters.map(p => TypeSuffixVar(p.name)))
 
-    def typeParametersToEnv: Map[TypeVarId, Type] =
+    def typeParametersToEnv: TypeVarEnv =
         typeParameters.map(typeVarDecl => typeVarDecl.name -> typeVarDecl.upperBound).toMap
+
+    def consistencyParametersToEnv: ConsistencyVarEnv =
+        consistencyParameters.map(consistencyVarEnv => consistencyVarEnv.name -> consistencyVarEnv.upperBound).toMap
 }
 
 case class ProgramDecl(classTable: ClassTable, body: Statement)

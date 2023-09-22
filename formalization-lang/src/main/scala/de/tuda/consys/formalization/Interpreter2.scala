@@ -1,5 +1,5 @@
 package de.tuda.consys.formalization
-
+/*
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.errors.ExecutionError
 import de.tuda.consys.formalization.lang.types.ConsistencyType
@@ -85,3 +85,6 @@ object Interpreter2 {
                                   var fields: Map[FieldId, Value]
                                  ) extends Serializable
 }
+
+
+ */

@@ -22,18 +22,22 @@ case class Let(varId: VarId, e: Expression) extends Statement
 
 case class SetField(fieldId: FieldId, valueExpr: Expression) extends Statement
 
+case class GetField(varId: VarId, fieldId: FieldId) extends Statement
+
 case class CallUpdate(recvExpr: Expression, methodId: MethodId, argumentExprs: Seq[Expression]) extends Statement
 
-case class Transaction(body: Statement, except: Statement) extends Statement
-
-case class GetField(varId: VarId, fieldId: FieldId) extends Statement
+case class CallUpdateThis(methodId: MethodId, argumentExprs: Seq[Expression]) extends Statement
 
 case class CallQuery(varId: VarId, recvExpr: Expression, methodId: MethodId, argumentExprs: Seq[Expression]) extends Statement
 
+case class CallQueryThis(varId: VarId, methodId: MethodId, argumentExprs: Seq[Expression]) extends Statement
+
 case class Replicate(varId: VarId, refId: String,
                      classType: ClassType,
-                     constructor: Seq[Expression],
+                     constructor: Map[FieldId, Expression],
                      consistency: ConsistencyType,
                      mutability: MutabilityType) extends Statement
+
+case class Transaction(body: Statement, except: Statement) extends Statement
 
 case class Print(expression: Expression) extends Statement

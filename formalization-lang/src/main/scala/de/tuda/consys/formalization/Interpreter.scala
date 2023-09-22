@@ -1,5 +1,5 @@
 package de.tuda.consys.formalization
-
+/*
 import de.tuda.consys.formalization.Interpreter._
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.types._
@@ -213,3 +213,5 @@ object Interpreter {
                                   var fields: Map[FieldId, Value]
                                  ) extends Serializable
 }
+
+ */

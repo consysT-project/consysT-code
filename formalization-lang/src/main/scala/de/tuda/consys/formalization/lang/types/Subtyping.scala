@@ -54,8 +54,22 @@ object Subtyping {
                 t1 == t2 || // L-Refl
                     bound == t2 || // L-Var
                     subtype(bound, t2) // L-Trans
+            case _ => false
         }
     }
 
     def subtype(t1: MutabilityType, t2: MutabilityType): Boolean = MutabilityTypeLattice(t1).hasUpperBound(t2)
+
+    def lub(t1: (ConsistencyType, MutabilityType),
+            t2: (ConsistencyType, MutabilityType))(implicit ct: ClassTable,
+                                                   varEnv: TypeVarEnv,
+                                                   cEnv: ConsistencyVarEnv): (ConsistencyType, MutabilityType) = {
+        val (c1, m1) = t1
+        val (c2, m2) = t2
+        // lub between two distinct types can only ever be Immutable
+        (m1, m2) match {
+            case (Mutable, Mutable) if c1 == c2 => (c1, Mutable)
+            case _ => (c1 lub c2, Immutable)
+        }
+    }
 }

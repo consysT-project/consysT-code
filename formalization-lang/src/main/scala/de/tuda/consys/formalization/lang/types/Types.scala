@@ -23,6 +23,10 @@ case class Type(l: ConsistencyType, m: MutabilityType, suffix: TypeSuffix) exten
                               typeVarEnv: TypeVarEnv,
                               consistencyVarEnv: ConsistencyVarEnv): Type = ???
 
+    def withConsistency(l: ConsistencyType): Type = Type(l, m, suffix)
+    def withMutability(m: MutabilityType): Type = Type(l, m, suffix)
+    def withSuffix(suffix: TypeSuffix): Type = Type(l, m, suffix)
+
     override def toString: ClassId = s"[$l $m]$suffix"
 }
 
