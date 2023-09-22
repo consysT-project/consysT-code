@@ -21,9 +21,9 @@ package object lang {
 
     type ConsistencyVarEnv = Map[ConsistencyVarId, ConsistencyType]
 
-    val thisId = "this"
+    val thisId: VarId = "this"
 
-    val resId = "res"
+    val resId: VarId = "res"
 
     val topClassId = "Object"
 }
