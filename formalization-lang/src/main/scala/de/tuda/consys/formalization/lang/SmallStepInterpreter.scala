@@ -5,7 +5,35 @@ import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 class SmallStepInterpreter(storeAddress: String) {
     private type VarEnv = Map[VarId, Expression]
 
-    private val store = CassandraStore.fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
+    private trait VarEnvStack {
+        def apply(id: VarId): Expression
+        def popped: VarEnvStack
+        def pushed: VarEnvStack
+        def +(elem: (VarId, Expression)): VarEnvStack
+        def -(elem: VarId): VarEnvStack
+        def --(elems: IterableOnce[VarId]): VarEnvStack
+    }
+
+    private case object EmptyVarEnvStack extends VarEnvStack {
+        def apply(id: VarId): Expression = ???
+        def popped(): VarEnvStack = ???
+        def pushed(): VarEnvStack = ???
+        def +(elem: (VarId, Expression)): VarEnvStack = ???
+        def -(elem: VarId): VarEnvStack = ???
+        def --(elems: IterableOnce[VarId]): VarEnvStack = ???
+    }
+
+    private case class ConcreteVarEnvStack(top: VarEnv, tail: VarEnvStack) extends VarEnvStack {
+        def apply(id: VarId): Expression = top(id)
+        def popped: VarEnvStack = tail
+        def pushed: VarEnvStack = ConcreteVarEnvStack(Map.empty, this)
+        def +(elem: (VarId, Expression)): VarEnvStack = ConcreteVarEnvStack(top + elem, tail)
+        def -(elem: VarId): VarEnvStack = ConcreteVarEnvStack(top - elem, tail)
+        def --(elems: IterableOnce[VarId]): VarEnvStack = ConcreteVarEnvStack(top -- elems, tail)
+    }
+
+    private val store = CassandraStore.
+        fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
 
     def run(programDecl: ProgramDecl): Unit = {
         interpret(programDecl.body)
@@ -14,7 +42,7 @@ class SmallStepInterpreter(storeAddress: String) {
 
     private def interpret(stmt: Statement): Unit = {
         var s = stmt
-        var varEnv: List[VarEnv] = List(Map.empty)
+        var varEnv: VarEnvStack = ConcreteVarEnvStack(Map.empty, EmptyVarEnvStack)
         while (s != Skip) {
             val (s1, varEnv1) = stepStmt(s, varEnv)
             s = s1
@@ -32,8 +60,8 @@ class SmallStepInterpreter(storeAddress: String) {
         case _ => false
     }
 
-    private def stepExpr(e: Expression)(implicit vars: List[VarEnv]): Expression = e match {
-        case Var(id) => vars.head(id)
+    private def stepExpr(e: Expression)(implicit vars: VarEnvStack): Expression = e match {
+        case Var(id) => vars(id)
 
         case Equals(e1, e2) if isValue(e1) && isValue(e2) =>
             if (e1 == e2) True
@@ -50,19 +78,25 @@ class SmallStepInterpreter(storeAddress: String) {
         case Add(expr1, expr2) => Add(stepExpr(expr1), expr2)
     }
 
-    private def stepStmt(s: Statement, vars: List[VarEnv]): (Statement, List[VarEnv]) = s match {
+    private def stepStmt(s: Statement, vars: VarEnvStack): (Statement, VarEnvStack) = s match {
         case Skip => (Skip, vars)
         case Error => (Error, vars)
 
-        case Return => (Skip, vars.tail)
+        case Return => (Skip, vars.popped)
 
-        case ReturnExpr(e) if isValue(e) => (ReturnExpr(stepExpr(e)(vars)), vars)
-        case ReturnExpr(e) => (Skip, vars.tail + (resId -> e))
+        case ReturnExpr(e) if isValue(e) =>
+            (ReturnExpr(stepExpr(e)(vars)), vars)
+        case ReturnExpr(e) =>
+            (Skip, vars.popped + (resId -> e))
 
-        case Block(vars, s) => ???
+        case Block(blockVars, Skip) => (Skip, vars -- blockVars)
+        case Block(blockVars, Error) => (Error, vars -- blockVars)
+        case Block(blockVars, s) =>
+            val (s1, r1) = stepStmt(s, vars)
+            (Block(blockVars, s1), r1)
 
-        case Sequence(Error, Return) => (Error, vars.tail)
-        case Sequence(Error, ReturnExpr(_)) => (Error, vars.tail)
+        case Sequence(Error, Return) => (Error, vars.popped)
+        case Sequence(Error, ReturnExpr(_)) => (Error, vars.popped)
         case Sequence(Error, _) => (Error, vars)
         case Sequence(Skip, s2) => (s2, vars)
         case Sequence(s1, s2) =>
@@ -71,17 +105,60 @@ class SmallStepInterpreter(storeAddress: String) {
 
         case If(conditionExpr, thenStmt, _) if conditionExpr == True => (thenStmt, vars)
         case If(conditionExpr, _, elseStmt) if conditionExpr == False => (elseStmt, vars)
-        case If(conditionExpr, thenStmt, elseStmt) => If(stepExpr(conditionExpr)(vars))
+        case If(conditionExpr, thenStmt, elseStmt) =>
+            val e = stepExpr(conditionExpr)(vars)
+            (If(e, thenStmt, elseStmt), vars)
 
-        case Let(varId, e) => ???
-        case SetField(fieldId, valueExpr) => ???
+        case Let(varId, e) if isValue(e) => (Skip, vars + (varId -> e))
+        case Let(varId, e) => (Let(varId, stepExpr(e)(vars)), vars)
+
+        case SetField(fieldId, valueExpr) if isValue(valueExpr) => ???
+        case SetField(fieldId, valueExpr) =>
+            val e = stepExpr(valueExpr)(vars)
+            (SetField(fieldId, e), vars)
+
         case GetField(varId, fieldId) => ???
-        case CallUpdate(recvExpr, methodId, argumentExprs) => ???
-        case CallUpdateThis(methodId, argumentExprs) => ???
-        case CallQuery(varId, recvExpr, methodId, argumentExprs) => ???
-        case CallQueryThis(varId, methodId, argumentExprs) => ???
+
+        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) => ???
+        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
+            val i = argumentExprs.indexWhere(p => !isValue(p))
+            val newArguments = argumentExprs.zipWithIndex.map(t =>
+                if (t._2 == i)
+                    stepExpr(argumentExprs(i))(vars)
+                else t._1)
+            (CallUpdate(recvExpr, methodId, newArguments), vars)
+        case CallUpdate(recvExpr, methodId, argumentExprs) =>
+            val e = stepExpr(recvExpr)(vars)
+            (CallUpdate(e, methodId, argumentExprs), vars)
+
+        case CallUpdateThis(methodId, argumentExprs) =>
+            (CallUpdate(vars(thisId), methodId, argumentExprs), vars)
+
+        case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) => ???
+        case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
+            val i = argumentExprs.indexWhere(p => !isValue(p))
+            val newArguments = argumentExprs.zipWithIndex.map(t =>
+                if (t._2 == i)
+                    stepExpr(argumentExprs(i))(vars)
+                else t._1)
+            (CallQuery(varId, recvExpr, methodId, newArguments), vars)
+        case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
+            val e = stepExpr(recvExpr)(vars)
+            (CallQuery(varId, e, methodId, argumentExprs), vars)
+
+        case CallQueryThis(varId, methodId, argumentExprs) =>
+            (CallQuery(varId, vars(thisId), methodId, argumentExprs), vars)
+
         case Replicate(varId, refId, classType, constructor, consistency, mutability) => ???
+
         case Transaction(body, except) => ???
-        case Print(expression) => ???
+
+        case Print(expression) if isValue(expression) =>
+            println(expression)
+            (Skip, vars)
     }
+}
+
+object SmallStepInterpreter {
+    private class ReplicatedState(var fields: Map[FieldId, Expression]) extends Serializable
 }
