@@ -1,9 +1,10 @@
-package de.tuda.consys.formalization.lang
+package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.backend.Store
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
+import de.tuda.consys.formalization.lang.{Add, Block, CallQuery, CallQueryThis, CallUpdate, CallUpdateThis, ClassTable, Equals, Error, Expression, False, GetField, If, Let, LocalObj, Num, Print, ProgramDecl, Ref, Replicate, Return, ReturnExpr, Sequence, SetField, Skip, Statement, Transaction, True, UnitLiteral, Var, VarId, resId, thisId}
 
-class SmallStepInterpreter(storeAddress: String) {
+class Interpreter(storeAddress: String) {
     private type VarEnv = Map[VarId, Expression]
 
     private trait VarEnvStack {
@@ -39,8 +40,8 @@ class SmallStepInterpreter(storeAddress: String) {
     private val store = Store.
         fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
 
-    def run(programDecl: ProgramDecl): Unit = {
-        interpret(programDecl.body)(programDecl.classTable)
+    def run(ct: ClassTable, process: Statement): Unit = {
+        interpret(process)(ct)
         store.close()
     }
 

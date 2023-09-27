@@ -21,7 +21,8 @@ object TypeChecker {
     def checkProgram(programDecl: ProgramDecl): Unit = {
         programDecl.classTable.values.foreach(decl => checkClass(decl)(programDecl.classTable))
 
-        checkStatement(programDecl.body, Map.empty)(TopLevelContext, Local, programDecl.classTable, Map.empty, Map.empty)
+        for (p <- programDecl.processes)
+            checkStatement(p, Map.empty)(TopLevelContext, Local, programDecl.classTable, Map.empty, Map.empty)
     }
 
     private def checkClass(classDecl: ClassDecl)(implicit classTable: ClassTable): Unit = {

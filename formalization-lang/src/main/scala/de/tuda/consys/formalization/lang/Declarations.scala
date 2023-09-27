@@ -74,4 +74,4 @@ case class ClassDecl(classId: ClassId,
         consistencyParameters.map(consistencyVarEnv => consistencyVarEnv.name -> consistencyVarEnv.upperBound).toMap
 }
 
-case class ProgramDecl(classTable: ClassTable, body: Statement)
+case class ProgramDecl(classTable: ClassTable, processes: Array[Statement])

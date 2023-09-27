@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization.examples
 
-import de.tuda.consys.formalization.TypeChecker
+import de.tuda.consys.formalization.{Interpreter, TypeChecker}
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.types._
 
@@ -8,7 +8,7 @@ object Exec {
     def main(args : Array[String]): Unit = {
         val program = exampleProgram1()
         TypeChecker.checkProgram(program)
-        new SmallStepInterpreter("127.0.0.1").run(program)
+        new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
     }
 
     private def exampleProgram1(): ProgramDecl = {
@@ -41,19 +41,21 @@ object Exec {
                 "Unit" -> Natives.unitClass,
                 "Box" -> boxClass,
             ),
-            Transaction(
-                Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Map("value" -> Num(42)), Strong, Mutable),
-                    Sequence(CallQuery("r1", Var("x"), "getVal", Seq.empty),
-                        Sequence(Let("n", Add(Var("r1"), Num(1))),
-                            Sequence(CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
-                                Sequence(CallQuery("r2", Var("x"), "getVal", Seq.empty),
-                                    Print(Var("r2"))
+            Array(
+                Transaction(
+                    Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Map("value" -> Num(42)), Strong, Mutable),
+                        Sequence(CallQuery("r1", Var("x"), "getVal", Seq.empty),
+                            Sequence(Let("n", Add(Var("r1"), Num(1))),
+                                Sequence(CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
+                                    Sequence(CallQuery("r2", Var("x"), "getVal", Seq.empty),
+                                        Print(Var("r2"))
+                                    )
                                 )
                             )
                         )
-                    )
-                ),
-                Skip
+                    ),
+                    Skip
+                )
             )
         )
     }
