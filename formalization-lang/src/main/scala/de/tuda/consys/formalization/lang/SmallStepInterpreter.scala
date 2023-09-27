@@ -1,6 +1,7 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.stg.consys.core.store.cassandra.CassandraStore
+import de.tuda.consys.formalization.backend.Store
+import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 
 class SmallStepInterpreter(storeAddress: String) {
     private type VarEnv = Map[VarId, Expression]
@@ -10,17 +11,19 @@ class SmallStepInterpreter(storeAddress: String) {
         def popped: VarEnvStack
         def pushed: VarEnvStack
         def +(elem: (VarId, Expression)): VarEnvStack
+        def ++(other: VarEnv): VarEnvStack
         def -(elem: VarId): VarEnvStack
         def --(elems: IterableOnce[VarId]): VarEnvStack
     }
 
     private case object EmptyVarEnvStack extends VarEnvStack {
-        def apply(id: VarId): Expression = ???
-        def popped(): VarEnvStack = ???
-        def pushed(): VarEnvStack = ???
-        def +(elem: (VarId, Expression)): VarEnvStack = ???
-        def -(elem: VarId): VarEnvStack = ???
-        def --(elems: IterableOnce[VarId]): VarEnvStack = ???
+        def apply(id: VarId): Expression = throw new NoSuchElementException
+        def popped: VarEnvStack = throw new NoSuchElementException
+        def pushed: VarEnvStack = throw new NoSuchElementException
+        def +(elem: (VarId, Expression)): VarEnvStack = throw new NoSuchElementException
+        def ++(other: VarEnv): VarEnvStack = throw new NoSuchElementException
+        def -(elem: VarId): VarEnvStack = throw new NoSuchElementException
+        def --(elems: IterableOnce[VarId]): VarEnvStack = throw new NoSuchElementException
     }
 
     private case class ConcreteVarEnvStack(top: VarEnv, tail: VarEnvStack) extends VarEnvStack {
@@ -28,19 +31,20 @@ class SmallStepInterpreter(storeAddress: String) {
         def popped: VarEnvStack = tail
         def pushed: VarEnvStack = ConcreteVarEnvStack(Map.empty, this)
         def +(elem: (VarId, Expression)): VarEnvStack = ConcreteVarEnvStack(top + elem, tail)
+        def ++(other: VarEnv): VarEnvStack = ConcreteVarEnvStack(top ++ other, tail)
         def -(elem: VarId): VarEnvStack = ConcreteVarEnvStack(top - elem, tail)
         def --(elems: IterableOnce[VarId]): VarEnvStack = ConcreteVarEnvStack(top -- elems, tail)
     }
 
-    private val store = CassandraStore.
+    private val store = Store.
         fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
 
     def run(programDecl: ProgramDecl): Unit = {
-        interpret(programDecl.body)
+        interpret(programDecl.body)(programDecl.classTable)
         store.close()
     }
 
-    private def interpret(stmt: Statement): Unit = {
+    private def interpret(stmt: Statement)(implicit ct: ClassTable): Unit = {
         var s = stmt
         var varEnv: VarEnvStack = ConcreteVarEnvStack(Map.empty, EmptyVarEnvStack)
         while (s != Skip) {
@@ -55,7 +59,7 @@ class SmallStepInterpreter(storeAddress: String) {
         case True => true
         case False => true
         case UnitLiteral => true
-        case Ref(_, _, _) => true
+        case Ref(_, _, _, _) => true
         case LocalObj(_, constructor, _, _) => constructor.forall(p => isValue(p._2))
         case _ => false
     }
@@ -78,13 +82,13 @@ class SmallStepInterpreter(storeAddress: String) {
         case Add(expr1, expr2) => Add(stepExpr(expr1), expr2)
     }
 
-    private def stepStmt(s: Statement, vars: VarEnvStack): (Statement, VarEnvStack) = s match {
+    private def stepStmt(s: Statement, vars: VarEnvStack)(implicit ct: ClassTable): (Statement, VarEnvStack) = s match {
         case Skip => (Skip, vars)
         case Error => (Error, vars)
 
         case Return => (Skip, vars.popped)
 
-        case ReturnExpr(e) if isValue(e) =>
+        case ReturnExpr(e) if !isValue(e) =>
             (ReturnExpr(stepExpr(e)(vars)), vars)
         case ReturnExpr(e) =>
             (Skip, vars.popped + (resId -> e))
@@ -112,14 +116,30 @@ class SmallStepInterpreter(storeAddress: String) {
         case Let(varId, e) if isValue(e) => (Skip, vars + (varId -> e))
         case Let(varId, e) => (Let(varId, stepExpr(e)(vars)), vars)
 
-        case SetField(fieldId, valueExpr) if isValue(valueExpr) => ???
+        case SetField(fieldId, valueExpr) if isValue(valueExpr) =>
+            val thisObj = vars(thisId).asInstanceOf[Ref]
+            val handler = store.getCurrentTransaction.get.resolveHandler(thisObj.id, thisObj.classType) // TODO: typed id
+            handler.setField(fieldId, valueExpr)
+            (Skip, vars)
         case SetField(fieldId, valueExpr) =>
             val e = stepExpr(valueExpr)(vars)
             (SetField(fieldId, e), vars)
 
-        case GetField(varId, fieldId) => ???
+        case GetField(varId, fieldId) if vars(thisId).isInstanceOf[Ref] =>
+            val thisObj = vars(thisId).asInstanceOf[Ref]
+            val handler = store.getCurrentTransaction.get.resolveHandler(thisObj.id, thisObj.classType) // TODO: typed id
+            (Skip, vars + (varId -> handler.getField(fieldId)))
+        case GetField(varId, fieldId) if vars(thisId).isInstanceOf[LocalObj] =>
+            val thisObj = vars(thisId).asInstanceOf[LocalObj]
+            (Skip, vars + (varId -> thisObj.constructor(fieldId)))
 
-        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) => ???
+        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
+            val recvRef = recvExpr.asInstanceOf[Ref]
+            val mBody = ClassTable.mBody(methodId, recvRef.classType)
+            val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
+            handler.invoke(mBody.operationLevel)
+            val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
+            (mBody.body, vars.pushed + (thisId -> recvRef) ++ argumentBindings)
         case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
@@ -134,7 +154,13 @@ class SmallStepInterpreter(storeAddress: String) {
         case CallUpdateThis(methodId, argumentExprs) =>
             (CallUpdate(vars(thisId), methodId, argumentExprs), vars)
 
-        case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) => ???
+        case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
+            val recvRef = recvExpr.asInstanceOf[Ref]
+            val mBody = ClassTable.mBody(methodId, recvRef.classType)
+            val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
+            handler.invoke(mBody.operationLevel)
+            val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
+            (Sequence(mBody.body, Let(varId, Var(resId))), vars.pushed + (thisId -> recvRef) ++ argumentBindings)
         case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
@@ -149,16 +175,33 @@ class SmallStepInterpreter(storeAddress: String) {
         case CallQueryThis(varId, methodId, argumentExprs) =>
             (CallQuery(varId, vars(thisId), methodId, argumentExprs), vars)
 
-        case Replicate(varId, refId, classType, constructor, consistency, mutability) => ???
+        case Replicate(varId, refId, classType, constructor, consistency, mutability) if constructor.values.forall(isValue) =>
+            store.getCurrentTransaction.get.replicateNew(refId, classType, constructor) // TODO: typed id
+            (Skip, vars + (varId -> Ref(refId, classType, consistency, mutability)))
 
-        case Transaction(body, except) => ???
+        case Replicate(varId, refId, classType, constructor, consistency, mutability) =>
+            val elem = constructor.find(p => !isValue(p._2)).get
+            val newConstructor = constructor + (elem._1 -> stepExpr(elem._2)(vars))
+            (Replicate(varId, refId, classType, newConstructor, consistency, mutability), vars)
+
+        case Transaction(Skip, _) =>
+            store.closeTransaction()
+            (Skip, vars)
+        case Transaction(Error, except) =>
+            store.closeTransaction()
+            (except, vars)
+        case Transaction(body, except) =>
+            store.getCurrentTransaction match {
+                case Some(_) => ()
+                case None => Some(store.startTransaction())
+            }
+            val (s1, r1) = stepStmt(body, vars)
+            (Transaction(s1, except), r1)
 
         case Print(expression) if isValue(expression) =>
             println(expression)
             (Skip, vars)
+        case Print(expression) =>
+            (Print(stepExpr(expression)(vars)), vars)
     }
-}
-
-object SmallStepInterpreter {
-    private class ReplicatedState(var fields: Map[FieldId, Expression]) extends Serializable
 }

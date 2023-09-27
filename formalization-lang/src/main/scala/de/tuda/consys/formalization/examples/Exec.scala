@@ -8,7 +8,7 @@ object Exec {
     def main(args : Array[String]): Unit = {
         val program = exampleProgram1()
         TypeChecker.checkProgram(program)
-        //new Interpreter("127.0.0.1").run(program)
+        new SmallStepInterpreter("127.0.0.1").run(program)
     }
 
     private def exampleProgram1(): ProgramDecl = {

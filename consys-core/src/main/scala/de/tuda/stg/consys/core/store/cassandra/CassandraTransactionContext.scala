@@ -7,6 +7,7 @@ import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, L
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
+import java.lang.reflect.Field
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
@@ -17,7 +18,7 @@ import scala.reflect.ClassTag
  */
 class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext[CassandraStore]
 	with CommitableTransactionContext[CassandraStore]
-	with CachedTransactionContext[CassandraStore]
+	with CachedTransactionContext[CassandraStore, Field]
 	with ZookeeperLockingTransactionContext[CassandraStore] {
 
 	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]

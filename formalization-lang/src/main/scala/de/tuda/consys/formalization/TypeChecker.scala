@@ -102,7 +102,7 @@ object TypeChecker {
 
         case UnitLiteral => Type(Local, Immutable, LocalTypeSuffix(Natives.unitType))
 
-        case Ref(classType, l, m) => Type(l, m, RefTypeSuffix(classType))
+        case Ref(id, classType, l, m) => Type(l, m, RefTypeSuffix(classType))
 
         case LocalObj(classType, constructor, l, m) =>
             val fieldTypes = ClassTable.fields(classType).map(f => f._1 -> f._2.typ)

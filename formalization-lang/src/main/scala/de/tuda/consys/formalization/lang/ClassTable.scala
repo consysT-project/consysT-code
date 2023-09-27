@@ -1,5 +1,6 @@
 package de.tuda.consys.formalization.lang
 
+import de.tuda.consys.formalization.lang.errors.ExecutionError
 import de.tuda.consys.formalization.lang.types.Types.substitute
 import de.tuda.consys.formalization.lang.types._
 
@@ -11,8 +12,23 @@ case class UpdateType(operationLevel: ConsistencyType, parameters: Seq[Type]) ex
 
 case class QueryType(operationLevel: ConsistencyType, parameters: Seq[Type], returnType: Type) extends MethodType
 
+case class MethodBody(operationLevel: ConsistencyType, body: Statement, arguments: Seq[VarId])
+
 object ClassTable {
     type ClassTable = Map[ClassId, ClassDecl]
+
+    @tailrec
+    def mBody(methodId: MethodId, receiver: ClassType)(implicit classTable: ClassTable): MethodBody = {
+        val classDecl = classTable.getOrElse(receiver.classId,
+            sys.error(s"class not found: ${receiver.classId}"))
+
+        val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
+
+        classDecl.methods.get(methodId) match {
+            case Some(value) => MethodBody(substitute(value.operationLevel, consEnv), value.body, value.declaredParameterNames)
+            case None => mBody(methodId, getSuperType(receiver))
+        }
+    }
 
     def fields(receiver: ClassType)(implicit classTable: ClassTable): Map[FieldId, FieldDecl] = {
         if (receiver.classId == topClassId)

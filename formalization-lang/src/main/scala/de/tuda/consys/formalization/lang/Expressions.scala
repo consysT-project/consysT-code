@@ -12,7 +12,7 @@ case object False extends Expression
 
 case object UnitLiteral extends Expression
 
-case class Ref(classType: ClassType, l: ConsistencyType, m: MutabilityType) extends Expression
+case class Ref(id: String, classType: ClassType, l: ConsistencyType, m: MutabilityType) extends Expression
 
 case class LocalObj(classType: ClassType, constructor: Map[FieldId, Expression], l: ConsistencyType, m: MutabilityType) extends Expression
 
