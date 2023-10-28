@@ -45,7 +45,7 @@ object Exec {
                 Transaction(
                     Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Map("value" -> Num(42)), Strong, Mutable),
                         Sequence(CallQuery("r1", Var("x"), "getVal", Seq.empty),
-                            Sequence(Let("n", Add(Var("r1"), Num(1))),
+                            Sequence(Let("n", ArithmeticOperation(Var("r1"), Num(1))),
                                 Sequence(CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
                                     Sequence(CallQuery("r2", Var("x"), "getVal", Seq.empty),
                                         Print(Var("r2"))

@@ -136,7 +136,7 @@ object TypeChecker {
 
             Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.booleanType))
 
-        case Add(e1, e2) =>
+        case ArithmeticOperation(e1, e2) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, LocalTypeSuffix(Natives.numberType)), Type(l2, Immutable, LocalTypeSuffix(Natives.numberType))) =>
                     Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.numberType))

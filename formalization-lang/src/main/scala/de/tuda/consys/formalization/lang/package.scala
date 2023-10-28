@@ -3,6 +3,8 @@ package de.tuda.consys.formalization
 import de.tuda.consys.formalization.lang.types.{ConsistencyType, MutabilityType, TypeSuffix}
 
 package object lang {
+    type NumericType = Int
+
     type ClassId = String
 
     type FieldId = String

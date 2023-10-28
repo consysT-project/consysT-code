@@ -2,40 +2,11 @@ package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.backend.Store
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.{Add, Block, CallQuery, CallQueryThis, CallUpdate, CallUpdateThis, ClassTable, Equals, Error, Expression, False, GetField, If, Let, LocalObj, Num, Print, ProgramDecl, Ref, Replicate, Return, ReturnExpr, Sequence, SetField, Skip, Statement, Transaction, True, UnitLiteral, Var, VarId, resId, thisId}
+import de.tuda.consys.formalization.lang._
+import de.tuda.consys.formalization.lang.errors.ExecutionError
 
 class Interpreter(storeAddress: String) {
     private type VarEnv = Map[VarId, Expression]
-
-    private trait VarEnvStack {
-        def apply(id: VarId): Expression
-        def popped: VarEnvStack
-        def pushed: VarEnvStack
-        def +(elem: (VarId, Expression)): VarEnvStack
-        def ++(other: VarEnv): VarEnvStack
-        def -(elem: VarId): VarEnvStack
-        def --(elems: IterableOnce[VarId]): VarEnvStack
-    }
-
-    private case object EmptyVarEnvStack extends VarEnvStack {
-        def apply(id: VarId): Expression = throw new NoSuchElementException
-        def popped: VarEnvStack = throw new NoSuchElementException
-        def pushed: VarEnvStack = throw new NoSuchElementException
-        def +(elem: (VarId, Expression)): VarEnvStack = throw new NoSuchElementException
-        def ++(other: VarEnv): VarEnvStack = throw new NoSuchElementException
-        def -(elem: VarId): VarEnvStack = throw new NoSuchElementException
-        def --(elems: IterableOnce[VarId]): VarEnvStack = throw new NoSuchElementException
-    }
-
-    private case class ConcreteVarEnvStack(top: VarEnv, tail: VarEnvStack) extends VarEnvStack {
-        def apply(id: VarId): Expression = top(id)
-        def popped: VarEnvStack = tail
-        def pushed: VarEnvStack = ConcreteVarEnvStack(Map.empty, this)
-        def +(elem: (VarId, Expression)): VarEnvStack = ConcreteVarEnvStack(top + elem, tail)
-        def ++(other: VarEnv): VarEnvStack = ConcreteVarEnvStack(top ++ other, tail)
-        def -(elem: VarId): VarEnvStack = ConcreteVarEnvStack(top - elem, tail)
-        def --(elems: IterableOnce[VarId]): VarEnvStack = ConcreteVarEnvStack(top -- elems, tail)
-    }
 
     private val store = Store.
         fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
@@ -47,7 +18,7 @@ class Interpreter(storeAddress: String) {
 
     private def interpret(stmt: Statement)(implicit ct: ClassTable): Unit = {
         var s = stmt
-        var varEnv: VarEnvStack = ConcreteVarEnvStack(Map.empty, EmptyVarEnvStack)
+        var varEnv: VarEnv = Map.empty
         while (s != Skip) {
             val (s1, varEnv1) = stepStmt(s, varEnv)
             s = s1
@@ -61,11 +32,11 @@ class Interpreter(storeAddress: String) {
         case False => true
         case UnitLiteral => true
         case Ref(_, _, _, _) => true
-        case LocalObj(_, constructor, _, _) => constructor.forall(p => isValue(p._2))
+        case LocalObj(_, constructor, _) => constructor.forall(p => isValue(p._2))
         case _ => false
     }
 
-    private def stepExpr(e: Expression)(implicit vars: VarEnvStack): Expression = e match {
+    private def stepExpr(e: Expression)(implicit vars: VarEnv): Expression = e match {
         case Var(id) => vars(id)
 
         case Equals(e1, e2) if isValue(e1) && isValue(e2) =>
@@ -76,33 +47,47 @@ class Interpreter(storeAddress: String) {
 
         case Equals(e1, e2) => Equals(stepExpr(e1), e2)
 
-        case Add(Num(n1), Num(n2)) => Num(n1 + n2)
+        case ArithmeticOperation(n1: Num, n2: Num, op) => op(n1, n2)
 
-        case Add(Num(n1), expr2) => Add(Num(n1), stepExpr(expr2))
+        case ArithmeticOperation(n1: Num, expr2, op) => ArithmeticOperation(n1, stepExpr(expr2), op)
 
-        case Add(expr1, expr2) => Add(stepExpr(expr1), expr2)
+        case ArithmeticOperation(expr1, expr2, op) => ArithmeticOperation(stepExpr(expr1), expr2, op)
+
+        case ArithmeticComparison(n1: Num, n2: Num, op) => op(n1, n2)
+
+        case ArithmeticComparison(n1: Num, expr2, op) => ArithmeticComparison(n1, stepExpr(expr2), op)
+
+        case ArithmeticComparison(expr1, expr2, op) => ArithmeticComparison(stepExpr(expr1), expr2, op)
+
+        case BooleanCombination(b1: BooleanValue, b2: BooleanValue, op) => op(b1, b2)
+
+        case BooleanCombination(b1: BooleanValue, expr2, op) => BooleanCombination(b1, stepExpr(expr2), op)
+
+        case BooleanCombination(expr1, expr2, op) => BooleanCombination(stepExpr(expr1), expr2, op)
     }
 
-    private def stepStmt(s: Statement, vars: VarEnvStack)(implicit ct: ClassTable): (Statement, VarEnvStack) = s match {
-        case Skip => (Skip, vars)
-        case Error => (Error, vars)
-
-        case Return => (Skip, vars.popped)
-
+    private def stepStmt(s: Statement, vars: VarEnv)(implicit ct: ClassTable): (Statement, VarEnv) = s match {
         case ReturnExpr(e) if !isValue(e) =>
             (ReturnExpr(stepExpr(e)(vars)), vars)
-        case ReturnExpr(e) =>
-            (Skip, vars.popped + (resId -> e))
 
-        case Block(blockVars, Skip) => (Skip, vars -- blockVars)
-        case Block(blockVars, Error) => (Error, vars -- blockVars)
-        case Block(blockVars, s) =>
-            val (s1, r1) = stepStmt(s, vars)
+        case Block(blockVars, Skip) => (Skip, vars -- blockVars.map(_._2))
+        case Block(blockVars, Error) => (Error, vars -- blockVars.map(_._2))
+        case Block(blockVars, Return) => (Return, vars -- blockVars.map(_._2))
+        case Block(blockVars, ReturnExpr(e)) if isValue(e) => (ReturnExpr(e), vars -- blockVars.map(_._2))
+        case Block(blockVars, s) if blockVars.forall(v => isValue(v._3)) =>
+            val (s1, r1) = stepStmt(s, vars ++ blockVars.map(v => v._2 -> v._3)
             (Block(blockVars, s1), r1)
+        case Block(blockVars, s) =>
+            val i = blockVars.indexWhere(p => !isValue(p._3))
+            val newBlockVars = blockVars.zipWithIndex.map(t =>
+                if (t._2 == i)
+                    (blockVars(i)._1, blockVars(i)._2, stepExpr(blockVars(i)._3)(vars))
+                else t._1)
+            (Block(newBlockVars, s), vars)
 
-        case Sequence(Error, Return) => (Error, vars.popped)
-        case Sequence(Error, ReturnExpr(_)) => (Error, vars.popped)
         case Sequence(Error, _) => (Error, vars)
+        case Sequence(Return, _) => (Return, vars)
+        case Sequence(ReturnExpr(e), _) if isValue(e) => (ReturnExpr(e), vars)
         case Sequence(Skip, s2) => (s2, vars)
         case Sequence(s1, s2) =>
             val (s1R, varsR) = stepStmt(s1, vars)
@@ -140,7 +125,7 @@ class Interpreter(storeAddress: String) {
             val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
             handler.invoke(mBody.operationLevel)
             val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
-            (mBody.body, vars.pushed + (thisId -> recvRef) ++ argumentBindings)
+            (EvalUpdate(recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
         case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
@@ -161,7 +146,7 @@ class Interpreter(storeAddress: String) {
             val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
             handler.invoke(mBody.operationLevel)
             val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
-            (Sequence(mBody.body, Let(varId, Var(resId))), vars.pushed + (thisId -> recvRef) ++ argumentBindings)
+            (EvalQuery(varId, recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
         case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
@@ -204,5 +189,7 @@ class Interpreter(storeAddress: String) {
             (Skip, vars)
         case Print(expression) =>
             (Print(stepExpr(expression)(vars)), vars)
+
+        case s => throw ExecutionError(s"invalid statement: $s")
     }
 }
