@@ -82,7 +82,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @*/
     public Void dec() {
         if (1 > getValue())
-            throw new IllegalArgumentException("not enough balance to withdraw");
+            throw new IllegalArgumentException();
         decs[replicaId()] = decs[replicaId()] + 1;
         return null;
     }
@@ -93,7 +93,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     //@ ensures decs[replicaId()] == \old(decs[replicaId()]) + n;
     public Void dec(int n) {
         if (n > getValue())
-            throw new IllegalArgumentException("not enough balance to withdraw");
+            throw new IllegalArgumentException();
         decs[replicaId()] = decs[replicaId()] + n;
         return null;
     }

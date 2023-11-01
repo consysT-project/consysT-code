@@ -31,15 +31,25 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	/** The invariant of the class */
 	private final InvariantModel invariant;
+	private final long invariantComplexity;
+
 	/** The invariants of all fields of the class */
 	private final FieldInvariantModel fieldInvariant;
+
 	/** The initial predicate of the class */
 	private final InitialConditionModel initial;
+
+
 
 	/** Method preconditions */
 	private final Map<MethodBinding, MethodPreconditionModel> preconditions;
 	/** Method postconditions */
 	private final Map<MethodBinding, MethodPostconditionModel> postconditions;
+
+	private final long preconditionComplexity;
+	private final long postconditionComplexity;
+
+
 
 
 	public BaseClassConstraints(ProgramModel model, CModel classModel) {
@@ -50,87 +60,143 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 		JmlTypeDeclaration typ = classModel.getJmlType();
 
+		var invariantComplexityTemp = 0L;
+
 		// Setup the invariant
-		Expr invariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
-		ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
-		Expr invariantExpr = parser.parseExpression(typ.getInvariant());
+		{
+			Expr invariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
+			ClassExpressionParser parser = new ClassExpressionParser(model, classModel, invariantVar);
+			Expr invariantExpr = parser.parseExpression(typ.getInvariant()).simplify();
 
-
-
-		invariant = constraintsFactory.makeInvariantModel(invariantVar, invariantExpr);
+			invariantComplexityTemp += Z3Utils.computeComplexity(invariantExpr);
+			invariant = constraintsFactory.makeInvariantModel(invariantVar, invariantExpr);
+		}
 
 		// Setup the field invariants
-		Expr fieldInvariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
-		Expr fieldInvariantExpr = model.ctx.mkTrue();
-		for (var fieldModel : classModel.getFields()) {
-			if (fieldModel.getType() instanceof ObjectModel) {
-				var refBinding = ((ObjectModel) fieldModel.getType()).getRefBinding();
-				var mbFieldConstraints = model.getClassConstraints(refBinding);
-				if (mbFieldConstraints.isEmpty()) {
-					Logger.warn("cannot get constraints for class " + JDTUtils.nameOfClass(refBinding));
-					continue;
+		{
+			Expr fieldInvariantVar = model.ctx.mkFreshConst("s", classModel.getClassSort());
+			Expr fieldInvariantExpr = model.ctx.mkTrue();
+			for (var fieldModel : classModel.getFields()) {
+				if (fieldModel.getType() instanceof ObjectModel) {
+					var refBinding = ((ObjectModel) fieldModel.getType()).getRefBinding();
+					var mbFieldConstraints = model.getClassConstraints(refBinding);
+					if (mbFieldConstraints.isEmpty()) {
+						Logger.warn("cannot get constraints for class " + JDTUtils.nameOfClass(refBinding));
+						continue;
+					}
+					var fieldConstraints = mbFieldConstraints.get();
+					fieldInvariantExpr = model.ctx.mkAnd(fieldInvariantExpr,
+							// Add the invariant of the field
+							fieldConstraints.getInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar)),
+							// and all the field invariants
+							fieldConstraints.getFieldInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar))
+					).simplify();
+
 				}
-				var fieldConstraints = mbFieldConstraints.get();
-				fieldInvariantExpr = model.ctx.mkAnd(fieldInvariantExpr,
-						// Add the invariant of the field
-						fieldConstraints.getInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar)),
-						// and all the field invariants
-						fieldConstraints.getFieldInvariant().apply(fieldModel.getAccessor().apply(fieldInvariantVar))
-				).simplify();
-
 			}
+			invariantComplexityTemp += Z3Utils.computeComplexity(fieldInvariantExpr);
+			fieldInvariant = constraintsFactory.makeFieldInvariantModel(fieldInvariantVar, fieldInvariantExpr);
 		}
-		fieldInvariant = constraintsFactory.makeFieldInvariantModel(fieldInvariantVar, fieldInvariantExpr);
 
+		invariantComplexity = invariantComplexityTemp;
 
 		// Setup the initial condition
 		initial = handleInitialConditions(classModel);
 
 		// Setup the method pre/postconditions
 		preconditions = Maps.newHashMap();
+		var preconditionComplexityTemp = 0L;
 		postconditions = Maps.newHashMap();
+		var postconditionComplexityTemp = 0L;
+
 		for(MethodModel methodModel : classModel.getMethods()) {
-			var preCondition = handlePrecondition(methodModel);
-			preconditions.put(methodModel.getBinding(), preCondition);
-			var postCondition = handlePostcondition(methodModel);
-			postconditions.put(methodModel.getBinding(), postCondition);
+			{
+				Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
+				var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
+				Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
+				var preCondition = constraintsFactory.makeMethodPreconditionModel(methodModel.getName(), thisConst, expr);
 
-			// Add the constraint that defines the method if it is usable as constraint
-			if (methodModel.usableAsConstraint()) {
-				Expr[] args = methodModel.getArguments().stream()
-						.map(argModel -> argModel.getConst().orElseThrow())
-						.toArray(Expr[]::new);
+				preconditionComplexityTemp += Z3Utils.computeComplexity(expr);
+				preconditions.put(methodModel.getBinding(), preCondition);
+			}
 
-				var s0 = classModel.toFreshConst("s0");
-//				var s1 = classModel.toFreshConst("s1");
 
-				var appToState = methodModel.makeApplyReturnState(s0, args).orElseThrow();
-				var appToValue = methodModel.makeApplyReturnValue(s0, args).orElseThrow();
+			{
+				// Var for `\old(this)` references
+				Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
+				// Var for `this` references
+				Expr thisConst = model.ctx.mkFreshConst("s_new", classModel.getClassSort());
+				// Var for \result references
+				Expr resultConst = methodModel.getReturnType().getSort()
+						.map(sort -> model.ctx.mkFreshConst("res", sort))
+						.orElse(null);
 
-				Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
+				// Parse the postcondition from JML @ensures specification
+				var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
 
-				var conds =  postCondition.applyWithSplitBody(
-						s0,
-						appToState,
-						appToValue
-				);
+				var jmlConds = splitAndExpression(methodModel.getJmlPostcondition().orElse(null));
 
-				for (var cond : conds) {
-					var assertion =
-							model.ctx.mkForall(
-									forallArguments,
-									cond,
-									1,
-									null,
-									null,
-									null,
-									null
-							);
-					model.solver.add(assertion);
+				Expr[] exprs = new Expr[jmlConds.length + 1];
+				for (int i = 0; i < jmlConds.length; i++) {
+					var e = parser.parseExpression(jmlConds[i]);
+					exprs[i + 1] = e;
+				}
+
+				// Parse the assignable clause
+				BoolExpr assignable;
+				var maybeClause = methodModel.getAssignableClause();
+				if (maybeClause.isEmpty()) {
+					assignable = parser.parseJmlAssignableClause(null);
+				} else {
+					assignable = parser.parseJmlAssignableClause(maybeClause.get());
+				}
+				// Combine the exprs for the postcondition
+				exprs[0] = assignable;
+				var postCondition = constraintsFactory.makeMethodPostconditionModel(methodModel.getName(), oldConst, thisConst, resultConst, model.ctx.mkAnd(exprs), exprs);
+
+				postconditionComplexityTemp += Z3Utils.computeComplexity(model.ctx.mkAnd(exprs));
+				postconditions.put(methodModel.getBinding(), postCondition);
+
+
+				// Add the constraint that defines the method if it is usable as constraint
+				if (methodModel.usableAsConstraint()) {
+					Expr[] args = methodModel.getArguments().stream()
+							.map(argModel -> argModel.getConst().orElseThrow())
+							.toArray(Expr[]::new);
+
+					var s0 = classModel.toFreshConst("s0");
+	//				var s1 = classModel.toFreshConst("s1");
+
+					var appToState = methodModel.makeApplyReturnState(s0, args).orElseThrow();
+					var appToValue = methodModel.makeApplyReturnValue(s0, args).orElseThrow();
+
+					Expr[] forallArguments = Z3Utils.arrayPrepend(Expr[]::new, args, s0);
+
+					var conds = postCondition.applyWithSplitBody(
+							s0,
+							appToState,
+							appToValue
+					);
+
+					for (var cond : conds) {
+						var assertion =
+								model.ctx.mkForall(
+										forallArguments,
+										cond,
+										1,
+										null,
+										null,
+										null,
+										null
+								);
+						model.solver.add(assertion);
+					}
 				}
 
 			}
 		}
+		preconditionComplexity = preconditionComplexityTemp;
+		postconditionComplexity = postconditionComplexityTemp;
 	}
 
 	private InitialConditionModel handleInitialConditions(BaseClassModel classModel) {
@@ -149,49 +215,6 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 		var initialCondition = model.ctx.mkAnd(initialConditions.toArray(Expr[]::new));
 		return constraintsFactory.makeInitialConditionModel(thisConst, initialCondition);
-	}
-
-	private MethodPreconditionModel handlePrecondition(MethodModel methodModel) {
-		Expr thisConst = model.ctx.mkFreshConst("s", classModel.getClassSort());
-		var parser = new MethodPreconditionExpressionParser(model, classModel, methodModel, thisConst);
-		Expr expr = parser.parseExpression(methodModel.getJmlPrecondition().orElse(null));
-		return constraintsFactory.makeMethodPreconditionModel(methodModel.getName(),thisConst, expr);
-	}
-
-
-
-	private MethodPostconditionModel handlePostcondition(MethodModel methodModel) {
-		// Var for `\old(this)` references
-		Expr oldConst = model.ctx.mkFreshConst("s_old", classModel.getClassSort());
-		// Var for `this` references
-		Expr thisConst = model.ctx.mkFreshConst("s_new", classModel.getClassSort());
-		// Var for \result references
-		Expr resultConst = methodModel.getReturnType().getSort()
-			.map(sort -> model.ctx.mkFreshConst("res", sort))
-			.orElse(null);
-
-		// Parse the postcondition from JML @ensures specification
-		var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
-
-		var jmlConds = splitAndExpression(methodModel.getJmlPostcondition().orElse(null));
-
-		Expr[] exprs = new Expr[jmlConds.length + 1];
-		for (int i = 0; i < jmlConds.length; i++) {
-			var e = parser.parseExpression(jmlConds[i]);
-			exprs[i + 1] = e;
-		}
-
-		// Parse the assignable clause
-		BoolExpr assignable;
-		var maybeClause = methodModel.getAssignableClause();
-		if (maybeClause.isEmpty()) {
-			assignable = parser.parseJmlAssignableClause(null);
-		} else {
-			assignable = parser.parseJmlAssignableClause(maybeClause.get());
-		}
-		// Combine the exprs for the postcondition
-		exprs[0] = assignable;
-		return constraintsFactory.makeMethodPostconditionModel(methodModel.getName(), oldConst, thisConst, resultConst, model.ctx.mkAnd(exprs), exprs);
 	}
 
 	public InvariantModel getInvariant() {
@@ -238,6 +261,18 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 
 	public BaseClassModel getClassModel() {
 		return classModel;
+	}
+
+	public long getInvariantComplexity() {
+		return invariantComplexity;
+	}
+
+	public long getPreconditionComplexity() {
+		return preconditionComplexity;
+	}
+
+	public long getPostconditionComplexity() {
+		return postconditionComplexity;
 	}
 
 //	private Expr getForallInvariant(InvariantModel inv) {

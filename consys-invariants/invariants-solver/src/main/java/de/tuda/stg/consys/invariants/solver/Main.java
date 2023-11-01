@@ -26,18 +26,18 @@ public class Main {
 
 	public static final Map<String, Path[]> CASE_STUDIES = Maps.newHashMap();
 	static {
-//		CASE_STUDIES.put("gcounter", Examples.GCOUNTER);
-//		CASE_STUDIES.put("pncounter", Examples.PNCOUNTER);
-//		CASE_STUDIES.put("gset", Examples.GSET);
-//		CASE_STUDIES.put("twophaseset", Examples.TWOPHASESET);
-//		CASE_STUDIES.put("credit_account", Examples.CREDIT_ACCOUNT);
-//		CASE_STUDIES.put("bank_account", Examples.BANK_ACCOUNT);
-//		CASE_STUDIES.put("bank_account_lww", Examples.BANK_ACCOUNT_LWW);
-//		CASE_STUDIES.put("joint_bank_account", Examples.JOINT_BANK_ACCOUNT);
-//		CASE_STUDIES.put("resettable_counter", Examples.RESETTABLE_COUNTER);
-//		CASE_STUDIES.put("consensus", Examples.CONSENSUS);
-//		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
-//		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
+		CASE_STUDIES.put("gcounter", Examples.GCOUNTER);
+		CASE_STUDIES.put("pncounter", Examples.PNCOUNTER);
+		CASE_STUDIES.put("gset", Examples.GSET);
+		CASE_STUDIES.put("twophaseset", Examples.TWOPHASESET);
+		CASE_STUDIES.put("credit_account", Examples.CREDIT_ACCOUNT);
+		CASE_STUDIES.put("bank_account", Examples.BANK_ACCOUNT);
+		CASE_STUDIES.put("bank_account_lww", Examples.BANK_ACCOUNT_LWW);
+		CASE_STUDIES.put("joint_bank_account", Examples.JOINT_BANK_ACCOUNT);
+		CASE_STUDIES.put("resettable_counter", Examples.RESETTABLE_COUNTER);
+		CASE_STUDIES.put("consensus", Examples.CONSENSUS);
+		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
+		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
 		CASE_STUDIES.put("riak_gcounter", Examples.RIAK_GCOUNTER);
 		CASE_STUDIES.put("riak_pncounter", Examples.RIAK_PNCOUNTER);
 		CASE_STUDIES.put("riak_gset", Examples.RIAK_GSET);
@@ -51,7 +51,7 @@ public class Main {
 	public static final Path[] DEFAULT_EXAMPLE = Examples.RIAK_PNCOUNTER;
 
 	private static void printUsage() {
-		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name]");
+		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name | --count case-study-name]");
 		Logger.info("Possible names: " + CASE_STUDIES.keySet());
 	}
 
@@ -69,36 +69,44 @@ public class Main {
 		return result;
 	}
 
-	private enum BenchmarkType {
-		NONE, JAVA, SYS
+	private enum ExecType {
+		EXEC_SOLVER, BENCH_JAVA, BENCH_SYS, COUNT_COMPLEXITY
 	}
 
 
 	public static void main(String[] args) throws IOException {
 		Path[] files = null;
-		BenchmarkType benchmarkType = BenchmarkType.NONE;
+		ExecType execType = ExecType.EXEC_SOLVER;
 
 		if (args.length == 0) {
 			//Default example
 			files = DEFAULT_EXAMPLE;
 		} else if (args.length == 1) {
 			if (args[0].equals("--bench-sys")) {
-				benchmarkType = BenchmarkType.SYS;
+				execType = ExecType.BENCH_SYS;
 			} else if (args[0].equals("--bench-java")) {
-				benchmarkType = BenchmarkType.JAVA;
+				execType = ExecType.BENCH_JAVA;
 			} else {
 				files = parseCaseStudy(args[0]);
 			}
+		} else if (args.length == 2) {
+			if (args[0].equals("--count")) {
+				files = parseCaseStudy(args[1]);
+				execType = ExecType.COUNT_COMPLEXITY;
+			} else {
+				printUsage();
+				printErr("Expected --count as first argument, but got " + args[0]);
+			}
 		} else {
 			printUsage();
-			printErr("Expected 0 or 1 arguments, but got " + args.length);
+			printErr("Expected 0 to 2 arguments, but got " + args.length);
 		}
 
-		if (benchmarkType == BenchmarkType.NONE) {
+		if (execType == ExecType.EXEC_SOLVER) {
 
 			ProgramConfig config = Examples.STATEFUL_CONFIG;
 			var results = runChecker(config,
-					/* libs */ new Path[] { Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar") },
+					/* libs */ new Path[]{Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar")},
 					/* checked classes */ files
 			);
 
@@ -108,13 +116,47 @@ public class Main {
 					Logger.info(entry.getValue().toString());
 				});
 			}
+		} else if (execType == ExecType.COUNT_COMPLEXITY) {
+			ProgramConfig config = Examples.STATEFUL_CONFIG;
+
+			ProgramModel model =  createModel(config,
+					/* libs */ new Path[]{Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar")},
+					/* checked classes */ files
+			);
+
+
+			var invariantComplexity = 0L;
+			var preconditionComplexity = 0L;
+			var postConditionComplexity = 0L;
+			for (var entry : model.allClassConstraints()) {
+				var className = String.valueOf(entry.getKey().sourceName);
+				Logger.info("==============");
+				Logger.info("class " + className);
+
+				var inv =  entry.getValue().getInvariantComplexity();
+				invariantComplexity += inv;
+				var prec = entry.getValue().getPreconditionComplexity();
+				preconditionComplexity += prec;
+				var post = entry.getValue().getPostconditionComplexity();
+				postConditionComplexity += post;
+
+				Logger.info("invariant: " + inv);
+				Logger.info("precondition: " + prec);
+				Logger.info("postcondition: " + post);
+			}
+
+			Logger.info("==============");
+			Logger.info("Total");
+			Logger.info("invariant: " + invariantComplexity);
+			Logger.info("precondition: " + preconditionComplexity);
+			Logger.info("postcondition: " + postConditionComplexity);
 
 		} else {
 			Map<String, Double> results = null;
 
-			if (benchmarkType == BenchmarkType.SYS) {
+			if (execType == ExecType.BENCH_SYS) {
 				results = CompilerBenchmark.runSysBench();
-			} else if (benchmarkType == BenchmarkType.JAVA) {
+			} else if (execType == ExecType.BENCH_JAVA) {
 				results = CompilerBenchmark.runJavaBench();
 			} else {
 				printErr("Unexpected benchmark type.");
@@ -128,13 +170,18 @@ public class Main {
 
 	}
 
-	public static Map<ReferenceBinding, ClassProperties.CheckResult> runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
+	public static ProgramModel createModel(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
 		// Compile the file to ASTs
 		var compileResult = EclipseCompilerBinding.compile(additionalClasspath, sources);
 
 		// Create the program model
 		var model = new ProgramModel(compileResult, config);
 		model.loadParsedClasses();
+		return model;
+	}
+
+	public static Map<ReferenceBinding, ClassProperties.CheckResult> runChecker(ProgramConfig config, Path[] additionalClasspath, Path[] sources) {
+		ProgramModel model = createModel(config, additionalClasspath, sources);
 
 		// Check the classes
 		return model.checkAll();

@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.solver.subset.utils;
 
 import com.microsoft.z3.Context;
+import com.microsoft.z3.Expr;
 import com.microsoft.z3.Symbol;
 import org.eclipse.jdt.internal.compiler.ast.FieldReference;
 import org.eclipse.jdt.internal.compiler.ast.NameReference;
@@ -14,6 +15,15 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public class Z3Utils {
+
+	public static long computeComplexity(Expr expr) {
+		var simplifiedExpr = expr.simplify();
+		var exprString = simplifiedExpr.toString();
+
+		var count = exprString.chars().filter((i) -> ((char) i) == '(').count();
+
+		return count;
+	}
 
 	public static Symbol[] mkSymbols(Context ctx, String[] strings) {
 		if (strings == null) {

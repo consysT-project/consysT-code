@@ -210,24 +210,25 @@ class ProgramModel[Lang <: BaseExpressions with BaseNumExpressions with BaseBool
 
 							val declaredArgumentsMap = methodDecl.declaredParameters.zip(declaredArguments).map(t => (t._1.name, t._2)).toMap
 
+							???
 
-							val (bodyVal, bodyState) : (Z3Expr[_], Z3Expr[_]) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
-
-							val methodDef = ctx.mkForall(
-								(Seq(receiverExpr) ++ declaredArguments).toArray,
-								ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
-								1,
-								null,
-								null,
-								null,
-								null
-							)
-
-							env.solver.add(methodDef)
-
-
-
-							UpdateMethodRep(mthdDecl)
+//							val (bodyVal, bodyState) : (Z3Expr[_], Z3Expr[_]) = new MutableClassExpressionCompiler(classDecl.classId).compile(body, declaredArgumentsMap, receiverExpr)
+//
+//							val methodDef = ctx.mkForall(
+//								(Seq(receiverExpr) ++ declaredArguments).toArray,
+//								ctx.mkEq(ctx.mkApp(methodRep.funcDecl, (Seq(receiverExpr) ++ declaredArguments).toArray : _*), bodyState),
+//								1,
+//								null,
+//								null,
+//								null,
+//								null
+//							)
+//
+//							env.solver.add(methodDef)
+//
+//
+//
+//							UpdateMethodRep(mthdDecl)
 					}
 
 

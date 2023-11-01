@@ -214,6 +214,10 @@ public class ProgramModel {
 				compileResult, config);
 	}
 
+	public Iterable<Map.Entry<ReferenceBinding, BaseClassConstraints<?>>> allClassConstraints() {
+		return constraints.entrySet();
+	}
+
 	public Optional<BaseClassModel> getClassModel(ReferenceBinding refBinding) {
 		return Optional.ofNullable(models.getOrDefault(JDTUtils.erase(refBinding), null));
 	}
