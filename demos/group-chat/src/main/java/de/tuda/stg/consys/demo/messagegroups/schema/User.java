@@ -16,17 +16,14 @@ import java.util.List;
  * @author Mirko Köhler
  */
 public class User implements Serializable {
-    private final @Immutable String name;
-    private final Ref<@Mutable @Weak Inbox> inbox;
+    public @Mutable @ThisConsistent String name;
 
-
-    public User(@Local String name, Ref<@Mutable @Weak Inbox> inbox) {
+    public User(@Mutable @ThisConsistent String name) {
         this.name = name;
-        this.inbox = inbox;
     }
 
     @Transactional
-    public void send(String msg) {
-        inbox.ref().add(msg);
+    public void copyName(@Mutable @ThisConsistent String name) {
+        this.name = name;
     }
 }
