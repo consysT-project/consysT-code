@@ -5,8 +5,8 @@ import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 
 public class BoolModel extends BaseTypeModel<BoolSort> {
 
-	BoolModel(ProgramModel smt) {
-		super(smt);
+	BoolModel(ProgramModel model) {
+		super(model);
 	}
 
 	@Override

@@ -3,8 +3,6 @@ package de.tuda.stg.consys.invariants.lib.examples.jointbankaccount;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
-import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
-import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 @ReplicatedModel public class JointBankAccount {
@@ -20,7 +18,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @*/
     public JointBankAccount() {
-        balance = new PNCounter();
+        balance = new PNCounter(replicaId());
     }
 
     /*@

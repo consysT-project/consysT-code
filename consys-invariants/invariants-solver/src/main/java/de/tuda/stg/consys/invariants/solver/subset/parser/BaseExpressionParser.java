@@ -260,6 +260,8 @@ public class BaseExpressionParser extends ExpressionParser {
       return model.ctx.mkSelect((ArrayExpr) array, index);
     }
 
+//    model.ctx.mkTu
+
     return super.parseJmlArrayReference(jmlArrayReference, depth);
   }
 

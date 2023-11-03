@@ -2,14 +2,13 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 /**@link https://pages.lip6.fr/syncfree/attachments/article/59/boundedCounter-white-paper.pdf **/
 
-import com.google.common.collect.Maps;
 import de.tuda.stg.consys.Mergeable;
-
-import java.util.Map;
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+
 
 /**
  * State-based implementation of a bounded counter that cannot go below zero.
@@ -19,11 +18,32 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
  *  @link <a href="https://pages.lip6.fr/syncfree/attachments/article/59/boundedCounter-white-paper.pdf">Paper</a>
  */
 
+@ReplicatedModel
 public class BoundedCounter implements Mergeable<BoundedCounter> {
 
-	PNCounter counter = new PNCounter();
+	public final int replicaId;
 
-	int[][] localPermissions = new int[numOfReplicas()][numOfReplicas()];
+	public final PNCounter counter;
+
+	public final int[][] localPermissions;
+
+	//@ public invariant this.replicaId == replicaId();
+	//@ public invariant this.getValue() >= 0;
+	//@ public invariant this.getQuota() >= 0 && this.getQuota() <= this.getValue();
+
+	//TODO: Can we say something like this?
+	// public invariant (\sum int i; i >= 0 && i < numOfReplicas(); getQuota(i)) == getValue();
+
+	//@ requires replicaId == replicaId();
+	//@ ensures this.replicaId == replicaId();
+	//@ ensures this.counter.getValue() == 0;
+	//@ ensures this.getQuota() == 0;
+	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == 0));
+	public BoundedCounter(int replicaId) {
+		this.replicaId = replicaId;
+		counter = new PNCounter(replicaId);
+		localPermissions = new int[numOfReplicas()][numOfReplicas()];
+	}
 
 
 	public Void increment(int val) {
@@ -44,29 +64,41 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 		return null;
 	}
 
+	//@ assignable \nothing;
+	//@ ensures \result == counter.getValue();
 	public int getValue() {
 		return counter.getValue();
 	}
 
-	public int getQuota() {
+	//@ assignable \nothing;
+	//@ ensures \result == counter.incs[replica] - counter.decs[replica] + (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[i][replica]) - (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[replica][i]);
+	public int getQuota(int replica) {
 		int received = 0;
-		for (int i = 0; i < numOfReplicas(); i++) {
-			received += localPermissions[i][replicaId()];
+		for (int sender = 0; sender < numOfReplicas(); sender++) {
+			received += localPermissions[sender][replica];
 		}
 
 		int sent = 0;
-		for (int i = 0; i < numOfReplicas(); i++) {
-			sent += localPermissions[replicaId()][i];
+		for (int receiver = 0; receiver < numOfReplicas(); receiver++) {
+			sent += localPermissions[replica][receiver];
 		}
 
-		return getValue() + received - sent;
+		return counter.incs[replica] - counter.decs[replica] + received - sent;
 	}
+
+	//@ assignable \nothing;
+	//@ ensures \result == getQuota(replicaId);
+	public int getQuota() {
+		return getQuota(replicaId);
+	}
+
+
 
 	public Void transfer(int toReplica, int value) {
 		if (getQuota() < value)
 			throw new IllegalArgumentException();
 
-		localPermissions[replicaId()][toReplica] += value;
+		localPermissions[replicaId][toReplica] += value;
 
 		return null;
 	}
@@ -75,13 +107,17 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	public Void merge(BoundedCounter other) {
 		counter.merge(other.counter);
 
-
-//		for (int i)
-//		localPermissions[][]
-
+		for (int sender = 0; sender < numOfReplicas(); sender++) {
+			for (int receiver = 0; receiver < numOfReplicas(); receiver++) {
+				localPermissions[sender][receiver] = Math.max(localPermissions[sender][receiver], other.localPermissions[sender][receiver]);
+			}
+		}
 
 		return null;
 	}
+
+
+
 }
 
 

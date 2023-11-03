@@ -5,8 +5,8 @@ import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
 
 public class IntModel extends BaseTypeModel<IntSort> {
 
-	IntModel(ProgramModel smt) {
-		super(smt);
+	IntModel(ProgramModel model) {
+		super(model);
 	}
 
 	@Override

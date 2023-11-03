@@ -13,10 +13,10 @@ public class ArrayModel<ESort extends Sort, EType extends TypeModel<ESort>> exte
 
 	private final Lazy<ArraySort<IntSort, ESort>> cached;
 
-	protected ArrayModel(ProgramModel smt, EType valueType) {
-		super(smt);
+	protected ArrayModel(ProgramModel model, EType valueType) {
+		super(model);
 		this.valueType = valueType;
-		this.cached = Lazy.make(() -> smt.ctx.mkArraySort(smt.ctx.getIntSort(), valueType.toSort()));
+		this.cached = Lazy.make(() -> model.ctx.mkArraySort(model.ctx.getIntSort(), valueType.toSort()));
 	}
 
 	@Override

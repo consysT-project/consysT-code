@@ -7,19 +7,22 @@ import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
-import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
-import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
-
+//import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
 @ReplicatedModel public class PNCounter implements Mergeable<PNCounter> {
+
+
+    public final int replicaId;
 
     public int[] incs;
     public int[] decs;
 
     /* Constructors */
+    //@ requires replicaId == replicaId;
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0 && decs[i] == 0);
-    public PNCounter() {
+    public PNCounter(int replicaId) {
+        this.replicaId = replicaId;
         this.incs = new int[numOfReplicas()];
         this.decs = new int[numOfReplicas()];
     }
@@ -58,43 +61,43 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
 
     /*@
-    @ assignable incs[replicaId()];
-    @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
+    @ assignable incs[replicaId];
+    @ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
     @*/
     public Void inc() {
-        incs[replicaId()] = incs[replicaId()] + 1;
+        incs[replicaId] = incs[replicaId] + 1;
         return null;
     }
 
     /*@
     @ requires n >= 0;
-    @ assignable incs[replicaId()];
-    @ ensures incs[replicaId()] == \old(incs[replicaId()]) + n;
+    @ assignable incs[replicaId];
+    @ ensures incs[replicaId] == \old(incs[replicaId]) + n;
     @*/
     public Void inc(int n) {
-        incs[replicaId()] = incs[replicaId()] + n;
+        incs[replicaId] = incs[replicaId] + n;
         return null;
     }
 
     /*@
-    @ assignable decs[replicaId()];
-    @ ensures decs[replicaId()] == \old(decs[replicaId()]) + 1;
+    @ assignable decs[replicaId];
+    @ ensures decs[replicaId] == \old(decs[replicaId]) + 1;
     @*/
     public Void dec() {
         if (1 > getValue())
             throw new IllegalArgumentException();
-        decs[replicaId()] = decs[replicaId()] + 1;
+        decs[replicaId] = decs[replicaId] + 1;
         return null;
     }
 
 
     //@ requires n >= 0;
-    //@ assignable decs[replicaId()];
-    //@ ensures decs[replicaId()] == \old(decs[replicaId()]) + n;
+    //@ assignable decs[replicaId];
+    //@ ensures decs[replicaId] == \old(decs[replicaId]) + n;
     public Void dec(int n) {
         if (n > getValue())
             throw new IllegalArgumentException();
-        decs[replicaId()] = decs[replicaId()] + n;
+        decs[replicaId] = decs[replicaId] + n;
         return null;
     }
 

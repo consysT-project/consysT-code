@@ -80,7 +80,14 @@ public class TypeModelFactory {
 
             if (elementType.hasSort()) {
                 // build array sort from index and element type
-                return new ArrayModel(model, elementType);//
+
+                ArrayModel arrayModel = new ArrayModel(model, elementType);
+                //TODO: Add dimensions
+                for (int i = 1; i < arrayBinding.dimensions; i++) {
+                    arrayModel = new ArrayModel(model, arrayModel);
+                }
+
+                return arrayModel;//
             } else {
                 return new EmptyModel(model, "incompatible array element type in " + typeBinding);
             }
