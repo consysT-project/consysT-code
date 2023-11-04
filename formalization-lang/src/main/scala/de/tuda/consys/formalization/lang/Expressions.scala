@@ -21,8 +21,7 @@ case class Ref(id: String,
               ) extends Expression
 
 case class LocalObj(classType: ClassType,
-                    constructor: Map[FieldId, Expression],
-                    l: ConsistencyType
+                    constructor: Map[FieldId, Expression]
                    ) extends Expression
 
 case class Var(id: VarId) extends Expression

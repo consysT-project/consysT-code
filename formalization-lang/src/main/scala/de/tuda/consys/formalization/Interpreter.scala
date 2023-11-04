@@ -32,7 +32,7 @@ class Interpreter(storeAddress: String) {
         case False => true
         case UnitLiteral => true
         case Ref(_, _, _, _) => true
-        case LocalObj(_, constructor, _) => constructor.forall(p => isValue(p._2))
+        case LocalObj(_, constructor) => constructor.forall(p => isValue(p._2))
         case _ => false
     }
 
@@ -64,6 +64,12 @@ class Interpreter(storeAddress: String) {
         case BooleanCombination(b1: BooleanValue, expr2, op) => BooleanCombination(b1, stepExpr(expr2), op)
 
         case BooleanCombination(expr1, expr2, op) => BooleanCombination(stepExpr(expr1), expr2, op)
+
+        case LocalObj(classType, constructor) =>
+            constructor.find(p => !isValue(p._2)) match {
+                case Some(value) => LocalObj(classType, constructor + value)
+                case None => throw ExecutionError("invalid execution path")
+            }
     }
 
     private def stepStmt(s: Statement, vars: VarEnv)(implicit ct: ClassTable): (Statement, VarEnv) = s match {
@@ -75,7 +81,7 @@ class Interpreter(storeAddress: String) {
         case Block(blockVars, Return) => (Return, vars -- blockVars.map(_._2))
         case Block(blockVars, ReturnExpr(e)) if isValue(e) => (ReturnExpr(e), vars -- blockVars.map(_._2))
         case Block(blockVars, s) if blockVars.forall(v => isValue(v._3)) =>
-            val (s1, r1) = stepStmt(s, vars ++ blockVars.map(v => v._2 -> v._3)
+            val (s1, r1) = stepStmt(s, vars ++ blockVars.map(v => v._2 -> v._3))
             (Block(blockVars, s1), r1)
         case Block(blockVars, s) =>
             val i = blockVars.indexWhere(p => !isValue(p._3))
@@ -98,6 +104,8 @@ class Interpreter(storeAddress: String) {
         case If(conditionExpr, thenStmt, elseStmt) =>
             val e = stepExpr(conditionExpr)(vars)
             (If(e, thenStmt, elseStmt), vars)
+
+        case While(condition, stmt) => (If(condition, While(condition, stmt), Skip), vars)
 
         case Let(varId, e) if isValue(e) => (Skip, vars + (varId -> e))
         case Let(varId, e) => (Let(varId, stepExpr(e)(vars)), vars)

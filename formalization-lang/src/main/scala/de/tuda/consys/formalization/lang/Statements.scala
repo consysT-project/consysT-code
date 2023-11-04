@@ -21,9 +21,13 @@ case class Sequence(s1: Statement,
                    ) extends Statement
 
 case class If(conditionExpr: Expression,
-              thenStmt: Block,
-              elseStmt: Block
+              thenStmt: Statement,
+              elseStmt: Statement
              ) extends Statement
+
+case class While(condition: Expression,
+                 stmt: Statement
+                ) extends Statement
 
 case class Let(varId: VarId,
                e: Expression
