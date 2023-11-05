@@ -70,6 +70,8 @@ object ClassTable {
         }
     }
 
+    def recvDecl(methodId: MethodId, receiver: ClassType): ClassType = ???
+
     def getSuperclass(classDecl: ClassDecl)(implicit classTable: ClassTable): ClassDecl = {
         classTable.getOrElse(classDecl.superClass.classId,
             sys.error(s"superclass not found: ${classDecl.superClass.classId}"))

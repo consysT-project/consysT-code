@@ -105,7 +105,7 @@ class Interpreter(storeAddress: String) {
             val e = stepExpr(conditionExpr)(vars)
             (If(e, thenStmt, elseStmt), vars)
 
-        case While(condition, stmt) => (If(condition, While(condition, stmt), Skip), vars)
+        case While(condition, stmt) => (If(condition, Sequence(stmt, While(condition, stmt)), Skip), vars)
 
         case Let(varId, e) if isValue(e) => (Skip, vars + (varId -> e))
         case Let(varId, e) => (Let(varId, stepExpr(e)(vars)), vars)
