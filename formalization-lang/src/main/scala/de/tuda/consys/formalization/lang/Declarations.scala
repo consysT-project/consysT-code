@@ -1,17 +1,19 @@
 package de.tuda.consys.formalization.lang
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, ConsistencyVar, Type, TypeSuffix, TypeSuffixVar}
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, ConsistencyVar, MutabilityType, Type, TypeSuffix, TypeSuffixVar}
 
 case class FieldDecl(name: FieldId, typ: Type)
 
 case class VarDecl(name: VarId, typ: Type)
 
-case class TypeVarDecl(name: TypeVarId, upperBound: TypeSuffix)
+case class TypeVarDecl(name: TypeVarId, upperBound: TypeSuffix, mBound: MutabilityType)
 
 case class ConsistencyVarDecl(name: ConsistencyVarId, upperBound: ConsistencyType)
 
-case class SuperClassDecl(classId: ClassId, consistencyArgs: Seq[ConsistencyType], typeArgs: Seq[TypeSuffix])
+case class SuperClassDecl(classId: ClassId, consistencyArgs: Seq[ConsistencyType], typeArgs: Seq[TypeSuffix]) {
+    def toClassType: ClassType = ClassType(classId, consistencyArgs, typeArgs)
+}
 
 sealed trait MethodDecl {
     def name: MethodId
@@ -69,6 +71,9 @@ case class ClassDecl(classId: ClassId,
 
     def typeParametersToEnv: TypeVarEnv =
         typeParameters.map(typeVarDecl => typeVarDecl.name -> typeVarDecl.upperBound).toMap
+
+    def typeParameterMutabilityBoundsToEnv: TypeVarMutabilityEnv =
+        typeParameters.map(p => p.name -> p.mBound).toMap
 
     def consistencyParametersToEnv: ConsistencyVarEnv =
         consistencyParameters.map(consistencyVarEnv => consistencyVarEnv.name -> consistencyVarEnv.upperBound).toMap

@@ -2,7 +2,7 @@ package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.errors.TypeError
-import de.tuda.consys.formalization.lang.{ClassId, ConsistencyVarEnv, TypeVarEnv, TypeVarId, TypeVarMutabilityEnv}
+import de.tuda.consys.formalization.lang.{ClassDecl, ClassId, ConsistencyVarEnv, TypeVarEnv, TypeVarId, TypeVarMutabilityEnv, topClassId}
 
 import scala.annotation.tailrec
 
@@ -105,5 +105,48 @@ object Types {
             case Some(value) => value
             case None => ConsistencyVar(name)
         }
+    }
+
+    def wellFormed(typ: Type)
+                  (implicit classTable: ClassTable,
+                   tvEnv: TypeVarEnv,
+                   tvmEnv: TypeVarMutabilityEnv,
+                   cvEnv: ConsistencyVarEnv
+                  ): Boolean = {
+        wellFormed(typ.suffix, typ.m) && wellFormed(typ.l)
+    }
+
+    def wellFormed(suffix: TypeSuffix, m: MutabilityType)
+                  (implicit classTable: ClassTable,
+                   tvEnv: TypeVarEnv,
+                   tvmEnv: TypeVarMutabilityEnv,
+                   cvEnv: ConsistencyVarEnv,
+                  ): Boolean = suffix match {
+        case TypeSuffixVar(id) => tvEnv.contains(id) && Subtyping.subtype(m, tvmEnv(id))
+        case RefTypeSuffix(classType) => wellFormed(classType)
+        case LocalTypeSuffix(classType) => wellFormed(classType)
+    }
+
+    def wellFormed(classType: ClassType)
+                  (implicit classTable: ClassTable,
+                   tvEnv: TypeVarEnv,
+                   cvEnv: ConsistencyVarEnv
+                  ): Boolean = classType match {
+        case ClassType(id, Nil, Nil) if id == topClassId => true
+        case ClassType(classId, consistencyArguments, typeArguments) => classTable.get(classId) match {
+            case Some(ClassDecl(_, consistencyParameters, typeParameters, _, _, _)) =>
+                consistencyArguments.forall(wellFormed) &&
+                    typeArguments.forall(wellFormed) &&
+                    consistencyParameters.size == consistencyArguments.size &&
+                    typeParameters.size == typeArguments.size &&
+                    (consistencyArguments zip consistencyParameters.map(_.upperBound)).forall(p => p._1 <= p._2) &&
+                    (typeArguments zip typeParameters).forall(p => Subtyping.subtype(p._2.mBound, p._1, p._2.upperBound))
+            case None => false
+        }
+    }
+
+    def wellFormed(l: ConsistencyType)(implicit cvEnv: ConsistencyVarEnv): Boolean = l match {
+        case _: ConcreteConsistencyType => true
+        case ConsistencyVar(name) => cvEnv.contains(name)
     }
 }

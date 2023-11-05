@@ -6,7 +6,7 @@ sealed trait Expression
 
 case class Num(n: NumericType) extends Expression
 
-trait BooleanValue extends Expression
+sealed trait BooleanValue extends Expression
 
 case object True extends BooleanValue
 

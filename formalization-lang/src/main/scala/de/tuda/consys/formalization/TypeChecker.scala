@@ -1,6 +1,7 @@
 package de.tuda.consys.formalization
 
 import de.tuda.consys.formalization.lang.ClassTable.{ClassTable, mType}
+import de.tuda.consys.formalization.lang.Natives.natives
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.errors.TypeError
 import de.tuda.consys.formalization.lang.types.Types._
@@ -22,18 +23,34 @@ object TypeChecker {
         programDecl.classTable.values.foreach(decl => checkClass(decl)(programDecl.classTable))
 
         for (p <- programDecl.processes)
-            checkStatement(p, Map.empty)(TopLevelContext, Local, programDecl.classTable, Map.empty, Map.empty)
+            checkStatement(p, Map.empty)(TopLevelContext, Local, programDecl.classTable, Map.empty, Map.empty, Map.empty)
     }
 
     private def checkClass(classDecl: ClassDecl)(implicit classTable: ClassTable): Unit = {
+        implicit val typeVarEnv: TypeVarEnv = classDecl.typeParametersToEnv
+        implicit val tvmEnv: TypeVarMutabilityEnv = classDecl.typeParameterMutabilityBoundsToEnv
+        implicit val consistencyVarEnv: ConsistencyVarEnv = classDecl.consistencyParametersToEnv
+
+        if (!classTable.contains(classDecl.superClass.classId))
+            throw TypeError(s"unknown superclass ${classDecl.superClass.classId} (in ${classDecl.classId})")
+
+        if (natives.contains(classDecl.superClass.classId))
+            throw TypeError(s"cannot subclass native classes (in: ${classDecl.classId}")
+
+        classDecl.fields.foreachEntry((id, decl) =>
+            if (!wellFormed(decl.typ))
+                throw TypeError(s"misformed type for field $id (in: ${classDecl.classId}")
+        )
+
+        if (!wellFormed(classDecl.superClass.toClassType))
+            throw TypeError(s"misformed superclass type (in: ${classDecl.classId}")
+
         classDecl.methods.foreachEntry((_, methodDecl) => {
-            val typeVarEnv: TypeVarEnv = classDecl.typeParametersToEnv
-            val consistencyVarEnv = classDecl.consistencyParametersToEnv
             methodDecl match {
                 case q: QueryMethodDecl =>
-                    checkQuery(q)(classTable, classDecl.toType, typeVarEnv, consistencyVarEnv)
+                    checkQuery(q)(classTable, classDecl.toType, typeVarEnv, tvmEnv, consistencyVarEnv)
                 case u: UpdateMethodDecl =>
-                    checkUpdate(u)(classTable, classDecl.toType, typeVarEnv, consistencyVarEnv)
+                    checkUpdate(u)(classTable, classDecl.toType, typeVarEnv, tvmEnv, consistencyVarEnv)
             }
         })
     }
@@ -41,32 +58,37 @@ object TypeChecker {
     private def checkUpdate(method: UpdateMethodDecl)(implicit classTable: ClassTable,
                                                       thisType: ClassType,
                                                       typeVars: TypeVarEnv,
+                                                      typMutVars: TypeVarMutabilityEnv,
                                                       consistencyVars: ConsistencyVarEnv): Unit = {
         val methodType = UpdateType(method.operationLevel, method.declaredParameters.map(x => x.typ))
         if (!checkOverride(method.name, thisType, methodType))
             throw TypeError(s"invalid update override: ${method.name}")
 
+        // TODO: check well formedness of parameter types
+        // TODO: check well formedness of op levels
+
         method.body match {
-            case Sequence(s1, Return) =>
+            case Sequence(_, Return) =>
                 val varEnv0 = method.declaredParametersToEnvironment
-                // TODO: check for no return in s1
                 checkStatement(method.body, varEnv0)(
-                    MethodContext(thisType, Mutable, method.operationLevel), Local, classTable, typeVars, consistencyVars)
+                    MethodContext(thisType, Mutable, method.operationLevel), Local, classTable, typeVars, typMutVars, consistencyVars)
             case _ =>
                 throw TypeError("invalid method body") // TODO
         }
-
-        val varEnv = method.declaredParametersToEnvironment
-
     }
 
     private def checkQuery(method: QueryMethodDecl)(implicit classTable: ClassTable,
                                                     thisType: ClassType ,
                                                     typeVars: TypeVarEnv,
+                                                    typMutVars: TypeVarMutabilityEnv,
                                                     consistencyVars: ConsistencyVarEnv): Unit = {
         val methodType = QueryType(method.operationLevel, method.declaredParameters.map(x => x.typ), method.returnType)
         if (!checkOverride(method.name, thisType, methodType))
             throw TypeError(s"invalid update override: ${method.name}")
+
+        // TODO: check well formedness of parameter types
+        // TODO: check well formedness of return type
+        // TODO: check well formedness of op levels
 
         val methodContext = MethodContext(thisType, Immutable, method.operationLevel)
 
@@ -74,26 +96,34 @@ object TypeChecker {
             throw TypeError(s"query must not have mutable return type: ${method.name} in ${thisType.classId}")
 
         method.body match {
-            case Sequence(s1, ReturnExpr(e)) =>
+            case Sequence(_, ReturnExpr(e)) =>
                 val varEnv0 = method.declaredParametersToEnvironment
-                // TODO: check for no return in s1
-                val varEnv1 = checkStatement(s1, varEnv0)(methodContext, Local, classTable, typeVars, consistencyVars)
-                val retType = checkExpression(e)(varEnv1, classTable, typeVars, consistencyVars)
-                if (retType !<= method.returnType)
-                    throw TypeError(s"wrong return type: was $retType but expected ${method.returnType}")
+                val varEnv1 = checkStatement(method.body, varEnv0)(methodContext, Local, classTable, typeVars, typMutVars, consistencyVars)
             case _ =>
                 throw TypeError("invalid method body") // TODO
         }
     }
 
-    private def checkOverride(id: MethodId, receiver: ClassType, typ: MethodType): Boolean = {
-        true // TODO
+    private def checkOverride(id: MethodId, receiver: ClassType, overriding: MethodType)(implicit ct: ClassTable): Boolean = {
+        val overridden = mType(id, receiver)
+        (overriding, overridden) match {
+            case (UpdateType(operationLevel1, parameters1), UpdateType(operationLevel2, parameters2)) =>
+                operationLevel1 == operationLevel2 &&
+                    parameters1.size == parameters2.size &&
+                    (parameters1 zip parameters2).forall(p => p._1 == p._2)
+            case (QueryType(operationLevel1, parameters1, returnType1), QueryType(operationLevel2, parameters2, returnType2)) =>
+                operationLevel1 == operationLevel2 &&
+                    returnType1 == returnType2 &&
+                    parameters1.size == parameters2.size &&
+                    (parameters1 zip parameters2).forall(p => p._1 == p._2)
+        }
     }
 
     // TODO: well-formedness checks
     private def checkExpression(expr: Expression)(implicit vars: VarEnv,
                                                   classTable: ClassTable,
                                                   typeVars: TypeVarEnv,
+                                                  typMutVars: TypeVarMutabilityEnv,
                                                   consistencyVarEnv: ConsistencyVarEnv): Type = expr match {
         case Num(_) => Type(Local, Immutable, LocalTypeSuffix(Natives.numberType))
 
@@ -105,7 +135,7 @@ object TypeChecker {
 
         case Ref(id, classType, l, m) => Type(l, m, RefTypeSuffix(classType))
 
-        case LocalObj(classType, constructor, l, m) =>
+        case LocalObj(classType, constructor) =>
             val fieldTypes = ClassTable.fields(classType).map(f => f._1 -> f._2.typ)
             val constructorTypes = constructor.map(e => e._1 -> checkExpression(e._2))
             if (constructorTypes.size != fieldTypes.size)
@@ -121,8 +151,11 @@ object TypeChecker {
                 }
             })
 
-            // TODO: well-formed class type
-            Type(l, m, LocalTypeSuffix(classType))
+            val typ = Type(Local, Immutable, LocalTypeSuffix(classType))
+            if (!wellFormed(typ)) {
+                throw TypeError(s"misformed type")
+            }
+            typ
 
         case Var(id) =>
             vars.getOrElse(id, throw TypeError(s"variable not declared: $id"))
@@ -146,15 +179,19 @@ object TypeChecker {
     }
 
     private def checkExpressionWithVars(expr: Expression, vars: VarEnv)(implicit classTable: ClassTable,
-                                                                typeVars: TypeVarEnv,
-                                                                consistencyVarEnv: ConsistencyVarEnv): Type =
+                                                                        typeVars: TypeVarEnv,
+                                                                        typMutVars: TypeVarMutabilityEnv,
+                                                                        consistencyVarEnv: ConsistencyVarEnv): Type =
         checkExpression(expr)(vars, implicitly, implicitly, implicitly)
 
     private def checkStatement(statement: Statement, vars: VarEnv)(implicit declarationContext: DeclarationContext,
                                                                    implicitContext: ConsistencyType,
                                                                    classTable: ClassTable,
                                                                    typeVars: TypeVarEnv,
-                                                                   consistencyVars: ConsistencyVarEnv): VarEnv = statement match {
+                                                                   typMutVars: TypeVarMutabilityEnv,
+                                                                   consistencyVars: ConsistencyVarEnv,
+                                                                   transactionContext: Boolean,
+                                                                   retType: Type): VarEnv = statement match {
         case Skip => vars
 
         case Error => vars
