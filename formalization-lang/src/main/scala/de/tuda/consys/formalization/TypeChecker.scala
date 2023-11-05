@@ -23,7 +23,10 @@ object TypeChecker {
         programDecl.classTable.values.foreach(decl => checkClass(decl)(programDecl.classTable))
 
         for (p <- programDecl.processes)
-            checkStatement(p, Map.empty)(TopLevelContext, Local, programDecl.classTable, Map.empty, Map.empty, Map.empty)
+            checkStatement(p, Map.empty)(
+                TopLevelContext, Local,
+                programDecl.classTable, Map.empty, Map.empty, Map.empty,
+                transactionContext = false, None)
     }
 
     private def checkClass(classDecl: ClassDecl)(implicit classTable: ClassTable): Unit = {
@@ -31,7 +34,7 @@ object TypeChecker {
         implicit val tvmEnv: TypeVarMutabilityEnv = classDecl.typeParameterMutabilityBoundsToEnv
         implicit val consistencyVarEnv: ConsistencyVarEnv = classDecl.consistencyParametersToEnv
 
-        if (!classTable.contains(classDecl.superClass.classId))
+        if (classDecl.superClass.classId != topClassId && !classTable.contains(classDecl.superClass.classId))
             throw TypeError(s"unknown superclass ${classDecl.superClass.classId} (in ${classDecl.classId})")
 
         if (natives.contains(classDecl.superClass.classId))
@@ -60,20 +63,28 @@ object TypeChecker {
                                                       typeVars: TypeVarEnv,
                                                       typMutVars: TypeVarMutabilityEnv,
                                                       consistencyVars: ConsistencyVarEnv): Unit = {
-        val methodType = UpdateType(method.operationLevel, method.declaredParameters.map(x => x.typ))
+        val methodType = UpdateType(method.operationLevel, method.declaredParameters.map(x => x.typ), method.returnType)
         if (!checkOverride(method.name, thisType, methodType))
             throw TypeError(s"invalid update override: ${method.name}")
 
-        // TODO: check well formedness of parameter types
-        // TODO: check well formedness of op levels
+        if (!wellFormed(methodType.returnType))
+            throw TypeError("misformed return type") // TODO
+        if (!wellFormed(methodType.operationLevel))
+            throw TypeError("misformed operation level") // TODO
+        methodType.parameters.foreach(p =>
+            if (!wellFormed(p))
+                throw TypeError("misformed parameter type") // TODO
+        )
 
         method.body match {
-            case Sequence(_, Return) =>
+            case Sequence(_, ReturnExpr(_)) =>
                 val varEnv0 = method.declaredParametersToEnvironment
                 checkStatement(method.body, varEnv0)(
-                    MethodContext(thisType, Mutable, method.operationLevel), Local, classTable, typeVars, typMutVars, consistencyVars)
+                    MethodContext(thisType, Mutable, method.operationLevel), Local,
+                    classTable, typeVars, typMutVars, consistencyVars,
+                    transactionContext = true, Some(methodType.returnType))
             case _ =>
-                throw TypeError("invalid method body") // TODO
+                throw TypeError("invalid method body, no final return found") // TODO
         }
     }
 
@@ -86,36 +97,44 @@ object TypeChecker {
         if (!checkOverride(method.name, thisType, methodType))
             throw TypeError(s"invalid update override: ${method.name}")
 
-        // TODO: check well formedness of parameter types
-        // TODO: check well formedness of return type
-        // TODO: check well formedness of op levels
-
-        val methodContext = MethodContext(thisType, Immutable, method.operationLevel)
+        if (!wellFormed(methodType.returnType))
+            throw TypeError("misformed return type") // TODO
+        if (!wellFormed(methodType.operationLevel))
+            throw TypeError("misformed operation level") // TODO
+        methodType.parameters.foreach(p =>
+            if (!wellFormed(p))
+                throw TypeError("misformed parameter type") // TODO
+        )
 
         if (methodType.returnType.m != Immutable)
             throw TypeError(s"query must not have mutable return type: ${method.name} in ${thisType.classId}")
 
         method.body match {
-            case Sequence(_, ReturnExpr(e)) =>
+            case Sequence(_, ReturnExpr(_)) =>
                 val varEnv0 = method.declaredParametersToEnvironment
-                val varEnv1 = checkStatement(method.body, varEnv0)(methodContext, Local, classTable, typeVars, typMutVars, consistencyVars)
+                checkStatement(method.body, varEnv0)(
+                    MethodContext(thisType, Immutable, method.operationLevel), Local,
+                    classTable, typeVars, typMutVars, consistencyVars,
+                    transactionContext = true, Some(methodType.returnType))
             case _ =>
-                throw TypeError("invalid method body") // TODO
+                throw TypeError("invalid method body, no final return found") // TODO
         }
     }
 
     private def checkOverride(id: MethodId, receiver: ClassType, overriding: MethodType)(implicit ct: ClassTable): Boolean = {
         val overridden = mType(id, receiver)
         (overriding, overridden) match {
-            case (UpdateType(operationLevel1, parameters1), UpdateType(operationLevel2, parameters2)) =>
+            case (UpdateType(operationLevel1, parameters1, returnType1), UpdateType(operationLevel2, parameters2, returnType2)) =>
                 operationLevel1 == operationLevel2 &&
-                    parameters1.size == parameters2.size &&
-                    (parameters1 zip parameters2).forall(p => p._1 == p._2)
+                  returnType1 == returnType2 &&
+                  parameters1.size == parameters2.size &&
+                  (parameters1 zip parameters2).forall(p => p._1 == p._2)
             case (QueryType(operationLevel1, parameters1, returnType1), QueryType(operationLevel2, parameters2, returnType2)) =>
                 operationLevel1 == operationLevel2 &&
-                    returnType1 == returnType2 &&
-                    parameters1.size == parameters2.size &&
-                    (parameters1 zip parameters2).forall(p => p._1 == p._2)
+                  returnType1 == returnType2 &&
+                  parameters1.size == parameters2.size &&
+                  (parameters1 zip parameters2).forall(p => p._1 == p._2)
+            case _ => false
         }
     }
 
@@ -133,7 +152,11 @@ object TypeChecker {
 
         case UnitLiteral => Type(Local, Immutable, LocalTypeSuffix(Natives.unitType))
 
-        case Ref(id, classType, l, m) => Type(l, m, RefTypeSuffix(classType))
+        case Ref(_, classType, l, m) =>
+            val typ = Type(l, m, RefTypeSuffix(classType))
+            if (!wellFormed(typ))
+                throw TypeError("misformed type in ref")
+            typ
 
         case LocalObj(classType, constructor) =>
             val fieldTypes = ClassTable.fields(classType).map(f => f._1 -> f._2.typ)
@@ -153,7 +176,7 @@ object TypeChecker {
 
             val typ = Type(Local, Immutable, LocalTypeSuffix(classType))
             if (!wellFormed(typ)) {
-                throw TypeError(s"misformed type")
+                throw TypeError(s"misformed local type")
             }
             typ
 
@@ -169,12 +192,28 @@ object TypeChecker {
 
             Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.booleanType))
 
-        case ArithmeticOperation(e1, e2) =>
+        case ArithmeticOperation(e1, e2, _) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, LocalTypeSuffix(Natives.numberType)), Type(l2, Immutable, LocalTypeSuffix(Natives.numberType))) =>
                     Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.numberType))
                 case (t1, t2) =>
-                    throw TypeError(s"invalid types for <Add>: $t1 and $t2")
+                    throw TypeError(s"invalid types for <ArithmeticOperation>: $t1 and $t2")
+            }
+
+        case ArithmeticComparison(e1, e2, _) =>
+            (checkExpression(e1), checkExpression(e2)) match {
+                case (Type(l1, Immutable, LocalTypeSuffix(Natives.numberType)), Type(l2, Immutable, LocalTypeSuffix(Natives.numberType))) =>
+                    Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.booleanType))
+                case (t1, t2) =>
+                    throw TypeError(s"invalid types for <ArithmeticComparison>: $t1 and $t2")
+            }
+
+        case BooleanCombination(e1, e2, _) =>
+            (checkExpression(e1), checkExpression(e2)) match {
+                case (Type(l1, Immutable, LocalTypeSuffix(Natives.booleanType)), Type(l2, Immutable, LocalTypeSuffix(Natives.booleanType))) =>
+                    Type(l1 lub l2, Immutable, LocalTypeSuffix(Natives.booleanType))
+                case (t1, t2) =>
+                    throw TypeError(s"invalid types for <BooleanCombination>: $t1 and $t2")
             }
     }
 
@@ -182,7 +221,7 @@ object TypeChecker {
                                                                         typeVars: TypeVarEnv,
                                                                         typMutVars: TypeVarMutabilityEnv,
                                                                         consistencyVarEnv: ConsistencyVarEnv): Type =
-        checkExpression(expr)(vars, implicitly, implicitly, implicitly)
+        checkExpression(expr)(vars, implicitly, implicitly, implicitly, implicitly)
 
     private def checkStatement(statement: Statement, vars: VarEnv)(implicit declarationContext: DeclarationContext,
                                                                    implicitContext: ConsistencyType,
@@ -191,57 +230,65 @@ object TypeChecker {
                                                                    typMutVars: TypeVarMutabilityEnv,
                                                                    consistencyVars: ConsistencyVarEnv,
                                                                    transactionContext: Boolean,
-                                                                   retType: Type): VarEnv = statement match {
-        case Skip => vars
+                                                                   retType: Option[Type]): Unit = statement match {
+        case Skip =>
 
-        case Error => vars
-
-        case Return => vars
+        case Error =>
 
         case ReturnExpr(e) =>
-            checkExpressionWithVars(e, vars)
-            vars
+            retType match {
+                case Some(value) =>
+                    val typ = checkExpressionWithVars(e, vars)
+                    if (typ !<= value) {
+                        throw TypeError("invalid return expression")
+                    }
+                case None => throw TypeError("invalid return statement")
+            }
 
         case Block(varDecls, s) =>
-            if (varDecls.exists(v => vars.contains(v)))
-                throw TypeError("variable shadowing in block") // TODO
-            checkStatement(s, vars)
-            vars
+            if (varDecls.exists(v => vars.contains(v._2)))
+                throw TypeError("invalid variable shadowing in block") // TODO
+            checkStatement(s, vars ++ varDecls.map(d => d._2 -> d._1))
 
         case Sequence(s1, s2) =>
-            val r1 = checkStatement(s1, vars)
-            checkStatement(s2, r1)
+            checkStatement(s1, vars)
+            checkStatement(s2, vars)
 
         case If(conditionExpr, thenStmt, elseStmt) =>
             val conditionType = checkExpressionWithVars(conditionExpr, vars)
             conditionType match {
                 case Type(l, Immutable, LocalTypeSuffix(Natives.booleanType)) =>
                     val newImplicitContext = implicitContext glb l
-                    (thenStmt, elseStmt) match {
-                        case (_: Block, _: Block) =>
-                            checkStatement(thenStmt, vars)(
-                                implicitly, newImplicitContext, implicitly, implicitly, implicitly)
-                            checkStatement(elseStmt, vars)(
-                                implicitly, newImplicitContext, implicitly, implicitly, implicitly)
-                            vars
-                        case _ =>
-                            throw TypeError("missing block in if") // TODO
-                    }
-
+                    checkStatement(thenStmt, vars)(
+                        implicitly, newImplicitContext,
+                        implicitly, implicitly, implicitly, implicitly,
+                        implicitly, implicitly)
+                    checkStatement(elseStmt, vars)(
+                        implicitly, newImplicitContext,
+                        implicitly, implicitly, implicitly, implicitly,
+                        implicitly, implicitly)
                 case _ =>
-                    throw TypeError(s"incorrect type for condition: $conditionType")
+                    throw TypeError(s"incorrect type for condition in if: $conditionType")
             }
 
-        case Let(varId, e) if !vars.contains(varId) =>
-            val eType = checkExpressionWithVars(e, vars)
-            vars + (varId -> eType)
+        case While(condition, stmt) =>
+            val conditionType = checkExpressionWithVars(condition, vars)
+            conditionType match {
+                case Type(l, Immutable, LocalTypeSuffix(Natives.booleanType)) =>
+                    val newImplicitContext = implicitContext glb l
+                    checkStatement(stmt, vars)(
+                        implicitly, newImplicitContext,
+                        implicitly, implicitly, implicitly, implicitly,
+                        implicitly, implicitly)
+                case _ =>
+                    throw TypeError(s"incorrect type for condition in while: $conditionType")
+            }
 
-        case Let(varId, e) if vars.contains(varId) =>
-            val varType = vars.getOrElse(varId, throw TypeError(s"undeclared variable $varId"))
+        case Let(varId, e) =>
+            val varType = vars.getOrElse(varId, throw TypeError(s"assignment to undeclared variable $varId"))
             val eType = checkExpressionWithVars(e, vars)
             if (eType !<= varType)
                 throw TypeError(s"incompatible type for assignment: $varId ($eType)")
-            vars
 
         case SetField(fieldId, valueExpr) =>
             declarationContext match {
@@ -262,17 +309,12 @@ object TypeChecker {
                     if (valueType !<= fieldType)
                         throw TypeError(s"assignment has wrong type. expected: $fieldType (but was: $valueType)")
 
-                    //if (fieldType.m == Immutable) // TODO: check if this is ok to remove
-                    //    throw TypeError(s"invalid assignment of immutable field: $fieldId (in class $thisType)")
-
                     if (implicitContext !<= fieldType.l)
                         throw TypeError(s"wrong assignment in implicit context: $fieldType in $implicitContext context")
 
                     if (operationLevel !<= fieldType.l)
                         throw TypeError(s"wrong assignment in operation context: " +
                             s"$fieldType in $operationLevel context")
-
-                    vars
             }
 
         case GetField(varId, fieldId) => declarationContext match {
@@ -280,20 +322,26 @@ object TypeChecker {
                 throw TypeError("cannot resolve 'this' outside of class declaration")
 
             case MethodContext(thisType, mutabilityContext, operationLevel) =>
-                if (vars.contains(varId))
-                    throw TypeError(s"operation requires a fresh variable")
+                if (!vars.contains(varId))
+                    throw TypeError(s"assignment to undeclared variable $varId")
 
                 val fieldType = ClassTable.fields(thisType).get(fieldId) match {
                     case Some(value) => value.typ
                     case None => throw TypeError(s"field not found: $fieldId (in class $thisType)")
                 }
 
-                vars + (varId -> Type(fieldType.l lub operationLevel,
+                val typ = Type(fieldType.l lub operationLevel,
                     fieldType.m lub mutabilityContext,
-                    fieldType.suffix))
+                    fieldType.suffix)
+
+                if (typ !<= vars(varId))
+                    throw TypeError("invalid assignment (incorrect type)")
         }
 
-        case CallUpdate(recvExpr, methodId, arguments) =>
+        case CallUpdate(varId, recvExpr, methodId, arguments) =>
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
+
             val recvType = bound(checkExpressionWithVars(recvExpr, vars))
             if (!recvType.suffix.isInstanceOf[RefTypeSuffix])
                 throw TypeError("invalid update call on non-ref receiver")
@@ -334,9 +382,14 @@ object TypeChecker {
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
             }
-            vars
 
-        case CallUpdateThis(methodId, arguments) =>
+            if (methodType.returnType !<= vars(varId))
+                throw TypeError("invalid assignment (incorrect type)")
+
+        case CallUpdateThis(varId, methodId, arguments) =>
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
+
             declarationContext match {
                 case TopLevelContext =>
                     throw TypeError("'this' not found")
@@ -357,21 +410,22 @@ object TypeChecker {
                             throw TypeError(s"wrong argument type: was $argType but expected $paramType")
                     })
 
-                    if (implicitContext != methodType.operationLevel)
+                    if (implicitContext !<= methodType.operationLevel)
                         throw TypeError("wrong operation level for implicit context")
 
-                    if (operationLevel != methodType.operationLevel)
+                    if (operationLevel !<= methodType.operationLevel)
                         throw TypeError("wrong operation level for method context")
 
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
 
+                    if (methodType.returnType !<= vars(varId))
+                        throw TypeError("invalid assignment (incorrect type)")
             }
-            vars
 
         case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
-            if (vars.contains(varId))
-                throw TypeError(s"operation requires a fresh variable")
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
 
             val recvType = bound(checkExpressionWithVars(recvExpr, vars))
             val recvClassType = recvType.suffix match {
@@ -398,11 +452,12 @@ object TypeChecker {
                 methodType.returnType.m,
                 methodType.returnType.suffix)
 
-            vars + (varId -> resType) + (resId -> resType)
+            if (resType !<= vars(varId))
+                throw TypeError("invalid assignment (incorrect type)")
 
         case CallQueryThis(varId, methodId, argumentExprs) =>
-            if (vars.contains(varId))
-                throw TypeError(s"operation requires a fresh variable")
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
 
             declarationContext match {
                 case TopLevelContext =>
@@ -428,12 +483,13 @@ object TypeChecker {
                         methodType.returnType.m,
                         methodType.returnType.suffix)
 
-                    vars + (varId -> resType) + (resId -> resType)
+                    if (resType !<= vars(varId))
+                        throw TypeError("invalid assignment (incorrect type)")
             }
 
         case Replicate(varId, _, classType, constructor, consistency, mutability) =>
-            if (vars.contains(varId))
-                throw TypeError(s"operation requires a fresh variable")
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
 
             val fieldTypes = ClassTable.fields(classType).map(f => f._1 -> f._2.typ)
             val constructorTypes = constructor.map(e => e._1 -> checkExpressionWithVars(e._2, vars))
@@ -450,16 +506,28 @@ object TypeChecker {
                 }
             })
 
-            // TODO well formedness check
-            vars + (varId -> Type(consistency, mutability, RefTypeSuffix(classType)))
+            val typ = Type(consistency, mutability, RefTypeSuffix(classType))
+            if (!wellFormed(typ))
+                throw TypeError("misformed type in replicate")
+            if (typ !<= vars(varId))
+                throw TypeError("invalid assignment (incorrect type)")
 
         case Transaction(body, except) =>
-            checkStatement(body, vars)
-            checkStatement(except, vars)
-            vars
+            if (transactionContext)
+                throw TypeError("invalid nested transaction")
+            if (retType.isDefined)
+                throw TypeError("invalid transaction in method")
+
+            checkStatement(body, vars)(
+                implicitly, implicitly,
+                implicitly, implicitly, implicitly, implicitly,
+                transactionContext = true, implicitly)
+            checkStatement(except, vars)(
+                implicitly, implicitly,
+                implicitly, implicitly, implicitly, implicitly,
+                transactionContext = false, implicitly)
 
         case Print(expression) =>
             checkExpressionWithVars(expression, vars)
-            vars
     }
 }

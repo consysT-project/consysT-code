@@ -78,7 +78,6 @@ class Interpreter(storeAddress: String) {
 
         case Block(blockVars, Skip) => (Skip, vars -- blockVars.map(_._2))
         case Block(blockVars, Error) => (Error, vars -- blockVars.map(_._2))
-        case Block(blockVars, Return) => (Return, vars -- blockVars.map(_._2))
         case Block(blockVars, ReturnExpr(e)) if isValue(e) => (ReturnExpr(e), vars -- blockVars.map(_._2))
         case Block(blockVars, s) if blockVars.forall(v => isValue(v._3)) =>
             val (s1, r1) = stepStmt(s, vars ++ blockVars.map(v => v._2 -> v._3))
@@ -92,7 +91,6 @@ class Interpreter(storeAddress: String) {
             (Block(newBlockVars, s), vars)
 
         case Sequence(Error, _) => (Error, vars)
-        case Sequence(Return, _) => (Return, vars)
         case Sequence(ReturnExpr(e), _) if isValue(e) => (ReturnExpr(e), vars)
         case Sequence(Skip, s2) => (s2, vars)
         case Sequence(s1, s2) =>
@@ -127,30 +125,38 @@ class Interpreter(storeAddress: String) {
             val thisObj = vars(thisId).asInstanceOf[LocalObj]
             (Skip, vars + (varId -> thisObj.constructor(fieldId)))
 
-        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
+        case CallUpdate(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
             val recvRef = recvExpr.asInstanceOf[Ref]
             val mBody = ClassTable.mBody(methodId, recvRef.classType)
+            mBody match {
+                case _: UpdateBody =>
+                case _: QueryBody => throw ExecutionError(s"invalid method sort for update ($methodId)")
+            }
             val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
             handler.invoke(mBody.operationLevel)
             val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
-            (EvalUpdate(recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
-        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
+            (EvalUpdate(varId, recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
+        case CallUpdate(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
                 if (t._2 == i)
                     stepExpr(argumentExprs(i))(vars)
                 else t._1)
-            (CallUpdate(recvExpr, methodId, newArguments), vars)
-        case CallUpdate(recvExpr, methodId, argumentExprs) =>
+            (CallUpdate(varId, recvExpr, methodId, newArguments), vars)
+        case CallUpdate(varId, recvExpr, methodId, argumentExprs) =>
             val e = stepExpr(recvExpr)(vars)
-            (CallUpdate(e, methodId, argumentExprs), vars)
+            (CallUpdate(varId, e, methodId, argumentExprs), vars)
 
-        case CallUpdateThis(methodId, argumentExprs) =>
-            (CallUpdate(vars(thisId), methodId, argumentExprs), vars)
+        case CallUpdateThis(varId, methodId, argumentExprs) =>
+            (CallUpdate(varId, vars(thisId), methodId, argumentExprs), vars)
 
         case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
             val recvRef = recvExpr.asInstanceOf[Ref]
             val mBody = ClassTable.mBody(methodId, recvRef.classType)
+            mBody match {
+                case _: QueryBody =>
+                case _: UpdateBody => throw ExecutionError(s"invalid method sort for update ($methodId)")
+            }
             val handler = store.getCurrentTransaction.get.resolveHandler(recvRef.id, recvRef.classType) // TODO: typed id
             handler.invoke(mBody.operationLevel)
             val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
@@ -168,6 +174,24 @@ class Interpreter(storeAddress: String) {
 
         case CallQueryThis(varId, methodId, argumentExprs) =>
             (CallQuery(varId, vars(thisId), methodId, argumentExprs), vars)
+
+        case EvalUpdate(_, _, _, _, Error) =>
+            (Error, vars)
+        case EvalUpdate(varId, _, _, _, ReturnExpr(e)) if isValue(e) =>
+            (Skip, vars + (varId -> e))
+        case EvalUpdate(varId, recv, methodId, args, body) =>
+            val (s1, r1) = stepStmt(body, args)
+            val newArgs = r1.filter(r => args.contains(r._1))
+            (EvalUpdate(varId, recv, methodId, newArgs, s1), vars)
+
+        case EvalQuery(_, _, _, _, Error) =>
+            (Error, vars)
+        case EvalQuery(varId, _, _, _, ReturnExpr(e)) if isValue(e) =>
+            (Skip, vars + (varId -> e))
+        case EvalQuery(varId, recv, methodId, args, body) =>
+            val (s1, r1) = stepStmt(body, args)
+            val newArgs = r1.filter(r => args.contains(r._1))
+            (EvalQuery(varId, recv, methodId, newArgs, s1), vars)
 
         case Replicate(varId, refId, classType, constructor, consistency, mutability) if constructor.values.forall(isValue) =>
             store.getCurrentTransaction.get.replicateNew(refId, classType, constructor) // TODO: typed id

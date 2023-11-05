@@ -8,7 +8,7 @@ object Exec {
     def main(args : Array[String]): Unit = {
         val program = exampleProgram1()
         TypeChecker.checkProgram(program)
-        new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
+        //new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
     }
 
     private def exampleProgram1(): ProgramDecl = {
@@ -16,7 +16,7 @@ object Exec {
             "Box",
             Seq.empty,
             Seq.empty,
-            SuperClassDecl("Object", Seq.empty, Seq.empty),
+            SuperClassDecl(topClassId, Seq.empty, Seq.empty),
             Map(
                 "value" -> FieldDecl("value", Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType))),
             ),
@@ -25,30 +25,46 @@ object Exec {
                     Seq(
                         VarDecl("x", Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)))
                     ),
-                    Sequence(SetField("value", Var("x")), Return)
+                    Type(Local, Immutable, LocalTypeSuffix(Natives.unitType)),
+                    Sequence(SetField("value", Var("x")), ReturnExpr(UnitLiteral))
                 ),
-                "getVal" -> QueryMethodDecl("getVal", Strong, Seq.empty, Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)),
-                    Sequence(GetField("x", "value"), ReturnExpr(Var("x")))
+                "getVal" -> QueryMethodDecl("getVal", Strong,
+                    Seq.empty,
+                    Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)),
+                    Sequence(
+                        Block(
+                            Seq(
+                                (Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)), "x", Num(0))
+                            ),
+                            Sequence(GetField("x", "value"),
+                                ReturnExpr(Var("x"))
+                            )
+                        ),
+                        ReturnExpr(Num(Int.MaxValue))
+                    )
                 ),
             )
         )
 
         ProgramDecl(
             Map(
-                "Object" -> Natives.objectClass,
-                "Number" -> Natives.numberClass,
-                "Bool" -> Natives.booleanClass,
-                "Unit" -> Natives.unitClass,
                 "Box" -> boxClass,
-            ),
+            ) ++ Natives.initialClassTable,
             Array(
                 Transaction(
-                    Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Map("value" -> Num(42)), Strong, Mutable),
-                        Sequence(CallQuery("r1", Var("x"), "getVal", Seq.empty),
-                            Sequence(Let("n", ArithmeticOperation(Var("r1"), Num(1))),
-                                Sequence(CallUpdate(Var("x"), "setVal", Seq(Var("n"))),
-                                    Sequence(CallQuery("r2", Var("x"), "getVal", Seq.empty),
-                                        Print(Var("r2"))
+                    Block(
+                        Seq(
+                            (Type(Local, Mutable, RefTypeSuffix(ClassType("Box", Seq.empty, Seq.empty))), "x", Ref("box1", ClassType("Box", Seq.empty, Seq.empty), Local, Mutable)),
+                            (Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)), "n", Num(0)),
+                            (Type(Local, Immutable, LocalTypeSuffix(Natives.topType)), "_", UnitLiteral)
+                        ),
+                        Sequence(Replicate("x", "box1", ClassType("Box", Seq.empty, Seq.empty), Map("value" -> Num(42)), Local, Mutable),
+                            Sequence(CallQuery("n", Var("x"), "getVal", Seq.empty),
+                                Sequence(Let("n", ArithmeticOperation(Var("n"), Num(1), Add)),
+                                    Sequence(CallUpdate("_", Var("x"), "setVal", Seq(Var("n"))),
+                                        Sequence(CallQuery("n", Var("x"), "getVal", Seq.empty),
+                                            Print(Var("n"))
+                                        )
                                     )
                                 )
                             )

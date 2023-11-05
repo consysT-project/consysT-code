@@ -8,8 +8,6 @@ case object Skip extends Statement
 
 case object Error extends Statement
 
-case object Return extends Statement
-
 case class ReturnExpr(e: Expression) extends Statement
 
 case class Block(vars: Seq[(Type, VarId, Expression)],
@@ -41,16 +39,19 @@ case class GetField(varId: VarId,
                     fieldId: FieldId
                    ) extends Statement
 
-case class CallUpdate(recvExpr: Expression,
+case class CallUpdate(varId: VarId,
+                      recvExpr: Expression,
                       methodId: MethodId,
                       argumentExprs: Seq[Expression]
                      ) extends Statement
 
-case class CallUpdateThis(methodId: MethodId,
+case class CallUpdateThis(varId: VarId,
+                          methodId: MethodId,
                           argumentExprs: Seq[Expression]
                          ) extends Statement
 
-case class EvalUpdate(recv: Expression,
+case class EvalUpdate(varId: VarId,
+                      recv: Expression,
                       methodId: MethodId,
                       args: Map[VarId, Expression],
                       body: Statement

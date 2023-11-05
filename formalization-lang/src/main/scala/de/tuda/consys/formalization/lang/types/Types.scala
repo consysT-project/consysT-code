@@ -130,17 +130,18 @@ object Types {
     def wellFormed(classType: ClassType)
                   (implicit classTable: ClassTable,
                    tvEnv: TypeVarEnv,
+                   tvmEnv: TypeVarMutabilityEnv,
                    cvEnv: ConsistencyVarEnv
                   ): Boolean = classType match {
         case ClassType(id, Nil, Nil) if id == topClassId => true
         case ClassType(classId, consistencyArguments, typeArguments) => classTable.get(classId) match {
             case Some(ClassDecl(_, consistencyParameters, typeParameters, _, _, _)) =>
-                consistencyArguments.forall(wellFormed) &&
-                    typeArguments.forall(wellFormed) &&
-                    consistencyParameters.size == consistencyArguments.size &&
-                    typeParameters.size == typeArguments.size &&
-                    (consistencyArguments zip consistencyParameters.map(_.upperBound)).forall(p => p._1 <= p._2) &&
-                    (typeArguments zip typeParameters).forall(p => Subtyping.subtype(p._2.mBound, p._1, p._2.upperBound))
+                consistencyParameters.size == consistencyArguments.size &&
+                  consistencyArguments.forall(wellFormed) &&
+                  (consistencyArguments zip consistencyParameters.map(_.upperBound)).forall(p => p._1 <= p._2) &&
+                  typeParameters.size == typeArguments.size &&
+                  (typeArguments zip typeParameters).forall(p => wellFormed(p._1, p._2.mBound)) &&
+                  (typeArguments zip typeParameters).forall(p => Subtyping.subtype(p._2.mBound, p._1, p._2.upperBound))
             case None => false
         }
     }

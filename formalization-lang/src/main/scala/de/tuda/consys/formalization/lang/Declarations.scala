@@ -28,18 +28,21 @@ sealed trait MethodDecl {
 
     def operationLevel: ConsistencyType
 
+    def returnType: Type
+
     def body: Statement
 }
 
 case class QueryMethodDecl(override val name: MethodId,
                            override val operationLevel: ConsistencyType,
                            override val declaredParameters: Seq[VarDecl],
-                           returnType: Type,
+                           override val returnType: Type,
                            override val body: Statement) extends MethodDecl
 
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: ConsistencyType,
                             override val declaredParameters: Seq[VarDecl],
+                            override val returnType: Type,
                             override val body: Statement) extends MethodDecl
 
 case class ClassDecl(classId: ClassId,
@@ -48,21 +51,11 @@ case class ClassDecl(classId: ClassId,
                      superClass: SuperClassDecl,
                      fields: Map[FieldId, FieldDecl],
                      methods: Map[MethodId, MethodDecl]) {
-
     def getField(fieldId: FieldId): Option[FieldDecl] =
         fields.get(fieldId)
 
     def getMethod(methodId: MethodId): Option[MethodDecl] =
         methods.get(methodId)
-
-    def getMethodWithSuperclass(methodId: MethodId)
-                               (implicit classTable: ClassTable): Option[MethodDecl] = {
-        getMethod(methodId) match {
-            case v@Some(_) => v
-            case None if superClass.classId == topClassId => None
-            case None => ClassTable.getSuperclass(this).getMethodWithSuperclass(methodId)
-        }
-    }
 
     def toType: ClassType =
         ClassType(classId,
