@@ -39,6 +39,7 @@ public class Main {
 		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
 		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
 		CASE_STUDIES.put("bounded_counter", Examples.BOUNDED_COUNTER);
+		CASE_STUDIES.put("add_only_dag", Examples.ADD_ONLY_DAG);
 		CASE_STUDIES.put("riak_gcounter", Examples.RIAK_GCOUNTER);
 		CASE_STUDIES.put("riak_pncounter", Examples.RIAK_PNCOUNTER);
 		CASE_STUDIES.put("riak_gset", Examples.RIAK_GSET);

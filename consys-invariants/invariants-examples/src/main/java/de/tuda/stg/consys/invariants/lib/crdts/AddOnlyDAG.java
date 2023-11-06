@@ -1,7 +1,67 @@
 package de.tuda.stg.consys.invariants.lib.crdts;
 
-public class AddOnlyDAG {
+import de.tuda.stg.consys.Mergeable;
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.invariants.lib.crdts.data.Edge;
+
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+
+
+@ReplicatedModel public class AddOnlyDAG<V> implements Mergeable<AddOnlyDAG<V>> {
+
+    //TODO: is it possible to add an cycle detection in the invariant?
+
+    public final GSet<V> vertices;
+    public final GSet<Edge<V>> edges;
+
+    //@ public invariant (\forall Edge<V> edge; edges.contains(edge); vertices.contains(edge.from) && vertices.contains(edge.to));
+
+    //@ ensures vertices.isEmpty();
+    //@ ensures edges.isEmpty();
+    public AddOnlyDAG() {
+        this.vertices = new GSet<>();
+        this.edges = new GSet<>();
+    }
+
+    //@ assignable \nothing;
+    //@ ensures \result == vertices.contains(v);
+    public boolean hasVertex(V v) {
+        return vertices.contains(v);
+    }
+
+    //@ assignable vertices;
+    //@ ensures stateful( vertices.add(v) );
+    public Void addVertex(V v) {
+        vertices.add(v);
+        return null;
+    }
+
+    //@ assignable edges;
+    //@ ensures stateful( edges.add(new Edge(from, to) );
+    public Void addEdge(V from, V to) {
+        edges.add(new Edge<>(from, to));
+        return null;
+    }
+
+    public boolean findReachable(V source, V target) {
+//        ImmutableSet<V> finished = ImmutableSet.of();
+//        finished.add()
+        return false;
+    }
+
+
+    //@ ensures stateful( vertices.merge(other.vertices) );
+    //@ ensures stateful( edges.merge(other.edges) );
+    @Override
+    public Void merge(AddOnlyDAG<V> other) {
+        vertices.merge(other.vertices);
+        edges.merge(other.edges);
+
+        return null;
+    }
 }
+
+
 
 //FROM: https://github.com/verifx-prover/verifx/blob/main/examples/CRDT%20Verification/src/main/verifx/org/verifx/crdtproofs/graphs/AddOnlyDAGSB.vfx
 ///*
@@ -50,8 +110,8 @@ public class AddOnlyDAG {
 //    val rightSentinel = "-|"
 //
 //    // Initialise the DAG with two sentinels and a single edge between them
-//    val initialVertices = new GSet[String]().add(leftSentinel).add(rightSentinel)
-//    val initialEdges = new GSet[Edge[String]]().add(new Edge(leftSentinel, rightSentinel))
+//    val initialVertices = new GSet[V]().add(leftSentinel).add(rightSentinel)
+//    val initialEdges = new GSet[Edge[V]]().add(new Edge(leftSentinel, rightSentinel))
 //
 //    // Create 2 fresh replicas
 //    val dag1 = new AddOnlyDAGSB(initialVertices, initialEdges)
