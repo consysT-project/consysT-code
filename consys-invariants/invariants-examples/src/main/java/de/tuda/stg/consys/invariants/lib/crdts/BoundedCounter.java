@@ -22,13 +22,13 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 @ReplicatedModel
 public class BoundedCounter implements Mergeable<BoundedCounter> {
 
-	public final int replicaId;
+	public final int rid;
 
 	public final PNCounter counter;
 
 	public final int[][] localPermissions;
 
-	//@ public invariant this.replicaId == replicaId();
+	//@ public invariant this.rid == replicaId();
 	//@ public invariant this.getValue() >= 0;
 	//@ public invariant this.getQuota() >= 0 && this.getQuota() <= this.getValue();
 
@@ -36,14 +36,14 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	// public invariant (\sum int i; i >= 0 && i < numOfReplicas(); getQuota(i)) == getValue();
 
 	//TODO: Can we remove the this.getQuota() == 0; condition? It should be covered by the last condition.
-	//@ requires replicaId == replicaId();
-	//@ ensures this.replicaId == replicaId();
+	//@ requires id == replicaId();
+	//@ ensures this.rid == id;
 	//@ ensures this.counter.getValue() == 0;
 	//@ ensures this.getQuota() == 0;
 	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == 0));
-	public BoundedCounter(int replicaId) {
-		this.replicaId = replicaId;
-		counter = new PNCounter(replicaId);
+	public BoundedCounter(int id) {
+		this.rid = id;
+		counter = new PNCounter(id);
 		localPermissions = new int[numOfReplicas()][numOfReplicas()];
 	}
 
@@ -81,7 +81,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 
 	//@ requires true;
 	//@ assignable \nothing;
-	//@ ensures \result == counter.incs[replica] - counter.decs[replica] + (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[i][replica]) - (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[replica][i]);
+	//@ ensures \result == counter.incs[replica] - counter.decs[replica] + (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[i][rid]) - (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[rid][i]);
 	public int getQuota(int replica) {
 		int received = 0;
 		for (int sender = 0; sender < numOfReplicas(); sender++) {
@@ -98,31 +98,32 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 
 	//@ requires true;
 	//@ assignable \nothing;
-	//@ ensures \result == getQuota(replicaId);
+	//@ ensures \result == getQuota(rid);
 	public int getQuota() {
-		return getQuota(replicaId);
+		return getQuota(rid);
 	}
 
 
 
 	//@ requires value <= getQuota() && toReplica >= 0 && toReplica < numOfReplicas();
-	//@ requires toReplica != replicaId;
-	//@ assignable localPermissions[replicaId][toReplica];
-	//@ ensures localPermissions[replicaId][toReplica] == localPermissions[replicaId][toReplica] + value;
+	//@ requires toReplica != rid;
+	//@ assignable localPermissions[rid][toReplica];
+	//@ ensures localPermissions[rid][toReplica] == \old(localPermissions[rid][toReplica]) + value;
 	public Void transfer(int toReplica, int value) {
 		if (getQuota() < value)
 			throw new IllegalArgumentException();
 
-		localPermissions[replicaId][toReplica] += value;
+		localPermissions[rid][toReplica] += value;
 
 		return null;
 	}
 
-	@Override
 	//TODO: Where does the bug with these conditions come from?
+	//TODO: Merge is invalid? What is the precondition/Can we improve the postcondition?
 	//@ requires true;
 	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == Math.max(this.localPermissions[i][j], other.localPermissions[i][j])));
-	//@ ensures stateful( counter.merge(other.counter));
+	//@ ensures stateful( counter.merge(other.counter) );
+	//@ ensures \old(rid) == rid;
 	public Void merge(BoundedCounter other) {
 		counter.merge(other.counter);
 
