@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.invariants.lib.crdts;
+package de.tuda.stg.consys.invariants.lib.crdts.data;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
@@ -6,28 +6,28 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import java.util.HashSet;
 import java.util.Set;
 
-@ReplicatedModel public class GSet<T> implements Mergeable<GSet<T>> {
+@ReplicatedModel public class GEdgeSet implements Mergeable<GEdgeSet> {
 
-    public Set<T> underlying;
+    public Set<Edge> underlying;
 
     /* Constructors */
     //@ ensures underlying.isEmpty();
-    public GSet() {
-        this.underlying = new HashSet<T>();
+    public GEdgeSet() {
+        this.underlying = new HashSet<Edge>();
     }
 
 
     //@ assignable underlying;
     //@ ensures underlying.contains(val);
     //@ ensures underlying.containsAll(\old(underlying));
-    public Void add(T val) {
+    public Void add(Edge val) {
         underlying.add(val);
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    public boolean contains(T val){
+    public boolean contains(Edge val){
         return underlying.contains(val);
     }
 
@@ -39,13 +39,13 @@ import java.util.Set;
 
     //@ assignable \nothing;
     //@ ensures \result.equals(underlying);
-    public Set<T> getValue() {
+    public Set<Edge> getValue() {
         return underlying;
     }
 
-    //@ ensures (\forall T i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
-    //@ ensures (\forall T i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
-    public Void merge(GSet<T> other) {
+    //@ ensures (\forall Edge i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
+    //@ ensures (\forall Edge i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
+    public Void merge(GEdgeSet other) {
         underlying.addAll(other.underlying);
         return null;
     }

@@ -3,47 +3,51 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.invariants.lib.crdts.data.Edge;
+import de.tuda.stg.consys.invariants.lib.crdts.data.GEdgeSet;
+import de.tuda.stg.consys.invariants.lib.crdts.data.GObjectSet;
 
+
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
 
-@ReplicatedModel public class AddOnlyDAG<V> implements Mergeable<AddOnlyDAG<V>> {
+@ReplicatedModel public class AddOnlyDAG implements Mergeable<AddOnlyDAG> {
 
     //TODO: is it possible to add an cycle detection in the invariant?
 
-    public final GSet<V> vertices;
-    public final GSet<Edge<V>> edges;
+    public final GObjectSet vertices = new GObjectSet();
+    public final GEdgeSet edges = new GEdgeSet();
 
-    //@ public invariant (\forall Edge<V> edge; edges.contains(edge); vertices.contains(edge.from) && vertices.contains(edge.to));
+    //@ public invariant (\forall Edge edge; edges.contains(edge); vertices.contains(edge.from) && vertices.contains(edge.to));
 
     //@ ensures vertices.isEmpty();
     //@ ensures edges.isEmpty();
     public AddOnlyDAG() {
-        this.vertices = new GSet<>();
-        this.edges = new GSet<>();
+
     }
 
     //@ assignable \nothing;
     //@ ensures \result == vertices.contains(v);
-    public boolean hasVertex(V v) {
+    public boolean hasVertex(Object v) {
         return vertices.contains(v);
     }
 
     //@ assignable vertices;
     //@ ensures stateful( vertices.add(v) );
-    public Void addVertex(V v) {
+    public Void addVertex(Object v) {
         vertices.add(v);
         return null;
     }
 
     //@ assignable edges;
-    //@ ensures stateful( edges.add(new Edge(from, to) );
-    public Void addEdge(V from, V to) {
-        edges.add(new Edge<>(from, to));
+    //@ ensures stateful( edges.add(new Edge(from, to)) );
+    public Void addEdge(Object from, Object to) {
+        edges.add(new Edge(from, to));
         return null;
     }
 
-    public boolean findReachable(V source, V target) {
+    public boolean findReachable(Object source, Object target) {
 //        ImmutableSet<V> finished = ImmutableSet.of();
 //        finished.add()
         return false;
@@ -52,8 +56,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
     //@ ensures stateful( vertices.merge(other.vertices) );
     //@ ensures stateful( edges.merge(other.edges) );
-    @Override
-    public Void merge(AddOnlyDAG<V> other) {
+    public Void merge(AddOnlyDAG other) {
         vertices.merge(other.vertices);
         edges.merge(other.edges);
 

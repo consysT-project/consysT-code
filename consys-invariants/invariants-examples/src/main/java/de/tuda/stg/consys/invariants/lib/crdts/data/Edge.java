@@ -3,12 +3,12 @@ package de.tuda.stg.consys.invariants.lib.crdts.data;
 import de.tuda.stg.consys.annotations.invariants.DataModel;
 
 @DataModel
-public class Edge<V> {
+public class Edge {
 
-    public final V from;
-    public final V to;
+    public final Object from;
+    public final Object to;
 
-    public Edge(V from, V to) {
+    public Edge(Object from, Object to) {
         this.from = from;
         this.to = to;
     }
