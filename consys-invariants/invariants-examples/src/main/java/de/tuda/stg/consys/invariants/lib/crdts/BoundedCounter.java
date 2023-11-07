@@ -106,6 +106,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 
 
 	//@ requires value <= getQuota() && toReplica >= 0 && toReplica < numOfReplicas();
+	//@ requires toReplica != replicaId;
 	//@ assignable localPermissions[replicaId][toReplica];
 	//@ ensures localPermissions[replicaId][toReplica] == localPermissions[replicaId][toReplica] + value;
 	public Void transfer(int toReplica, int value) {
@@ -119,9 +120,9 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 
 	@Override
 	//TODO: Where does the bug with these conditions come from?
-	// requires true;
-	// ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == Math.max(this.localPermissions[i][j], other.localPermissions[i][j])));
-	// ensures stateful( counter.merge(other.counter));
+	//@ requires true;
+	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == Math.max(this.localPermissions[i][j], other.localPermissions[i][j])));
+	//@ ensures stateful( counter.merge(other.counter));
 	public Void merge(BoundedCounter other) {
 		counter.merge(other.counter);
 

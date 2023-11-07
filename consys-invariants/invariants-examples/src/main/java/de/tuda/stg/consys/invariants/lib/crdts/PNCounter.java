@@ -7,7 +7,7 @@ import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
-//import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
 @ReplicatedModel public class PNCounter implements Mergeable<PNCounter> {
@@ -19,10 +19,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
     public int[] decs;
 
     /* Constructors */
-    //@ requires replicaId == replicaId;
+    //@ ensures this.replicaId == id;
     //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0 && decs[i] == 0);
-    public PNCounter(int replicaId) {
-        this.replicaId = replicaId;
+    public PNCounter(int id) {
+        this.replicaId = id;
         this.incs = new int[numOfReplicas()];
         this.decs = new int[numOfReplicas()];
     }
@@ -59,21 +59,17 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
     public int getValue() { return sumIncs() - sumDecs(); }
 
 
-
-    /*@
-    @ assignable incs[replicaId];
-    @ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
-    @*/
+    //@ assignable incs[replicaId];
+    //@ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
     public Void inc() {
         incs[replicaId] = incs[replicaId] + 1;
         return null;
     }
 
-    /*@
-    @ requires n >= 0;
-    @ assignable incs[replicaId];
-    @ ensures incs[replicaId] == \old(incs[replicaId]) + n;
-    @*/
+
+    //@ requires n >= 0;
+    //@ assignable incs[replicaId];
+    //@ ensures incs[replicaId] == \old(incs[replicaId]) + n;
     public Void inc(int n) {
         incs[replicaId] = incs[replicaId] + n;
         return null;
