@@ -117,7 +117,7 @@ case object Mixed extends ConsistencyLevel[CassandraStore] {
 			throw new UnsupportedOperationException("field writes are not supported by Mixed consistency")
 		}
 
-		override def commit(
+		def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = {

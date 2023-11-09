@@ -76,7 +76,7 @@ case object Weak extends ConsistencyLevel[CassandraStore] {
 		}
 
 
-		override def commit(
+		def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = txContext.Cache.readLocalEntry(ref.addr) match {

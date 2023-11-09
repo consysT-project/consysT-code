@@ -3,9 +3,10 @@ package de.tuda.stg.consys.core.store.cassandra.levels
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject}
-import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraConsistencyProtocol, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+
 import java.lang.reflect.Field
 import org.checkerframework.dataflow.qual.SideEffectFree
 //import org.graalvm.compiler.hotspot.nodes.`type`.MethodPointerStamp.method
@@ -32,7 +33,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 	 * 		</ol>
 	 * </ol>
 	 */
-	private class StrongProtocol(val store : CassandraStore) extends ConsistencyProtocol[CassandraStore, Strong.type] {
+	private class StrongProtocol(val store : CassandraStore) extends CassandraConsistencyProtocol[Strong.type] {
 		override def toLevel : Strong.type = Strong
 
 		override def replicate[T <: CassandraStore#ObjType : ClassTag](
@@ -100,7 +101,7 @@ case object Strong extends ConsistencyLevel[CassandraStore] {
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
 
-		override def commit(
+		def commit(
 			txContext : CassandraStore#TxContext,
 			ref : CassandraStore#RefType[_ <: CassandraStore#ObjType]
 		) : Unit = {

@@ -187,7 +187,7 @@ object AkkaReplicaAdapter {
 		private val preparedChanges : mutable.HashMap[String, ChangeList] = mutable.HashMap.empty
 
 		// TODO: Can we use replicated data instead?
-		// private val replicatedData = DistributedData.apply(context.system).selfUniqueAddress
+		private val replicatedData = DistributedData.apply(context.system).selfUniqueAddress
 
 		/* The replica actors of all replicas in the system (can include self) */
 		private val otherReplicas : mutable.Set[ActorRef] = mutable.Set.empty

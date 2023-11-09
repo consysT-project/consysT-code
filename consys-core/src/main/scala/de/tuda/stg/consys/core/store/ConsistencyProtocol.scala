@@ -29,5 +29,5 @@ trait ConsistencyProtocol[StoreType <: Store, Level <: ConsistencyLevel[StoreTyp
 	def getField[T <: StoreType#ObjType : ClassTag, R](txContext : StoreType#TxContext, receiver : StoreType#RefType[T], fieldName : String) : R
 	def setField[T <: StoreType#ObjType : ClassTag, R](txContext : StoreType#TxContext, receiver : StoreType#RefType[T], fieldName : String, value : R) : Unit
 
-	def commit(txContext : StoreType#TxContext, ref : StoreType#RefType[_ <: StoreType#ObjType]) : Unit
+//
 }

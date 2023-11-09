@@ -77,15 +77,6 @@ case object Strong extends ConsistencyLevel[AkkaStore] {
 			txContext.Cache.setFieldsChanged(addr, Iterable.single(Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)))
 		}
 
-
-		override def commit(
-			txContext : AkkaStore#TxContext,
-			ref : AkkaStore#RefType[_ <: AkkaStore#ObjType]
-		) : Unit = {
-			throw new NotImplementedError("do nothing")
-		}
-
-
 		private def strongRead[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr) : AkkaCachedObject[T] = {
 			val state = store.replica.read[T](addr)
 			AkkaCachedObject(addr, state, Strong)

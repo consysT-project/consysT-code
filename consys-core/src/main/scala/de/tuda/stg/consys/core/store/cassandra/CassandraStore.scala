@@ -81,7 +81,7 @@ trait CassandraStore extends DistributedStore
 		cassandraSession.close()
 	}
 
-	override def id : CassandraStoreId = CassandraStoreId(s"cassandra-store@${cassandraSession.getContext.getSessionName}")
+	override lazy val id : CassandraStoreId = CassandraStoreId(s"cassandra-store@${cassandraSession.getContext.getSessionName}")
 
 	override def clear() : Unit = {
 		cassandra.setup()
