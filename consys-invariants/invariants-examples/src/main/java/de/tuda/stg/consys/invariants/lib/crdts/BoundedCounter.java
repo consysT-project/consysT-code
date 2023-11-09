@@ -32,6 +32,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ public invariant this.getValue() >= 0;
 	//@ public invariant this.getQuota() >= 0 && this.getQuota() <= this.getValue();
 
+
 	//TODO: Can we say something like this?
 	// public invariant (\sum int i; i >= 0 && i < numOfReplicas(); getQuota(i)) == getValue();
 
@@ -61,6 +62,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ requires val >= 0 && val <= getQuota();
 	//@ assignable counter;
 	//@ ensures stateful( counter.dec(val) );
+	//@ ensures getQuota() == \old(getQuota()) - val;
 	public Void decrement(int val) {
 		if (val < 0)
 			throw new IllegalArgumentException();
@@ -118,12 +120,14 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 		return null;
 	}
 
+	//TODO: We need a property that relates quota and value. One problem seems to be that quota and can not be related due to the querying of the PN counter.
 	//TODO: Where does the bug with these conditions come from?
 	//TODO: Merge is invalid? What is the precondition/Can we improve the postcondition?
 	//@ requires true;
 	//@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\forall int j; j >= 0 && j < numOfReplicas(); this.localPermissions[i][j] == Math.max(this.localPermissions[i][j], other.localPermissions[i][j])));
 	//@ ensures stateful( counter.merge(other.counter) );
 	//@ ensures \old(rid) == rid;
+	//@ ensures getQuota() >= \old(getQuota());
 	public Void merge(BoundedCounter other) {
 		counter.merge(other.counter);
 

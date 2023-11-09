@@ -15,6 +15,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 @ReplicatedModel public class AddOnlyDAG implements Mergeable<AddOnlyDAG> {
 
     //TODO: is it possible to add an cycle detection in the invariant?
+    //TODO: Transform this into a DAG by adapting to a different add method.
 
     public final GObjectSet vertices = new GObjectSet();
     public final GEdgeSet edges = new GEdgeSet();
