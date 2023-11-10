@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.store.cassandra.levels
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.annotations.MethodWriteList
 import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject}
-import de.tuda.stg.consys.core.store.cassandra.{CassandraConsistencyProtocol, CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraConsistencyLevel, CassandraConsistencyProtocol, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
 
@@ -13,8 +13,8 @@ import org.checkerframework.dataflow.qual.SideEffectFree
 import scala.reflect.ClassTag
 
 /** Consistency level for strong, sequential consistency. */
-case object Strong extends ConsistencyLevel[CassandraStore] {
-	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Strong.type] =
+case object Strong extends CassandraConsistencyLevel {
+	override def toProtocol(store : CassandraStore) : CassandraConsistencyProtocol[Strong.type] =
 		new StrongProtocol(store)
 
 	/**

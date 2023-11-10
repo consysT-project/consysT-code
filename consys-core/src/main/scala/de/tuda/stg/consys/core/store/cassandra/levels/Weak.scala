@@ -2,18 +2,19 @@ package de.tuda.stg.consys.core.store.cassandra.levels
 
 import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.core.store.cassandra.objects.{CassandraObject, StrongCassandraObject, WeakCassandraObject}
-import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraConsistencyLevel, CassandraConsistencyProtocol, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+
 import scala.reflect.ClassTag
 
 
 /** Consistency level for weak, eventual consistency with last-writer-wins conflict resolution. */
-case object Weak extends ConsistencyLevel[CassandraStore] {
-	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Weak.type] =
+case object Weak extends CassandraConsistencyLevel {
+	override def toProtocol(store : CassandraStore) : CassandraConsistencyProtocol[Weak.type] =
 		new WeakProtocol(store)
 
-	private class WeakProtocol(val store : CassandraStore) extends ConsistencyProtocol[CassandraStore, Weak.type] {
+	private class WeakProtocol(val store : CassandraStore) extends CassandraConsistencyProtocol[Weak.type] {
 		override def toLevel : Weak.type = Weak
 
 		override def replicate[T <: CassandraStore#ObjType : ClassTag](

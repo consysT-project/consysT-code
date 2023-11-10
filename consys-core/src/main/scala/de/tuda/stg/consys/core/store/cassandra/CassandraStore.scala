@@ -46,7 +46,7 @@ trait CassandraStore extends DistributedStore
 	override final type HandlerType[T <: ObjType] = CassandraHandler[T]
 	override final type RefType[T <: ObjType] = CassandraRef[T]
 
-	override final type Level = ConsistencyLevel[CassandraStore]
+	override final type Level = CassandraConsistencyLevel
 
 	override protected[store] val curator : CuratorFramework
 

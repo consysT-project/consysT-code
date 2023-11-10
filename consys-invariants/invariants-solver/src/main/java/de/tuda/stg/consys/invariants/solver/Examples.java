@@ -90,11 +90,20 @@ public class Examples {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/MultiValueRegister.java"),
 	};
 
-	public static final Path[] ADD_ONLY_DAG = new Path[] {
+	public static final Path[] ADD_ONLY_GRAPH = new Path[] {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/Edge.java"),
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/GEdgeSet.java"),
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/GObjectSet.java"),
-			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/AddOnlyDAG.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/AddOnlyGraph.java"),
+	};
+
+	public static final Path[] TWO_PHASE_GRAPH = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/Edge.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/GObjectSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/GEdgeSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/TwoPhaseObjectSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/data/TwoPhaseEdgeSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/TwoPTwoPGraph.java"),
 	};
 
 	public static final Path[] SHOPPING_CART = new Path[] {

@@ -525,10 +525,40 @@ public class BaseExpressionParser extends ExpressionParser {
 
     else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "replicaId")) {
       return model.ctx.mkInt(model.config.SYSTEM__REPLICA_ID);
+
     } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "replica")) {
       return model.ctx.mkString(model.config.SYSTEM__REPLICA);
+
     } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "numOfReplicas")) {
       return model.ctx.mkInt(model.config.SYSTEM__NUM_OF_REPLICAS);
+
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "object", "java.lang.Class", "java.lang.Object[]")) {
+      var classArg = jmlMessageSend.arguments[0];
+
+      if (!(classArg instanceof ClassLiteralAccess)) {
+        throw new UnsupportedJMLExpression(jmlMessageSend.arguments[0], "the method <object> expects a class literal as its first argument.");
+      }
+
+      var classLiteral = (ClassLiteralAccess) classArg;
+      var typeModel = model.types.typeFor(classLiteral.targetType);
+      var typeSort = typeModel.getSort().orElseThrow();
+
+      if (!(typeSort instanceof TupleSort)) {
+        throw new UnsupportedJMLExpression(jmlMessageSend.arguments[0], "the class has no Z3 interpretation (missing @DataModel?).");
+      }
+
+      var objectSort = (TupleSort) typeSort;
+      var constrDecl = objectSort.mkDecl();
+
+      var argExprs = new Expr[jmlMessageSend.arguments.length - 1];
+
+      for (int i = 0; i < argExprs.length; i++) {
+        argExprs[i] = parseExpression(jmlMessageSend.arguments[i + 1], depth + 1);
+      }
+
+      var expr = constrDecl.apply(argExprs);
+
+      return expr;
     }
 
 

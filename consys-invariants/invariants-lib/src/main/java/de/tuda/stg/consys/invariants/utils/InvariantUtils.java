@@ -3,11 +3,15 @@ package de.tuda.stg.consys.invariants.utils;
 public class InvariantUtils {
 
 	public static boolean stateful(Object o) {
-		throw new UnsupportedOperationException("stateful is only useable in constraints.");
+		throw new UnsupportedOperationException("the method <stateful> is only usable in constraints.");
 	}
 
 	public static boolean __merge(Object o) {
-		throw new UnsupportedOperationException("merge is only useable in constraints.");
+		throw new UnsupportedOperationException("the method <merge> is only usable in constraints.");
+	}
+
+	public static <T> T object(Class<T> cls, Object... fields) {
+		throw new UnsupportedOperationException("the method <object> is only usable in constraints.");
 	}
 
 	private static int replicaId = 2;

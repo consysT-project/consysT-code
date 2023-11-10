@@ -19,11 +19,9 @@ import java.util.Set;
 
     }
 
-    //@ requires (removals.contains(obj) == false);
     //@ assignable adds;
     //@ ensures adds.contains(obj);
-    //@ ensures (\forall T elem; \old(adds.contains(elem)); adds.contains(elem));
-    //@ ensures (\forall T elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
+    //@ ensures (\forall T elem; adds.contains(elem); \old(adds.contains(elem)) || elem == obj );
     public Void add(T obj) {
         adds.add(obj);
         return null;

@@ -4,9 +4,10 @@ import com.datastax.oss.driver.api.core.{ConsistencyLevel => CassandraLevel}
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
 import de.tuda.stg.consys.core.store.cassandra.objects.MixedCassandraObject
 import de.tuda.stg.consys.core.store.cassandra.objects.MixedCassandraObject.{FetchedLevel, FetchedStrong, FetchedWeak}
-import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
+import de.tuda.stg.consys.core.store.cassandra.{CassandraConsistencyLevel, CassandraConsistencyProtocol, CassandraRef, CassandraStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
+
 import scala.reflect.ClassTag
 
 /**
@@ -14,11 +15,11 @@ import scala.reflect.ClassTag
  *
  * @author Mirko Köhler
  */
-case object Mixed extends ConsistencyLevel[CassandraStore] {
-	override def toProtocol(store : CassandraStore) : ConsistencyProtocol[CassandraStore, Mixed.type] =
+case object Mixed extends CassandraConsistencyLevel {
+	override def toProtocol(store : CassandraStore) : CassandraConsistencyProtocol[Mixed.type] =
 		new MixedProtocol(store)
 
-	private class MixedProtocol(val store : CassandraStore) extends ConsistencyProtocol[CassandraStore, Mixed.type] {
+	private class MixedProtocol(val store : CassandraStore) extends CassandraConsistencyProtocol[Mixed.type] {
 		override def toLevel : Mixed.type = Mixed
 
 		override def replicate[T <: CassandraStore#ObjType : ClassTag](

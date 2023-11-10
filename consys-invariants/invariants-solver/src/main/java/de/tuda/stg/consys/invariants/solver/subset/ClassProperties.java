@@ -45,7 +45,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 	}
 
 
-	private boolean isValid(Model z3Model, Expr<BoolSort> expr) {
+	private CheckStatus isValid(Model z3Model, Expr<BoolSort> expr) {
 		// a property is valid if the inverse is unsatisfiable.
 		Status status = model.solver.check(
 				//create the inverse
@@ -55,13 +55,13 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		switch (status) {
 			case UNSATISFIABLE:
 //				Logger.info(Arrays.toString(model.solver.getUnsatCore()));
-				return true;
+				return CheckStatus.VALID;
 			case SATISFIABLE:
 //				Logger.info(model.solver.getModel());
-				return false;
+				return CheckStatus.INVALID;
 			case UNKNOWN:
 				Logger.info("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
-				return false;
+				return CheckStatus.UNKNOWN;
 			default:
 				//Does not exist
 				throw new RuntimeException();
@@ -70,7 +70,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 
 	private enum CheckStatus {
-		VALID, INVALID, ERROR
+		VALID, INVALID, UNKNOWN, ERROR
 	}
 
 
@@ -121,7 +121,7 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 		public CheckStatus check(Model z3Model) {
 			try {
 				var result = isValid(z3Model, expr);
-				return result ? CheckStatus.VALID : CheckStatus.INVALID;
+				return result;
 			} catch (RuntimeException e) {
 //				throw new IllegalStateException("exception during solving for property <" + description() + ">\n" + expr + "\n", e);
 				Logger.err("exception while checking property <" + description() + ">:");

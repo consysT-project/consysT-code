@@ -1,6 +1,85 @@
 package de.tuda.stg.consys.invariants.lib.crdts;
 
-public class TwoPTwoPGraph {
+import de.tuda.stg.consys.Mergeable;
+import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.invariants.lib.crdts.data.*;
+
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
+
+@ReplicatedModel
+public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph> {
+
+	public final TwoPhaseObjectSet vertices = new TwoPhaseObjectSet();
+	public final TwoPhaseEdgeSet edges = new TwoPhaseEdgeSet();
+
+
+	//@ public invariant (\forall Edge edge; edges.contains(edge); vertices.contains(edge.from) && vertices.contains(edge.to));
+
+	//@ ensures vertices.isEmpty();
+	//@ ensures edges.isEmpty();
+	public TwoPTwoPGraph() {
+
+	}
+
+	//@ assignable \nothing;
+	//@ ensures \result == vertices.contains(v);
+	public boolean hasVertex(Object v) {
+		return vertices.contains(v);
+	}
+
+	//@ assignable vertices;
+	//@ ensures stateful( vertices.add(v) );
+	public Void addVertex(Object v) {
+		vertices.add(v);
+		return null;
+	}
+
+	//TODO: Just the stateful call is not enough "stateful( edges.add( object(Edge.class, from, to) ) );" because it does not talk about the other elements of the set.
+	//@ requires vertices.contains(from) && vertices.contains(to);
+	//@ assignable edges;
+	//@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) || edge == object(Edge.class, from, to));
+	public Void addEdge(Object from, Object to) {
+		if (!vertices.contains(from) && !vertices.contains(to))
+			throw new IllegalArgumentException();
+
+		edges.add(new Edge(from, to));
+		return null;
+	}
+
+
+	//@ requires (\forall Edge edge; edges.contains(edge); edge.from != v && edge.to != v);
+	//@ assignable vertices;
+	//@ ensures stateful( vertices.remove(v) );
+	public Void removeVertex(Object v) {
+		for (Edge edge : edges.getValue()) {
+			if (edge.to.equals(v) || edge.from.equals(v))
+				throw new IllegalArgumentException();
+		}
+
+		vertices.remove(v);
+		return null;
+	}
+
+
+	//@ assignable edges;
+	//@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) && edge != object(Edge.class, from, to));
+	public Void removeEdge(Object from, Object to) {
+		edges.remove(new Edge(from, to));
+		return null;
+	}
+
+
+	//@ ensures stateful( vertices.merge(other.vertices) );
+	//@ ensures stateful( edges.merge(other.edges) );
+	public Void merge(TwoPTwoPGraph other) {
+		vertices.merge(other.vertices);
+		edges.merge(other.edges);
+
+		return null;
+	}
 }
 
 

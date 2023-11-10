@@ -120,6 +120,10 @@ public class JDTUtils {
 	}
 
 	public static boolean methodMatchesSignature(TypeBinding receiverBinding, MethodBinding binding, boolean isStatic, String declaringClassName, String methodName, String... argumentTypeNames) {
+//		if (String.valueOf(binding.selector).equals("object")) {
+//			System.out.println("hello");
+//		}
+
 		if (binding == null) {
 			Logger.err("binding was null. receiver: " + receiverBinding + ", method: " + methodName);
 			return false;

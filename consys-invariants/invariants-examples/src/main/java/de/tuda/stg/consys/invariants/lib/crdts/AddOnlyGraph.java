@@ -10,11 +10,11 @@ import de.tuda.stg.consys.invariants.lib.crdts.data.GObjectSet;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 
+@ReplicatedModel public class AddOnlyGraph implements Mergeable<AddOnlyGraph> {
 
-@ReplicatedModel public class AddOnlyDAG implements Mergeable<AddOnlyDAG> {
-
-    //TODO: is it possible to add an cycle detection in the invariant?
+    //TODO: is it possible to add an cycle detection in the invariant? No, restriction of first-order logic.
     //TODO: Transform this into a DAG by adapting to a different add method.
 
     public final GObjectSet vertices = new GObjectSet();
@@ -24,7 +24,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
     //@ ensures vertices.isEmpty();
     //@ ensures edges.isEmpty();
-    public AddOnlyDAG() {
+    public AddOnlyGraph() {
 
     }
 
@@ -41,9 +41,14 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
         return null;
     }
 
+    //TODO: Just the stateful call is not enough "stateful( edges.add( object(Edge.class, from, to) ) );" because it does not talk about the other elements of the set.
+    //@ requires vertices.contains(from) && vertices.contains(to);
     //@ assignable edges;
-    //@ ensures stateful( edges.add(new Edge(from, to)) );
+    //@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) || edge == object(Edge.class, from, to));
     public Void addEdge(Object from, Object to) {
+        if (!vertices.contains(from) && !vertices.contains(to))
+            throw new IllegalArgumentException();
+
         edges.add(new Edge(from, to));
         return null;
     }
@@ -57,7 +62,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
     //@ ensures stateful( vertices.merge(other.vertices) );
     //@ ensures stateful( edges.merge(other.edges) );
-    public Void merge(AddOnlyDAG other) {
+    public Void merge(AddOnlyGraph other) {
         vertices.merge(other.vertices);
         edges.merge(other.edges);
 
