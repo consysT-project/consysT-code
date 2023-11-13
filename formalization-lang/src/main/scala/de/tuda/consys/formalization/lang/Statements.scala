@@ -39,19 +39,16 @@ case class GetField(varId: VarId,
                     fieldId: FieldId
                    ) extends Statement
 
-case class CallUpdate(varId: VarId,
-                      recvExpr: Expression,
+case class CallUpdate(recvExpr: Expression,
                       methodId: MethodId,
                       argumentExprs: Seq[Expression]
                      ) extends Statement
 
-case class CallUpdateThis(varId: VarId,
-                          methodId: MethodId,
+case class CallUpdateThis(methodId: MethodId,
                           argumentExprs: Seq[Expression]
                          ) extends Statement
 
-case class EvalUpdate(varId: VarId,
-                      recv: Expression,
+case class EvalUpdate(recv: Expression,
                       methodId: MethodId,
                       args: Map[VarId, Expression],
                       body: Statement
@@ -78,9 +75,7 @@ case class EvalQuery(varId: VarId,
 case class Replicate(varId: VarId,
                      refId: String,
                      classType: ClassType,
-                     constructor: Map[FieldId, Expression],
-                     consistency: ConsistencyType,
-                     mutability: MutabilityType
+                     constructor: Map[FieldId, Expression]
                     ) extends Statement
 
 case class Transaction(body: Statement,

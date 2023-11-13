@@ -47,6 +47,14 @@ case object Inconsistent extends ConcreteConsistencyType {
 
 case class ConsistencyVar(name: ConsistencyVarId) extends ConsistencyType {
     override def operationLevel(): OperationLevel = ???
+
+    override def toString: ConsistencyVarId = name
+}
+
+case class ConsistencyUnion(t1: ConsistencyType, t2: ConsistencyType) extends ConsistencyType {
+    override def operationLevel(): OperationLevel = ???
+
+    override def toString: ConsistencyVarId = s"${t1}v$t2"
 }
 
 object ConsistencyTypeLattice {

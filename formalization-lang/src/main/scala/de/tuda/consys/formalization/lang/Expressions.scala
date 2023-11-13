@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, MutabilityType}
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, MutabilityType, TypeSuffix}
 
 sealed trait Expression
 
@@ -15,14 +15,14 @@ case object False extends BooleanValue
 case object UnitLiteral extends Expression
 
 case class Ref(id: String,
-               classType: ClassType,
-               l: ConsistencyType,
-               m: MutabilityType
+               classType: ClassType
               ) extends Expression
 
 case class LocalObj(classType: ClassType,
                     constructor: Map[FieldId, Expression]
                    ) extends Expression
+
+case class Default(s: TypeSuffix, l: ConsistencyType, m: MutabilityType) extends Expression
 
 case class Var(id: VarId) extends Expression
 

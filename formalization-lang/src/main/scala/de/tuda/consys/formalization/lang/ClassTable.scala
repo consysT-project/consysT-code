@@ -42,7 +42,7 @@ object ClassTable {
         val inheritedFields = fields(getSuperType(receiver))
 
         inheritedFields ++ classDecl.fields.values.
-          map(f => f.name -> FieldDecl(f.name, substitute(f.typ, varEnv, consEnv))).toMap
+          map(f => f.name -> FieldDecl(f.name, substitute(f.typ, varEnv, consEnv), substitute(f.init, varEnv, consEnv))).toMap
     }
 
     @tailrec
@@ -50,13 +50,14 @@ object ClassTable {
         val classDecl = classTable.getOrElse(receiver.classId,
             sys.error(s"method $methodId for receiver $receiver not found"))
 
+        val varEnv = (classDecl.typeParameters.map(_.name) zip receiver.typeArguments).toMap
         val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
 
         classDecl.getMethod(methodId) match {
             case Some(value: UpdateMethodDecl) =>
-                UpdateBody(substitute(value.operationLevel, consEnv), value.body, value.declaredParameterNames)
+                UpdateBody(substitute(value.operationLevel, consEnv), substitute(value.body, varEnv, consEnv), value.declaredParameterNames)
             case Some(value: QueryMethodDecl) =>
-                QueryBody(substitute(value.operationLevel, consEnv), value.body, value.declaredParameterNames)
+                QueryBody(substitute(value.operationLevel, consEnv), substitute(value.body, varEnv, consEnv), value.declaredParameterNames)
             case None => mBody(methodId, getSuperType(receiver))
         }
     }
@@ -70,9 +71,9 @@ object ClassTable {
         val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
 
         classDecl.getMethod(methodId) match {
-            case Some(UpdateMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
+            case Some(u@UpdateMethodDecl(_, operationLevel, declaredParameters, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
-                val concreteReturnType = substitute(returnType, varEnv, consEnv)
+                val concreteReturnType = substitute(u.returnType, varEnv, consEnv)
                 UpdateType(substitute(operationLevel, consEnv), concreteParams, concreteReturnType)
             case Some(QueryMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))

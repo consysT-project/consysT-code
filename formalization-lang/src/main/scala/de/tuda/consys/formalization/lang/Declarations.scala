@@ -1,9 +1,9 @@
 package de.tuda.consys.formalization.lang
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, ConsistencyVar, MutabilityType, Type, TypeSuffix, TypeSuffixVar}
+import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, ConsistencyVar, Immutable, Local, LocalTypeSuffix, MutabilityType, Type, TypeSuffix, TypeSuffixVar, UnitTypeSuffix}
 
-case class FieldDecl(name: FieldId, typ: Type)
+case class FieldDecl(name: FieldId, typ: Type, init: Expression)
 
 case class VarDecl(name: VarId, typ: Type)
 
@@ -42,8 +42,9 @@ case class QueryMethodDecl(override val name: MethodId,
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: ConsistencyType,
                             override val declaredParameters: Seq[VarDecl],
-                            override val returnType: Type,
-                            override val body: Statement) extends MethodDecl
+                            override val body: Statement) extends MethodDecl {
+    override def returnType: Type = Type(Local, Immutable, UnitTypeSuffix)
+}
 
 case class ClassDecl(classId: ClassId,
                      consistencyParameters: Seq[ConsistencyVarDecl],

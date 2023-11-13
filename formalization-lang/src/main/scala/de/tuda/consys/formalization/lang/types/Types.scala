@@ -1,8 +1,9 @@
 package de.tuda.consys.formalization.lang.types
 
+import de.tuda.consys.formalization.lang
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.errors.TypeError
-import de.tuda.consys.formalization.lang.{ClassDecl, ClassId, ConsistencyVarEnv, TypeVarEnv, TypeVarId, TypeVarMutabilityEnv, topClassId}
+import de.tuda.consys.formalization.lang.{ArithmeticComparison, ArithmeticOperation, Block, BooleanCombination, BooleanValue, CallQuery, CallQueryThis, CallUpdate, CallUpdateThis, ClassDecl, ClassId, ConsistencyVarEnv, Default, EvalQuery, EvalUpdate, Expression, GetField, If, Let, LocalObj, Num, Print, Ref, Replicate, ReturnExpr, Sequence, SetField, Skip, Statement, Transaction, TypeVarEnv, TypeVarId, TypeVarMutabilityEnv, UnitLiteral, Var, While, topClassId}
 
 import scala.annotation.tailrec
 
@@ -27,7 +28,7 @@ case class Type(l: ConsistencyType, m: MutabilityType, suffix: TypeSuffix) exten
     def withMutability(m: MutabilityType): Type = Type(l, m, suffix)
     def withSuffix(suffix: TypeSuffix): Type = Type(l, m, suffix)
 
-    override def toString: ClassId = s"[$l $m]$suffix"
+    override def toString: ClassId = s"[$l,$m]*$suffix"
 }
 
 sealed trait TypeSuffix
@@ -36,10 +37,16 @@ case class TypeSuffixVar(id: TypeVarId) extends TypeSuffix {
     override def toString: ClassId = s"$id"
 }
 
+case object BooleanTypeSuffix extends TypeSuffix
+
+case object NumberTypeSuffix extends TypeSuffix
+
+case object UnitTypeSuffix extends TypeSuffix
+
 sealed trait NonVarTypeSuffix extends TypeSuffix
 
 case class LocalTypeSuffix(classType: ClassType) extends NonVarTypeSuffix {
-    override def toString: String = s"$classType"
+    override def toString: String = s"Val[$classType]"
 }
 
 case class RefTypeSuffix(classType: ClassType) extends NonVarTypeSuffix {
@@ -50,7 +57,7 @@ case class ClassType(classId: ClassId,
                      consistencyArguments: Seq[ConsistencyType],
                      typeArguments: Seq[TypeSuffix]) {
     override def toString: String =
-        if (typeArguments.isEmpty) s"$classId"
+        if (typeArguments.isEmpty & consistencyArguments.isEmpty) s"$classId"
         else s"$classId<${consistencyArguments.mkString(",")},${typeArguments.mkString(",")}>"
 }
 
@@ -92,6 +99,7 @@ object Types {
         }
         case RefTypeSuffix(classType) => RefTypeSuffix(substitute(classType, typeVars, consistencyVars))
         case LocalTypeSuffix(classType) => LocalTypeSuffix(substitute(classType, typeVars, consistencyVars))
+        case x => x
     }
 
     def substitute(typ: ClassType, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): ClassType =
@@ -101,10 +109,62 @@ object Types {
 
     def substitute(typ: ConsistencyType, consistencyVars: ConsistencyVarEnv): ConsistencyType = typ match {
         case consistencyType: ConcreteConsistencyType => consistencyType
+        case ConsistencyUnion(t1, t2) => ConsistencyUnion(substitute(t1, consistencyVars), substitute(t2, consistencyVars))
         case ConsistencyVar(name) => consistencyVars.get(name) match {
             case Some(value) => value
             case None => ConsistencyVar(name)
         }
+    }
+
+    def substitute(expr: Expression, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): Expression = expr match {
+        case Ref(id, classType) =>
+            Ref(id, substitute(classType, typeVars, consistencyVars))
+        case LocalObj(classType, constructor) =>
+            LocalObj(substitute(classType, typeVars, consistencyVars), constructor.map(f => f._1 -> substitute(f._2, typeVars, consistencyVars)))
+        case Default(s, l, m) =>
+            Default(substitute(s, typeVars, consistencyVars), substitute(l, consistencyVars), m)
+        case ArithmeticOperation(e1, e2, op) =>
+            ArithmeticOperation(substitute(e1, typeVars, consistencyVars), substitute(e2, typeVars, consistencyVars), op)
+        case ArithmeticComparison(e1, e2, op) =>
+            ArithmeticComparison(substitute(e1, typeVars, consistencyVars), substitute(e2, typeVars, consistencyVars), op)
+        case BooleanCombination(e1, e2, op) =>
+            BooleanCombination(substitute(e1, typeVars, consistencyVars), substitute(e2, typeVars, consistencyVars), op)
+        case x => x
+    }
+
+    def substitute(stmt: Statement, typeVars: TypeVarEnv, consistencyVars: ConsistencyVarEnv): Statement = stmt match {
+        case ReturnExpr(e) => ReturnExpr(substitute(e, typeVars, consistencyVars))
+        case Block(vars, s) =>
+            Block(vars.map(v => (substitute(v._1, typeVars, consistencyVars), v._2, substitute(v._3, typeVars, consistencyVars))), substitute(s, typeVars, consistencyVars))
+        case Sequence(s1, s2) =>
+            Sequence(substitute(s1, typeVars, consistencyVars), substitute(s2, typeVars, consistencyVars))
+        case If(conditionExpr, thenStmt, elseStmt) =>
+            If(substitute(conditionExpr, typeVars, consistencyVars), substitute(thenStmt, typeVars, consistencyVars), substitute(elseStmt, typeVars, consistencyVars))
+        case While(condition, stmt) =>
+            While(substitute(condition, typeVars, consistencyVars), substitute(stmt, typeVars, consistencyVars))
+        case Let(varId, e) =>
+            Let(varId, substitute(e, typeVars, consistencyVars))
+        case SetField(fieldId, valueExpr) =>
+            SetField(fieldId, substitute(valueExpr, typeVars, consistencyVars))
+        case CallUpdate(recvExpr, methodId, argumentExprs) =>
+            CallUpdate(substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case CallUpdateThis(methodId, argumentExprs) =>
+            CallUpdateThis(methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case EvalUpdate(recv, methodId, args, body) =>
+            EvalUpdate(substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
+        case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
+            CallQuery(varId, substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case CallQueryThis(varId, methodId, argumentExprs) =>
+            CallQueryThis(varId, methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case EvalQuery(varId, recv, methodId, args, body) =>
+            EvalQuery(varId, substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
+        case Replicate(varId, refId, classType, constructor) =>
+            Replicate(varId, refId, substitute(classType, typeVars, consistencyVars), constructor.map(c => (c._1, substitute(c._2, typeVars, consistencyVars))))
+        case Transaction(body, except) =>
+            Transaction(substitute(body, typeVars, consistencyVars), substitute(except, typeVars, consistencyVars))
+        case Print(expression) =>
+            Print(substitute(expression, typeVars, consistencyVars))
+        case x => x
     }
 
     def wellFormed(typ: Type)
@@ -122,9 +182,12 @@ object Types {
                    tvmEnv: TypeVarMutabilityEnv,
                    cvEnv: ConsistencyVarEnv,
                   ): Boolean = suffix match {
-        case TypeSuffixVar(id) => tvEnv.contains(id) && Subtyping.subtype(m, tvmEnv(id))
+        case TypeSuffixVar(id) => tvEnv.contains(id) && Subtyping.subtype(tvmEnv(id), m)
         case RefTypeSuffix(classType) => wellFormed(classType)
         case LocalTypeSuffix(classType) => wellFormed(classType)
+        case BooleanTypeSuffix => true
+        case NumberTypeSuffix => true
+        case UnitTypeSuffix => true
     }
 
     def wellFormed(classType: ClassType)
@@ -148,6 +211,29 @@ object Types {
 
     def wellFormed(l: ConsistencyType)(implicit cvEnv: ConsistencyVarEnv): Boolean = l match {
         case _: ConcreteConsistencyType => true
+        case ConsistencyUnion(t1, t2) => wellFormed(t1) && wellFormed(t2)
         case ConsistencyVar(name) => cvEnv.contains(name)
     }
+
+    def booleanType: Type = Type(Local, Immutable, BooleanTypeSuffix)
+
+    def booleanType(c: ConsistencyType): Type = Type(c, Immutable, BooleanTypeSuffix)
+
+    def numberType: Type = Type(Local, Immutable, NumberTypeSuffix)
+
+    def numberType(c: ConsistencyType): Type = Type(c, Immutable, NumberTypeSuffix)
+
+    def unitType: Type = Type(Local, Immutable, UnitTypeSuffix)
+
+    def unitType(c: ConsistencyType): Type = Type(c, Immutable, UnitTypeSuffix)
+
+    def localType(classType: ClassType): Type = Type(Local, Immutable, LocalTypeSuffix(classType))
+
+    def localType(c: ConsistencyType, classType: ClassType): Type = Type(c, Immutable, LocalTypeSuffix(classType))
+
+    def refType(classType: ClassType): Type = Type(Local, Mutable, RefTypeSuffix(classType))
+
+    def refType(c: ConsistencyType, classType: ClassType): Type = Type(c, Mutable, RefTypeSuffix(classType))
+
+    def refType(c: ConsistencyType, m: MutabilityType, classType: ClassType): Type = Type(c, m, RefTypeSuffix(classType))
 }
