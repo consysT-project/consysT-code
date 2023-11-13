@@ -1,5 +1,6 @@
 package de.tuda.consys.formalization.examples
 
+import de.tuda.consys.formalization.lang.Natives.topType
 import de.tuda.consys.formalization.{Interpreter, TypeChecker}
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.types._
@@ -8,33 +9,33 @@ object Exec {
     def main(args : Array[String]): Unit = {
         val program = exampleProgram1()
         TypeChecker.checkProgram(program)
-        //new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
+        new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
     }
 
     private def exampleProgram1(): ProgramDecl = {
         val boxClass = ClassDecl(
             "Box",
-            Seq.empty,
-            Seq.empty,
+            Seq(ConsistencyVarDecl("R", Weak), ConsistencyVarDecl("W", Weak)),
+            Seq(TypeVarDecl("T", LocalTypeSuffix(topType), Mutable)),
             SuperClassDecl(topClassId, Seq.empty, Seq.empty),
             Map(
-                "value" -> FieldDecl("value", Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType))),
+                "value" -> FieldDecl("value", Type(ConsistencyVar("W"), Immutable, TypeSuffixVar("T"))),
             ),
             Map(
                 "setVal" -> UpdateMethodDecl("setVal", Strong,
                     Seq(
-                        VarDecl("x", Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)))
+                        VarDecl("x", Type(ConsistencyVar("W"), Immutable, TypeSuffixVar("T")))
                     ),
                     Type(Local, Immutable, LocalTypeSuffix(Natives.unitType)),
                     Sequence(SetField("value", Var("x")), ReturnExpr(UnitLiteral))
                 ),
-                "getVal" -> QueryMethodDecl("getVal", Strong,
+                "getVal" -> QueryMethodDecl("getVal", ConsistencyVar("R"),
                     Seq.empty,
-                    Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)),
+                    Type(ConsistencyVar("R"), Immutable, TypeSuffixVar("T")),
                     Sequence(
                         Block(
                             Seq(
-                                (Type(Strong, Immutable, LocalTypeSuffix(Natives.numberType)), "x", Num(0))
+                                (Type(ConsistencyVar("R"), Immutable, TypeSuffixVar("T")), "x", Num(0))
                             ),
                             Sequence(GetField("x", "value"),
                                 ReturnExpr(Var("x"))

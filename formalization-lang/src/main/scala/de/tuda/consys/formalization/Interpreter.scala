@@ -81,7 +81,8 @@ class Interpreter(storeAddress: String) {
         case Block(blockVars, ReturnExpr(e)) if isValue(e) => (ReturnExpr(e), vars -- blockVars.map(_._2))
         case Block(blockVars, s) if blockVars.forall(v => isValue(v._3)) =>
             val (s1, r1) = stepStmt(s, vars ++ blockVars.map(v => v._2 -> v._3))
-            (Block(blockVars, s1), r1)
+            val newBlockVars = blockVars.map(v => (v._1, v._2, r1(v._2)))
+            (Block(newBlockVars, s1), r1 -- blockVars.map(_._2))
         case Block(blockVars, s) =>
             val i = blockVars.indexWhere(p => !isValue(p._3))
             val newBlockVars = blockVars.zipWithIndex.map(t =>
