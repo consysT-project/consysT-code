@@ -36,7 +36,7 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 
 	implicit val node: SelfUniqueAddress = DistributedData(system).selfUniqueAddress
 	node.hashCode()
-	private val key : ReplKeyType = ORMapKey("consys-map")
+	val key : ReplKeyType = ORMapKey("consys-map")
 
 
 	val replicator = DistributedData(system).replicator
@@ -58,12 +58,12 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 
 	//TODO: Incorporate timestamps in LWW registers
 	private def internalWrite(timestamp : Long, ops : Seq[TransactionOp], consistency : WriteConsistency) : Unit = {
+
 		replicator ! Replicator.Update(key, ORMap.empty, consistency) { ormap  =>
 			var ormapTemp = ormap
 			for (op <- ops) {
 				op match {
 					case CreateOrUpdateObject(addr, newState) =>
-
 						ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, LWWRegister.apply[AkkaStore#ObjType](node, newState)) { register =>
 							register.withValue(node, newState)
 						}
@@ -72,6 +72,7 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 			}
 			ormapTemp
 		}
+
 	}
 
 	def readLocal[T <: ObjType](addr : AddrType) : T = {
@@ -100,7 +101,6 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 
 			//TODO: Is the scheduler correct?
 			val response = Askable(replicator).ask(Replicator.Get(key, consistency))(timeout, system.toTyped.scheduler)
-
 			val result = Await.result(response, timeout)
 
 			result match {

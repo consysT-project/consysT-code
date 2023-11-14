@@ -1,16 +1,15 @@
 package de.tuda.stg.consys.core.store.akkacluster
 
-import akka.actor.{ActorSystem, ExtendedActorSystem}
+import akka.actor.{AllDeadLetters, ExtendedActorSystem, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata.SelfUniqueAddress
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.tuda.stg.consys.core.store.ConsistencyLevel
-import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
 import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter
 import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
 import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ZookeeperStore}
-import de.tuda.stg.consys.core.store.utils.SinglePortAddress
+import de.tuda.stg.consys.core.store.utils.{DeadLetterListener, SinglePortAddress}
 import de.tuda.stg.consys.logging.Logger
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
@@ -118,6 +117,7 @@ trait AkkaClusterStore extends DistributedStore
 
 object AkkaClusterStore {
 
+
   def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, nodes : Iterable[SinglePortAddress], systemName : String = "consys-akka-cluster", timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS)) : AkkaClusterStore = {
 
     class AkkaClusterStoreImpl(
@@ -130,9 +130,7 @@ object AkkaClusterStore {
     def nodeName(host : String, akkaPort : Int) : String =
       s"akka://$systemName@$host:$akkaPort"
 
-
     val nodeNames : Iterable[String] = nodes.map(address => nodeName(address.hostname, address.port))
-
 
     import scala.jdk.CollectionConverters._
 
@@ -146,11 +144,13 @@ object AkkaClusterStore {
     val system = akka.actor.ActorSystem(systemName, config).asInstanceOf[ExtendedActorSystem]
     Logger.info(s"started actor system at ${system.provider.getDefaultAddress}")
 
+    DeadLetterListener.addDeadLetterListener(system)
+
     val curator = CuratorFrameworkFactory
       .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
 
     curator.start()
-    curator.blockUntilConnected()
+    curator.blockUntilConnected(timeout.length.asInstanceOf[Int], timeout.unit)
 
 
     new AkkaClusterStoreImpl(system, curator, timeout)
