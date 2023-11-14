@@ -5,12 +5,17 @@ import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 import akka.cluster.ddata.typed.scaladsl.Replicator
 import de.tuda.stg.consys.core.store.akka.AkkaStore
+import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
+import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.ReadObject
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
 import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter.{AddrType, CreateOrUpdateObject, MapType, ObjType, ReplKeyType, TransactionOp, ValueType}
+import de.tuda.stg.consys.logging.Logger
 import org.apache.curator.framework.CuratorFramework
 
-import scala.concurrent.Await
+import java.util.concurrent.TimeUnit
+import scala.concurrent.{Await, TimeoutException}
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
 object AkkaClusterReplicaAdapter {
 
@@ -30,6 +35,7 @@ object AkkaClusterReplicaAdapter {
 class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
 
 	implicit val node: SelfUniqueAddress = DistributedData(system).selfUniqueAddress
+	node.hashCode()
 	private val key : ReplKeyType = ORMapKey("consys-map")
 
 
@@ -57,6 +63,7 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 			for (op <- ops) {
 				op match {
 					case CreateOrUpdateObject(addr, newState) =>
+
 						ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, LWWRegister.apply[AkkaStore#ObjType](node, newState)) { register =>
 							register.withValue(node, newState)
 						}
@@ -79,33 +86,51 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 		import akka.actor.typed.scaladsl.AskPattern._
 		import akka.actor.typed.scaladsl.adapter._
 
-		//TODO: Is the scheduler correct?
-		val response = Askable(replicator).ask(Replicator.Get(key, consistency))(timeout, system.toTyped.scheduler)
 
-		val result = Await.result(response, timeout)
+		val startTime = System.nanoTime()
 
-		result match {
-			case success : GetSuccess[MapType] =>
-				success.dataValue.get(addr) match {
-					case Some(LWWRegister(obj)) =>
-						obj.asInstanceOf[T]
-					case Some(_) =>
-						???
-					case None =>
-						//TODO: Implement wait semantics?
-						throw new IllegalArgumentException("key not available")
-				}
 
-			case notFound : NotFound[MapType] =>
-				???
+		while (true) {
+			val timeTaken = System.nanoTime() - startTime
 
-			case failure : GetFailure[MapType] =>
-				???
+			if (timeTaken > timeout.toNanos) {
+				throw new TimeoutException(s"reference to $addr was not resolved")
+			}
 
-			case deleted : GetDataDeleted[MapType] =>
-				???
 
+			//TODO: Is the scheduler correct?
+			val response = Askable(replicator).ask(Replicator.Get(key, consistency))(timeout, system.toTyped.scheduler)
+
+			val result = Await.result(response, timeout)
+
+			result match {
+				case success : GetSuccess[MapType] =>
+					success.dataValue.get(addr) match {
+						case Some(LWWRegister(obj)) =>
+							return obj.asInstanceOf[T]
+						case Some(_) =>
+							//TODO: Implement mergeable data types
+							???
+						case None =>
+//							throw new IllegalArgumentException("key not available")
+							Logger.err("AkkaClusterReplicaAdapter", "key not available yet")
+					}
+
+				case notFound : NotFound[MapType] =>
+					Logger.err("AkkaClusterReplicaAdapter", "ormap not found")
+
+				case failure : GetFailure[MapType] =>
+					Logger.err("AkkaClusterReplicaAdapter", "failed to read ormap")
+
+				case deleted : GetDataDeleted[MapType] =>
+					throw new IllegalArgumentException("ormap was deleted")
+
+			}
+
+			Thread.sleep(100)
 		}
+
+		throw new RuntimeException()
 	}
 
 	def close() : Unit = {
