@@ -1,28 +1,25 @@
 package de.tuda.stg.consys.core.store.akkacluster.backend
 
 import akka.actor.ExtendedActorSystem
+import akka.cluster.ddata
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
-import akka.cluster.ddata.typed.scaladsl.Replicator
+import de.tuda.stg.consys.Mergeable
 import de.tuda.stg.consys.core.store.akka.AkkaStore
-import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
-import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.ReadObject
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
-import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter.{AddrType, CreateOrUpdateObject, MapType, ObjType, ReplKeyType, TransactionOp, ValueType}
+import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter._
 import de.tuda.stg.consys.logging.Logger
 import org.apache.curator.framework.CuratorFramework
 
-import java.util.concurrent.TimeUnit
-import scala.concurrent.{Await, TimeoutException}
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
+import scala.concurrent.{Await, TimeoutException}
 
 object AkkaClusterReplicaAdapter {
 
 	private type AddrType = String
 	private type ObjType = Serializable
 
-	private type ValueType = LWWRegister[Serializable]
+	private type ValueType = ReplicatedData
 	private type MapType = ORMap[String, ValueType]
 	private type ReplKeyType = ORMapKey[AddrType, ValueType]
 
@@ -56,6 +53,7 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 		internalWrite(timestamp, ops, WriteAll(timeout))
 	}
 
+
 	//TODO: Incorporate timestamps in LWW registers
 	private def internalWrite(timestamp : Long, ops : Seq[TransactionOp], consistency : WriteConsistency) : Unit = {
 
@@ -64,9 +62,22 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 			for (op <- ops) {
 				op match {
 					case CreateOrUpdateObject(addr, newState) =>
-						ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, LWWRegister.apply[AkkaStore#ObjType](node, newState)) { register =>
-							register.withValue(node, newState)
+
+						newState match {
+
+							case mergeable : Mergeable[_ <: Mergeable[_]] =>
+								ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, MergeableReplicatedData(mergeable)) { replicatedData =>
+									MergeableReplicatedData(newState)
+								}
+
+							case _ =>
+								ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, LWWRegister.apply[ObjType](node, newState)) { register =>
+									register.asInstanceOf[LWWRegister[ObjType]].withValue(node, newState)
+								}
+
 						}
+
+
 					case _ => throw new UnsupportedOperationException("transaction op unknown")
 				}
 			}
@@ -84,8 +95,6 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 	}
 
 	private def internalRead[T <: ObjType](addr : AddrType, consistency : ReadConsistency) : T = {
-		import akka.actor.typed.scaladsl.AskPattern._
-		import akka.actor.typed.scaladsl.adapter._
 
 
 		val startTime = System.nanoTime()
@@ -98,9 +107,10 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 				throw new TimeoutException(s"reference to $addr was not resolved")
 			}
 
+			import akka.pattern._
 
 			//TODO: Is the scheduler correct?
-			val response = Askable(replicator).ask(Replicator.Get(key, consistency))(timeout, system.toTyped.scheduler)
+			val response = replicator.ask(Replicator.Get(key, consistency))(timeout)
 			val result = Await.result(response, timeout)
 
 			result match {
@@ -108,9 +118,8 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 					success.dataValue.get(addr) match {
 						case Some(LWWRegister(obj)) =>
 							return obj.asInstanceOf[T]
-						case Some(_) =>
-							//TODO: Implement mergeable data types
-							???
+						case Some(MergeableReplicatedData(obj)) =>
+							return obj.asInstanceOf[T]
 						case None =>
 //							throw new IllegalArgumentException("key not available")
 							Logger.err("AkkaClusterReplicaAdapter", "key not available yet")

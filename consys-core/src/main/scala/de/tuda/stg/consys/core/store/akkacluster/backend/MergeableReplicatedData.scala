@@ -3,8 +3,8 @@ package de.tuda.stg.consys.core.store.akkacluster.backend
 import akka.cluster.ddata.ReplicatedData
 import de.tuda.stg.consys.Mergeable
 
-class MergeableReplicatedData[A <: Mergeable[A]](
-	val mergeable : A
+case class MergeableReplicatedData(
+	mergeable : Mergeable[_]
 ) extends ReplicatedData {
 	override type T = this.type
 
