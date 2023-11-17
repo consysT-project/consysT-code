@@ -57,16 +57,16 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 	//TODO: Incorporate timestamps in LWW registers
 	private def internalWrite(timestamp : Long, ops : Seq[TransactionOp], consistency : WriteConsistency) : Unit = {
 
-		replicator ! Replicator.Update(key, ORMap.empty, consistency) { ormap  =>
-			var ormapTemp = ormap
+		replicator ! Replicator.Update.apply[MapType](key, ORMap.empty, consistency) { ormap  =>
+			var ormapTemp : MapType = ormap
 			for (op <- ops) {
 				op match {
 					case CreateOrUpdateObject(addr, newState) =>
 
 						newState match {
 
-							case mergeable : Mergeable[_ <: Mergeable[_]] =>
-								ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, MergeableReplicatedData(mergeable)) { replicatedData =>
+							case mergeable : Mergeable[_] =>
+								ormapTemp = ormapTemp.updated(node, addr, MergeableReplicatedData(mergeable)) { replicatedData =>
 									MergeableReplicatedData(newState)
 								}
 

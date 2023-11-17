@@ -36,15 +36,15 @@ endpoint_snitch: Ec2Snitch
 
 # Installing Zookeeper
 cd ~
-wget https://dlcdn.apache.org/zookeeper/zookeeper-3.8.0/apache-zookeeper-3.8.0-bin.tar.gz
-tar -xf apache-zookeeper-3.8.0-bin.tar.gz
-cd apache-zookeeper-3.8.0-bin
+wget https://dlcdn.apache.org/zookeeper/zookeeper-3.8.3/apache-zookeeper-3.8.3-bin.tar.gz
+tar -xf apache-zookeeper-3.8.3-bin.tar.gz
+cd apache-zookeeper-3.8.3-bin
 mkdir logs
 mkdir data
 echo "1" > data/myid
 # cp conf/zoo_sample.cfg conf/zoo.cfg
 # nano conf/zoo.cfg
-cp ~/consysT-code/aws/config/zoo/zoo01.cfg conf/zoo.cfg
+cp ~/consysT-code/aws/config-02/zoo/zoo01.cfg conf/zoo.cfg
 
 
 bin/zkServer.sh start
