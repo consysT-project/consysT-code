@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo;
 
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
+import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterStore;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.Store;
 import de.tuda.stg.consys.japi.TransactionContext;
@@ -9,6 +10,10 @@ import de.tuda.stg.consys.japi.binding.akka.AkkaConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.akka.AkkaReplica;
 import de.tuda.stg.consys.japi.binding.akka.AkkaStoreBinding;
 import de.tuda.stg.consys.japi.binding.akka.AkkaTransactionContextBinding;
+import de.tuda.stg.consys.japi.binding.akkacluster.AkkaClusterConsistencyLevels;
+import de.tuda.stg.consys.japi.binding.akkacluster.AkkaClusterReplica;
+import de.tuda.stg.consys.japi.binding.akkacluster.AkkaClusterStoreBinding;
+import de.tuda.stg.consys.japi.binding.akkacluster.AkkaClusterTransactionContextBinding;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -25,6 +30,9 @@ public abstract class JBenchStoreConverter<
     public abstract JBenchStore<Addr, Obj, TxContext, JStore, SStore> convert(SStore sstore);
 
     public static final JBenchStoreConverter<String, Serializable, AkkaTransactionContextBinding, AkkaStoreBinding, AkkaStore> AKKA_STORE_CONVERTER = new FromAkkaStore();
+
+    public static final JBenchStoreConverter<String, Serializable, AkkaClusterTransactionContextBinding, AkkaClusterStoreBinding, AkkaClusterStore> AKKACLUSTER_STORE_CONVERTER = new FromAkkaClusterStore();
+
     public static final JBenchStoreConverter<String, Serializable, CassandraTransactionContextBinding, CassandraStoreBinding, CassandraStore> CASSANDRA_STORE_CONVERTER = new FromCassandraStore();
 
     private static class FromAkkaStore extends JBenchStoreConverter<String, Serializable, AkkaTransactionContextBinding, AkkaStoreBinding, AkkaStore> {
@@ -45,6 +53,30 @@ public abstract class JBenchStoreConverter<
 
                 @Override
                 public ConsistencyLevel<AkkaStore> getMixedLevel() {
+                    throw new UnsupportedOperationException("akka does not support mixed levels yet.");
+                }
+            };
+        }
+    }
+
+    private static class FromAkkaClusterStore extends JBenchStoreConverter<String, Serializable, AkkaClusterTransactionContextBinding, AkkaClusterStoreBinding, AkkaClusterStore> {
+        @Override
+        public JBenchStore<String, Serializable, AkkaClusterTransactionContextBinding, AkkaClusterStoreBinding, AkkaClusterStore> convert(AkkaClusterStore sstore) {
+            var storeBinding = AkkaClusterReplica.create(sstore);
+
+            return new JBenchStore<>(sstore, storeBinding) {
+                @Override
+                public ConsistencyLevel<AkkaClusterStore> getWeakLevel() {
+                    return AkkaClusterConsistencyLevels.WEAK;
+                }
+
+                @Override
+                public ConsistencyLevel<AkkaClusterStore> getStrongLevel() {
+                    return AkkaClusterConsistencyLevels.STRONG;
+                }
+
+                @Override
+                public ConsistencyLevel<AkkaClusterStore> getMixedLevel() {
                     throw new UnsupportedOperationException("akka does not support mixed levels yet.");
                 }
             };

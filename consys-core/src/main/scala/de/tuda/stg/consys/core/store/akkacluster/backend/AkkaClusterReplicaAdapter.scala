@@ -20,8 +20,8 @@ object AkkaClusterReplicaAdapter {
 	private type ObjType = Serializable
 
 	private type ValueType = ReplicatedData
-	private type MapType = ORMap[String, ValueType]
-	private type ReplKeyType = ORMapKey[AddrType, ValueType]
+	private type MapType = ORMap[AddrType, ValueType]
+	private type ReplKeyType = ORMapKey[String, ValueType]
 
 
 	sealed trait TransactionOp
@@ -57,9 +57,12 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 	//TODO: Incorporate timestamps in LWW registers
 	private def internalWrite(timestamp : Long, ops : Seq[TransactionOp], consistency : WriteConsistency) : Unit = {
 
-		replicator ! Replicator.Update.apply[MapType](key, ORMap.empty, consistency) { ormap  =>
+		replicator ! Replicator.Update.apply[MapType](key, ORMap.empty[AddrType, ValueType], consistency) { ormap  =>
 			var ormapTemp : MapType = ormap
+
+
 			for (op <- ops) {
+
 				op match {
 					case CreateOrUpdateObject(addr, newState) =>
 
@@ -67,11 +70,11 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 
 							case mergeable : Mergeable[_] =>
 								ormapTemp = ormapTemp.updated(node, addr, MergeableReplicatedData(mergeable)) { replicatedData =>
-									MergeableReplicatedData(newState)
+									MergeableReplicatedData(mergeable)
 								}
 
 							case _ =>
-								ormapTemp = ormapTemp.asInstanceOf[MapType].updated(node, addr, LWWRegister.apply[ObjType](node, newState)) { register =>
+								ormapTemp = ormapTemp.updated(node, addr, LWWRegister.apply[ObjType](node, newState)) { register =>
 									register.asInstanceOf[LWWRegister[ObjType]].withValue(node, newState)
 								}
 

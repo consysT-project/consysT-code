@@ -119,7 +119,14 @@ public class JBenchExecution {
                     BenchmarkStoreFactory.akkaStoreFactory(),
                     JBenchRunnableFactory.fromClass(clazz, JBenchStoreConverter.AKKA_STORE_CONVERTER)
             );
-        } if ("cassandra".equals(backend)) {
+        } else if ("akkacluster".equals(backend)) {
+            return new JBenchExecutor(
+                    name,
+                    config,
+                    BenchmarkStoreFactory.akkaClusterStoreFactory(),
+                    JBenchRunnableFactory.fromClass(clazz, JBenchStoreConverter.AKKACLUSTER_STORE_CONVERTER)
+            );
+        } else if ("cassandra".equals(backend)) {
             return new JBenchExecutor(
                     name,
                     config,

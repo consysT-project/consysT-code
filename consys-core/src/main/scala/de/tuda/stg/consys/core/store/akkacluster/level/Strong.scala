@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.akkacluster.level
 
+import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterCachedObject.ReadStrong
 import de.tuda.stg.consys.core.store.akkacluster.level.Strong.StrongProtocol
 import de.tuda.stg.consys.core.store.akkacluster.{AkkaClusterCachedObject, AkkaClusterRef, AkkaClusterStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
@@ -21,7 +22,7 @@ case object Strong extends ConsistencyLevel[AkkaClusterStore] {
 			obj : T
 		) : AkkaClusterStore#RefType[T] = {
 			txContext.acquireLock(addr)
-			txContext.Cache.addEntry(addr, AkkaClusterCachedObject[T](addr, obj, Strong))
+			txContext.Cache.addEntry(addr, AkkaClusterCachedObject[T](addr, obj, Strong, ReadStrong))
 			AkkaClusterRef[T](addr, Strong)
 		}
 
@@ -80,7 +81,7 @@ case object Strong extends ConsistencyLevel[AkkaClusterStore] {
 
 		private def strongRead[T <: AkkaClusterStore#ObjType : ClassTag](addr: AkkaClusterStore#Addr) : AkkaClusterCachedObject[T] = {
 			val state = store.replica.readAll[T](addr)
-			AkkaClusterCachedObject(addr, state, Strong)
+			AkkaClusterCachedObject(addr, state, Strong, ReadStrong)
 		}
 	}
 }

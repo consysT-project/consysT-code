@@ -53,12 +53,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
         return null;
     }
 
-    public boolean findReachable(Object source, Object target) {
-//        ImmutableSet<V> finished = ImmutableSet.of();
-//        finished.add()
-        return false;
-    }
-
 
     //@ ensures stateful( vertices.merge(other.vertices) );
     //@ ensures stateful( edges.merge(other.edges) );

@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.core.store.akkacluster.level
 
+import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterCachedObject.ReadWeak
 import de.tuda.stg.consys.core.store.akkacluster.{AkkaClusterCachedObject, AkkaClusterRef, AkkaClusterStore}
 import de.tuda.stg.consys.core.store.utils.Reflect
 import de.tuda.stg.consys.core.store.{ConsistencyLevel, ConsistencyProtocol}
@@ -19,7 +20,7 @@ case object Weak extends ConsistencyLevel[AkkaClusterStore] {
 			addr : AkkaClusterStore#Addr,
 			obj : T
 		) : AkkaClusterStore#RefType[T] = {
-			txContext.Cache.addEntry(addr, AkkaClusterCachedObject[T](addr, obj, Weak))
+			txContext.Cache.addEntry(addr, AkkaClusterCachedObject[T](addr, obj, Weak, ReadWeak))
 			AkkaClusterRef[T](addr, Weak)
 		}
 
@@ -74,7 +75,7 @@ case object Weak extends ConsistencyLevel[AkkaClusterStore] {
 
 		private def weakRead[T <: AkkaClusterStore#ObjType : ClassTag](addr: AkkaClusterStore#Addr) : AkkaClusterCachedObject[T] = {
 			val state = store.replica.readLocal[T](addr)
-			AkkaClusterCachedObject(addr, state, Weak)
+			AkkaClusterCachedObject(addr, state, Weak, ReadWeak)
 		}
 	}
 }

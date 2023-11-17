@@ -49,6 +49,9 @@ cp ~/consysT-code/aws/config-02/zoo/zoo01.cfg conf/zoo.cfg
 
 bin/zkServer.sh start
 
+# Shows status of zookeeper nodes. The security group has to be configured to allow messages between instances.
+bin/zkServer.sh status
+
 
 
 # Configuring zoo.cfg

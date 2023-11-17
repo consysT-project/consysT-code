@@ -2,6 +2,7 @@ package de.tuda.stg.consys.bench
 
 import com.typesafe.config.Config
 import de.tuda.stg.consys.core.store.akka.AkkaStore
+import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterStore
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
 import de.tuda.stg.consys.core.store.extensions.DistributedStore
 import de.tuda.stg.consys.core.store.extensions.coordination.BarrierStore
@@ -27,6 +28,30 @@ object BenchmarkStoreFactory {
 			akkaPort = address.port1,
 			zookeeperPort = address.port2,
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout"))
+		)
+
+		replicas.foreach(addr => {
+			store.addOtherReplica(addr.hostname, addr.port1)
+		})
+
+		store
+	}
+
+	val akkaClusterStoreFactory : BenchmarkStoreFactory[AkkaClusterStore] =  (config : Config) => {
+		//TODO: Adapt this to akka cluster initialization
+
+		import CollectionConverters._
+
+		val replicas =  config.getStringList("consys.bench.akkacluster.replicas").asScala.map(s => MultiPortAddress.parse(s))
+		val processId = config.getInt("consys.bench.processId")
+		val address = replicas(processId)
+
+		val store = AkkaClusterStore.fromAddress(
+			host = address.hostname,
+			akkaPort = address.port1,
+			zookeeperPort = address.port2,
+			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout")),
+			nodes = ???
 		)
 
 		replicas.foreach(addr => {
