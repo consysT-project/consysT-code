@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.lib.examples.shoppingcart;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.TwoPhaseSet;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
@@ -16,7 +17,7 @@ public class ShoppingCart {
 	}
 
 	//@ ensures stateful( items.add(item) );
-	public Void addItem(Item item) {
+	@WeakOp public Void addItem(Item item) {
 		items.add(item);
 		return null;
 	}

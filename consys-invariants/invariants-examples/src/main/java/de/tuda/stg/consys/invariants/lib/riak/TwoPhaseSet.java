@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 import java.io.IOException;
@@ -59,13 +61,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; adds.contains(elem) && removals.contains(elem) == false; \result.contains(elem));
 	@ ensures (\forall E elem; \result.contains(elem); adds.contains(elem) && removals.contains(elem) == false);
 	@*/
+	@SideEffectFree @WeakOp
 	public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(Sets.difference(this.adds.delegate(), this.removals.delegate()));
 	}
 
 	// No need to annotate
 	// changed from original: @Override
-	public byte[] payload() {
+	@SideEffectFree @WeakOp public byte[] payload() {
 //		try {
 //			Map<String, JsonNode> retval = Maps.newHashMap();
 //
@@ -87,7 +90,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
     @ ensures (\forall E elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
     @ ensures \result == !(\old(adds.contains(obj)));
 	@*/
-	public boolean add(E obj) {
+	@WeakOp public boolean add(E obj) {
 		if (removals.contains(obj)) {
 			throw new IllegalArgumentException(
 					"Cannot add to a group that has had the value removed.");
@@ -103,7 +106,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; adds.contains(elem) && col.contains(elem) == false; \old(adds.contains(elem)));
 	@ ensures \result == !(\forall E elem; col.contains(elem); \old(adds.contains(elem)));
 	@*/
-	public boolean addAll(Set<E> col) {
+	@WeakOp public boolean addAll(Set<E> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 
 		if (s.size() > 0) {
@@ -119,7 +122,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; adds.contains(elem); removals.contains(elem));
 	@*/
 	// changed from original: @Override
-	public void clear() {
+	@WeakOp public void clear() {
 		removals.addAll(adds.delegate());
 
 	}
@@ -129,7 +132,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == !removals.contains(obj) && adds.contains(obj);
 	@*/
 	// changed from original: @Override
-	public boolean contains(Object obj) {
+	@SideEffectFree @WeakOp public boolean contains(Object obj) {
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
@@ -137,7 +140,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; col.contains(elem); removals.contains(elem) == false) && (\forall E elem; col.contains(elem); adds.contains(elem));
 	@*/
-	public boolean containsAll(Set<E> col) {
+	@SideEffectFree @WeakOp public boolean containsAll(Set<E> col) {
 		Set<E> s = Sets.intersection(removals.delegate(), Sets.newHashSet(col));
 		return s.isEmpty() && adds.containsAll(col);
 	}
@@ -147,7 +150,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == (\forall E elem; adds.contains(elem); removals.contains(elem));
 	@*/
 	// changed from original: @Override
-	public boolean isEmpty() {
+	@SideEffectFree @WeakOp public boolean isEmpty() {
 		return removals.containsAll(adds.delegate());
 	}
 
@@ -156,7 +159,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	public Iterator<E> iterator() {
+	@SideEffectFree @WeakOp public Iterator<E> iterator() {
 		return this.value().iterator();
 	}
 
@@ -170,7 +173,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@*/
 	// changed from original: @Override
 	// changed from original: @SuppressWarnings("unchecked")
-	public boolean remove(E obj) {
+	@WeakOp public boolean remove(E obj) {
 		if (removals.contains(obj) || !adds.contains(obj)) {
 			return false;
 		}
@@ -191,7 +194,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@*/
 	// changed from original: @Override
 	// changed from original: @SuppressWarnings("unchecked")
-	public boolean removeAll(final Set<E> col) {
+	@WeakOp public boolean removeAll(final Set<E> col) {
 		checkNotNull(col);
 //		checkCollectionDoesNotContainNull(col);
 		
@@ -209,7 +212,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; removals.contains(elem) && \old(removals.contains(elem)) == false; adds.contains(elem) && col.contains(elem) == false);
 	@ ensures \result == (\exists E elem; !col.contains(elem) && this.value().contains(elem); true);
 	@*/
-	public boolean retainAll(final Collection<E> col) {
+	@WeakOp public boolean retainAll(final Collection<E> col) {
 		checkNotNull(col);
 //		checkCollectionDoesNotContainNull(col);
 
@@ -222,7 +225,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ requires false;
 	//@ assignable \nothing;
-	public int size() {
+	@SideEffectFree @WeakOp public int size() {
 //		return this.adds.size() - this.removals.size();
 		return 0;
 	}
@@ -232,7 +235,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	public Object[] toArray() {
+	@SideEffectFree @WeakOp public Object[] toArray() {
 		return this.value().toArray();
 	}
 
@@ -241,14 +244,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	public <T> T[] toArray(final T[] arg) {
+	@SideEffectFree @WeakOp public <T> T[] toArray(final T[] arg) {
 		return this.value().toArray(arg);
 	}
 
 
 	//@ requires false;
 	//@ assignable \nothing;
-	public final boolean equals(final Object o) {
+	@SideEffectFree @WeakOp public final boolean equals(final Object o) {
 
 		if (!(o instanceof TwoPhaseSet)) {
 			return false;
@@ -266,14 +269,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	/*@
 	@ assignable \nothing;
 	@*/
-	public int hashCode() {
+	@SideEffectFree @WeakOp public int hashCode() {
 		return this.value().hashCode();
 	}
 
 	/*@
 	@ assignable \nothing;
 	@*/
-	public String toString() {
+	@SideEffectFree @WeakOp public String toString() {
 		return this.value().toString();
 	}
 }

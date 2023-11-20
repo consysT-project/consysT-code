@@ -1,6 +1,9 @@
 package de.tuda.stg.consys.invariants.lib.examples.bankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.lang.Math;
 
@@ -43,6 +46,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(incs[i]));
+    @SideEffectFree @WeakOp
     public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
@@ -53,7 +57,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(decs[i]));
-    public int sumDecs() {
+    @SideEffectFree @WeakOp public int sumDecs() {
         int result = 0;
         for (int dec : decs) {
             result += dec;
@@ -63,7 +67,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == sumIncs() - sumDecs();
-    public int getValue() {
+    @SideEffectFree @WeakOp public int getValue() {
         return sumIncs() - sumDecs();
     }
 
@@ -71,7 +75,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ requires val >= 0;
     //@ assignable incs[replicaId()];
     //@ ensures incs[replicaId()] == \old(incs[replicaId()]) + val;
-    public void deposit(int val) {
+    @WeakOp public void deposit(int val) {
         incs[replicaId()] = incs[replicaId()] + val;
     }
 
@@ -80,7 +84,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ requires  getValue() >= val;
     //@ assignable decs[replicaId()];
     //@ ensures decs[replicaId()] == \old(decs[replicaId()]) + val;
-    public void withdraw(int val) {
+    @StrongOp public void withdraw(int val) {
         if (val > getValue())
             throw new IllegalArgumentException("not enough balance to withdraw");
 

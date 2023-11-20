@@ -2,7 +2,10 @@ package de.tuda.stg.consys.invariants.lib.riak;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.math.BigInteger;
 import java.util.Map;
@@ -16,7 +19,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
  * Grow-only counter.  Does not support decrementing.
  *
  */
-@ReplicatedModel public class GCounter {
+@ReplicatedModel public class GCounter implements Mergeable<GCounter> {
 
 // private static final TypeReference<Map<String, BigInteger>> REF = new TypeReference<Map<String, BigInteger>>() {};
 
@@ -58,6 +61,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//TODO: How to iterate over the values of payload?
 	//@ assignable \nothing;
 	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < numOfReplicas(); payload.get(KEYS[i]).intValue());
+	@SideEffectFree @WeakOp
 	public BigInteger value() {
 		BigInteger retval = BigInteger.ZERO;
 		for (BigInteger o : payload.values()) {
@@ -69,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
 	//@ ensures \result.equals(this.value());
-	public BigInteger increment() {
+	@WeakOp public BigInteger increment() {
 		return this.increment(1);
 	}
 
@@ -77,7 +81,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
 	//@ ensures \result.equals(this.value());
-	public BigInteger increment(final int n) {
+	@WeakOp public BigInteger increment(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		BigInteger retval = payload.get(clientId).add(BigInteger.valueOf(n));
 		payload.put(clientId, retval);
@@ -85,7 +89,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	}
 
 	//@ requires false;
-	public byte[] payload() {
+	@SideEffectFree @WeakOp public byte[] payload() {
 //		try {
 //			return serializer().writeValueAsBytes(payload);
 //		} catch (IOException ioe) {
@@ -95,12 +99,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	}
 
 	//@ requires false;
-	public BigInteger decrement() {
+	@WeakOp public BigInteger decrement() {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	public BigInteger decrement(final int n) {
+	@WeakOp public BigInteger decrement(final int n) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -108,7 +112,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//TODO: How to handle equals?
 	//@ requires false;
 	//@ assignable \nothing;
-	public boolean equals(final Object o) {
+	@SideEffectFree @WeakOp public boolean equals(final Object o) {
 		if (!(o instanceof GCounter)) {
 			return false;
 		}
@@ -127,7 +131,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ requires false;
 	//@ assignable \nothing;
 	//@ ensures \result == this.value().hashCode();
-	public int hashCode() {
+	@SideEffectFree @WeakOp public int hashCode() {
 		return this.value().hashCode();
 	}
 

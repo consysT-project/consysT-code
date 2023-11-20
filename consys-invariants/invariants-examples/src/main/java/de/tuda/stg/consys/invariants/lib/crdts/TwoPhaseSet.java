@@ -5,6 +5,8 @@ import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
 import com.google.common.collect.Sets;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.Set;
 
@@ -22,7 +24,7 @@ import java.util.Set;
     //@ assignable adds;
     //@ ensures adds.contains(obj);
     //@ ensures (\forall T elem; adds.contains(elem); \old(adds.contains(elem)) || elem == obj );
-    public Void add(T obj) {
+    @WeakOp public Void add(T obj) {
         adds.add(obj);
         return null;
     }
@@ -31,14 +33,14 @@ import java.util.Set;
     //@ ensures removals.contains(obj);
     //@ ensures (\forall T elem; \old(removals.contains(elem)); removals.contains(elem));
     //@ ensures (\forall T elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
-    public Void remove(T obj) {
+    @WeakOp public Void remove(T obj) {
         removals.add(obj);
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == !removals.contains(obj) && adds.contains(obj);
-    public boolean contains(T obj){
+    @SideEffectFree @WeakOp public boolean contains(T obj){
         return !removals.contains(obj) && adds.contains(obj);
     }
 
@@ -46,7 +48,7 @@ import java.util.Set;
     @ assignable \nothing;
     @ ensures \result == (\forall T val; adds.contains(val); removals.contains(val));
     @*/
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return this.getValue().isEmpty();
     }
 
@@ -55,7 +57,7 @@ import java.util.Set;
     @ ensures (\forall T val; adds.contains(val) && removals.contains(val) == false; \result.contains(val));
     @ ensures (\forall T val; \result.contains(val); adds.contains(val) && removals.contains(val) == false);
     @*/
-    public Set<T> getValue() {
+    @SideEffectFree @WeakOp public Set<T> getValue() {
         return Sets.difference(this.adds.getValue(), this.removals.getValue());
     }
 

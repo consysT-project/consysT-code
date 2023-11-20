@@ -4,6 +4,8 @@ package de.tuda.stg.consys.invariants.lib.riak;
 import com.google.common.base.Preconditions;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.math.BigInteger;
 
@@ -48,11 +50,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
 	//@ assignable \nothing;
 	//@ ensures \result.equals(positive.value().subtract(negative.value()));
+	@SideEffectFree @WeakOp
 	public BigInteger value() {
 		return this.positive.value().subtract(this.negative.value());
 	}
 
-	public byte[] payload() {
+	@SideEffectFree @WeakOp public byte[] payload() {
 //		try {
 //			Map<String, JsonNode> retval = Maps.newHashMap();
 //
@@ -70,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable positive;
 	//@ ensures stateful(positive.increment());
 	//@ ensures \result.equals(this.value());
-	public BigInteger increment() {
+	@WeakOp public BigInteger increment() {
 		this.positive.increment();
 
 		return this.value();
@@ -81,7 +84,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable positive;
 	//@ ensures stateful(positive.increment(n));
 	//@ ensures \result.equals(this.value());
-	public BigInteger increment(final int n) {
+	@WeakOp public BigInteger increment(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		this.positive.increment(n);
 		return this.value();
@@ -90,7 +93,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable negative;
 	//@ ensures stateful(negative.increment());
 	//@ ensures \result.equals(this.value());
-	public BigInteger decrement() {
+	@WeakOp public BigInteger decrement() {
 		this.negative.increment();
 		return this.value();
 	}
@@ -100,7 +103,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable negative;
 	//@ ensures stateful(negative.increment(n));
 	//@ ensures \result.equals(this.value());
-	public BigInteger decrement(final int n) {
+	@WeakOp public BigInteger decrement(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		
 		this.negative.increment(n);
@@ -111,7 +114,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//TODO: How to handle equals?
 	//@ requires false;
 	//@ assignable \nothing;
-	public boolean equals(final Object o) {
+	@SideEffectFree @WeakOp public boolean equals(final Object o) {
 		if (!(o instanceof PNCounter)) {
 			return false;
 		}
@@ -129,7 +132,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ requires false;
 	//@ assignable \nothing;
 	//@ ensures \result == this.value().hashCode();
-	public int hashCode() {
+	@SideEffectFree @WeakOp public int hashCode() {
 		return this.value().hashCode();
 	}
 

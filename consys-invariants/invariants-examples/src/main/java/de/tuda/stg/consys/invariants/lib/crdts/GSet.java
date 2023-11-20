@@ -2,6 +2,8 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,26 +22,26 @@ import java.util.Set;
     //@ assignable underlying;
     //@ ensures underlying.contains(val);
     //@ ensures underlying.containsAll(\old(underlying));
-    public Void add(T val) {
+    @WeakOp public Void add(T val) {
         underlying.add(val);
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    public boolean contains(T val){
+    @SideEffectFree @WeakOp public boolean contains(T val){
         return underlying.contains(val);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.isEmpty();
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return underlying.isEmpty();
     }
 
     //@ assignable \nothing;
     //@ ensures \result.equals(underlying);
-    public Set<T> getValue() {
+    @SideEffectFree @WeakOp public Set<T> getValue() {
         return underlying;
     }
 

@@ -3,6 +3,8 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,35 +24,35 @@ import java.util.Map;
     @ ensures (\forall K k1; \old(underlying).containsKey(k1); underlying.containsKey(k1)); // TODO: redundant?
     @ ensures underlying.size() == \old(underlying).size() || underlying.size() == \old(underlying).size() + 1;
     @*/
-    public void put(K key, V value) {
+    @WeakOp public void put(K key, V value) {
         underlying.put(key, value); // TODO: should this also merge existing keys?
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.containsKey(key);
-    public boolean containsKey(K key){
+    @SideEffectFree @WeakOp public boolean containsKey(K key){
         return underlying.containsKey(key);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.containsValue(value);
-    public boolean containsValue(V value){
+    @SideEffectFree @WeakOp public boolean containsValue(V value){
         return underlying.containsValue(value);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.isEmpty();
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return underlying.isEmpty();
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.get(key); // TODO: not pure?
-    public V get(K key) {
+    @SideEffectFree @WeakOp public V get(K key) {
         return underlying.get(key);
     }
 
-    public int size() {
+    @WeakOp public int size() {
         return underlying.size();
     }
 

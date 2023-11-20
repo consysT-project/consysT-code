@@ -4,6 +4,8 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
@@ -52,7 +54,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ requires val >= 0;
 	//@ assignable counter;
 	//@ ensures stateful( counter.inc(val) );
-	public Void increment(int val) {
+	@WeakOp public Void increment(int val) {
 		if (val < 0)
 			throw new IllegalArgumentException();
 		counter.inc(val);
@@ -63,7 +65,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ assignable counter;
 	//@ ensures stateful( counter.dec(val) );
 	//@ ensures getQuota() == \old(getQuota()) - val;
-	public Void decrement(int val) {
+	@WeakOp public Void decrement(int val) {
 		if (val < 0)
 			throw new IllegalArgumentException();
 
@@ -77,14 +79,14 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == counter.getValue();
-	public int getValue() {
+	@SideEffectFree	@WeakOp public int getValue() {
 		return counter.getValue();
 	}
 
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == counter.incs[replica] - counter.decs[replica] + (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[i][rid]) - (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[rid][i]);
-	public int getQuota(int replica) {
+	@SideEffectFree @WeakOp public int getQuota(int replica) {
 		int received = 0;
 		for (int sender = 0; sender < numOfReplicas(); sender++) {
 			received += localPermissions[sender][replica];
@@ -101,7 +103,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == getQuota(rid);
-	public int getQuota() {
+	@SideEffectFree @WeakOp public int getQuota() {
 		return getQuota(rid);
 	}
 
@@ -111,7 +113,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter> {
 	//@ requires toReplica != rid;
 	//@ assignable localPermissions[rid][toReplica];
 	//@ ensures localPermissions[rid][toReplica] == \old(localPermissions[rid][toReplica]) + value;
-	public Void transfer(int toReplica, int value) {
+	@WeakOp public Void transfer(int toReplica, int value) {
 		if (getQuota() < value)
 			throw new IllegalArgumentException();
 

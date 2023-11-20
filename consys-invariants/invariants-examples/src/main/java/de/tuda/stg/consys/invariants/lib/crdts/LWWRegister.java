@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 public class LWWRegister<T> implements Mergeable<LWWRegister<T>> {
 
@@ -19,13 +21,13 @@ public class LWWRegister<T> implements Mergeable<LWWRegister<T>> {
     //@ assignable value, timestamp;
     //@ ensures this.value == value;
     //@ ensures this.timestamp > \old(this.timestamp)
-    public void set(T value) {
+    @WeakOp public void set(T value) {
         this.value = value;
         this.timestamp = System.currentTimeMillis();
     }
 
     //@ ensures \result == value;
-    public T get() {
+    @SideEffectFree @WeakOp public T get() {
         return value;
     }
 

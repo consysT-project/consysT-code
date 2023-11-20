@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.invariants.lib.examples.bankaccountlww;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
@@ -25,7 +27,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures value == \old(value) + d;
     @ ensures timestamp == \old(timestamp) + 1;
     @*/
-    public void deposit(int d) {
+    @WeakOp public void deposit(int d) {
         value = value + d;
         timestamp = timestamp + 1;
     }
@@ -36,7 +38,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures value == \old(value) - w;
     @ ensures timestamp == \old(timestamp) + 1;
     @*/
-    public void withdraw(int w) {
+    @WeakOp public void withdraw(int w) {
         if (value - w < 0)
             throw new IllegalArgumentException("not enough money on account");
 

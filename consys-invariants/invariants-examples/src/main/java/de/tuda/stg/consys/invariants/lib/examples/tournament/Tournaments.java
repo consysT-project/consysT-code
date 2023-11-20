@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
-
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
@@ -43,7 +43,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(players.contains(p2)); players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2) && p2.equals(p) == false; \old(players.contains(p2)));
     @*/
-    void addPlayer(Player p) {
+    @WeakOp void addPlayer(Player p) {
         players.add(p);
     }
 
@@ -56,7 +56,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(players.contains(p2)) && p2.equals(p) == false; players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2); \old(players.contains(p2)));
     @*/
-    void removePlayer(Player p) {
+    @WeakOp void removePlayer(Player p) {
         players.remove(p);
     }
 
@@ -68,7 +68,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Tournament t2; \old(tournaments.contains(t2)); tournaments.contains(t2));
     @ ensures (\forall Tournament t2; tournaments.contains(t2) && t2.equals(t) == false; \old(tournaments.contains(t2)));
     @*/
-    void addTournament(Tournament t) {
+    @WeakOp void addTournament(Tournament t) {
         tournaments.add(t);
     }
 
@@ -81,7 +81,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Tournament t2; \old(tournaments.contains(t2)) && t2.equals(t) == false; tournaments.contains(t2));
     @ ensures (\forall Tournament t2; tournaments.contains(t2); \old(tournaments.contains(t2)));
     @*/
-    void removeTournament(Tournament t) {
+    @WeakOp void removeTournament(Tournament t) {
         tournaments.remove(t);
     }
 
@@ -101,7 +101,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2) && p2.equals(p) == false; \old(t.hasParticipant(p2)));
     @*/
-    void enrollTournament(Player p,Tournament t) {
+    @WeakOp void enrollTournament(Player p,Tournament t) {
         t.enroll(p);
         p.incBudget(-1);
     }
@@ -118,7 +118,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) && p2.equals(p) == false; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    void disenrollTournament(Player p,Tournament t) {
+    @WeakOp void disenrollTournament(Player p,Tournament t) {
         t.disenroll(p);
     }
 
@@ -133,7 +133,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    void beginTournament(Tournament t) {
+    @WeakOp void beginTournament(Tournament t) {
         t.setActive(true);
     }
 
@@ -147,7 +147,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    void endTournament(Tournament t) {
+    @WeakOp void endTournament(Tournament t) {
         t.setActive(false);
     }
 
@@ -158,7 +158,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ assignable p;
     @ ensures p.getBudget() == \old(p.getBudget()) + amount;
     @*/
-    void addFunds(Player p, int amount) {
+    @WeakOp void addFunds(Player p, int amount) {
         p.incBudget(amount);
     }
 

@@ -17,6 +17,12 @@
             <version>4.0.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>invariants-examples</artifactId>
+            <version>4.0.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -145,7 +151,15 @@
                         <artifactId>consys-core</artifactId>
                         <version>4.0.0</version>
                     </dependency>
+
+                    <dependency>
+                        <groupId>de.tuda.stg.consys</groupId>
+                        <artifactId>invariants-examples</artifactId>
+                        <version>4.0.0</version>
+                    </dependency>
                 </dependencies>
+
+
 
             </plugin>
         </plugins>

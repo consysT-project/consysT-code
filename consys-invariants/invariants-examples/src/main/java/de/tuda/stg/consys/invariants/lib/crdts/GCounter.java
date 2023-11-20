@@ -7,7 +7,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
-
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 @ReplicatedModel public class GCounter implements Mergeable<GCounter> {
@@ -26,7 +27,7 @@ import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
     @ assignable \nothing;
     @ ensures \result == (\sum int incInd; incInd >= 0 && incInd < numOfReplicas(); incs[incInd]);
     @*/
-    public int sumIncs() {
+    @SideEffectFree @WeakOp public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
             res += inc;
@@ -38,13 +39,13 @@ import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
     @ assignable \nothing;
     @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
     @*/
-    public int getValue() { return sumIncs(); }
+    @SideEffectFree @WeakOp public int getValue() { return sumIncs(); }
 
     /*@
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
     @*/
-    public Void inc() {
+    @WeakOp public Void inc() {
         incs[replicaId()] = incs[replicaId()] + 1;
         return null;
     }
@@ -54,7 +55,7 @@ import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + n;
     @*/
-    public Void inc(int n) {
+    @WeakOp public Void inc(int n) {
         incs[replicaId()] = incs[replicaId()] + n;
         return null;
     }

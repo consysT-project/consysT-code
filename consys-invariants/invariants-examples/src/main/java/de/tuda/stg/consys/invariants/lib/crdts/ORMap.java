@@ -5,6 +5,8 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.UUID;
 import java.util.Map;
@@ -42,7 +44,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
     @ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
     @ ensures (\forall K elem; elem.equals(key) == false; elements.get(elem).equals(\old(elements.get(elem))));
     @*/
-    public void put(K key, V value) {
+    @WeakOp public void put(K key, V value) {
         checkNotNull(key);
         UUID uuid = UUID.randomUUID();
         elements.put(key, uuid);
@@ -62,7 +64,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
     @ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
     @ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.get(key)).contains(u) || \old(tombstones.containsValue(u)) );
     @*/
-    public void remove(K key) {
+    @WeakOp public void remove(K key) {
         checkNotNull(key);
         this.tombstones.putAll(key, elements.get(key));
         elements.removeAll(key);
@@ -71,20 +73,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.containsKey(key);
-    public boolean containsKey(K key){
+    @SideEffectFree @WeakOp public boolean containsKey(K key){
         checkNotNull(key);
         return underlying.containsKey(key);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == elements.isEmpty();
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return elements.isEmpty();
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.get(key); // TODO: not pure?
-    public V get(K key) {
+    @SideEffectFree @WeakOp public V get(K key) {
         return underlying.get(key);
     }
 

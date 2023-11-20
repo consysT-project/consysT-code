@@ -38,25 +38,21 @@ object BenchmarkStoreFactory {
 	}
 
 	val akkaClusterStoreFactory : BenchmarkStoreFactory[AkkaClusterStore] =  (config : Config) => {
-		//TODO: Adapt this to akka cluster initialization
-
 		import CollectionConverters._
 
 		val replicas =  config.getStringList("consys.bench.akkacluster.replicas").asScala.map(s => MultiPortAddress.parse(s))
 		val processId = config.getInt("consys.bench.processId")
 		val address = replicas(processId)
 
+		val akkaReplicas = replicas.map(mpa => SinglePortAddress(mpa.hostname, mpa.port1))
+
 		val store = AkkaClusterStore.fromAddress(
 			host = address.hostname,
 			akkaPort = address.port1,
 			zookeeperPort = address.port2,
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout")),
-			nodes = ???
+			nodes = akkaReplicas
 		)
-
-		replicas.foreach(addr => {
-			store.addOtherReplica(addr.hostname, addr.port1)
-		})
 
 		store
 	}

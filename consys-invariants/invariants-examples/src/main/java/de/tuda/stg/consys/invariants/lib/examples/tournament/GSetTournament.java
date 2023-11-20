@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -15,23 +17,22 @@ import java.util.Set;
         this.underlying = new HashSet();
     }
 
-    /*@
-    @ assignable underlying;
-    @ ensures underlying.contains(val);
-    @ ensures underlying.containsAll(\old(underlying));
-    @*/
-    public void add(Tournament val) {
+    //@ assignable underlying;
+    //@ ensures underlying.contains(val);
+    //@ ensures underlying.containsAll(\old(underlying));
+    @WeakOp public void add(Tournament val) {
         underlying.add(val);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    public boolean contains(Tournament val){
+    @SideEffectFree @WeakOp public boolean contains(Tournament val){
         return underlying.contains(val);
     }
 
+    //@ assignable \nothing;
     //@ underlying.isEmpty();
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return underlying.isEmpty();
     }
 

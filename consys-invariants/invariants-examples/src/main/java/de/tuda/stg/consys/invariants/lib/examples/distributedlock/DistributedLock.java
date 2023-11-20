@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.lib.examples.distributedlock;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -47,7 +48,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures lock[replicaId()] == false;
     @ ensures lock[otherReplica] == true;
     @*/
-    void transfer(int otherReplica) {
+    @WeakOp void transfer(int otherReplica) {
         if (!(lock[replicaId()]))
             throw new RuntimeException("The lock is not set to this object.");
         lock[replicaId()] = false;

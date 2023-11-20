@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.lib.examples.jointbankaccount;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -26,7 +27,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable balance;
     @ ensures balance.getValue() == \old(balance.getValue() + amount);
     @*/
-    public void deposit(int amount) {
+    @WeakOp public void deposit(int amount) {
         if (amount < 0) throw new IllegalArgumentException("amount must be positive");
         balance.inc(amount);
     }
@@ -40,7 +41,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @ ensures requested == false;
     @*/
-    public void withdraw(int amount) {
+    @WeakOp public void withdraw(int amount) {
         if (amount < 0) throw new IllegalArgumentException("amount must be positive");
         if (!approved) throw new IllegalStateException("cannot withdraw from unapproved account");
         balance.dec(amount);
@@ -51,7 +52,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable requested;
     @ ensures requested == true;
     @*/
-    public void request() {
+    @WeakOp public void request() {
         requested = true;
     }
 
@@ -59,7 +60,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable approved;
     @ ensures approved == \old(requested);
     @*/
-    public void approve() {
+    @WeakOp public void approve() {
         approved = requested;
     }
 
@@ -68,7 +69,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @ ensures requested == false;
     @*/
-    public void reset() {
+    @WeakOp public void reset() {
         requested = false;
         approved = false;
     }

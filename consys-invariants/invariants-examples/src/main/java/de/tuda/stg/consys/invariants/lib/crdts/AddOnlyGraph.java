@@ -2,9 +2,11 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.data.Edge;
 import de.tuda.stg.consys.invariants.lib.crdts.data.GEdgeSet;
 import de.tuda.stg.consys.invariants.lib.crdts.data.GObjectSet;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
@@ -30,13 +32,14 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 
     //@ assignable \nothing;
     //@ ensures \result == vertices.contains(v);
+    @SideEffectFree @WeakOp
     public boolean hasVertex(Object v) {
         return vertices.contains(v);
     }
 
     //@ assignable vertices;
     //@ ensures stateful( vertices.add(v) );
-    public Void addVertex(Object v) {
+    @WeakOp public Void addVertex(Object v) {
         vertices.add(v);
         return null;
     }
@@ -45,7 +48,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
     //@ requires vertices.contains(from) && vertices.contains(to);
     //@ assignable edges;
     //@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) || edge == object(Edge.class, from, to));
-    public Void addEdge(Object from, Object to) {
+    @WeakOp public Void addEdge(Object from, Object to) {
         if (!vertices.contains(from) && !vertices.contains(to))
             throw new IllegalArgumentException();
 

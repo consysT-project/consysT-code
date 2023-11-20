@@ -3,6 +3,8 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 import com.google.common.collect.ImmutableSet;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,7 +22,7 @@ import java.util.Set;
     }
 
     //@ ensures (\forall Object o; true; o == val ? value.contains(o) : !value.contains(o) );
-    public Void write(Object val) {
+    @WeakOp public Void write(Object val) {
         value.clear();
         value.add(val);
         return null;
@@ -28,7 +30,7 @@ import java.util.Set;
 
     //@ assignable \nothing;
     //@ ensures \result == value;
-    public Set<Object> read() {
+    @SideEffectFree @WeakOp public Set<Object> read() {
         return ImmutableSet.copyOf(value);
     }
 

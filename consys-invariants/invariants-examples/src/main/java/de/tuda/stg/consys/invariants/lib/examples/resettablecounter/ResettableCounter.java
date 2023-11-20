@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.invariants.lib.examples.resettablecounter;
 
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -25,13 +27,13 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures incs[replicaId()] == (\old(incs[replicaId()]) + 1);
     @ ensures (\forall int incInd; incInd>=0 && incInd<numOfReplicas() && incInd!=replicaId(); incs[incInd] == \old(incs[incInd]));
     @*/
-    void inc() {incs[replicaId()] = incs[replicaId()] + 1;}
+    @WeakOp void inc() {incs[replicaId()] = incs[replicaId()] + 1;}
 
     /*@
     @ assignable incs;
     @ ensures (\forall int a; 0<=a && a<numOfReplicas(); incs[a] == 0);
     @*/
-    void reset() {
+    @WeakOp void reset() {
         for(int i = 0; i < numOfReplicas(); ++i)
             incs[i] = 0;
     }
@@ -39,7 +41,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int b; b>=0 && b<numOfReplicas(); incs[b]);
-    int getValue() {
+    @SideEffectFree @WeakOp int getValue() {
         int val = 0;
         for(int i = 0; i < numOfReplicas(); ++i)
             val += incs[i];

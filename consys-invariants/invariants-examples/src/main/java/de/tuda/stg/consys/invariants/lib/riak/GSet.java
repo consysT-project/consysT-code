@@ -4,7 +4,10 @@ package de.tuda.stg.consys.invariants.lib.riak;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -22,7 +25,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * 
  */
 
-@ReplicatedModel public class GSet<E> {
+@ReplicatedModel public class GSet<E> implements Mergeable<GSet<E>> {
 
 	private final Set<E> delegate = Sets.newLinkedHashSet();
 
@@ -32,33 +35,34 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ assignable \nothing;
 	//@ ensures \result.equals(delegate);
+	@SideEffectFree @WeakOp
 	protected Set<E> delegate() {
 		return delegate;
 	}
 
 	//@ requires false;
-	public void clear() {
+	@WeakOp public void clear() {
 		throw new UnsupportedOperationException();
 
 	}
 
 	//@ requires false;
-	public Iterator<E> iterator() {
+	@SideEffectFree @WeakOp public Iterator<E> iterator() {
 		return Iterators.unmodifiableIterator(/*Inlined call from super class.*/delegate.iterator());
 	}
 
 	//@ requires false;
-	public boolean remove(final Object o) {
+	@WeakOp public boolean remove(final Object o) {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	public boolean removeAll(final Collection<?> c) {
+	@WeakOp public boolean removeAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	public boolean retainAll(final Collection<?> c) {
+	@WeakOp public boolean retainAll(final Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -76,13 +80,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ assignable \nothing;
 	//@ ensures \result.equals(delegate);
-	public ImmutableSet<E> value() {
+	@SideEffectFree @WeakOp public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(delegate);
 	}
 
 
 	//@ requires false;
-	public byte[] payload() {
+	@SideEffectFree @WeakOp public byte[] payload() {
 //		try {
 //			return serializer.writeValueAsBytes(delegate);
 //		} catch (IOException ioe) {
@@ -93,7 +97,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ assignable \nothing;
 	//@ ensures \result == delegate.contains(object);
-	public boolean contains(final Object object) {
+	@SideEffectFree @WeakOp public boolean contains(final Object object) {
 		checkNotNull(object);
 
 		return delegate.contains(object);
@@ -104,14 +108,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	//@ ensures (\forall E elem; \old(delegate.contains(elem)); delegate.contains(elem));
     //@ ensures (\forall E elem; delegate.contains(elem) && elem.equals(element) == false; \old(delegate.contains(elem)));
     //@ ensures \result == !(\old(delegate.contains(element)));
-	public boolean add(final E element) {
+	@WeakOp public boolean add(final E element) {
 		checkNotNull(element);
 		return delegate.add(element);
 	}
 
 	//@ assignable \nothing;
 	//@ ensures \result == (\forall E elem; collection.contains(elem); delegate.contains(elem));
-	public boolean containsAll(Set<E> collection) {
+	@SideEffectFree @WeakOp public boolean containsAll(Set<E> collection) {
 //		checkCollectionDoesNotContainNull(collection);
 
 		return delegate.containsAll(collection);
@@ -122,7 +126,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	//@ ensures (\forall E elem; \old(delegate.contains(elem)); delegate.contains(elem));
 	//@ ensures (\forall E elem; delegate.contains(elem) && collection.contains(elem) == false; \old(delegate.contains(elem)));
 	//@ ensures \result == !(\forall E elem; collection.contains(elem); \old(delegate.contains(elem)));
-	public boolean addAll(Set<E> collection) {
+	@WeakOp public boolean addAll(Set<E> collection) {
 //		checkCollectionDoesNotContainNull(collection);
 		return delegate.addAll(collection);
 	}

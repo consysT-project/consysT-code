@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.invariants.lib.examples.shoppingcart;
 
 import de.tuda.stg.consys.annotations.invariants.DataModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 @DataModel
 public class Item {
@@ -12,12 +13,12 @@ public class Item {
 	}
 
 	@Override
-	public int hashCode() {
+	@WeakOp public int hashCode() {
 		return name.hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	@WeakOp public boolean equals(Object obj) {
 		return obj instanceof Item && ((Item) obj).name.equals(name);
 	}
 }

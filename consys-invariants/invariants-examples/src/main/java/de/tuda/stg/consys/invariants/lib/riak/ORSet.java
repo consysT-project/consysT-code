@@ -5,6 +5,8 @@ package de.tuda.stg.consys.invariants.lib.riak;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import java.io.IOException;
 import java.util.*;
@@ -38,7 +40,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	//@ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
 	//@ ensures (\forall E elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	//@ ensures \result == !(\old(elements.containsKey(value)));
-	public boolean add(final E value) {
+	@WeakOp public boolean add(final E value) {
 		checkNotNull(value);
 		
 		UUID uuid = UUID.randomUUID();
@@ -59,7 +61,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; values.contains(elem) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures \result == (\exists E elem; values.contains(elem); \old(elements.containsKey(elem)) == false);
 	@*/
-	public boolean addAll(final Collection<? extends E> values) {
+	@WeakOp public boolean addAll(final Collection<? extends E> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 
@@ -79,7 +81,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
 	@ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.containsValue(u)) || \old(tombstones.containsValue(u)) );
 	@*/
-	public void clear() {
+	@WeakOp public void clear() {
 		this.tombstones.putAll(this.elements);
 		this.elements.clear();
 
@@ -89,6 +91,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == elements.containsKey(value);
 	@*/
+	@SideEffectFree @WeakOp
 	public boolean contains(final Object value) {
 		checkNotNull(value);
 		
@@ -99,7 +102,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; values.contains(elem); this.value().contains(elem));
 	@*/
-	public boolean containsAll(final Collection<?> values) {
+	@SideEffectFree @WeakOp public boolean containsAll(final Collection<?> values) {
 //		checkCollectionDoesNotContainNull(values);
 		return this.value().containsAll(values);
 	}
@@ -109,12 +112,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == elements.isEmpty();
 	@*/
 	// changed from original: @Override
-	public boolean isEmpty() {
+	@SideEffectFree @WeakOp public boolean isEmpty() {
 		return elements.isEmpty();
 	}
 
 	//@ requires false;
-	public Iterator<E> iterator() {
+	@SideEffectFree @WeakOp public Iterator<E> iterator() {
 		return Iterators
 				.unmodifiableIterator(this.elements.keySet().iterator());
 	}
@@ -130,7 +133,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == \old(elements.containsValue(value));
 	@*/
 	@SuppressWarnings("unchecked")
-	public boolean remove(final Object value) {
+	@WeakOp public boolean remove(final Object value) {
 		checkNotNull(value);
 
 		this.tombstones.putAll((E) value, elements.get((E) value));
@@ -148,7 +151,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall UUID u; tombstones.containsValue(u); (\exists E elem; values.contains(elem); \old(elements.get(elem)).contains(u)) || \old(tombstones.containsValue(u)) );
 	@ ensures \result == (\exists E elem; values.contains(elem) && \old(elements.containsKey(elem)); true);
 	@*/
-	public boolean removeAll(final Collection<?> values) {
+	@WeakOp public boolean removeAll(final Collection<?> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 
@@ -185,7 +188,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == (\exists E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); true);
 	@*/
 	@SuppressWarnings("unchecked")
-	public boolean retainAll(final Collection<?> values) {
+	@WeakOp public boolean retainAll(final Collection<?> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 		
@@ -197,7 +200,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ requires false;
 	//@ assignable \nothing;
-	public int size() {
+	@SideEffectFree @WeakOp public int size() {
 		return elements.keySet().size();
 	}
 
@@ -206,7 +209,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	public Object[] toArray() {
+	@SideEffectFree @WeakOp public Object[] toArray() {
 		return elements.keySet().toArray();
 	}
 
@@ -215,7 +218,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	public <T> T[] toArray(final T[] arg) {
+	@SideEffectFree @WeakOp public <T> T[] toArray(final T[] arg) {
 		return elements.keySet().toArray(arg);
 	}
 
@@ -247,12 +250,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; \result.contains(elem); elements.containsKey(elem));
 	@ ensures (\forall E elem; elements.containsKey(elem); \result.contains(elem));
 	@*/
-	public ImmutableSet<E> value() {
+	@SideEffectFree @WeakOp public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(elements.keySet());
 	}
 
 	//@ requires false;
-	public byte[] payload() {
+	@SideEffectFree @WeakOp public byte[] payload() {
 //		Map<String, Object> retval = Maps.newLinkedHashMap();
 //
 //		retval.put(ELEMENTS_TOKEN, elements.asMap());
@@ -270,7 +273,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ requires false;
 	//@ assignable \nothing;
-	public final boolean equals(final Object o) {
+	@SideEffectFree @WeakOp public final boolean equals(final Object o) {
 		if (!(o instanceof ORSet)) {
 			return false;
 		}
@@ -287,14 +290,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	/*@
 	@ assignable \nothing;
 	@*/
-	public final int hashCode() {
+	@SideEffectFree @WeakOp public final int hashCode() {
 		return this.value().hashCode();
 	}
 
 	/*@
 	@ assignable \nothing;
 	@*/
-	public String toString() {
+	@SideEffectFree @WeakOp public String toString() {
 		return this.value().toString();
 	}
 }

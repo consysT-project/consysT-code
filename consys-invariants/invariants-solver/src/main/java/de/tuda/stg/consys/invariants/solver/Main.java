@@ -51,6 +51,11 @@ public class Main {
 
 	}
 
+	private static final Path[] additionalLibraries = new Path[]{
+			Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar"),
+			Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "checker-qual-3.27.0.jar"),
+	};
+
 
 	public static final Path[] DEFAULT_EXAMPLE = Examples.BOUNDED_COUNTER;
 
@@ -110,7 +115,7 @@ public class Main {
 
 			ProgramConfig config = Examples.STATEFUL_CONFIG;
 			var results = runChecker(config,
-					/* libs */ new Path[]{Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar")},
+					/* libs */ additionalLibraries,
 					/* checked classes */ files
 			);
 
@@ -124,7 +129,7 @@ public class Main {
 			ProgramConfig config = Examples.STATEFUL_CONFIG;
 
 			ProgramModel model =  createModel(config,
-					/* libs */ new Path[]{Paths.get("consys-invariants", "invariants-solver", "src", "main", "resources", "guava-14.0.1.jar")},
+					/* libs */ additionalLibraries,
 					/* checked classes */ files
 			);
 

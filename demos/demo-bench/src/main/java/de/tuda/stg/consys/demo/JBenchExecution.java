@@ -26,7 +26,7 @@ public class JBenchExecution {
                 .option("b")
                 .longOpt("backend")
                 .hasArg()
-                .desc("The backend to execute this benchmark. Possible stores: akka, cassandra")
+                .desc("The backend to execute this benchmark. Possible stores: akka, akkacluster, cassandra")
                 .required()
                 .build();
         options.addOption(backendOption);

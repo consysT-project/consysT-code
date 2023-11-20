@@ -2,6 +2,8 @@ package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import com.google.common.collect.Sets;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 @ReplicatedModel
@@ -20,7 +22,7 @@ public class TwoPhaseSetTournament {
 	//@ ensures adds.contains(obj);
 	//@ ensures (\forall Tournament elem; \old(adds.contains(elem)); adds.contains(elem));
 	//@ ensures (\forall Tournament elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
-	public void add(Tournament obj) {
+	@WeakOp public void add(Tournament obj) {
 		adds.add(obj);
 	}
 
@@ -28,19 +30,19 @@ public class TwoPhaseSetTournament {
 	//@ ensures removals.contains(obj);
 	//@ ensures (\forall Tournament elem; \old(removals.contains(elem)); removals.contains(elem));
 	//@ ensures (\forall Tournament elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
-	public void remove(Tournament obj) {
+	@WeakOp public void remove(Tournament obj) {
 		removals.add(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensures \result == !removals.contains(obj) && adds.contains(obj);
-	public boolean contains(Tournament obj){
+	@SideEffectFree @WeakOp public boolean contains(Tournament obj){
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensure \result == (\forall Tournament p; adds.contains(p); removals.contains(p));
-	public boolean isEmpty() {
+	@SideEffectFree @WeakOp public boolean isEmpty() {
 		return Sets.difference(adds.underlying, removals.underlying).isEmpty();
 	}
 

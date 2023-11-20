@@ -1,6 +1,8 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import de.tuda.stg.consys.annotations.invariants.DataModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 @DataModel public class Player {
 
@@ -12,12 +14,13 @@ import de.tuda.stg.consys.annotations.invariants.DataModel;
     }
 
     //@ assignable \nothing;
+    @SideEffectFree @WeakOp
     public int getBudget() {
         return budget;
     }
 
     //@ assignable budget;
-    public void incBudget(int amount) {
+    @WeakOp public void incBudget(int amount) {
         budget += amount;
     }
 }

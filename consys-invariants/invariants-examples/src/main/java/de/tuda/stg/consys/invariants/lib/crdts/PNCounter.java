@@ -5,6 +5,8 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
@@ -32,7 +34,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable \nothing;
     @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
     @*/
-    int sumIncs() {
+    @SideEffectFree
+    @WeakOp int sumIncs() {
         int res = 0;
         for (int inc : incs) {
             res += inc;
@@ -44,7 +47,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable \nothing;
     @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); decs[i]);
     @*/
-    int sumDecs(){
+    @SideEffectFree @WeakOp int sumDecs(){
         int result = 0;
         for (int dec : decs) {
             result += dec;
@@ -56,12 +59,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable \nothing;
     @ ensures \result == sumIncs() - sumDecs();
     @*/
-    public int getValue() { return sumIncs() - sumDecs(); }
+    @SideEffectFree @WeakOp public int getValue() { return sumIncs() - sumDecs(); }
 
 
     //@ assignable incs[replicaId];
     //@ ensures incs[replicaId] == \old(incs[replicaId]) + 1;
-    public Void inc() {
+    @WeakOp public Void inc() {
         incs[replicaId] = incs[replicaId] + 1;
         return null;
     }
@@ -70,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ requires n >= 0;
     //@ assignable incs[replicaId];
     //@ ensures incs[replicaId] == \old(incs[replicaId]) + n;
-    public Void inc(int n) {
+    @WeakOp public Void inc(int n) {
         incs[replicaId] = incs[replicaId] + n;
         return null;
     }
@@ -79,7 +82,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable decs[replicaId];
     @ ensures decs[replicaId] == \old(decs[replicaId]) + 1;
     @*/
-    public Void dec() {
+    @WeakOp public Void dec() {
         if (1 > getValue())
             throw new IllegalArgumentException();
         decs[replicaId] = decs[replicaId] + 1;
@@ -90,7 +93,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ requires n >= 0;
     //@ assignable decs[replicaId];
     //@ ensures decs[replicaId] == \old(decs[replicaId]) + n;
-    public Void dec(int n) {
+    @WeakOp public Void dec(int n) {
         if (n > getValue())
             throw new IllegalArgumentException();
         decs[replicaId] = decs[replicaId] + n;

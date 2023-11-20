@@ -11,6 +11,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 @ReplicatedModel public class ORSet<T> implements Mergeable<ORSet<T>> {
 
@@ -36,7 +38,7 @@ import com.google.common.collect.Multimap;
     @ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
     @ ensures (\forall T elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
     @*/
-    public Void add(final T value) {
+    @WeakOp public Void add(final T value) {
         checkNotNull(value);
         UUID uuid = UUID.randomUUID();
         elements.put(value, uuid);
@@ -51,7 +53,7 @@ import com.google.common.collect.Multimap;
     @ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
     @ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.get(value)).contains(u) || \old(tombstones.containsValue(u)) );
     @*/
-    public Void remove(final T value) {
+    @WeakOp public Void remove(final T value) {
         checkNotNull(value);
         this.tombstones.putAll(value, elements.get(value));
         elements.removeAll(value);
@@ -63,7 +65,7 @@ import com.google.common.collect.Multimap;
     @ assignable \nothing;
     @ ensures \result == elements.containsKey(value);
     @*/
-    public boolean contains(final T value) {
+    @SideEffectFree @WeakOp public boolean contains(final T value) {
         checkNotNull(value);
         return this.elements.containsKey(value);
     }
@@ -72,7 +74,7 @@ import com.google.common.collect.Multimap;
     @ assignable \nothing;
     @ ensures \result == elements.isEmpty();
     @*/
-    public boolean isEmpty() {
+    @SideEffectFree @WeakOp public boolean isEmpty() {
         return elements.isEmpty();
     }
 
@@ -81,7 +83,7 @@ import com.google.common.collect.Multimap;
     @ ensures (\forall T elem; \result.contains(elem); elements.containsKey(elem));
     @ ensures (\forall T elem; elements.containsKey(elem); \result.contains(elem));
     @*/
-    public ImmutableSet<T> getValue() {
+    @SideEffectFree @WeakOp public ImmutableSet<T> getValue() {
         return ImmutableSet.copyOf(elements.keySet());
     }
 

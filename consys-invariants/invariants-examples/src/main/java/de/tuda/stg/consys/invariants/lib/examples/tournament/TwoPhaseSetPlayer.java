@@ -2,6 +2,8 @@ package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import com.google.common.collect.Sets;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
 @ReplicatedModel
@@ -20,7 +22,7 @@ public class TwoPhaseSetPlayer {
 	//@ ensures adds.contains(obj);
 	//@ ensures (\forall Player elem; \old(adds.contains(elem)); adds.contains(elem));
 	//@ ensures (\forall Player elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
-	public void add(Player obj) {
+	@WeakOp public void add(Player obj) {
 		adds.add(obj);
 	}
 
@@ -28,19 +30,19 @@ public class TwoPhaseSetPlayer {
 	//@ ensures removals.contains(obj);
 	//@ ensures (\forall Player elem; \old(removals.contains(elem)); removals.contains(elem));
 	//@ ensures (\forall Player elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
-	public void remove(Player obj) {
+	@WeakOp public void remove(Player obj) {
 		removals.add(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensures \result == !removals.contains(obj) && adds.contains(obj);
-	public boolean contains(Player obj){
+	@SideEffectFree @WeakOp public boolean contains(Player obj){
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensure \result == (\forall Player p; adds.contains(p); removals.contains(p));
-	public boolean isEmpty() {
+	@SideEffectFree @WeakOp public boolean isEmpty() {
 		return Sets.difference(adds.underlying, removals.underlying).isEmpty();
 	}
 
