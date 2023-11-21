@@ -4,6 +4,7 @@ package de.tuda.stg.consys.invariants.lib.crdts;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -14,7 +15,7 @@ import com.google.common.collect.Multimap;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-@ReplicatedModel public class ORSet<T> implements Mergeable<ORSet<T>> {
+@ReplicatedModel public class ORSet<T> implements Mergeable<ORSet<T>>, Serializable {
 
     public final Multimap<T, UUID> elements = LinkedHashMultimap.create();
     public final Multimap<T, UUID> tombstones = LinkedHashMultimap.create();

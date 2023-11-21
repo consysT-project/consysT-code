@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups.schema.bank;
+package de.tuda.stg.consys.demo.groupchat.schema.bank;
 
 
 import de.tuda.stg.consys.annotations.Transactional;
@@ -6,12 +6,10 @@ import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
 import de.tuda.stg.consys.checker.qual.Mutable;
-import de.tuda.stg.consys.checker.qual.Weak;
 import de.tuda.stg.consys.japi.Ref;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 

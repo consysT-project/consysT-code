@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import com.google.common.collect.Sets;
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 
 @ReplicatedModel
-public class TwoPhaseSetTournament {
+public class TwoPhaseSetTournament implements Mergeable<TwoPhaseSetTournament>, Serializable {
 
 	public GSetTournament adds = new GSetTournament();
 	public GSetTournament removals = new GSetTournament();

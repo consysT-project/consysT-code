@@ -4,7 +4,9 @@ import de.tuda.stg.consys.annotations.invariants.DataModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-@DataModel public class Player {
+import java.io.Serializable;
+
+@DataModel public class Player implements Serializable {
 
     private final String name;
     private int budget = 0;

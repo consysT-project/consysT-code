@@ -6,10 +6,11 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-@ReplicatedModel public class GMap<K, V extends Mergeable<V>> implements Mergeable<GMap<K, V>> {
+@ReplicatedModel public class GMap<K, V extends Mergeable<V>> implements Mergeable<GMap<K, V>>, Serializable {
     public Map<K, V> underlying;
 
     //@ ensures underlying.isEmpty();

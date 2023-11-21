@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups.schema.bank;
+package de.tuda.stg.consys.demo.groupchat.schema.bank;
 
 import java.io.Serializable;
 

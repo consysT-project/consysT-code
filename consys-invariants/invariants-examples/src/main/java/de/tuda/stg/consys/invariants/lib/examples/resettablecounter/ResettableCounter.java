@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.resettablecounter;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
-@ReplicatedModel class ResettableCounter {
+@ReplicatedModel class ResettableCounter implements Mergeable<ResettableCounter>, Serializable {
 
     //@ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas(); incs[inv] >= 0);
 
@@ -54,8 +57,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
                    (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]));
     @ ensures replicaId() == \old(replicaId());
     @*/
-    void merge(ResettableCounter other) {
+    public Void merge(ResettableCounter other) {
         for (int i = 0; i < numOfReplicas(); i++)
             incs[i] = Math.max(incs[i], other.incs[i]);
+        return null;
     }
 }

@@ -3,8 +3,10 @@ package de.tuda.stg.consys.invariants.lib.examples.shoppingcart;
 import de.tuda.stg.consys.annotations.invariants.DataModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 
+import java.io.Serializable;
+
 @DataModel
-public class Item {
+public class Item implements Serializable {
 
 	private final String name;
 

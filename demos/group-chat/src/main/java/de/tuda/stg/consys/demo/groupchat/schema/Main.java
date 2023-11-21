@@ -1,19 +1,16 @@
-package de.tuda.stg.consys.demo.messagegroups.schema;
+package de.tuda.stg.consys.demo.groupchat.schema;
 
 import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.core.store.cassandra.levels.Strong$;
-import de.tuda.stg.consys.demo.messagegroups.schema.bank.BankAccount;
+import de.tuda.stg.consys.demo.groupchat.schema.bank.BankAccount;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import scala.Option;
 import scala.concurrent.duration.Duration;
-
-import java.util.Optional;
 
 public class Main {
 

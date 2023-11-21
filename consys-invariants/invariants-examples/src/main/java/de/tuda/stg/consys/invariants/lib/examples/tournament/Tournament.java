@@ -6,9 +6,10 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
+import java.io.Serializable;
 import java.util.Set;
 
-@DataModel public class Tournament {
+@DataModel public class Tournament implements Serializable {
     private final Set<Player> enrolled = Sets.newHashSet();
     private int capacity = 10;
     private boolean active = false;

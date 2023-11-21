@@ -6,10 +6,11 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-@ReplicatedModel public class MultiValueRegister implements Mergeable<MultiValueRegister> {
+@ReplicatedModel public class MultiValueRegister implements Mergeable<MultiValueRegister>, Serializable {
 
     public final Set<Object> value;
 

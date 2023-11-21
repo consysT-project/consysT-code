@@ -7,9 +7,10 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.Set;
 
-@ReplicatedModel public class TwoPhaseObjectSet implements Mergeable<TwoPhaseObjectSet> {
+@ReplicatedModel public class TwoPhaseObjectSet implements Mergeable<TwoPhaseObjectSet>, Serializable {
 
     public GObjectSet adds = new GObjectSet();
     public GObjectSet removals = new GObjectSet();

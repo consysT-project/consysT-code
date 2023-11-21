@@ -77,7 +77,7 @@ public abstract class JBenchStoreConverter<
 
                 @Override
                 public ConsistencyLevel<AkkaClusterStore> getMixedLevel() {
-                    throw new UnsupportedOperationException("akka does not support mixed levels yet.");
+                    return AkkaClusterConsistencyLevels.MIXED;
                 }
             };
         }

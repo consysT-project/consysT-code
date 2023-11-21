@@ -5,10 +5,11 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-@ReplicatedModel public class GObjectSet implements Mergeable<GObjectSet> {
+@ReplicatedModel public class GObjectSet implements Mergeable<GObjectSet>, Serializable {
 
     public Set<Object> underlying;
 

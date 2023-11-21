@@ -8,13 +8,14 @@ import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@ReplicatedModel public class ORMap<K, V extends Mergeable<V>> implements Mergeable<ORMap<K,V>> {
+@ReplicatedModel public class ORMap<K, V extends Mergeable<V>> implements Mergeable<ORMap<K,V>>, Serializable {
     //@ public invariant (\forall K k; underlying.containsKey(k); elements.containsKey(k));
     //@ public invariant (\forall K k; elements.containsKey(k); underlying.containsKey(k));
 

@@ -55,7 +55,13 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 	}
 
 	@Override
-	public void cleanup() { }
+	public void cleanup() {
+//		try {
+//			Thread.sleep(3000);
+//		} catch (InterruptedException e) {
+//			throw new RuntimeException(e);
+//		}
+	}
 
 	@Override
 	public void closeOperations() {

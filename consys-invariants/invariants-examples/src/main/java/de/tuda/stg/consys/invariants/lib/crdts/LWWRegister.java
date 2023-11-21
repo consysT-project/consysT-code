@@ -4,7 +4,9 @@ import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
-public class LWWRegister<T> implements Mergeable<LWWRegister<T>> {
+import java.io.Serializable;
+
+public class LWWRegister<T> implements Mergeable<LWWRegister<T>>, Serializable {
 
     private T value;
     private long timestamp;

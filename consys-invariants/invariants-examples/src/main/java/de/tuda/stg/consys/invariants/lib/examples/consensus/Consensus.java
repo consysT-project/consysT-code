@@ -75,9 +75,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas();
               b[i] == (\old(b[i]) | other.b[i]));
   @*/
-  void merge(Consensus other) {
+  Void merge(Consensus other) {
     for(int i = 0; i < numOfReplicas(); ++i)
       b[i] = b[i] | other.b[i];
     flag = flag | other.flag;
+    return null;
   }
 }

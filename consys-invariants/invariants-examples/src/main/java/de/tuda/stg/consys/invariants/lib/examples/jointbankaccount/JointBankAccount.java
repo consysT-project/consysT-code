@@ -1,12 +1,15 @@
 package de.tuda.stg.consys.invariants.lib.examples.jointbankaccount;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
-@ReplicatedModel public class JointBankAccount {
+@ReplicatedModel public class JointBankAccount implements Mergeable<JointBankAccount>, Serializable {
     //@ public invariant approved ? requested : true;
     private PNCounter balance;
     private boolean requested = false;
@@ -79,9 +82,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures requested == (\old(requested) || other.requested);
     @ ensures approved == (\old(approved) || other.approved);
     @*/
-    public void merge(JointBankAccount other) {
+    public Void merge(JointBankAccount other) {
         requested = requested || other.requested;
         approved = approved || other.approved;
         balance.merge(other.balance);
+        return null;
     }
 }

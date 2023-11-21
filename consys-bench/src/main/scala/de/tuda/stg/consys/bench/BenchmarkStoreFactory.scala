@@ -50,7 +50,7 @@ object BenchmarkStoreFactory {
 			host = address.hostname,
 			akkaPort = address.port1,
 			zookeeperPort = address.port2,
-			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout")),
+			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akkacluster.timeout")),
 			nodes = akkaReplicas
 		)
 

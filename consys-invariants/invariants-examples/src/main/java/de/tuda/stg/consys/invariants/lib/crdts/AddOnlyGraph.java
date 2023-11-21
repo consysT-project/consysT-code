@@ -9,12 +9,14 @@ import de.tuda.stg.consys.invariants.lib.crdts.data.GObjectSet;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 
-@ReplicatedModel public class AddOnlyGraph implements Mergeable<AddOnlyGraph> {
+@ReplicatedModel public class AddOnlyGraph implements Mergeable<AddOnlyGraph>, Serializable {
 
     //TODO: is it possible to add an cycle detection in the invariant? No, restriction of first-order logic.
     //TODO: Transform this into a DAG by adapting to a different add method.
@@ -163,3 +165,11 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 //		}
 //		}
 //		*/
+
+
+/*
+
+
+Boolean register that can be set to true only once.
+
+ */

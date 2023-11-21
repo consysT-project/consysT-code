@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups.schema;
+package de.tuda.stg.consys.demo.groupchat.schema;
 
 import de.tuda.stg.consys.checker.qual.ThisConsistent;
 

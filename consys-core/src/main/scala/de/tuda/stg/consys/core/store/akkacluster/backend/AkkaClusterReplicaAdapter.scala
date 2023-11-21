@@ -4,6 +4,7 @@ import akka.actor.ExtendedActorSystem
 import akka.cluster.ddata
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
+import akka.cluster.ddata.typed.scaladsl.Replicator.UpdateFailure
 import de.tuda.stg.consys.Mergeable
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils
@@ -57,7 +58,7 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 	//TODO: Incorporate timestamps in LWW registers
 	private def internalWrite(timestamp : Long, ops : Seq[TransactionOp], consistency : WriteConsistency) : Unit = {
 
-		replicator ! Replicator.Update.apply[MapType](key, ORMap.empty[AddrType, ValueType], consistency) { ormap  =>
+		val updateMessage = Replicator.Update.apply[MapType](key, ORMap.empty[AddrType, ValueType], consistency) { ormap =>
 			var ormapTemp : MapType = ormap
 
 
@@ -87,6 +88,22 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 			ormapTemp
 		}
 
+
+		import akka.pattern._
+		val response = replicator.ask(updateMessage)(timeout)
+		val result = Await.result(response, timeout)
+
+		result match {
+			case UpdateSuccess(_, _) =>
+				//Great!
+			case UpdateFailure(_) =>
+				Logger.err("update failed!")
+			case UpdateTimeout =>
+				Logger.err("update timeout!")
+			case UpdateDataDeleted =>
+				Logger.err("update data deleted")
+		}
+
 	}
 
 	def readLocal[T <: ObjType](addr : AddrType) : T = {
@@ -111,8 +128,6 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 			}
 
 			import akka.pattern._
-
-			//TODO: Is the scheduler correct?
 			val response = replicator.ask(Replicator.Get(key, consistency))(timeout)
 			val result = Await.result(response, timeout)
 
@@ -124,8 +139,9 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 						case Some(MergeableReplicatedData(obj)) =>
 							return obj.asInstanceOf[T]
 						case None =>
+							//Key not available in the ormap. Retry until timeout.
 //							throw new IllegalArgumentException("key not available")
-							Logger.err("AkkaClusterReplicaAdapter", "key not available yet")
+//							Logger.err("AkkaClusterReplicaAdapter", "key not available yet")
 					}
 
 				case notFound : NotFound[MapType] =>

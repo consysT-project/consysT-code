@@ -1,17 +1,19 @@
 package de.tuda.stg.consys.invariants.lib.examples.bankaccount;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.lang.Math;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
-@ReplicatedModel public class BankAccount {
+@ReplicatedModel public class BankAccount implements Mergeable<BankAccount>, Serializable {
     /* Constants */
     // Constants have to be declared with static final.
     public static final String ACCOUNT_TYPE = "BANK";
@@ -101,10 +103,11 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures (\forall int i; i >= 0 && i < numOfReplicas();
             incs[i] == Math.max(\old(incs[i]), other.incs[i]) && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
     @*/
-    public void merge(BankAccount other) {
+    public Void merge(BankAccount other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i] = Math.max(incs[i], other.incs[i]);
             decs[i] = Math.max(decs[i], other.decs[i]);
         }
+        return null;
     }
 }

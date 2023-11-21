@@ -1,13 +1,15 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-@ReplicatedModel public class GSetTournament {
+@ReplicatedModel public class GSetTournament implements Mergeable<GSetTournament>, Serializable {
 
     public Set<Tournament> underlying;
 
@@ -38,7 +40,8 @@ import java.util.Set;
 
     //@ ensures (\forall Tournament i; \old(underlying.contains(i)) || other.underlying.contains(i); underlying.contains(i));
     //@ ensures (\forall Tournament i; underlying.contains(i); \old(underlying.contains(i)) || other.underlying.contains(i));
-    public void merge(GSetTournament other) {
+    public Void merge(GSetTournament other) {
         underlying.addAll(other.underlying);
+        return null;
     }
 }

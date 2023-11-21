@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.bankaccountlww;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
-@ReplicatedModel public class BankAccountLWW {
+@ReplicatedModel public class BankAccountLWW implements Mergeable<BankAccountLWW>, Serializable {
 
     int value = 0;
     int timestamp = 0;
@@ -51,12 +54,13 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures (\old(timestamp) >= other.timestamp) ==> (value == \old(value)) && (timestamp == \old(timestamp));
     @ ensures (\old(timestamp) < other.timestamp) ==> (value == other.value) && (timestamp == other.timestamp);
     @*/
-    public void merge(BankAccountLWW other) {
+    public Void merge(BankAccountLWW other) {
         if (timestamp > other.timestamp) {
             // do not change this state
         } else {
             value = other.value;
             timestamp = other.timestamp;
         }
+        return null;
     }
 }

@@ -1,23 +1,10 @@
-package de.tuda.stg.consys.demo.messagegroups;
+package de.tuda.stg.consys.demo.groupchat;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
-import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.demo.DemoRunnable;
-import de.tuda.stg.consys.demo.DemoUtils;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
-import de.tuda.stg.consys.demo.messagegroups.schema.Chat;
-import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
-import de.tuda.stg.consys.demo.messagegroups.schema.User;
-import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.TransactionContext;
-import de.tuda.stg.consys.logging.Logger;
-import scala.Function1;
-import scala.Option;
-
-import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Created on 10.10.19.

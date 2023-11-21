@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.distributedlock;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+
+import java.io.Serializable;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 /* There is always a replica who holds the lock */
-@ReplicatedModel class DistributedLock {
+@ReplicatedModel class DistributedLock implements Mergeable<DistributedLock>, Serializable {
 
     /*@
      @ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas() && i<numOfReplicas();
@@ -68,11 +71,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
                 (timestamp == other.timestamp) && (timestamp == \old(timestamp)) &&
                 (\forall int m3; m3>=0 && m3<numOfReplicas(); lock[m3] == \old(lock[m3]) && lock[m3] == other.lock[m3]);
     @*/
-    void merge(DistributedLock other) {
+    public Void merge(DistributedLock other) {
         if(this.timestamp < other.timestamp) {
             timestamp = other.timestamp;
             for(int i= 0; i < numOfReplicas(); ++i)
                 lock[i] = other.lock[i];
         }
+        return null;
     }
 }

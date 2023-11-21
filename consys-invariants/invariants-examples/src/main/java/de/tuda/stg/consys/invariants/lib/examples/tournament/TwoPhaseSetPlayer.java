@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.tournament;
 
 import com.google.common.collect.Sets;
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 
 @ReplicatedModel
-public class TwoPhaseSetPlayer {
+public class TwoPhaseSetPlayer implements Mergeable<TwoPhaseSetPlayer>, Serializable {
 
 	public GSetPlayer adds = new GSetPlayer();
 	public GSetPlayer removals = new GSetPlayer();

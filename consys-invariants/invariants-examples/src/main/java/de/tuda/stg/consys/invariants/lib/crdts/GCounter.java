@@ -7,11 +7,14 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 import de.tuda.stg.consys.annotations.invariants.ArrayUtils;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 
-@ReplicatedModel public class GCounter implements Mergeable<GCounter> {
+
+@ReplicatedModel public class GCounter implements Mergeable<GCounter>, Serializable {
 
     public int[] incs;
 
@@ -45,7 +48,8 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
     @*/
-    @WeakOp public Void inc() {
+    @WeakOp
+    public Void inc() {
         incs[replicaId()] = incs[replicaId()] + 1;
         return null;
     }

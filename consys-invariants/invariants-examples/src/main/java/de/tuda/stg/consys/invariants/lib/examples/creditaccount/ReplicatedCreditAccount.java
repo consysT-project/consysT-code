@@ -7,6 +7,8 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
@@ -15,7 +17,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 
 
 @ReplicatedModel
-public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccount> {
+public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccount>, Serializable {
 
     public final PNCounter credits;
 

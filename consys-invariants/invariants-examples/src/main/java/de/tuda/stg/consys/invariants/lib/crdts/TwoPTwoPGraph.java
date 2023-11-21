@@ -6,13 +6,15 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.data.*;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 
 @ReplicatedModel
-public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph> {
+public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph>, Serializable {
 
 	public final TwoPhaseObjectSet vertices = new TwoPhaseObjectSet();
 	public final TwoPhaseEdgeSet edges = new TwoPhaseEdgeSet();

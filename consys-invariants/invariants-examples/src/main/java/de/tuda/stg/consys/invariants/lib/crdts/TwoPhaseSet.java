@@ -8,9 +8,10 @@ import com.google.common.collect.Sets;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
 import java.util.Set;
 
-@ReplicatedModel public class TwoPhaseSet<T> implements Mergeable<TwoPhaseSet<T>> {
+@ReplicatedModel public class TwoPhaseSet<T> implements Mergeable<TwoPhaseSet<T>>, Serializable {
 
     public GSet<T> adds = new GSet<T>();
     public GSet<T> removals = new GSet<T>();

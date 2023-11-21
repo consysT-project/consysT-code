@@ -8,6 +8,8 @@ import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
@@ -22,7 +24,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
  */
 
 @ReplicatedModel
-public class BoundedCounter implements Mergeable<BoundedCounter> {
+public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 
 	public final int rid;
 

@@ -15,11 +15,11 @@ object OutputResolver {
 
 	class ConsoleOutputResolver extends OutputResolver {
 		override def latencyWriter(processId : Int) : PrintWriter = {
-			new PrintWriter(OutputStream.nullOutputStream() /* Logger.infoWriter */, false)
+			new PrintWriter(Logger.info, false)
 		}
 
 		override def runtimeWriter(processId : Int) : PrintWriter = {
-			new PrintWriter(OutputStream.nullOutputStream() /* Logger.infoWriter */, false)
+			new PrintWriter(Logger.info, false)
 		}
 	}
 
@@ -81,7 +81,7 @@ object OutputResolver {
 				case e : IOException =>
 					throw new IllegalStateException("cannot instantiate output file", e)
 			}
-			println(s"latency file = $latencyPath")
+			Logger.info(s"latency file = $latencyPath")
 			new PrintWriter(latencyPath.toFile)
 		}
 
@@ -94,7 +94,7 @@ object OutputResolver {
 				case e : IOException =>
 					throw new IllegalStateException("cannot instantiate output file", e)
 			}
-			println(s"runtime file = $runtimePath")
+			Logger.info(s"runtime file = $runtimePath")
 			new PrintWriter(runtimePath.toFile)
 		}
 	}
