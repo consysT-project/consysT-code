@@ -32,10 +32,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     }
 
 
-    /*@
-    @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
-    @*/
+
+    //@ assignable \nothing;
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
     @SideEffectFree
     @WeakOp int sumIncs() {
         int res = 0;
@@ -45,10 +44,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         return res;
     }
 
-    /*@
-    @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); decs[i]);
-    @*/
+
+    //@ assignable \nothing;
+    //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); decs[i]);
     @SideEffectFree @WeakOp int sumDecs(){
         int result = 0;
         for (int dec : decs) {
@@ -57,10 +55,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         return result;
     }
 
-    /*@
-    @ assignable \nothing;
-    @ ensures \result == sumIncs() - sumDecs();
-    @*/
+
+    //@ assignable \nothing;
+    //@ ensures \result == sumIncs() - sumDecs();
     @SideEffectFree @WeakOp public int getValue() { return sumIncs() - sumDecs(); }
 
 

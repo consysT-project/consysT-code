@@ -1,21 +1,22 @@
-package de.tuda.stg.consys.demo.crdts;
+package de.tuda.stg.consys.demo.crdts.invariants.crdts;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
-import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
+import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
+import de.tuda.stg.consys.demo.crdts.schema.PNCounter;
 import scala.Option;
 
 import java.util.Random;
 
-public class PNCounterRunnable extends CRDTBenchRunnable<PNCounter> {
+public class PNCounterBench extends CRDTBenchRunnable<PNCounter> {
 
     public static void main(String[] args) {
-        JBenchExecution.execute("crdt-pncounter", PNCounterRunnable.class, args);
+        JBenchExecution.execute("invariants-pncounter", PNCounterBench.class, args);
     }
 
-    public PNCounterRunnable(JBenchStore adapter, BenchmarkConfig config) {
+    public PNCounterBench(JBenchStore adapter, BenchmarkConfig config) {
         super(adapter, config, PNCounter.class);
     }
 
@@ -31,7 +32,7 @@ public class PNCounterRunnable extends CRDTBenchRunnable<PNCounter> {
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("inc", random.nextInt(42));
+                    crdt.invoke("inc", random.nextInt(99));
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
@@ -39,7 +40,7 @@ public class PNCounterRunnable extends CRDTBenchRunnable<PNCounter> {
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("dec", random.nextInt(42));
+                    crdt.invoke("dec", random.nextInt(99));
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {

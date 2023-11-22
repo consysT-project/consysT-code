@@ -27,37 +27,28 @@ public class AddOnlyGraphBench extends CRDTBenchRunnable<AddOnlyGraph> {
 		super(adapter, config, AddOnlyGraph.class);
 	}
 
-	@SuppressWarnings("consistency")
-	private @Immutable @Local List<@Immutable @Local Integer> vertices = IntStream.range(1, 100)
-			.boxed()
-      		.collect(Collectors.toCollection(ArrayList::new));
-
-	private @Immutable @Local Integer getRandomVertex() {
-		return vertices.get(new Random().nextInt(99));
-	}
 
 	@Override
 	@SuppressWarnings("consistency")
 	public BenchmarkOperations operations() {
-		final Integer v1 = getRandomVertex();
-		final Integer v2 = getRandomVertex();
+		final Random rand = new Random();
 
 		// One operation will be chosen randomly.
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
 				// Here, operations are chosen with a uniform distribution.
 				// The first operation increments the counter
 				() -> store().transaction(ctx -> {
-					crdt.invoke("hasVertex", v1);
+					crdt.invoke("hasVertex", rand.nextInt(99));
 					return Option.apply(0);
 				}),
 				// The second operation retrieves the value of the counter.
 				() -> store().transaction(ctx -> {
-					crdt.invoke("addVertex", v1);
+					crdt.invoke("addVertex", rand.nextInt(99));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
 					try {
-						crdt.invoke("addEdge", v1, v2);
+						crdt.invoke("addEdge", rand.nextInt(99), rand.nextInt(99));
 					} catch (IllegalArgumentException e) {
 
 					}

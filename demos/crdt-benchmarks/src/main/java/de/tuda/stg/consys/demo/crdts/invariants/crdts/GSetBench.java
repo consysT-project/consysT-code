@@ -32,15 +32,15 @@ public class GSetBench extends CRDTBenchRunnable<GSet> {
 	@Override
 	@SuppressWarnings("consistency")
 	public BenchmarkOperations operations() {
-		final Integer value = new Random().nextInt(100);
+		final Random rand = new Random();
 
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
 				() -> store().transaction(ctx -> {
-					crdt.invoke("add", value);
+					crdt.invoke("add", rand.nextInt(99));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
-					crdt.invoke("contains", value);
+					crdt.invoke("contains", rand.nextInt(99));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {

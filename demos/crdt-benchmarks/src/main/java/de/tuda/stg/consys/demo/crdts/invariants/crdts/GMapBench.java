@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.demo.crdts.invariants.crdts;
 
+import com.google.common.collect.Lists;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.checker.qual.Immutable;
@@ -12,6 +13,7 @@ import de.tuda.stg.consys.invariants.lib.crdts.GMap;
 import scala.Option;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -28,27 +30,22 @@ public class GMapBench extends CRDTBenchRunnable<GMap> {
 	}
 
 	@SuppressWarnings("consistency")
-	private @Immutable @Local List<@Immutable @Local Integer> keys = IntStream.range(1, 100)
+	private List<Integer> keys = IntStream.range(1, 100)
 			.boxed()
 			.collect(Collectors.toCollection(ArrayList::new));
-
-	private @Immutable @Local Integer getRandomKey() {
-		return keys.get(new Random().nextInt(99));
-	}
 
 	@Override
 	@SuppressWarnings("consistency")
 	public BenchmarkOperations operations() {
-		final Integer key = getRandomKey();
-		final GCounter value = new GCounter();
+		final Random rand = new Random();
 
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
 				() -> store().transaction(ctx -> {
-					crdt.invoke("containsKey", key);
+					crdt.invoke("containsKey", keys.get(rand.nextInt(99)));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
-					crdt.invoke("containsValue", value);
+					crdt.invoke("containsValue", new GCounter());
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
@@ -56,11 +53,11 @@ public class GMapBench extends CRDTBenchRunnable<GMap> {
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
-					crdt.invoke("get", key);
+					crdt.invoke("get", keys.get(rand.nextInt(99)));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
-					crdt.invoke("put", key, value);
+					crdt.invoke("put", keys.get(rand.nextInt(99)), new GCounter());
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {

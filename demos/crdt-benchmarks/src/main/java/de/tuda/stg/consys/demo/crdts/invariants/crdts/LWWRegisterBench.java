@@ -5,19 +5,18 @@ import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
-import de.tuda.stg.consys.invariants.lib.crdts.GSet;
 import de.tuda.stg.consys.invariants.lib.crdts.LWWRegister;
 import scala.Option;
 
 import java.util.Random;
 
-public class GLWWRegisterBench extends CRDTBenchRunnable<LWWRegister> {
+public class LWWRegisterBench extends CRDTBenchRunnable<LWWRegister> {
 
 	public static void main(String[] args) {
-		JBenchExecution.execute("invariants-lww-register", GLWWRegisterBench.class, args);
+		JBenchExecution.execute("invariants-lww-register", LWWRegisterBench.class, args);
 	}
 
-	public GLWWRegisterBench(JBenchStore adapter, BenchmarkConfig config) {
+	public LWWRegisterBench(JBenchStore adapter, BenchmarkConfig config) {
 		super(adapter, config, LWWRegister.class);
 	}
 
@@ -25,11 +24,11 @@ public class GLWWRegisterBench extends CRDTBenchRunnable<LWWRegister> {
 	@Override
 	@SuppressWarnings("consistency")
 	public BenchmarkOperations operations() {
-		final Integer value = new Random().nextInt(100);
+		final Random rand = new Random();
 
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
 				() -> store().transaction(ctx -> {
-					crdt.invoke("set", value);
+					crdt.invoke("set", rand.nextInt(99));
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {

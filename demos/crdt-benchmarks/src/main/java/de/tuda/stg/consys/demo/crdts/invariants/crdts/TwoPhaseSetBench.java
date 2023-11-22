@@ -1,22 +1,22 @@
-package de.tuda.stg.consys.demo.crdts;
+package de.tuda.stg.consys.demo.crdts.invariants.crdts;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
-import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
+import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
+import de.tuda.stg.consys.invariants.lib.crdts.TwoPhaseSet;
 import scala.Option;
 
 import java.util.Random;
 
-public class PNCounterRunnable extends CRDTBenchRunnable<PNCounter> {
-
+public class TwoPhaseSetBench extends CRDTBenchRunnable<TwoPhaseSet> {
     public static void main(String[] args) {
-        JBenchExecution.execute("crdt-pncounter", PNCounterRunnable.class, args);
+        JBenchExecution.execute("invariants-twophaseset", TwoPhaseSetBench.class, args);
     }
 
-    public PNCounterRunnable(JBenchStore adapter, BenchmarkConfig config) {
-        super(adapter, config, PNCounter.class);
+    public TwoPhaseSetBench(JBenchStore adapter, BenchmarkConfig config) {
+        super(adapter, config, TwoPhaseSet.class);
     }
 
     private Random random = new Random();
@@ -24,22 +24,21 @@ public class PNCounterRunnable extends CRDTBenchRunnable<PNCounter> {
     @Override
     @SuppressWarnings("consistency")
     public BenchmarkOperations operations() {
-        // One operation will be chosen randomly.
         return BenchmarkOperations.withUniformDistribution(new Runnable[] {
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("inc");
+                    crdt.invoke("add", random.nextInt(99));
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("inc", random.nextInt(42));
+                    crdt.invoke("remove", random.nextInt(99));
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("dec");
+                    crdt.invoke("contains", random.nextInt(99));
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
-                    crdt.invoke("dec", random.nextInt(42));
+                    crdt.invoke("isEmpty");
                     return Option.apply(0);
                 }),
                 () -> store().transaction(ctx -> {
