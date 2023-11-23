@@ -32,6 +32,10 @@ public abstract class JBenchRunnable<
         return config.processId();
     }
 
+    protected int numOfProcesses() {
+        return config.numberOfReplicas();
+    }
+
     protected void barrier(String name) {
         store.barrier(name, config.numberOfReplicas(), config.barrierTimeout());
     }

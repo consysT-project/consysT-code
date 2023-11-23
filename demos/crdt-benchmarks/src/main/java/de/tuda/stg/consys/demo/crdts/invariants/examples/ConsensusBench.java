@@ -1,23 +1,24 @@
-package de.tuda.stg.consys.demo.crdts.invariants.crdts;
+package de.tuda.stg.consys.demo.crdts.invariants.examples;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
-import de.tuda.stg.consys.invariants.lib.crdts.GCounter;
+import de.tuda.stg.consys.invariants.lib.examples.bankaccountlww.BankAccountLWW;
+import de.tuda.stg.consys.invariants.lib.examples.consensus.Consensus;
 import scala.Option;
 
 import java.util.Random;
 
-public class GCounterBench extends CRDTBenchRunnable<GCounter> {
+public class ConsensusBench extends CRDTBenchRunnable<Consensus> {
 
 	public static void main(String[] args) {
-		JBenchExecution.execute("invariants-gcounter", GCounterBench.class, args);
+		JBenchExecution.execute("invariants-consensus", ConsensusBench.class, args);
 	}
 
-	public GCounterBench(JBenchStore adapter, BenchmarkConfig config) {
-		super(adapter, config, GCounter.class);
+	public ConsensusBench(JBenchStore adapter, BenchmarkConfig config) {
+		super(adapter, config, Consensus.class);
 	}
 
 
@@ -31,16 +32,20 @@ public class GCounterBench extends CRDTBenchRunnable<GCounter> {
 				// Here, operations are chosen with a uniform distribution.
 				// The first operation increments the counter
 				() -> store().transaction(ctx -> {
-					crdt.invoke("inc");
-					return Option.apply(0);
-				}),
-				() -> store().transaction(ctx -> {
-					crdt.invoke("inc", rand.nextInt(99));
+					crdt.invoke("agree");
 					return Option.apply(0);
 				}),
 				// The second operation retrieves the value of the counter.
 				() -> store().transaction(ctx -> {
-					crdt.invoke("getValue");
+					crdt.invoke("mark");
+					return Option.apply(0);
+				}),
+				() -> store().transaction(ctx -> {
+					try {
+						crdt.invoke("conjunctValues");
+					} catch (IllegalArgumentException e) {
+
+					}
 					return Option.apply(0);
 				})
 		});

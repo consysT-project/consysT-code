@@ -1,13 +1,16 @@
 package de.tuda.stg.consys.invariants.lib.examples.consensus;
 
+import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import java.io.Serializable;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 
 
-@ReplicatedModel class Consensus {
+@ReplicatedModel public class Consensus implements Mergeable<Consensus>, Serializable {
 
 
 
@@ -41,7 +44,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   @ ensures \result == (\forall int i; i >= 0 && i < numOfReplicas(); b[i]);
   @*/
   @SideEffectFree
-  @WeakOp boolean conjunctValues() {
+  @WeakOp public boolean conjunctValues() {
     for(int i = 0; i < numOfReplicas(); ++i) {
       if (!b[i])
         return false;
@@ -55,7 +58,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas() && i != replicaId;
               b[i] == \old(b[i]));
   @*/
-  @WeakOp void mark() {
+  @WeakOp public void mark() {
     b[replicaId] = true;
   }
 
@@ -64,7 +67,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   @ assignable flag;
   @ ensures flag;
   @*/
-  @WeakOp void agree() {
+  @WeakOp public void agree() {
     if (!conjunctValues())
       throw new RuntimeException("There is still a false element.");
     flag = true;
@@ -75,7 +78,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas();
               b[i] == (\old(b[i]) | other.b[i]));
   @*/
-  Void merge(Consensus other) {
+  public Void merge(Consensus other) {
     for(int i = 0; i < numOfReplicas(); ++i)
       b[i] = b[i] | other.b[i];
     flag = flag | other.flag;

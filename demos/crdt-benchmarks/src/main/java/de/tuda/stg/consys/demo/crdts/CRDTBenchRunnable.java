@@ -33,7 +33,7 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 	public void setup() {
 		if (processId() == 0) {
 			Option<Ref<CRDT>> result = store().transaction(ctx -> {
-				var ref = ctx.replicate("crdt", getWeakLevel(), clazz);
+				var ref = ctx.replicate("crdt", getMixedLevel(), clazz);
 				return Option.apply(ref);
 			});
 
@@ -44,7 +44,7 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 
 		if (processId() != 0) {
 			Option<Ref<CRDT>> result = store().transaction(ctx -> {
-				var ref = ctx.lookup("crdt", getWeakLevel(), clazz);
+				var ref = ctx.lookup("crdt", getMixedLevel(), clazz);
 				return Option.apply(ref);
 			});
 

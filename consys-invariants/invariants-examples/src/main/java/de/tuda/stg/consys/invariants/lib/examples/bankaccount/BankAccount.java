@@ -49,7 +49,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(incs[i]));
     @SideEffectFree @WeakOp
-    public int sumIncs() {
+    int sumIncs() {
         int res = 0;
         for (int inc : incs) {
             res += inc;
@@ -59,7 +59,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(decs[i]));
-    @SideEffectFree @WeakOp public int sumDecs() {
+    @SideEffectFree @WeakOp int sumDecs() {
         int result = 0;
         for (int dec : decs) {
             result += dec;
@@ -78,6 +78,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ assignable incs[replicaId()];
     //@ ensures incs[replicaId()] == \old(incs[replicaId()]) + val;
     @WeakOp public void deposit(int val) {
+        if (val < 0)
+            throw new IllegalArgumentException("value negative");
+
         incs[replicaId()] = incs[replicaId()] + val;
     }
 
@@ -87,6 +90,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ assignable decs[replicaId()];
     //@ ensures decs[replicaId()] == \old(decs[replicaId()]) + val;
     @StrongOp public void withdraw(int val) {
+        if (val < 0)
+            throw new IllegalArgumentException("value negative");
         if (val > getValue())
             throw new IllegalArgumentException("not enough balance to withdraw");
 

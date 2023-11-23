@@ -10,13 +10,9 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 /* There is always a replica who holds the lock */
-@ReplicatedModel class DistributedLock implements Mergeable<DistributedLock>, Serializable {
-
-    /*@
-     @ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas() && i<numOfReplicas();
-     @                   lock[i] && lock[j] ==> i == j);
-     @ public invariant (\exists int k; k>=0 && k<numOfReplicas(); lock[k]);
-     @*/
+@ReplicatedModel public class DistributedLock implements Mergeable<DistributedLock>, Serializable {
+     //@ public invariant (\forall int i, j; 0<=i && 0<=j && j<numOfReplicas() && i<numOfReplicas(); lock[i] && lock[j] ==> i == j);
+     //@ public invariant (\exists int k; k>=0 && k<numOfReplicas(); lock[k]);
 
 
     boolean[] lock;
@@ -29,7 +25,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures timestamp == 0;
     @ ensures replicaId() == id;
     @*/
-    DistributedLock(int id) {
+    public DistributedLock(int id) {
         if (!(id >= 0 && id < numOfReplicas()))
             throw new IllegalArgumentException("id not in range.");
 
@@ -51,7 +47,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures lock[replicaId()] == false;
     @ ensures lock[otherReplica] == true;
     @*/
-    @WeakOp void transfer(int otherReplica) {
+    @WeakOp public void transfer(int otherReplica) {
         if (!(lock[replicaId()]))
             throw new RuntimeException("The lock is not set to this object.");
         lock[replicaId()] = false;

@@ -5,7 +5,7 @@ import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
-import de.tuda.stg.consys.demo.crdts.schema.PNCounter;
+import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 import scala.Option;
 
 import java.util.Random;
