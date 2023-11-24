@@ -10,7 +10,7 @@ import java.io.Serializable;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
-@ReplicatedModel class ResettableCounter implements Mergeable<ResettableCounter>, Serializable {
+@ReplicatedModel public class ResettableCounter implements Mergeable<ResettableCounter>, Serializable {
 
     //@ public invariant (\forall int inv; inv>=0 && inv<numOfReplicas(); incs[inv] >= 0);
 
@@ -30,13 +30,13 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures incs[replicaId()] == (\old(incs[replicaId()]) + 1);
     @ ensures (\forall int incInd; incInd>=0 && incInd<numOfReplicas() && incInd!=replicaId(); incs[incInd] == \old(incs[incInd]));
     @*/
-    @WeakOp void inc() {incs[replicaId()] = incs[replicaId()] + 1;}
+    @WeakOp public void inc() {incs[replicaId()] = incs[replicaId()] + 1;}
 
     /*@
     @ assignable incs;
     @ ensures (\forall int a; 0<=a && a<numOfReplicas(); incs[a] == 0);
     @*/
-    @WeakOp void reset() {
+    @WeakOp public void reset() {
         for(int i = 0; i < numOfReplicas(); ++i)
             incs[i] = 0;
     }
@@ -44,7 +44,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int b; b>=0 && b<numOfReplicas(); incs[b]);
-    @SideEffectFree @WeakOp int getValue() {
+    @SideEffectFree @WeakOp public int getValue() {
         int val = 0;
         for(int i = 0; i < numOfReplicas(); ++i)
             val += incs[i];

@@ -5,19 +5,19 @@ import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.demo.JBenchExecution;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.crdts.CRDTBenchRunnable;
-import de.tuda.stg.consys.invariants.lib.examples.distributedlock.DistributedLock;
+import de.tuda.stg.consys.invariants.lib.examples.resettablecounter.ResettableCounter;
 import scala.Option;
 
 import java.util.Random;
 
-public class DistributedLockBench extends CRDTBenchRunnable<DistributedLock> {
+public class ResettableCounterBench extends CRDTBenchRunnable<ResettableCounter> {
 
 	public static void main(String[] args) {
-		JBenchExecution.execute("invariants-distributed-lock", DistributedLockBench.class, args);
+		JBenchExecution.execute("invariants-resettable-counter", ResettableCounterBench.class, args);
 	}
 
-	public DistributedLockBench(JBenchStore adapter, BenchmarkConfig config) {
-		super(adapter, config, DistributedLock.class);
+	public ResettableCounterBench(JBenchStore adapter, BenchmarkConfig config) {
+		super(adapter, config, ResettableCounter.class);
 	}
 
 
@@ -26,12 +26,17 @@ public class DistributedLockBench extends CRDTBenchRunnable<DistributedLock> {
 	public BenchmarkOperations operations() {
 		final Random rand = new Random();
 
-		// One operation will be chosen randomly.
 		return BenchmarkOperations.withUniformDistribution(new Runnable[] {
-				// Here, operations are chosen with a uniform distribution.
-				// The first operation increments the counter
 				() -> store().transaction(ctx -> {
-					crdt.invoke("transfer", rand.nextInt(numOfProcesses()));
+					crdt.invoke("getValue");
+					return Option.apply(0);
+				}),
+				() -> store().transaction(ctx -> {
+					crdt.invoke("inc");
+					return Option.apply(0);
+				}),
+				() -> store().transaction(ctx -> {
+					crdt.invoke("reset");
 					return Option.apply(0);
 				})
 		});

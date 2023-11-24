@@ -11,6 +11,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 @ReplicatedModel public class JointBankAccount implements Mergeable<JointBankAccount>, Serializable {
     //@ public invariant approved ? requested : true;
+
     private PNCounter balance;
     private boolean requested = false;
     private boolean approved = false;
