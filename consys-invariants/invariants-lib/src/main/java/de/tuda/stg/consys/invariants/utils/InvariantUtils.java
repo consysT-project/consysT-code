@@ -32,4 +32,9 @@ public class InvariantUtils {
 	public static int numOfReplicas() {
 		return numOfReplicas;
 	}
+
+
+	public static int[] arrayMax(int[] as, int[] bs) {
+		throw new UnsupportedOperationException("the method <arrayMax> is only usable in constraints.");
+	}
 }

@@ -57,7 +57,7 @@ public class Main {
 	};
 
 
-	public static final Path[] DEFAULT_EXAMPLE = Examples.BOUNDED_COUNTER;
+	public static final Path[] DEFAULT_EXAMPLE = Examples.GCOUNTER;
 
 	private static void printUsage() {
 		Logger.info("Usage: consys [--bench-sys | --bench-java | case-study-name | --count case-study-name]");

@@ -72,5 +72,10 @@ server.8=172.31.25.156:2888:3888
 
 
 
+# CRDT Benchmark execution
+cd consysT-code/demos/crdt-benchmarks/
+
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.AddOnlyGraphBench -b akkacluster -c aws/mixed/node1/node.conf
+
 
 

@@ -11,6 +11,7 @@ import java.lang.Math;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.arrayMax;
 
 
 @ReplicatedModel public class BankAccount implements Mergeable<BankAccount>, Serializable {
@@ -31,6 +32,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     /* Constructors */
     // Constructors define the initial state of an object.
 
+    //@ ensures getValue() == 0;
     //@ ensures (\forall int i; true; incs[i] == 0);
     //@ ensures (\forall int i; true; decs[i] == 0);
     public BankAccount() {
@@ -102,12 +104,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     /* Merge method */
     // Merge defines the conflict resolution of replicated objects.
     // Constraints can use fields, constants, and the other parameter.
-    /*@
-    @ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(incs[i], other.incs[i]))
-    - (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(decs[i], other.decs[i])) >= 0;
-    @ ensures (\forall int i; i >= 0 && i < numOfReplicas();
-            incs[i] == Math.max(\old(incs[i]), other.incs[i]) && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
-    @*/
+    //@ requires (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(incs[i], other.incs[i])) - (\sum int i; i >= 0 && i < numOfReplicas(); Math.max(decs[i], other.decs[i])) >= 0;
+    //@ ensures (\forall int i; true; incs[i] == Math.max(\old(incs[i]), other.incs[i]) && decs[i] == Math.max(\old(decs[i]), other.decs[i]));
     public Void merge(BankAccount other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i] = Math.max(incs[i], other.incs[i]);
@@ -116,3 +114,6 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         return null;
     }
 }
+
+
+// ensures incs == arrayMax(\old(incs), other.incs) && decs == arrayMax(\old(decs), other.decs);

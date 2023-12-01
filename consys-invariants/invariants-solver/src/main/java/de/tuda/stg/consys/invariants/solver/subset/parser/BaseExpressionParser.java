@@ -559,6 +559,30 @@ public class BaseExpressionParser extends ExpressionParser {
       var expr = constrDecl.apply(argExprs);
 
       return expr;
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, true, InvariantUtils.class.getName(), "arrayMax", "int[]", "int[]")) {
+      var arg1Expr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var arg2Expr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+
+      var arrayConst = model.ctx.mkFreshConst("arrayMax", model.ctx.mkArraySort(model.ctx.getIntSort(), model.ctx.getIntSort()));
+
+      var iConst = model.ctx.mkFreshConst("i", model.ctx.getIntSort());
+
+      var assertion = model.ctx.mkForall(
+              new Expr[] { iConst },
+              model.ctx.mkEq(
+                      model.ctx.mkSelect(arrayConst, iConst),
+                      model.ctx.mkITE(
+                        model.ctx.mkGe(model.ctx.mkSelect(arg1Expr, iConst), model.ctx.mkSelect(arg2Expr, iConst)),
+                        model.ctx.mkSelect(arg1Expr, iConst),
+                        model.ctx.mkSelect(arg2Expr, iConst)
+                      )
+              ),
+              0, null, null, null, null
+      );
+
+      model.solver.add(assertion);
+
+      return arrayConst;
     }
 
 
