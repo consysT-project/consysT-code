@@ -1,36 +1,28 @@
 package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.{ConsistencyVarEnv, ConsistencyVarId, TypeVarEnv}
+import de.tuda.consys.formalization.lang.{ConsistencyVarEnv, ConsistencyVarId, TypeVarEnv, TypeVarMutabilityEnv}
 
 sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
     def operationLevel(): OperationLevel
 
     def <=(t: ConsistencyType)(implicit classTable: ClassTable,
                                typeVarEnv: TypeVarEnv,
+                               typeVarMutabilityEnv: TypeVarMutabilityEnv,
                                consistencyVarEnv: ConsistencyVarEnv): Boolean =
         Subtyping.subtype(this, t)
 
     def >=(t: ConsistencyType)(implicit classTable: ClassTable,
                                typeVarEnv: TypeVarEnv,
+                               typeVarMutabilityEnv: TypeVarMutabilityEnv,
                                consistencyVarEnv: ConsistencyVarEnv): Boolean =
         Subtyping.subtype(t, this)
-
-    def lub(t: ConsistencyType)(implicit classTable: ClassTable,
-                                typeVarEnv: TypeVarEnv,
-                                consistencyVarEnv: ConsistencyVarEnv): ConsistencyType =
-        if (this <= t) t else this // TODO: generalize
-
-    def glb(t: ConsistencyType)(implicit classTable: ClassTable,
-                                typeVarEnv: TypeVarEnv,
-                                consistencyVarEnv: ConsistencyVarEnv): ConsistencyType =
-        if (this >= t) t else this // TODO: generalize
 }
 
 sealed trait ConcreteConsistencyType extends ConsistencyType
 
 case object Local extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = ???
+    override def operationLevel(): OperationLevel = StrongOp
 }
 
 case object Strong extends ConcreteConsistencyType {
@@ -42,7 +34,7 @@ case object Weak extends ConcreteConsistencyType {
 }
 
 case object Inconsistent extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = ???
+    override def operationLevel(): OperationLevel = WeakOp
 }
 
 case class ConsistencyVar(name: ConsistencyVarId) extends ConsistencyType {

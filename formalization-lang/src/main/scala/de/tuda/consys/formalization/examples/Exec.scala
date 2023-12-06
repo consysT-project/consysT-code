@@ -12,6 +12,49 @@ object Exec {
         new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
     }
 
+    private def test(): Unit = {
+        val c1 = ClassDecl(
+            "C1",
+            Seq.empty,
+            Seq.empty,
+            SuperClassDecl(topClassId, Seq.empty, Seq.empty),
+            Map.empty,
+            Map.empty
+        )
+        val c2 = ClassDecl(
+            "C2",
+            Seq.empty,
+            Seq.empty,
+            SuperClassDecl(c1.classId, Seq.empty, Seq.empty),
+            Map.empty,
+            Map.empty
+        )
+        val c3 = ClassDecl(
+            "C3",
+            Seq.empty,
+            Seq.empty,
+            SuperClassDecl(c2.classId, Seq.empty, Seq.empty),
+            Map.empty,
+            Map.empty
+        )
+        val ct = Map(
+            "C1" -> c1,
+            "C2" -> c2,
+            "C3" -> c3
+        )
+        println(Subtyping.subtype(Mutable, c1.toType, c2.toType)(ct, Map.empty, Map.empty, Map.empty))
+        println(Subtyping.subtype(Mutable, c2.toType, c1.toType)(ct, Map.empty, Map.empty, Map.empty))
+        println(Subtyping.subtype(Mutable, c3.toType, c1.toType)(ct, Map.empty, Map.empty, Map.empty))
+
+        val consEnv = Map("V1" -> Inconsistent)
+        val v1 = ConsistencyVar("V1")
+        println(Subtyping.subtype(Weak, ConsistencyUnion(Weak, Strong))(consEnv))
+        println(Subtyping.subtype(v1, ConsistencyUnion(v1, Strong))(consEnv))
+        println(Subtyping.subtype(v1, ConsistencyUnion(ConsistencyUnion(v1, Strong), Strong))(consEnv))
+        println(Subtyping.subtype(ConsistencyUnion(v1, Strong), v1)(consEnv))
+        println(Subtyping.subtype(ConsistencyUnion(v1, ConsistencyUnion(v1, Local)), v1)(consEnv))
+    }
+
     private def exampleProgram1(): ProgramDecl = {
         val numberClass = ClassDecl(
             "BoxedNum",

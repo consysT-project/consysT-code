@@ -10,19 +10,13 @@ import scala.annotation.tailrec
 case class Type(l: ConsistencyType, m: MutabilityType, suffix: TypeSuffix) extends TypeLike[Type] {
     override def <=(t: Type)(implicit classTable: ClassTable,
                              typeVarEnv: TypeVarEnv,
+                             typeVarMutabilityEnv: TypeVarMutabilityEnv,
                              consistencyVarEnv: ConsistencyVarEnv): Boolean = Subtyping.subtype(this, t)
 
     override def >=(t: Type)(implicit classTable: ClassTable,
                              typeVarEnv: TypeVarEnv,
+                             typeVarMutabilityEnv: TypeVarMutabilityEnv,
                              consistencyVarEnv: ConsistencyVarEnv): Boolean = Subtyping.subtype(t, this)
-
-    override def lub(t: Type)(implicit classTable: ClassTable,
-                              typeVarEnv: TypeVarEnv,
-                              consistencyVarEnv: ConsistencyVarEnv): Type = ???
-
-    override def glb(t: Type)(implicit classTable: ClassTable,
-                              typeVarEnv: TypeVarEnv,
-                              consistencyVarEnv: ConsistencyVarEnv): Type = ???
 
     def withConsistency(l: ConsistencyType): Type = Type(l, m, suffix)
     def withMutability(m: MutabilityType): Type = Type(l, m, suffix)

@@ -6,7 +6,6 @@ import de.tuda.consys.formalization.lang.errors.TypeError
 import de.tuda.consys.formalization.lang.types.Types._
 import de.tuda.consys.formalization.lang.types._
 
-// TODO: check transactions
 object TypeChecker {
     private sealed trait DeclarationContext
 
@@ -203,12 +202,12 @@ object TypeChecker {
             if (t1 != t2)
                 throw TypeError(s"non-matching types in <Equals>: $t1 and $t2")
 
-            Type(l1 lub l2, Immutable, BooleanTypeSuffix)
+            Type(ConsistencyUnion(l1, l2), Immutable, BooleanTypeSuffix)
 
         case ArithmeticOperation(e1, e2, _) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, NumberTypeSuffix), Type(l2, Immutable, NumberTypeSuffix)) =>
-                    Type(l1 lub l2, Immutable, NumberTypeSuffix)
+                    Type(ConsistencyUnion(l1, l2), Immutable, NumberTypeSuffix)
                 case (t1, t2) =>
                     throw TypeError(s"invalid types for <ArithmeticOperation>: $t1 and $t2")
             }
@@ -216,7 +215,7 @@ object TypeChecker {
         case ArithmeticComparison(e1, e2, _) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, NumberTypeSuffix), Type(l2, Immutable, NumberTypeSuffix)) =>
-                    Type(l1 lub l2, Immutable, NumberTypeSuffix)
+                    Type(ConsistencyUnion(l1, l2), Immutable, NumberTypeSuffix)
                 case (t1, t2) =>
                     throw TypeError(s"invalid types for <ArithmeticComparison>: $t1 and $t2")
             }
@@ -224,7 +223,7 @@ object TypeChecker {
         case BooleanCombination(e1, e2, _) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, BooleanTypeSuffix), Type(l2, Immutable, BooleanTypeSuffix)) =>
-                    Type(l1 lub l2, Immutable, BooleanTypeSuffix)
+                    Type(ConsistencyUnion(l1, l2), Immutable, BooleanTypeSuffix)
                 case (t1, t2) =>
                     throw TypeError(s"invalid types for <BooleanCombination>: $t1 and $t2")
             }
@@ -271,7 +270,7 @@ object TypeChecker {
             val conditionType = checkExpressionWithVars(conditionExpr, vars)
             conditionType match {
                 case Type(l, Immutable, BooleanTypeSuffix) =>
-                    val newImplicitContext = implicitContext glb l
+                    val newImplicitContext = ConsistencyUnion(implicitContext, l)
                     checkStatement(thenStmt, vars)(
                         implicitly, newImplicitContext,
                         implicitly, implicitly, implicitly, implicitly,
@@ -288,7 +287,7 @@ object TypeChecker {
             val conditionType = checkExpressionWithVars(condition, vars)
             conditionType match {
                 case Type(l, Immutable, BooleanTypeSuffix) =>
-                    val newImplicitContext = implicitContext glb l
+                    val newImplicitContext = ConsistencyUnion(implicitContext, l)
                     checkStatement(stmt, vars)(
                         implicitly, newImplicitContext,
                         implicitly, implicitly, implicitly, implicitly,
@@ -343,7 +342,7 @@ object TypeChecker {
                     case None => throw TypeError(s"field not found: $fieldId (in class $thisType)")
                 }
 
-                val typ = Type(fieldType.l lub operationLevel,
+                val typ = Type(ConsistencyUnion(fieldType.l, operationLevel),
                     fieldType.m lub mutabilityContext,
                     fieldType.suffix)
 
@@ -449,7 +448,7 @@ object TypeChecker {
                     throw TypeError(s"wrong argument type: was $argType but expected $paramType")
             })
 
-            val resType = Type(methodType.returnType.l lub recvType.l,
+            val resType = Type(ConsistencyUnion(methodType.returnType.l, recvType.l),
                 methodType.returnType.m,
                 methodType.returnType.suffix)
 
@@ -480,7 +479,7 @@ object TypeChecker {
                             throw TypeError(s"wrong argument type: was $argType but expected $paramType")
                     })
 
-                    val resType = Type(methodType.returnType.l lub operationLevel,
+                    val resType = Type(ConsistencyUnion(methodType.returnType.l, operationLevel),
                         methodType.returnType.m,
                         methodType.returnType.suffix)
 

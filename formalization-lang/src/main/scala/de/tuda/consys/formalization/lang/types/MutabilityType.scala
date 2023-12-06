@@ -1,28 +1,32 @@
 package de.tuda.consys.formalization.lang.types
 
 import de.tuda.consys.formalization.lang.ClassTable.ClassTable
-import de.tuda.consys.formalization.lang.{ConsistencyVarEnv, TypeVarEnv}
+import de.tuda.consys.formalization.lang.{ConsistencyVarEnv, TypeVarEnv, TypeVarMutabilityEnv}
 
 sealed trait MutabilityType extends TypeLike[MutabilityType] {
     def <=(t: MutabilityType)(implicit classTable: ClassTable,
                               typeVarEnv: TypeVarEnv,
+                              typeVarMutabilityEnv: TypeVarMutabilityEnv,
                               consistencyVarEnv: ConsistencyVarEnv): Boolean =
         Subtyping.subtype(this, t)
 
     def >=(t: MutabilityType)(implicit classTable: ClassTable,
                               typeVarEnv: TypeVarEnv,
+                              typeVarMutabilityEnv: TypeVarMutabilityEnv,
                               consistencyVarEnv: ConsistencyVarEnv): Boolean =
         Subtyping.subtype(t, this)
 
     def lub(t: MutabilityType)(implicit classTable: ClassTable,
                                typeVarEnv: TypeVarEnv,
+                               typeVarMutabilityEnv: TypeVarMutabilityEnv,
                                consistencyVarEnv: ConsistencyVarEnv): MutabilityType =
-        if (this <= t) t else this // TODO: generalize
+        if (this <= t) t else this
 
     def glb(t: MutabilityType)(implicit classTable: ClassTable,
                                typeVarEnv: TypeVarEnv,
+                               typeVarMutabilityEnv: TypeVarMutabilityEnv,
                                consistencyVarEnv: ConsistencyVarEnv): MutabilityType =
-        if (this >= t) t else this // TODO: generalize
+        if (this >= t) t else this
 }
 
 case object Mutable extends MutabilityType
