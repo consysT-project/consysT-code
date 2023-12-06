@@ -83,3 +83,8 @@ case class Transaction(body: Statement,
                       ) extends Statement
 
 case class Print(expression: Expression) extends Statement
+
+object Statements {
+  def sequence(stmts: Seq[Statement]): Statement =
+    stmts.foldLeft[Statement](Skip)((s1, s2) => Sequence(s1, s2))
+}
