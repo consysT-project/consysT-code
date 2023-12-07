@@ -82,10 +82,10 @@ object Subtyping {
                     bound == t2 || // L-Var
                     subtype(bound, t2) || // L-Trans
                     union
-            case (_, ConsistencyUnion(u1, u2)) =>
-                t1 == t2 || (subtype(t1, u1) || subtype(t1, u2))
             case (ConsistencyUnion(u1, u2), _) =>
                 t1 == t2 || (subtype(u1, t2) && subtype(u2, t2))
+            case (_, ConsistencyUnion(u1, u2)) =>
+                t1 == t2 || (subtype(t1, u1) || subtype(t1, u2))
             case _ => false
         }
     }

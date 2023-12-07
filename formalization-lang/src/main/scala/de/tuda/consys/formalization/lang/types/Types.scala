@@ -140,12 +140,12 @@ object Types {
             Let(varId, substitute(e, typeVars, consistencyVars))
         case SetField(fieldId, valueExpr) =>
             SetField(fieldId, substitute(valueExpr, typeVars, consistencyVars))
-        case CallUpdate(recvExpr, methodId, argumentExprs) =>
-            CallUpdate(substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
-        case CallUpdateThis(methodId, argumentExprs) =>
-            CallUpdateThis(methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
-        case EvalUpdate(recv, methodId, args, body) =>
-            EvalUpdate(substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
+        case CallUpdate(varId, recvExpr, methodId, argumentExprs) =>
+            CallUpdate(varId, substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case CallUpdateThis(varId, methodId, argumentExprs) =>
+            CallUpdateThis(varId, methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case EvalUpdate(varId, recv, methodId, args, body) =>
+            EvalUpdate(varId, substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
         case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
             CallQuery(varId, substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
         case CallQueryThis(varId, methodId, argumentExprs) =>

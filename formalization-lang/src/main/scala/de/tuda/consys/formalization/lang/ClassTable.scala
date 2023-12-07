@@ -71,9 +71,9 @@ object ClassTable {
         val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
 
         classDecl.getMethod(methodId) match {
-            case Some(u@UpdateMethodDecl(_, operationLevel, declaredParameters, _)) =>
+            case Some(UpdateMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
-                val concreteReturnType = substitute(u.returnType, varEnv, consEnv)
+                val concreteReturnType = substitute(returnType, varEnv, consEnv)
                 UpdateType(substitute(operationLevel, consEnv), concreteParams, concreteReturnType)
             case Some(QueryMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
@@ -98,8 +98,8 @@ object ClassTable {
         val subClass = classTable.getOrElse(classType.classId,
             sys.error(s"class not found: ${classType.classId}"))
 
-        val typeVars = subClass.typeParameters.map(d => d.name -> d.upperBound).toMap
-        val consistencyVars = subClass.consistencyParameters.map(d => d.name -> d.upperBound).toMap
+        val typeVars = (subClass.typeParameters zip classType.typeArguments).map(e => e._1.name -> e._2).toMap
+        val consistencyVars = (subClass.consistencyParameters zip classType.consistencyArguments).map(e => e._1.name -> e._2).toMap
 
         val l2 = subClass.superClass.consistencyArgs.map(p => substitute(p, consistencyVars))
         val t2 = subClass.superClass.typeArgs.map(p => substitute(p, typeVars, consistencyVars))

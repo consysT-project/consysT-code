@@ -84,6 +84,7 @@ object TypeChecker {
                     MethodContext(thisType, Mutable, method.operationLevel), Local,
                     classTable, typeVars, typMutVars, consistencyVars,
                     transactionContext = true, Some(methodType.returnType))
+            case Error =>
             case _ =>
                 throw TypeError("invalid method body, no final return found") // TODO
         }
@@ -123,8 +124,9 @@ object TypeChecker {
                     MethodContext(thisType, Immutable, method.operationLevel), Local,
                     classTable, typeVars, typMutVars, consistencyVars,
                     transactionContext = true, Some(methodType.returnType))
+            case Error =>
             case _ =>
-                throw TypeError("invalid method body, no final return or error found") // TODO
+                throw TypeError("invalid method body, no final return or error found")
         }
     }
 
@@ -347,10 +349,13 @@ object TypeChecker {
                     fieldType.suffix)
 
                 if (typ !<= vars(varId))
-                    throw TypeError("invalid assignment (incorrect type)")
+                    throw TypeError(s"invalid assignment (was $typ, expected ${vars(varId)}) in $declarationContext")
         }
 
-        case CallUpdate(recvExpr, methodId, arguments) =>
+        case CallUpdate(varId, recvExpr, methodId, arguments) =>
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
+
             val recvType = bound(checkExpressionWithVars(recvExpr, vars))
             if (!recvType.suffix.isInstanceOf[RefTypeSuffix])
                 throw TypeError("invalid update call on non-ref receiver")
@@ -390,9 +395,19 @@ object TypeChecker {
 
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
+
+                    val resType = Type(ConsistencyUnion(methodType.returnType.l, recvType.l),
+                        methodType.returnType.m,
+                        methodType.returnType.suffix)
+
+                    if (resType !<= vars(varId))
+                        throw TypeError(s"invalid assignment: was $resType, expected ${vars(varId)}")
             }
 
-        case CallUpdateThis(methodId, arguments) =>
+        case CallUpdateThis(varId, methodId, arguments) =>
+            if (!vars.contains(varId))
+                throw TypeError(s"assignment to undeclared variable $varId")
+
             declarationContext match {
                 case TopLevelContext =>
                     throw TypeError("'this' not found")
@@ -421,6 +436,13 @@ object TypeChecker {
 
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
+
+                    val resType = Type(ConsistencyUnion(methodType.returnType.l, operationLevel),
+                        methodType.returnType.m,
+                        methodType.returnType.suffix)
+
+                    if (resType !<= vars(varId))
+                        throw TypeError("invalid assignment (incorrect type)")
             }
 
         case CallQuery(varId, recvExpr, methodId, argumentExprs) =>

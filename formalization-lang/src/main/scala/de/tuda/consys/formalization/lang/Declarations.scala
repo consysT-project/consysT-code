@@ -42,8 +42,8 @@ case class QueryMethodDecl(override val name: MethodId,
 case class UpdateMethodDecl(override val name: MethodId,
                             override val operationLevel: ConsistencyType,
                             override val declaredParameters: Seq[VarDecl],
+                            override val returnType: Type,
                             override val body: Statement) extends MethodDecl {
-    override def returnType: Type = Type(Local, Immutable, UnitTypeSuffix)
 }
 
 case class ClassDecl(classId: ClassId,
