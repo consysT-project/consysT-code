@@ -4,8 +4,6 @@ import de.tuda.consys.formalization.lang.ClassTable.ClassTable
 import de.tuda.consys.formalization.lang.{ConsistencyVarEnv, ConsistencyVarId, TypeVarEnv, TypeVarMutabilityEnv}
 
 sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
-    def operationLevel(): OperationLevel
-
     def <=(t: ConsistencyType)(implicit classTable: ClassTable,
                                typeVarEnv: TypeVarEnv,
                                typeVarMutabilityEnv: TypeVarMutabilityEnv,
@@ -21,31 +19,18 @@ sealed trait ConsistencyType extends TypeLike[ConsistencyType] {
 
 sealed trait ConcreteConsistencyType extends ConsistencyType
 
-case object Local extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = StrongOp
-}
+case object Local extends ConcreteConsistencyType
+case object Strong extends ConcreteConsistencyType
 
-case object Strong extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = StrongOp
-}
+case object Weak extends ConcreteConsistencyType
 
-case object Weak extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = WeakOp
-}
-
-case object Inconsistent extends ConcreteConsistencyType {
-    override def operationLevel(): OperationLevel = WeakOp
-}
+case object Inconsistent extends ConcreteConsistencyType
 
 case class ConsistencyVar(name: ConsistencyVarId) extends ConsistencyType {
-    override def operationLevel(): OperationLevel = ???
-
     override def toString: ConsistencyVarId = name
 }
 
 case class ConsistencyUnion(t1: ConsistencyType, t2: ConsistencyType) extends ConsistencyType {
-    override def operationLevel(): OperationLevel = ???
-
     override def toString: ConsistencyVarId = s"(${t1} v $t2)"
 }
 

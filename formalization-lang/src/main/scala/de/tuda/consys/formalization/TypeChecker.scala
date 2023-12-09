@@ -66,6 +66,8 @@ object TypeChecker {
             throw TypeError(s"misformed return type (in ${thisType.classId}.${method.name})")
         if (!wellFormed(methodType.operationLevel))
             throw TypeError(s"misformed operation level (in ${thisType.classId}.${method.name})")
+        if (methodType.operationLevel.isInstanceOf[ConsistencyUnion])
+            throw TypeError(s"misformed union operation level (in ${thisType.classId}.${method.name})")
         methodType.parameters.foreach(p =>
             if (!wellFormed(p))
                 throw TypeError(s"misformed parameter type (in ${thisType.classId}.${method.name})")
@@ -103,6 +105,8 @@ object TypeChecker {
             throw TypeError(s"misformed return type (in ${thisType.classId}.${method.name})")
         if (!wellFormed(methodType.operationLevel))
             throw TypeError(s"misformed operation level (in ${thisType.classId}.${method.name})")
+        if (methodType.operationLevel.isInstanceOf[ConsistencyUnion])
+            throw TypeError(s"misformed union operation level (in ${thisType.classId}.${method.name})")
         methodType.parameters.foreach(p =>
             if (!wellFormed(p))
                 throw TypeError(s"misformed parameter type (in ${thisType.classId}.${method.name})")

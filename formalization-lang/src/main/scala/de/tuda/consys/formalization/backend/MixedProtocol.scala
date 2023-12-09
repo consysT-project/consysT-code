@@ -16,7 +16,7 @@ case class MixedProtocol(store: Store)(implicit ct: ClassTable) {
 
     def invoke(txContext: FormalizationTransactionContext, operationLevel: ConsistencyType, receiver: Handler): Unit = {
         /* Execute a strong method */
-        if (operationLevel == Strong) {
+        if (operationLevel == Strong || operationLevel == Local) {
             // Lock the object
             txContext.acquireLock(receiver.addr)
             // Lookup the object in the cache

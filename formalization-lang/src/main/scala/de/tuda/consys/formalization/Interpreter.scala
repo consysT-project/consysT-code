@@ -7,8 +7,10 @@ import de.tuda.consys.formalization.lang.errors.ExecutionError
 import de.tuda.consys.formalization.lang.types.{BooleanTypeSuffix, ClassType, LocalTypeSuffix, NonVarTypeSuffix, NumberTypeSuffix, RefTypeSuffix, StringTypeSuffix, TypeSuffixVar, UnitTypeSuffix}
 
 object CassandraInitializer {
-    def initialize(storeAddress: String): Unit =
-        Store.fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
+    def initialize(storeAddress: String): Unit = {
+        val s = Store.fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
+        s.close()
+    }
 }
 
 class Interpreter(storeAddress: String) {

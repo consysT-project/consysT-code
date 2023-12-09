@@ -14,13 +14,23 @@ object Shop {
         CassandraInitializer.initialize("127.0.0.1")
 
         implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-        val f1 = Future{ new Interpreter("127.0.0.1").run(program.classTable, program.processes(0)) }
-        val f2 = Future{ new Interpreter("127.0.0.2").run(program.classTable, program.processes(1)) }
-        val f3 = Future{ new Interpreter("127.0.0.3").run(program.classTable, program.processes(2)) }
+        val f0 = Future{
+            new Interpreter("127.0.0.1").run(program.classTable, program.processes(0))
+            println("Task 0 done")
+        }
+        Await.result(f0, 1.minutes)
+
+        val f1 = Future{
+            new Interpreter("127.0.0.2").run(program.classTable, program.processes(1))
+            println("Task 1 done")
+        }
+        val f2 = Future{
+            new Interpreter("127.0.0.3").run(program.classTable, program.processes(2))
+            println("Task 2 done")
+        }
 
         Await.result(f1, 1.minutes)
         Await.result(f2, 1.minutes)
-        Await.result(f3, 1.minutes)
     }
 
     private val userClassName = "User"
@@ -307,23 +317,18 @@ object Shop {
         shopClassName -> shopClass,
     )
 
-    private val process1 = Block(
+    private val process0 = Block(
         Seq(
             (Types.refType(Local, Mutable, shopClassType), "shop", Default(RefTypeSuffix(shopClassType), Mutable)),
             (Types.refType(Local, Mutable, userClassType), "user", Default(RefTypeSuffix(userClassType), Mutable)),
             (Types.refType(Local, Mutable, itemClassType), "item", Default(RefTypeSuffix(itemClassType), Mutable)),
-            (Types.numberType(Inconsistent), "temp", Num(-1)),
         ),
         Statements.sequence(Seq(
-            Print(StringLiteral("Start of process 1")),
+            Print(StringLiteral("Start of process 0")),
             Transaction(
                 Statements.sequence(Seq(
                     Replicate("shop", "shop-1", shopClassType, Map(
                         "id" -> Num(0),
-                    )),
-                    Replicate("user", "user-1", userClassType, Map(
-                        "id" -> Num(1),
-                        "balance" -> Num(100),
                     )),
                     Replicate("item", "item-1", itemClassType, Map(
                         "id" -> Num(1),
@@ -331,8 +336,66 @@ object Shop {
                         "description" -> StringLiteral("A great book!"),
                         "inventory" -> Num(10),
                     )),
-                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                    Replicate("user", "user-1", userClassType, Map(
+                        "id" -> Num(1),
+                        "balance" -> Num(100),
+                    )),
+                    Replicate("user", "user-2", userClassType, Map(
+                        "id" -> Num(2),
+                        "balance" -> Num(100),
+                    )),
+                )),
+                Print(StringLiteral("Error"))
+            ),
+            Print(StringLiteral("End of process 0")),
+        ))
+    )
+
+    private val process1 = Block(
+        Seq(
+            (Types.refType(Local, Mutable, shopClassType), "shop", Ref("shop-1", shopClassType)),
+            (Types.refType(Local, Mutable, userClassType), "user", Ref("user-1", userClassType)),
+            (Types.refType(Local, Mutable, itemClassType), "item", Ref("item-1", itemClassType)),
+            (Types.numberType, "i", Num(0)),
+            (Types.numberType(Inconsistent), "temp", Num(-1)),
+        ),
+        Statements.sequence(Seq(
+            Print(StringLiteral("Start of process 1")),
+            Transaction(
+                Statements.sequence(Seq(
+                    While(
+                        ArithmeticComparison(Var("i"), Num(3), LessThan),
+                        Statements.sequence(Seq(
+                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                        )),
+                    ),
+                    CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
                     CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(StringLiteral("Balance of user 1:")),
+                    Print(Var("temp")),
+                    CallQuery("temp", Var("item"), "getInventory", Seq.empty),
+                    Print(StringLiteral("Inventory of item:")),
+                    Print(Var("temp")),
+                )),
+                Print(StringLiteral("Error"))
+            ),
+            Let("i", Num(0)),
+            Print(StringLiteral("End of transaction")),
+            Transaction(
+                Statements.sequence(Seq(
+                    While(
+                        ArithmeticComparison(Var("i"), Num(7), LessThan),
+                        Statements.sequence(Seq(
+                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                        )),
+                    ),
+                    CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(StringLiteral("Balance of user 1:")),
+                    Print(Var("temp")),
+                    CallQuery("temp", Var("item"), "getInventory", Seq.empty),
+                    Print(StringLiteral("Inventory of item:")),
                     Print(Var("temp")),
                 )),
                 Print(StringLiteral("Error"))
@@ -344,21 +407,27 @@ object Shop {
     private val process2 = Block(
         Seq(
             (Types.refType(Local, Mutable, shopClassType), "shop", Ref("shop-1", shopClassType)),
-            (Types.refType(Local, Mutable, userClassType), "user", Default(RefTypeSuffix(userClassType), Mutable)),
+            (Types.refType(Local, Mutable, userClassType), "user", Ref("user-2", userClassType)),
             (Types.refType(Local, Mutable, itemClassType), "item", Ref("item-1", itemClassType)),
+            (Types.numberType, "i", Num(0)),
             (Types.numberType(Inconsistent), "temp", Num(-1)),
         ),
         Statements.sequence(Seq(
             Print(StringLiteral("Start of process 2")),
             Transaction(
                 Statements.sequence(Seq(
-                    Replicate("user", "user-2", userClassType, Map(
-                        "id" -> Num(2),
-                        "balance" -> Num(50),
-                    )),
-                    CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
-                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                    While(
+                        ArithmeticComparison(Var("i"), Num(3), LessThan),
+                        Statements.sequence(Seq(
+                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                        )),
+                    ),
                     CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(StringLiteral("Balance of user 2:")),
+                    Print(Var("temp")),
+                    CallQuery("temp", Var("item"), "getInventory", Seq.empty),
+                    Print(StringLiteral("Inventory of item:")),
                     Print(Var("temp")),
                 )),
                 Print(StringLiteral("Error"))
@@ -367,30 +436,5 @@ object Shop {
         ))
     )
 
-    private val process3 = Block(
-        Seq(
-            (Types.refType(Local, Mutable, shopClassType), "shop", Ref("shop-1", shopClassType)),
-            (Types.refType(Local, Mutable, userClassType), "user", Default(RefTypeSuffix(userClassType), Mutable)),
-            (Types.refType(Local, Mutable, itemClassType), "item", Ref("item-1", itemClassType)),
-            (Types.numberType(Inconsistent), "temp", Num(-1)),
-        ),
-        Statements.sequence(Seq(
-            Print(StringLiteral("Start of process 3")),
-            Transaction(
-                Statements.sequence(Seq(
-                    Replicate("user", "user-3", userClassType, Map(
-                        "id" -> Num(3),
-                        "balance" -> Num(60),
-                    )),
-                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                    CallQuery("temp", Var("user"), "getBalance", Seq.empty),
-                    Print(Var("temp")),
-                )),
-                Print(StringLiteral("Error"))
-            ),
-            Print(StringLiteral("End of process 3")),
-        ))
-    )
-
-    private val program = ProgramDecl(classTable, Array(process1, process2, process3))
+    private val program = ProgramDecl(classTable, Array(process0, process1, process2))
 }
