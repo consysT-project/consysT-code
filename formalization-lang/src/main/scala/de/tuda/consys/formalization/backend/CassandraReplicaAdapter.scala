@@ -143,7 +143,7 @@ class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDur
 		//TODO: Add failure handling
 		val startTime = System.nanoTime()
 		while (System.nanoTime() < startTime + timeout.toNanos) {
-			val response = cassandraSession.execute(query)
+			val response = executeStatement(query)
 
 			if (response.iterator().hasNext) {
 				var fields: Map[FieldId, Any] = Map.empty

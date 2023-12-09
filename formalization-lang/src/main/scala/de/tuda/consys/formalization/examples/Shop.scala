@@ -15,8 +15,8 @@ object Shop {
 
         implicit val ec: ExecutionContextExecutor = ExecutionContext.global
         val f1 = Future{ new Interpreter("127.0.0.1").run(program.classTable, program.processes(0)) }
-        val f2 = Future{ new Interpreter("127.0.0.2").run(program.classTable, program.processes(2)) }
-        val f3 = Future{ new Interpreter("127.0.0.3").run(program.classTable, program.processes(3)) }
+        val f2 = Future{ new Interpreter("127.0.0.2").run(program.classTable, program.processes(1)) }
+        val f3 = Future{ new Interpreter("127.0.0.3").run(program.classTable, program.processes(2)) }
 
         Await.result(f1, 1.minutes)
         Await.result(f2, 1.minutes)
@@ -260,7 +260,9 @@ object Shop {
         Seq.empty,
         Seq.empty,
         SuperClassDecl(topClassId, Seq.empty, Seq.empty),
-        Map.empty,
+        Map(
+            "id" -> FieldDecl("id", Types.numberType(Local), Num(-1)),
+        ),
         Map(
             "buy" -> UpdateMethodDecl(
                 "buy",
@@ -312,25 +314,31 @@ object Shop {
             (Types.refType(Local, Mutable, itemClassType), "item", Default(RefTypeSuffix(itemClassType), Mutable)),
             (Types.numberType(Inconsistent), "temp", Num(-1)),
         ),
-        Transaction(
-            Statements.sequence(Seq(
-                Replicate("shop", "shop-1", shopClassType, Map.empty),
-                Replicate("user", "user-1", userClassType, Map(
-                    "id" -> Num(1),
-                    "balance" -> Num(100),
+        Statements.sequence(Seq(
+            Print(StringLiteral("Start of process 1")),
+            Transaction(
+                Statements.sequence(Seq(
+                    Replicate("shop", "shop-1", shopClassType, Map(
+                        "id" -> Num(0),
+                    )),
+                    Replicate("user", "user-1", userClassType, Map(
+                        "id" -> Num(1),
+                        "balance" -> Num(100),
+                    )),
+                    Replicate("item", "item-1", itemClassType, Map(
+                        "id" -> Num(1),
+                        "cost" -> Num(5),
+                        "description" -> StringLiteral("A great book!"),
+                        "inventory" -> Num(10),
+                    )),
+                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                    CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(Var("temp")),
                 )),
-                Replicate("item", "item-1", itemClassType, Map(
-                    "id" -> Num(1),
-                    "cost" -> Num(5),
-                    "description" -> StringLiteral("A great book!"),
-                    "inventory" -> Num(10),
-                )),
-                CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                CallQuery("temp", Var("user"), "getBalance", Seq.empty),
-                Print(Var("temp")),
-            )),
-            Print(StringLiteral("Error"))
-        )
+                Print(StringLiteral("Error"))
+            ),
+            Print(StringLiteral("End of process 1")),
+        ))
     )
 
     private val process2 = Block(
@@ -340,19 +348,23 @@ object Shop {
             (Types.refType(Local, Mutable, itemClassType), "item", Ref("item-1", itemClassType)),
             (Types.numberType(Inconsistent), "temp", Num(-1)),
         ),
-        Transaction(
-            Statements.sequence(Seq(
-                Replicate("user", "user-2", userClassType, Map(
-                    "id" -> Num(2),
-                    "balance" -> Num(50),
+        Statements.sequence(Seq(
+            Print(StringLiteral("Start of process 2")),
+            Transaction(
+                Statements.sequence(Seq(
+                    Replicate("user", "user-2", userClassType, Map(
+                        "id" -> Num(2),
+                        "balance" -> Num(50),
+                    )),
+                    CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
+                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                    CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(Var("temp")),
                 )),
-                CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
-                CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                CallQuery("temp", Var("user"), "getBalance", Seq.empty),
-                Print(Var("temp")),
-            )),
-            Print(StringLiteral("Error"))
-        )
+                Print(StringLiteral("Error"))
+            ),
+            Print(StringLiteral("End of process 2")),
+        ))
     )
 
     private val process3 = Block(
@@ -362,18 +374,22 @@ object Shop {
             (Types.refType(Local, Mutable, itemClassType), "item", Ref("item-1", itemClassType)),
             (Types.numberType(Inconsistent), "temp", Num(-1)),
         ),
-        Transaction(
-            Statements.sequence(Seq(
-                Replicate("user", "user-3", userClassType, Map(
-                    "id" -> Num(3),
-                    "balance" -> Num(60),
+        Statements.sequence(Seq(
+            Print(StringLiteral("Start of process 3")),
+            Transaction(
+                Statements.sequence(Seq(
+                    Replicate("user", "user-3", userClassType, Map(
+                        "id" -> Num(3),
+                        "balance" -> Num(60),
+                    )),
+                    CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                    CallQuery("temp", Var("user"), "getBalance", Seq.empty),
+                    Print(Var("temp")),
                 )),
-                CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                CallQuery("temp", Var("user"), "getBalance", Seq.empty),
-                Print(Var("temp")),
-            )),
-            Print(StringLiteral("Error"))
-        )
+                Print(StringLiteral("Error"))
+            ),
+            Print(StringLiteral("End of process 3")),
+        ))
     )
 
     private val program = ProgramDecl(classTable, Array(process1, process2, process3))
