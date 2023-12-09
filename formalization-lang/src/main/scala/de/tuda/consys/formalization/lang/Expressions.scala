@@ -4,7 +4,9 @@ import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, Muta
 
 sealed trait Expression
 
-case class Num(n: NumericType) extends Expression
+case class Num(n: NumericType) extends Expression {
+  override def toString: MethodId = n.toString
+}
 
 sealed trait BooleanValue extends Expression
 
@@ -14,15 +16,21 @@ case object False extends BooleanValue
 
 case object UnitLiteral extends Expression
 
+case class StringLiteral(s: String) extends Expression {
+  override def toString: MethodId = s
+}
+
 case class Ref(id: String,
                classType: ClassType
-              ) extends Expression
+              ) extends Expression {
+  override def toString: MethodId = s"$classType@$id"
+}
 
 case class LocalObj(classType: ClassType,
                     constructor: Map[FieldId, Expression]
                    ) extends Expression
 
-case class Default(s: TypeSuffix, l: ConsistencyType, m: MutabilityType) extends Expression
+case class Default(s: TypeSuffix, m: MutabilityType) extends Expression
 
 case class Var(id: VarId) extends Expression
 

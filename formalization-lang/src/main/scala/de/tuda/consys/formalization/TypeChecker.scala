@@ -60,15 +60,15 @@ object TypeChecker {
                                                       consistencyVars: ConsistencyVarEnv): Unit = {
         val methodType = UpdateType(method.operationLevel, method.declaredParameters.map(x => x.typ), method.returnType)
         if (!checkOverride(method.name, thisType, methodType))
-            throw TypeError(s"invalid update override: ${method.name}")
+            throw TypeError(s"invalid update override (in ${thisType.classId}.${method.name})")
 
         if (!wellFormed(methodType.returnType))
-            throw TypeError("misformed return type") // TODO
+            throw TypeError(s"misformed return type (in ${thisType.classId}.${method.name})")
         if (!wellFormed(methodType.operationLevel))
-            throw TypeError("misformed operation level") // TODO
+            throw TypeError(s"misformed operation level (in ${thisType.classId}.${method.name})")
         methodType.parameters.foreach(p =>
             if (!wellFormed(p))
-                throw TypeError("misformed parameter type") // TODO
+                throw TypeError(s"misformed parameter type (in ${thisType.classId}.${method.name})")
         )
 
         method.body match {
@@ -86,7 +86,7 @@ object TypeChecker {
                     transactionContext = true, Some(methodType.returnType))
             case Error =>
             case _ =>
-                throw TypeError("invalid method body, no final return found") // TODO
+                throw TypeError(s"invalid method body, no final return found (in ${thisType.classId}.${method.name})")
         }
     }
 
@@ -97,19 +97,19 @@ object TypeChecker {
                                                     consistencyVars: ConsistencyVarEnv): Unit = {
         val methodType = QueryType(method.operationLevel, method.declaredParameters.map(x => x.typ), method.returnType)
         if (!checkOverride(method.name, thisType, methodType))
-            throw TypeError(s"invalid update override: ${method.name}")
+            throw TypeError(s"invalid update override (in ${thisType.classId}.${method.name})")
 
         if (!wellFormed(methodType.returnType))
-            throw TypeError("misformed return type") // TODO
+            throw TypeError(s"misformed return type (in ${thisType.classId}.${method.name})")
         if (!wellFormed(methodType.operationLevel))
-            throw TypeError("misformed operation level") // TODO
+            throw TypeError(s"misformed operation level (in ${thisType.classId}.${method.name})")
         methodType.parameters.foreach(p =>
             if (!wellFormed(p))
-                throw TypeError("misformed parameter type") // TODO
+                throw TypeError(s"misformed parameter type (in ${thisType.classId}.${method.name})")
         )
 
         if (methodType.returnType.m != Immutable)
-            throw TypeError(s"query must not have mutable return type: ${method.name} in ${thisType.classId}")
+            throw TypeError(s"query must not have mutable return type (in ${thisType.classId}.${method.name})")
 
         method.body match {
             case Sequence(_, ReturnExpr(_)) =>
@@ -126,7 +126,7 @@ object TypeChecker {
                     transactionContext = true, Some(methodType.returnType))
             case Error =>
             case _ =>
-                throw TypeError("invalid method body, no final return or error found")
+                throw TypeError(s"invalid method body, no final return or error found (in ${thisType.classId}.${method.name})")
         }
     }
 
@@ -160,6 +160,8 @@ object TypeChecker {
 
         case UnitLiteral => Type(Local, Immutable, UnitTypeSuffix)
 
+        case StringLiteral(_) => Type(Local, Immutable, StringTypeSuffix)
+
         case Ref(_, classType) =>
             val typ = Type(Local, Mutable, RefTypeSuffix(classType))
             if (!wellFormed(typ))
@@ -188,8 +190,8 @@ object TypeChecker {
             }
             typ
 
-        case Default(s, l, m) =>
-            val typ = Type(l, m, s)
+        case Default(s, m) =>
+            val typ = Type(Local, m, s)
             if (!wellFormed(typ))
                 throw TypeError(s"misformed default type: $typ")
             typ
@@ -217,7 +219,7 @@ object TypeChecker {
         case ArithmeticComparison(e1, e2, _) =>
             (checkExpression(e1), checkExpression(e2)) match {
                 case (Type(l1, Immutable, NumberTypeSuffix), Type(l2, Immutable, NumberTypeSuffix)) =>
-                    Type(ConsistencyUnion(l1, l2), Immutable, NumberTypeSuffix)
+                    Type(ConsistencyUnion(l1, l2), Immutable, BooleanTypeSuffix)
                 case (t1, t2) =>
                     throw TypeError(s"invalid types for <ArithmeticComparison>: $t1 and $t2")
             }
@@ -352,10 +354,7 @@ object TypeChecker {
                     throw TypeError(s"invalid assignment (was $typ, expected ${vars(varId)}) in $declarationContext")
         }
 
-        case CallUpdate(varId, recvExpr, methodId, arguments) =>
-            if (!vars.contains(varId))
-                throw TypeError(s"assignment to undeclared variable $varId")
-
+        case CallUpdate(recvExpr, methodId, arguments) =>
             val recvType = bound(checkExpressionWithVars(recvExpr, vars))
             if (!recvType.suffix.isInstanceOf[RefTypeSuffix])
                 throw TypeError("invalid update call on non-ref receiver")
@@ -395,19 +394,9 @@ object TypeChecker {
 
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
-
-                    val resType = Type(ConsistencyUnion(methodType.returnType.l, recvType.l),
-                        methodType.returnType.m,
-                        methodType.returnType.suffix)
-
-                    if (resType !<= vars(varId))
-                        throw TypeError(s"invalid assignment: was $resType, expected ${vars(varId)}")
             }
 
-        case CallUpdateThis(varId, methodId, arguments) =>
-            if (!vars.contains(varId))
-                throw TypeError(s"assignment to undeclared variable $varId")
-
+        case CallUpdateThis(methodId, arguments) =>
             declarationContext match {
                 case TopLevelContext =>
                     throw TypeError("'this' not found")
@@ -436,13 +425,6 @@ object TypeChecker {
 
                     if (mutabilityContext == Immutable)
                         throw TypeError(s"update call in query: $methodId")
-
-                    val resType = Type(ConsistencyUnion(methodType.returnType.l, operationLevel),
-                        methodType.returnType.m,
-                        methodType.returnType.suffix)
-
-                    if (resType !<= vars(varId))
-                        throw TypeError("invalid assignment (incorrect type)")
             }
 
         case CallQuery(varId, recvExpr, methodId, argumentExprs) =>

@@ -4,13 +4,18 @@ import de.tuda.consys.formalization.backend.Store
 import de.tuda.consys.formalization.lang.ClassTable.{ClassTable, fields}
 import de.tuda.consys.formalization.lang._
 import de.tuda.consys.formalization.lang.errors.ExecutionError
-import de.tuda.consys.formalization.lang.types.{BooleanTypeSuffix, ClassType, LocalTypeSuffix, NonVarTypeSuffix, NumberTypeSuffix, RefTypeSuffix, TypeSuffixVar, UnitTypeSuffix}
+import de.tuda.consys.formalization.lang.types.{BooleanTypeSuffix, ClassType, LocalTypeSuffix, NonVarTypeSuffix, NumberTypeSuffix, RefTypeSuffix, StringTypeSuffix, TypeSuffixVar, UnitTypeSuffix}
+
+object CassandraInitializer {
+    def initialize(storeAddress: String): Unit =
+        Store.fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
+}
 
 class Interpreter(storeAddress: String) {
     private type VarEnv = Map[VarId, Expression]
 
     private val store = Store.
-        fromAddress(storeAddress, 9042, 2181, "datacenter1", initialize = true)
+        fromAddress(storeAddress, 9042, 2181, "datacenter1")
 
     def run(ct: ClassTable, process: Statement): Unit = {
         interpret(process)(ct)
@@ -32,6 +37,7 @@ class Interpreter(storeAddress: String) {
         case True => true
         case False => true
         case UnitLiteral => true
+        case StringLiteral(_) => true
         case Ref(_, _) => true
         case LocalObj(_, constructor) => constructor.forall(p => isValue(p._2))
         case _ => false
@@ -72,11 +78,12 @@ class Interpreter(storeAddress: String) {
                 case None => throw ExecutionError("invalid execution path")
             }
 
-        case Default(s, _, _) => s match {
+        case Default(s, _) => s match {
             case TypeSuffixVar(_) => throw ExecutionError("invalid execution path")
             case BooleanTypeSuffix => False
             case NumberTypeSuffix => Num(0)
             case UnitTypeSuffix => UnitLiteral
+            case StringTypeSuffix => StringLiteral("")
             case suffix: NonVarTypeSuffix => suffix match {
                 case LocalTypeSuffix(classType) => LocalObj(classType, fields(classType).map(f => f._1 -> f._2.init))
                 case RefTypeSuffix(classType) => Ref("default", classType)
@@ -140,7 +147,7 @@ class Interpreter(storeAddress: String) {
             val thisObj = vars(thisId).asInstanceOf[LocalObj]
             (Skip, vars + (varId -> thisObj.constructor(fieldId)))
 
-        case CallUpdate(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
+        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
             val recvRef = recvExpr.asInstanceOf[Ref]
             val mBody = ClassTable.mBody(methodId, recvRef.classType)
             mBody match {
@@ -151,20 +158,20 @@ class Interpreter(storeAddress: String) {
                 location(recvRef.id, recvRef.classType), recvRef.classType)
             handler.invoke(mBody.operationLevel)
             val argumentBindings = (mBody.arguments zip argumentExprs).map(p => p._1 -> p._2).toMap
-            (EvalUpdate(varId, recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
-        case CallUpdate(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
+            (EvalUpdate(recvExpr, methodId, argumentBindings + (thisId -> recvRef), mBody.body), vars)
+        case CallUpdate(recvExpr, methodId, argumentExprs) if isValue(recvExpr) =>
             val i = argumentExprs.indexWhere(p => !isValue(p))
             val newArguments = argumentExprs.zipWithIndex.map(t =>
                 if (t._2 == i)
                     stepExpr(argumentExprs(i))(vars, ct)
                 else t._1)
-            (CallUpdate(varId, recvExpr, methodId, newArguments), vars)
-        case CallUpdate(varId, recvExpr, methodId, argumentExprs) =>
+            (CallUpdate(recvExpr, methodId, newArguments), vars)
+        case CallUpdate(recvExpr, methodId, argumentExprs) =>
             val e = stepExpr(recvExpr)(vars, ct)
-            (CallUpdate(varId, e, methodId, argumentExprs), vars)
+            (CallUpdate(e, methodId, argumentExprs), vars)
 
-        case CallUpdateThis(varId, methodId, argumentExprs) =>
-            (CallUpdate(varId, vars(thisId), methodId, argumentExprs), vars)
+        case CallUpdateThis(methodId, argumentExprs) =>
+            (CallUpdate(vars(thisId), methodId, argumentExprs), vars)
 
         case CallQuery(varId, recvExpr, methodId, argumentExprs) if isValue(recvExpr) && argumentExprs.forall(isValue) =>
             val mBody = recvExpr match {
@@ -198,14 +205,14 @@ class Interpreter(storeAddress: String) {
         case CallQueryThis(varId, methodId, argumentExprs) =>
             (CallQuery(varId, vars(thisId), methodId, argumentExprs), vars)
 
-        case EvalUpdate(_, _, _, _, Error) =>
+        case EvalUpdate(_, _, _, Error) =>
             (Error, vars)
-        case EvalUpdate(varId, _, _, _, ReturnExpr(e)) if isValue(e) =>
-            (Skip, vars + (varId -> e))
-        case EvalUpdate(varId, recv, methodId, args, body) =>
+        case EvalUpdate(_, _, _, ReturnExpr(e)) if isValue(e) =>
+            (Skip, vars)
+        case EvalUpdate(recv, methodId, args, body) =>
             val (s1, r1) = stepStmt(body, args)
             val newArgs = r1.filter(r => args.contains(r._1))
-            (EvalUpdate(varId, recv, methodId, newArgs, s1), vars)
+            (EvalUpdate(recv, methodId, newArgs, s1), vars)
 
         case EvalQuery(_, _, _, _, Error) =>
             (Error, vars)

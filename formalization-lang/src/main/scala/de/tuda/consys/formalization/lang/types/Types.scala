@@ -37,6 +37,8 @@ case object NumberTypeSuffix extends TypeSuffix
 
 case object UnitTypeSuffix extends TypeSuffix
 
+case object StringTypeSuffix extends TypeSuffix
+
 sealed trait NonVarTypeSuffix extends TypeSuffix
 
 case class LocalTypeSuffix(classType: ClassType) extends NonVarTypeSuffix {
@@ -115,8 +117,8 @@ object Types {
             Ref(id, substitute(classType, typeVars, consistencyVars))
         case LocalObj(classType, constructor) =>
             LocalObj(substitute(classType, typeVars, consistencyVars), constructor.map(f => f._1 -> substitute(f._2, typeVars, consistencyVars)))
-        case Default(s, l, m) =>
-            Default(substitute(s, typeVars, consistencyVars), substitute(l, consistencyVars), m)
+        case Default(s, m) =>
+            Default(substitute(s, typeVars, consistencyVars), m)
         case ArithmeticOperation(e1, e2, op) =>
             ArithmeticOperation(substitute(e1, typeVars, consistencyVars), substitute(e2, typeVars, consistencyVars), op)
         case ArithmeticComparison(e1, e2, op) =>
@@ -140,12 +142,12 @@ object Types {
             Let(varId, substitute(e, typeVars, consistencyVars))
         case SetField(fieldId, valueExpr) =>
             SetField(fieldId, substitute(valueExpr, typeVars, consistencyVars))
-        case CallUpdate(varId, recvExpr, methodId, argumentExprs) =>
-            CallUpdate(varId, substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
-        case CallUpdateThis(varId, methodId, argumentExprs) =>
-            CallUpdateThis(varId, methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
-        case EvalUpdate(varId, recv, methodId, args, body) =>
-            EvalUpdate(varId, substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
+        case CallUpdate(recvExpr, methodId, argumentExprs) =>
+            CallUpdate(substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case CallUpdateThis(methodId, argumentExprs) =>
+            CallUpdateThis(methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
+        case EvalUpdate(recv, methodId, args, body) =>
+            EvalUpdate(substitute(recv, typeVars, consistencyVars), methodId, args.map(a => (a._1, substitute(a._2, typeVars, consistencyVars))), body)
         case CallQuery(varId, recvExpr, methodId, argumentExprs) =>
             CallQuery(varId, substitute(recvExpr, typeVars, consistencyVars), methodId, argumentExprs.map(substitute(_, typeVars, consistencyVars)))
         case CallQueryThis(varId, methodId, argumentExprs) =>
@@ -182,6 +184,7 @@ object Types {
         case BooleanTypeSuffix => true
         case NumberTypeSuffix => true
         case UnitTypeSuffix => true
+        case StringTypeSuffix => true
     }
 
     def wellFormed(classType: ClassType)
@@ -216,6 +219,10 @@ object Types {
     def numberType: Type = Type(Local, Immutable, NumberTypeSuffix)
 
     def numberType(c: ConsistencyType): Type = Type(c, Immutable, NumberTypeSuffix)
+
+    def stringType: Type = Type(Local, Immutable, StringTypeSuffix)
+
+    def stringType(c: ConsistencyType): Type = Type(c, Immutable, StringTypeSuffix)
 
     def unitType: Type = Type(Local, Immutable, UnitTypeSuffix)
 

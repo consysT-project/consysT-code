@@ -1,6 +1,6 @@
 package de.tuda.consys.formalization.lang
 
-import de.tuda.consys.formalization.lang.types.{ClassType, ConsistencyType, MutabilityType, Type}
+import de.tuda.consys.formalization.lang.types.{ClassType, Type}
 
 sealed trait Statement
 
@@ -39,19 +39,16 @@ case class GetField(varId: VarId,
                     fieldId: FieldId
                    ) extends Statement
 
-case class CallUpdate(varId: VarId,
-                      recvExpr: Expression,
+case class CallUpdate(recvExpr: Expression,
                       methodId: MethodId,
                       argumentExprs: Seq[Expression]
                      ) extends Statement
 
-case class CallUpdateThis(varId: VarId,
-                          methodId: MethodId,
+case class CallUpdateThis(methodId: MethodId,
                           argumentExprs: Seq[Expression]
                          ) extends Statement
 
-case class EvalUpdate(varId: VarId,
-                      recv: Expression,
+case class EvalUpdate(recv: Expression,
                       methodId: MethodId,
                       args: Map[VarId, Expression],
                       body: Statement

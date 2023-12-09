@@ -64,7 +64,7 @@ object Exec {
             "v" -> FieldDecl(
                 "v",
                 Types.numberType(ConsistencyVar("C")),
-                Default(NumberTypeSuffix, Local, Immutable)
+                Default(NumberTypeSuffix, Immutable)
             )
         ),
         Map(
@@ -76,7 +76,7 @@ object Exec {
                         Seq(
                             (Types.numberType(ConsistencyVar("C")),
                                 "x",
-                                Default(NumberTypeSuffix, ConsistencyVar("C"), Immutable))
+                                Default(NumberTypeSuffix, Immutable))
                         ),
                         Sequence(
                             GetField("x", "v"),
@@ -99,14 +99,13 @@ object Exec {
                 "value" -> FieldDecl(
                     "value",
                     Type(ConsistencyVar("W"), Immutable, TypeSuffixVar("T")),
-                    Default(TypeSuffixVar("T"), ConsistencyVar("W"), Immutable)),
+                    Default(TypeSuffixVar("T"), Immutable)),
             ),
             Map(
                 "setVal" -> UpdateMethodDecl("setVal", ConsistencyVar("W"),
                     Seq(
                         VarDecl("x", Type(ConsistencyVar("W"), Immutable, TypeSuffixVar("T")))
                     ),
-                    Types.unitType,
                     Sequence(SetField("value", Var("x")), ReturnExpr(UnitLiteral))
                 ),
                 "getVal" -> QueryMethodDecl("getVal", ConsistencyVar("W"),
@@ -117,7 +116,7 @@ object Exec {
                             Seq(
                                 (Type(ConsistencyVar("W"), Immutable, TypeSuffixVar("T")),
                                     "x",
-                                    Default(TypeSuffixVar("T"), ConsistencyVar("W"), Immutable))
+                                    Default(TypeSuffixVar("T"), Immutable))
                             ),
                             Sequence(GetField("x", "value"),
                                 ReturnExpr(Var("x"))
@@ -134,7 +133,7 @@ object Exec {
                             Seq(
                                 (Type(ConsistencyUnion(ConsistencyVar("R"), ConsistencyVar("W")), Immutable, TypeSuffixVar("T")),
                                     "x",
-                                    Default(TypeSuffixVar("T"), ConsistencyUnion(ConsistencyVar("R"), ConsistencyVar("W")), Immutable))
+                                    Default(TypeSuffixVar("T"), Immutable))
                             ),
                             Sequence(GetField("x", "value"),
                                 ReturnExpr(Var("x"))
@@ -157,19 +156,19 @@ object Exec {
                         Seq(
                             (Types.refType(ClassType("Box", Seq(Weak, Strong), Seq(LocalTypeSuffix(ClassType("BoxedNum", Seq(Strong), Seq.empty))))),
                                 "r",
-                                Default(RefTypeSuffix(ClassType("Box", Seq(Weak, Strong), Seq(LocalTypeSuffix(ClassType("BoxedNum", Seq(Strong), Seq.empty))))), Local, Mutable)),
+                                Default(RefTypeSuffix(ClassType("Box", Seq(Weak, Strong), Seq(LocalTypeSuffix(ClassType("BoxedNum", Seq(Strong), Seq.empty))))), Mutable)),
                             (Types.localType(Strong, ClassType("BoxedNum", Seq(Strong), Seq.empty)),
                                 "x",
-                                Default(LocalTypeSuffix(ClassType("BoxedNum", Seq(Local), Seq.empty)), Local, Immutable)),
+                                Default(LocalTypeSuffix(ClassType("BoxedNum", Seq(Local), Seq.empty)), Immutable)),
                             (Types.localType(Weak, ClassType("BoxedNum", Seq(Strong), Seq.empty)),
                                 "x2",
-                                Default(LocalTypeSuffix(ClassType("BoxedNum", Seq(Local), Seq.empty)), Local, Immutable)),
+                                Default(LocalTypeSuffix(ClassType("BoxedNum", Seq(Local), Seq.empty)), Immutable)),
                             (Types.numberType(Strong),
                                 "n",
-                                Default(NumberTypeSuffix, Local, Immutable)),
+                                Default(NumberTypeSuffix, Immutable)),
                             (Types.numberType(Weak),
                                 "n2",
-                                Default(NumberTypeSuffix, Local, Immutable)),
+                                Default(NumberTypeSuffix, Immutable)),
                             (Types.unitType(Inconsistent),
                                 "_",
                                 UnitLiteral)
@@ -181,7 +180,7 @@ object Exec {
                             Sequence(CallQuery("x", Var("r"), "getVal", Seq.empty),
                                 Sequence(CallQuery("n", Var("x"), "get", Seq.empty),
                                     Sequence(Let("x", LocalObj(ClassType("BoxedNum", Seq(Strong), Seq.empty), Map("v" -> ArithmeticOperation(Var("n"), Num(1), Add)))),
-                                        Sequence(CallUpdate("_", Var("r"), "setVal", Seq(Var("x"))),
+                                        Sequence(CallUpdate(Var("r"), "setVal", Seq(Var("x"))),
                                             Sequence(CallQuery("x2", Var("r"), "peekVal", Seq.empty),
                                                 Sequence(CallQuery("n2", Var("x2"), "get", Seq.empty),
                                                     Print(Var("n2"))
@@ -250,7 +249,7 @@ object Exec {
                 "value" -> FieldDecl(
                     "value",
                     Type(ConsistencyVar("W"), Mutable, TypeSuffixVar("T")),
-                    Default(TypeSuffixVar("T"), ConsistencyVar("W"), Mutable)
+                    Default(TypeSuffixVar("T"), Mutable)
                 ),
                 "tail" -> FieldDecl(
                     "tail",
@@ -261,7 +260,7 @@ object Exec {
                     Default(RefTypeSuffix(
                         ClassType("List",
                             Seq(ConsistencyVar("R"), ConsistencyVar("W")),
-                            Seq(TypeSuffixVar("T")))), ConsistencyVar("W"), Mutable)
+                            Seq(TypeSuffixVar("T")))), Mutable)
                 )
             ),
             Map(
@@ -283,7 +282,6 @@ object Exec {
                                         ClassType("List",
                                             Seq(ConsistencyVar("R"), ConsistencyVar("W")),
                                             Seq(TypeSuffixVar("T")))),
-                                        ConsistencyVar("W"),
                                         Immutable))
                             ),
                             Sequence(GetField("x", "tail"),
@@ -301,7 +299,7 @@ object Exec {
                             Seq(
                                 (Type(ConsistencyVar("W"), Mutable, TypeSuffixVar("T")),
                                     "x",
-                                    Default(TypeSuffixVar("T"), ConsistencyVar("W"), Mutable))
+                                    Default(TypeSuffixVar("T"), Mutable))
                             ),
                             Sequence(GetField("x", "value"),
                                 ReturnExpr(Var("x"))
@@ -318,7 +316,7 @@ object Exec {
                             Seq(
                                 (Type(ConsistencyUnion(ConsistencyVar("R"), ConsistencyVar("W")), Immutable, TypeSuffixVar("T")),
                                     "x",
-                                    Default(TypeSuffixVar("T"), ConsistencyUnion(ConsistencyVar("R"), ConsistencyVar("W")), Mutable))
+                                    Default(TypeSuffixVar("T"), Mutable))
                             ),
                             Sequence(GetField("x", "value"),
                                 ReturnExpr(Var("x"))
@@ -369,12 +367,12 @@ object Exec {
                             (
                                 Types.localType(ClassType("List", Seq(Weak, Strong), Seq(RefTypeSuffix(ClassType("Dummy", Seq.empty, Seq.empty))))),
                                 "l",
-                                Default(LocalTypeSuffix(ClassType("List", Seq(Weak, Strong), Seq(LocalTypeSuffix(ClassType("Dummy", Seq.empty, Seq.empty))))), Local, Immutable)
+                                Default(LocalTypeSuffix(ClassType("List", Seq(Weak, Strong), Seq(LocalTypeSuffix(ClassType("Dummy", Seq.empty, Seq.empty))))), Immutable)
                             ),
                             (
                                 Types.refType(ClassType("Dummy", Seq.empty, Seq.empty)),
                                 "x",
-                                Default(RefTypeSuffix(ClassType("Dummy", Seq.empty, Seq.empty)), Strong, Immutable)
+                                Default(RefTypeSuffix(ClassType("Dummy", Seq.empty, Seq.empty)), Immutable)
                             )
                         ),
                         Statements.sequence(Seq(

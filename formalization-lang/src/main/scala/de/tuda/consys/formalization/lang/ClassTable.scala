@@ -71,10 +71,9 @@ object ClassTable {
         val consEnv = (classDecl.consistencyParameters.map(_.name) zip receiver.consistencyArguments).toMap
 
         classDecl.getMethod(methodId) match {
-            case Some(UpdateMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
+            case Some(u@UpdateMethodDecl(_, operationLevel, declaredParameters, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
-                val concreteReturnType = substitute(returnType, varEnv, consEnv)
-                UpdateType(substitute(operationLevel, consEnv), concreteParams, concreteReturnType)
+                UpdateType(substitute(operationLevel, consEnv), concreteParams, u.returnType)
             case Some(QueryMethodDecl(_, operationLevel, declaredParameters, returnType, _)) =>
                 val concreteParams = declaredParameters.map(p => substitute(p.typ, varEnv, consEnv))
                 val concreteReturnType = substitute(returnType, varEnv, consEnv)
