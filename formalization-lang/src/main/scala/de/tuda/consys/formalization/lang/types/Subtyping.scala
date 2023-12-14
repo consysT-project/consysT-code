@@ -5,7 +5,6 @@ import de.tuda.consys.formalization.lang.{ClassTable, ConsistencyVarEnv, TypeVar
 
 import scala.annotation.tailrec
 
-// TODO: check if this is correct now
 object Subtyping {
     def subtype(t1: Type, t2: Type)
                (implicit ct: ClassTable,

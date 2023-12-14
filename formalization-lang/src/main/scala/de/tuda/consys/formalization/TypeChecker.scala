@@ -35,10 +35,12 @@ object TypeChecker {
         if (classDecl.superClass.classId != topClassId && !classTable.contains(classDecl.superClass.classId))
             throw TypeError(s"unknown superclass ${classDecl.superClass.classId} (in ${classDecl.classId})")
 
-        classDecl.fields.foreachEntry((id, decl) =>
+        classDecl.fields.foreachEntry((id, decl) => {
             if (!wellFormed(decl.typ))
                 throw TypeError(s"misformed type for field $id (in: ${classDecl.classId}")
-        )
+            if (checkExpression(decl.init)(Map.empty, classTable, typeVarEnv, tvmEnv, consistencyVarEnv) !<= decl.typ)
+                throw TypeError(s"invalid initializer for field $id (in: ${classDecl.classId}")
+        })
 
         if (!wellFormed(classDecl.superClass.toClassType))
             throw TypeError(s"misformed superclass type (in: ${classDecl.classId}")
@@ -267,7 +269,13 @@ object TypeChecker {
 
         case Block(varDecls, s) =>
             if (varDecls.exists(v => vars.contains(v._2)))
-                throw TypeError("invalid variable shadowing in block") // TODO
+                throw TypeError("invalid variable shadowing in block")
+            varDecls.foreach(e => {
+                if (!wellFormed(e._1))
+                    throw TypeError(s"misformed type for block variable ${e._2}")
+                if (checkExpressionWithVars(e._3, vars) !<= e._1)
+                    throw TypeError(s"invalid initializer for block variable ${e._2}")
+            })
             checkStatement(s, vars ++ varDecls.map(d => d._2 -> d._1))
 
         case Sequence(s1, s2) =>

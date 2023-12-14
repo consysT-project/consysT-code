@@ -230,15 +230,15 @@ object Shop {
                     ReturnExpr(Num(-1))
                 ))
             ),
-            "peekCost" -> QueryMethodDecl(
-                "peekCost",
+            "peekInventory" -> QueryMethodDecl(
+                "peekInventory",
                 Weak,
                 Seq.empty,
                 Types.numberType(Weak),
                 Statements.sequence(Seq(
                     Block(Seq((Types.numberType(Weak), "temp", Num(-1))),
                         Statements.sequence(Seq(
-                            GetField("temp", "cost"),
+                            GetField("temp", "inventory"),
                             ReturnExpr(Var("temp"))
                         ))
                     ),
@@ -251,7 +251,7 @@ object Shop {
                 Seq.empty,
                 Types.stringType(Weak),
                 Statements.sequence(Seq(
-                    Block(Seq((Types.stringType(Weak), "temp", Num(-1))),
+                    Block(Seq((Types.stringType(Weak), "temp", StringLiteral(""))),
                         Statements.sequence(Seq(
                             GetField("temp", "description"),
                             ReturnExpr(Var("temp"))
