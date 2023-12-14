@@ -361,36 +361,41 @@ object Shop {
         ),
         Statements.sequence(Seq(
             Print(StringLiteral("Start of process 1")),
+            While(
+                ArithmeticComparison(Var("i"), Num(3), LessThan),
+                Transaction(
+                    Statements.sequence(Seq(
+                        CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                        Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                    )),
+                    Print(StringLiteral("Error"))
+                )
+            ),
             Transaction(
                 Statements.sequence(Seq(
-                    While(
-                        ArithmeticComparison(Var("i"), Num(3), LessThan),
-                        Statements.sequence(Seq(
-                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
-                        )),
-                    ),
-                    CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
                     CallQuery("temp", Var("user"), "getBalance", Seq.empty),
                     Print(StringLiteral("Balance of user 1:")),
                     Print(Var("temp")),
                     CallQuery("temp", Var("item"), "getInventory", Seq.empty),
                     Print(StringLiteral("Inventory of item:")),
                     Print(Var("temp")),
+                    CallUpdate(Var("item"), "setDescription", Seq(StringLiteral("A great book! Second edition."))),
                 )),
                 Print(StringLiteral("Error"))
             ),
             Let("i", Num(0)),
-            Print(StringLiteral("End of transaction")),
+            While(
+                ArithmeticComparison(Var("i"), Num(7), LessThan),
+                Transaction(
+                    Statements.sequence(Seq(
+                        CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                        Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                    )),
+                    Print(StringLiteral("Error"))
+                )
+            ),
             Transaction(
                 Statements.sequence(Seq(
-                    While(
-                        ArithmeticComparison(Var("i"), Num(7), LessThan),
-                        Statements.sequence(Seq(
-                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
-                        )),
-                    ),
                     CallQuery("temp", Var("user"), "getBalance", Seq.empty),
                     Print(StringLiteral("Balance of user 1:")),
                     Print(Var("temp")),
@@ -414,15 +419,18 @@ object Shop {
         ),
         Statements.sequence(Seq(
             Print(StringLiteral("Start of process 2")),
+            While(
+                ArithmeticComparison(Var("i"), Num(3), LessThan),
+                Transaction(
+                    Statements.sequence(Seq(
+                        CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
+                        Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
+                    )),
+                    Print(StringLiteral("Error"))
+                )
+            ),
             Transaction(
                 Statements.sequence(Seq(
-                    While(
-                        ArithmeticComparison(Var("i"), Num(3), LessThan),
-                        Statements.sequence(Seq(
-                            CallUpdate(Var("shop"), "buy", Seq(Var("user"), Var("item"))),
-                            Let("i", ArithmeticOperation(Var("i"), Num(1), Add)),
-                        )),
-                    ),
                     CallQuery("temp", Var("user"), "getBalance", Seq.empty),
                     Print(StringLiteral("Balance of user 2:")),
                     Print(Var("temp")),
