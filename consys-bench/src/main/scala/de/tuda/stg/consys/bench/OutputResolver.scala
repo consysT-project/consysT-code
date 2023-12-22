@@ -36,6 +36,8 @@ object OutputResolver {
 				throw new IllegalStateException("cannot instantiate output file", e)
 		}
 
+		Logger.info(s"benchmark output dir set to \"${outputDir.toAbsolutePath}\"")
+
 		override def latencyWriter(processId : Int) : PrintWriter = {
 			val latencyPath = outputDir.resolve("proc" + processId + ".csv")
 			try {
