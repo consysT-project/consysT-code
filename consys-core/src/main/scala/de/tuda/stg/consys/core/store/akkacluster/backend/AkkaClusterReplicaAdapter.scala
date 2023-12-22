@@ -162,7 +162,15 @@ class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : 
 	}
 
 	def close() : Unit = {
-		Await.ready(system.terminate(), timeout)
+
+		try {
+			system.terminate()
+			Await.ready(system.whenTerminated, timeout)
+		} catch {
+			case e : TimeoutException =>
+				close()
+		}
+
 	}
 
 
