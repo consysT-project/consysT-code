@@ -19,17 +19,21 @@ public class TournamentsBench extends CRDTBenchRunnable<Tournaments> {
 		JBenchExecution.execute("invariants-tournaments", TournamentsBench.class, args);
 	}
 
+	@SuppressWarnings("consistency")
 	public TournamentsBench(JBenchStore adapter, BenchmarkConfig config) {
 		super(adapter, config, Tournaments.class);
+
+		players = IntStream.range(0,99)
+				.mapToObj(i -> new Player("player" + i)) // or x -> new Object(x).. or any other constructor
+				.toArray(Player[]::new);
+
+		tournaments = IntStream.range(0,9)
+				.mapToObj(i -> new Tournament()) // or x -> new Object(x).. or any other constructor
+				.toArray(Tournament[]::new);
 	}
 
-	public final Player[] players = IntStream.range(0,99)
-			.mapToObj(i -> new Player("player" + i)) // or x -> new Object(x).. or any other constructor
-			.toArray(Player[]::new);
-
-	public final Tournament[] tournaments = IntStream.range(0,9)
-			.mapToObj(i -> new Tournament()) // or x -> new Object(x).. or any other constructor
-			.toArray(Tournament[]::new);
+	public final Player[] players;
+	public final Tournament[] tournaments;
 
 	@Override
 	@SuppressWarnings("consistency")
