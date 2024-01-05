@@ -8,6 +8,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
 import java.io.Serializable;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
 
 @ReplicatedModel public class Consensus implements Mergeable<Consensus>, Serializable {
@@ -23,12 +24,11 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
   //@ public invariant flag ==> (\forall int i; i >= 0 && i < numOfReplicas(); b[i]);
 
 
-  /*@
-  @ requires id >= 0 && id < numOfReplicas();
-  @ ensures flag == false;
-  @ ensures (\forall int i; i >= 0 && i < numOfReplicas(); b[i] == false);
-  @ ensures replicaId == id;
-  @*/
+
+  //@ requires id >= 0 && id < numOfReplicas();
+  //@ ensures flag == false;
+  //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); b[i] == false);
+  //@ ensures replicaId == id;
   public Consensus(int id) {
     if (!(id >= 0 && id < numOfReplicas()))
       throw new IllegalArgumentException("id not in range.");
@@ -37,6 +37,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
     b = new boolean[numOfReplicas()];
     for(int i = 0; i < numOfReplicas(); ++i)
       b[i] = false;
+  }
+
+  public Consensus() {
+    this(replicaId());
   }
 
   /*@

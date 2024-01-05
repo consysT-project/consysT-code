@@ -22,6 +22,10 @@ import java.util.Set;
         value.add(initial);
     }
 
+    public MultiValueRegister() {
+        this(null);
+    }
+
     //@ ensures (\forall Object o; true; o == val ? value.contains(o) : !value.contains(o) );
     @WeakOp public Void write(Object val) {
         value.clear();

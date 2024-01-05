@@ -20,6 +20,10 @@ public class LWWRegister<T> implements Mergeable<LWWRegister<T>>, Serializable {
         this.timestamp = System.currentTimeMillis();
     }
 
+    public LWWRegister() {
+        this(null);
+    }
+
     //@ assignable value, timestamp;
     //@ ensures this.value == value;
     //@ ensures this.timestamp > \old(this.timestamp)

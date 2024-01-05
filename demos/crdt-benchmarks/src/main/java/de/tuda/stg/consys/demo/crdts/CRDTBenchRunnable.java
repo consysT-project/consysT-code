@@ -3,6 +3,7 @@ package de.tuda.stg.consys.demo.crdts;
 import de.tuda.stg.consys.bench.BenchmarkConfig;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.JBenchRunnable;
+import de.tuda.stg.consys.invariants.utils.InvariantUtils;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
@@ -24,6 +25,9 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 		super(adapter, config);
 		this.clazz = clazz;
 
+		InvariantUtils.setReplicaId(config.processId());
+		InvariantUtils.setNumOfReplicas(config.numberOfReplicas());
+
 		Logger.info("Created benchmark for " + clazz.getSimpleName());
 	}
 
@@ -40,6 +44,12 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 			crdt = result.get();
 		}
 
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+
 		barrier("crdt-added");
 
 		if (processId() != 0) {
@@ -51,16 +61,22 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 			crdt = result.get();
 		}
 
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+
 		barrier("crdt-lookup");
 	}
 
 	@Override
 	public void cleanup() {
-//		try {
-//			Thread.sleep(3000);
-//		} catch (InterruptedException e) {
-//			throw new RuntimeException(e);
-//		}
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

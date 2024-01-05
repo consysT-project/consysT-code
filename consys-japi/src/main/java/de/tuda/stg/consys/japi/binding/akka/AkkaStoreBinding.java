@@ -29,6 +29,7 @@ public class AkkaStoreBinding implements Store<String, Serializable, Consistency
         store.addOtherReplica(hostname, akkaPort);
     }
 
+    @Override
     public String getId() {
         return store.id();
     }

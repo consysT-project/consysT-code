@@ -31,6 +31,11 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         this.decs = new int[numOfReplicas()];
     }
 
+    public PNCounter() {
+        this(replicaId());
+    }
+
+
 
 
     //@ assignable \nothing;

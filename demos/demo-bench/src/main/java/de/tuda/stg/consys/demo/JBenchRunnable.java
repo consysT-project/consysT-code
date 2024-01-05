@@ -22,6 +22,8 @@ public abstract class JBenchRunnable<
         super();
         this.store = store;
         this.config = config;
+
+
     }
 
     protected JStore store() {

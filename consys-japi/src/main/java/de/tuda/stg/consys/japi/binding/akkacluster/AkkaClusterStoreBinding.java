@@ -26,6 +26,7 @@ public class AkkaClusterStoreBinding implements Store<String, Serializable, Cons
         store.addOtherReplica(hostname, akkaPort);
     }
 
+    @Override
     public String getId() {
         return store.id().uniqueAddress().toString();
     }

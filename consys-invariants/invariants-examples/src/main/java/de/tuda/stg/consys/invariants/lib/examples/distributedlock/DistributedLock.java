@@ -37,6 +37,10 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
         this.timestamp = 0;
     }
 
+    public DistributedLock() {
+        this(replicaId());
+    }
+
     /*@
     @ requires replicaId() >= 0;
     @ requires replicaId() < numOfReplicas();

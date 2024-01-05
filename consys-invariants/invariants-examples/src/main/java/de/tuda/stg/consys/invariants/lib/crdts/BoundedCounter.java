@@ -52,6 +52,10 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 		localPermissions = new int[numOfReplicas()][numOfReplicas()];
 	}
 
+	public BoundedCounter() {
+		this(replicaId());
+	}
+
 
 	//@ requires val >= 0;
 	//@ assignable counter;
@@ -117,6 +121,9 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ ensures localPermissions[rid][toReplica] == \old(localPermissions[rid][toReplica]) + value;
 	@WeakOp public Void transfer(int toReplica, int value) {
 		if (getQuota() < value)
+			throw new IllegalArgumentException();
+
+		if (toReplica < 0 || toReplica >= numOfReplicas())
 			throw new IllegalArgumentException();
 
 		localPermissions[rid][toReplica] += value;

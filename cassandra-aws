@@ -76,6 +76,24 @@ server.8=172.31.25.156:2888:3888
 cd consysT-code/demos/crdt-benchmarks/
 
 java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.AddOnlyGraphBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.GCounterBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.GMapBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.GSetBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.LWWRegisterBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.MultiValueRegisterBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.ORMapBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.ORSetBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.PNCounterBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.TwoPhaseSetBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.TwoPTwoPGraphBench -b akkacluster -c aws/mixed/node1/node.conf
 
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.BankAccountBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.BankAccountLWWBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.ConsensusBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.CreditAccountBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.DistrbutedLockBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.JointBankAccountBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.ResettableCounterBench -b akkacluster -c aws/mixed/node1/node.conf
+java -cp target/crdt-benchmarks-4.0.0-allinone.jar de.tuda.stg.consys.demo.crdts.invariants.crdts.TournamentsBench -b akkacluster -c aws/mixed/node1/node.conf
 
 
