@@ -23,26 +23,26 @@ import java.util.Set;
     //@ assignable underlying;
     //@ ensures underlying.contains(val);
     //@ ensures underlying.containsAll(\old(underlying));
-    @WeakOp public Void add(Object val) {
+     public Void add(Object val) {
         underlying.add(val);
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    @SideEffectFree @WeakOp public boolean contains(Object val){
+      public boolean contains(Object val){
         return underlying.contains(val);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.isEmpty();
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return underlying.isEmpty();
     }
 
     //@ assignable \nothing;
     //@ ensures \result.equals(underlying);
-    @SideEffectFree @WeakOp public Set<Object> getValue() {
+      public Set<Object> getValue() {
         return underlying;
     }
 

@@ -22,19 +22,19 @@ import java.util.Set;
     //@ assignable underlying;
     //@ ensures underlying.contains(val);
     //@ ensures underlying.containsAll(\old(underlying));
-    @WeakOp public void add(Tournament val) {
+     public void add(Tournament val) {
         underlying.add(val);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    @SideEffectFree @WeakOp public boolean contains(Tournament val){
+      public boolean contains(Tournament val){
         return underlying.contains(val);
     }
 
     //@ assignable \nothing;
     //@ underlying.isEmpty();
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return underlying.isEmpty();
     }
 

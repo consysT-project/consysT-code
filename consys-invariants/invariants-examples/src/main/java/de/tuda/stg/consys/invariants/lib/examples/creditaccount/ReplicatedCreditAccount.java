@@ -33,8 +33,8 @@ public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccoun
     /* Methods */
     //@ assignable \nothing;
     //@ ensures \result == \old(credits.getValue());
-    @SideEffectFree
-    @WeakOp public int getValue() {
+    
+     public int getValue() {
         return credits.getValue();
     }
 
@@ -42,7 +42,7 @@ public class ReplicatedCreditAccount implements Mergeable<ReplicatedCreditAccoun
     //@ requires val >= 0;
     //@ assignable credits;
     //@ ensures stateful( credits.inc(val) );
-    @WeakOp public void deposit(int val) {
+     public void deposit(int val) {
         if (0 > val) throw new IllegalArgumentException();
         credits.inc(val);
     }

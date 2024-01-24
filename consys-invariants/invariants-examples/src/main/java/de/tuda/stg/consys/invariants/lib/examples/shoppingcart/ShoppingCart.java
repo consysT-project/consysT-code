@@ -20,7 +20,7 @@ public class ShoppingCart implements Mergeable<ShoppingCart>, Serializable {
 	}
 
 	//@ ensures stateful( items.add(item) );
-	@WeakOp public Void addItem(Item item) {
+	 public Void addItem(Item item) {
 		items.add(item);
 		return null;
 	}

@@ -27,7 +27,7 @@ import java.util.Set;
     }
 
     //@ ensures (\forall Object o; true; o == val ? value.contains(o) : !value.contains(o) );
-    @WeakOp public Void write(Object val) {
+     public Void write(Object val) {
         value.clear();
         value.add(val);
         return null;
@@ -35,7 +35,7 @@ import java.util.Set;
 
     //@ assignable \nothing;
     //@ ensures \result == value;
-    @SideEffectFree @WeakOp public Set<Object> read() {
+      public Set<Object> read() {
         return ImmutableSet.copyOf(value);
     }
 

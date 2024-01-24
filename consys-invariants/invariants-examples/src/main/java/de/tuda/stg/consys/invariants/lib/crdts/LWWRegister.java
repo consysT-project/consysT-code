@@ -27,13 +27,13 @@ public class LWWRegister<T> implements Mergeable<LWWRegister<T>>, Serializable {
     //@ assignable value, timestamp;
     //@ ensures this.value == value;
     //@ ensures this.timestamp > \old(this.timestamp)
-    @WeakOp public void set(T value) {
+     public void set(T value) {
         this.value = value;
         this.timestamp = System.currentTimeMillis();
     }
 
     //@ ensures \result == value;
-    @SideEffectFree @WeakOp public T get() {
+      public T get() {
         return value;
     }
 

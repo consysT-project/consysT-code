@@ -30,13 +30,13 @@ public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph>, Serializable {
 
 	//@ assignable \nothing;
 	//@ ensures \result == vertices.contains(v);
-	@SideEffectFree	@WeakOp public boolean hasVertex(Object v) {
+		 public boolean hasVertex(Object v) {
 		return vertices.contains(v);
 	}
 
 	//@ assignable vertices;
 	//@ ensures stateful( vertices.add(v) );
-	@WeakOp public Void addVertex(Object v) {
+	 public Void addVertex(Object v) {
 		vertices.add(v);
 		return null;
 	}
@@ -45,7 +45,7 @@ public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph>, Serializable {
 	//@ requires vertices.contains(from) && vertices.contains(to);
 	//@ assignable edges;
 	//@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) || edge == object(Edge.class, from, to));
-	@WeakOp public Void addEdge(Object from, Object to) {
+	 public Void addEdge(Object from, Object to) {
 		if (!vertices.contains(from) && !vertices.contains(to))
 			throw new IllegalArgumentException();
 
@@ -57,7 +57,7 @@ public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph>, Serializable {
 	//@ requires (\forall Edge edge; edges.contains(edge); edge.from != v && edge.to != v);
 	//@ assignable vertices;
 	//@ ensures stateful( vertices.remove(v) );
-	@WeakOp public Void removeVertex(Object v) {
+	 public Void removeVertex(Object v) {
 		for (Edge edge : edges.getValue()) {
 			if (edge.to.equals(v) || edge.from.equals(v))
 				throw new IllegalArgumentException();
@@ -70,7 +70,7 @@ public class TwoPTwoPGraph implements Mergeable<TwoPTwoPGraph>, Serializable {
 
 	//@ assignable edges;
 	//@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) && edge != object(Edge.class, from, to));
-	@WeakOp public Void removeEdge(Object from, Object to) {
+	 public Void removeEdge(Object from, Object to) {
 		edges.remove(new Edge(from, to));
 		return null;
 	}

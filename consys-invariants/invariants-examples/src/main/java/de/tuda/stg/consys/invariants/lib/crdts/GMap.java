@@ -25,35 +25,35 @@ import java.util.Map;
     @ ensures (\forall K k1; \old(underlying).containsKey(k1); underlying.containsKey(k1)); // TODO: redundant?
     @ ensures underlying.size() == \old(underlying).size() || underlying.size() == \old(underlying).size() + 1;
     @*/
-    @WeakOp public void put(K key, V value) {
+     public void put(K key, V value) {
         underlying.put(key, value); // TODO: should this also merge existing keys?
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.containsKey(key);
-    @SideEffectFree @WeakOp public boolean containsKey(K key){
+      public boolean containsKey(K key){
         return underlying.containsKey(key);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.containsValue(value);
-    @SideEffectFree @WeakOp public boolean containsValue(V value){
+      public boolean containsValue(V value){
         return underlying.containsValue(value);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.isEmpty();
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return underlying.isEmpty();
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.get(key); // TODO: not pure?
-    @SideEffectFree @WeakOp public V get(K key) {
+      public V get(K key) {
         return underlying.get(key);
     }
 
-    @WeakOp public int size() {
+     public int size() {
         return underlying.size();
     }
 

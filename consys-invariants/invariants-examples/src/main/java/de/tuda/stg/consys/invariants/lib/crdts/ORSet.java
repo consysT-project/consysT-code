@@ -39,7 +39,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
     @ ensures (\forall T elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
     @*/
-    @WeakOp public Void add(final T value) {
+     public Void add(final T value) {
         checkNotNull(value);
         UUID uuid = UUID.randomUUID();
         elements.put(value, uuid);
@@ -54,7 +54,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
     @ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.get(value)).contains(u) || \old(tombstones.containsValue(u)) );
     @*/
-    @WeakOp public Void remove(final T value) {
+     public Void remove(final T value) {
         checkNotNull(value);
         this.tombstones.putAll(value, elements.get(value));
         elements.removeAll(value);
@@ -66,7 +66,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ assignable \nothing;
     @ ensures \result == elements.containsKey(value);
     @*/
-    @SideEffectFree @WeakOp public boolean contains(final T value) {
+      public boolean contains(final T value) {
         checkNotNull(value);
         return this.elements.containsKey(value);
     }
@@ -75,7 +75,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ assignable \nothing;
     @ ensures \result == elements.isEmpty();
     @*/
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return elements.isEmpty();
     }
 
@@ -84,7 +84,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
     @ ensures (\forall T elem; \result.contains(elem); elements.containsKey(elem));
     @ ensures (\forall T elem; elements.containsKey(elem); \result.contains(elem));
     @*/
-    @SideEffectFree @WeakOp public ImmutableSet<T> getValue() {
+      public ImmutableSet<T> getValue() {
         return ImmutableSet.copyOf(elements.keySet());
     }
 

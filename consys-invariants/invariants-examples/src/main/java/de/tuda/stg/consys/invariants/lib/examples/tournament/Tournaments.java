@@ -46,7 +46,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(players.contains(p2)); players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2) && p2.equals(p) == false; \old(players.contains(p2)));
     @*/
-    @WeakOp public void addPlayer(Player p) {
+     public void addPlayer(Player p) {
         players.add(p);
     }
 
@@ -59,7 +59,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(players.contains(p2)) && p2.equals(p) == false; players.contains(p2));
     @ ensures (\forall Player p2; players.contains(p2); \old(players.contains(p2)));
     @*/
-    @WeakOp public void removePlayer(Player p) {
+     public void removePlayer(Player p) {
         if (!players.contains(p))
             throw new IllegalArgumentException();
 
@@ -74,7 +74,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Tournament t2; \old(tournaments.contains(t2)); tournaments.contains(t2));
     @ ensures (\forall Tournament t2; tournaments.contains(t2) && t2.equals(t) == false; \old(tournaments.contains(t2)));
     @*/
-    @WeakOp public void addTournament(Tournament t) {
+     public void addTournament(Tournament t) {
         tournaments.add(t);
     }
 
@@ -87,7 +87,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Tournament t2; \old(tournaments.contains(t2)) && t2.equals(t) == false; tournaments.contains(t2));
     @ ensures (\forall Tournament t2; tournaments.contains(t2); \old(tournaments.contains(t2)));
     @*/
-    @WeakOp public void removeTournament(Tournament t) {
+     public void removeTournament(Tournament t) {
         if (!tournaments.contains(t))
             throw new IllegalArgumentException();
 
@@ -110,7 +110,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2) && p2.equals(p) == false; \old(t.hasParticipant(p2)));
     @*/
-    @WeakOp public void enrollTournament(Player p,Tournament t) {
+     public void enrollTournament(Player p,Tournament t) {
         if (!tournaments.contains(t))
             throw new IllegalArgumentException();
         if (!players.contains(p))
@@ -134,7 +134,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) && p2.equals(p) == false; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    @WeakOp public void disenrollTournament(Player p,Tournament t) {
+     public void disenrollTournament(Player p,Tournament t) {
         if (!tournaments.contains(t))
             throw new IllegalArgumentException();
         if (!players.contains(p))
@@ -156,7 +156,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    @WeakOp public void beginTournament(Tournament t) {
+     public void beginTournament(Tournament t) {
         if (!tournaments.contains(t))
             throw new IllegalArgumentException();
         if (t.isActive())
@@ -175,7 +175,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ ensures (\forall Player p2; \old(t.hasParticipant(p2)) ; t.hasParticipant(p2));
     @ ensures (\forall Player p2; t.hasParticipant(p2); \old(t.hasParticipant(p2)));
     @*/
-    @WeakOp public void endTournament(Tournament t) {
+     public void endTournament(Tournament t) {
         if (!tournaments.contains(t))
             throw new IllegalArgumentException();
         if (!t.isActive())
@@ -192,7 +192,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
     @ assignable p;
     @ ensures p.getBudget() == \old(p.getBudget()) + amount;
     @*/
-    @WeakOp public void addFunds(Player p, int amount) {
+     public void addFunds(Player p, int amount) {
         if (amount < 0)
             throw new IllegalArgumentException();
 

@@ -14,39 +14,39 @@ import java.util.Set;
     private int capacity = 10;
     private boolean active = false;
 
-    @WeakOp public void enroll(Player p) {
+     public void enroll(Player p) {
         enrolled.add(p);
     }
 
-    @WeakOp public void disenroll(Player p) {
+     public void disenroll(Player p) {
         enrolled.remove(p);
     }
 
     //@ assignable \nothing;
-    @SideEffectFree @WeakOp public boolean hasParticipant(Player p) {
+      public boolean hasParticipant(Player p) {
         return enrolled.contains(p);
     }
 
     //@ assignable \nothing;
-    @SideEffectFree @WeakOp public int numOfPlayers() {
+      public int numOfPlayers() {
         return enrolled.size();
     }
 
     //@ assignable \nothing;
-    @SideEffectFree @WeakOp public boolean isActive() {
+      public boolean isActive() {
         return active;
     }
 
-    @WeakOp public void setActive(boolean active) {
+     public void setActive(boolean active) {
         this.active = active;
     }
 
     //@ assignable \nothing;
-    @SideEffectFree @WeakOp public int getCapacity() {
+      public int getCapacity() {
         return capacity;
     }
 
-    @WeakOp public void setCapacity(int c) {
+     public void setCapacity(int c) {
         capacity = c;
     }
 

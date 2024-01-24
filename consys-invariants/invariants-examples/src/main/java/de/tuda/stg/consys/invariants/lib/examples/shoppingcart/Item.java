@@ -15,12 +15,12 @@ public class Item implements Serializable {
 	}
 
 	@Override
-	@WeakOp public int hashCode() {
+	 public int hashCode() {
 		return name.hashCode();
 	}
 
 	@Override
-	@WeakOp public boolean equals(Object obj) {
+	 public boolean equals(Object obj) {
 		return obj instanceof Item && ((Item) obj).name.equals(name);
 	}
 }

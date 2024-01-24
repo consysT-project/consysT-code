@@ -51,7 +51,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures lock[replicaId()] == false;
     @ ensures lock[otherReplica] == true;
     @*/
-    @WeakOp public void transfer(int otherReplica) {
+     public void transfer(int otherReplica) {
         if (!(lock[replicaId()]))
             throw new RuntimeException("The lock is not set to this object.");
         lock[replicaId()] = false;

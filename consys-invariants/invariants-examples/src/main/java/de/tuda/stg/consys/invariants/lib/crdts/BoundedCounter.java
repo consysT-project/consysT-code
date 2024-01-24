@@ -60,7 +60,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ requires val >= 0;
 	//@ assignable counter;
 	//@ ensures stateful( counter.inc(val) );
-	@WeakOp public Void increment(int val) {
+	 public Void increment(int val) {
 		if (val < 0)
 			throw new IllegalArgumentException();
 		counter.inc(val);
@@ -71,7 +71,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ assignable counter;
 	//@ ensures stateful( counter.dec(val) );
 	//@ ensures getQuota() == \old(getQuota()) - val;
-	@WeakOp public Void decrement(int val) {
+	 public Void decrement(int val) {
 		if (val < 0)
 			throw new IllegalArgumentException();
 
@@ -85,14 +85,14 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == counter.getValue();
-	@SideEffectFree	@WeakOp public int getValue() {
+		 public int getValue() {
 		return counter.getValue();
 	}
 
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == counter.incs[replica] - counter.decs[replica] + (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[i][rid]) - (\sum int i; i >= 0 && i < numOfReplicas(); localPermissions[rid][i]);
-	@SideEffectFree @WeakOp public int getQuota(int replica) {
+	  public int getQuota(int replica) {
 		int received = 0;
 		for (int sender = 0; sender < numOfReplicas(); sender++) {
 			received += localPermissions[sender][replica];
@@ -109,7 +109,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ requires true;
 	//@ assignable \nothing;
 	//@ ensures \result == getQuota(rid);
-	@SideEffectFree @WeakOp public int getQuota() {
+	  public int getQuota() {
 		return getQuota(rid);
 	}
 
@@ -119,7 +119,7 @@ public class BoundedCounter implements Mergeable<BoundedCounter>, Serializable {
 	//@ requires toReplica != rid;
 	//@ assignable localPermissions[rid][toReplica];
 	//@ ensures localPermissions[rid][toReplica] == \old(localPermissions[rid][toReplica]) + value;
-	@WeakOp public Void transfer(int toReplica, int value) {
+	 public Void transfer(int toReplica, int value) {
 		if (getQuota() < value)
 			throw new IllegalArgumentException();
 

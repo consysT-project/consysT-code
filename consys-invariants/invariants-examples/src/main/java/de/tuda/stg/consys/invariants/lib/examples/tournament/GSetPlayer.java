@@ -22,20 +22,20 @@ import java.util.Set;
     //@ assignable underlying;
     //@ ensures underlying.contains(val);
     //@ ensures underlying.containsAll(\old(underlying));
-    @WeakOp public void add(Player val) {
+     public void add(Player val) {
         underlying.add(val);
     }
 
     //@ assignable \nothing;
     //@ ensures \result == underlying.contains(val);
-    @SideEffectFree
-    @WeakOp public boolean contains(Player val){
+    
+     public boolean contains(Player val){
         return underlying.contains(val);
     }
 
     //@ assignable \nothing;
     //@ underlying.isEmpty();
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return underlying.isEmpty();
     }
 

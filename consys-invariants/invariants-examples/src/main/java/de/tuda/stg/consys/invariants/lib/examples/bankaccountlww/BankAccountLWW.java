@@ -31,7 +31,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures value == \old(value) + d;
     @ ensures timestamp == \old(timestamp) + 1;
     @*/
-    @WeakOp public void deposit(int d) {
+     public void deposit(int d) {
         if (d < 0)
             throw new IllegalArgumentException("value negative");
 
@@ -44,7 +44,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     //@ assignable value, timestamp;
     //@ ensures value == \old(value) - w;
     //@ ensures timestamp == \old(timestamp) + 1;
-    @WeakOp public void withdraw(int w) {
+     public void withdraw(int w) {
         if (w < 0)
             throw new IllegalArgumentException("value negative");
         if (value - w < 0)
@@ -56,7 +56,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 
     //@ assignable \nothing;
     //@ ensures \result == value;
-    @SideEffectFree @WeakOp public int getValue() {
+      public int getValue() {
         return value;
     }
 

@@ -34,14 +34,14 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
 
     //@ assignable \nothing;
     //@ ensures \result == vertices.contains(v);
-    @SideEffectFree @WeakOp
+     
     public boolean hasVertex(Object v) {
         return vertices.contains(v);
     }
 
     //@ assignable vertices;
     //@ ensures stateful( vertices.add(v) );
-    @WeakOp public Void addVertex(Object v) {
+     public Void addVertex(Object v) {
         vertices.add(v);
         return null;
     }
@@ -50,7 +50,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.object;
     //@ requires vertices.contains(from) && vertices.contains(to);
     //@ assignable edges;
     //@ ensures (\forall Edge edge; edges.contains(edge); \old(edges).contains(edge) || edge == object(Edge.class, from, to));
-    @WeakOp public Void addEdge(Object from, Object to) {
+     public Void addEdge(Object from, Object to) {
         if (!vertices.contains(from) && !vertices.contains(to))
             throw new IllegalArgumentException();
 

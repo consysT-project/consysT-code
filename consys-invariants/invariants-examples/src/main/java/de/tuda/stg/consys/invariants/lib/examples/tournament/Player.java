@@ -16,13 +16,13 @@ import java.io.Serializable;
     }
 
     //@ assignable \nothing;
-    @SideEffectFree @WeakOp
+     
     public int getBudget() {
         return budget;
     }
 
     //@ assignable budget;
-    @WeakOp public void incBudget(int amount) {
+     public void incBudget(int amount) {
         budget += amount;
     }
 }

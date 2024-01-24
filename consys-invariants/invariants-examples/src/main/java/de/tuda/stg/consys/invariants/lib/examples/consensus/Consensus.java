@@ -47,8 +47,8 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
   @ assignable \nothing;
   @ ensures \result == (\forall int i; i >= 0 && i < numOfReplicas(); b[i]);
   @*/
-  @SideEffectFree
-  @WeakOp public boolean conjunctValues() {
+  
+   public boolean conjunctValues() {
     for(int i = 0; i < numOfReplicas(); ++i) {
       if (!b[i])
         return false;
@@ -62,7 +62,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
   @ ensures (\forall int i; i >= 0 && i < numOfReplicas() && i != replicaId;
               b[i] == \old(b[i]));
   @*/
-  @WeakOp public void mark() {
+   public void mark() {
     b[replicaId] = true;
   }
 
@@ -71,7 +71,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
   @ assignable flag;
   @ ensures flag;
   @*/
-  @WeakOp public void agree() {
+   public void agree() {
     if (!conjunctValues())
       throw new RuntimeException("There is still a false element.");
     flag = true;

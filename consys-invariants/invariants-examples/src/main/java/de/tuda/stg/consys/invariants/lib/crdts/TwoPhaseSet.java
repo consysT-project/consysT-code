@@ -25,7 +25,7 @@ import java.util.Set;
     //@ assignable adds;
     //@ ensures adds.contains(obj);
     //@ ensures (\forall T elem; adds.contains(elem); \old(adds.contains(elem)) || elem == obj );
-    @WeakOp public Void add(T obj) {
+     public Void add(T obj) {
         adds.add(obj);
         return null;
     }
@@ -34,14 +34,14 @@ import java.util.Set;
     //@ ensures removals.contains(obj);
     //@ ensures (\forall T elem; \old(removals.contains(elem)); removals.contains(elem));
     //@ ensures (\forall T elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
-    @WeakOp public Void remove(T obj) {
+     public Void remove(T obj) {
         removals.add(obj);
         return null;
     }
 
     //@ assignable \nothing;
     //@ ensures \result == !removals.contains(obj) && adds.contains(obj);
-    @SideEffectFree @WeakOp public boolean contains(T obj){
+      public boolean contains(T obj){
         return !removals.contains(obj) && adds.contains(obj);
     }
 
@@ -49,7 +49,7 @@ import java.util.Set;
     @ assignable \nothing;
     @ ensures \result == (\forall T val; adds.contains(val); removals.contains(val));
     @*/
-    @SideEffectFree @WeakOp public boolean isEmpty() {
+      public boolean isEmpty() {
         return this.getValue().isEmpty();
     }
 
@@ -58,7 +58,7 @@ import java.util.Set;
     @ ensures (\forall T val; adds.contains(val) && removals.contains(val) == false; \result.contains(val));
     @ ensures (\forall T val; \result.contains(val); adds.contains(val) && removals.contains(val) == false);
     @*/
-    @SideEffectFree @WeakOp public Set<T> getValue() {
+      public Set<T> getValue() {
         return Sets.difference(this.adds.getValue(), this.removals.getValue());
     }
 

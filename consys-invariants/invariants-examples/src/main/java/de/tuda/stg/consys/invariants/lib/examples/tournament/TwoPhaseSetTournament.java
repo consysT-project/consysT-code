@@ -25,7 +25,7 @@ public class TwoPhaseSetTournament implements Mergeable<TwoPhaseSetTournament>, 
 	//@ ensures adds.contains(obj);
 	//@ ensures (\forall Tournament elem; \old(adds.contains(elem)); adds.contains(elem));
 	//@ ensures (\forall Tournament elem; adds.contains(elem) && elem.equals(obj) == false; \old(adds.contains(elem)));
-	@WeakOp public void add(Tournament obj) {
+	 public void add(Tournament obj) {
 		adds.add(obj);
 	}
 
@@ -33,19 +33,19 @@ public class TwoPhaseSetTournament implements Mergeable<TwoPhaseSetTournament>, 
 	//@ ensures removals.contains(obj);
 	//@ ensures (\forall Tournament elem; \old(removals.contains(elem)); removals.contains(elem));
 	//@ ensures (\forall Tournament elem; removals.contains(elem) && elem.equals(obj) == false; \old(removals.contains(elem)));
-	@WeakOp public void remove(Tournament obj) {
+	 public void remove(Tournament obj) {
 		removals.add(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensures \result == !removals.contains(obj) && adds.contains(obj);
-	@SideEffectFree @WeakOp public boolean contains(Tournament obj){
+	  public boolean contains(Tournament obj){
 		return !removals.contains(obj) && adds.contains(obj);
 	}
 
 	//@ assignable \nothing;
 	//@ ensure \result == (\forall Tournament p; adds.contains(p); removals.contains(p));
-	@SideEffectFree @WeakOp public boolean isEmpty() {
+	  public boolean isEmpty() {
 		return Sets.difference(adds.underlying, removals.underlying).isEmpty();
 	}
 

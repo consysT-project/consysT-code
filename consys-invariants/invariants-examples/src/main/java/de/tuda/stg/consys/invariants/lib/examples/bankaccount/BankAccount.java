@@ -50,7 +50,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.arrayMax;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(incs[i]));
-    @SideEffectFree @WeakOp
+     
     int sumIncs() {
         int res = 0;
         for (int inc : incs) {
@@ -61,7 +61,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.arrayMax;
 
     //@ assignable \nothing;
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); \old(decs[i]));
-    @SideEffectFree @WeakOp int sumDecs() {
+      int sumDecs() {
         int result = 0;
         for (int dec : decs) {
             result += dec;
@@ -71,7 +71,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.arrayMax;
 
     //@ assignable \nothing;
     //@ ensures \result == sumIncs() - sumDecs();
-    @SideEffectFree @WeakOp public int getValue() {
+      public int getValue() {
         return sumIncs() - sumDecs();
     }
 
@@ -79,7 +79,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.arrayMax;
     //@ requires val >= 0;
     //@ assignable incs[replicaId()];
     //@ ensures incs[replicaId()] == \old(incs[replicaId()]) + val;
-    @WeakOp public void deposit(int val) {
+     public void deposit(int val) {
         if (val < 0)
             throw new IllegalArgumentException("value negative");
 

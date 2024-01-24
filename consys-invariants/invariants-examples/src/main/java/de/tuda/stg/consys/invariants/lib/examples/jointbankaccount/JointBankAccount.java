@@ -31,7 +31,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable balance;
     @ ensures balance.getValue() == \old(balance.getValue() + amount);
     @*/
-    @WeakOp public void deposit(int amount) {
+     public void deposit(int amount) {
         if (amount < 0) throw new IllegalArgumentException("amount must be positive");
         balance.inc(amount);
     }
@@ -45,7 +45,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @ ensures requested == false;
     @*/
-    @WeakOp public void withdraw(int amount) {
+     public void withdraw(int amount) {
         if (amount < 0) throw new IllegalArgumentException("amount must be positive");
         if (!approved) throw new IllegalStateException("cannot withdraw from unapproved account");
         balance.dec(amount);
@@ -56,7 +56,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable requested;
     @ ensures requested == true;
     @*/
-    @WeakOp public void request() {
+     public void request() {
         requested = true;
     }
 
@@ -64,7 +64,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ assignable approved;
     @ ensures approved == \old(requested);
     @*/
-    @WeakOp public void approve() {
+     public void approve() {
         approved = requested;
     }
 
@@ -73,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
     @ ensures approved == false;
     @ ensures requested == false;
     @*/
-    @WeakOp public void reset() {
+     public void reset() {
         requested = false;
         approved = false;
     }
