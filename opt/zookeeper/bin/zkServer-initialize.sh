@@ -47,6 +47,15 @@ usage() {
   exit 1
 }
 
+OPTS=$(getopt \
+  -n $0 \
+  -o 'h' \
+  -l 'help' \
+  -l 'configfile:' \
+  -l 'myid:' \
+  -l 'force' \
+  -- "$@")
+
 if [ $? != 0 ] ; then
     usage
     exit 1
@@ -104,23 +113,16 @@ initialize() {
     else
         echo "No myid provided, be sure to specify it in $ZOO_DATADIR/myid if using non-standalone"
     fi
-
-    touch "$ZOO_DATADIR/initialize"
 }
 
-while [ ! -z "$1" ]; do
+eval set -- "${OPTS}"
+while true; do
   case "$1" in
     --configfile)
       ZOOCFG=$2; shift 2
       ;;
-    --configfile=?*)
-      ZOOCFG=${1#*=}; shift 1
-      ;;
     --myid)
       MYID=$2; shift 2
-      ;;
-    --myid=?*)
-      MYID=${1#*=}; shift 1
       ;;
     --force)
       FORCE=1; shift 1
@@ -131,11 +133,14 @@ while [ ! -z "$1" ]; do
     --help)
       usage
       ;; 
+    --)
+      initialize
+      break
+      ;;
     *)
       echo "Unknown option: $1"
       usage
       exit 1 
       ;;
   esac
-done
-initialize
+done 

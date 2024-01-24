@@ -22,7 +22,7 @@
 #
 
 
-# use POSIX interface, symlink is followed automatically
+# use POSTIX interface, symlink is followed automatically
 ZOOBIN="${BASH_SOURCE-$0}"
 ZOOBIN="$(dirname "${ZOOBIN}")"
 ZOOBINDIR="$(cd "${ZOOBIN}"; pwd)"
@@ -68,13 +68,7 @@ then
     echo "ZooKeeper remote JMX authenticate set to $JMXAUTH" >&2
     echo "ZooKeeper remote JMX ssl set to $JMXSSL" >&2
     echo "ZooKeeper remote JMX log4j set to $JMXLOG4J" >&2
-    if [ "x$JMXHOSTNAME" = "x" ]
-    then
-      ZOOMAIN="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=$JMXPORT -Dcom.sun.management.jmxremote.authenticate=$JMXAUTH -Dcom.sun.management.jmxremote.ssl=$JMXSSL -Dzookeeper.jmx.log4j.disable=$JMXLOG4J org.apache.zookeeper.server.quorum.QuorumPeerMain"
-    else
-      echo "ZooKeeper remote JMX Hostname set to $JMXHOSTNAME" >&2
-      ZOOMAIN="-Dcom.sun.management.jmxremote -Djava.rmi.server.hostname=$JMXHOSTNAME -Dcom.sun.management.jmxremote.port=$JMXPORT -Dcom.sun.management.jmxremote.authenticate=$JMXAUTH -Dcom.sun.management.jmxremote.ssl=$JMXSSL -Dzookeeper.jmx.log4j.disable=$JMXLOG4J org.apache.zookeeper.server.quorum.QuorumPeerMain"
-    fi
+    ZOOMAIN="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=$JMXPORT -Dcom.sun.management.jmxremote.authenticate=$JMXAUTH -Dcom.sun.management.jmxremote.ssl=$JMXSSL -Dzookeeper.jmx.log4j.disable=$JMXLOG4J org.apache.zookeeper.server.quorum.QuorumPeerMain"
   fi
 else
     echo "JMX disabled by user request" >&2
@@ -149,7 +143,7 @@ if [ ! -w "$ZOO_LOG_DIR" ] ; then
 mkdir -p "$ZOO_LOG_DIR"
 fi
 
-ZOO_LOG_FILE=${ZOO_LOG_FILE:-zookeeper-$USER-server-$HOSTNAME.log}
+ZOO_LOG_FILE=zookeeper-$USER-server-$HOSTNAME.log
 _ZOO_DAEMON_OUT="$ZOO_LOG_DIR/zookeeper-$USER-server-$HOSTNAME.out"
 
 case $1 in
@@ -162,7 +156,7 @@ start)
       fi
     fi
     nohup "$JAVA" $ZOO_DATADIR_AUTOCREATE "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" \
-    "-Dzookeeper.log.file=${ZOO_LOG_FILE}" \
+    "-Dzookeeper.log.file=${ZOO_LOG_FILE}" "-Dzookeeper.root.logger=${ZOO_LOG4J_PROP}" \
     -XX:+HeapDumpOnOutOfMemoryError -XX:OnOutOfMemoryError='kill -9 %p' \
     -cp "$CLASSPATH" $JVMFLAGS $ZOOMAIN "$ZOOCFG" > "$_ZOO_DAEMON_OUT" 2>&1 < /dev/null &
     if [ $? -eq 0 ]
@@ -200,13 +194,13 @@ start-foreground)
       ZOO_CMD=("$JAVA")
     fi
     "${ZOO_CMD[@]}" $ZOO_DATADIR_AUTOCREATE "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" \
-    "-Dzookeeper.log.file=${ZOO_LOG_FILE}" \
+    "-Dzookeeper.log.file=${ZOO_LOG_FILE}" "-Dzookeeper.root.logger=${ZOO_LOG4J_PROP}" \
     -XX:+HeapDumpOnOutOfMemoryError -XX:OnOutOfMemoryError='kill -9 %p' \
     -cp "$CLASSPATH" $JVMFLAGS $ZOOMAIN "$ZOOCFG"
     ;;
 print-cmd)
     echo "\"$JAVA\" $ZOO_DATADIR_AUTOCREATE -Dzookeeper.log.dir=\"${ZOO_LOG_DIR}\" \
-    -Dzookeeper.log.file=\"${ZOO_LOG_FILE}\" \
+    -Dzookeeper.log.file=\"${ZOO_LOG_FILE}\" -Dzookeeper.root.logger=\"${ZOO_LOG4J_PROP}\" \
     -XX:+HeapDumpOnOutOfMemoryError -XX:OnOutOfMemoryError='kill -9 %p' \
     -cp \"$CLASSPATH\" $JVMFLAGS $ZOOMAIN \"$ZOOCFG\" > \"$_ZOO_DAEMON_OUT\" 2>&1 < /dev/null"
     ;;
@@ -223,10 +217,6 @@ stop)
     fi
     exit 0
     ;;
-version)
-    ZOOMAIN=org.apache.zookeeper.version.VersionInfoMain
-    $JAVA -cp "$CLASSPATH" $ZOOMAIN 2> /dev/null
-    ;;
 restart)
     shift
     "$0" stop ${@}
@@ -235,83 +225,54 @@ restart)
     ;;
 status)
     # -q is necessary on some versions of linux where nc returns too quickly, and no stat result is output
-    isSSL="false"
     clientPortAddress=`$GREP "^[[:space:]]*clientPortAddress[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
     if ! [ $clientPortAddress ]
     then
-	      clientPortAddress="localhost"
+	clientPortAddress="localhost"
     fi
     clientPort=`$GREP "^[[:space:]]*clientPort[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
     if ! [[ "$clientPort"  =~ ^[0-9]+$ ]]
     then
-      dataDir=`$GREP "^[[:space:]]*dataDir" "$ZOOCFG" | sed -e 's/.*=//'`
-      myid=`cat "$dataDir/myid" 2> /dev/null`
-      if ! [[ "$myid" =~ ^[0-9]+$ ]] ; then
-        echo "myid could not be determined, will not able to locate clientPort in the server configs."
-      else
-        clientPortAndAddress=`$GREP "^[[:space:]]*server.$myid=.*;.*" "$ZOOCFG" | sed -e 's/.*=//' | sed -e 's/.*;//'`
-        if [ ! "$clientPortAndAddress" ] ; then
-          echo "Client port not found in static config file. Looking in dynamic config file."
-          dynamicConfigFile=`$GREP "^[[:space:]]*dynamicConfigFile" "$ZOOCFG" | sed -e 's/.*=//'`
-          clientPortAndAddress=`$GREP "^[[:space:]]*server.$myid=.*;.*" "$dynamicConfigFile" | sed -e 's/.*=//' | sed -e 's/.*;//'`
-        fi
-        if [ ! "$clientPortAndAddress" ] ; then
-          echo "Client port not found in the server configs"
-        else
-          if [[ "$clientPortAndAddress" =~ ^.*:[0-9]+ ]] ; then
-            if [[ "$clientPortAndAddress" =~ \[.*\]:[0-9]+ ]] ; then
-              # Extracts address from address:port for example extracts 127::1 from "[127::1]:2181"
-              clientPortAddress=`echo "$clientPortAndAddress" | sed -e 's|\[||' | sed -e 's|\]:.*||'`
-            else
-              clientPortAddress=`echo "$clientPortAndAddress" | sed -e 's/:.*//'`
-            fi
-          fi
-          clientPort=`echo "$clientPortAndAddress" | sed -e 's/.*://'`
-        fi
-      fi
+       dataDir=`$GREP "^[[:space:]]*dataDir" "$ZOOCFG" | sed -e 's/.*=//'`
+       myid=`cat "$dataDir/myid"`
+       if ! [[ "$myid" =~ ^[0-9]+$ ]] ; then
+         echo "clientPort not found and myid could not be determined. Terminating."
+         exit 1
+       fi
+       clientPortAndAddress=`$GREP "^[[:space:]]*server.$myid=.*;.*" "$ZOOCFG" | sed -e 's/.*=//' | sed -e 's/.*;//'`
+       if [ ! "$clientPortAndAddress" ] ; then
+           echo "Client port not found in static config file. Looking in dynamic config file."
+           dynamicConfigFile=`$GREP "^[[:space:]]*dynamicConfigFile" "$ZOOCFG" | sed -e 's/.*=//'`
+           clientPortAndAddress=`$GREP "^[[:space:]]*server.$myid=.*;.*" "$dynamicConfigFile" | sed -e 's/.*=//' | sed -e 's/.*;//'`
+       fi
+       if [ ! "$clientPortAndAddress" ] ; then
+          echo "Client port not found. Terminating."
+          exit 1
+       fi
+       if [[ "$clientPortAndAddress" =~ ^.*:[0-9]+ ]] ; then
+          clientPortAddress=`echo "$clientPortAndAddress" | sed -e 's/:.*//'`
+       fi
+       clientPort=`echo "$clientPortAndAddress" | sed -e 's/.*://'`
+       if [ ! "$clientPort" ] ; then
+          echo "Client port not found. Terminating."
+          exit 1
+       fi
     fi
-    if [ ! "$clientPort" ] ; then
-      echo "Client port not found. Looking for secureClientPort in the static config."
-      secureClientPort=`$GREP "^[[:space:]]*secureClientPort[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
-      if [ "$secureClientPort" ] ; then
-        isSSL="true"
-        clientPort=$secureClientPort
-        clientPortAddress=`$GREP "^[[:space:]]*secureClientPortAddress[^[:alpha:]]" "$ZOOCFG" | sed -e 's/.*=//'`
-        if ! [ $clientPortAddress ]
-        then
-            clientPortAddress="localhost"
-        fi
-      else
-        echo "Unable to find either secure or unsecure client port in any configs. Terminating."
-        exit 1
-      fi
-    fi
-    echo "Client port found: $clientPort. Client address: $clientPortAddress. Client SSL: $isSSL."
-    STAT=`"$JAVA" "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" "-Dzookeeper.log.file=${ZOO_LOG_FILE}" \
-          -cp "$CLASSPATH" $CLIENT_JVMFLAGS $JVMFLAGS org.apache.zookeeper.client.FourLetterWordMain \
-          $clientPortAddress $clientPort srvr $isSSL 2> /dev/null    \
+    echo "Client port found: $clientPort. Client address: $clientPortAddress."
+    STAT=`"$JAVA" "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" "-Dzookeeper.root.logger=${ZOO_LOG4J_PROP}" "-Dzookeeper.log.file=${ZOO_LOG_FILE}" \
+             -cp "$CLASSPATH" $JVMFLAGS org.apache.zookeeper.client.FourLetterWordMain \
+             $clientPortAddress $clientPort srvr 2> /dev/null    \
           | $GREP Mode`
     if [ "x$STAT" = "x" ]
     then
-      if [ "$isSSL" = "true" ] ; then
-        echo " "
-        echo "Note: We used secureClientPort ($secureClientPort) to establish connection, but we failed. The 'status'"
-        echo "  command establishes a client connection to the server to execute diagnostic commands. Please make sure you"
-        echo "  provided all the Client SSL connection related parameters in the CLIENT_JVMFLAGS environment variable! E.g.:"
-        echo "  CLIENT_JVMFLAGS=\"-Dzookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty"
-        echo "  -Dzookeeper.ssl.trustStore.location=/tmp/clienttrust.jks -Dzookeeper.ssl.trustStore.password=password"
-        echo "  -Dzookeeper.ssl.keyStore.location=/tmp/client.jks -Dzookeeper.ssl.keyStore.password=password"
-        echo "  -Dzookeeper.client.secure=true\" ./zkServer.sh status"
-        echo " "
-      fi
-      echo "Error contacting service. It is probably not running."
-      exit 1
+        echo "Error contacting service. It is probably not running."
+        exit 1
     else
-      echo $STAT
-      exit 0
+        echo $STAT
+        exit 0
     fi
     ;;
 *)
-    echo "Usage: $0 [--config <conf-dir>] {start|start-foreground|stop|version|restart|status|print-cmd}" >&2
+    echo "Usage: $0 [--config <conf-dir>] {start|start-foreground|stop|restart|status|print-cmd}" >&2
 
 esac

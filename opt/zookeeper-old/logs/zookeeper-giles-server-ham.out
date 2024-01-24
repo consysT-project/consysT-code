@@ -1,0 +1,2 @@
+Error: Could not find or load main class org.apache.zookeeper.server.quorum.QuorumPeerMain
+Caused by: java.lang.ClassNotFoundException: org.apache.zookeeper.server.quorum.QuorumPeerMain
