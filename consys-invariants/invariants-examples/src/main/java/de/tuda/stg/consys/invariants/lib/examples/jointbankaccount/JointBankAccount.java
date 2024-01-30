@@ -8,6 +8,8 @@ import de.tuda.stg.consys.invariants.lib.crdts.PNCounter;
 import java.io.Serializable;
 
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
+
 
 @ReplicatedModel public class JointBankAccount implements Mergeable<JointBankAccount>, Serializable {
     //@ public invariant approved ? requested : true;
