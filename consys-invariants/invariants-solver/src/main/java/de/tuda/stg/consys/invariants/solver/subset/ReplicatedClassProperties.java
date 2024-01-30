@@ -25,15 +25,15 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 		getClassModel().getMethods().forEach(m -> {
 			properties.add(methodSatisfiesWeakMergability(m.getBinding()));
 			properties.add(methodSatisfiesStrongMergability(m.getBinding()));
-			properties.add(methodSatisfiesWeakMergability2(m.getBinding()));
+//			properties.add(methodSatisfiesWeakMergability2(m.getBinding()));
 		});
 		properties.add(mergeSatisfiesMergability());
 
-		getClassModel().getMethods().forEach(m -> {
-			var property = methodAndMergeSatisfiesInvariant(m.getBinding());
-			properties.add(property);
-			Logger.info(property);
-		});
+//		getClassModel().getMethods().forEach(m -> {
+//			var property = methodAndMergeSatisfiesInvariant(m.getBinding());
+//			properties.add(property);
+//			Logger.info(property);
+//		});
 
 
 		if (model.config.SOLVER__CHECK_MERGE_PROPERTIES) {
@@ -203,7 +203,6 @@ public class ReplicatedClassProperties<CModel extends ReplicatedClassModel, CCon
 	// Applying a method does not violate the mergability.
 	// If this property is violated then the method can not be executed concurrently.
 	// inv(s0) & inv(s1) & pre_merge(s0, s1) & post_merge(s0, s1, s2) & pre_m(s2) & post_m(s2, s2_new, _) => pre_merge(s2_new, s1)
-	// inv(s) & pre_m(s) & post_m(s, s_new, _) => pre_merge(s_new, s1)
 	public Property methodSatisfiesStrongMergability(MethodBinding binding) {
 		Expr s0 = constraints.getClassModel().toFreshConst("s0");
 		Expr s1 = constraints.getClassModel().toFreshConst("s1");
