@@ -30,6 +30,10 @@ public class Main {
 		CASE_STUDIES.put("pncounter", Examples.PNCOUNTER);
 		CASE_STUDIES.put("gset", Examples.GSET);
 		CASE_STUDIES.put("twophaseset", Examples.TWOPHASESET);
+		CASE_STUDIES.put("bounded_counter", Examples.BOUNDED_COUNTER);
+		CASE_STUDIES.put("multi_value_register", Examples.MULTI_VALUE_REGISTER);
+		CASE_STUDIES.put("add_only_graph", Examples.ADD_ONLY_GRAPH);
+		CASE_STUDIES.put("two_phase_graph", Examples.TWO_PHASE_GRAPH);
 		CASE_STUDIES.put("credit_account", Examples.CREDIT_ACCOUNT);
 		CASE_STUDIES.put("bank_account", Examples.BANK_ACCOUNT);
 		CASE_STUDIES.put("bank_account_lww", Examples.BANK_ACCOUNT_LWW);
@@ -38,7 +42,6 @@ public class Main {
 		CASE_STUDIES.put("consensus", Examples.CONSENSUS);
 		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
 		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
-		CASE_STUDIES.put("bounded_counter", Examples.BOUNDED_COUNTER);
 		CASE_STUDIES.put("riak_gcounter", Examples.RIAK_GCOUNTER);
 		CASE_STUDIES.put("riak_pncounter", Examples.RIAK_PNCOUNTER);
 		CASE_STUDIES.put("riak_gset", Examples.RIAK_GSET);
