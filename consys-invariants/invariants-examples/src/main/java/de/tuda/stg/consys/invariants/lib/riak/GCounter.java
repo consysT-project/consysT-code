@@ -61,7 +61,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//TODO: How to iterate over the values of payload?
 	//@ assignable \nothing;
 	//@ ensures \result.intValue() == (\sum int i; i >= 0 && i < numOfReplicas(); payload.get(KEYS[i]).intValue());
-	@SideEffectFree @WeakOp
+	 
 	public BigInteger value() {
 		BigInteger retval = BigInteger.ZERO;
 		for (BigInteger o : payload.values()) {
@@ -73,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(1))));
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger increment() {
+	 public BigInteger increment() {
 		return this.increment(1);
 	}
 
@@ -81,7 +81,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ assignable payload;
 	//@ ensures this.payload.get(clientId).equals(\old(payload.get(clientId).add(BigInteger.valueOf(n))));
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger increment(final int n) {
+	 public BigInteger increment(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		BigInteger retval = payload.get(clientId).add(BigInteger.valueOf(n));
 		payload.put(clientId, retval);
@@ -89,7 +89,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	}
 
 	//@ requires false;
-	@SideEffectFree @WeakOp public byte[] payload() {
+	  public byte[] payload() {
 //		try {
 //			return serializer().writeValueAsBytes(payload);
 //		} catch (IOException ioe) {
@@ -99,12 +99,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	}
 
 	//@ requires false;
-	@WeakOp public BigInteger decrement() {
+	 public BigInteger decrement() {
 		throw new UnsupportedOperationException();
 	}
 
 	//@ requires false;
-	@WeakOp public BigInteger decrement(final int n) {
+	 public BigInteger decrement(final int n) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -112,7 +112,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//TODO: How to handle equals?
 	//@ requires false;
 	//@ assignable \nothing;
-	@SideEffectFree @WeakOp public boolean equals(final Object o) {
+	  public boolean equals(final Object o) {
 		if (!(o instanceof GCounter)) {
 			return false;
 		}
@@ -131,7 +131,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 	//@ requires false;
 	//@ assignable \nothing;
 	//@ ensures \result == this.value().hashCode();
-	@SideEffectFree @WeakOp public int hashCode() {
+	  public int hashCode() {
 		return this.value().hashCode();
 	}
 

@@ -40,7 +40,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	//@ ensures (\forall UUID u; \old(elements.containsValue(u)); elements.containsValue(u));
 	//@ ensures (\forall E elem; elem.equals(value) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	//@ ensures \result == !(\old(elements.containsKey(value)));
-	@WeakOp public boolean add(final E value) {
+	 public boolean add(final E value) {
 		checkNotNull(value);
 		
 		UUID uuid = UUID.randomUUID();
@@ -61,7 +61,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; values.contains(elem) == false; elements.get(elem).equals(\old(elements.get(elem))));
 	@ ensures \result == (\exists E elem; values.contains(elem); \old(elements.containsKey(elem)) == false);
 	@*/
-	@WeakOp public boolean addAll(final Collection<? extends E> values) {
+	 public boolean addAll(final Collection<? extends E> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 
@@ -81,7 +81,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall UUID u; \old(tombstones.containsValue(u)); tombstones.containsValue(u));
 	@ ensures (\forall UUID u; tombstones.containsValue(u); \old(elements.containsValue(u)) || \old(tombstones.containsValue(u)) );
 	@*/
-	@WeakOp public void clear() {
+	 public void clear() {
 		this.tombstones.putAll(this.elements);
 		this.elements.clear();
 
@@ -91,7 +91,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == elements.containsKey(value);
 	@*/
-	@SideEffectFree @WeakOp
+	 
 	public boolean contains(final Object value) {
 		checkNotNull(value);
 		
@@ -102,7 +102,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@ ensures \result == (\forall E elem; values.contains(elem); this.value().contains(elem));
 	@*/
-	@SideEffectFree @WeakOp public boolean containsAll(final Collection<?> values) {
+	  public boolean containsAll(final Collection<?> values) {
 //		checkCollectionDoesNotContainNull(values);
 		return this.value().containsAll(values);
 	}
@@ -112,12 +112,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == elements.isEmpty();
 	@*/
 	// changed from original: @Override
-	@SideEffectFree @WeakOp public boolean isEmpty() {
+	  public boolean isEmpty() {
 		return elements.isEmpty();
 	}
 
 	//@ requires false;
-	@SideEffectFree @WeakOp public Iterator<E> iterator() {
+	  public Iterator<E> iterator() {
 		return Iterators
 				.unmodifiableIterator(this.elements.keySet().iterator());
 	}
@@ -133,7 +133,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == \old(elements.containsValue(value));
 	@*/
 	@SuppressWarnings("unchecked")
-	@WeakOp public boolean remove(final Object value) {
+	 public boolean remove(final Object value) {
 		checkNotNull(value);
 
 		this.tombstones.putAll((E) value, elements.get((E) value));
@@ -151,7 +151,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall UUID u; tombstones.containsValue(u); (\exists E elem; values.contains(elem); \old(elements.get(elem)).contains(u)) || \old(tombstones.containsValue(u)) );
 	@ ensures \result == (\exists E elem; values.contains(elem) && \old(elements.containsKey(elem)); true);
 	@*/
-	@WeakOp public boolean removeAll(final Collection<?> values) {
+	 public boolean removeAll(final Collection<?> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 
@@ -188,7 +188,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures \result == (\exists E elem; values.contains(elem) == false && \old(elements.containsKey(elem)); true);
 	@*/
 	@SuppressWarnings("unchecked")
-	@WeakOp public boolean retainAll(final Collection<?> values) {
+	 public boolean retainAll(final Collection<?> values) {
 		checkNotNull(values);
 //		checkCollectionDoesNotContainNull(values);
 		
@@ -200,7 +200,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ requires false;
 	//@ assignable \nothing;
-	@SideEffectFree @WeakOp public int size() {
+	  public int size() {
 		return elements.keySet().size();
 	}
 
@@ -209,7 +209,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	@SideEffectFree @WeakOp public Object[] toArray() {
+	  public Object[] toArray() {
 		return elements.keySet().toArray();
 	}
 
@@ -218,7 +218,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ assignable \nothing;
 	@*/
 	// changed from original: @Override
-	@SideEffectFree @WeakOp public <T> T[] toArray(final T[] arg) {
+	  public <T> T[] toArray(final T[] arg) {
 		return elements.keySet().toArray(arg);
 	}
 
@@ -250,12 +250,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	@ ensures (\forall E elem; \result.contains(elem); elements.containsKey(elem));
 	@ ensures (\forall E elem; elements.containsKey(elem); \result.contains(elem));
 	@*/
-	@SideEffectFree @WeakOp public ImmutableSet<E> value() {
+	  public ImmutableSet<E> value() {
 		return ImmutableSet.copyOf(elements.keySet());
 	}
 
 	//@ requires false;
-	@SideEffectFree @WeakOp public byte[] payload() {
+	  public byte[] payload() {
 //		Map<String, Object> retval = Maps.newLinkedHashMap();
 //
 //		retval.put(ELEMENTS_TOKEN, elements.asMap());
@@ -273,7 +273,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 	//@ requires false;
 	//@ assignable \nothing;
-	@SideEffectFree @WeakOp public final boolean equals(final Object o) {
+	  public final boolean equals(final Object o) {
 		if (!(o instanceof ORSet)) {
 			return false;
 		}
@@ -290,14 +290,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 	/*@
 	@ assignable \nothing;
 	@*/
-	@SideEffectFree @WeakOp public final int hashCode() {
+	  public final int hashCode() {
 		return this.value().hashCode();
 	}
 
 	/*@
 	@ assignable \nothing;
 	@*/
-	@SideEffectFree @WeakOp public String toString() {
+	  public String toString() {
 		return this.value().toString();
 	}
 }

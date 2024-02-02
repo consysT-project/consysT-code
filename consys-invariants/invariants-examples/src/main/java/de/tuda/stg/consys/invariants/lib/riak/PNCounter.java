@@ -50,12 +50,12 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 
 	//@ assignable \nothing;
 	//@ ensures \result.equals(positive.value().subtract(negative.value()));
-	@SideEffectFree @WeakOp
+	 
 	public BigInteger value() {
 		return this.positive.value().subtract(this.negative.value());
 	}
 
-	@SideEffectFree @WeakOp public byte[] payload() {
+	  public byte[] payload() {
 //		try {
 //			Map<String, JsonNode> retval = Maps.newHashMap();
 //
@@ -73,7 +73,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable positive;
 	//@ ensures stateful(positive.increment());
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger increment() {
+	 public BigInteger increment() {
 		this.positive.increment();
 
 		return this.value();
@@ -84,7 +84,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable positive;
 	//@ ensures stateful(positive.increment(n));
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger increment(final int n) {
+	 public BigInteger increment(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		this.positive.increment(n);
 		return this.value();
@@ -93,7 +93,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable negative;
 	//@ ensures stateful(negative.increment());
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger decrement() {
+	 public BigInteger decrement() {
 		this.negative.increment();
 		return this.value();
 	}
@@ -103,7 +103,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ assignable negative;
 	//@ ensures stateful(negative.increment(n));
 	//@ ensures \result.equals(this.value());
-	@WeakOp public BigInteger decrement(final int n) {
+	 public BigInteger decrement(final int n) {
 		Preconditions.checkArgument(n >= 0);
 		
 		this.negative.increment(n);
@@ -114,7 +114,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//TODO: How to handle equals?
 	//@ requires false;
 	//@ assignable \nothing;
-	@SideEffectFree @WeakOp public boolean equals(final Object o) {
+	  public boolean equals(final Object o) {
 		if (!(o instanceof PNCounter)) {
 			return false;
 		}
@@ -132,7 +132,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 	//@ requires false;
 	//@ assignable \nothing;
 	//@ ensures \result == this.value().hashCode();
-	@SideEffectFree @WeakOp public int hashCode() {
+	  public int hashCode() {
 		return this.value().hashCode();
 	}
 
