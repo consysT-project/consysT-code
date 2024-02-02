@@ -10,6 +10,10 @@ public class InvariantUtils {
 		throw new UnsupportedOperationException("merge is only useable in constraints.");
 	}
 
+	public static <T> T object(Class<T> cls, Object... fields) {
+		throw new UnsupportedOperationException("object is only usable in constraints.");
+	}
+
 	private static int replicaId = 2;
 	private static int numOfReplicas = 5;
 
@@ -27,5 +31,10 @@ public class InvariantUtils {
 
 	public static int numOfReplicas() {
 		return numOfReplicas;
+	}
+
+
+	public static int[] arrayMax(int[] as, int[] bs) {
+		throw new UnsupportedOperationException("the method <arrayMax> is only usable in constraints.");
 	}
 }
