@@ -31,7 +31,11 @@ public class DistributedLockBench extends CRDTBenchRunnable<DistributedLock> {
 				// Here, operations are chosen with a uniform distribution.
 				// The first operation increments the counter
 				() -> store().transaction(ctx -> {
-					crdt.invoke("transfer", rand.nextInt(numOfProcesses()));
+					try {
+						crdt.invoke("transfer", rand.nextInt(numOfProcesses()));
+					} catch (RuntimeException e) {
+
+					}
 					return Option.apply(0);
 				})
 		});

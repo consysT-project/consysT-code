@@ -40,13 +40,17 @@ public class JointBankAccountBench extends CRDTBenchRunnable<JointBankAccount> {
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
-					crdt.invoke("deposit", rand.nextInt(99));
+					try {
+						crdt.invoke("deposit", rand.nextInt(99));
+					} catch (IllegalStateException | IllegalArgumentException e) {
+
+					}
 					return Option.apply(0);
 				}),
 				() -> store().transaction(ctx -> {
 					try {
 						crdt.invoke("withdraw", rand.nextInt(99));
-					} catch (IllegalArgumentException e) {
+					} catch (IllegalStateException | IllegalArgumentException e) {
 
 					}
 					return Option.apply(0);

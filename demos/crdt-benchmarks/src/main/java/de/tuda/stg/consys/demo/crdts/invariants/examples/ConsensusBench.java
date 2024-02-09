@@ -32,7 +32,11 @@ public class ConsensusBench extends CRDTBenchRunnable<Consensus> {
 				// Here, operations are chosen with a uniform distribution.
 				// The first operation increments the counter
 				() -> store().transaction(ctx -> {
-					crdt.invoke("agree");
+					try {
+						crdt.invoke("agree");
+					} catch (RuntimeException e) {
+
+					}
 					return Option.apply(0);
 				}),
 				// The second operation retrieves the value of the counter.
