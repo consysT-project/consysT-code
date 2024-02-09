@@ -45,7 +45,7 @@ for comparison in args.comparisons:
         columns=['file', 'normalized_mean', 'normalized_conf_1_low', 'normalized_conf_1_high', 'normalized_conf_2_low',
                  'normalized_conf_2_high']
     )
-    data = data.append(new_data)
+    data = pd.concat([data, new_data], ignore_index=True)
 
 print("***")
 print(data)

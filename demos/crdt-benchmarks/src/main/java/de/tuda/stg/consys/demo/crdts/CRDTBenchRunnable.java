@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.crdts;
 
 import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.demo.DemoRunnable;
 import de.tuda.stg.consys.demo.JBenchStore;
 import de.tuda.stg.consys.demo.JBenchRunnable;
 import de.tuda.stg.consys.invariants.utils.InvariantUtils;
@@ -14,7 +15,7 @@ import scala.Option;
  * @author Mirko Köhler
  */
 @SuppressWarnings({"consistency"})
-public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
+public abstract class CRDTBenchRunnable<CRDT> extends DemoRunnable {
 
 	private final Class<CRDT> clazz;
 
@@ -24,6 +25,11 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 	public CRDTBenchRunnable(JBenchStore adapter, BenchmarkConfig config, Class<CRDT> clazz) {
 		super(adapter, config);
 		this.clazz = clazz;
+
+		String typeString = config.toConfig().getString("consys.bench.demo.type");
+		if (typeString == null) {
+			throw new IllegalArgumentException("config key not found: consys.bench.demo.type");
+		}
 
 		InvariantUtils.setReplicaId(config.processId());
 		InvariantUtils.setNumOfReplicas(config.numberOfReplicas());
@@ -37,7 +43,7 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 	public void setup() {
 		if (processId() == 0) {
 			Option<Ref<CRDT>> result = store().transaction(ctx -> {
-				var ref = ctx.replicate("crdt", getMixedLevel(), clazz);
+				var ref = ctx.replicate("crdt", getLevelWithMixedFallback(getMixedLevel()), clazz);
 				return Option.apply(ref);
 			});
 
@@ -54,7 +60,7 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 
 		if (processId() != 0) {
 			Option<Ref<CRDT>> result = store().transaction(ctx -> {
-				var ref = ctx.lookup("crdt", getMixedLevel(), clazz);
+				var ref = ctx.lookup("crdt", getLevelWithMixedFallback(getMixedLevel()), clazz);
 				return Option.apply(ref);
 			});
 
@@ -67,8 +73,12 @@ public abstract class CRDTBenchRunnable<CRDT> extends JBenchRunnable {
 			throw new RuntimeException(e);
 		}
 
+
+
 		barrier("crdt-lookup");
 	}
+
+
 
 	@Override
 	public void cleanup() {

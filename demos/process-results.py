@@ -73,7 +73,8 @@ for input in args.inputs :
 		[[path, mean, median, count, standard_dev, confidence_1sig[0], confidence_1sig[1], confidence_2sig[0], confidence_2sig[1]]],
 		columns = ['file', 'mean', 'median' ,'len', 'std', 'conf_1_low', 'conf_1_high', 'conf_2_low', 'conf_2_high']
 	)
-	data_latency = data_latency.append(new_data)
+	print(new_data)
+	data_latency = pd.concat([data_latency, new_data], ignore_index=True)
 
     # Parse throughput
 	csv_paths = [path + '/' + filepath for filepath in os.listdir(path) if filepath.startswith('runtime')]
@@ -115,7 +116,7 @@ for input in args.inputs :
 		[[path, mean, median, count, standard_dev, confidence_1sig[0], confidence_1sig[1], confidence_2sig[0], confidence_2sig[1]]],
 		columns = ['file', 'mean', 'median' ,'len', 'std', 'conf_1_low', 'conf_1_high', 'conf_2_low', 'conf_2_high']
 	)
-	data_throughput = data_throughput.append(new_data)
+	data_throughput = pd.concat([data_throughput, new_data], ignore_index=True)
 
 
 print("*** Latency")
