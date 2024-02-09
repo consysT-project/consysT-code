@@ -16,7 +16,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 // 3 Done: Invariant("forall(T:t):− nrPlayers(t)<=Capacity")
 // 4 Done: Invariant("forall(T:t):− active(t) => nrPlayers(t) >= 1")
 // 5 Kinda implemented in general but not sure where exactly we can say: Invariant("forall(T:t,P:p):− active(t) and enrolled(p,t)=>participant(p,t)")
-@ReplicatedModel public abstract class Tournaments implements Mergeable<Tournaments>, Serializable {
+@ReplicatedModel public class Tournaments implements Mergeable<Tournaments>, Serializable {
 
 
     private final TwoPhaseSetPlayer players;
