@@ -16,29 +16,43 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
+                    <!-- paths to the consys type checker and compiler -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>3.0.0-alpha</version>
+                            <version>4.0.0</version>
                         </path>
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>3.0.0-alpha</version>
+                            <version>4.0.0</version>
                         </path>
                     </annotationProcessorPaths>
 
                     <annotationProcessors>
+                        <!-- Add all the checkers you want to enable here -->
                         <annotationProcessor>de.tuda.stg.consys.checker.ConsistencyChecker</annotationProcessor>
                     </annotationProcessors>
 
                     <compilerArgs>
-                        <arg>-Xplugin:consys-compiler</arg>
+                        <!-- location of the annotated JDK, which comes from a Maven dependency -->
+                        <!-- <arg>-Xbootclasspath/p:${annotatedJdk}</arg>-->
+                        <!-- Uncomment the following line to turn type-checking warnings into errors. -->
+                        <!-- <arg>-Awarns</arg> -->
+
                         <arg>-AstubWarnIfNotFound</arg>
                         <arg>-AsuppressWarnings=inconsistent.constructor.type</arg>
+
+                        <!-- Add the consys compiler plugin for preprocessing sources -->
+                        <arg>-Xplugin:consys-compiler</arg>
+
+                        <!-- increase max error/warning outputs (standard is 100) -->
+                        <arg>-Xmaxerrs</arg>
+                        <arg>10000</arg>
+                        <arg>-Xmaxwarns</arg>
+                        <arg>10000</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -87,35 +101,8 @@
     <dependencies>
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-core</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-japi</artifactId>
-            <version>4.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-type-checker</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-compiler</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
-            <artifactId>consys-annotations</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>de.tuda.stg.consys</groupId>
             <artifactId>demo-bench</artifactId>
             <version>4.0.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

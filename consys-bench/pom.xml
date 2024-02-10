@@ -49,6 +49,13 @@
             <artifactId>consys-core</artifactId>
             <version>4.0.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>de.tuda.stg.consys</groupId>
+            <artifactId>invariants-lib</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
         <dependency>
             <groupId>de.tuda.stg.consys</groupId>
             <artifactId>consys-japi</artifactId>
@@ -58,6 +65,12 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
         </dependency>
     </dependencies>
 

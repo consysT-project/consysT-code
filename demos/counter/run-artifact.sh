@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CLASS_NAME='de.tuda.stg.consys.demo.counter.CounterBenchmark'
-JAR_NAME='target/counter-2.0.0-allinone.jar'
+CLASS_NAME='de.tuda.stg.consys.demo.counter.DistributedCounterBenchmark'
+JAR_NAME='target/counter-3.0.0-alpha-allinone.jar'
 
 N_PROCS=`seq 0 8`
 

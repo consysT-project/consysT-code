@@ -30,20 +30,7 @@ class ConsistencyTypeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) ex
 
 	override def visitExecutable(method: AnnotatedExecutableType, aVoid: Void): Void = {
 		val r = super.visitExecutable(method, aVoid)
-
-		// return type adaptation for getters
-		if (tf.getMethodReceiverContext != null) {
-			val methodName = method.getElement.getSimpleName.toString.toLowerCase
-			val recvQualifier = tf.getMethodReceiverContext
-			if (getExplicitConsistencyAnnotation(method.getReturnType).isEmpty &&
-				methodName.startsWith("get")) {
-				val inferred =
-					if (isMixedQualifier(recvQualifier)) getQualifierForMethodOp(method.getElement, recvQualifier).get
-					else recvQualifier
-				method.getReturnType.replaceAnnotation(inferred)
-			}
-		}
-
+		tf.replaceThisConsistent(method)
 		r
 	}
 }

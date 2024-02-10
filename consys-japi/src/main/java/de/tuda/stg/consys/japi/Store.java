@@ -9,7 +9,11 @@ import scala.Option;
  */
 public interface Store<Addr, Obj, Consistency, TxContext extends TransactionContext<Addr, Obj, Consistency>> {
 
+	Object getId();
+
 	<U> Option<U> transaction(Transaction<TxContext, U, Addr, Obj, Consistency> tx);
 
 	void close() throws Exception;
+
+	void clear();
 }

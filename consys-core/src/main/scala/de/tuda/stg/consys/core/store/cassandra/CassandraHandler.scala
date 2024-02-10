@@ -7,6 +7,7 @@ class CassandraHandler[T <: CassandraStore#ObjType : ClassTag](
 	val txContext : CassandraStore#TxContext,
 	val ref : CassandraRef[T]
 )	extends Handler[CassandraStore, T] {
+
 	def store : CassandraStore = txContext.store
 	def addr : CassandraStore#Addr = ref.addr
 	def level : CassandraStore#Level = ref.level

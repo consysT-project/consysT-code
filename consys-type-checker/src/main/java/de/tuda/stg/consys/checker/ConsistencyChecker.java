@@ -4,6 +4,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.qual.StubFiles;
 import org.checkerframework.framework.source.SupportedOptions;
 import org.checkerframework.framework.source.SuppressWarningsPrefix;
@@ -26,8 +27,13 @@ public class ConsistencyChecker extends BaseTypeChecker {
     }
 
     @Override
+    protected BaseTypeVisitor<?> createSourceVisitor() {
+        return new ConsistencyVisitor(this);
+    }
+
+    @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
-        // overwrite ref() access to be side-effect free
+        // overwrite ref() access to be side effect free
         if (messageKey.equals("purity.not.sideeffectfree.call") && source instanceof MethodInvocationTree &&
                 TypeFactoryUtils.isAnyRefAccess((MethodInvocationTree) source, getTypeFactory())) {
             return;

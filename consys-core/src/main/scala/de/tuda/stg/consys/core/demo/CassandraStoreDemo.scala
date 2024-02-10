@@ -15,9 +15,9 @@ import scala.util.{Failure, Success}
  */
 object CassandraStoreDemo extends App {
 
-	val store1 = CassandraStore.fromAddress("127.0.0.1", 9042, 2181, withTimeout = Duration(60, "s"), withInitialize = true)
-	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, withTimeout = Duration(60, "s"))
-	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, withTimeout = Duration(60, "s"))
+	val store1 = CassandraStore.fromAddress("127.0.0.1", 9042, 2181, timeout = Duration(60, "s"), initialize = true)
+	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, timeout = Duration(60, "s"))
+	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, timeout = Duration(60, "s"))
 
 	val level = Weak
 

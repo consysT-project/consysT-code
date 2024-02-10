@@ -16,13 +16,10 @@ class MixedCassandraObject[T <: CassandraStore#ObjType : ClassTag](
 	override def consistencyLevel : Mixed.type = Mixed
 
 	override lazy val newestTimestamp : Long = timestamps.values.max
-
 }
 
 object MixedCassandraObject {
-
 	sealed trait FetchedLevel
 	case object FetchedWeak extends FetchedLevel
 	case object FetchedStrong extends FetchedLevel
-
 }

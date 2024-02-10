@@ -1,18 +1,29 @@
 import org.checkerframework.dataflow.qual.*;
+import org.checkerframework.framework.qual.HasQualifierParameter;
 import de.tuda.stg.consys.checker.qual.*;
+import de.tuda.stg.consys.annotations.*;
+import de.tuda.stg.consys.annotations.methods.*;
+import scala.Option;
 
 package java.lang;
 
 class Object {
-    @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
-    @SideEffectFree
+    @SideEffectFree @Transactional
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
+
+    @SideEffectFree @Transactional
     String toString();
+
+    @SideEffectFree @Transactional
+    int hashCode();
+
+    @SideEffectFree @Transactional
+    @ThisConsistent Object clone();
 }
 
 class String {
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
 }
 
 class StringBuilder {
@@ -24,47 +35,95 @@ class StringBuilder {
     @Mutable StringBuilder append(String str);
 }
 
+class Number {
+    @SideEffectFree
+    @ThisConsistent float floatValue();
+}
+
+class Float {
+    @SideEffectFree
+    @ThisConsistent float floatValue();
+}
+
+
 package java.util;
 
 @Immutable class Optional<T> {
     <T> @Immutable @Local Optional<T> of(T t);
+    <T> @Immutable @Local Optional<T> ofNullable(T t);
     <T> @Immutable @Local Optional<T> empty();
 
     @SideEffectFree
-    boolean isPresent();
+    @ThisConsistent boolean isPresent();
+
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
+
     @SideEffectFree
     T get();
 }
 
 class UUID {
     @Local UUID randomUUID();
+
     @SideEffectFree
-    @PolyConsistent boolean equals(@PolyConsistent Object o);
+    @ThisConsistent long getMostSignificantBits();
+
+    @SideEffectFree
+    @ThisConsistent long getLeastSignificantBits();
+
+    @SideEffectFree
+    @ThisConsistent boolean equals(@ThisConsistent Object o);
+
     @SideEffectFree
     String toString();
+
+    @SideEffectFree
+    int hashCode();
 }
 
 class Date {
     @SideEffectFree
-    boolean after(Date d);
+    @ThisConsistent boolean after(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent boolean before(@ThisConsistent Date d);
+
+    @SideEffectFree
+    @ThisConsistent long getTime();
 }
 
 interface List<T> {
     @SideEffectFree
-    boolean isEmpty();
+    @ThisConsistent boolean isEmpty();
 
     @SideEffectFree
-    Object subList(int fromIndex, int toIndex);
+    @ThisConsistent Object subList(int fromIndex, int toIndex);
 
     @SideEffectFree
-    int size();
+    @ThisConsistent int size();
+
+    @SideEffectFree
+    T get(int index);
+}
+
+interface Map<K, V> {
+    @SideEffectFree
+    @Immutable
+    @ThisConsistent
+    java.util.Collection<V> values();
+
+    @SideEffectFree
+    V get(Object Key);
+
+    @SideEffectFree
+    @ThisConsistent boolean isEmpty();
 }
 
 interface Collection<T> {
     @Mutable Stream<T> stream();
 }
+
 
 package java.util.stream;
 
@@ -73,4 +132,59 @@ interface Stream<T> {
     T findFirst();
 
     @Mutable Stream<T> filter(java.util.function.Predicate<? super T> predicate);
+}
+
+
+package java.io;
+
+class PrintStream {
+    @SideEffectFree
+    void println(String x);
+}
+
+
+package scala;
+
+class Option<A> {
+    @SideEffectFree
+    @ThisConsistent boolean isEmpty();
+
+    @SideEffectFree
+    @ThisConsistent boolean isDefined();
+
+    @SideEffectFree
+    T get();
+
+    <A> @MutableBottom @Local Option<A> empty();
+    <A> @MutableBottom @Local Option<A> apply(A a);
+}
+
+
+package de.tuda.stg.consys.japi;
+
+interface Store<Addr, Obj, Consistency, TxContext extends TransactionContext<Addr, Obj, Consistency>> {
+
+    <U> Option<U> transaction(Transaction<TxContext, U, Addr, Obj, Consistency> tx);
+
+    void close();
+}
+
+interface TransactionContext<Addr, Obj, Consistency> {
+
+    <T extends Obj> Ref<@Mutable T> replicate(Addr addr, Consistency level, Class<T> clazz, java.lang.Object... constructorArgs);
+
+    <T extends Obj> Ref<@Mutable T> lookup(Addr addr, Consistency level, Class<T> clazz);
+}
+
+
+package de.tuda.stg.consys.japi.binding.cassandra;
+@Mutable class CassandraStoreBinding {
+
+}
+
+
+package de.tuda.stg.consys.bench.legacy;
+
+class DistributedBenchmark<StoreType extends @Mutable Store<?,?,?,?>> {
+    StoreType store();
 }

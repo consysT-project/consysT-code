@@ -1,20 +1,21 @@
 package de.tuda.stg.consys.checker
 
-import com.sun.source.tree.{AnnotationTree, ClassTree, MemberSelectTree, MethodInvocationTree, ModifiersTree}
+import com.sun.source.tree._
+import de.tuda.stg.consys.annotations.Transactional
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
-import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, Mutable, MutableBottom, Strong, Weak}
+import de.tuda.stg.consys.checker.qual._
 import org.checkerframework.dataflow.qual.SideEffectFree
-
-import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, Modifier, TypeElement}
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, ElementUtils, TreeUtils, TypesUtils}
+import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
+import org.checkerframework.javacutil.TreeUtils.isExplicitThisDereference
+import org.checkerframework.javacutil._
 import org.jmlspecs.annotation.Pure
 
 import java.lang.annotation.Annotation
 import javax.lang.model.`type`.{DeclaredType, NoType}
+import javax.lang.model.element._
 import scala.annotation.tailrec
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 06.03.19.
@@ -22,56 +23,66 @@ import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 	* @author Mirko Köhler
 	*/
 object TypeFactoryUtils {
-	//------------------------------------------------------------------------------------------------------------------
 
-	val checkerPackageName = s"de.tuda.stg.consys.checker"
-	val japiPackageName = s"de.tuda.stg.consys.japi"
-	val annoPackageName = s"de.tuda.stg.consys.annotations"
-	val qualPackageName = s"de.tuda.stg.consys.checker.qual"
+	// #################################################################################################################
+	// ### Qualifier getters
+	// #################################################################################################################
 
-	//------------------------------------------------------------------------------------------------------------------
+	def localAnnotation(implicit tf : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Local])
 
-	def localAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getBottomAnnotations,"de.tuda.stg.consys.checker.qual.Local")
+	def inconsistentAnnotation(implicit tf : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Inconsistent])
 
-	def inconsistentAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationUtils.getAnnotationByName(atypeFactory.getQualifierHierarchy.getTopAnnotations, "de.tuda.stg.consys.checker.qual.Inconsistent")
+	def strongAnnotation(implicit tf : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Strong])
 
-	def strongAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Strong])
+	def weakAnnotation(implicit tf : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Weak])
 
-	def weakAnnotation(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
-
-	def mixedAnnotation(defaultOp: Class[_ <: Annotation])(implicit atypeFactory : AnnotatedTypeFactory): AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mixed],
+	def mixedAnnotation(defaultOp: Class[_ <: Annotation])(implicit tf : AnnotatedTypeFactory): AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Mixed],
 			AnnotationBuilder.elementNamesValues("value", defaultOp))
 
-	def immutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Immutable])
+	def immutableAnnotation(implicit tf : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Immutable])
 
-	def mutableAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Mutable])
+	def mutableAnnotation(implicit tf : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[Mutable])
 
-	def mutableBottomAnnotation(implicit atypeFactory : AnnotatedTypeFactory) : AnnotationMirror =
-		AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[MutableBottom])
+	def mutableBottomAnnotation(implicit tf : AnnotatedTypeFactory) : AnnotationMirror =
+		AnnotationBuilder.fromClass(tf.getElementUtils, classOf[MutableBottom])
 
 	private var consistencyQualifiers: Set[AnnotationMirror] = Set.empty
 	def getConsistencyQualifiers(implicit tf: AnnotatedTypeFactory): Set[AnnotationMirror] = {
 		if (consistencyQualifiers.isEmpty)
-			consistencyQualifiers = Set(strongAnnotation, weakAnnotation, mixedAnnotation(classOf[StrongOp]), mixedAnnotation(classOf[WeakOp]))
+			consistencyQualifiers = Set(
+				strongAnnotation,
+				weakAnnotation,
+				mixedAnnotation(classOf[StrongOp]),
+				mixedAnnotation(classOf[WeakOp]))
 		consistencyQualifiers
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
+
+	// #################################################################################################################
+	// ### Type name helpers
+	// #################################################################################################################
 
 	def getQualifiedName(adt: AnnotatedDeclaredType): String = TypesUtils.getQualifiedName(adt.getUnderlyingType)
+
 	def getQualifiedName(dt: DeclaredType): String = TypesUtils.getQualifiedName(dt)
+
 	def getQualifiedName(ct: ClassTree): String = TreeUtils.elementFromDeclaration(ct).getQualifiedName.toString
+
 	def getQualifiedName(elt: Element): String = ElementUtils.getQualifiedName(elt)
+
 	def getQualifiedName(annotation: AnnotationMirror): String = AnnotationUtils.annotationName(annotation)
 
-	//------------------------------------------------------------------------------------------------------------------
+
+	// #################################################################################################################
+	// ### Annotation helpers
+	// #################################################################################################################
 
 	def getExplicitConsistencyAnnotation(aType: AnnotatedTypeMirror)(implicit tf : AnnotatedTypeFactory): Option[AnnotationMirror] = {
 		val a = tf.getQualifierHierarchy.findAnnotationInHierarchy(aType.getExplicitAnnotations, inconsistentAnnotation)
@@ -82,7 +93,7 @@ object TypeFactoryUtils {
 		getExplicitConsistencyAnnotation(tf.getAnnotatedType(elt))
 
 	def hasAnnotation(modifiers: ModifiersTree, annotation: String)(implicit tf : AnnotatedTypeFactory): Boolean = {
-		modifiers.getAnnotations.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
+		modifiers.getAnnotations.asScala.exists((at: AnnotationTree) => tf.getAnnotatedType(at.getAnnotationType) match {
 			case adt: AnnotatedDeclaredType => getQualifiedName(adt) == annotation
 			case _ => false
 		})
@@ -94,7 +105,76 @@ object TypeFactoryUtils {
 	def hasAnnotation(elt: Element, annotation: Class[_ <: Annotation]): Boolean =
 		ElementUtils.hasAnnotation(elt, annotation.getCanonicalName)
 
-	//------------------------------------------------------------------------------------------------------------------
+
+	// #################################################################################################################
+	// ### @ThisConsistent helpers
+	// #################################################################################################################
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a given method. If the method belongs to a @Mixed
+	 * receiver, the inferred type is the type belonging to the method's operation level. Else, the receiver's
+	 * type is used.
+	 * @param recvQualifier qualifier of the method's receiver
+	 * @param method the method from which to infer the type
+	 * @return The qualifier for the substitution type
+	 */
+	def inferThisTypeFromReceiver(recvQualifier: AnnotationMirror, method: ExecutableElement)(implicit tf : AnnotatedTypeFactory): AnnotationMirror = {
+		if (isMixedQualifier(recvQualifier))
+			getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
+		else
+			recvQualifier
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on the method that encloses an element, e.g. parameters or
+	 * local variables. If the method belongs to a @Mixed receiver, the inferred type is the type belonging to the
+	 * method's operation level. Else, the receiver's type is used.
+	 * @param element the element for which to infer the type
+	 * @return The qualifier for the substitution type
+	 */
+	def inferThisTypeFromEnclosingMethod(element: Element)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = {
+		val method = element.getEnclosingElement.asInstanceOf[ExecutableElement]
+		// for parameters and local variables the receiver w.r.t @ThisConsistent substitution
+		// is the currently visited class
+		val (_, receiverQualifier) = tf.visitClassContext.top
+		inferThisTypeFromReceiver(receiverQualifier, method)
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a method invocation (using the invocation's receiver).
+	 * The resulting type should only be used to substitute declared signature and return types in the given method,
+	 * since passed argument types depend on the callee context, not the caller context.
+	 * @param tree the invocation tree upon which to base the inference
+	 * @return the resulting qualifier for substitutions
+	 */
+	def inferThisConsistentContext(tree: MethodInvocationTree)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = tree.getMethodSelect match {
+		case mst: MemberSelectTree if !isExplicitThisDereference(mst.getExpression) =>
+			val method = TreeUtils.elementFromUse(tree)
+			val receiverQualifier = tf.getAnnotatedType(mst.getExpression).
+				getEffectiveAnnotationInHierarchy(TypeFactoryUtils.inconsistentAnnotation)
+			inferThisTypeFromReceiver(receiverQualifier, method)
+
+		case _ => // self call
+			val method = TreeUtils.elementFromUse(tree)
+			val (_, receiverQualifier) = tf.visitClassContext.top
+			inferThisTypeFromReceiver(receiverQualifier, method)
+	}
+
+	/**
+	 * Infers a type for substituting @ThisConsistent based on a method tree (using the declared receiver).
+	 * @param tree the method declaration tree upon which to base the inference
+	 * @return the resulting qualifier for substitutions
+	 */
+	def inferThisConsistentContext(tree: MethodTree)(implicit tf : ConsistencyAnnotatedTypeFactory): AnnotationMirror = {
+		val method = TreeUtils.elementFromDeclaration(tree)
+		val (_, receiverQualifier) = tf.visitClassContext.top
+		inferThisTypeFromReceiver(receiverQualifier, method)
+	}
+
+
+	// #################################################################################################################
+	// ### @Mixed helpers
+	// #################################################################################################################
 
 	def isMixedQualifier(qualifier: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): Boolean =
 		tf.areSameByClass(qualifier, classOf[Mixed])
@@ -102,11 +182,11 @@ object TypeFactoryUtils {
 	/**
 	 * Returns the qualified name of the default op for a given mixed qualifier
 	 */
-	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror)(implicit tf : AnnotatedTypeFactory): String = {
+	def getNameForMixedDefaultOp(mixedAnnotation: AnnotationMirror): String = {
 		if (mixedAnnotation.getElementValues.values().isEmpty)
 			classOf[WeakOp].getCanonicalName
 		else
-			mixedAnnotation.getElementValues.values().head.getValue match {
+			mixedAnnotation.getElementValues.values().asScala.head.getValue match {
 				case v: DeclaredType => getQualifiedName(v)
 				case v: Class[_] => v.getCanonicalName
 				case _ => sys.error("ConSysT type checker bug: mixed annotation value not found")
@@ -159,8 +239,6 @@ object TypeFactoryUtils {
 		else annotation
 	}
 
-	//--------------------------------------------------------------------------------------------------------
-
 	/**
 	 * Returns the qualified name of the consistency qualifier for a given operation level (passed by qualified name).
 	 */
@@ -195,7 +273,7 @@ object TypeFactoryUtils {
 	private def buildQualifierMap(implicit tf: AnnotatedTypeFactory): Map[String, String] = {
 		// search for QualifierForOperation meta-annotation on all qualifiers in the qual/ directory
 		// and map the qualifiers to the given operation level
-		tf.getSupportedTypeQualifiers.
+		tf.getSupportedTypeQualifiers.asScala.
 			map(q => tf.getAnnotatedType(q) match {
 				case adt: AnnotatedDeclaredType => adt.getUnderlyingType.asElement
 				case _ => null
@@ -205,25 +283,32 @@ object TypeFactoryUtils {
 				tf.getAnnotationByClass(elt.getAnnotationMirrors, classOf[QualifierForOperation]) match {
 					case null => map
 					case annotation =>
-						val value = annotation.getElementValues.values().head
+						val value = annotation.getElementValues.values().asScala.head
 						map + (value.getValue.toString -> elt.toString)
 				}
 			})
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
+
+	// #################################################################################################################
+	// ### J-API types helpers
+	// #################################################################################################################
+
+	private val japiPackageName = s"de.tuda.stg.consys.japi"
 
 	/**
 	 * Checks if the given method invocation is a specific method on a specific receiver, including in interfaces and
 	 * superclasses.
 	 */
-	def methodInvocationIsAny(node: MethodInvocationTree, receiverName: String, methodNames: List[String])(implicit tf: AnnotatedTypeFactory) : Boolean = {
+	private def methodInvocationIsAny(node: MethodInvocationTree,
+									  receiverName: String,
+									  methodNames: List[String])(implicit tf: AnnotatedTypeFactory) : Boolean = {
 		def checkMethodName(memberSelectTree: MemberSelectTree): Boolean = {
 			val methodId = memberSelectTree.getIdentifier.toString
 			methodNames.map(x => x == methodId).fold(false)(_ || _)
 		}
 		def checkReceiverNameInInterfaces(dt: DeclaredType, mst: MemberSelectTree): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
+			case te: TypeElement => te.getInterfaces.asScala.exists {
 				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == receiverName =>
 					checkMethodName(mst)
 				case interfaceType: DeclaredType =>
@@ -268,6 +353,9 @@ object TypeFactoryUtils {
 	def isAnyRefAccess(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("ref", "getField", "setField", "invoke"))
 
+	def isCompiledRefAccess(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
+		methodInvocationIsAny(node, s"$japiPackageName.Ref", List("getField", "setField", "invoke"))
+
 	def isReplicateOrLookup(node: MethodInvocationTree)(implicit tf: AnnotatedTypeFactory): Boolean =
 		methodInvocationIsAny(node, s"$japiPackageName.TransactionContext", List("replicate", "lookup"))
 
@@ -277,9 +365,9 @@ object TypeFactoryUtils {
 	/**
 	 * Checks if a type has a specific name, including in interfaces and superclasses.
 	 */
-	def typeIsInstanceOf(typ: DeclaredType, name: String): Boolean = {
+	private def typeIsInstanceOf(typ: DeclaredType, name: String): Boolean = {
 		def checkReceiverNameInInterfaces(dt: DeclaredType, name: String): Boolean = dt.asElement() match {
-			case te: TypeElement => te.getInterfaces.exists {
+			case te: TypeElement => te.getInterfaces.asScala.exists {
 				case interfaceType: DeclaredType if getQualifiedName(interfaceType) == name => true
 				case interfaceType: DeclaredType => checkReceiverNameInInterfaces(interfaceType, name)
 				case _ => false
@@ -308,10 +396,29 @@ object TypeFactoryUtils {
 		typeIsInstanceOf(typ, s"$japiPackageName.Ref")
 	}
 
-	def isSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+
+	// #################################################################################################################
+	// ### Method helpers
+	// #################################################################################################################
+
+	def isDeclaredSideEffectFree(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
 		tf.getDeclAnnotation(method, classOf[SideEffectFree]) != null ||
 			tf.getDeclAnnotation(method, classOf[Pure]) != null
 
+	def isDeclaredTransactional(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[Transactional]) != null
+
+	def isDeclaredStrongOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[StrongOp]) != null
+
+	def isDeclaredWeakOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		tf.getDeclAnnotation(method, classOf[WeakOp]) != null
+
+	def isDeclaredDefaultOp(method: ExecutableElement)(implicit tf: AnnotatedTypeFactory): Boolean =
+		!isDeclaredWeakOp(method) && !isDeclaredStrongOp(method)
+
 	def isPrivateOrProtected(elt: Element): Boolean =
 		elt.getModifiers.contains(Modifier.PRIVATE) || elt.getModifiers.contains(Modifier.PROTECTED)
+
+	def isStatic(method: ExecutableElement): Boolean = method.getModifiers.contains(Modifier.STATIC)
 }

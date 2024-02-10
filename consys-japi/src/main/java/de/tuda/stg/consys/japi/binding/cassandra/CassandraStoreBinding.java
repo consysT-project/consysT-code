@@ -22,6 +22,7 @@ public class CassandraStoreBinding implements Store<String, Serializable, Consis
         return store.transaction((Function1<CassandraTransactionContext, Option<U>>) v1 -> tx.doTransaction(new CassandraTransactionContextBinding(v1)));
     }
 
+    @Override
     public CassandraStore.CassandraStoreId getId() {
         return store.id();
     }
@@ -29,5 +30,10 @@ public class CassandraStoreBinding implements Store<String, Serializable, Consis
     @Override
     public void close() throws Exception {
         store.close();
+    }
+
+    @Override
+    public void clear() {
+        store.clear();
     }
 }

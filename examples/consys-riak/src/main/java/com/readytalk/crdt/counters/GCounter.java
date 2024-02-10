@@ -19,6 +19,7 @@ import com.readytalk.crdt.inject.ClientId;
 
 import java.lang.String;
 
+import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 
 
 
@@ -101,6 +102,7 @@ import java.lang.String;
 		}
 		// this merge function had GCounter output type.
 		//return new GCounter(serializer(), clientId, retmap);
+		return null;
 	}
 
 	// Prevously: ensures \result.intValue() == (\sum int i; i >= 0 && i < this.payload.values().toArray().length; this.payload.values().toArray(new BigInteger[0])[i].intValue());

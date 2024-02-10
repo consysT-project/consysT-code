@@ -46,6 +46,9 @@ trait Store extends AutoCloseable {
 	 */
 	def transaction[T](body : TxContext => Option[T]) : Option[T]
 
+	/** Prints helpful debug information. */
+	def printDebug() : Unit = { }
+
 	/** Closes all connections from this store. */
 	override def close() : Unit = { }
 }

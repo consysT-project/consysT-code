@@ -293,12 +293,12 @@ import com.readytalk.crdt.AbstractCRDT;
 		this.elements.removeAll(this.tombstones);
 		return null;
 		// Origin version:
-		ORSet<E> retval = new ORSet<E>(serializer());
-		retval.elements.putAll(this.elements);
-		retval.elements.putAll(other.elements);
-		retval.tombstones.putAll(this.tombstones);
-		retval.tombstones.putAll(other.tombstones); // Changed from the origin: retval.tombstones.putAll(other.elements); because we think that was a bug from riak library developers.
-		retval.elements.removeAll(retval.tombstones);
+//		ORSet<E> retval = new ORSet<E>(serializer());
+//		retval.elements.putAll(this.elements);
+//		retval.elements.putAll(other.elements);
+//		retval.tombstones.putAll(this.tombstones);
+//		retval.tombstones.putAll(other.tombstones); // Changed from the origin: retval.tombstones.putAll(other.elements); because we think that was a bug from riak library developers.
+//		retval.elements.removeAll(retval.tombstones);
 		// this merge function had ORSet<E> output type.
 		//return retval;
 	}

@@ -9,7 +9,8 @@ import java.util
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.util.Elements
 
-class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <: Annotation]], elements: Elements, val atypeFactory: ConsistencyAnnotatedTypeFactory) extends MostlyNoElementQualifierHierarchy(qualifierClasses, elements) {
+class ConsistencyQualifierHierarchy(qualifierClasses: util.Collection[Class[_ <: Annotation]], elements: Elements,
+                                    val atypeFactory: ConsistencyAnnotatedTypeFactory) extends MostlyNoElementQualifierHierarchy(qualifierClasses, elements) {
     import TypeFactoryUtils._
     implicit val tf: AnnotatedTypeFactory = atypeFactory
 

@@ -7,58 +7,53 @@ import plotly.express as px
 import pandas as pd
 import numpy as np, scipy.stats as st
 
-
-
 arg_parser = argparse.ArgumentParser(description='Generate graphs from processed results.')
 arg_parser.add_argument('input', metavar='File', help='Name of the file with the processed results.')
 arg_parser.add_argument('output', metavar='File', help='Name of the output file.')
-arg_parser.add_argument('comparisons', metavar='Comparisons', nargs='*', help='The a list of pairs of names of benchmarks (file) to compare. Example: results/benchmark1/:results/benchmark2/')
-
+arg_parser.add_argument('comparisons', metavar='Comparisons', nargs='*',
+                        help='The a list of pairs of names of benchmarks (file) to compare. Example: '
+                             'results/benchmark1/:results/benchmark2/')
 
 args = arg_parser.parse_args()
-
 
 # creates a list of lists with all the paths for a single project
 
 
-input = pd.read_csv(args.input, sep=';', index_col = 'file',
-converters = {'mean': float, 'median': float, 'std': float, 'len': int, 'index' : int, 'conf_1_low': float, 'conf_1_high': float, 'conf_2_low': float, 'conf_2_high': float})
+input = pd.read_csv(args.input, sep=';', index_col='file',
+                    converters={'mean': float, 'median': float, 'std': float, 'len': int, 'index': int,
+                                'conf_1_low': float, 'conf_1_high': float, 'conf_2_low': float, 'conf_2_high': float})
 print(input)
 
-data = pd.DataFrame([], columns = ['file', 'normalized_mean', 'normalized_conf_1_low', 'normalized_conf_1_high', 'normalized_conf_2_low', 'normalized_conf_2_high'])
+data = pd.DataFrame([], columns=['file', 'normalized_mean', 'normalized_conf_1_low', 'normalized_conf_1_high',
+                                 'normalized_conf_2_low', 'normalized_conf_2_high'])
 
-for comparison in args.comparisons :
-	splitted_comparison = comparison.split(":", 1)
-	value_file = splitted_comparison[0]
-	baseline_file = splitted_comparison[1]
+for comparison in args.comparisons:
+    splitted_comparison = comparison.split(":", 1)
+    value_file = splitted_comparison[0]
+    baseline_file = splitted_comparison[1]
 
-	absolute_mean = input.at[value_file, 'mean']
-	normalized_mean = absolute_mean / input.at[baseline_file, 'mean']
-	normalized_conf_1sig_low = (input.at[value_file, 'conf_1_low'] * normalized_mean) / absolute_mean
-	normalized_conf_1sig_high = (input.at[value_file, 'conf_1_high'] * normalized_mean) / absolute_mean
-	normalized_conf_2sig_low = (input.at[value_file, 'conf_2_low'] * normalized_mean) / absolute_mean
-	normalized_conf_2sig_high = (input.at[value_file, 'conf_2_high'] * normalized_mean) / absolute_mean
+    absolute_mean = input.at[value_file, 'mean']
+    normalized_mean = absolute_mean / input.at[baseline_file, 'mean']
+    normalized_conf_1sig_low = (input.at[value_file, 'conf_1_low'] * normalized_mean) / absolute_mean
+    normalized_conf_1sig_high = (input.at[value_file, 'conf_1_high'] * normalized_mean) / absolute_mean
+    normalized_conf_2sig_low = (input.at[value_file, 'conf_2_low'] * normalized_mean) / absolute_mean
+    normalized_conf_2sig_high = (input.at[value_file, 'conf_2_high'] * normalized_mean) / absolute_mean
 
-
-
-	new_data = pd.DataFrame(
-		[[value_file, normalized_mean, normalized_conf_1sig_low, normalized_conf_1sig_high, normalized_conf_2sig_low, normalized_conf_2sig_high]],
-		columns = ['file', 'normalized_mean', 'normalized_conf_1_low', 'normalized_conf_1_high', 'normalized_conf_2_low', 'normalized_conf_2_high']
-	)
-	data = data.append(new_data)
+    new_data = pd.DataFrame(
+        [[value_file, normalized_mean, normalized_conf_1sig_low, normalized_conf_1sig_high, normalized_conf_2sig_low,
+          normalized_conf_2sig_high]],
+        columns=['file', 'normalized_mean', 'normalized_conf_1_low', 'normalized_conf_1_high', 'normalized_conf_2_low',
+                 'normalized_conf_2_high']
+    )
+    data = pd.concat([data, new_data], ignore_index=True)
 
 print("***")
 print(data)
 
-data.to_csv(args.output, sep = ';')
+data.to_csv(args.output, sep=';')
 
-px.bar(input, y = 'mean').show()
-px.bar(data, x = 'file', y = 'normalized_mean').show()
-
-
-
-
-
+px.bar(input, y='mean', title=args.input).show()
+px.bar(data, x='file', y='normalized_mean', title='Normalized ' + args.input).show()
 
 # print("Start processing...", end = '')
 # for input in args.inputs :

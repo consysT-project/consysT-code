@@ -2,13 +2,13 @@ package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
 import de.tuda.stg.consys.checker.qual.{Mixed, Weak}
-
-import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
+import org.checkerframework.framework.`type`.{AnnotatedTypeMirror, GenericAnnotatedTypeFactory}
 import org.checkerframework.javacutil.{AnnotationBuilder, TreeUtils}
 
-import scala.collection.{JavaConverters, mutable}
+import javax.lang.model.element.AnnotationMirror
+import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 03.07.19.
@@ -17,7 +17,7 @@ import scala.collection.{JavaConverters, mutable}
 	*/
 abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFactory[_, _, _, _]](baseChecker : BaseTypeChecker) extends BaseTypeVisitor[TypeFactory](baseChecker) {
 	import TypeFactoryUtils._
-	private implicit val tf: AnnotatedTypeFactory = atypeFactory
+	protected implicit val tf: TypeFactory = atypeFactory
 
 	//Current context of the consistency check
 	protected val implicitContext : ImplicitContext = new ImplicitContext
@@ -81,7 +81,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		r
 	}
 
-	override def visitEnhancedForLoop(node : EnhancedForLoopTree, p : Void) : Void = { //TODO: add variable to implicit context?
+	override def visitEnhancedForLoop(node : EnhancedForLoopTree, p : Void) : Void = {
 		if (!transactionContext) return super.visitEnhancedForLoop(node, p)
 		val conditionAnnotation : AnnotationMirror = weakestConsistencyInExpression(node.getExpression)
 		var r : Void = scan(node.getVariable, p)
@@ -105,22 +105,24 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 	private def weakestConsistencyInExpression(node : ExpressionTree) : AnnotationMirror = {
 		/*
-				 TODO: This requires an annotated JDK in order to work correctly.
+		 TODO: This requires an annotated JDK in order to work correctly.
 
-				 With an unannotated JDK we have the following behavior:
+		 With an unannotated JDK we have the following behavior:
 
-				 Definitions:
-					 @Strong String s1
-					 @Weak String s2
-					 public static @PolyConsistent boolean equals(@PolyConsistent Object o1, @PolyConsistent Object o2)
+		 Definitions:
+			 @Strong String s1
+			 @Weak String s2
+			 public static @PolyConsistent boolean equals(@PolyConsistent Object o1, @PolyConsistent Object o2)
 
-				 s1.equals("hello") --> inconsistent (the normal equals method is always @inconsistent because it is not annotated)
-				 equals(s1, "hello") --> strong
-				 equals(s1, s2) --> weak
-					*/
-		//Retrieve the (inferred) annotated type
+		 s1.equals("hello") --> inconsistent (the normal equals method is always @inconsistent because it is not annotated)
+		 equals(s1, "hello") --> strong
+		 equals(s1, s2) --> weak
+		*/
+
+		// Retrieve the (inferred) annotated type
 		val typ = atypeFactory.getAnnotatedType(node)
-		if (typ.hasAnnotation(classOf[Mixed])) AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
+		if (typ.hasEffectiveAnnotation(classOf[Mixed]))
+			AnnotationBuilder.fromClass(atypeFactory.getElementUtils, classOf[Weak])
 		else getAnnotation(typ)
 	}
 
@@ -128,7 +130,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 	class ImplicitContext {
 
-		private val implicitContexts : mutable.ArrayStack[AnnotationMirror] = new mutable.ArrayStack
+		private val implicitContexts : mutable.Stack[AnnotationMirror] = new mutable.Stack
 
 		implicitContexts.push(getEmptyContextAnnotation)
 
@@ -138,7 +140,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 		}
 
 		private[checker] def reset() : Unit = {
-			implicitContexts.pop
+			implicitContexts.pop()
 		}
 
 
@@ -155,7 +157,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 				case declaredType : AnnotatedTypeMirror.AnnotatedDeclaredType =>
 					var temp : AnnotationMirror = lowerBound(getAnnotation(typ), annotation)
 
-					JavaConverters.iterableAsScalaIterable(declaredType.getTypeArguments).foreach { typeArg =>
+					declaredType.getTypeArguments.asScala.foreach { typeArg =>
 						temp = lowerBound(temp, getStrongestNonLocalAnnotationIn(typeArg, temp))
 					}
 
@@ -201,7 +203,7 @@ abstract class InformationFlowTypeVisitor[TypeFactory <: GenericAnnotatedTypeFac
 
 		def allowsAsMixedInvocation(typ : AnnotatedTypeMirror, tree : MethodInvocationTree): Boolean = {
 			val method = TreeUtils.elementFromUse(tree)
-			if (isSideEffectFree(method))
+			if (isDeclaredSideEffectFree(method))
 				return true
 
 			val methodLevel = getQualifierForMethodOp(method, typ.getEffectiveAnnotation(classOf[Mixed]))

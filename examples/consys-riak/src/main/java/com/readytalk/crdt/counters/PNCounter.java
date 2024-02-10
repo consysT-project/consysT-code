@@ -99,6 +99,7 @@ import com.readytalk.crdt.inject.ClientId;
 		// end of my codes.
 		// this merge function had GCounter output type.
 		//return new PNCounter(serializer(), clientId, positive.merge(other.positive), negative.merge(other.negative));
+		return null;
 	}
 	/*@
 	@ assignable \nothing;

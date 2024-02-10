@@ -41,7 +41,6 @@ class TransactionalTest {
         @Override
         void f2() {}
 
-        @Transactional
         @Override
         void f3() {}
     }
@@ -69,7 +68,6 @@ class TransactionalTest {
         // :: error: (invocation.method.transaction)
         derived.f1();
         derived.f2();
-        // :: error: (invocation.method.transaction)
         derived.f3();
     }
 
@@ -92,7 +90,6 @@ class TransactionalTest {
         derived.f2();
         derived.f3();
     }
-
 
     void testTransactionalInvocation_InsideTransaction(@Mutable Base base, @Mutable Derived derived, @Mutable CassandraStoreBinding replica) {
         replica.transaction(ctx -> {

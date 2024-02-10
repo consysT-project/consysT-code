@@ -27,13 +27,13 @@
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-type-checker</artifactId>
-                            <version>3.0.0-alpha</version>
+                            <version>4.0.0</version>
                         </path>
                         <!-- path to the consys javac plugin -->
                         <path>
                             <groupId>de.tuda.stg.consys</groupId>
                             <artifactId>consys-compiler</artifactId>
-                            <version>3.0.0-alpha</version>
+                            <version>4.0.0</version>
                         </path>
                     </annotationProcessorPaths>
 <!--                    <annotationProcessors>-->

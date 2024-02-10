@@ -1,26 +1,23 @@
 package de.tuda.stg.consys.checker
 
 import com.sun.source.tree._
-import com.sun.tools.javac.tree.JCTree.JCFieldAccess
-import de.tuda.stg.consys.checker.qual.{Immutable, Mixed}
+import de.tuda.stg.consys.checker.qual.{Immutable, Mixed, ThisConsistent}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedDeclaredType
 import org.checkerframework.framework.`type`.treeannotator.TreeAnnotator
 import org.checkerframework.framework.`type`.typeannotator.TypeAnnotator
-import org.checkerframework.framework.`type`.{AnnotatedTypeFactory, AnnotatedTypeMirror}
 import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils, TypesUtils}
 
-import javax.lang.model.element.{AnnotationMirror, Modifier, TypeElement, VariableElement}
-import scala.collection.convert.ImplicitConversions.`collection asJava`
+import javax.lang.model.element._
+import scala.jdk.CollectionConverters._
 
 /**
 	* Created on 06.03.19.
 	*
 	* @author Mirko Köhler
 	*/
-class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
+class ConsistencyTreeAnnotator(implicit tf : ConsistencyAnnotatedTypeFactory) extends TreeAnnotator(tf) {
 	import TypeFactoryUtils._
-
-	implicit val implicitTypeFactory : AnnotatedTypeFactory = atypeFactory
 
 	@inline private def qualHierarchy = atypeFactory.getQualifierHierarchy
 
@@ -40,7 +37,6 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 	}
 
 	override def visitMemberSelect(node : MemberSelectTree, typeMirror : AnnotatedTypeMirror) : Void = {
-
 		//Class literals are always @Local.
 		if (node.getIdentifier.contentEquals("class")) {
 			//Change type to: @Local Class...
@@ -57,54 +53,52 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 					null
 				}
 			}, null)
-		} else if (node.isInstanceOf[JCFieldAccess]) {
+		} else if (TreeUtils.elementFromUse(node).getKind == ElementKind.ENUM_CONSTANT) {
+			// enum constants have bottom type
+			typeMirror.replaceAnnotation(localAnnotation)
+			typeMirror.replaceAnnotation(mutableBottomAnnotation)
+		} else if (TreeUtils.elementFromUse(node).getKind == ElementKind.FIELD) {
+			val receiverType = tf.getAnnotatedType(node.getExpression)
+			val receiver = TypesUtils.getTypeElement(receiverType.getUnderlyingType)
 
-			val element = TreeUtils.elementFromUse(node)
-			if (element.getKind.isField) {
-				val receiverType = tf.getAnnotatedType(node.getExpression)
-				val receiver = TypesUtils.getTypeElement(receiverType.getUnderlyingType)
+			// adapt field for receiver
+			receiverType.getAnnotations.forEach(ann => {
+				if (qualHierarchy.findAnnotationInHierarchy(List(ann).asJava, inconsistentAnnotation) != null) {
+					val qualifier = receiverType.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
+					visitField(node, typeMirror, receiver, qualifier)
 
-				// adapt field for receiver
-				receiverType.getAnnotations.forEach(ann => {
-					if (qualHierarchy.findAnnotationInHierarchy(List(ann), inconsistentAnnotation) != null) {
-						val qualifier = receiverType.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
-						visitField(node, typeMirror, receiver, qualifier)
+					// Changes level of type argument of Ref<...> to weakest between receiver and field
+					node.getExpression match {
+						// skip this step if receiver is 'this'
+						case id: IdentifierTree if id.getName.toString == "this" => ()
 
-						// Changes level of type argument of Ref<...> to weakest between receiver and field
-						node.getExpression match {
-							// skip this step if receiver is 'this'
-							case id: IdentifierTree if id.getName.toString == "this" => ()
+						case _ => typeMirror match {
+							case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
+								val typeArgument = adt.getTypeArguments.get(0)
+								// get weakest type between type argument and receiver
+								val lup =
+									if (tf.areSameByClass(ann, classOf[Mixed]))
+										qualHierarchy.leastUpperBound(
+											typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
+											typeMirror.getEffectiveAnnotationInHierarchy(inconsistentAnnotation))
+									else
+										qualHierarchy.leastUpperBound(
+											typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
+											ann)
+								typeArgument.replaceAnnotation(lup)
 
-							case _ => typeMirror match {
-								case adt: AnnotatedDeclaredType if adt.getUnderlyingType.asElement.getSimpleName.toString == "Ref" =>
-									val typeArgument = adt.getTypeArguments.get(0)
-									// get weakest type between type argument and receiver
-									val lup =
-										if (tf.areSameByClass(ann, classOf[Mixed]))
-											qualHierarchy.leastUpperBound(
-												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
-												typeMirror.getEffectiveAnnotationInHierarchy(inconsistentAnnotation))
-										else
-											qualHierarchy.leastUpperBound(
-												typeArgument.getEffectiveAnnotationInHierarchy(inconsistentAnnotation),
-												ann)
-									typeArgument.replaceAnnotation(lup)
-
-								case _ => ()
-							}
+							case _ => ()
 						}
-
-					} else if (qualHierarchy.findAnnotationInHierarchy(List(ann), immutableAnnotation) != null) {
-						val fieldQualifier = typeMirror.getEffectiveAnnotationInHierarchy(immutableAnnotation)
-						val lup = qualHierarchy.leastUpperBound(fieldQualifier, ann)
-						typeMirror.replaceAnnotation(lup)
-
-					} else {
-						typeMirror.replaceAnnotation(ann)
 					}
+				} else if (qualHierarchy.findAnnotationInHierarchy(List(ann).asJava, immutableAnnotation) != null) {
+					val fieldQualifier = typeMirror.getEffectiveAnnotationInHierarchy(immutableAnnotation)
+					val lup = qualHierarchy.leastUpperBound(fieldQualifier, ann)
+					typeMirror.replaceAnnotation(lup)
 
-				})
-			}
+				} else {
+					typeMirror.replaceAnnotation(ann)
+				}
+			})
 		}
 
 		super.visitMemberSelect(node, typeMirror)
@@ -113,17 +107,25 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 	override def visitIdentifier(node: IdentifierTree, typeMirror: AnnotatedTypeMirror): Void = {
 		if (TreeUtils.isExplicitThisDereference(node)) {
 			// adapt 'this' to currently visited context
-			val (_, qualifier) = tf.peekVisitClassContext()
+			val (_, qualifier) = tf.visitClassContext.top
 			typeMirror.replaceAnnotation(qualifier)
 			// 'this' is always mutable
 			typeMirror.replaceAnnotation(mutableAnnotation)
 			return super.visitIdentifier(node, typeMirror)
 		}
 
-		val element = TreeUtils.elementFromUse(node)
-		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext()
-			visitField(node, typeMirror, receiver, qualifier)
+		if (tf.visitClassContext.nonEmpty) {
+			val element = TreeUtils.elementFromUse(node)
+			element.getKind match {
+				case ElementKind.FIELD =>
+					val (receiver, qualifier) = tf.visitClassContext.top
+					visitField(node, typeMirror, receiver, qualifier)
+				case ElementKind.PARAMETER | ElementKind.LOCAL_VARIABLE =>
+					// replaces @ThisConsistent with appropriate type
+					//typeMirror.replaceAnnotation(inferThisTypeFromEnclosingMethod(element))
+					tf.replaceThisConsistent(typeMirror)
+				case _ =>
+			}
 		}
 
 		super.visitIdentifier(node, typeMirror)
@@ -133,8 +135,8 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		// TODO: can get called before Visitor.processClassTree -> class context is not ready
 		val element = TreeUtils.elementFromDeclaration(node)
 		// this might be called outside from a type checking context
-		if (!tf.isVisitClassContextEmpty && element.getKind.isField) {
-			val (receiver, qualifier) = tf.peekVisitClassContext()
+		if (tf.visitClassContext.nonEmpty && element.getKind.isField) {
+			val (receiver, qualifier) = tf.visitClassContext.top
 			//visitField(element, typeMirror, receiver, qualifier)
 		}
 
@@ -153,13 +155,13 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 		}
 	}
 
-	private def visitField(tree: ExpressionTree, typeMirror: AnnotatedTypeMirror, receiver: TypeElement, qualifier: AnnotationMirror): Unit = {
+	private def visitField(tree: ExpressionTree, typeMirror: AnnotatedTypeMirror, receiver: TypeElement, receiverQualifier: AnnotationMirror): Unit = {
 		val field = TreeUtils.elementFromUse(tree).asInstanceOf[VariableElement]
 		if (field.getModifiers.contains(Modifier.STATIC)) {
 			typeMirror.replaceAnnotation(inconsistentAnnotation)
-		} else if (tf.areSameByClass(qualifier, classOf[Mixed]) && isPrivateOrProtected(field)) {
+		} else if (tf.areSameByClass(receiverQualifier, classOf[Mixed]) && isPrivateOrProtected(field)) {
 			// use the mixed inferred consistency level
-			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, qualifier, field)
+			val inferred = tf.mixedInferenceVisitor.getInferred(receiver, receiverQualifier, field)
 			inferred match {
 				case Some(fieldType) => tf.mixedInferenceVisitor.getReadAccess(tree) match {
 					case Some(methodType) if !tf.getAnnotatedType(field).hasAnnotation(classOf[Immutable]) =>
@@ -174,33 +176,27 @@ class ConsistencyTreeAnnotator(tf : ConsistencyAnnotatedTypeFactory) extends Tre
 				}
 				case None => sys.error("ConSysT type checker bug: mixed inference failed")
 			}
-		} else if (tf.areSameByClass(qualifier, classOf[Mixed]))
-			typeMirror.replaceAnnotation(getQualifierForOp(getNameForMixedDefaultOp(qualifier)).get)
+		} else if (tf.areSameByClass(receiverQualifier, classOf[Mixed]))
+			typeMirror.replaceAnnotation(getQualifierForOp(getNameForMixedDefaultOp(receiverQualifier)).get)
 		else {
-			typeMirror.replaceAnnotation(qualifier)
+			typeMirror.replaceAnnotation(receiverQualifier)
 		}
 	}
 
-
 	override def visitMethodInvocation(node: MethodInvocationTree, typeMirror: AnnotatedTypeMirror): Void = {
 		val method = TreeUtils.elementFromUse(node)
-		val methodType = tf.getAnnotatedType(method)
-		val methodName = method.getSimpleName.toString.toLowerCase
 		val recvQualifier = node.getMethodSelect match {
 			case mst: MemberSelectTree if !TreeUtils.isExplicitThisDereference(mst) =>
 				val typ = tf.getAnnotatedType(mst.getExpression)
 				typ.getEffectiveAnnotationInHierarchy(inconsistentAnnotation)
 			case _ =>
-				tf.peekVisitClassContext()._2
+				tf.visitClassContext.top._2
 		}
 
-		// return type inference for mixed getters
-		if (getExplicitConsistencyAnnotation(methodType.getReturnType).isEmpty &&
-			methodName.startsWith("get")) {
-			val inferred =
-				if (isMixedQualifier(recvQualifier)) getQualifierForOp(getMixedOpForMethod(method, getNameForMixedDefaultOp(recvQualifier))).get
-				else recvQualifier
-			typeMirror.replaceAnnotation(inferred)
+		// replace @ThisConsistent return types with receiver type or op-level for mixed receivers
+		if (AnnotationUtils.containsSameByClass(method.getReturnType.getAnnotationMirrors, classOf[ThisConsistent])) {
+			// return type inference for mixed getters
+			typeMirror.replaceAnnotation(inferThisTypeFromReceiver(recvQualifier, method))
 		}
 
 		super.visitMethodInvocation(node, typeMirror)

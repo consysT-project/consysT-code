@@ -1,8 +1,9 @@
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.japi.Ref;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
+import org.checkerframework.dataflow.qual.SideEffectFree;
 import scala.Option;
 import scala.concurrent.duration.Duration;
 
@@ -25,7 +26,7 @@ public class BoxTest {
             this.v = v;
         }
 
-        @WeakOp
+        @WeakOp @SideEffectFree
         public int get() {
             return v;
         }
@@ -38,11 +39,11 @@ public class BoxTest {
     private static final int msReplicaTimeout = 60000;
 
     public static void main(String[] args) throws Exception {
-        r0 = Cassandra.newReplica("127.0.0.1", 9042, 2181,
+        r0 = CassandraReplica.create("127.0.0.1", 9042, 2181, "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), true);
-        r1 = Cassandra.newReplica("127.0.0.2", 9042, 2182,
+        r1 = CassandraReplica.create("127.0.0.2", 9042, 2182, "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), false);
-        r2 = Cassandra.newReplica("127.0.0.3", 9042, 2183,
+        r2 = CassandraReplica.create("127.0.0.3", 9042, 2183, "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), false);
 
         int[] results = new int[nRuns];
@@ -50,8 +51,8 @@ public class BoxTest {
             results[i] = test();
         }
 
-        long nFails = Arrays.stream(results).filter(r -> r == 0).count();
-        System.out.println(nFails + "/" + nRuns + " runs failed");
+        long nSuccesses = Arrays.stream(results).filter(r -> r != 0).count();
+        System.out.println(nSuccesses + "/" + nRuns + " runs succeeded");
 
         r0.close();
         r1.close();
@@ -91,7 +92,7 @@ public class BoxTest {
             r1.transaction(ctx -> {
                 box.ref().set(1);
                 try { Thread.sleep(500); } catch (InterruptedException e) { e.printStackTrace(); }
-                return Option.empty();
+                return Option.apply(0);
             });
             System.out.println("  " + new Date().toInstant() + " | end T1");
             return null;
@@ -102,7 +103,7 @@ public class BoxTest {
             System.out.println("  " + new Date().toInstant() + " | start T2");
             r2.transaction(ctx -> {
                 box.ref().get();
-                return Option.empty();
+                return Option.apply(0);
             });
             System.out.println("  " + new Date().toInstant() + " | end T2");
             return null;

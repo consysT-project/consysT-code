@@ -1,271 +1,269 @@
 package de.tuda.stg.consys.demo.rubis;
 
-import com.typesafe.config.Config;
-import de.tuda.stg.consys.annotations.Transactional;
+import de.tuda.stg.consys.bench.BenchmarkConfig;
+import de.tuda.stg.consys.bench.BenchmarkOperations;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
-import de.tuda.stg.consys.bench.OutputFileResolver;
-import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
+import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.demo.*;
 import de.tuda.stg.consys.demo.rubis.schema.*;
-import de.tuda.stg.consys.japi.Ref;
+import de.tuda.stg.consys.japi.Store;
+import de.tuda.stg.consys.japi.TransactionContext;
+import de.tuda.stg.consys.logging.Logger;
 import scala.Option;
 
-import java.lang.reflect.InvocationTargetException;
+import java.io.Serializable;
 import java.util.*;
 
 @SuppressWarnings({"consistency"})
-public class RubisBenchmark extends CassandraDemoBenchmark {
+public class RubisBenchmark<SStore extends de.tuda.stg.consys.core.store.Store>
+        extends DemoRunnable<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable, ConsistencyLevel<SStore>, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore> {
     public static void main(String[] args) {
-        start(RubisBenchmark.class, args);
+        JBenchExecution.execute("rubis", RubisBenchmark.class, args);
     }
-
-    private final int numOfUsersPerReplica;
-    private final float percentOfAuctionItems;
-    private final List<Session> localSessions;
-    private final List<UUID> localItems;
-    private final List<Ref<Item>> allAuctionItems;
-    private final List<Ref<Item>> allDirectBuyItems;
-    private final List<Ref<User>> users;
-    private Ref<AuctionStore> auctionStore;
 
     private static final float maxPrice = 100;
 
-    private static final List<String> WORDS = new ArrayList<>(Arrays.asList("small batch", "Etsy", "axe", "plaid", "McSweeney's", "VHS",
-            "viral", "cliche", "post-ironic", "health", "goth", "literally", "Austin",
-            "brunch", "authentic", "hella", "street art", "Tumblr", "Blue Bottle", "readymade",
-            "occupy", "irony", "slow-carb", "heirloom", "YOLO", "tofu", "ethical", "tattooed",
-            "vinyl", "artisan", "kale", "selfie"));
-    private static final List<String> FIRST_NAMES = new ArrayList<>(Arrays.asList("Arthur", "Ford", "Tricia", "Zaphod"));
-    private static final List<String> LAST_NAMES = new ArrayList<>(Arrays.asList("Dent", "Prefect", "McMillan", "Beeblebrox"));
+    private final int numOfUsersPerReplica;
+    private final List<ISession<SStore>> localSessions;
+    private final List<String> users;
+    private final List<String> items;
 
-    private final Random random = new Random();
+    private int itemNoOps;
+    private int itemOps;
 
-    public RubisBenchmark(Config config, Option<OutputFileResolver> outputResolver) {
-        super(config, outputResolver);
 
-        numOfUsersPerReplica = config.getInt("consys.bench.demo.rubis.users");
-        percentOfAuctionItems = 0.5f;
-
-        Session.userConsistencyLevel = getStrongLevel();
-        Session.itemConsistencyLevel = getStrongLevel();
-        Session.storeConsistencyLevel = getStrongLevel();
-
+    public RubisBenchmark(
+            JBenchStore<String, Serializable, TransactionContext<String, Serializable, ConsistencyLevel<SStore>>, Store<String, Serializable,
+                    ConsistencyLevel<SStore>,
+                    TransactionContext<String, Serializable, ConsistencyLevel<SStore>>>, SStore
+                    > adapter,
+            BenchmarkConfig config) {
+        super(adapter, config);
         localSessions = new ArrayList<>();
-        allAuctionItems = new ArrayList<>();
-        allDirectBuyItems = new ArrayList<>();
-        localItems = new ArrayList<>();
         users = new ArrayList<>();
-    }
+        items = new ArrayList<>();
 
-    private static String addr(String identifier, int grpIndex, int replIndex) {
-        return identifier + "$" + grpIndex + "$"+ replIndex;
-    }
+        numOfUsersPerReplica = config.toConfig().getInt("consys.bench.demo.rubis.users");
 
-    private String generateRandomName() {
-        return FIRST_NAMES.get(random.nextInt(FIRST_NAMES.size()))
-                + " " + LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
-    }
+        ISession.nMaxRetries = config.toConfig().getInt("consys.bench.demo.rubis.retries");
+        ISession.retryDelay = config.toConfig().getInt("consys.bench.demo.rubis.retryDelay");
 
-    private String generateRandomPassword() {
-        return WORDS.get(random.nextInt(WORDS.size()));
-    }
-
-    private String generateRandomText(int n) {
-        String body = WORDS.get(random.nextInt(WORDS.size()));
-        for (int i = 0; i < n - 1; i++)
-            body += " " + WORDS.get(random.nextInt(WORDS.size()));
-        return body;
+        if (isOpCentricImpl()) {
+            TestUtils.benchType = TestUtils.BenchType.OP_CENTRIC;
+        } else {
+            TestUtils.benchType = TestUtils.BenchType.DATA_CENTRIC;
+        }
     }
 
     private Category getRandomCategory() {
         return Category.values()[random.nextInt(Category.values().length)];
     }
 
-    private float getRandomPrice(float max) {
-        return random.nextFloat() * max;
+    private float getRandomPrice() {
+        return random.nextFloat() * maxPrice;
     }
 
-    private <E> E getRandomElement(List<E> list) {
-        return list.get(random.nextInt(list.size()));
-    }
-
-    private <E> E getRandomElementExcept(List<E> list, E object) {
-        E element;
-        do {
-            element = list.get(random.nextInt(list.size()));
-        } while (element == object);
-        return element;
-    }
-
-    @Override
-    public String getName() {
-        return "RubisBenchmark";
+    protected float getInitialBalance() {
+        return numOfUsersPerReplica * nReplicas * maxPrice * 1.3f;
     }
 
     @Override
     public void setup() {
-        super.setup();
+        TestUtils.store = store();
 
-        for (int i = 0; i < numOfUsersPerReplica; i++) {
-            localSessions.add(new Session(store()));
-        }
+        Logger.debug(procName(), "Creating objects");
+        for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
 
-        if (processId() == 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.replicate(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.empty();
-            });
-        }
+            ISession<SStore> session;
+            if (isOpCentricImpl()) {
+                session = new de.tuda.stg.consys.demo.rubis.schema.opcentric.Session<>(store(),
+                        getLevelWithMixedFallback(getStrongLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()));
+            } else {
+                session = new de.tuda.stg.consys.demo.rubis.schema.datacentric.Session<>(store(),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getWeakLevel()),
+                        getLevelWithMixedFallback(getStrongLevel()));
+            }
 
-        barrier("auction_store_setup");
+            localSessions.add(session);
 
-        if (processId() != 0) {
-            store().transaction(ctx -> {
-                auctionStore = ctx.lookup(Util.auctionStoreKey, getStrongLevel(), AuctionStore.class);
-                return Option.empty();
-            });
-        }
+            session.registerUser(null,
+                    DemoUtils.addr("user", userIndex, processId()),
+                    DemoUtils.addr("user", userIndex, processId()),
+                    DemoUtils.generateRandomName(), DemoUtils.generateRandomPassword(), "mail@example.com");
 
-        System.out.println("Adding users and items");
-        for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
+            session.addBalance(null, getInitialBalance());
 
-            localSessions.get(grpIndex).registerUser(null, addr("user", grpIndex, processId()), generateRandomName(),
-                    generateRandomPassword(), "mail@example.com");
+            session.registerItem(null,
+                    DemoUtils.addr("item", userIndex, processId()),
+                    DemoUtils.addr("item", userIndex, processId()), DemoUtils.generateRandomText(10),
+                    getRandomCategory(), getRandomPrice(), 86400);
 
-            localSessions.get(grpIndex).addBalance(null, numOfUsersPerReplica * nReplicas() * maxPrice * 1.3f);
-
-            localItems.add(localSessions.get(grpIndex).registerItem(null, generateRandomText(1), generateRandomText(10),
-                    getRandomCategory(), getRandomPrice(maxPrice * 1.3f), 300));
-
-            BenchmarkUtils.printProgress(grpIndex);
+            BenchmarkUtils.printProgress(userIndex);
         }
 
         barrier("users_added");
 
-        for (int grpIndex = 0; grpIndex < numOfUsersPerReplica; grpIndex++) {
-            for (int replIndex = 0; replIndex < nReplicas(); replIndex++) {
-                int localGrpIndex = grpIndex;
-                int localReplIndex = replIndex;
-                users.add(store().transaction(ctx -> Option.apply(ctx.lookup(
-                        "user:" + addr("user", localGrpIndex, localReplIndex), Session.userConsistencyLevel, User.class))).get());
-                for (var cat : Category.values()) {
-                    allAuctionItems.addAll(getRandomElement(localSessions).browseCategoryItems(null, cat));
-                }
+        Logger.debug(procName(), "Collecting objects");
+        for (int userIndex = 0; userIndex < numOfUsersPerReplica; userIndex++) {
+            for (int replicaIndex = 0; replicaIndex < nReplicas; replicaIndex++) {
+                users.add(DemoUtils.addr("user", userIndex, replicaIndex));
+                items.add(DemoUtils.addr("item", userIndex, replicaIndex));
             }
         }
-        for (int i = 0; i < percentOfAuctionItems * numOfUsersPerReplica; i++) {
-            Ref<Item> item = allAuctionItems.remove(i);
-            allDirectBuyItems.add(item);
-        }
+
         BenchmarkUtils.printDone();
     }
 
     @Override
     public void cleanup() {
-        super.cleanup();
-        localSessions.clear();
-        localItems.clear();
-        allAuctionItems.clear();
-        allDirectBuyItems.clear();
-        users.clear();
+        //Logger.info(procName(), "nops w.r.t auction operations: " + (float)itemNoOps/itemOps);
+        //Logger.info(procName(), "nops w.r.t all operations: " + (float)itemNoOps/100);
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        localSessions.clear();
+        users.clear();
+        items.clear();
     }
 
     @Override
-    public void operation() {
-        try {
-            randomTransaction();
-        } catch (AppException e) {
-            /* possible/acceptable errors:
-                - bidding on own item (rare)
-                - auction has already ended (common)
-            */
-            System.out.println(e.getMessage());
-        } catch (Exception e) {
-            if (e instanceof InvocationTargetException && ((InvocationTargetException)e).getTargetException() instanceof AppException) {
-                System.out.println(e.getMessage());
-            } else {
-                throw e;
-            }
-        }
+    public BenchmarkOperations operations() {
+        return BenchmarkOperations.withZipfDistribution(new Runnable[] {
+                withExceptionHandling(this::browseItems),
+                withExceptionHandling(this::placeBid),
+                withExceptionHandling(this::buyNow),
+                withExceptionHandling(this::rateUser),
+                withExceptionHandling(this::closeAuction)
+        });
     }
 
-    @Transactional
-    private void randomTransaction() {
-        int rand = random.nextInt(100);
-        if (rand < 44) {
-            // 44%
-            browseCategory();
-        } else if (rand < 66) {
-            // 22%
-            placeBid();
-        } else if (rand < 81) {
-            // 15%
-            buyNow();
-        } else if (rand < 92){
-            // 11%
-            rateUser();
-        } else {
-            // 9%
-            closeAuction();
-        }
+    private Runnable withExceptionHandling(Runnable op) {
+        return () -> {
+            try {
+                op.run();
+            } catch (AppException e) {
+                /* possible/acceptable errors:
+                    - bidding on own item (rare)
+                    - auction has already ended (common)
+                */
+                //System.err.println(e.getMessage());
+            }
+        };
     }
 
     private void placeBid() {
-        //Ref<Item> item = getRandomElement(allAuctionItems);
-        //Session session = getRandomElement(localSessions);
+        var session = DemoUtils.getRandomElement(localSessions);
 
         store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
-            Ref<Item> item = getRandomElement(openAuctions);
-            Session session = getRandomElement(localSessions);
+            var item = DemoUtils.getRandomElement(items);
+            if (localSessions.get(0).getItemStatus(ctx, item) != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
+
             float bid = session.getBidPrice(ctx, item);
             session.placeBid(ctx, item, bid * (1 + random.nextFloat()));
-            return Option.empty();
+            return Option.apply(0);
         });
     }
 
     private void buyNow() {
-        //Ref<Item> item = getRandomElement(allDirectBuyItems);
-        Session session = getRandomElement(localSessions);
+        var session = DemoUtils.getRandomElement(localSessions);
 
-        store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
-            Ref<Item> item = getRandomElement(openAuctions);
-            session.buyNow(ctx, item);
-            return Option.empty();
+        Option<TestUtils.TransactionResult> result = store().transaction(ctx ->
+        {
+            var item = DemoUtils.getRandomElement(items);
+            if (session.getItemStatus(ctx, item) != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
+
+            var trxResult = !isTestMode
+                    ? TestUtils.TransactionResult.empty()
+                    : TestUtils.TransactionResult.empty()
+                            .addUsers(session, session.getUser(), session.getItemSeller(ctx, item))
+                            .addItems(session, item);
+
+            try {
+                session.buyNow(ctx, item);
+                return Option.apply(trxResult);
+            } catch (IllegalArgumentException e) {
+                trxResult.appExceptions = new Exception[] { e };
+                System.err.println("Exception raised by app: " + e.getMessage());
+                return Option.apply(trxResult);
+            }
         });
+
+        if (isTestMode && result.isDefined()) {
+            TestUtils.buyNowTest(result.get());
+        }
     }
 
     private void closeAuction() {
-        //Ref<Item> item = getRandomElement(allAuctionItems);
+        Option<TestUtils.TransactionResult> result = store().transaction(ctx ->
+        {
+            var item = DemoUtils.getRandomElement(items);
+            if (localSessions.get(0).getItemStatus(ctx, item) != ItemStatus.OPEN)
+                itemNoOps++;
+            itemOps++;
 
-        store().transaction(ctx -> {
-            List<Ref<Item>> openAuctions = auctionStore.ref().getOpenAuctions(); // TODO: is this ok? Overhead?
-            Ref<Item> item = getRandomElement(openAuctions);
-            item.ref().endAuctionNow();
-            Util.closeAuction(item, auctionStore);
-            return Option.empty();
+            var trxResult = !isTestMode ? new TestUtils.TransactionResult() : new TestUtils.TransactionResult(
+                    new TestUtils.UserTestInterface[] { new TestUtils.UserTestInterface(localSessions.get(0).getItemSeller(ctx, item), localSessions.get(0)) },
+                    new TestUtils.ItemTestInterface[] { new TestUtils.ItemTestInterface(item, localSessions.get(0)) });
+
+            try {
+                localSessions.get(0).endAuctionImmediately(ctx, item);
+            } catch (IllegalArgumentException e) {
+                trxResult.appExceptions = new Exception[] { e };
+                System.err.println("Exception raised by app: " + e.getMessage());
+            }
+            return Option.apply(trxResult);
         });
+
+        if (isTestMode && result.isDefined()) {
+            TestUtils.closeAuctionTest(result.get());
+        }
     }
 
-    private void browseCategory() {
-        Category category = getRandomCategory();
-        Session session = getRandomElement(localSessions);
-        session.browseCategory(null, category, 5);
+    private void browseItems() {
+        var session = DemoUtils.getRandomElement(localSessions);
+        String[] replIds = new String[5];
+        for (int i = 0; i < 5; i++) {
+            int userIndex = random.nextInt(numOfUsersPerReplica);
+            int replicaIndex = random.nextInt(nReplicas);
+            replIds[i] = DemoUtils.addr("item", userIndex, replicaIndex);
+        }
+        session.browseItemsByItemIds(null, replIds);
     }
 
     private void rateUser() {
+        var session = DemoUtils.getRandomElement(localSessions);
+        var user2 = DemoUtils.getRandomElementExcept(users, session.getUser());
         int rating = 1 + random.nextInt(5);
-        Ref<User> user1 = getRandomElement(users);
-        Ref<User> user2 = getRandomElementExcept(users, user1);
-        store().transaction(ctx -> {
-            user1.ref().rate(new Comment(rating, generateRandomText(10), user2, user1));
-            return Option.empty();
-        });
+        session.rateUser(null, user2, rating, DemoUtils.generateRandomText(10));
+    }
+
+    @Override
+    public void test() {
+        if (processId() != 0) return;
+
+        TestCollector.check("users non empty", !users.isEmpty());
+        TestUtils.finalTest(users, getInitialBalance(), localSessions.get(0));
+
+        printTestResult();
+    }
+
+    private boolean isOpCentricImpl() {
+        switch (benchType) {
+            case OP_MIXED:
+            case WEAK:
+            case STRONG:
+            case DATACENTRIC_MIXED_IN_OPCENTRIC_IMPL:
+                return true;
+            case MIXED:
+            case STRONG_DATACENTRIC:
+            case WEAK_DATACENTRIC:
+                return false;
+        }
+
+        throw new RuntimeException("unknown bench type");
     }
 }

@@ -2,10 +2,10 @@ package de.tuda.stg.consys.demo.twitterclone;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
-import de.tuda.stg.consys.demo.twitterclone.schema.Counter;
-import de.tuda.stg.consys.demo.twitterclone.schema.Tweet;
-import de.tuda.stg.consys.demo.twitterclone.schema.User;
-import de.tuda.stg.consys.japi.binding.cassandra.Cassandra;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet;
+import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User;
+import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
 import de.tuda.stg.consys.japi.Ref;
@@ -70,7 +70,7 @@ public class JMHBenchmark {
             /* Initialize replicas */
             System.out.println("Initialize replicas...");
             for (int i = 0; i < NUM_OF_REPLICAS; i++)
-                replicaSystems[i] = Cassandra.newReplica("127.0.0." + (i+1), 9042, 2181,
+                replicaSystems[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, 2181,
                         Duration.apply(100, "ms"), i == 0);
 
             System.out.println("Adding users");
