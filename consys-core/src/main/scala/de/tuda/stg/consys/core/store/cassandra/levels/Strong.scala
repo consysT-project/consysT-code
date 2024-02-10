@@ -74,9 +74,6 @@ case object Strong extends CassandraConsistencyLevel {
 			result
 		}
 
-
-
-
 		override def getField[T <: CassandraStore#ObjType : ClassTag, R](
 			txContext : CassandraStore#TxContext,
 			receiver : CassandraStore#RefType[T],
@@ -115,6 +112,7 @@ case object Strong extends CassandraConsistencyLevel {
 
 			  val builder = txContext.getCommitStatementBuilder
 			  store.cassandra.writeObjectEntry(builder, cassObj.addr, cassObj.state, CassandraLevel.ALL)
+
 			case cached =>
 			  throw new IllegalStateException(s"cannot commit $ref. Object has wrong level, was $cached.")
 		  }
@@ -125,6 +123,5 @@ case object Strong extends CassandraConsistencyLevel {
 			val cassObj = new StrongCassandraObject[T](addr, entry.state.asInstanceOf[T], entry.timestamp)
 			cassObj
 		}
-
 	}
 }

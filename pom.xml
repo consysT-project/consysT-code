@@ -31,6 +31,7 @@
         <module>demos</module>
 
         <module>integration-tests</module>
+        <module>formalization-lang</module>
     </modules>
 
 

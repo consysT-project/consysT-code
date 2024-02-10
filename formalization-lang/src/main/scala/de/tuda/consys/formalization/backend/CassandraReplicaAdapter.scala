@@ -1,30 +1,28 @@
-package de.tuda.stg.consys.core.store.cassandra.backend
+package de.tuda.consys.formalization.backend
 
-import com.datastax.oss.driver.api.core.{CqlSession, DriverTimeoutException}
-import com.datastax.oss.driver.api.core.cql.{BatchStatementBuilder, SimpleStatement}
-
-import java.lang.reflect.Field
 import com.datastax.oss.driver.api.core.`type`.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.cql.{BatchStatementBuilder, ResultSet, SimpleStatement, Statement}
-import com.datastax.oss.driver.api.core.{CqlSession, ConsistencyLevel => CassandraLevel}
+import com.datastax.oss.driver.api.core.{CqlSession, DriverTimeoutException, ConsistencyLevel => CassandraLevel}
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{insertInto, literal}
 import com.datastax.oss.driver.api.querybuilder.insert.Insert
 import com.datastax.oss.driver.api.querybuilder.select.Selector
 import com.datastax.oss.driver.api.querybuilder.term.Term
+import de.tuda.consys.formalization.lang.FieldId
 import de.tuda.stg.consys.core.store.utils.Reflect
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, NotSerializableException, ObjectInputStream, ObjectOutputStream}
+import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
-import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
 /**
  * This object is used to communicate with Cassandra, i.e. writing and reading data from keys.
  */
-private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration) {
+class CassandraReplicaAdapter(cassandraSession : CqlSession, timeout : FiniteDuration) {
 	private val keyspaceName : String = "consys_experimental"
 	private val objectTableName : String = "objects"
 
@@ -92,50 +90,28 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	private final val CONSISTENCY_ANY = "$ANY"
 
 
-	private[cassandra] def writeFieldEntry[T <: Serializable](
+	def writeFieldEntry(
 		batchBuilder : BatchStatementBuilder, // the batch builder that creates the final write statement
 		id : String,
-		fields : Iterable[Field], // the fields of the object that are written
-		obj : T,
+		fields : Iterable[FieldId], // the fields of the object that are written
+		obj : ReplicatedState,
 		clevel : CassandraLevel
 	) : Unit = {
-		import com.datastax.oss.driver.api.core.CqlSession
 
 		for (field <- fields) {
-			field.setAccessible(true)
 			val builder : Insert = insertInto(s"$objectTableName")
 				.value("id", literal(id))
-				.value("fieldid", literal(field.getName))
+				.value("fieldid", literal(field))
 				.value("type", literal(TYPE_FIELD))
 				.value("consistency", literal(CONSISTENCY_ANY))
-				.value("state", literal(CassandraReplicaAdapter.serializeObject(field.get(obj).asInstanceOf[Serializable]))) // TODO: handle null fields
+				.value("state", literal(CassandraReplicaAdapter.serializeObject(obj.fields(field).asInstanceOf[Serializable])))
 
 			val statement = builder.build().setConsistencyLevel(clevel)
 			batchBuilder.addStatement(statement)
-			field.setAccessible(false)
 		}
 	}
 
-	private[cassandra] def writeObjectEntry[T <: Serializable](
-		batchBuilder : BatchStatementBuilder, // the batch builder that creates the final write statement
-		id : String,
-		obj : T,
-		clevel : CassandraLevel
-	) : Unit = {
-		import QueryBuilder._
-
-		val builder : Insert = insertInto(s"$objectTableName")
-			.value("id", literal(id))
-			.value("fieldid", literal(FIELD_ALL))
-			.value("type", literal(TYPE_OBJECT))
-			.value("consistency", literal(CONSISTENCY_ANY))
-			.value("state", literal(CassandraReplicaAdapter.serializeObject(obj.asInstanceOf[Serializable])))
-
-		val statement = builder.build().setConsistencyLevel(clevel)
-		batchBuilder.addStatement(statement)
-	}
-
-	private[cassandra] def executeStatement(statement : Statement[_]) : ResultSet = {
+	def executeStatement(statement : Statement[_]) : ResultSet = {
 		if (!sessionInitialized) {
 			cassandraSession.execute(s"USE $keyspaceName")
 			sessionInitialized = true
@@ -145,54 +121,16 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 	}
 
 
-	private[cassandra] class StoredFieldEntry(
+	class StoredFieldEntry(
 		val addr : String,
-		val fields : Map[Field, Any],
-		val timestamps : Map[Field, Long]
+		val fields : Map[FieldId, Any],
+		val timestamps : Map[FieldId, Long]
 	)
-
-	private[cassandra] class StoredObjectEntry(
-		val addr : String,
-		val state : Any,
-		val timestamp : Long
-	)
-
-	/**
-	 * Reads an object that was stored with the row-per-whole-object schema.
-	 */
-	private[cassandra] def readObjectEntry[T <: Serializable : ClassTag](addr : String, clevel : CassandraLevel) : StoredObjectEntry = {
-		val query = QueryBuilder.selectFrom(s"$objectTableName")
-			.columns("id", "type", "state")
-			.function("WRITETIME", Selector.column("state")).as("writetime")
-			.whereColumn("id").isEqualTo(QueryBuilder.literal(addr))
-			.build()
-			.setConsistencyLevel(clevel)
-
-		//TODO: Add failure handling
-		val startTime = System.nanoTime()
-		while (System.nanoTime() < startTime + timeout.toNanos) {
-			val response = cassandraSession.execute(query)
-
-			response.one() match {
-				case null =>  // The address has not been found. Retry.
-				case row =>
-					val typ = row.get("type", TypeCodecs.INT)
-					if (typ != TYPE_OBJECT) throw new IllegalStateException(s"expected object stored as whole, but got: $response")
-
-					val obj = CassandraReplicaAdapter.deserializeObject[T](row.get("state", TypeCodecs.BLOB))
-					val time = row.get("writetime", TypeCodecs.BIGINT)
-					return new StoredObjectEntry(addr, obj, time)
-			}
-			Thread.sleep(10)
-		}
-
-		throw new TimeoutException(s"the object with address $addr has not been found on this replica")
-	}
 
 	/**
 	 * Reads an object that was stored with the row-per-field schema.
 	 */
-	private[cassandra] def readFieldEntry[T <: Serializable : ClassTag](addr : String, fields: Iterable[String], clevel : CassandraLevel) : StoredFieldEntry = {
+	def readFieldEntry(addr: String, fields: Iterable[FieldId], clevel: CassandraLevel): StoredFieldEntry = {
 		val query = QueryBuilder.selectFrom(s"$objectTableName")
 			.columns("id", "fieldid", "type", "state")
 			.function("WRITETIME", Selector.column("state")).as("writetime")
@@ -205,24 +143,23 @@ private[cassandra] class CassandraReplicaAdapter(cassandraSession : CqlSession, 
 		//TODO: Add failure handling
 		val startTime = System.nanoTime()
 		while (System.nanoTime() < startTime + timeout.toNanos) {
-			val response = cassandraSession.execute(query)
+			val response = executeStatement(query)
 
 			if (response.iterator().hasNext) {
-				var fields: Map[Field, Any] = Map.empty
-				var timestamps: Map[Field, Long] = Map.empty
+				var fields: Map[FieldId, Any] = Map.empty
+				var timestamps: Map[FieldId, Long] = Map.empty
 
 				response.forEach(row => {
 					val typ = row.get("type", TypeCodecs.INT)
 					if (typ != TYPE_FIELD) throw new IllegalStateException(s"expected object stored as fields, but got: $response")
 
 					val fieldName: String = row.get("fieldid", TypeCodecs.TEXT)
-					val field: Field = Reflect.getField(implicitly[ClassTag[T]].runtimeClass, fieldName)
 
 					val state: Any = CassandraReplicaAdapter.deserializeObject[Serializable](row.get("state", TypeCodecs.BLOB))
 					val timestamp: Long = row.get("writetime", TypeCodecs.BIGINT)
 
-					fields = fields + (field -> state)
-					timestamps = timestamps + (field -> timestamp)
+					fields = fields + (fieldName -> state)
+					timestamps = timestamps + (fieldName -> timestamp)
 				})
 
 				return new StoredFieldEntry(addr, fields, timestamps)

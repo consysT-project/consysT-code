@@ -9,19 +9,21 @@ import scala.collection.mutable
  *
  * @author Mirko Köhler
  */
-trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[StoreType] {
+trait CachedTransactionContext[StoreType <: Store, FieldType] extends TransactionContext[StoreType] {
 
 	protected type CachedType[T <: StoreType#ObjType]
 
 	protected[store] object Cache {
 		val buffer : mutable.Map[StoreType#Addr, CacheElement[_ <: StoreType#ObjType]] = mutable.HashMap.empty
 
-		def addEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedFields : Iterable[Field] = Iterable.empty) : Unit  = buffer.put(addr, CacheElement(obj, true, changedFields)) match {
-			case None =>
-			case Some(other) => throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
-		}
+		def addEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedFields : Iterable[FieldType] = Iterable.empty) : Unit =
+			buffer.put(addr, CacheElement(obj, changedObject = true, changedFields)) match {
+				case None =>
+				case Some(other) =>
+					throw new IllegalStateException(s"object already cached at addr. addr: $addr, obj: $obj, cached: $other")
+			}
 
-		def updateEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedObject : Boolean, changedFields : Iterable[Field]) : Option[CachedType[T]]  = {
+		def updateEntry[T <: StoreType#ObjType](addr : StoreType#Addr, obj : CachedType[T], changedObject : Boolean, changedFields : Iterable[FieldType]) : Option[CachedType[T]]  = {
 			buffer.get(addr) match {
 				case None =>
 					buffer.put(addr, CacheElement(obj, changedObject, changedFields)).map(_.data.asInstanceOf[CachedType[T]])
@@ -30,14 +32,19 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			}
 		}
 
-		def readEntry[T <: StoreType#ObjType](addr : StoreType#Addr,  elseFetch : => CachedType[T]) : CachedType[T] = {
-		  	buffer.getOrElseUpdate(addr, CacheElement[T](elseFetch, false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
-		}
+		/**
+		 * Returns an object from the cache. If the object is not present, fetches and writes it to the cache first.
+		 */
+		def readEntry[T <: StoreType#ObjType](addr : StoreType#Addr, elseFetch : => CachedType[T]) : CachedType[T] =
+		  	buffer.getOrElseUpdate(addr, CacheElement[T](elseFetch, changedObject = false, Iterable.empty)).data.asInstanceOf[CachedType[T]]
 
-	  def readLocalEntry[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[CachedType[T]] =
+		/**
+		 * Returns an object from the cache if present.
+		 */
+	  	def readLocalEntry[T <: StoreType#ObjType](addr : StoreType#Addr) : Option[CachedType[T]] =
 			buffer.get(addr).map(_.data).asInstanceOf[Option[CachedType[T]]]
 
-		def getChangedFields(addr : StoreType#Addr) : Option[Iterable[Field]] =
+		def getChangedFields(addr : StoreType#Addr) : Option[Iterable[FieldType]] =
 			buffer.get(addr).map(_.changedFields)
 
 		def setObjectChanged(addr : StoreType#Addr) : Unit = {
@@ -45,7 +52,7 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			buffer.put(addr, prev.copy(changedObject = true))
 		}
 
-		def setFieldsChanged(addr : StoreType#Addr, changedFields : Iterable[Field]) : Unit = {
+		def setFieldsChanged(addr : StoreType#Addr, changedFields : Iterable[FieldType]) : Unit = {
 			val prev = buffer.getOrElse(addr, throw new IllegalStateException())
 			buffer.put(addr, prev.copy(changedFields = prev.changedFields ++ changedFields))
 		}
@@ -54,10 +61,7 @@ trait CachedTransactionContext[StoreType <: Store] extends TransactionContext[St
 			val prev = buffer.getOrElse(addr, throw new IllegalStateException())
 			prev.changedObject || prev.changedFields.nonEmpty
 		}
-
 	}
 
-	case class CacheElement[T <: StoreType#ObjType](data : CachedType[T], changedObject : Boolean, changedFields : Iterable[Field])
-
+	case class CacheElement[T <: StoreType#ObjType](data : CachedType[T], changedObject : Boolean, changedFields : Iterable[FieldType])
 }
-

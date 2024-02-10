@@ -55,6 +55,11 @@ object Reflect {
 		else constructor
 	}
 
+	def callConstructor[C](clazz: ClassTag[C], args: Any*): C = {
+		val constructor = Reflect.getConstructor(clazz.runtimeClass, args: _*)
+		constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]): _*).asInstanceOf[C]
+	}
+
 	/**
 	 * Returns a method for a given class with the given name
 	 * that takes the specified arguments as parameters.
@@ -100,8 +105,6 @@ object Reflect {
 		else method
 	}
 
-
-
 	def getField[T](clazz: Class[T], fieldName : String): Field = {
 		def getFieldTransitive(clazz: Class[_]): Field = {
 			if (clazz == null) return null
@@ -120,7 +123,6 @@ object Reflect {
 		field
 	}
 
-
 	def getFields[T](clazz: Class[T]): Iterable[Field] = {
 		def getAllFields(clazz: Class[_]): Iterable[Field] = {
 			if (clazz == null) List.empty
@@ -131,7 +133,6 @@ object Reflect {
 
 	private def safeGetClass(a: Any): Class[_] =
 		if (a == null) classOf[Null] else a.getClass
-
 
 	def hasSideEffects[T : ClassTag](methodId : String, args : Seq[Seq[Any]]) : Boolean = {
 		val t = getMethodSideEffects(methodId, args)

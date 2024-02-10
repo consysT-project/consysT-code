@@ -55,7 +55,9 @@ trait CassandraStore extends DistributedStore
 	private[cassandra] val cassandra = new CassandraReplicaAdapter(cassandraSession, timeout)
 	if (initializing) cassandra.setup()
 
-	//This flag states whether the creation should initialize tables etc.
+	/**
+	 * This flag states whether the creation should initialize tables etc.
+ 	 */
 	protected def initializing : Boolean
 
 	override def transaction[U](body : TxContext => Option[U]) : Option[U] = this.synchronized {
@@ -74,7 +76,6 @@ trait CassandraStore extends DistributedStore
 		}
 	}
 
-
 	override def close(): Unit = {
 		super.close()
 		curator.close()
@@ -91,7 +92,6 @@ trait CassandraStore extends DistributedStore
 object CassandraStore {
 
 	case class CassandraStoreId(name : String)
-
 
 	case class AddrNotAvailableException(addr : String) extends Exception(s"address <$addr> not available")
 
@@ -122,5 +122,4 @@ object CassandraStore {
 			initializing = initialize
 		)
 	}
-
 }

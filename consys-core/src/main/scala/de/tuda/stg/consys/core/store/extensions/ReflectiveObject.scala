@@ -45,12 +45,24 @@ abstract class ReflectiveObject[Addr, T : ClassTag] {
 
 		def doGetField[R](fieldName : String) : R = ReflectiveAccess.synchronized {
 			val clazz = state.getClass
-			clazz.getField(fieldName).get(state).asInstanceOf[R]
+
+			// TODO: find cleaner solution
+			val field = clazz.getDeclaredField(fieldName)
+			field.setAccessible(true)
+			field.get(state).asInstanceOf[R]
+
+			//clazz.getField(fieldName).get(state).asInstanceOf[R]
 		}
 
 		def doSetField(fieldName : String, value : Any) : Unit = ReflectiveAccess.synchronized {
 			val clazz = state.getClass
-			clazz.getField(fieldName).set(state, value.asInstanceOf[AnyRef])
+
+			// TODO: find cleaner solution
+			val field = clazz.getDeclaredField(fieldName)
+			field.setAccessible(true)
+			field.set(state, value.asInstanceOf[AnyRef])
+
+			//clazz.getField(fieldName).set(state, value.asInstanceOf[AnyRef])
 		}
 	}
 
