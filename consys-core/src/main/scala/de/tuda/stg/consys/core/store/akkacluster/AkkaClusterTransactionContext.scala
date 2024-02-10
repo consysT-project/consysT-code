@@ -6,10 +6,11 @@ import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperLockingTra
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
+import java.lang.reflect.Field
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-class AkkaClusterTransactionContext(override val store: AkkaClusterStore) extends CachedTransactionContext[AkkaClusterStore]
+class AkkaClusterTransactionContext(override val store: AkkaClusterStore) extends CachedTransactionContext[AkkaClusterStore, Field]
   with CommitableTransactionContext[AkkaClusterStore]
   with ZookeeperLockingTransactionContext[AkkaClusterStore] {
 
