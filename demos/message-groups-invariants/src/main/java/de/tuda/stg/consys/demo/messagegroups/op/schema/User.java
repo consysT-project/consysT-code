@@ -1,4 +1,4 @@
-package de.tuda.stg.consys.demo.messagegroups.schema;
+package de.tuda.stg.consys.demo.messagegroups.op.schema;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.Transactional;

@@ -2,9 +2,9 @@
 //
 //import de.tuda.stg.consys.checker.qual.Strong;
 //import de.tuda.stg.consys.checker.qual.Weak;
-//import de.tuda.stg.consys.demo.messagegroups.schema.Group;
-//import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
-//import de.tuda.stg.consys.demo.messagegroups.schema.User;
+//import de.tuda.stg.consys.demo.messagegroups.op.schema.Group;
+//import de.tuda.stg.consys.demo.messagegroups.op.schema.Inbox;
+//import de.tuda.stg.consys.demo.messagegroups.op.schema.User;
 //import de.tuda.stg.consys.japi.legacy.JConsistencyLevels;
 //import de.tuda.stg.consys.japi.legacy.JRef;
 //import de.tuda.stg.consys.japi.legacy.JReplicaSystem;

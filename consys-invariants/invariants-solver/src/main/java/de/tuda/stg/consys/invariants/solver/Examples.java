@@ -81,6 +81,14 @@ public class Examples {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/tournament/Tournaments.java")
 	};
 
+	public static final Path[] MESSAGE_GROUPS = new Path[] {
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/GCounter.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/messagegroups/UserGSet.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/messagegroups/Inbox.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/messagegroups/User.java"),
+			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/examples/messagegroups/Group.java")
+	};
+
 	public static final Path[] BOUNDED_COUNTER = new Path[] {
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/PNCounter.java"),
 			Paths.get("consys-invariants/invariants-examples/src/main/java/de/tuda/stg/consys/invariants/lib/crdts/BoundedCounter.java"),

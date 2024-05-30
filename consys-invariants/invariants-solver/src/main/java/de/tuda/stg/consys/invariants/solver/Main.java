@@ -38,6 +38,7 @@ public class Main {
 		CASE_STUDIES.put("consensus", Examples.CONSENSUS);
 		CASE_STUDIES.put("distributed_lock", Examples.DISTRIBUTED_LOCK);
 		CASE_STUDIES.put("tournament", Examples.TOURNAMENT);
+		CASE_STUDIES.put("message_groups", Examples.MESSAGE_GROUPS);
 		CASE_STUDIES.put("bounded_counter", Examples.BOUNDED_COUNTER);
 		CASE_STUDIES.put("multi_value_register", Examples.MULTI_VALUE_REGISTER);
 		CASE_STUDIES.put("add_only_graph", Examples.ADD_ONLY_GRAPH);

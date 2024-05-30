@@ -5,9 +5,9 @@ import de.tuda.stg.consys.annotations.Transactional;
 import de.tuda.stg.consys.bench.BenchmarkUtils;
 import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.demo.CassandraDemoBenchmark;
-import de.tuda.stg.consys.demo.messagegroups.schema.Group;
-import de.tuda.stg.consys.demo.messagegroups.schema.Inbox;
-import de.tuda.stg.consys.demo.messagegroups.schema.User;
+import de.tuda.stg.consys.demo.messagegroups.op.schema.Group;
+import de.tuda.stg.consys.demo.messagegroups.op.schema.Inbox;
+import de.tuda.stg.consys.demo.messagegroups.op.schema.User;
 import de.tuda.stg.consys.japi.Ref;
 import scala.Option;
 
