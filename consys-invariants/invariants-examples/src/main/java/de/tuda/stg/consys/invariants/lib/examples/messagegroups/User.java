@@ -2,6 +2,7 @@ package de.tuda.stg.consys.invariants.lib.examples.messagegroups;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 
 import java.io.Serializable;
 
@@ -29,7 +30,7 @@ public class User implements Serializable, Mergeable<User> {
 
     //@ assignable inbox;
     //@ ensures stateful(inbox.add(msg));
-    public Void send(String msg) {
+    @WeakOp  public Void send(String msg) {
         /* Weak */
         inbox.add(msg);
         return null;

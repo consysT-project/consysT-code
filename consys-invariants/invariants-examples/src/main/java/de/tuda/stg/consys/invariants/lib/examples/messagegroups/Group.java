@@ -2,6 +2,8 @@ package de.tuda.stg.consys.invariants.lib.examples.messagegroups;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.invariants.lib.crdts.GCounter;
 import de.tuda.stg.consys.invariants.lib.crdts.GSet;
 
@@ -31,7 +33,7 @@ public class Group implements Serializable, Mergeable<Group> {
 
     //@ assignable \nothing;
     //@ ensures (\forall User user; users.contains(user); stateful(user.send(msg)));
-    public Void addPost(String msg) {
+    @WeakOp  public Void addPost(String msg) {
         /* Weak */
         for (User user : users.getValue()) {
             if (user != null) user.send(msg);
@@ -42,7 +44,7 @@ public class Group implements Serializable, Mergeable<Group> {
     //@ requires counter.getValue() < 100;
     //@ ensures stateful(counter.inc());
     //@ ensures users.contains(user);
-    public Void addUser(User user) {
+    @StrongOp  public Void addUser(User user) {
         /* Strong */
         if (counter.getValue() >= 100)
             throw new IllegalArgumentException();
