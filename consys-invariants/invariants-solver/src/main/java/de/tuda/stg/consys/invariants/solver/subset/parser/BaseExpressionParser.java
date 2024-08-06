@@ -450,6 +450,23 @@ public class BaseExpressionParser extends ExpressionParser {
       var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
       return model.ctx.mkSetSubset(argExpr, receiverExpr);
     }
+
+
+    // java.util.Map
+    else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Map", "put", "java.lang.Object", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var indexExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      var valueExpr = parseExpression(jmlMessageSend.arguments[1], depth + 1);
+      return model.ctx.mkStore(receiverExpr, indexExpr, valueExpr);
+    } else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Map", "get", "java.lang.Object")) {
+      var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
+      var argExpr = parseExpression(jmlMessageSend.arguments[0], depth + 1);
+      return model.ctx.mkSelect(receiverExpr, argExpr);
+    }
+
+
+
+
     // java.util.Collection
     else if (JDTUtils.methodMatchesSignature(receiverBinding, methodBinding, false, "java.util.Collection", "isEmpty")) {
       var receiverExpr = parseExpression(jmlMessageSend.receiver, depth + 1);
