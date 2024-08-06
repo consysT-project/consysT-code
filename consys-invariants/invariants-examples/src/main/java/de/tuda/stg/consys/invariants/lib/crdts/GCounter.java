@@ -20,7 +20,7 @@ import java.io.Serializable;
 
 
     /* Constructors */
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs[i] == 0);
+    //@ ensures (\forall int i; ; incs[i] == 0);
     public GCounter() {
         this.incs = new int[numOfReplicas()];
     }
@@ -28,7 +28,7 @@ import java.io.Serializable;
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int incInd; incInd >= 0 && incInd < numOfReplicas(); incs[incInd]);
+    @ ensures \result == (\sum int incInd; ; incs[incInd]);
     @*/
     @SideEffectFree @WeakOp public int sumIncs() {
         int res = 0;
@@ -40,7 +40,7 @@ import java.io.Serializable;
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
+    @ ensures \result == (\sum int i; ; incs[i]);
     @*/
     @SideEffectFree @WeakOp public int getValue() { return sumIncs(); }
 
@@ -66,8 +66,7 @@ import java.io.Serializable;
 
 
 
-    //@ ensures (\forall int i; i >= 0 && i < numOfReplicas(); (\old(incs[i]) >= other.incs[i] ? incs[i] == \old(incs[i]) : incs[i] == other.incs[i]) );
-    // ensures (\forall int i; i >= 0 && i < numOfReplicas(); incs == ArrayUtils.update(\old(incs), i, \old(incs[i]) >= other.incs[i] ? \old(incs[i]) : other.incs[i]));
+    //@ ensures (\forall int i; ; incs[i] == Math.max(\old(incs[i]), other.incs[i]) );
     public Void merge(GCounter other) {
         for (int i = 0; i < numOfReplicas(); i++) {
             incs[i] = Math.max(incs[i], other.incs[i]);
