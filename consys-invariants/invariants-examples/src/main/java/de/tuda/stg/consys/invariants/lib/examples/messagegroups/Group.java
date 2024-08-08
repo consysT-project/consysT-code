@@ -16,6 +16,9 @@ import java.util.Set;
 
 @ReplicatedModel public class Group implements Mergeable<Group>, Serializable {
 
+    public static final int MAX_USERS = 3;
+    public static final int MAX_USER_ID = 5;
+
     public int[] counter;
     public Map<Integer, Set<String>> inboxes;
 
@@ -55,10 +58,11 @@ import java.util.Set;
     //@ ensures inboxes.get(uid).contains("Welcome to the group!");
     //@ ensures (\forall int otherUser; ; inboxes.get(otherUser) == \old(inboxes).get(otherUser) || otherUser != uid);
     public Void addUser(Integer uid, Set<String> inbox) {
-        if (uid < 0 || uid >= 5) {
+        /* Strong */
+        if (uid < 0 || uid >= MAX_USER_ID) {
             throw new IllegalArgumentException("UserID is not in the expected range");
         }
-        if (getCounterValue() >= 3) {
+        if (getCounterValue() >= MAX_USERS) {
             throw new RuntimeException("Cannot add user: group is already full");
         }
         if (inboxes.containsKey(uid)) {
@@ -78,7 +82,7 @@ import java.util.Set;
     //@ ensures inboxes.get(uid).containsAll(other.inboxes.get(uid));
     //@ ensures (\forall String msg; inboxes.get(uid).contains(msg); \old(inboxes).get(uid).contains(msg) || other.inboxes.get(uid).contains(msg));
     //@ ensures (\forall int otherUser; ; inboxes.get(otherUser) == \old(inboxes).get(otherUser) || otherUser == uid);
-    public Void mergeUserInbox(Integer uid, Group other) {
+    private Void mergeUserInbox(Integer uid, Group other) {
         if (other.inboxes.containsKey(uid)) {
             var otherInbox = other.inboxes.get(uid);
             if (inboxes.containsKey(uid)) inboxes.get(uid).addAll(otherInbox);
@@ -89,6 +93,7 @@ import java.util.Set;
 
     //@ ensures (\forall int uid; !\old(inboxes).get(uid).isEmpty(); inboxes.get(uid).contains(message));
     public Void postMessage(String message) {
+        /* Weak */
         for (var inbox : inboxes.values()) if (!inbox.isEmpty()) inbox.add(message);
         return null;
     }
