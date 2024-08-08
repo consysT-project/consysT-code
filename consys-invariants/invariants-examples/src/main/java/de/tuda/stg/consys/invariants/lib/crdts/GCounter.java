@@ -30,7 +30,7 @@ import java.io.Serializable;
     @ assignable \nothing;
     @ ensures \result == (\sum int incInd; ; incs[incInd]);
     @*/
-    @SideEffectFree @WeakOp public int sumIncs() {
+    public int sumIncs() {
         int res = 0;
         for (int inc : incs) {
             res += inc;
@@ -40,15 +40,14 @@ import java.io.Serializable;
 
     /*@
     @ assignable \nothing;
-    @ ensures \result == (\sum int i; ; incs[i]);
+    @ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); incs[i]);
     @*/
-    @SideEffectFree @WeakOp public int getValue() { return sumIncs(); }
+    public int getValue() { return sumIncs(); }
 
     /*@
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + 1;
     @*/
-    @WeakOp
     public Void inc() {
         incs[replicaId()] = incs[replicaId()] + 1;
         return null;
@@ -59,7 +58,7 @@ import java.io.Serializable;
     @ assignable incs[replicaId()];
     @ ensures incs[replicaId()] == \old(incs[replicaId()]) + n;
     @*/
-    @WeakOp public Void inc(int n) {
+    public Void inc(int n) {
         incs[replicaId()] = incs[replicaId()] + n;
         return null;
     }

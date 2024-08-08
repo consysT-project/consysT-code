@@ -18,6 +18,7 @@ import org.eclipse.jdt.internal.compiler.ast.Expression;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.jmlspecs.jml4.ast.JmlTypeDeclaration;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -134,12 +135,15 @@ public class BaseClassConstraints<CModel extends BaseClassModel> {
 				// Parse the postcondition from JML @ensures specification
 				var parser = new MethodPostconditionExpressionParser(model, classModel, methodModel, thisConst, oldConst, resultConst);
 
+				Logger.info("[" + methodModel.getName() + "] JML post condition: " + methodModel.getJmlPostcondition());
+
 				var jmlConds = splitAndExpression(methodModel.getJmlPostcondition().orElse(null));
 
 				Expr[] exprs = new Expr[jmlConds.length + 1];
 				for (int i = 0; i < jmlConds.length; i++) {
 					var e = parser.parseExpression(jmlConds[i]);
 					exprs[i + 1] = e;
+					Logger.info("[" + methodModel.getName() + "] Found post condition: " + e + " for jml: " + jmlConds[i]);
 				}
 
 				// Parse the assignable clause

@@ -4,6 +4,7 @@ import com.microsoft.z3.Expr;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.solver.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
+import de.tuda.stg.consys.logging.Logger;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 
 import java.util.List;
@@ -56,35 +57,34 @@ public class BaseClassProperties<CModel extends BaseClassModel, CConstraints ext
 		var returnSort = constraints.getClassModel().getMethod(binding).get().getReturnType().toSort();
 		Expr[] forallArgs;
 		Expr ret = null;
-			if (model.types.voidType().toSort().equals(returnSort)) {
+		if (model.types.voidType().toSort().equals(returnSort)) {
 			forallArgs = new Expr[] {s0, s0_new};
 		} else {
 			ret = model.ctx.mkFreshConst("ret", returnSort);
 			forallArgs = new Expr[] {s0, s0_new, ret};
 		}
 
-		var result = new MethodProperty("(i1) invariant/method",
-				binding,
-				model.ctx.mkForall(
-						forallArgs,
-						model.ctx.mkImplies(
-								model.ctx.mkAnd(
-										constraints.getInvariant().apply(s0),
-										constraints.getFieldInvariant().apply(s0),
-										constraints.getPrecondition(binding).apply(s0),
-										constraints.getPostcondition(binding).apply(s0, s0_new, ret)
-								),
-								constraints.getInvariant().apply(s0_new)
+		var expr = model.ctx.mkForall(
+				forallArgs,
+				model.ctx.mkImplies(
+						model.ctx.mkAnd(
+								constraints.getInvariant().apply(s0),
+								constraints.getFieldInvariant().apply(s0),
+								constraints.getPrecondition(binding).apply(s0),
+								constraints.getPostcondition(binding).apply(s0, s0_new, ret)
 						),
-						1,
-						null,
-						null,
-						null,
-						null
-				)
+						constraints.getInvariant().apply(s0_new)
+				),
+				1,
+				null,
+				null,
+				null,
+				null
 		);
 
-		return result;
+		Logger.info("(i1) invariant/method <" + String.valueOf(binding.shortReadableName()) + "> expression is:\n" + expr);
+
+		return new MethodProperty("(i1) invariant/method", binding, expr);
 	}
 
 

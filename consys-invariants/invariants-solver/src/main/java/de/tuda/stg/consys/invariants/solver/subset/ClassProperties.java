@@ -1,10 +1,7 @@
 package de.tuda.stg.consys.invariants.solver.subset;
 
 import com.google.common.collect.Lists;
-import com.microsoft.z3.BoolSort;
-import com.microsoft.z3.Expr;
-import com.microsoft.z3.Model;
-import com.microsoft.z3.Status;
+import com.microsoft.z3.*;
 import de.tuda.stg.consys.invariants.solver.subset.constraints.BaseClassConstraints;
 import de.tuda.stg.consys.invariants.solver.subset.model.BaseClassModel;
 import de.tuda.stg.consys.invariants.solver.subset.model.ProgramModel;
@@ -47,6 +44,10 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 	private CheckStatus isValid(Model z3Model, Expr<BoolSort> expr) {
 		// a property is valid if the inverse is unsatisfiable.
+		Logger.info("Checking expression:\n" + expr);
+		// Params p = model.ctx.mkParams();
+		// p.add("timeout", 10000); /* "SOFT_TIMEOUT" or ":timeout"? */
+		// model.solver.setParameters(p);
 		Status status = model.solver.check(
 				//create the inverse
 				model.ctx.mkNot(expr)
@@ -54,13 +55,15 @@ public abstract class ClassProperties<CModel extends BaseClassModel, CConstraint
 
 		switch (status) {
 			case UNSATISFIABLE:
-//				Logger.info(Arrays.toString(model.solver.getUnsatCore()));
+				Logger.info(model.solver.getUnsatCore());
+				Logger.info("z3 verified it");
 				return CheckStatus.VALID;
 			case SATISFIABLE:
 //				Logger.info(model.solver.getModel());
+				Logger.info("z3 found a counter-example:\n" + model.solver.getModel());
 				return CheckStatus.INVALID;
 			case UNKNOWN:
-				Logger.info("z3 was not able to solve the following expression. Reason: " + model.solver.getReasonUnknown() + "\n" + expr);
+				Logger.info("z3 was not able to solve it. Reason: " + model.solver.getReasonUnknown());
 				return CheckStatus.UNKNOWN;
 			default:
 				//Does not exist
