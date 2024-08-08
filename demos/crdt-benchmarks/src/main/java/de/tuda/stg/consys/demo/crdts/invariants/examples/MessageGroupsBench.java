@@ -25,9 +25,9 @@ public class MessageGroupsBench extends CRDTBenchRunnable<Group> {
 
 	private static String randStr(Random rand) {
 		int len = rand.nextInt(10);
-		String s = "";
-		for (int i=0; i<len; i++) s += (char) (97+rand.nextInt(24));
-		return s;
+		StringBuilder s = new StringBuilder();
+		for (int i=0; i<len; i++) s.append((char) (97+rand.nextInt(24)));
+		return s.toString();
 	}
 
 	private static Set<String> randInbox(Random rand) {
