@@ -11,11 +11,11 @@ mvn install -DskipTests
 
 # Install cassandra
 cd ~
-wget https://dlcdn.apache.org/cassandra/4.0.7/apache-cassandra-4.0.7-bin.tar.gz
+wget https://archive.apache.org/dist/cassandra/4.0.7/apache-cassandra-4.0.7-bin.tar.gz
 tar -xf apache-cassandra-4.0.7-bin.tar.gz
 cd apache-cassandra-4.0.7
 # nano conf/cassandra.yaml  OR
-cp ~/consysT-code/aws/config/cassandra/cassandra01.yaml conf/cassandra.yaml
+cp ~/consysT-code/aws/config-01/cassandra/cassandra01.yaml conf/cassandra.yaml
 ./bin/cassandra
 ./bin/nodetool status        
 
@@ -36,7 +36,7 @@ endpoint_snitch: Ec2Snitch
 
 # Installing Zookeeper
 cd ~
-wget https://dlcdn.apache.org/zookeeper/zookeeper-3.8.3/apache-zookeeper-3.8.3-bin.tar.gz
+wget https://archive.apache.org/dist/zookeeper/zookeeper-3.8.3/apache-zookeeper-3.8.3-bin.tar.gz
 tar -xf apache-zookeeper-3.8.3-bin.tar.gz
 cd apache-zookeeper-3.8.3-bin
 mkdir logs
@@ -57,7 +57,7 @@ bin/zkServer.sh status
 # Configuring zoo.cfg
 clientPort=2181 (Replace last digit with myid, e.g., 2183 for node with id 3)
 
-dataDir=~/apache-zookeeper-3.8.0-bin/data
+dataDir=/home/ubuntu/apache-zookeeper-3.8.3-bin/data
 
 # Servers
 server.1=172.31.17.46:2888:3888
