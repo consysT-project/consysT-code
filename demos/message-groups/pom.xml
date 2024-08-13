@@ -63,6 +63,18 @@
                 <version>${plugins.shade.version}</version>
                 <executions>
                     <execution>
+                        <id>service-resources</id>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+
+                    <execution>
                         <id>add-meta-inf</id>
                         <phase>package</phase>
                         <goals>
