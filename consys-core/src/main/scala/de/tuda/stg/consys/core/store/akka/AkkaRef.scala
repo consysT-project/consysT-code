@@ -9,7 +9,7 @@ case class AkkaRef[T <: AkkaStore#ObjType : ClassTag](
   level : AkkaStore#Level
 ) extends Ref[AkkaStore, T] with java.io.Serializable {
 
-  def resolve(tx : AkkaTransactionContext) : AkkaStore#HandlerType[T] =
+  def resolve(tx : AkkaStore#TxContext) : AkkaStore#HandlerType[T] =
     new AkkaHandler(tx, this)
 
   /* This method is for convenience use in transactions or when TxContext is not passed around */

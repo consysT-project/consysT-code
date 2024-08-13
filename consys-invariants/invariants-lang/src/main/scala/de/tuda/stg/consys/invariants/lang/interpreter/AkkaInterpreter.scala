@@ -16,7 +16,7 @@ object AkkaInterpreter extends Interpreter {
 
 
   override type Store = AkkaStore
-  override type TxContext = AkkaTransactionContext
+  override type TxContext = AkkaTransactionContext[_ <: AkkaStore]
 
 
   override def interpStmt(ct : ClassTable, env : VarEnv, txContext : TxContext, stmt : Statement) : (Val, TxContext) = stmt match {

@@ -106,6 +106,12 @@
             <artifactId>curator-framework</artifactId>
         </dependency>
 
+        <!-- Dependencies for jetcd -->
+        <dependency>
+            <groupId>io.etcd</groupId>
+            <artifactId>jetcd-core</artifactId>
+        </dependency>
+
         <!-- utilities -->
         <dependency>
             <groupId>commons-cli</groupId>

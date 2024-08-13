@@ -3,6 +3,7 @@ package de.tuda.stg.consys.integrationtest;
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
 import de.tuda.stg.consys.checker.qual.Mixed;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -47,7 +48,7 @@ public class MixedExample {
 
     static class Process1 implements Runnable {
         CassandraStoreBinding store =
-                CassandraReplica.create("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true);
+                CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181), Duration.apply(60, "s"), true);
 
         @Override
         public void run() {
@@ -88,7 +89,7 @@ public class MixedExample {
 
     static class Process2 implements Runnable {
         CassandraStoreBinding store =
-                CassandraReplica.create("127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false);
+                CassandraReplica.create("127.0.0.2", 9042, new CoordinationMechanism.Zookeeper(2182), Duration.apply(60, "s"), false);
 
         @Override
         public void run() {

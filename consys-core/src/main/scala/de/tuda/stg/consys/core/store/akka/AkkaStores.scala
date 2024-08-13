@@ -4,9 +4,10 @@ import scala.util.DynamicVariable
 
 object AkkaStores {
 
-	private[akka] val currentTransaction : DynamicVariable[AkkaTransactionContext] = new DynamicVariable[AkkaTransactionContext](null)
+	private[akka] val currentTransaction : DynamicVariable[AkkaStore#TxContext] =
+		new DynamicVariable[AkkaStore#TxContext](null)
 
-	def getCurrentTransaction : Option[AkkaTransactionContext] = {
+	def getCurrentTransaction : Option[AkkaStore#TxContext] = {
 		Option(currentTransaction.value)
 	}
 }

@@ -2,6 +2,7 @@ package de.tuda.stg.consys.demo.twitterclone;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Counter;
 import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.Tweet;
 import de.tuda.stg.consys.demo.twitterclone.schema.datacentric.User;
@@ -70,7 +71,7 @@ public class JMHBenchmark {
             /* Initialize replicas */
             System.out.println("Initialize replicas...");
             for (int i = 0; i < NUM_OF_REPLICAS; i++)
-                replicaSystems[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, 2181,
+                replicaSystems[i] = CassandraReplica.create("127.0.0." + (i+1), 9042, new CoordinationMechanism.Zookeeper(2181),
                         Duration.apply(100, "ms"), i == 0);
 
             System.out.println("Adding users");

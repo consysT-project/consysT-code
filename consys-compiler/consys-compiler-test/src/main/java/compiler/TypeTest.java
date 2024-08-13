@@ -1,5 +1,6 @@
 package compiler;
 
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
@@ -13,7 +14,7 @@ public class TypeTest implements Serializable {
     public int x = 0;
 
     public static void main(String[] args) throws Exception {
-        CassandraStoreBinding r0 = CassandraReplica.create("127.0.0.1", 9042, 2181,
+        CassandraStoreBinding r0 = CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181),
                 Duration.apply(60000L, "ms"), true);
 
         r0.transaction(ctx -> {

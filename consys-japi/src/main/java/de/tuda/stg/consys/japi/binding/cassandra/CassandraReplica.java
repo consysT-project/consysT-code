@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.japi.binding.cassandra;
 
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.cassandra.*;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -10,13 +11,13 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public class CassandraReplica {
 
-	public static CassandraStoreBinding create(String host, int cassandraPort, int zookeeperPort, String datacenter, FiniteDuration withTimeout, boolean withInitialize) {
-		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, zookeeperPort, datacenter, withTimeout, withInitialize);
+	public static CassandraStoreBinding create(String host, int cassandraPort, CoordinationMechanism coordinationMechanism, String datacenter, FiniteDuration withTimeout, boolean withInitialize) {
+		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, coordinationMechanism, datacenter, withTimeout, withInitialize);
 		return new CassandraStoreBinding(store);
 	}
 
-	public static CassandraStoreBinding create(String host, int cassandraPort, int zookeeperPort, FiniteDuration withTimeout, boolean withInitialize) {
-		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, zookeeperPort, "OSS-dc0", withTimeout, withInitialize);
+	public static CassandraStoreBinding create(String host, int cassandraPort, CoordinationMechanism coordinationMechanism, FiniteDuration withTimeout, boolean withInitialize) {
+		CassandraStore store = CassandraStore.fromAddress(host, cassandraPort, coordinationMechanism, "OSS-dc0", withTimeout, withInitialize);
 		return new CassandraStoreBinding(store);
 	}
 

@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 import de.tuda.stg.consys.bench.legacy.DistributedBenchmark;
 import de.tuda.stg.consys.bench.OutputResolver;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -38,7 +39,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			CassandraStoreBinding store = null;
 
 			if ((int)processId == 0) {
-				store = CassandraReplica.create(address.hostname(), address.port1(), address.port2(),
+				store = CassandraReplica.create(address.hostname(), address.port1(), new CoordinationMechanism.Zookeeper(address.port2()),
 						Duration.apply(msTimeout, "ms"), true);
 			}
 
@@ -50,7 +51,7 @@ public abstract class CassandraDemoBenchmark extends DistributedBenchmark<Cassan
 			}
 
 			if ((int)processId != 0) {
-				store = CassandraReplica.create(address.hostname(), address.port1(), address.port2(),
+				store = CassandraReplica.create(address.hostname(), address.port1(), new CoordinationMechanism.Zookeeper(address.port2()),
 						Duration.apply(msTimeout, "ms"), false);
 			}
 

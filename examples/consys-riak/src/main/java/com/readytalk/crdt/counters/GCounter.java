@@ -11,7 +11,7 @@ import javax.annotation.Nonnegative;
 import javax.inject.Inject;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.readytalk.crdt.AbstractCRDT;
@@ -96,7 +96,7 @@ import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
 		retmap.putAll(payload);
 
 		for (Map.Entry<String, BigInteger> o : other.payload.entrySet()) {
-			BigInteger value = Objects.firstNonNull(retmap.get(o.getKey()), BigInteger.ZERO);
+			BigInteger value = MoreObjects.firstNonNull(retmap.get(o.getKey()), BigInteger.ZERO);
 
 			retmap.put(o.getKey(), o.getValue().max(value));
 		}

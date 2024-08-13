@@ -2,6 +2,7 @@ package de.tuda.stg.consys.integrationtest;
 
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.Store;
@@ -79,8 +80,8 @@ public class Demo {
 
         CassandraRunner() {
             super(
-                CassandraReplica.create("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true),
-                CassandraReplica.create("127.0.0.2", 9042, 2182, Duration.apply(60, "s"), false)
+                CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181), Duration.apply(60, "s"), true),
+                CassandraReplica.create("127.0.0.2", 9042, new CoordinationMechanism.Zookeeper(2182), Duration.apply(60, "s"), false)
             );
         }
 

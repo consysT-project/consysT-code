@@ -3,6 +3,7 @@ package de.tuda.stg.consys.japi;
 import com.google.common.collect.Sets;
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.japi.binding.akka.AkkaReplica;
 import de.tuda.stg.consys.japi.binding.akka.AkkaStoreBinding;
@@ -44,11 +45,11 @@ public class AkkaDemo {
 		ConsistencyLevel<AkkaStore> exampleConsistency = STRONG;
 
 		AkkaStoreBinding replica1 = AkkaReplica.create(
-			"127.0.0.1", 4445, 2181
+			"127.0.0.1", 4445, new CoordinationMechanism.Zookeeper(2181)
 		);
 
 		AkkaStoreBinding replica2 = AkkaReplica.create(
-			"127.0.0.2", 4446, 2182
+			"127.0.0.2", 4446, new CoordinationMechanism.Zookeeper(2182)
 		);
 
 

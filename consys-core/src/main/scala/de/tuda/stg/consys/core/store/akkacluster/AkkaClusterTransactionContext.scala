@@ -2,7 +2,7 @@ package de.tuda.stg.consys.core.store.akkacluster
 
 import de.tuda.stg.consys.core.store.akka.levels.Strong
 import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter.{CreateOrUpdateObject, TransactionOp}
-import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperLockingTransactionContext
+import de.tuda.stg.consys.core.store.extensions.coordination.LockingTransactionContext
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -10,15 +10,15 @@ import java.lang.reflect.Field
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-class AkkaClusterTransactionContext(override val store: AkkaClusterStore) extends CachedTransactionContext[AkkaClusterStore, Field]
-  with CommitableTransactionContext[AkkaClusterStore]
-  with ZookeeperLockingTransactionContext[AkkaClusterStore] {
+abstract class AkkaClusterTransactionContext[StoreType <: AkkaClusterStore](override val store: StoreType) extends CachedTransactionContext[StoreType, Field]
+  with CommitableTransactionContext[StoreType]
+  with LockingTransactionContext[StoreType] {
 
-  override type CachedType[T <: AkkaClusterStore#ObjType] = AkkaClusterCachedObject[T]
+  override type CachedType[T <: StoreType#ObjType] = AkkaClusterCachedObject[T]
 
 
 
-  override def replicate[T <: AkkaClusterStore#ObjType : ClassTag](addr: AkkaClusterStore#Addr, level: AkkaClusterStore#Level, constructorArgs: Any*): AkkaClusterStore#RefType[T] = {
+  override def replicate[T <: StoreType#ObjType : ClassTag](addr: StoreType#Addr, level: StoreType#Level, constructorArgs: Any*): StoreType#RefType[T] = {
     def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
       val constructor = Reflect.getConstructor(clazz.runtimeClass, args : _*)
       constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]

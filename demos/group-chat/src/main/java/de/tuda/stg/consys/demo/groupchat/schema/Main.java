@@ -4,6 +4,7 @@ import de.tuda.stg.consys.checker.qual.Immutable;
 import de.tuda.stg.consys.checker.qual.Mutable;
 import de.tuda.stg.consys.checker.qual.Strong;
 import de.tuda.stg.consys.checker.qual.Weak;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.demo.groupchat.schema.bank.BankAccount;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraConsistencyLevels;
@@ -18,7 +19,7 @@ public class Main {
         System.out.println("0");
 
         CassandraStoreBinding store =
-                CassandraReplica.create("127.0.0.1", 9042, 2181, Duration.apply(60, "s"), true);
+                CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181), Duration.apply(60, "s"), true);
 
         System.out.println("1");
 

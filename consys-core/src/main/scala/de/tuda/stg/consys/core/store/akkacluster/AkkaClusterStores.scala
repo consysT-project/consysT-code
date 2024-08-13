@@ -4,9 +4,9 @@ import scala.util.DynamicVariable
 
 object AkkaClusterStores {
 
-	private[akkacluster] val currentTransaction : DynamicVariable[AkkaClusterTransactionContext] = new DynamicVariable[AkkaClusterTransactionContext](null)
+	private[akkacluster] val currentTransaction : DynamicVariable[AkkaClusterStore#TxContext] = new DynamicVariable[AkkaClusterStore#TxContext](null)
 
-	def getCurrentTransaction : Option[AkkaClusterTransactionContext] = {
+	def getCurrentTransaction : Option[AkkaClusterStore#TxContext] = {
 		Option(currentTransaction.value)
 	}
 }

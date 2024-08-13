@@ -2,6 +2,7 @@ package de.tuda.stg.consys.core.demo
 
 import de.tuda.stg.consys.Mergeable
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
+import de.tuda.stg.consys.core.store.CoordinationMechanism
 import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterStore
 import de.tuda.stg.consys.core.store.akkacluster.level.{Mixed, Strong, Weak}
 import de.tuda.stg.consys.core.store.utils.SinglePortAddress
@@ -38,7 +39,7 @@ object AkkaClusterDemo {
 
 		exec.submit(new Runnable {
 			override def run() : Unit = {
-				val store1 = AkkaClusterStore.fromAddress("127.0.0.1", 4445, 2181, nodes)
+				val store1 = AkkaClusterStore.fromAddress("127.0.0.1", 4445, CoordinationMechanism.Zookeeper(2181), nodes)
 
 				store1.transaction(ctx => {
 					val s1 = ctx.replicate[MergeableSet]("set1", Mixed)
@@ -63,7 +64,7 @@ object AkkaClusterDemo {
 
 		exec.submit(new Runnable {
 			override def run() : Unit = {
-				val store2 = AkkaClusterStore.fromAddress("127.0.0.2", 4446, 2182, nodes)
+				val store2 = AkkaClusterStore.fromAddress("127.0.0.2", 4446, CoordinationMechanism.Zookeeper(2182), nodes)
 
 				store2.transaction(ctx => {
 					val s1 = ctx.replicate[MergeableSet]("set1", Mixed)

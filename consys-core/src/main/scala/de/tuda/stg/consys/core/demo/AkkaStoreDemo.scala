@@ -1,7 +1,7 @@
 package de.tuda.stg.consys.core.store.akka
 
 import de.tuda.stg.consys.Mergeable
-import de.tuda.stg.consys.core.store.ConsistencyLevel
+import de.tuda.stg.consys.core.store.{ConsistencyLevel, CoordinationMechanism}
 import de.tuda.stg.consys.core.store.akka.levels.{Strong, Weak}
 import org.checkerframework.dataflow.qual.SideEffectFree
 
@@ -34,8 +34,8 @@ object AkkaStoreDemo {
 
 		val exampleConsistency : ConsistencyLevel[AkkaStore] = Strong
 
-		val store1 = AkkaStore.fromAddress("127.0.0.1", 4445, 2181)
-		val store2 = AkkaStore.fromAddress("127.0.0.2", 4446, 2182)
+		val store1 = AkkaStore.fromAddress("127.0.0.1", 4445, CoordinationMechanism.Zookeeper(2181))
+		val store2 = AkkaStore.fromAddress("127.0.0.2", 4446, CoordinationMechanism.Zookeeper(2182))
 
 		store1.replica.addOtherReplica(store2.getAddress)
 		store2.replica.addOtherReplica(store1.getAddress)

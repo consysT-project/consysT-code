@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.bench
 
 import com.typesafe.config.Config
+import de.tuda.stg.consys.core.store.CoordinationMechanism
 import de.tuda.stg.consys.core.store.akka.AkkaStore
 import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterStore
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore
@@ -26,7 +27,7 @@ object BenchmarkStoreFactory {
 		val store = AkkaStore.fromAddress(
 			host = address.hostname,
 			akkaPort = address.port1,
-			zookeeperPort = address.port2,
+			coordinationMechanism = CoordinationMechanism.ETCD(address.port2),
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout"))
 		)
 
@@ -49,7 +50,7 @@ object BenchmarkStoreFactory {
 		val store = AkkaClusterStore.fromAddress(
 			host = address.hostname,
 			akkaPort = address.port1,
-			zookeeperPort = address.port2,
+			coordinationMechanism = CoordinationMechanism.ETCD(address.port2),
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akkacluster.timeout")),
 			nodes = akkaReplicas
 		)
@@ -64,7 +65,7 @@ object BenchmarkStoreFactory {
 			CassandraStore.fromAddress(
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
-				zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
+				coordinationMechanism = CoordinationMechanism.ETCD(config.getInt("consys.bench.cassandra.zookeeperPort")),
 				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = true
@@ -74,7 +75,7 @@ object BenchmarkStoreFactory {
 			CassandraStore.fromAddress(
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
-				zookeeperPort = config.getInt("consys.bench.cassandra.zookeeperPort"),
+				coordinationMechanism = CoordinationMechanism.ETCD(config.getInt("consys.bench.cassandra.zookeeperPort")),
 				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = false

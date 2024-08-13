@@ -5,7 +5,7 @@ import de.tuda.stg.consys.core.store.akka.backend.AkkaObject
 import de.tuda.stg.consys.core.store.akka.backend.AkkaReplicaAdapter.{CreateOrUpdateObject, TransactionOp}
 import de.tuda.stg.consys.core.store.akka.levels.Strong
 import de.tuda.stg.consys.core.store.extensions.ReflectiveObject
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext, ZookeeperLockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.coordination.LockingTransactionContext
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -13,15 +13,15 @@ import java.lang.reflect.Field
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransactionContext[AkkaStore, Field]
-  with CommitableTransactionContext[AkkaStore]
-  with ZookeeperLockingTransactionContext[AkkaStore] {
+abstract class AkkaTransactionContext[StoreType <: AkkaStore](override val store: StoreType) extends CachedTransactionContext[StoreType, Field]
+  with CommitableTransactionContext[StoreType]
+  with LockingTransactionContext[StoreType] {
 
-  override type CachedType[T <: AkkaStore#ObjType] = AkkaCachedObject[T]
+  override type CachedType[T <: StoreType#ObjType] = AkkaCachedObject[T]
 
 
 
-  override def replicate[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr, level: AkkaStore#Level, constructorArgs: Any*): AkkaStore#RefType[T] = {
+  override def replicate[T <: StoreType#ObjType : ClassTag](addr: StoreType#Addr, level: StoreType#Level, constructorArgs: Any*): StoreType#RefType[T] = {
     def callConstructor[C](clazz : ClassTag[C], args : Any*) : C = {
       val constructor = Reflect.getConstructor(clazz.runtimeClass, args : _*)
       constructor.newInstance(args.map(e => e.asInstanceOf[AnyRef]) : _*).asInstanceOf[C]
@@ -36,7 +36,7 @@ class AkkaTransactionContext(override val store: AkkaStore) extends CachedTransa
     ref
   }
 
-  override def lookup[T <: AkkaStore#ObjType : ClassTag](addr: AkkaStore#Addr, level: AkkaStore#Level): AkkaStore#RefType[T] = {
+  override def lookup[T <: StoreType#ObjType : ClassTag](addr: StoreType#Addr, level: StoreType#Level): StoreType#RefType[T] = {
     val protocol = level.toProtocol(store)
     val ref = protocol.lookup[T](this, addr)
     ref

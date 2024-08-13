@@ -30,7 +30,7 @@ object AkkaClusterReplicaAdapter {
 }
 
 //TODO: Implement support for mergeable objects.
-class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
+class AkkaClusterReplicaAdapter(val system : ExtendedActorSystem, val timeout : FiniteDuration) {
 
 	implicit val node: SelfUniqueAddress = DistributedData(system).selfUniqueAddress
 	node.hashCode()

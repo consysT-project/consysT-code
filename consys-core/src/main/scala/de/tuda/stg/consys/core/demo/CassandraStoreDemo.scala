@@ -1,8 +1,10 @@
 package de.tuda.stg.consys.core.demo
 
 import de.tuda.stg.consys.annotations.methods.{StrongOp, WeakOp}
+import de.tuda.stg.consys.core.store.CoordinationMechanism
 import de.tuda.stg.consys.core.store.cassandra.levels.{Mixed, Strong, Weak}
 import de.tuda.stg.consys.core.store.cassandra.{CassandraRef, CassandraStore}
+
 import java.util.concurrent.Executors
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -15,9 +17,9 @@ import scala.util.{Failure, Success}
  */
 object CassandraStoreDemo extends App {
 
-	val store1 = CassandraStore.fromAddress("127.0.0.1", 9042, 2181, timeout = Duration(60, "s"), initialize = true)
-	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, 2182, timeout = Duration(60, "s"))
-	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, 2183, timeout = Duration(60, "s"))
+	val store1 = CassandraStore.fromAddress("127.0.0.1", 9042, CoordinationMechanism.Zookeeper(2181), timeout = Duration(60, "s"), initialize = true)
+	val store2 = CassandraStore.fromAddress("127.0.0.2", 9042, CoordinationMechanism.Zookeeper(2182), timeout = Duration(60, "s"))
+	val store3 = CassandraStore.fromAddress("127.0.0.3", 9042, CoordinationMechanism.Zookeeper(2183), timeout = Duration(60, "s"))
 
 	val level = Weak
 

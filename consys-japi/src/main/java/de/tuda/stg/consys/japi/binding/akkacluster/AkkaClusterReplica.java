@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.japi.binding.akkacluster;
 
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.core.store.akkacluster.AkkaClusterStore;
 import de.tuda.stg.consys.core.store.utils.SinglePortAddress;
@@ -18,13 +19,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class AkkaClusterReplica {
 
-	public static AkkaClusterStoreBinding create(String host, int akkaPort, int zookeeperPort, FiniteDuration timeout, Iterable<SinglePortAddress> nodes) {
-		AkkaClusterStore store = AkkaClusterStore.fromAddress(host, akkaPort, zookeeperPort, CollectionConverters.asScala(nodes), "consys-akka-cluster", timeout);
+	public static AkkaClusterStoreBinding create(String host, int akkaPort, CoordinationMechanism coordinationMechanism, FiniteDuration timeout, Iterable<SinglePortAddress> nodes) {
+		AkkaClusterStore store = AkkaClusterStore.fromAddress(host, akkaPort, coordinationMechanism, CollectionConverters.asScala(nodes), "consys-akka-cluster", timeout);
 		return create(store);
 	}
 
-	public static AkkaClusterStoreBinding create(String host, int akkaPort, int zookeeperPort, Iterable<SinglePortAddress> nodes) {
-		return create(host, akkaPort, zookeeperPort, Duration.apply(30, TimeUnit.SECONDS), nodes);
+	public static AkkaClusterStoreBinding create(String host, int akkaPort, CoordinationMechanism coordinationMechanism, Iterable<SinglePortAddress> nodes) {
+		return create(host, akkaPort, coordinationMechanism, Duration.apply(30, TimeUnit.SECONDS), nodes);
 	}
 
 	public static AkkaClusterStoreBinding create(AkkaClusterStore store) {

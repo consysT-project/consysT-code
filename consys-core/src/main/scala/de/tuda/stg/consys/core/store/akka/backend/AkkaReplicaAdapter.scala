@@ -22,7 +22,7 @@ import scala.concurrent.{Await, Future, TimeoutException}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
-private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val curator : CuratorFramework, val timeout : FiniteDuration) {
+private[akka] class AkkaReplicaAdapter(val system : ActorSystem, val timeout : FiniteDuration) {
 
 	val replicaActor : ActorRef = system.actorOf(Props.apply(classOf[ReplicaActor], timeout), AkkaStore.DEFAULT_ACTOR_NAME)
 

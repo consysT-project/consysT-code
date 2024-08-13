@@ -1,5 +1,6 @@
 package de.tuda.stg.consys.japi.binding.akka;
 
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.akka.AkkaStore;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -15,13 +16,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class AkkaReplica {
 
-	public static AkkaStoreBinding create(String host, int akkaPort, int zookeeperPort, FiniteDuration timeout) {
-		AkkaStore store = AkkaStore.fromAddress(host, akkaPort, zookeeperPort, timeout);
+	public static AkkaStoreBinding create(String host, int akkaPort, CoordinationMechanism coordinationMechanism, FiniteDuration timeout) {
+		AkkaStore store = AkkaStore.fromAddress(host, akkaPort, coordinationMechanism, timeout);
 		return new AkkaStoreBinding(store);
 	}
 
-	public static AkkaStoreBinding create(String host, int akkaPort, int zookeeperPort) {
-		AkkaStore store = AkkaStore.fromAddress(host, akkaPort, zookeeperPort, Duration.apply(30, TimeUnit.SECONDS));
+	public static AkkaStoreBinding create(String host, int akkaPort, CoordinationMechanism coordinationMechanism) {
+		AkkaStore store = AkkaStore.fromAddress(host, akkaPort, coordinationMechanism, Duration.apply(30, TimeUnit.SECONDS));
 		return new AkkaStoreBinding(store);
 	}
 

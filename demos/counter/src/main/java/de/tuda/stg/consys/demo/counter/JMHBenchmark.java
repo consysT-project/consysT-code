@@ -1,6 +1,7 @@
 package de.tuda.stg.consys.demo.counter;
 
 import de.tuda.stg.consys.core.store.ConsistencyLevel;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.core.store.cassandra.CassandraStore;
 import de.tuda.stg.consys.demo.counter.schema.Counter;
 import de.tuda.stg.consys.japi.Ref;
@@ -52,11 +53,11 @@ public class JMHBenchmark {
 		public void systemSetup() throws Exception {
 
 			CassandraStoreBinding[] systems = {
-					CassandraReplica.create("127.0.0.1", 9042, 2181,
+					CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181),
 							Duration.apply(50, "ms"), true),
-					CassandraReplica.create("127.0.0.2", 9042, 2181,
+					CassandraReplica.create("127.0.0.2", 9042, new CoordinationMechanism.Zookeeper(2181),
 							Duration.apply(50, "ms"), false),
-					CassandraReplica.create("127.0.0.3", 9042, 2181,
+					CassandraReplica.create("127.0.0.3", 9042, new CoordinationMechanism.Zookeeper(2181),
 							Duration.apply(50, "ms"), false),
 
 			};

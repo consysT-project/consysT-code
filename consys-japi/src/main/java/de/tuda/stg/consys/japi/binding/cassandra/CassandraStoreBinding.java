@@ -19,7 +19,7 @@ public class CassandraStoreBinding implements Store<String, Serializable, Consis
 
     @Override
     public <U> Option<U> transaction(Transaction<CassandraTransactionContextBinding, U, String, Serializable, ConsistencyLevel<CassandraStore>> tx) {
-        return store.transaction((Function1<CassandraTransactionContext, Option<U>>) v1 -> tx.doTransaction(new CassandraTransactionContextBinding(v1)));
+        return store.transaction((Function1<CassandraTransactionContext<? extends CassandraStore>, Option<U>>) v1 -> tx.doTransaction(new CassandraTransactionContextBinding(v1)));
     }
 
     @Override

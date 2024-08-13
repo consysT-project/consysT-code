@@ -1,5 +1,6 @@
 import de.tuda.stg.consys.annotations.methods.StrongOp;
 import de.tuda.stg.consys.annotations.methods.WeakOp;
+import de.tuda.stg.consys.core.store.CoordinationMechanism;
 import de.tuda.stg.consys.japi.Ref;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraReplica;
 import de.tuda.stg.consys.japi.binding.cassandra.CassandraStoreBinding;
@@ -39,11 +40,11 @@ public class BoxTest {
     private static final int msReplicaTimeout = 60000;
 
     public static void main(String[] args) throws Exception {
-        r0 = CassandraReplica.create("127.0.0.1", 9042, 2181, "datacenter1",
+        r0 = CassandraReplica.create("127.0.0.1", 9042, new CoordinationMechanism.Zookeeper(2181), "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), true);
-        r1 = CassandraReplica.create("127.0.0.2", 9042, 2182, "datacenter1",
+        r1 = CassandraReplica.create("127.0.0.2", 9042, new CoordinationMechanism.Zookeeper(2182), "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), false);
-        r2 = CassandraReplica.create("127.0.0.3", 9042, 2183, "datacenter1",
+        r2 = CassandraReplica.create("127.0.0.3", 9042, new CoordinationMechanism.Zookeeper(2183), "datacenter1",
                 Duration.apply(msReplicaTimeout, "ms"), false);
 
         int[] results = new int[nRuns];

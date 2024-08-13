@@ -3,7 +3,7 @@ package de.tuda.stg.consys.core.store.cassandra
 import com.datastax.oss.driver.api.core.cql.{BatchStatement, BatchStatementBuilder, BatchType}
 import de.tuda.stg.consys.core.store.TransactionContext
 import de.tuda.stg.consys.core.store.cassandra.objects.CassandraObject
-import de.tuda.stg.consys.core.store.extensions.coordination.{DistributedLock, LockingTransactionContext, ZookeeperLockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.coordination.LockingTransactionContext
 import de.tuda.stg.consys.core.store.extensions.transaction.{CachedTransactionContext, CommitableTransactionContext}
 import de.tuda.stg.consys.core.store.utils.Reflect
 
@@ -16,12 +16,12 @@ import scala.reflect.ClassTag
  *
  * @author Mirko Köhler
  */
-class CassandraTransactionContext(override val store : CassandraStore) extends TransactionContext[CassandraStore]
-	with CommitableTransactionContext[CassandraStore]
-	with CachedTransactionContext[CassandraStore, Field]
-	with ZookeeperLockingTransactionContext[CassandraStore] {
+abstract class CassandraTransactionContext[StoreType <: CassandraStore](override val store : StoreType) extends TransactionContext[StoreType]
+	with CommitableTransactionContext[StoreType]
+	with CachedTransactionContext[StoreType, Field]
+	with LockingTransactionContext[StoreType] {
 
-	override protected type CachedType[T <: CassandraStore#ObjType] = CassandraObject[T, _ <: CassandraStore#Level]
+	override protected type CachedType[T <: StoreType#ObjType] = CassandraObject[T, _ <: StoreType#Level]
 
 	/** The timestamp of this transaction. It uses the start time of the transaction. */
 	//TODO: Is there a better way to generate timestamps for cassandra?
@@ -31,7 +31,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 	/** This builder is used for building the commit statement. */
 	private var commitStatementBuilder : BatchStatementBuilder = null
 
-	override def replicate[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level, constructorArgs : Any*) : CassandraStore#RefType[T] = {
+	override def replicate[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level, constructorArgs : Any*) : StoreType#RefType[T] = {
 		// Creates a new object by calling the matching constructor
 		val obj = Reflect.callConstructor[T](implicitly[ClassTag[T]], constructorArgs : _*)
 
@@ -41,7 +41,7 @@ class CassandraTransactionContext(override val store : CassandraStore) extends T
 		ref
 	}
 
-	def lookup[T <: CassandraStore#ObjType : ClassTag](addr : CassandraStore#Addr, level : CassandraStore#Level) : CassandraStore#RefType[T] = {
+	def lookup[T <: StoreType#ObjType : ClassTag](addr : StoreType#Addr, level : StoreType#Level) : StoreType#RefType[T] = {
 		val protocol = level.toProtocol(store)
 		val ref = protocol.lookup[T](this, addr)
 		ref

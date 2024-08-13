@@ -4,29 +4,26 @@ import akka.actor.{AllDeadLetters, ExtendedActorSystem, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata.SelfUniqueAddress
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import de.tuda.stg.consys.core.store.ConsistencyLevel
+import de.tuda.stg.consys.core.store.{ConsistencyLevel, CoordinationMechanism}
 import de.tuda.stg.consys.core.store.akka.utils.AkkaUtils.AkkaAddress
 import de.tuda.stg.consys.core.store.akkacluster.backend.AkkaClusterReplicaAdapter
-import de.tuda.stg.consys.core.store.extensions.coordination.ZookeeperBarrierStore
-import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ZookeeperStore}
+import de.tuda.stg.consys.core.store.extensions.coordination.{BarrierStore, ETCDBarrierStore, ETCDLockingTransactionContext, ZookeeperBarrierStore, ZookeeperLockingTransactionContext}
+import de.tuda.stg.consys.core.store.extensions.{ClearableStore, DistributedStore, ETCDStore, ZookeeperStore}
 import de.tuda.stg.consys.core.store.utils.{DeadLetterListener, SinglePortAddress}
 import de.tuda.stg.consys.logging.Logger
-import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
-import org.apache.curator.retry.ExponentialBackoffRetry
+import io.etcd.jetcd.Client
+import org.apache.curator.framework.CuratorFramework
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, Future}
 
 trait AkkaClusterStore extends DistributedStore
-  with ZookeeperStore
-  with ZookeeperBarrierStore
+  with BarrierStore
   with ClearableStore {
 
   /** The actor system to use for this store. */
   def actorSystem : ExtendedActorSystem
-  /** The zookeeper curator to use for all zookeeper calls in this store. */
-  def curator : CuratorFramework
 
   /** Type for ids to identify different replicas of the store. */
   override type Id = SelfUniqueAddress
@@ -38,7 +35,7 @@ trait AkkaClusterStore extends DistributedStore
   override type ObjType = java.io.Serializable
 
   /** Type of transactions contexts in the store that defines what users can do with transactions. */
-  override type TxContext = AkkaClusterTransactionContext
+  override type TxContext = AkkaClusterTransactionContext[_ <: AkkaClusterStore]
 
   /** The type of handlers of stored object that handle, e.g., method calls. */
   override type HandlerType[T <: ObjType] = AkkaClusterHandler[T]
@@ -53,7 +50,7 @@ trait AkkaClusterStore extends DistributedStore
   override lazy val id : Id = SelfUniqueAddress(Cluster(actorSystem).selfUniqueAddress)
 
   /** The backend replica implementation. */
-  private[akkacluster] val replica : AkkaClusterReplicaAdapter = new AkkaClusterReplicaAdapter(actorSystem, curator, timeout)
+  private[akkacluster] val replica : AkkaClusterReplicaAdapter = new AkkaClusterReplicaAdapter(actorSystem, timeout)
 
 
   /**
@@ -66,7 +63,7 @@ trait AkkaClusterStore extends DistributedStore
    *         not produce a result or has been aborted by the system.
    */
   override def transaction[T](body: TxContext => Option[T]): Option[T] = {
-    val tx = new AkkaClusterTransactionContext(this)
+    val tx = createTransactionContext()
 
     AkkaClusterStores.currentTransaction.withValue(tx) {
       try {
@@ -88,6 +85,8 @@ trait AkkaClusterStore extends DistributedStore
     }
   }
 
+  protected def createTransactionContext() : TxContext
+
   def getAddress : AkkaAddress =
     replica.getAddress
 
@@ -102,7 +101,6 @@ trait AkkaClusterStore extends DistributedStore
   }
 
   override def close() : Unit = {
-    curator.close()
     replica.close()
     Await.ready(actorSystem.whenTerminated, timeout)
   }
@@ -118,15 +116,7 @@ trait AkkaClusterStore extends DistributedStore
 object AkkaClusterStore {
 
 
-  def fromAddress(host : String, akkaPort : Int, zookeeperPort : Int, nodes : Iterable[SinglePortAddress], systemName : String = "consys-akka-cluster", timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS)) : AkkaClusterStore = {
-
-    class AkkaClusterStoreImpl(
-      override val actorSystem : ExtendedActorSystem,
-      override val curator : CuratorFramework,
-      override val timeout : FiniteDuration
-    ) extends AkkaClusterStore
-
-
+  def fromAddress(host : String, akkaPort : Int, coordinationMechanism : CoordinationMechanism, nodes : Iterable[SinglePortAddress], systemName : String = "consys-akka-cluster", timeout : FiniteDuration = Duration(30, TimeUnit.SECONDS)) : AkkaClusterStore = {
     def nodeName(host : String, akkaPort : Int) : String =
       s"akka://$systemName@$host:$akkaPort"
 
@@ -146,18 +136,47 @@ object AkkaClusterStore {
 
     DeadLetterListener.addDeadLetterListener(system)
 
-    val curator = CuratorFrameworkFactory
-      .newClient(s"$host:$zookeeperPort", new ExponentialBackoffRetry(250, 3))
+    coordinationMechanism match {
+      case CoordinationMechanism.Zookeeper(zookeeperPort) =>
+        val curator = ZookeeperStore.createCurator(host, zookeeperPort)
 
-    curator.start()
-    curator.blockUntilConnected(timeout.length.asInstanceOf[Int], timeout.unit)
+        class AkkaClusterStoreImpl(
+          override val actorSystem : ExtendedActorSystem,
+          override val curator : CuratorFramework,
+          override val timeout : FiniteDuration)
+        extends AkkaClusterStore with ZookeeperStore with ZookeeperBarrierStore {
+          def createTransactionContext() =
+            new AkkaClusterTransactionContext[AkkaClusterStoreImpl](this) with ZookeeperLockingTransactionContext[AkkaClusterStoreImpl]
 
+          override def close(): Unit = {
+            curator.close()
+            super.close()
+          }
+        }
 
-    new AkkaClusterStoreImpl(system, curator, timeout)
+        new AkkaClusterStoreImpl(system, curator, timeout)
+
+      case CoordinationMechanism.ETCD(etcdPort) =>
+        val (client, lease) = ETCDStore.createClientAndLease(host, etcdPort, timeout)
+
+        class AkkaClusterStoreImpl(
+          override val actorSystem : ExtendedActorSystem,
+          override val etcdClient : Client,
+          override val etcdLease : Long,
+          override val timeout : FiniteDuration)
+        extends AkkaClusterStore with ETCDStore with ETCDBarrierStore {
+          def createTransactionContext() =
+            new AkkaClusterTransactionContext[AkkaClusterStoreImpl](this) with ETCDLockingTransactionContext[AkkaClusterStoreImpl]
+
+          override def close(): Unit = {
+            client.getLeaseClient.revoke(lease)
+            super.close()
+          }
+        }
+
+        new AkkaClusterStoreImpl(system, client, lease, timeout)
+    }
   }
-
-
-
 }
 
 

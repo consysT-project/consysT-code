@@ -9,7 +9,7 @@ case class AkkaClusterRef[T <: AkkaClusterStore#ObjType : ClassTag](
   level : AkkaClusterStore#Level
 ) extends Ref[AkkaClusterStore, T] with java.io.Serializable {
 
-  def resolve(tx : AkkaClusterTransactionContext) : AkkaClusterStore#HandlerType[T] =
+  def resolve(tx : AkkaClusterStore#TxContext) : AkkaClusterStore#HandlerType[T] =
     new AkkaClusterHandler(tx, this)
 
   /* This method is for convenience use in transactions or when TxContext is not passed around */

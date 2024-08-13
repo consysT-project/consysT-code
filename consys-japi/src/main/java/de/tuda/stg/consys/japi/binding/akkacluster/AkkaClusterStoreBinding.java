@@ -19,7 +19,7 @@ public class AkkaClusterStoreBinding implements Store<String, Serializable, Cons
 
     @Override
     public <U> Option<U> transaction(Transaction<AkkaClusterTransactionContextBinding, U, String, Serializable, ConsistencyLevel<AkkaClusterStore>> tx) {
-        return store.transaction((Function1<AkkaClusterTransactionContext, Option<U>>) v1 -> tx.doTransaction(new AkkaClusterTransactionContextBinding(v1)));
+        return store.transaction((Function1<AkkaClusterTransactionContext<? extends AkkaClusterStore>, Option<U>>) v1 -> tx.doTransaction(new AkkaClusterTransactionContextBinding(v1)));
     }
 
     public void addOtherReplica(String hostname, int akkaPort) {

@@ -22,7 +22,7 @@ public class AkkaStoreBinding implements Store<String, Serializable, Consistency
 
     @Override
     public <U> Option<U> transaction(Transaction<AkkaTransactionContextBinding, U, String, Serializable, ConsistencyLevel<AkkaStore>> tx) {
-        return store.transaction((Function1<AkkaTransactionContext, Option<U>>) v1 -> tx.doTransaction(new AkkaTransactionContextBinding(v1)));
+        return store.transaction((Function1<AkkaTransactionContext<? extends AkkaStore>, Option<U>>) v1 -> tx.doTransaction(new AkkaTransactionContextBinding(v1)));
     }
 
     public void addOtherReplica(String hostname, int akkaPort) {
