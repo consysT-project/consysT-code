@@ -3,6 +3,10 @@ package de.tuda.stg.consys.invariants.lib.examples.messagegroups;
 
 import de.tuda.stg.consys.Mergeable;
 import de.tuda.stg.consys.annotations.invariants.ReplicatedModel;
+import de.tuda.stg.consys.annotations.methods.StrongOp;
+import de.tuda.stg.consys.annotations.methods.WeakOp;
+import org.checkerframework.dataflow.qual.SideEffectFree;
+
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.stateful;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.replicaId;
 import static de.tuda.stg.consys.invariants.utils.InvariantUtils.numOfReplicas;
@@ -22,8 +26,6 @@ import java.util.Set;
     public int[] counter;
     public Map<Integer, Set<String>> inboxes;
 
-    static { stateful(null); }
-
     //@ public invariant (\sum int i; i >= 0 && i < numOfReplicas(); counter[i]) >= 0;
     //@ public invariant (\sum int i; i >= 0 && i < numOfReplicas(); counter[i]) <= 3;
     //@ public invariant (\forall int uid; uid >= 5; inboxes.get(uid).isEmpty());
@@ -38,6 +40,7 @@ import java.util.Set;
     }
 
     //@ ensures \result == (\sum int i; i >= 0 && i < numOfReplicas(); counter[i]);
+    @SideEffectFree @WeakOp
     public int getCounterValue() {
         int result = 0;
         for (int i=0; i<numOfReplicas(); i++) result += counter[i];
@@ -45,6 +48,7 @@ import java.util.Set;
     }
 
     //@ ensures \result == (\sum int uid; uid >= 0 && uid < 5; inboxes.get(uid).isEmpty() ? 0 : 1);
+    @SideEffectFree @WeakOp
     public int getUserCount() {
         int result = 0;
         for (Set<String> inbox : inboxes.values()) if (!inbox.isEmpty()) result++;
@@ -57,6 +61,7 @@ import java.util.Set;
     //@ ensures inboxes.get(uid).containsAll(inbox);
     //@ ensures inboxes.get(uid).contains("Welcome to the group!");
     //@ ensures (\forall int otherUser; ; inboxes.get(otherUser) == \old(inboxes).get(otherUser) || otherUser != uid);
+    @StrongOp
     public Void addUser(Integer uid, Set<String> inbox) {
         /* Strong */
         if (uid < 0 || uid >= MAX_USER_ID) {
@@ -82,6 +87,7 @@ import java.util.Set;
     //@ ensures inboxes.get(uid).containsAll(other.inboxes.get(uid));
     //@ ensures (\forall String msg; inboxes.get(uid).contains(msg); \old(inboxes).get(uid).contains(msg) || other.inboxes.get(uid).contains(msg));
     //@ ensures (\forall int otherUser; ; inboxes.get(otherUser) == \old(inboxes).get(otherUser) || otherUser == uid);
+    @WeakOp
     private Void mergeUserInbox(Integer uid, Group other) {
         if (other.inboxes.containsKey(uid)) {
             var otherInbox = other.inboxes.get(uid);
@@ -92,6 +98,7 @@ import java.util.Set;
     }
 
     //@ ensures (\forall int uid; !\old(inboxes).get(uid).isEmpty(); inboxes.get(uid).contains(message));
+    @WeakOp
     public Void postMessage(String message) {
         /* Weak */
         for (var inbox : inboxes.values()) if (!inbox.isEmpty()) inbox.add(message);
