@@ -1,15 +1,17 @@
-# Install requirements with apt
+# Installing requirements with apt
 sudo apt update
 sudo apt install maven openjdk-11-jdk-headless -y
 
-# Install consys
+
+# Installing consys
 cd ~
-git clone https://github.com/consysT-project/consysT-code.git
+git clone --depth 1 https://github.com/consysT-project/consysT-code.git
 cd consysT-code/
 git checkout develop
-mvn install -DskipTests
+mvn install -pl :consys-annotations,:consys-core,:consys-type-checker-jdk-utils,:consys-type-checker,:consys-japi,:consys-compiler,:invariants-lib,:invariants-examples,:consys-bench,:demo-bench,:crdt-benchmarks -Dmaven.test.skip
 
-# Install cassandra
+
+# Installing cassandra
 cd ~
 wget https://archive.apache.org/dist/cassandra/4.0.7/apache-cassandra-4.0.7-bin.tar.gz
 tar -xf apache-cassandra-4.0.7-bin.tar.gz
@@ -18,6 +20,7 @@ cd apache-cassandra-4.0.7
 cp ~/consysT-code/aws/config-01/cassandra/cassandra01.yaml conf/cassandra.yaml
 ./bin/cassandra
 ./bin/nodetool status        
+
 
 # Configuring cassandra.yaml
 cluster_name: 'consys-bench'
@@ -53,8 +56,7 @@ bin/zkServer.sh start
 bin/zkServer.sh status
 
 
-
-# Configuring zoo.cfg
+# Configuring Zookeeper zoo.cfg
 clientPort=2181 (Replace last digit with myid, e.g., 2183 for node with id 3)
 
 dataDir=/home/ubuntu/apache-zookeeper-3.8.3-bin/data
@@ -70,6 +72,33 @@ server.7=172.31.17.156:2888:3888
 server.8=172.31.25.156:2888:3888
 (For every server where the nmber in server.n is the myid)
 
+
+# Installing etcd
+cd ~
+wget https://github.com/etcd-io/etcd/releases/download/v3.5.15/etcd-v3.5.15-linux-amd64.tar.gz
+tar -xf etcd-v3.5.15-linux-amd64.tar.gz
+cd etcd-v3.5.15-linux-amd64
+cp ~/consysT-code/aws/config-03/etcd.conf.yml .
+
+# Edit the etcd.conf.yml config file for the node
+
+<ID>        is the node id (e.g., 1, 2, 3, 4)
+<NODE-IP>   is the local node's IP address
+            expect for the line:
+              initial-cluster: node-1=http://<NODE-IP>:2380,node-2=http://<NODE-IP>:2380,node-3=http://<NODE-IP>:2380,node-4=http://<NODE-IP>:2380
+            This line lists the IP addresses of all the nodes
+<NODE-PORT> is the local node's etcd port (e.g., 2181, 2182, 2183, 2184)
+
+# Running etcd
+
+~/etcd-v3.5.15-linux-amd64/etcd --config-file ~/etcd-v3.5.15-linux-amd64/etcd.conf.yml &
+# or (to reduce noise)
+~/etcd-v3.5.15-linux-amd64/etcd --config-file ~/etcd-v3.5.15-linux-amd64/etcd.conf.yml 2> /dev/null &
+
+
+# Note
+
+You will need either Zookeeper or etcd for the benchmarks depending on whether the code sets them up to use Zookeeper or etcd for coordination.
 
 
 # CRDT Benchmark execution

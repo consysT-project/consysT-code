@@ -1,0 +1,20 @@
+# Node name, a unique identifier, in the etcd cluster
+name: node-<ID>
+
+# Listen addresses for client communication
+listen-client-urls: http://127.0.0.1:2379,http://<NODE-IP>:<NODE-PORT>
+
+# Advertise addresses for client communication
+advertise-client-urls: http://<NODE-IP>:<NODE-PORT>
+
+# Listen addresses for peer communication
+listen-peer-urls: http://<NODE-IP>:2380
+
+# Advertise addresses for peer communication
+initial-advertise-peer-urls: http://<NODE-IP>:2380
+
+# Initial cluster configuration
+initial-cluster: node-1=http://<NODE-IP>:2380,node-2=http://<NODE-IP>:2380,node-3=http://<NODE-IP>:2380,node-4=http://<NODE-IP>:2380
+
+# Initial cluster state (new, existing, or standby)
+initial-cluster-state: new
