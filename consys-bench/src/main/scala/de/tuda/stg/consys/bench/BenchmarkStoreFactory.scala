@@ -27,7 +27,7 @@ object BenchmarkStoreFactory {
 		val store = AkkaStore.fromAddress(
 			host = address.hostname,
 			akkaPort = address.port1,
-			coordinationMechanism = CoordinationMechanism.ETCD(address.port2),
+			coordinationMechanism = CoordinationMechanism.Zookeeper(address.port2),
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akka.timeout"))
 		)
 
@@ -50,7 +50,7 @@ object BenchmarkStoreFactory {
 		val store = AkkaClusterStore.fromAddress(
 			host = address.hostname,
 			akkaPort = address.port1,
-			coordinationMechanism = CoordinationMechanism.ETCD(address.port2),
+			coordinationMechanism = CoordinationMechanism.Zookeeper(address.port2),
 			timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.akkacluster.timeout")),
 			nodes = akkaReplicas
 		)
@@ -65,7 +65,7 @@ object BenchmarkStoreFactory {
 			CassandraStore.fromAddress(
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
-				coordinationMechanism = CoordinationMechanism.ETCD(config.getInt("consys.bench.cassandra.zookeeperPort")),
+				coordinationMechanism = CoordinationMechanism.Zookeeper(config.getInt("consys.bench.cassandra.zookeeperPort")),
 				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = true
@@ -75,7 +75,7 @@ object BenchmarkStoreFactory {
 			CassandraStore.fromAddress(
 				host = config.getString("consys.bench.cassandra.host"),
 				cassandraPort = config.getInt("consys.bench.cassandra.cassandraPort"),
-				coordinationMechanism = CoordinationMechanism.ETCD(config.getInt("consys.bench.cassandra.zookeeperPort")),
+				coordinationMechanism = CoordinationMechanism.Zookeeper(config.getInt("consys.bench.cassandra.zookeeperPort")),
 				datacenter = config.getString("consys.bench.cassandra.datacenter"),
 				timeout = BenchmarkUtils.convertDuration(config.getDuration("consys.bench.cassandra.timeout")),
 				initialize = false
