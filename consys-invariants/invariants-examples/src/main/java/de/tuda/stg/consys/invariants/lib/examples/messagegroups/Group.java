@@ -109,7 +109,7 @@ import java.util.Set;
     //@ ensures (\forall int u; ; inboxes.get(u).containsAll(\old(inboxes).get(u)));
     //@ ensures (\forall int u; ; inboxes.get(u).containsAll(other.inboxes.get(u)));
     //@ ensures (\forall int u; ; (\forall String msg; inboxes.get(u).contains(msg); \old(inboxes).get(u).contains(msg) || other.inboxes.get(u).contains(msg)));
-    //@ ensures (\forall int u; !inboxes.get(u).isEmpty() ; stateful(mergeUserInbox(u, other)));
+    //@ ensures (\forall int u; u >= 0 && u < 5; stateful(mergeUserInbox(u, other)));
     //@ ensures (\forall int u; !other.inboxes.get(u).isEmpty(); stateful(addUser(u, other.inboxes.get(u))));
     public Void merge(Group other) {
         for (int i=0; i<numOfReplicas(); i++) counter[i] = Math.max(counter[i], other.counter[i]);
